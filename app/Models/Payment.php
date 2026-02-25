@@ -15,14 +15,19 @@ class Payment extends Model
     protected $fillable = [
         'subscription_id',
         'user_id',
+        'revolut_order_id',
         'amount',
         'currency',
         'status',
+        'revolut_payment_data',
         'description',
+        'plan_slug',
+        'billing_cycle',
     ];
 
     protected $casts = [
         'amount' => 'integer',
+        'revolut_payment_data' => 'array',
     ];
 
     public function subscription(): BelongsTo

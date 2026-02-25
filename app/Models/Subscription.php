@@ -28,6 +28,8 @@ class Subscription extends Model
         'cancelled_at',
         'cancellation_reason',
         'data_retention_starts_at',
+        'revolut_order_id',
+        'revolut_subscription_id',
     ];
 
     protected $casts = [
