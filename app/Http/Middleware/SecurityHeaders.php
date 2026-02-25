@@ -30,23 +30,15 @@ class SecurityHeaders
 
         // CSP - allows inline scripts/styles for Vue SPA, data: URIs for images (MFA QR codes)
         // In local dev, Vite serves assets from localhost:5173 and uses WebSocket for HMR
-        $revolut = '';
-        if (config('app.payment_enabled', false)) {
-            $revolut = config('services.revolut.sandbox')
-                ? 'https://sandbox-merchant.revolut.com https://sandbox-checkout.revolut.com'
-                : 'https://merchant.revolut.com https://checkout.revolut.com';
-        }
-
         if (app()->environment('local')) {
             $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173';
-            $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut}; frame-src 'self' {$revolut}";
+            $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite}; frame-src 'self'";
         } else {
-            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' {$revolut}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$revolut}; frame-src 'self' {$revolut}";
+            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-src 'self'";
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
-        $paymentPolicy = config('app.payment_enabled', false) ? 'payment=(self)' : 'payment=()';
-        $response->headers->set('Permissions-Policy', "camera=(), microphone=(), geolocation=(), {$paymentPolicy}, usb=(), bluetooth=()");
+        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()');
 
         return $response;
     }

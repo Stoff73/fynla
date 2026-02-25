@@ -17,9 +17,6 @@ class SubscriptionPlan extends Model
         'is_active',
         'features',
         'sort_order',
-        'revolut_plan_id',
-        'revolut_monthly_variation_id',
-        'revolut_yearly_variation_id',
     ];
 
     protected $casts = [
@@ -37,16 +34,6 @@ class SubscriptionPlan extends Model
     public function getPriceForCycle(string $billingCycle): int
     {
         return $billingCycle === 'monthly' ? $this->monthly_price : $this->yearly_price;
-    }
-
-    /**
-     * Get the Revolut variation ID for a given billing cycle.
-     */
-    public function getVariationIdForCycle(string $billingCycle): ?string
-    {
-        return $billingCycle === 'monthly'
-            ? $this->revolut_monthly_variation_id
-            : $this->revolut_yearly_variation_id;
     }
 
     /**

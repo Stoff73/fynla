@@ -25,6 +25,9 @@ yarn-error.log
 # Administrative files (documentation, dev tools, design mockups)
 /.admin
 
+# Local SSL certificates
+/.certs
+
 # macOS system files
 .DS_Store
 **/.DS_Store

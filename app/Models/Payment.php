@@ -12,25 +12,17 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $hidden = [
-        'revolut_payment_data',
-        'revolut_order_id',
-    ];
-
     protected $fillable = [
         'subscription_id',
         'user_id',
-        'revolut_order_id',
         'amount',
         'currency',
         'status',
         'description',
-        'revolut_payment_data',
     ];
 
     protected $casts = [
         'amount' => 'integer',
-        'revolut_payment_data' => 'array',
     ];
 
     public function subscription(): BelongsTo

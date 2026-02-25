@@ -67,7 +67,7 @@
 
           <p class="text-gray-700 leading-relaxed mb-3"><strong>Automatically</strong> &mdash; essential session cookies, server logs, and audit logs for security purposes.</p>
 
-          <p class="text-gray-700 leading-relaxed mb-3"><strong>From third parties</strong> &mdash; address data from GetAddress.io (postcodes only) and payment confirmations from Revolut.</p>
+          <p class="text-gray-700 leading-relaxed mb-3"><strong>From third parties</strong> &mdash; address data from GetAddress.io (postcodes only).</p>
 
           <p class="text-gray-700 leading-relaxed"><strong>Linked spouse or partner</strong> &mdash; where both parties have active accounts and have mutually linked their profiles, financial data is shared between accounts for joint financial planning.</p>
         </section>
@@ -116,7 +116,6 @@
           <ul class="list-disc pl-6 mb-6 space-y-3">
             <li class="text-gray-700 leading-relaxed"><strong>GetAddress.io</strong> &mdash; UK postcode lookup service. Only postcodes are sent; no personal data is transmitted.</li>
             <li class="text-gray-700 leading-relaxed"><strong>Anthropic</strong> &mdash; Document data extraction via artificial intelligence. Document content is transmitted over encrypted connections. Anthropic's API usage policy states that data sent via the API is not used to train their models. See Section 8 regarding international transfers.</li>
-            <li class="text-gray-700 leading-relaxed"><strong>Revolut</strong> &mdash; Payment processing for subscriptions. Revolut is authorised by the Financial Conduct Authority. We do not receive or store your card details.</li>
             <li class="text-gray-700 leading-relaxed"><strong>SiteGround</strong> &mdash; Web hosting provider. Servers located in the United Kingdom and European Economic Area. Data processing agreement in place.</li>
             <li class="text-gray-700 leading-relaxed"><strong>mail.fynla.org</strong> &mdash; Email delivery for verification codes and service notifications. Hosted by SiteGround (UK). Emails contain only your name and the relevant notification content.</li>
           </ul>

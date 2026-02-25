@@ -193,10 +193,10 @@ class PreviewUserSeeder extends Seeder
         // Delete spouse data if exists
         if ($spouse) {
             $this->deleteUserData($spouse);
-            $spouse->delete();
+            $spouse->forceDelete();
         }
 
-        $user->delete();
+        $user->forceDelete();
     }
 
     /**

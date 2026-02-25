@@ -16,7 +16,7 @@ class CheckSubscription
     private const ALWAYS_EXCLUDED_PATHS = [
         'api/payment/',       // Subscribe, check status, cancel — required for resubscription
         'api/auth/',          // Login, logout, register, verify, password reset
-        'api/webhooks/',      // Revolut webhooks (signature-verified, no user context)
+        'api/webhooks/',      // Payment webhooks
         'api/preview/',       // Preview mode switching
         'api/onboarding/',    // Onboarding steps
         'api/bug-report',     // Users should always be able to report issues

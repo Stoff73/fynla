@@ -15,11 +15,6 @@ class Subscription extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $hidden = [
-        'revolut_order_id',
-        'revolut_subscription_id',
-    ];
-
     protected $fillable = [
         'user_id',
         'plan',
@@ -30,8 +25,6 @@ class Subscription extends Model
         'trial_ends_at',
         'current_period_start',
         'current_period_end',
-        'revolut_order_id',
-        'revolut_subscription_id',
         'cancelled_at',
         'cancellation_reason',
         'data_retention_starts_at',

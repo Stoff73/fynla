@@ -132,7 +132,6 @@ class DataPurgeService
                 'household_id' => null,
                 // Subscription
                 'plan' => 'free',
-                'revolut_customer_id' => null,
                 'trial_ends_at' => null,
             ]);
         });

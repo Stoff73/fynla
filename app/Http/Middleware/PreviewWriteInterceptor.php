@@ -49,7 +49,6 @@ class PreviewWriteInterceptor
         'api/onboarding',         // Allow onboarding to work in preview mode
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction
-        'api/webhooks/revolut',   // Revolut payment webhook
     ];
 
     /**

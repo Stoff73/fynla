@@ -87,12 +87,21 @@
         <!-- Error Message -->
         <div v-if="errorMessage" class="rounded-lg bg-red-50 border border-red-200 p-4 text-center">
           <p class="text-sm text-red-800">{{ errorMessage }}</p>
-          <p v-if="showRegisterHint" class="mt-2 text-sm text-red-800">
-            Don't have an account?
-            <router-link to="/register" class="font-medium underline">
-              Register here
-            </router-link>
-          </p>
+          <div v-if="showLoginHints" class="mt-3 flex flex-col gap-2 text-sm">
+            <button
+              type="button"
+              @click="showForgotPasswordModal = true"
+              class="text-primary-600 hover:text-primary-700 font-medium underline"
+            >
+              Forgot your password?
+            </button>
+            <p class="text-red-800">
+              Don't have an account?
+              <router-link to="/register" class="font-medium text-primary-600 hover:text-primary-700 underline">
+                Register here
+              </router-link>
+            </p>
+          </div>
         </div>
 
         <div class="space-y-4">
@@ -216,10 +225,10 @@ export default {
       }
     });
 
-    const showRegisterHint = computed(() => {
+    const showLoginHints = computed(() => {
       if (!errorMessage.value) return false;
       const msg = errorMessage.value.toLowerCase();
-      return msg.includes('no account found') || msg.includes('invalid credentials');
+      return msg.includes('invalid') || msg.includes('no account') || msg.includes('incorrect');
     });
 
     const handleLogin = async () => {
@@ -338,7 +347,7 @@ export default {
       errorMessage,
       inactivityMessage,
       loading,
-      showRegisterHint,
+      showLoginHints,
       showPasswordModal,
       showVerificationModal,
       showMFAModal,

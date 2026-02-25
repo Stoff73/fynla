@@ -8,7 +8,7 @@
 #
 # Usage: ./dev.sh
 #
-# Last Updated: October 30, 2025
+# Last Updated: February 25, 2026
 # ==================================================
 
 # Colors for output
@@ -51,8 +51,6 @@ sleep 1
 # Export local development environment variables
 echo -e "${GREEN}Setting local development environment variables...${NC}"
 export APP_ENV=local
-export APP_URL=http://localhost:8000
-export VITE_API_BASE_URL=http://localhost:8000
 export DB_CONNECTION=mysql
 export DB_HOST=localhost
 export DB_PORT=3306
@@ -60,6 +58,8 @@ export DB_DATABASE=laravel
 export DB_USERNAME=root
 export DB_PASSWORD=""
 export CACHE_DRIVER=array
+export APP_URL=http://localhost:8000
+export VITE_API_BASE_URL=http://localhost:8000
 
 # Verify environment
 echo ""
@@ -136,10 +136,10 @@ if ! ps -p $VITE_PID > /dev/null; then
 fi
 
 # Check Vite output for correct URL
-if grep -q "APP_URL: http://localhost:8000" /tmp/vite-output.log 2>/dev/null; then
-    echo -e "${GREEN}✓ Vite configured with correct APP_URL${NC}"
+if grep -q "APP_URL:" /tmp/vite-output.log 2>/dev/null; then
+    echo -e "${GREEN}✓ Vite started successfully${NC}"
 else
-    echo -e "${YELLOW}⚠ Could not verify Vite APP_URL (may still be compiling)${NC}"
+    echo -e "${YELLOW}⚠ Vite may still be compiling${NC}"
 fi
 
 echo ""

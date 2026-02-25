@@ -57,8 +57,13 @@
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
-        <div v-if="errorMessage" class="rounded-button bg-error-50 p-4">
+        <div v-if="errorMessage" class="rounded-lg bg-error-50 border border-error-200 p-4">
           <p class="text-body-sm text-error-700">{{ errorMessage }}</p>
+          <div v-if="emailExists" class="mt-3 flex flex-col gap-2 text-sm text-center">
+            <router-link to="/login" class="font-medium text-primary-600 hover:text-primary-700 underline">
+              Sign in to your account
+            </router-link>
+          </div>
         </div>
 
         <div class="space-y-4">
@@ -225,6 +230,7 @@ export default {
 
     const errors = ref({});
     const errorMessage = ref('');
+    const emailExists = ref(false);
     const showVerificationModal = ref(false);
     const pendingId = ref(null);
     const pendingEmail = ref('');
@@ -244,6 +250,7 @@ export default {
       }
       errors.value = {};
       errorMessage.value = '';
+      emailExists.value = false;
       isSubmitting.value = true;
 
       try {
@@ -278,7 +285,10 @@ export default {
           await completeRegistration(response.data.data);
         }
       } catch (error) {
-        if (error.response?.data?.errors) {
+        if (error.response?.data?.email_exists) {
+          emailExists.value = true;
+          errorMessage.value = error.response.data.message;
+        } else if (error.response?.data?.errors) {
           // Map surname errors to last_name for frontend display
           const backendErrors = error.response.data.errors;
           if (backendErrors.surname) {
@@ -323,6 +333,7 @@ export default {
       form,
       errors,
       errorMessage,
+      emailExists,
       loading,
       showVerificationModal,
       pendingId,

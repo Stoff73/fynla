@@ -114,7 +114,7 @@
           <p class="text-gray-700 leading-relaxed mb-5">New accounts receive a 7-day free trial with full access to the Service. No payment information is required to start a trial. When the trial expires, your account is downgraded to a free tier with limited access and you will not be able to access planning tools, dashboards, or document uploads until you subscribe. If you do not subscribe within 30 days of your trial ending, your account and all associated data will be permanently deleted.</p>
 
           <h3 class="text-base font-semibold text-gray-900 mb-2">Payment Processing</h3>
-          <p class="text-gray-700 leading-relaxed mb-5">Payments are processed by Revolut, which is authorised by the Financial Conduct Authority. We do not receive, process, or store your payment card details. Revolut's terms of service apply to all payment transactions. We are not responsible for payment processing errors or interruptions caused by Revolut.</p>
+          <p class="text-gray-700 leading-relaxed mb-5">We do not receive, process, or store your payment card details. Our payment processor's terms of service apply to all payment transactions. We are not responsible for payment processing errors or interruptions caused by third-party payment providers.</p>
 
           <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-Renewal</h3>
           <p class="text-gray-700 leading-relaxed mb-5">Subscriptions renew automatically at the end of each billing period (monthly or yearly) at the then-current price. We will send you a reminder before your subscription renews. You may cancel auto-renewal at any time before the next billing date.</p>
@@ -215,7 +215,7 @@
             <li class="text-gray-700 leading-relaxed">We are not liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, loss of business, loss of data, loss of opportunity, or financial losses arising from any investment, tax, or other financial decisions you make based on the Service's outputs.</li>
             <li class="text-gray-700 leading-relaxed">Our total aggregate liability to you for any claims arising out of or relating to the Service is limited to the total amount you have paid us for the Service in the 12 months preceding the claim. If you are using the free tier or trial, our total liability is limited to &pound;50.</li>
             <li class="text-gray-700 leading-relaxed">We are not liable for any loss or damage arising from the accuracy, completeness, or timeliness of the Service's calculations, projections, or outputs, except where caused by our failure to exercise reasonable care and skill.</li>
-            <li class="text-gray-700 leading-relaxed">We are not liable for any loss or damage arising from the actions or omissions of third-party service providers, including Revolut, Anthropic, GetAddress.io, and SiteGround.</li>
+            <li class="text-gray-700 leading-relaxed">We are not liable for any loss or damage arising from the actions or omissions of third-party service providers, including Anthropic, GetAddress.io, and SiteGround.</li>
           </ul>
 
           <h3 class="text-base font-semibold text-gray-900 mb-2">Your Responsibility</h3>
@@ -308,7 +308,6 @@
           <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">17. Third-Party Services</h2>
           <p class="text-gray-700 leading-relaxed mb-4">The Service integrates with the following third-party services:</p>
           <ul class="list-disc pl-6 mb-4 space-y-2">
-            <li class="text-gray-700 leading-relaxed"><strong>Revolut</strong> &mdash; Payment processing.</li>
             <li class="text-gray-700 leading-relaxed"><strong>Anthropic</strong> &mdash; AI-powered document data extraction.</li>
             <li class="text-gray-700 leading-relaxed"><strong>GetAddress.io</strong> &mdash; UK postcode lookup.</li>
             <li class="text-gray-700 leading-relaxed"><strong>SiteGround</strong> &mdash; Web hosting and email delivery.</li>

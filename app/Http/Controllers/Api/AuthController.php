@@ -49,20 +49,15 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         // Check if email is already registered as a verified user
-        // Return same response shape to prevent account enumeration
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {
             \Log::info('Registration attempted with existing email', ['email_masked' => $this->maskEmail($request->email)]);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Please check your email for verification code.',
-                'requires_verification' => true,
-                'data' => [
-                    'pending_id' => 0,
-                    'email' => $this->maskEmail($request->email),
-                ],
-            ], 201);
+                'success' => false,
+                'message' => 'An account with this email address already exists. Please sign in or reset your password.',
+                'email_exists' => true,
+            ], 422);
         }
 
         // Create or update pending registration (allows re-registration)
@@ -465,11 +460,12 @@ class AuthController extends Controller
                 'pending_id' => $pending->id,
             ]);
 
-            // Start trial if a plan was selected during registration
-            if ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro'])) {
-                $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
-                $this->trialService->startTrial($user, $pending->plan, $billingCycle);
-            }
+            // Start trial — use selected plan or default to 'standard'
+            $plan = ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro']))
+                ? $pending->plan
+                : 'standard';
+            $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
+            $this->trialService->startTrial($user, $plan, $billingCycle);
 
             // Audit log - new user registration
             $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [

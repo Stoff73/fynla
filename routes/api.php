@@ -936,18 +936,11 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
 
 // Payment routes
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::post('/subscribe', [\App\Http\Controllers\Api\PaymentController::class, 'subscribe'])->middleware('throttle:3,1');
-    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder'])->middleware('throttle:3,1');
-    Route::get('/order-status', [\App\Http\Controllers\Api\PaymentController::class, 'orderStatus']);
     Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
     Route::get('/billing-history', [\App\Http\Controllers\Api\PaymentController::class, 'billingHistory']);
     Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
     Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
 });
-
-// Revolut Webhook (public, signature-verified, rate-limited)
-Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'handle'])
-    ->middleware('throttle:30,1');
 
 // User Settings routes
 Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
