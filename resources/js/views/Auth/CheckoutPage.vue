@@ -20,8 +20,6 @@
 
       <!-- Checkout Content -->
       <div v-else>
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Complete Your Subscription</h1>
-
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <!-- Order Summary (left) -->
           <div class="lg:col-span-2">
@@ -41,7 +39,7 @@
                   <div class="flex justify-between">
                     <span class="text-body-base font-semibold text-gray-900">Total</span>
                     <span class="text-body-base font-semibold text-gray-900">
-                      {{ planPrice }}/{{ billingCycle === 'yearly' ? 'year' : 'month' }}
+                      {{ planPrice }}
                     </span>
                   </div>
                 </div>
@@ -69,8 +67,8 @@
               v-show="!paymentComplete && !error"
               class="bg-white rounded-xl border border-gray-200 p-6"
             >
-              <h2 class="text-h4 font-semibold text-gray-900 mb-4">Payment Details</h2>
-              <div ref="checkoutContainer" class="min-h-[300px]"></div>
+              <h2 class="text-h4 font-semibold text-gray-900 mb-4">Payment Method</h2>
+              <div ref="checkoutContainer" class="min-h-[300px] revolut-checkout-container"></div>
             </div>
 
             <!-- Processing Overlay -->
@@ -212,7 +210,7 @@ export default {
       const pence = this.billingCycle === 'monthly'
         ? this.planData.monthly_price
         : this.planData.yearly_price;
-      return this.formatCurrency(pence / 100);
+      return this.formatCurrencyWithPence(pence / 100);
     },
   },
 
@@ -320,3 +318,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Hide Revolut's duplicate "Payment method" heading inside the iframe */
+.revolut-checkout-container {
+  overflow: hidden;
+}
+.revolut-checkout-container :deep(iframe) {
+  margin-top: -40px;
+}
+</style>
