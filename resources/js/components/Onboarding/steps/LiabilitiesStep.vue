@@ -96,6 +96,7 @@ import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import estateService from '@/services/estateService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'LiabilitiesStep',
@@ -181,16 +182,6 @@ export default {
 
     const handleSkip = () => {
       emit('skip');
-    };
-
-    const formatCurrency = (value) => {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     };
 
     return {

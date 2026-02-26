@@ -75,11 +75,9 @@ import { previewModeMixin } from '@/mixins/previewModeMixin';
 | Utility | Key Exports |
 |---------|-------------|
 | `currency.js` | `formatCurrency`, `formatCurrencyWithPence`, `formatCurrencyCompact`, `parseCurrency` |
-| `dateFormatter.js` | `formatDate` (DD/MM/YYYY), `formatDateForInput` (YYYY-MM-DD), `formatDateLong`, `calculateAge` |
-| `dates.js` | `getTaxYearStart`, `getTaxYearEnd`, `parseUKDate`, `formatRelativeDate` |
+| `dateFormatter.js` | `formatDate` (DD/MM/YYYY), `formatDateForInput` (YYYY-MM-DD), `formatDateLong`, `calculateAge`, `getRelativeTime`, `getTaxYearStart`, `getTaxYearEnd` |
 | `ownership.js` | `calculateUserShare`, `isSharedOwnership`, `OWNERSHIP_TYPES`, `getOwnershipLabel` |
 | `poller.js` | `poll`, `pollMonteCarloJob` - for long-running async operations |
-| `asyncAction.js` | `createAsyncAction` - reduces Vuex action boilerplate |
 | `logger.js` | `logger.info/warn/error/debug` - development-only structured logging |
 
 ## Constants (`constants/`)

@@ -350,8 +350,8 @@
     />
 
     <!-- Delete Confirmation -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Pension"
       message="Are you sure you want to delete this pension? This action cannot be undone."
       @confirm="handleDelete"
@@ -363,7 +363,7 @@
 <script>
 import { mapActions, mapState } from 'vuex';
 import UnifiedPensionForm from '@/components/Retirement/UnifiedPensionForm.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
@@ -374,7 +374,7 @@ export default {
 
   components: {
     UnifiedPensionForm,
-    ConfirmationModal,
+    ConfirmDialog,
     PensionPotProjectionChart,
   },
 

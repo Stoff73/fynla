@@ -6,7 +6,6 @@ namespace Tests\Feature;
 
 use App\Models\TaxConfiguration;
 use App\Models\User;
-use App\Services\Estate\IHTCalculator;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Savings\ISATracker;
 use App\Services\TaxConfigService;
@@ -155,7 +154,7 @@ class TaxConfigurationTest extends TestCase
         $this->assertEquals(12570, $incomeTax['personal_allowance']);
     }
 
-    public function test_iht_calculator_uses_active_tax_config(): void
+    public function test_iht_config_uses_active_tax_config(): void
     {
         TaxConfiguration::factory()->create([
             'tax_year' => $this->currentTaxYear,
@@ -172,11 +171,12 @@ class TaxConfigurationTest extends TestCase
             ],
         ]);
 
-        $ihtCalculator = app(IHTCalculator::class);
-        $config = $ihtCalculator->calculateCharitableReduction(1000000, 5);
+        $taxService = app(TaxConfigService::class);
+        $ihtConfig = $taxService->getInheritanceTax();
 
-        // Should use standard rate from active config
-        $this->assertEquals(0.40, $config);
+        // Should use IHT values from active config
+        $this->assertEquals(325000, $ihtConfig['nil_rate_band']);
+        $this->assertEquals(0.40, $ihtConfig['standard_rate']);
     }
 
     public function test_isa_tracker_uses_active_tax_config(): void

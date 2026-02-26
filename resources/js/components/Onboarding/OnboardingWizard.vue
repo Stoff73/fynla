@@ -78,11 +78,15 @@
     </div>
 
     <!-- Skip Confirmation Modal -->
-    <SkipConfirmationModal
+    <ConfirmDialog
       :show="showSkipModal"
-      :reason="skipReason"
+      title="This information is important"
+      :message="skipReason"
+      type="warning"
+      confirm-text="Skip Anyway"
+      cancel-text="Go Back"
+      @confirm="confirmSkip"
       @cancel="hideSkipModal"
-      @skip="confirmSkip"
     />
 
     <!-- Skip to Dashboard Modal -->
@@ -99,7 +103,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import FocusAreaSelection from './FocusAreaSelection.vue';
-import SkipConfirmationModal from './SkipConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SkipToDashboardModal from './SkipToDashboardModal.vue';
 import PersonalInfoStep from './steps/PersonalInfoStep.vue';
 import IncomeStep from './steps/IncomeStep.vue';
@@ -118,7 +122,7 @@ export default {
 
   components: {
     FocusAreaSelection,
-    SkipConfirmationModal,
+    ConfirmDialog,
     SkipToDashboardModal,
     PersonalInfoStep,
     IncomeStep,

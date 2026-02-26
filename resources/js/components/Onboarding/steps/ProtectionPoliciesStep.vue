@@ -159,6 +159,7 @@ import OnboardingStep from '../OnboardingStep.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import protectionService from '@/services/protectionService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'ProtectionPoliciesStep',
@@ -407,16 +408,6 @@ export default {
 
     const closeUploadModal = () => {
       showUploadModal.value = false;
-    };
-
-    const formatCurrency = (value) => {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     };
 
     return {

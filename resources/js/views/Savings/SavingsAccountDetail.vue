@@ -185,8 +185,8 @@
         @saved="handleAccountSaved"
       />
 
-      <ConfirmationModal
-        v-if="showDeleteConfirm"
+      <ConfirmDialog
+        :show="showDeleteConfirm"
         title="Delete Account"
         message="Are you sure you want to delete this savings account? This action cannot be undone."
         @confirm="handleDelete"
@@ -200,7 +200,7 @@
 import { mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -210,7 +210,7 @@ export default {
   components: {
     AppLayout,
     SaveAccountModal,
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   data() {

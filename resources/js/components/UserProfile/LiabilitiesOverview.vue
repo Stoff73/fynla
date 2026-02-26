@@ -116,6 +116,7 @@
 <script>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'LiabilitiesOverview',
@@ -134,15 +135,6 @@ export default {
     const otherLiabilities = computed(() => {
       return liabilitiesSummary.value?.other?.items || [];
     });
-
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
-    };
 
     const formatLiabilityType = (type) => {
       if (!type) return 'N/A';

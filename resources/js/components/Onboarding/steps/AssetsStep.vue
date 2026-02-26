@@ -518,6 +518,7 @@ import investmentService from '@/services/investmentService';
 import savingsService from '@/services/savingsService';
 import retirementService from '@/services/retirementService';
 import userProfileService from '@/services/userProfileService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'AssetsStep',
@@ -899,16 +900,6 @@ export default {
     function handleSkip() {
       emit('skip', 'assets');
     }
-
-    const formatCurrency = (value) => {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    };
 
     const formatDCPensionType = (type) => {
       const types = {

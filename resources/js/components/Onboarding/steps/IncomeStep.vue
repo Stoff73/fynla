@@ -310,6 +310,7 @@ import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 import propertyService from '@/services/propertyService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'IncomeStep',
@@ -482,16 +483,6 @@ export default {
         // No rental income displayed, but error logged for debugging
       }
     });
-
-    const formatCurrency = (value) => {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    };
 
     return {
       formData,

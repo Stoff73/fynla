@@ -359,6 +359,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import userProfileService from '@/services/userProfileService';
 import goalsService from '@/services/goalsService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'IncomeStatementTab',
@@ -383,16 +384,6 @@ export default {
     const currentYear = computed(() => now.getFullYear());
 
     const hasData = computed(() => profitAndLossData.value !== null || cashflowData.value !== null);
-
-    const formatCurrency = (amount) => {
-      if (amount === null || amount === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
-    };
 
     const formatCurrencyNegative = (amount) => {
       if (amount === null || amount === undefined || amount === 0) return '£0';

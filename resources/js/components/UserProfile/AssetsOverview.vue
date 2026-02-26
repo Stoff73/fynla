@@ -186,6 +186,7 @@
 import { computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'AssetsOverview',
@@ -196,15 +197,6 @@ export default {
 
     const profile = computed(() => store.getters['userProfile/profile']);
     const assetsSummary = computed(() => profile.value?.assets_summary);
-
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
-    };
 
     const navigateToProperties = () => {
       router.push({ name: 'NetWorthProperty' });

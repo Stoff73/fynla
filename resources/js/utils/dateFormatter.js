@@ -214,6 +214,38 @@ export function getRelativeTime(date) {
   }
 }
 
+/**
+ * Get the current tax year start date.
+ *
+ * UK tax year runs from 6 April to 5 April.
+ *
+ * @param {Date} [referenceDate] - Reference date (defaults to now)
+ * @returns {Date} Start of the current tax year
+ */
+export function getTaxYearStart(referenceDate = new Date()) {
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
+  const day = referenceDate.getDate();
+
+  // If before 6 April, tax year started previous year
+  if (month < 3 || (month === 3 && day < 6)) {
+    return new Date(year - 1, 3, 6); // 6 April previous year
+  }
+
+  return new Date(year, 3, 6); // 6 April this year
+}
+
+/**
+ * Get the current tax year end date.
+ *
+ * @param {Date} [referenceDate] - Reference date (defaults to now)
+ * @returns {Date} End of the current tax year
+ */
+export function getTaxYearEnd(referenceDate = new Date()) {
+  const start = getTaxYearStart(referenceDate);
+  return new Date(start.getFullYear() + 1, 3, 5); // 5 April next year
+}
+
 export default {
   formatDate,
   formatDateForInput,
@@ -221,4 +253,6 @@ export default {
   formatDateLong,
   calculateAge,
   getRelativeTime,
+  getTaxYearStart,
+  getTaxYearEnd,
 };

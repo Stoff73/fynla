@@ -348,6 +348,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'IncomeOccupation',
@@ -542,15 +543,6 @@ export default {
     onBeforeUnmount(() => {
       if (messageTimeout) clearTimeout(messageTimeout);
     });
-
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
-    };
 
     return {
       form,

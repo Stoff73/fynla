@@ -196,8 +196,8 @@
     />
 
     <!-- Delete Confirmation Modal -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Family Member"
       :message="`Are you sure you want to delete ${memberToDelete?.name}? This action cannot be undone.`"
       confirm-text="Delete"
@@ -221,9 +221,10 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import FamilyMemberFormModal from './FamilyMemberFormModal.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
+import { formatCurrency } from '@/utils/currency';
 
 // Preview mode messages
 const PREVIEW_ADD_MESSAGE = 'Family member added for this session only (preview mode).';
@@ -235,7 +236,7 @@ export default {
 
   components: {
     FamilyMemberFormModal,
-    ConfirmationModal,
+    ConfirmDialog,
     SpouseSuccessModal,
   },
 
@@ -305,16 +306,6 @@ export default {
         age--;
       }
       return age;
-    };
-
-    const formatCurrency = (amount) => {
-      if (!amount) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
     };
 
     const formatRelationship = (relationship) => {

@@ -22,7 +22,7 @@ public function __construct(
 
 **Response format:** Always use `$this->response(true, 'Message', ['data' => $result])` which returns `['success', 'message', 'data', 'timestamp']`.
 
-**BaseAgent helpers:** `formatCurrency()`, `formatPercentage()`, `calculateCompoundGrowth()`, `calculatePresentValue()`, `calculateAge()`, `getCurrentTaxYear()`, `roundToPenny()`
+**BaseAgent helpers:** `formatCurrency()`, `formatPercentage()` (via `FormatsCurrency` trait), `roundToPenny()`
 
 **Caching:** Use `$this->remember($key, $ttl, $callback)` with auto-detection of tag support. Cache keys: `v1_{agent}_{userId}_{suffix}`. Invalidate with `invalidateUserCache($userId)`.
 

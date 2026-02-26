@@ -200,9 +200,6 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Collect analysis from all module agents
      */
-    /**
-     * Collect analysis from all module agents
-     */
     private function collectModuleAnalysis(int $userId, ?array $moduleAgents): array
     {
         $analysis = [];
