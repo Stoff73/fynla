@@ -90,6 +90,8 @@
 </template>
 
 <script>
+import { formatCurrency } from '@/utils/currency';
+
 export default {
   name: 'ProfitAndLossView',
 
@@ -101,15 +103,6 @@ export default {
   },
 
   setup() {
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
-    };
-
     const formatDate = (dateString) => {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);

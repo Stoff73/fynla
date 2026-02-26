@@ -1,6 +1,5 @@
 import { createStore } from 'vuex';
 import auth from './modules/auth';
-import user from './modules/user';
 import dashboard from './modules/dashboard';
 import protection from './modules/protection';
 import savings from './modules/savings';
@@ -24,7 +23,6 @@ import infoGuide from './modules/infoGuide';
 const store = createStore({
   modules: {
     auth,
-    user,
     dashboard,
     protection,
     savings,

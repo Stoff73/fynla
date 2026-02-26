@@ -61,6 +61,8 @@
 </template>
 
 <script setup>
+import { formatCurrency } from '@/utils/currency';
+
 const props = defineProps({
   summary: {
     type: Object,
@@ -72,12 +74,5 @@ const props = defineProps({
   },
 });
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-};
+
 </script>

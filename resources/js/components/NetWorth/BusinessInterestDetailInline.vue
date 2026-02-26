@@ -362,8 +362,8 @@
     </div>
 
     <!-- Delete Confirmation -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Business Interest"
       message="Are you sure you want to delete this business interest? This action cannot be undone."
       @confirm="handleDelete"
@@ -374,7 +374,7 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -385,7 +385,7 @@ export default {
   mixins: [currencyMixin],
 
   components: {
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   props: {

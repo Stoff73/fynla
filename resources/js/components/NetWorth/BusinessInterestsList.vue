@@ -80,8 +80,8 @@
     />
 
     <!-- Delete Confirmation -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Business Interest"
       message="Are you sure you want to delete this business interest? This action cannot be undone."
       @confirm="handleDelete"
@@ -95,7 +95,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import BusinessInterestCard from './BusinessInterestCard.vue';
 import BusinessInterestForm from './BusinessInterestForm.vue';
 import BusinessInterestDetailInline from './BusinessInterestDetailInline.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -107,7 +107,7 @@ export default {
     BusinessInterestCard,
     BusinessInterestForm,
     BusinessInterestDetailInline,
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   data() {

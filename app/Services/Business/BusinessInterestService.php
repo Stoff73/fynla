@@ -485,14 +485,7 @@ class BusinessInterestService
      */
     private function getCurrentTaxYear(): string
     {
-        $now = Carbon::now();
-        $taxYearStart = Carbon::createFromFormat('m-d', '04-06');
-
-        if ($now->lt($taxYearStart)) {
-            return ($now->year - 1).'/'.substr((string) $now->year, 2);
-        }
-
-        return $now->year.'/'.substr((string) ($now->year + 1), 2);
+        return $this->taxConfig->getTaxYear();
     }
 
     /**
@@ -500,13 +493,10 @@ class BusinessInterestService
      */
     private function getNextTaxYear(): string
     {
-        $now = Carbon::now();
-        $taxYearStart = Carbon::createFromFormat('m-d', '04-06');
+        $currentYear = $this->getCurrentTaxYear();
+        // Parse "2025/26" format and advance by one year
+        $startYear = (int) substr($currentYear, 0, 4);
 
-        if ($now->lt($taxYearStart)) {
-            return $now->year.'/'.substr((string) ($now->year + 1), 2);
-        }
-
-        return ($now->year + 1).'/'.substr((string) ($now->year + 2), 2);
+        return ($startYear + 1).'/'.substr((string) ($startYear + 2), 2);
     }
 }

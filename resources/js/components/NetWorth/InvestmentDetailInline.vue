@@ -200,8 +200,8 @@
     />
 
     <!-- Delete Confirmation -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Investment Account"
       message="Are you sure you want to delete this investment account? This will also delete all associated holdings. This action cannot be undone."
       @confirm="handleDelete"
@@ -223,7 +223,7 @@
 <script>
 import { mapActions } from 'vuex';
 import AccountForm from '@/components/Investment/AccountForm.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
 import AccountHoldingsPanel from '@/views/Investment/AccountHoldingsPanel.vue';
 import AccountPerformancePanel from '@/views/Investment/AccountPerformancePanel.vue';
@@ -243,7 +243,7 @@ export default {
 
   components: {
     AccountForm,
-    ConfirmationModal,
+    ConfirmDialog,
     AccountSummaryPanel,
     AccountHoldingsPanel,
     AccountPerformancePanel,

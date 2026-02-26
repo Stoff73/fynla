@@ -671,26 +671,10 @@ class TaxOptimizationAnalyzer
     }
 
     /**
-     * Get current UK tax year
-     *
-     * @return string Tax year (e.g., "2024/25")
+     * Get current UK tax year.
      */
     private function getCurrentTaxYear(): string
     {
-        $now = new \DateTime;
-        $currentYear = (int) $now->format('Y');
-        $currentMonth = (int) $now->format('m');
-        $currentDay = (int) $now->format('d');
-
-        // Tax year runs April 6 to April 5
-        if ($currentMonth < 4 || ($currentMonth === 4 && $currentDay < 6)) {
-            $startYear = $currentYear - 1;
-        } else {
-            $startYear = $currentYear;
-        }
-
-        $endYear = $startYear + 1;
-
-        return sprintf('%d/%02d', $startYear, $endYear % 100);
+        return $this->taxConfig->getTaxYear();
     }
 }

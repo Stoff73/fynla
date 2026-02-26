@@ -19,6 +19,7 @@ use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
+use App\Services\TaxConfigService;
 
 /**
  * Retirement Agent
@@ -36,6 +37,7 @@ class RetirementAgent extends BaseAgent
         private readonly ContributionOptimizer $optimizer,
         private readonly DecumulationPlanner $planner,
         private readonly PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
+        private readonly TaxConfigService $taxConfig,
         // Portfolio optimization services (shared with Investment module)
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
@@ -71,7 +73,7 @@ class RetirementAgent extends BaseAgent
             $incomeGap = $targetIncome - $projectedIncome;
 
             // Check annual allowance
-            $taxYear = $this->getCurrentTaxYear();
+            $taxYear = $this->taxConfig->getTaxYear();
             $allowance = $this->allowanceChecker->checkAnnualAllowance($userId, $taxYear);
 
             // Calculate years to retirement

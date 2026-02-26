@@ -76,8 +76,8 @@
     />
 
     <!-- Delete Confirmation -->
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Chattel"
       message="Are you sure you want to delete this item? This action cannot be undone."
       @confirm="handleDelete"
@@ -91,7 +91,7 @@ import { mapState, mapActions } from 'vuex';
 import ChattelCard from './ChattelCard.vue';
 import ChattelFormModal from './ChattelFormModal.vue';
 import ChattelDetailInline from './ChattelDetailInline.vue';
-import ConfirmationModal from '@/components/Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 
 export default {
   name: 'ChattelsList',
@@ -100,7 +100,7 @@ export default {
     ChattelCard,
     ChattelFormModal,
     ChattelDetailInline,
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   data() {

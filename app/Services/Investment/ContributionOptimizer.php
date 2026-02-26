@@ -489,14 +489,7 @@ class ContributionOptimizer
 
     private function getCurrentTaxYear(): string
     {
-        $now = now();
-        $taxYearStart = $now->copy()->month(4)->day(6);
-
-        if ($now < $taxYearStart) {
-            return ($now->year - 1).'/'.substr((string) $now->year, -2);
-        }
-
-        return $now->year.'/'.substr((string) ($now->year + 1), -2);
+        return $this->taxConfig->getTaxYear();
     }
 
     private function getMonthsRemainingInTaxYear(): int

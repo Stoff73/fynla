@@ -21,20 +21,7 @@ class ISATracker
      */
     public function getCurrentTaxYear(): string
     {
-        $now = Carbon::now();
-        $taxYearStart = Carbon::create($now->year, 4, 6);
-
-        if ($now->lt($taxYearStart)) {
-            // Before April 6, still in previous tax year
-            $startYear = $now->year - 1;
-            $endYear = $now->year;
-        } else {
-            // After April 6, in current tax year
-            $startYear = $now->year;
-            $endYear = $now->year + 1;
-        }
-
-        return sprintf('%d/%02d', $startYear, $endYear % 100);
+        return $this->taxConfig->getTaxYear();
     }
 
     /**

@@ -249,6 +249,7 @@ import savingsService from '@/services/savingsService';
 import protectionService from '@/services/protectionService';
 import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'CompletionStep',
@@ -382,16 +383,6 @@ export default {
       } catch (err) {
         console.error('Failed to navigate to step:', err);
       }
-    };
-
-    const formatCurrency = (value) => {
-      if (value === null || value === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
     };
 
     return {

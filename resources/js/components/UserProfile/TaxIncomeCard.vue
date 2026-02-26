@@ -283,6 +283,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { formatCurrency } from '@/utils/currency';
 
 const props = defineProps({
   breakdown: {
@@ -330,15 +331,6 @@ const hasNI = computed(() => {
   // Legacy format with total_ni
   return props.breakdown.ni_breakdown.total_ni > 0;
 });
-
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-};
 
 const formatPercent = (value) => {
   return `${Math.round((value ?? 0) * 100)}%`;

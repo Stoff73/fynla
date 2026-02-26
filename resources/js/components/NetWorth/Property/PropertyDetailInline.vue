@@ -466,16 +466,16 @@
       @close="showEditModal = false"
     />
 
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Property"
       message="Are you sure you want to delete this property? This action cannot be undone."
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false"
     />
 
-    <ConfirmationModal
-      v-if="showDeleteMortgageConfirm"
+    <ConfirmDialog
+      :show="showDeleteMortgageConfirm"
       title="Delete Mortgage"
       message="Are you sure you want to delete this mortgage?"
       @confirm="handleMortgageDelete"
@@ -488,7 +488,7 @@
 import { mapState, mapActions } from 'vuex';
 import PropertyForm from './PropertyForm.vue';
 import PropertyFinancials from './PropertyFinancials.vue';
-import ConfirmationModal from '../../Common/ConfirmationModal.vue';
+import ConfirmDialog from '../../Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -499,7 +499,7 @@ export default {
   components: {
     PropertyForm,
     PropertyFinancials,
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   props: {

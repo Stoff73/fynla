@@ -1505,15 +1505,7 @@ class RetirementStrategyService
      */
     private function getCurrentTaxYear(): string
     {
-        $now = now();
-        $year = $now->year;
-
-        // Tax year runs April 6 to April 5
-        if ($now->month < 4 || ($now->month === 4 && $now->day < 6)) {
-            $year--;
-        }
-
-        return sprintf('%d/%d', $year, ($year + 1) % 100);
+        return $this->taxConfig->getTaxYear();
     }
 
     /**

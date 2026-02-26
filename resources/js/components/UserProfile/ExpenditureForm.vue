@@ -1213,6 +1213,7 @@ import ExpenditureSection from './ExpenditureSection.vue';
 import ExpenditureGridRow from './ExpenditureGridRow.vue';
 import ExpenditureExpandableGridRow from './ExpenditureExpandableGridRow.vue';
 import ExpenditureCategoryCard from './ExpenditureCategoryCard.vue';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'ExpenditureForm',
@@ -2094,15 +2095,6 @@ export default {
         }
       });
       isEditingWidowed.value = false;
-    };
-
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
     };
 
     const fetchCommitments = async () => {

@@ -293,8 +293,8 @@
       @close="showEditModal = false"
     />
 
-    <ConfirmationModal
-      v-if="showDeleteConfirm"
+    <ConfirmDialog
+      :show="showDeleteConfirm"
       title="Delete Policy"
       message="Are you sure you want to delete this policy? This action cannot be undone."
       @confirm="handleDelete"
@@ -308,7 +308,7 @@
 import { mapState, mapActions, mapGetters } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PolicyFormModal from './PolicyFormModal.vue';
-import ConfirmationModal from '../Common/ConfirmationModal.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -318,7 +318,7 @@ export default {
   components: {
     AppLayout,
     PolicyFormModal,
-    ConfirmationModal,
+    ConfirmDialog,
   },
 
   data() {
