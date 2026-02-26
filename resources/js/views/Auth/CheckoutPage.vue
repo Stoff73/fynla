@@ -320,11 +320,15 @@ export default {
 </script>
 
 <style scoped>
-/* Hide Revolut's duplicate "Payment method" heading inside the iframe */
-.revolut-checkout-container {
-  overflow: hidden;
-}
-.revolut-checkout-container :deep(iframe) {
+/* Hide Revolut's duplicate "Payment method" heading inside the iframe.
+   clip-path on the iframe clips the top 40px (the heading) while
+   margin-top pulls it up so there is no gap. Using clip-path instead of
+   overflow:hidden on the container avoids breaking the Revolut SDK's
+   postMessage-based iframe auto-resize. min-height is a safety net for
+   when the SDK sets a tiny initial height (known sandbox issue). */
+.revolut-checkout-container :deep(iframe[src*="embedded-checkout"]) {
   margin-top: -40px;
+  clip-path: inset(40px 0 0 0);
+  min-height: 500px !important;
 }
 </style>
