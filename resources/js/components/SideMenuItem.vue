@@ -36,7 +36,7 @@
     class="group flex items-center mx-2 rounded-md transition-colors"
     :class="[
       active
-        ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600 ml-0 pl-1.5 mr-2'
+        ? 'bg-primary-50 text-primary-700'
         : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700',
       collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
     ]"

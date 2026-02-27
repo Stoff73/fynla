@@ -49,16 +49,17 @@
         <!-- Main -->
         <SideMenuSection label="Main" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" @navigate="closeMobile" />
-          <SideMenuItem icon="chart-bar" label="Net Worth" to="/net-worth" :collapsed="effectiveCollapsed" :active="isNetWorthActive" @navigate="closeMobile" />
+          <SideMenuItem icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Planning -->
         <SideMenuSection label="Planning" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" @navigate="closeMobile" />
           <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" @navigate="closeMobile" />
-          <SideMenuItem icon="banknotes" label="Savings" to="/savings" :collapsed="effectiveCollapsed" :active="isActive('/savings')" @navigate="closeMobile" />
+          <SideMenuItem icon="banknotes" label="Cash" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" @navigate="closeMobile" />
           <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" @navigate="closeMobile" />
           <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
+          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Advanced -->
@@ -199,6 +200,8 @@ export default {
       if (path.startsWith('/net-worth/holdings-detail')) return false;
       if (path.startsWith('/net-worth/fees-detail')) return false;
       if (path.startsWith('/net-worth/business')) return false;
+      if (path.startsWith('/net-worth/cash')) return false;
+      if (path.startsWith('/net-worth/chattels')) return false;
       return true;
     });
 

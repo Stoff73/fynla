@@ -5,7 +5,7 @@ const holisticService = {
      * Perform holistic analysis across all modules
      */
     async analyzeHolistic() {
-        const response = await api.post('/api/holistic/analyze');
+        const response = await api.post('/holistic/analyze');
         return response.data;
     },
 
@@ -13,7 +13,7 @@ const holisticService = {
      * Generate complete holistic plan
      */
     async getPlan() {
-        const response = await api.post('/api/holistic/plan');
+        const response = await api.post('/holistic/plan');
         return response.data;
     },
 
@@ -21,7 +21,7 @@ const holisticService = {
      * Get all ranked recommendations
      */
     async getRecommendations() {
-        const response = await api.get('/api/holistic/recommendations');
+        const response = await api.get('/holistic/recommendations');
         return response.data;
     },
 
@@ -29,7 +29,7 @@ const holisticService = {
      * Get cashflow analysis
      */
     async getCashFlowAnalysis() {
-        const response = await api.get('/api/holistic/cash-flow-analysis');
+        const response = await api.get('/holistic/cash-flow-analysis');
         return response.data;
     },
 
@@ -38,7 +38,7 @@ const holisticService = {
      * @param {number} id - Recommendation ID
      */
     async markRecommendationDone(id) {
-        const response = await api.post(`/api/holistic/recommendations/${id}/mark-done`);
+        const response = await api.post(`/holistic/recommendations/${id}/mark-done`);
         return response.data;
     },
 
@@ -47,7 +47,7 @@ const holisticService = {
      * @param {number} id - Recommendation ID
      */
     async markRecommendationInProgress(id) {
-        const response = await api.post(`/api/holistic/recommendations/${id}/in-progress`);
+        const response = await api.post(`/holistic/recommendations/${id}/in-progress`);
         return response.data;
     },
 
@@ -56,7 +56,7 @@ const holisticService = {
      * @param {number} id - Recommendation ID
      */
     async dismissRecommendation(id) {
-        const response = await api.post(`/api/holistic/recommendations/${id}/dismiss`);
+        const response = await api.post(`/holistic/recommendations/${id}/dismiss`);
         return response.data;
     },
 
@@ -64,7 +64,7 @@ const holisticService = {
      * Get completed recommendations
      */
     async getCompletedRecommendations() {
-        const response = await api.get('/api/holistic/recommendations/completed');
+        const response = await api.get('/holistic/recommendations/completed');
         return response.data;
     },
 
@@ -74,7 +74,7 @@ const holisticService = {
      * @param {string} notes - Notes text
      */
     async updateRecommendationNotes(id, notes) {
-        const response = await api.patch(`/api/holistic/recommendations/${id}/notes`, { notes });
+        const response = await api.patch(`/holistic/recommendations/${id}/notes`, { notes });
         return response.data;
     },
 };

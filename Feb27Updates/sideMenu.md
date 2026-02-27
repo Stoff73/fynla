@@ -36,6 +36,8 @@ resources/js/components/SideMenuSection.vue
 ```
 resources/js/layouts/AppLayout.vue
 resources/js/components/Navbar.vue
+resources/js/services/holisticService.js
+resources/js/views/NetWorth/NetWorthDashboard.vue
 ```
 
 ### AppLayout.vue Changes
@@ -48,6 +50,14 @@ resources/js/components/Navbar.vue
 - Removed Dashboard link (available in side menu)
 - Removed mobile hamburger button and mobile menu (replaced by side menu mobile toggle)
 - Layout changed from `justify-between` to `justify-end`
+
+### holisticService.js Changes
+- Fixed double `/api/api/` prefix on all endpoints (was causing 405 errors)
+- All paths changed from `/api/holistic/...` to `/holistic/...`
+
+### NetWorthDashboard.vue Changes
+- Removed the entire old sidebar navigation (template, data, computed, methods, watchers, CSS)
+- Net Worth module pages now use only the new left side menu for navigation
 
 ## No Database Changes
 
