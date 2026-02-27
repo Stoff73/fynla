@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
@@ -1025,6 +1026,15 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])
 // Occupation search (SOC 2020)
 Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
+
+// AI Chat routes
+Route::middleware('auth:sanctum')->prefix('ai-chat')->group(function () {
+    Route::get('/conversations', [AiChatController::class, 'index']);
+    Route::post('/conversations', [AiChatController::class, 'create']);
+    Route::get('/conversations/{id}', [AiChatController::class, 'show']);
+    Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
+    Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage']);
+});
 
 // Bug Report route (works for both authenticated and guest users)
 Route::post('/bug-report', [BugReportController::class, 'store'])

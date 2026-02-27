@@ -33,6 +33,8 @@ return [
 
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY', ''),
+        'chat_model_pro' => env('ANTHROPIC_CHAT_MODEL_PRO', 'claude-sonnet-4-6-20250514'),
+        'chat_model_standard' => env('ANTHROPIC_CHAT_MODEL_STANDARD', 'claude-haiku-4-5-20251001'),
     ],
 
     'getaddress' => [

@@ -19,6 +19,7 @@ import onboarding from './modules/onboarding';
 import preview from './modules/preview';
 import guidance from './modules/guidance';
 import infoGuide from './modules/infoGuide';
+import aiChat from './modules/aiChat';
 
 const store = createStore({
   modules: {
@@ -42,6 +43,7 @@ const store = createStore({
     preview,
     guidance,
     infoGuide,
+    aiChat,
   },
   strict: process.env.NODE_ENV !== 'production',
 });
