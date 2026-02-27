@@ -2,123 +2,56 @@
 
 ## Status: READY FOR DEPLOY
 
-## Rebuild Required: YES (frontend)
+## What Changed
 
-New Vue components, Vuex store module, and service file require a frontend rebuild.
+Added an AI-powered chat assistant ("Fynla Assistant") with 17 tools across all financial modules. The AI can navigate users to pages (auto-navigation), run what-if scenarios, create financial records (savings, investments, pensions, properties, mortgages, protection policies, estate items), and generate holistic financial plans. Conversations persist in the database.
+
+Also fixed HolisticPlan view missing its `<AppLayout>` wrapper (side menu was not showing).
+
+## Step 1: Build Frontend
 
 ```bash
 ./deploy/fynla-org/build.sh
 ```
 
-## Summary
+## Step 2: Upload Files
 
-Added an AI-powered chat assistant ("Fynla Assistant") to the application. Integrates with the existing 7-agent system to give users personalised financial guidance based on their actual data. The AI can navigate users to relevant pages, run what-if scenarios, and (for non-preview users) create goals and life events. Conversations persist in the database.
+### New Files
 
-### Features
-- **Personalised responses** — uses user's real financial data (income, expenditure, savings, pensions, etc.)
-- **Tool use** — AI can call analysis tools, run scenarios, fetch tax information, navigate to pages, create goals/life events
-- **Navigation** — clickable navigation cards that route users to relevant sections
-- **Conversation history** — persistent conversations stored in database, loadable from history drawer
-- **Preview mode aware** — write tools (goal/life event creation) blocked for preview users
-- **Model per tier** — Haiku 4.5 for student/standard, Sonnet 4.6 for Pro subscribers
-- **Card-style UI** — matches existing dashboard card design (white bg, rounded-lg, border-gray-200)
-- **Context-aware prompts** — suggested questions change based on current page (dashboard, retirement, savings, etc.)
-
-### Architecture
-```
-User types message
-    -> AiChatPanel.vue -> fetch POST (SSE) -> AiChatController
-    -> AiChatService orchestrates:
-       1. Save user message to DB
-       2. Build system prompt (AiContextBuilder)
-       3. Call Anthropic Messages API with tools
-       4. If tool_use -> AiToolExecutor runs it -> continue
-       5. Save assistant message to DB
-    -> Frontend renders response + navigation/entity cards
-```
-
-## Environment Variables Required
-
-Add to `.env` on production (already exists from document upload feature):
-
-```
-ANTHROPIC_API_KEY=sk-ant-api03-...
-```
-
-Optional overrides (defaults are fine):
-```
-ANTHROPIC_CHAT_MODEL_PRO=claude-sonnet-4-6-20250514
-ANTHROPIC_CHAT_MODEL_STANDARD=claude-haiku-4-5-20251001
-```
-
-## Database Migration Required: YES
-
-Three new migrations must be run on production:
-
-```bash
-php artisan migrate
-```
-
-Creates:
-- `ai_conversations` table — stores conversation metadata, token usage
-- `ai_messages` table — stores individual messages (user + assistant)
-- `ai_chat_enabled` column on `users` table — user preference toggle
-
-## New Files to Upload
-
-```
-# Backend - Models
+```text
 app/Models/AiConversation.php
 app/Models/AiMessage.php
-
-# Backend - Services
 app/Services/AI/AiChatService.php
 app/Services/AI/AiContextBuilder.php
 app/Services/AI/AiModelResolver.php
 app/Services/AI/AiToolDefinitions.php
 app/Services/AI/AiToolExecutor.php
-
-# Backend - Controller
 app/Http/Controllers/Api/AiChatController.php
-
-# Backend - Migrations
 database/migrations/2026_02_27_200001_create_ai_conversations_table.php
 database/migrations/2026_02_27_200002_create_ai_messages_table.php
 database/migrations/2026_02_27_200003_add_ai_chat_enabled_to_users_table.php
-
-# Frontend - Components
-resources/js/components/Shared/AiChatButton.vue
-resources/js/components/Shared/AiChatPanel.vue
-resources/js/components/Shared/AiMessageContent.vue
-
-# Frontend - Service + Store
-resources/js/services/aiChatService.js
-resources/js/store/modules/aiChat.js
 ```
 
-## Modified Files to Upload
+### Modified Files
 
-```
+```text
 app/Http/Middleware/PreviewWriteInterceptor.php
 config/services.php
 resources/js/layouts/AppLayout.vue
 resources/js/store/index.js
+resources/js/store/modules/aiChat.js
+resources/js/components/Shared/AiChatButton.vue
+resources/js/components/Shared/AiChatPanel.vue
+resources/js/components/Shared/AiMessageContent.vue
+resources/js/services/aiChatService.js
+resources/js/views/HolisticPlan.vue
 routes/api.php
 ```
 
-## Post-Upload: SSH Commands
+### Upload Paths (SiteGround)
 
-```bash
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-cd ~/www/fynla.org/public_html
-php artisan migrate
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
-```
-
-## Upload Paths (SiteGround)
-
-| Local File | Remote Path |
-|-----------|-------------|
+| Local | Remote |
+|-------|--------|
 | `public/build/` | `~/www/fynla.org/public_html/public/build/` |
 | `app/Models/AiConversation.php` | `~/www/fynla.org/public_html/app/Models/AiConversation.php` |
 | `app/Models/AiMessage.php` | `~/www/fynla.org/public_html/app/Models/AiMessage.php` |
@@ -127,9 +60,38 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 | `app/Http/Middleware/PreviewWriteInterceptor.php` | `~/www/fynla.org/public_html/app/Http/Middleware/PreviewWriteInterceptor.php` |
 | `config/services.php` | `~/www/fynla.org/public_html/config/services.php` |
 | `routes/api.php` | `~/www/fynla.org/public_html/routes/api.php` |
-| `database/migrations/2026_02_27_200001_create_ai_conversations_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
-| `database/migrations/2026_02_27_200002_create_ai_messages_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
-| `database/migrations/2026_02_27_200003_add_ai_chat_enabled_to_users_table.php` | `~/www/fynla.org/public_html/database/migrations/` |
+| `database/migrations/2026_02_27_*` (3 files) | `~/www/fynla.org/public_html/database/migrations/` |
+
+## Step 3: Environment Variables
+
+Add to `.env` on production (already exists from document upload feature):
+
+```text
+ANTHROPIC_API_KEY=sk-ant-api03-...
+```
+
+Optional overrides (defaults are fine):
+
+```text
+ANTHROPIC_CHAT_MODEL_PRO=claude-sonnet-4-6-20250514
+ANTHROPIC_CHAT_MODEL_STANDARD=claude-haiku-4-5-20251001
+```
+
+## Step 4: SSH Commands
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan migrate
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+```
+
+## Database Migrations
+
+Creates:
+- `ai_conversations` table — conversation metadata, token usage
+- `ai_messages` table — individual messages (user + assistant)
+- `ai_chat_enabled` column on `users` table — user preference toggle
 
 ## API Routes Added
 
@@ -141,13 +103,48 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 | DELETE | `/api/ai-chat/conversations/{id}` | Soft-delete conversation |
 | POST | `/api/ai-chat/conversations/{id}/messages` | Send message (SSE response) |
 
+## AI Tools (17 total)
+
+| Tool | Action | Available To |
+|------|--------|-------------|
+| `navigate_to_page` | Auto-navigates user to a page | All users |
+| `get_module_analysis` | Detailed financial analysis per module | All users |
+| `run_what_if_scenario` | What-if scenario projections | All users |
+| `get_recommendations` | Ranked recommendations | All users |
+| `get_tax_information` | Current UK tax info | All users |
+| `generate_financial_plan` | Holistic financial plan summary | All users |
+| `create_goal` | Financial goal | Real users only |
+| `create_life_event` | Life event | Real users only |
+| `create_savings_account` | SavingsAccount (including Cash ISA) | Real users only |
+| `create_investment_account` | InvestmentAccount (including S&S ISA) | Real users only |
+| `create_pension` | DCPension or DBPension | Real users only |
+| `create_property` | Property + optional auto-linked Mortgage | Real users only |
+| `create_mortgage` | Mortgage (fuzzy-matched to property) | Real users only |
+| `create_protection_policy` | Life, Critical Illness, or Income Protection | Real users only |
+| `create_estate_asset` | Estate Asset | Real users only |
+| `create_estate_liability` | Estate Liability | Real users only |
+| `create_estate_gift` | Estate Gift (IHT planning) | Real users only |
+
+## Bug Fixes Included
+
+1. **tool_use.input serialisation** (AiChatService.php): PHP `json_decode({}, true)` converts empty `{}` to `[]`, which Anthropic API rejects. Fixed with `(object)` cast.
+
+2. **Invalid navigation routes**: Corrected `/net-worth/savings` to `/net-worth/cash`, `/net-worth/pensions` to `/net-worth/retirement`, `/net-worth/business-interests` to `/net-worth/business`. Removed non-existent top-level routes (`/retirement`, `/savings`, `/investment`).
+
+3. **Navigation not working**: `navigate_to_page` only rendered a clickable card but did not change the page. Now auto-navigates via `$router.push()`.
+
+4. **HolisticPlan missing layout**: View was missing `<AppLayout>` wrapper, causing side menu to disappear. Now matches all other views.
+
 ## Verification
 
-1. Log in or select a preview persona
-2. Chat button visible bottom-right (chat bubble icon)
-3. Click -> panel opens as a floating card matching dashboard style
-4. Type "How is my financial health?" -> AI streams personalised response with real data
-5. Type "Take me to my savings" -> navigation card appears, clicking it routes to /savings
-6. Chat panel persists across page navigation
-7. Conversation history accessible via clock icon in header
-8. Close and reopen -> conversation preserved
+1. Chat button visible bottom-right on all pages
+2. Click to open, type "How is my financial health?" — AI streams personalised response
+3. "Take me to my cash" — page auto-navigates to `/net-worth/cash`
+4. "Show me my pensions" — auto-navigates to `/net-worth/retirement`
+5. "I have a Cash ISA with Nationwide worth £15,000" — green entity card, account created
+6. "I have a workplace pension with Aviva worth £120,000" — pension created
+7. "My home is worth £450,000, I bought it for £320,000" — property created
+8. "Can you generate a financial plan for me?" — holistic plan summary returned
+9. Navigate to `/holistic-plan` — side menu visible, standard layout
+10. Preview mode: creation tools blocked, analysis and plan generation still work
+11. Conversation history accessible via clock icon, persists across sessions
