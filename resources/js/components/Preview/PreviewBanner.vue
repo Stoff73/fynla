@@ -189,6 +189,7 @@ export default {
                 widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
                 entrepreneur: 'bg-gradient-to-r from-fuchsia-500 to-fuchsia-600',
                 young_saver: 'bg-gradient-to-r from-cyan-500 to-cyan-600',
+                student: 'bg-gradient-to-r from-teal-500 to-teal-600',
                 retired_couple: 'bg-gradient-to-r from-rose-500 to-rose-600',
             };
             // Use basePersonaId to get consistent colors for both primary and spouse views
@@ -202,6 +203,7 @@ export default {
                 widow: 'text-purple-100 hover:text-white',
                 entrepreneur: 'text-fuchsia-100 hover:text-white',
                 young_saver: 'text-cyan-100 hover:text-white',
+                student: 'text-teal-100 hover:text-white',
                 retired_couple: 'text-rose-100 hover:text-white',
             };
             return colors[this.basePersonaId] || 'text-gray-100 hover:text-white';
@@ -214,6 +216,7 @@ export default {
                 widow: 'bg-white text-purple-600 hover:bg-purple-50',
                 entrepreneur: 'bg-white text-fuchsia-600 hover:bg-fuchsia-50',
                 young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
+                student: 'bg-white text-teal-600 hover:bg-teal-50',
                 retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
             };
             return colors[this.basePersonaId] || 'bg-white text-gray-600 hover:bg-gray-50';
@@ -226,6 +229,7 @@ export default {
                 widow: 'text-purple-100',
                 entrepreneur: 'text-fuchsia-100',
                 young_saver: 'text-cyan-100',
+                student: 'text-teal-100',
                 retired_couple: 'text-rose-100',
             };
             return colors[this.basePersonaId] || 'text-gray-100';
