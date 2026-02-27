@@ -6,7 +6,9 @@
 
 Added an AI-powered chat assistant ("Fynla Assistant") with 17 tools across all financial modules. The AI can navigate users to pages (auto-navigation), run what-if scenarios, create financial records (savings, investments, pensions, properties, mortgages, protection policies, estate items), and generate holistic financial plans. Conversations persist in the database.
 
-**Simulated AI for preview personas:** Preview users now get a realistic AI-like experience without any Anthropic API calls. The simulated service uses pattern-based intent matching, calls real agents for actual financial data, then formats responses using templates with real numbers. Same SSE streaming format, same navigation, same conversation persistence — zero API cost for demo users. Real users remain on the actual LLM path unchanged.
+**Simulated AI for preview personas:** Preview users now get a realistic AI-like experience without any API calls. The simulated service uses pattern-based intent matching, calls real agents for actual financial data, then formats responses using templates with real numbers. Same SSE streaming format, same navigation, same conversation persistence — zero API cost for demo users. Real users remain on the actual LLM path unchanged.
+
+**Switched from Anthropic to OpenAI:** The AI chat backend now uses the OpenAI Chat Completions API with the `gpt-5-mini-2025-08-07` model instead of Anthropic Claude. Tool definitions use the OpenAI function calling format (`type: function` wrapper, `parameters` key). Tool results use `role: tool` with `tool_call_id`. Uses `max_completion_tokens` (required by GPT-5-mini). Env var changed from `ANTHROPIC_API_KEY` to `OPENAI_API_KEY`.
 
 Also fixed HolisticPlan view missing its `<AppLayout>` wrapper (side menu was not showing).
 
@@ -132,13 +134,11 @@ Creates:
 
 ## Bug Fixes Included
 
-1. **tool_use.input serialisation** (AiChatService.php): PHP `json_decode({}, true)` converts empty `{}` to `[]`, which Anthropic API rejects. Fixed with `(object)` cast.
+1. **Invalid navigation routes**: Corrected `/net-worth/savings` to `/net-worth/cash`, `/net-worth/pensions` to `/net-worth/retirement`, `/net-worth/business-interests` to `/net-worth/business`. Removed non-existent top-level routes (`/retirement`, `/savings`, `/investment`).
 
-2. **Invalid navigation routes**: Corrected `/net-worth/savings` to `/net-worth/cash`, `/net-worth/pensions` to `/net-worth/retirement`, `/net-worth/business-interests` to `/net-worth/business`. Removed non-existent top-level routes (`/retirement`, `/savings`, `/investment`).
+2. **Navigation not working**: `navigate_to_page` only rendered a clickable card but did not change the page. Now auto-navigates via `$router.push()`.
 
-3. **Navigation not working**: `navigate_to_page` only rendered a clickable card but did not change the page. Now auto-navigates via `$router.push()`.
-
-4. **HolisticPlan missing layout**: View was missing `<AppLayout>` wrapper, causing side menu to disappear. Now matches all other views.
+3. **HolisticPlan missing layout**: View was missing `<AppLayout>` wrapper, causing side menu to disappear. Now matches all other views.
 
 ## Verification
 
