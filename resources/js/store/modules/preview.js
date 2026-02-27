@@ -20,6 +20,7 @@ import widowData from '../../data/personas/widow.json';
 import entrepreneurData from '../../data/personas/entrepreneur.json';
 import youngSaverData from '../../data/personas/young_saver.json';
 import retiredCoupleData from '../../data/personas/retired_couple.json';
+import studentData from '../../data/personas/student.json';
 
 // Full persona data for use in components that need detailed info
 // JSON files are the single source of truth for all persona data
@@ -30,6 +31,7 @@ const PERSONA_DATA = {
     entrepreneur: entrepreneurData,
     young_saver: youngSaverData,
     retired_couple: retiredCoupleData,
+    student: studentData,
 };
 
 // Persona display order for the selector UI
@@ -39,6 +41,7 @@ const PERSONA_ORDER = [
     'peak_earners',    // David & Sarah Mitchell
     'entrepreneur',    // Alex Chen
     'young_saver',     // John Morgan
+    'student',         // Janice Taylor
     'retired_couple',  // Robert & Patricia Williams
     'widow',           // Margaret Thompson
 ];

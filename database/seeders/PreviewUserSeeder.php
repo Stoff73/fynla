@@ -49,6 +49,7 @@ class PreviewUserSeeder extends Seeder
         'entrepreneur',
         'young_saver',
         'retired_couple',
+        'student',
     ];
 
     /**

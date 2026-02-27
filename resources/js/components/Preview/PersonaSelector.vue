@@ -196,6 +196,7 @@ export default {
                     widow: 'bg-purple-600 hover:bg-purple-700 text-white',
                     entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+                    student: 'bg-teal-600 hover:bg-teal-700 text-white',
                     retired_couple: 'bg-rose-600 hover:bg-rose-700 text-white',
                 };
                 base = darkColors[this.basePersonaId] || 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white';
@@ -271,6 +272,7 @@ export default {
                 widow: 'bg-purple-100',
                 entrepreneur: 'bg-fuchsia-100',
                 young_saver: 'bg-cyan-100',
+                student: 'bg-teal-100',
                 retired_couple: 'bg-rose-100',
             };
             return colors[persona.id] || 'bg-gray-100';
@@ -283,6 +285,7 @@ export default {
                 widow: '👵',
                 entrepreneur: '🚀',
                 young_saver: '🎓',
+                student: '📚',
                 retired_couple: '👴👵',
             };
             return emojis[personaId] || '👤';

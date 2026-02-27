@@ -55,8 +55,92 @@
           <AreasToCompleteCard />
         </div>
 
-        <!-- Net Worth Card -->
+        <!-- Student: Recent Activity Card (replaces Net Worth) -->
         <DashboardCard
+          v-if="isStudentPersona"
+          title="Recent Activity"
+          :loading="false"
+          @click="navigateTo('/net-worth/cash')"
+        >
+          <div v-if="recentTransactions.length" class="space-y-0">
+            <div class="max-h-[340px] overflow-y-auto -mx-1 px-1">
+              <div
+                v-for="(tx, idx) in recentTransactions"
+                :key="idx"
+                class="flex items-center justify-between py-2.5"
+                :class="{ 'border-b border-gray-100': idx < recentTransactions.length - 1 }"
+              >
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ tx.description }}</div>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-xs text-gray-500">{{ tx.relativeDate }}</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ tx.account }}</span>
+                  </div>
+                </div>
+                <div
+                  class="text-sm font-semibold ml-3 whitespace-nowrap"
+                  :class="tx.type === 'credit' ? 'text-green-600' : 'text-red-600'"
+                >
+                  {{ tx.type === 'credit' ? '+' : '' }}{{ formatCurrency(tx.amount) }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-center py-4">
+            <p class="text-sm text-gray-500">No recent transactions</p>
+          </div>
+        </DashboardCard>
+
+        <!-- Student: Student Debt Card -->
+        <DashboardCard
+          v-if="isStudentPersona"
+          title="Student Debt"
+          :loading="loading.netWorth"
+          @click="navigateTo('/net-worth/liabilities')"
+        >
+          <div v-if="studentLiability" class="space-y-4">
+            <div class="border-b border-gray-200 pb-4">
+              <span class="text-sm text-gray-500">Outstanding Balance</span>
+              <div class="mt-1">
+                <span class="text-3xl font-bold text-red-600">
+                  {{ formatCurrency(studentLiability.balance) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Plan Type</span>
+                <span class="font-medium text-gray-900">Plan 5</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Interest Rate</span>
+                <span class="font-medium text-gray-900">{{ studentLiability.interestRate }}%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Repayment Threshold</span>
+                <span class="font-medium text-gray-900">{{ formatCurrency(25000) }}/yr</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Monthly Repayments</span>
+                <span class="font-medium text-green-600">None (studying)</span>
+              </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+              <p class="text-xs text-blue-700">
+                Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(25000) }} per year. Your loan is written off after 40 years.
+              </p>
+            </div>
+          </div>
+          <div v-else class="text-center py-4">
+            <p class="text-sm text-gray-500">No student loan data available.</p>
+          </div>
+        </DashboardCard>
+
+        <!-- Net Worth Card (hidden for student persona) -->
+        <DashboardCard
+          v-if="!isStudentPersona"
           title="Net Worth"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
@@ -489,6 +573,7 @@ import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue'
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
+import { getRelativeTime } from '@/utils/dateFormatter';
 
 export default {
   name: 'Dashboard',
@@ -527,6 +612,47 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
+    ...mapGetters('preview', ['effectivePersonaData']),
+
+    isStudentPersona() {
+      return this.currentUser?.preview_persona_id === 'student';
+    },
+
+    recentTransactions() {
+      if (!this.isStudentPersona) return [];
+      const transactions = this.effectivePersonaData?.recent_transactions || [];
+      return transactions.map(t => ({
+        ...t,
+        relativeDate: getRelativeTime(t.date),
+      }));
+    },
+
+    studentLiability() {
+      if (!this.isStudentPersona) return null;
+      const overview = this.netWorthOverview;
+      const liabilities = overview?.liabilities || [];
+      const loan = liabilities.find(l => (l.liability_type || '').includes('student'));
+      if (loan) {
+        return {
+          balance: parseFloat(loan.current_balance || 0),
+          name: loan.liability_name || 'Student Loan',
+          interestRate: parseFloat(loan.interest_rate || 0),
+          notes: loan.notes || '',
+        };
+      }
+      // Fallback: use persona JSON data
+      const personaLiabilities = this.effectivePersonaData?.liabilities || [];
+      const personaLoan = personaLiabilities.find(l => (l.liability_type || '').includes('student'));
+      if (personaLoan) {
+        return {
+          balance: parseFloat(personaLoan.current_balance || 0),
+          name: personaLoan.liability_name || 'Student Loan',
+          interestRate: parseFloat(personaLoan.interest_rate || 0),
+          notes: personaLoan.notes || '',
+        };
+      }
+      return null;
+    },
 
     hasAreasToComplete() {
       const skippedSteps = this.currentUser?.onboarding_skipped_steps || [];
@@ -1223,7 +1349,14 @@ export default {
         ? 'estate/calculateIHTPlanning'
         : 'estate/calculateIHT';
 
-      const moduleLoaders = [
+      // Student persona: only load modules they actually use
+      const moduleLoaders = this.isStudentPersona ? [
+        { name: 'netWorth', action: 'netWorth/fetchOverview' },
+        { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
+        { name: 'investment', action: 'investment/fetchInvestmentData' },
+        { name: 'investment', action: 'userProfile/fetchProfile' },
+        { name: 'goals', action: 'goals/fetchDashboardOverview' },
+      ] : [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
         { name: 'estate', action: 'estate/fetchEstateData' },

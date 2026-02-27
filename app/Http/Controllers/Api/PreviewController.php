@@ -38,6 +38,7 @@ class PreviewController extends Controller
         'entrepreneur',
         'young_saver',
         'retired_couple',
+        'student',
         // Spouse personas (for spouse view toggle)
         'young_family_spouse',
         'peak_earners_spouse',
@@ -83,6 +84,12 @@ class PreviewController extends Controller
             'name' => 'Patricia & Harold Bennett',
             'tagline' => 'Retired couple with estate planning focus',
             'description' => 'A retired couple in their early 70s drawing DB pensions, focusing on IHT planning and gifting to grandchildren.',
+        ],
+        'student' => [
+            'id' => 'student',
+            'name' => 'Janice Taylor',
+            'tagline' => 'University student building early financial habits',
+            'description' => 'A 21-year-old Economics student with a student loan, Cash ISA, and Lifetime ISA for a future first home.',
         ],
         // Spouse personas (for spouse view toggle)
         'young_family_spouse' => [

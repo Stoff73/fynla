@@ -59,7 +59,9 @@ class GoalsProjectionService
 
             $currentAge = $this->getCurrentAge($user);
             $retirementAge = $this->getRetirementAge($user);
-            $projectionEndAge = self::DEFAULT_PROJECTION_END_AGE;
+            $projectionEndAge = $currentAge <= 35
+                ? max(self::DEFAULT_RETIREMENT_AGE, $retirementAge)
+                : self::DEFAULT_PROJECTION_END_AGE;
 
             // Get assumptions
             $assumptions = $this->getProjectionAssumptions($user);

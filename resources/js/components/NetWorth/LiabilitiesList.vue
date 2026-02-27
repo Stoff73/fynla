@@ -1,0 +1,482 @@
+<template>
+  <div class="liabilities-list">
+    <!-- Detail View -->
+    <LiabilityDetailInline
+      v-if="selectedLiabilityId"
+      :liability-id="selectedLiabilityId"
+      @back="closeDetail"
+      @edit="openEditModal"
+      @deleted="handleDeleted"
+    />
+
+    <!-- List View -->
+    <div v-else>
+      <div class="list-header">
+        <h2 class="list-title">Liabilities</h2>
+        <div class="list-controls">
+          <select v-model="filterType" class="filter-select">
+            <option value="all">All Types</option>
+            <option value="student_loan">Student Loans</option>
+            <option value="personal_loan">Personal Loans</option>
+            <option value="secured_loan">Secured Loans</option>
+            <option value="business_loan">Business Loans</option>
+            <option value="hire_purchase">Hire Purchase</option>
+            <option value="credit_card">Credit Cards</option>
+            <option value="overdraft">Overdrafts</option>
+            <option value="other">Other</option>
+          </select>
+          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Liability
+          </button>
+        </div>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <p>Loading liabilities...</p>
+      </div>
+
+      <div v-else-if="error" class="error-state">
+        <p>{{ error }}</p>
+        <button @click="fetchData" class="retry-button">Retry</button>
+      </div>
+
+      <div v-else-if="filteredLiabilities.length === 0" class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+        </svg>
+        <p class="empty-title">No Liabilities Recorded</p>
+        <p class="empty-subtitle">Track your loans, credit cards, and other debts to get a complete picture of your net worth.</p>
+        <button v-preview-disabled="'add'" @click="openAddModal" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Liability
+        </button>
+      </div>
+
+      <div v-else class="liabilities-grid">
+        <LiabilityCard
+          v-for="liability in filteredLiabilities"
+          :key="liability.id"
+          :liability="liability"
+          @click="openDetail(liability.id)"
+        />
+      </div>
+
+      <!-- Summary Bar -->
+      <div v-if="filteredLiabilities.length > 0" class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">Total Liabilities</span>
+          <span class="summary-value">{{ filteredLiabilities.length }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Balance Owed</span>
+          <span class="summary-value text-red-600">{{ formatCurrency(totalBalance) }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Monthly Payments</span>
+          <span class="summary-value">{{ formatCurrency(totalMonthlyPayments) }}/mo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div v-if="showFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="closeFormModal">
+      <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
+        <div class="overflow-y-auto max-h-[90vh]">
+          <!-- Modal Close Button -->
+          <button
+            @click="closeFormModal"
+            class="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <LiabilityForm
+            :liability="editingLiability"
+            :mode="editingLiability ? 'edit' : 'create'"
+            @save="handleSave"
+            @cancel="closeFormModal"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation -->
+    <ConfirmDialog
+      :show="showDeleteConfirm"
+      title="Delete Liability"
+      message="Are you sure you want to delete this liability? This action cannot be undone."
+      @confirm="handleDelete"
+      @cancel="showDeleteConfirm = false"
+    />
+  </div>
+</template>
+
+<script>
+import { mapState, mapActions } from 'vuex';
+import LiabilityCard from './LiabilityCard.vue';
+import LiabilityDetailInline from './LiabilityDetailInline.vue';
+import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
+import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
+
+export default {
+  name: 'LiabilitiesList',
+
+  components: {
+    LiabilityCard,
+    LiabilityDetailInline,
+    LiabilityForm,
+    ConfirmDialog,
+  },
+
+  mixins: [currencyMixin],
+
+  data() {
+    return {
+      filterType: 'all',
+      showFormModal: false,
+      showDeleteConfirm: false,
+      editingLiability: null,
+      deletingLiability: null,
+      selectedLiabilityId: null,
+    };
+  },
+
+  computed: {
+    ...mapState('estate', ['liabilities', 'loading', 'error']),
+
+    filteredLiabilities() {
+      let filtered = [...this.liabilities];
+
+      if (this.filterType !== 'all') {
+        filtered = filtered.filter(l => l.liability_type === this.filterType);
+      }
+
+      // Sort by balance descending
+      filtered.sort((a, b) => (b.current_balance || 0) - (a.current_balance || 0));
+
+      return filtered;
+    },
+
+    totalBalance() {
+      return this.filteredLiabilities.reduce((sum, l) => sum + parseFloat(l.current_balance || 0), 0);
+    },
+
+    totalMonthlyPayments() {
+      return this.filteredLiabilities.reduce((sum, l) => sum + parseFloat(l.monthly_payment || 0), 0);
+    },
+  },
+
+  mounted() {
+    this.fetchData();
+    this.applyRouteFilter();
+  },
+
+  methods: {
+    ...mapActions('estate', ['fetchEstateData', 'createLiability', 'updateLiability', 'deleteLiability']),
+
+    async fetchData() {
+      try {
+        await this.fetchEstateData();
+      } catch (error) {
+        console.error('Failed to fetch liabilities:', error);
+      }
+    },
+
+    applyRouteFilter() {
+      const filter = this.$route.query.filter;
+      if (filter && ['student_loan', 'personal_loan', 'secured_loan', 'business_loan', 'hire_purchase', 'credit_card', 'overdraft', 'other'].includes(filter)) {
+        this.filterType = filter;
+      }
+    },
+
+    openAddModal() {
+      this.editingLiability = null;
+      this.showFormModal = true;
+    },
+
+    openEditModal(liability) {
+      this.editingLiability = liability;
+      this.showFormModal = true;
+    },
+
+    closeFormModal() {
+      this.showFormModal = false;
+      this.editingLiability = null;
+    },
+
+    async handleSave(formData) {
+      try {
+        if (this.editingLiability) {
+          await this.updateLiability({ id: this.editingLiability.id, liabilityData: formData });
+        } else {
+          await this.createLiability(formData);
+        }
+        this.closeFormModal();
+      } catch (error) {
+        console.error('Failed to save liability:', error);
+      }
+    },
+
+    confirmDelete(liability) {
+      this.deletingLiability = liability;
+      this.showDeleteConfirm = true;
+    },
+
+    async handleDelete() {
+      if (this.deletingLiability) {
+        try {
+          await this.deleteLiability(this.deletingLiability.id);
+          this.showDeleteConfirm = false;
+          this.deletingLiability = null;
+        } catch (error) {
+          console.error('Failed to delete liability:', error);
+        }
+      }
+    },
+
+    openDetail(id) {
+      this.selectedLiabilityId = id;
+    },
+
+    closeDetail() {
+      this.selectedLiabilityId = null;
+    },
+
+    handleDeleted() {
+      this.selectedLiabilityId = null;
+      this.fetchData();
+    },
+  },
+};
+</script>
+
+<style scoped>
+.liabilities-list {
+  padding: 24px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.list-title {
+  font-size: 24px;
+  font-weight: 700;
+  @apply text-gray-900;
+  margin: 0;
+}
+
+.list-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  @apply border border-gray-300;
+  border-radius: 8px;
+  font-size: 14px;
+  @apply text-gray-700;
+  background: white;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  @apply border-red-500;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  @apply bg-red-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-button:hover {
+  @apply bg-red-600;
+}
+
+.liabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Summary Bar */
+.summary-bar {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  @apply border border-gray-200;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 500;
+  @apply text-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  @apply text-gray-900;
+}
+
+/* States */
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-state p,
+.error-state p {
+  @apply text-gray-500;
+  font-size: 16px;
+  margin: 0;
+}
+
+.error-state p {
+  @apply text-red-500;
+}
+
+.retry-button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  @apply bg-gray-100;
+  @apply text-gray-700;
+  @apply border border-gray-300;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  @apply bg-gray-200;
+}
+
+.empty-state {
+  background: white;
+  border-radius: 12px;
+  padding: 80px 40px;
+  @apply border-2 border-dashed border-gray-300;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  @apply text-gray-400;
+  margin: 0 auto 16px;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  @apply text-gray-700;
+  margin-bottom: 8px;
+}
+
+.empty-subtitle {
+  @apply text-gray-400;
+  font-size: 14px;
+  font-weight: 400;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 24px;
+  @apply bg-red-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-first-button:hover {
+  @apply bg-red-600;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .liabilities-list {
+    padding: 16px;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .list-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .filter-select,
+  .add-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .liabilities-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+</style>
