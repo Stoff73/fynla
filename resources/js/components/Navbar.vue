@@ -5,12 +5,6 @@
     @close="handleLogoutModalClose"
   />
 
-  <!-- Bug Report Modal -->
-  <BugReportModal
-    :show="showBugReportModal"
-    @close="closeBugReport"
-  />
-
   <nav class="bg-gray-50 shadow-sm border-b border-gray-200" style="background-color: #F9FAFB;">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
@@ -20,33 +14,7 @@
         <div v-else></div>
 
         <div class="flex items-center">
-        <!-- Feedback & Bug Report Buttons -->
-        <div class="hidden sm:flex sm:items-center space-x-3">
-          <!-- Feedback Button -->
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-500 text-body-sm font-medium rounded-button text-blue-700 bg-white hover:bg-blue-50 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Feedback
-          </a>
-          <!-- Bug Report Button -->
-          <button
-            @click="openBugReport"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-300 text-body-sm font-medium rounded-button text-blue-600 bg-white hover:text-blue-800 hover:border-blue-400 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            Bug Report
-          </button>
-        </div>
-
-        <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+        <div class="hidden sm:flex sm:items-center space-x-4">
           <!-- 2FA Reminder -->
           <router-link
             v-if="showMFAReminder"
@@ -204,7 +172,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
-import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
 export default {
@@ -212,7 +179,6 @@ export default {
 
   components: {
     LogoutSuccessModal,
-    BugReportModal,
   },
 
   setup() {
@@ -260,8 +226,6 @@ export default {
       return '';
     });
     const showLogoutModal = ref(false);
-    const showBugReportModal = ref(false);
-
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
       return user?.name || 'User';
@@ -322,14 +286,6 @@ export default {
       router.push('/login');
     };
 
-    const openBugReport = () => {
-      showBugReportModal.value = true;
-    };
-
-    const closeBugReport = () => {
-      showBugReportModal.value = false;
-    };
-
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       const dropdown = event.target.closest('.relative');
@@ -350,7 +306,6 @@ export default {
       pageTitle,
       userDropdownOpen,
       showLogoutModal,
-      showBugReportModal,
       userName,
       isAdmin,
       onboardingCompleted,
@@ -358,8 +313,6 @@ export default {
       showMFAReminder,
       handleLogout,
       handleLogoutModalClose,
-      openBugReport,
-      closeBugReport,
     };
   },
 };
