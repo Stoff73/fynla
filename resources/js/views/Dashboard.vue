@@ -201,136 +201,6 @@
           </div>
         </DashboardCard>
 
-        <!-- Investment & Savings Card -->
-        <DashboardCard
-          v-if="hasInvestmentData"
-          title="Investments & Savings"
-          :loading="loading.investment"
-          @click="navigateTo('/net-worth/investments')"
-        >
-          <div class="space-y-4">
-            <!-- Investment accounts list -->
-            <div v-if="investmentAccountsList.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Investments</div>
-              <div
-                v-for="account in investmentAccountsList"
-                :key="'inv-' + account.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ account.account_name }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(ownershipValue(account, 'current_value')) }}</span>
-              </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Investments</span>
-                <span class="font-semibold text-primary-600">{{ formatCurrency(investmentData.totalInvestments) }}</span>
-              </div>
-            </div>
-
-            <!-- Cash accounts list -->
-            <div v-if="cashAccountsList.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Cash Accounts</div>
-              <div
-                v-for="account in cashAccountsList"
-                :key="'cash-' + account.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatCashAccountName(account) }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(ownershipValue(account, 'current_balance')) }}</span>
-              </div>
-              <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span class="text-gray-700 font-medium">Total Cash</span>
-                <span class="font-semibold text-primary-600">{{ formatCurrency(investmentData.totalCash) }}</span>
-              </div>
-            </div>
-          </div>
-        </DashboardCard>
-
-        <!-- Protection Card -->
-        <DashboardCard
-          v-if="hasProtectionData"
-          title="Protection"
-          :loading="loading.protection"
-          @click="navigateTo('/protection')"
-        >
-          <div class="space-y-4">
-            <!-- Life Insurance policies -->
-            <div v-if="protectionLifePolicies.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Life Insurance</div>
-              <div
-                v-for="policy in protectionLifePolicies"
-                :key="'life-' + policy.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Life') }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
-              </div>
-            </div>
-
-            <!-- Critical Illness policies -->
-            <div v-if="protectionCriticalIllnessPolicies.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Critical Illness</div>
-              <div
-                v-for="policy in protectionCriticalIllnessPolicies"
-                :key="'ci-' + policy.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Critical Illness') }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.sum_assured) }}</span>
-              </div>
-            </div>
-
-            <!-- Income Protection policies -->
-            <div v-if="protectionIncomeProtectionPolicies.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Income Protection</div>
-              <div
-                v-for="policy in protectionIncomeProtectionPolicies"
-                :key="'ip-' + policy.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Income Protection') }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.annual_benefit || policy.sum_assured) }}/yr</span>
-              </div>
-            </div>
-
-            <!-- Disability policies -->
-            <div v-if="protectionDisabilityPolicies.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Disability</div>
-              <div
-                v-for="policy in protectionDisabilityPolicies"
-                :key="'dis-' + policy.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Disability') }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.benefit_amount) }}/mo</span>
-              </div>
-            </div>
-
-            <!-- Sickness/Illness policies -->
-            <div v-if="protectionSicknessIllnessPolicies.length > 0" class="space-y-2">
-              <div class="text-sm font-semibold text-gray-700">Sickness/Illness</div>
-              <div
-                v-for="policy in protectionSicknessIllnessPolicies"
-                :key="'si-' + policy.id"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-600 truncate mr-2">{{ formatPolicyName(policy, 'Sickness/Illness') }}</span>
-                <span class="font-medium text-gray-900 whitespace-nowrap">{{ formatCurrency(policy.benefit_amount) }}/mo</span>
-              </div>
-            </div>
-
-            <!-- Total coverage and premium -->
-            <div class="pt-2 border-t border-gray-100 space-y-2">
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-700 font-medium">Total Coverage</span>
-                <span class="font-semibold text-primary-600">{{ formatCurrency(protectionData.totalCoverage) }}</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Total Monthly Premium</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
-              </div>
-            </div>
-          </div>
-        </DashboardCard>
 
         <!-- Retirement Card (hidden for users under 35) -->
         <DashboardCard
@@ -604,11 +474,6 @@
           </div>
         </DashboardCard>
 
-        <!-- Other Areas to Consider Card -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <AreasToConsiderCard :limit="5" />
-        </div>
-
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
       </div>
     </div>
@@ -620,7 +485,6 @@ import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
-import AreasToConsiderCard from '@/components/Dashboard/AreasToConsiderCard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
@@ -633,7 +497,6 @@ export default {
     AppLayout,
     DashboardCard,
     GoalsProjectionChartDashboard,
-    AreasToConsiderCard,
     AreasToCompleteCard,
   },
 
