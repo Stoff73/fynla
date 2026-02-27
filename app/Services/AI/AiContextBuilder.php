@@ -201,21 +201,20 @@ PROMPT;
 
         $contexts = [
             '/dashboard' => 'The user is on their Dashboard — the main overview of their financial position.',
-            '/net-worth' => 'The user is viewing their Net Worth summary across all asset categories.',
+            '/net-worth/wealth-summary' => 'The user is viewing their Net Worth summary across all asset categories.',
             '/net-worth/property' => 'The user is viewing their property portfolio.',
             '/net-worth/investments' => 'The user is viewing their investment accounts.',
-            '/net-worth/pensions' => 'The user is viewing their pension holdings.',
-            '/net-worth/savings' => 'The user is viewing their savings accounts.',
-            '/net-worth/cash' => 'The user is viewing their cash holdings.',
+            '/net-worth/retirement' => 'The user is viewing their pension holdings.',
+            '/net-worth/cash' => 'The user is viewing their cash and savings accounts.',
             '/net-worth/chattels' => 'The user is viewing their valuable possessions.',
-            '/net-worth/business-interests' => 'The user is viewing their business interests.',
+            '/net-worth/business' => 'The user is viewing their business interests.',
             '/net-worth/liabilities' => 'The user is viewing their liabilities and debts.',
-            '/retirement' => 'The user is on the Retirement Planning page — pension projections and retirement income planning.',
-            '/savings' => 'The user is on the Savings page — emergency fund analysis and savings optimisation.',
-            '/investment' => 'The user is on the Investment page — portfolio analysis, asset allocation, and performance.',
             '/protection' => 'The user is on the Protection page — life, income, and critical illness cover analysis.',
             '/estate' => 'The user is on the Estate Planning page — Inheritance Tax, wills, trusts, and gifting strategies.',
             '/goals' => 'The user is on the Goals & Life Events page — financial goals tracking and future event planning.',
+            '/holistic-plan' => 'The user is viewing their Holistic Financial Plan.',
+            '/trusts' => 'The user is viewing their Trusts.',
+            '/risk-profile' => 'The user is viewing their Risk Profile.',
         ];
 
         return $contexts[$currentRoute] ?? null;

@@ -18,6 +18,7 @@ const state = {
     loadingConversations: false,
     error: null,
     showHistory: false,
+    pendingNavigation: null,
 };
 
 const getters = {
@@ -31,6 +32,7 @@ const getters = {
     loadingConversations: (state) => state.loadingConversations,
     error: (state) => state.error,
     showHistory: (state) => state.showHistory,
+    pendingNavigation: (state) => state.pendingNavigation,
     hasConversation: (state) => state.currentConversation !== null,
 };
 
@@ -83,6 +85,10 @@ const mutations = {
         state.showHistory = show;
     },
 
+    SET_PENDING_NAVIGATION(state, routePath) {
+        state.pendingNavigation = routePath;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -112,6 +118,7 @@ const mutations = {
         state.loadingConversations = false;
         state.error = null;
         state.showHistory = false;
+        state.pendingNavigation = null;
     },
 };
 
@@ -288,6 +295,7 @@ const actions = {
                                     },
                                     created_at: new Date().toISOString(),
                                 });
+                                commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
 
                             case 'entity_created':

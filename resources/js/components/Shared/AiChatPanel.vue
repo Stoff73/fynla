@@ -237,6 +237,7 @@ export default {
             'loadingConversations',
             'error',
             'showHistory',
+            'pendingNavigation',
         ]),
 
         canSend() {
@@ -251,25 +252,35 @@ export default {
                     'How is my financial health overall?',
                     'What are my top recommendations?',
                 ],
-                '/retirement': [
+                '/net-worth/retirement': [
                     'Am I on track for retirement?',
                     'What if I increase my pension contributions?',
                     'When can I afford to retire?',
+                ],
+                '/net-worth/cash': [
+                    'How is my emergency fund looking?',
+                    'Where should I save next?',
+                    'Am I using my Individual Savings Account allowance?',
+                ],
+                '/net-worth/investments': [
+                    'How is my portfolio performing?',
+                    'Is my asset allocation right for me?',
+                    'What investment fees am I paying?',
+                ],
+                '/net-worth/property': [
+                    'What is my property portfolio worth?',
+                    'How much equity do I have?',
+                    'Should I consider remortgaging?',
+                ],
+                '/net-worth': [
+                    'What is my total net worth?',
+                    'How are my assets allocated?',
+                    'What are my biggest liabilities?',
                 ],
                 '/protection': [
                     'Do I have enough life cover?',
                     'What protection gaps do I have?',
                     'How much income protection do I need?',
-                ],
-                '/savings': [
-                    'How is my emergency fund looking?',
-                    'Where should I save next?',
-                    'Am I using my Individual Savings Account allowance?',
-                ],
-                '/investment': [
-                    'How is my portfolio performing?',
-                    'Is my asset allocation right for me?',
-                    'What investment fees am I paying?',
                 ],
                 '/estate': [
                     'What is my Inheritance Tax position?',
@@ -306,6 +317,13 @@ export default {
 
         streamingText() {
             this.$nextTick(() => this.scrollToBottom());
+        },
+
+        pendingNavigation(routePath) {
+            if (routePath) {
+                this.$router.push(routePath);
+                this.$store.commit('aiChat/SET_PENDING_NAVIGATION', null);
+            }
         },
     },
 

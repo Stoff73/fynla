@@ -36,7 +36,7 @@ class AiToolDefinitions
                     'properties' => [
                         'route_path' => [
                             'type' => 'string',
-                            'description' => 'The application route path. Valid routes include: /dashboard, /net-worth, /net-worth/property, /net-worth/investments, /net-worth/pensions, /net-worth/savings, /net-worth/cash, /net-worth/chattels, /net-worth/business-interests, /net-worth/liabilities, /retirement, /savings, /investment, /protection, /estate, /goals, /settings, /profile',
+                            'description' => 'The application route path. Valid routes: /dashboard, /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash, /net-worth/business, /net-worth/chattels, /net-worth/liabilities, /protection, /estate, /goals, /holistic-plan, /trusts, /risk-profile, /profile, /settings',
                         ],
                         'description' => [
                             'type' => 'string',
