@@ -1,12 +1,12 @@
 <template>
-  <div class="holistic-plan-container">
-    <!-- Page Header -->
-    <div class="bg-white shadow-sm border-b border-gray-200 mb-4 sm:mb-6">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <AppLayout>
+    <div class="holistic-plan py-2 sm:py-6">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Holistic Financial Plan</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Holistic Financial Plan</h1>
+            <p class="text-gray-600">
               Your comprehensive financial strategy across all modules
             </p>
           </div>
@@ -23,17 +23,15 @@
             </button>
           </div>
         </div>
-      </div>
-    </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <div v-if="loading" class="py-12 text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       <p class="mt-4 text-gray-600">Generating your holistic plan...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div v-else-if="error" class="py-12">
       <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
         <svg class="mx-auto h-12 w-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -42,7 +40,7 @@
         <p class="mt-2 text-sm text-red-700">{{ error }}</p>
         <button
           @click="refreshPlan"
-          class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-error-600 hover:bg-error-700"
+          class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
         >
           Try Again
         </button>
@@ -50,7 +48,7 @@
     </div>
 
     <!-- Main Content -->
-    <div v-else-if="plan" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <div v-else-if="plan" class="pb-12">
       <!-- Executive Summary -->
       <ExecutiveSummary
         v-if="executiveSummary"
@@ -163,7 +161,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div v-else class="py-12">
       <div class="text-center">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -178,11 +176,14 @@
         </button>
       </div>
     </div>
-  </div>
+      </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
+import AppLayout from '@/layouts/AppLayout.vue';
 import ExecutiveSummary from '../components/Holistic/ExecutiveSummary.vue';
 import PrioritizedRecommendations from '../components/Holistic/PrioritizedRecommendations.vue';
 import CashFlowAllocationChart from '../components/Holistic/CashFlowAllocationChart.vue';
@@ -194,6 +195,7 @@ export default {
   name: 'HolisticPlan',
 
   components: {
+    AppLayout,
     ExecutiveSummary,
     PrioritizedRecommendations,
     CashFlowAllocationChart,
@@ -329,11 +331,6 @@ export default {
 </script>
 
 <style scoped>
-.holistic-plan-container {
-  min-height: calc(100vh - 64px);
-  background-color: #f9fafb;
-}
-
 /* Hide scrollbar for horizontal tab navigation */
 .scrollbar-hide {
   -ms-overflow-style: none;
