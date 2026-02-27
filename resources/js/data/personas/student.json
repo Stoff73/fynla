@@ -252,6 +252,93 @@
     }
   ],
 
+  "recent_transactions": [
+    {
+      "date": "2026-02-26",
+      "description": "Part-time wages - Campus Coffee",
+      "amount": 385.00,
+      "type": "credit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-25",
+      "description": "Rent - 45 Elm Road",
+      "amount": -350.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-24",
+      "description": "Tesco Express",
+      "amount": -18.45,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-22",
+      "description": "Spotify Premium (Student)",
+      "amount": -5.99,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-20",
+      "description": "Transfer to Cash ISA",
+      "amount": -30.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-20",
+      "description": "Monthly deposit",
+      "amount": 30.00,
+      "type": "credit",
+      "account": "Cash ISA"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Transfer to Lifetime ISA",
+      "amount": -25.00,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Monthly contribution",
+      "amount": 25.00,
+      "type": "credit",
+      "account": "Lifetime ISA"
+    },
+    {
+      "date": "2026-02-15",
+      "description": "Maintenance Loan instalment",
+      "amount": 1342.00,
+      "type": "credit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-14",
+      "description": "Aldi",
+      "amount": -24.30,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-12",
+      "description": "First Bus - weekly pass",
+      "amount": -12.50,
+      "type": "debit",
+      "account": "Current Account"
+    },
+    {
+      "date": "2026-02-10",
+      "description": "Amazon - textbook",
+      "amount": -32.99,
+      "type": "debit",
+      "account": "Current Account"
+    }
+  ],
+
   "life_events": [
     {
       "event_name": "Graduation",
