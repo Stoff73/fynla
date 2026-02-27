@@ -6,7 +6,9 @@
     </div>
     <!-- Divider when collapsed (thin line instead of label) -->
     <div v-else class="mx-3 my-2 border-t border-gray-200"></div>
-    <slot />
+    <div class="flex flex-col">
+      <slot />
+    </div>
   </div>
 </template>
 

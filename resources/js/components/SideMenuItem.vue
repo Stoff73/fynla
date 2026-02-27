@@ -20,7 +20,7 @@
   <!-- Action button (e.g. Bug Report) -->
   <button
     v-else-if="!to && !href"
-    class="group flex items-center w-full mx-2 rounded-md transition-colors"
+    class="group flex items-center self-stretch mx-2 rounded-md transition-colors"
     :class="[itemClasses, collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2']"
     :title="collapsed ? label : ''"
     @click="$emit('action')"

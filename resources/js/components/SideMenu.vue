@@ -45,7 +45,7 @@
       </button>
 
       <!-- Navigation items -->
-      <div class="flex-1 overflow-y-auto py-2 scrollbar-thin">
+      <div class="flex-1 overflow-y-auto py-2 scrollbar-hide">
         <!-- Main -->
         <SideMenuSection label="Main" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" @navigate="closeMobile" />
@@ -285,18 +285,11 @@ export default {
 </script>
 
 <style scoped>
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 2px;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>

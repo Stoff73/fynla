@@ -13,9 +13,14 @@
 
   <nav class="bg-gray-50 shadow-sm border-b border-gray-200" style="background-color: #F9FAFB;">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-end h-16">
+      <div class="flex items-center justify-between h-16">
 
-        <!-- Center - Feedback & Bug Report Buttons -->
+        <!-- Page Title -->
+        <h1 v-if="pageTitle" class="text-lg font-semibold text-gray-900">{{ pageTitle }}</h1>
+        <div v-else></div>
+
+        <div class="flex items-center">
+        <!-- Feedback & Bug Report Buttons -->
         <div class="hidden sm:flex sm:items-center space-x-3">
           <!-- Feedback Button -->
           <a
@@ -186,6 +191,7 @@
             </transition>
           </div>
         </div>
+        </div>
 
       </div>
     </div>
@@ -196,7 +202,7 @@
 <script>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
 import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
@@ -211,9 +217,48 @@ export default {
 
   setup() {
     const store = useStore();
+    const route = useRoute();
     const router = useRouter();
 
     const userDropdownOpen = ref(false);
+
+    const pageTitle = computed(() => {
+      const path = route.path;
+      const map = [
+        { prefix: '/net-worth/wealth-summary', label: 'Net Worth' },
+        { prefix: '/net-worth/retirement', label: 'Retirement' },
+        { prefix: '/net-worth/investments', label: 'Investments' },
+        { prefix: '/net-worth/investment-detail', label: 'Investments' },
+        { prefix: '/net-worth/tax-efficiency', label: 'Investments' },
+        { prefix: '/net-worth/holdings-detail', label: 'Investments' },
+        { prefix: '/net-worth/fees-detail', label: 'Investments' },
+        { prefix: '/net-worth/cash', label: 'Cash' },
+        { prefix: '/net-worth/business', label: 'Business' },
+        { prefix: '/net-worth/property', label: 'Property' },
+        { prefix: '/net-worth/chattels', label: 'Personal Valuables' },
+        { prefix: '/protection', label: 'Protection' },
+        { prefix: '/estate', label: 'Estate Planning' },
+        { prefix: '/trusts', label: 'Trusts' },
+        { prefix: '/goals', label: 'Goals' },
+        { prefix: '/risk-profile', label: 'Risk Profile' },
+        { prefix: '/holistic-plan', label: 'Holistic Plan' },
+        { prefix: '/plans', label: 'Plans' },
+        { prefix: '/actions', label: 'Actions' },
+        { prefix: '/profile', label: 'User Profile' },
+        { prefix: '/valuable-info', label: 'Valuable Info' },
+        { prefix: '/settings', label: 'Settings' },
+        { prefix: '/help', label: 'Help' },
+        { prefix: '/admin', label: 'Admin Panel' },
+        { prefix: '/uk-taxes', label: 'UK Taxes' },
+        { prefix: '/savings', label: 'Savings' },
+        { prefix: '/onboarding', label: 'Setup' },
+        { prefix: '/dashboard', label: 'Dashboard' },
+      ];
+      for (const entry of map) {
+        if (path.startsWith(entry.prefix)) return entry.label;
+      }
+      return '';
+    });
     const showLogoutModal = ref(false);
     const showBugReportModal = ref(false);
 
@@ -302,6 +347,7 @@ export default {
     });
 
     return {
+      pageTitle,
       userDropdownOpen,
       showLogoutModal,
       showBugReportModal,
