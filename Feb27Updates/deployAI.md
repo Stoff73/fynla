@@ -6,6 +6,8 @@
 
 Added an AI-powered chat assistant ("Fynla Assistant") with 17 tools across all financial modules. The AI can navigate users to pages (auto-navigation), run what-if scenarios, create financial records (savings, investments, pensions, properties, mortgages, protection policies, estate items), and generate holistic financial plans. Conversations persist in the database.
 
+**Simulated AI for preview personas:** Preview users now get a realistic AI-like experience without any Anthropic API calls. The simulated service uses pattern-based intent matching, calls real agents for actual financial data, then formats responses using templates with real numbers. Same SSE streaming format, same navigation, same conversation persistence — zero API cost for demo users. Real users remain on the actual LLM path unchanged.
+
 Also fixed HolisticPlan view missing its `<AppLayout>` wrapper (side menu was not showing).
 
 ## Step 1: Build Frontend
@@ -26,6 +28,9 @@ app/Services/AI/AiContextBuilder.php
 app/Services/AI/AiModelResolver.php
 app/Services/AI/AiToolDefinitions.php
 app/Services/AI/AiToolExecutor.php
+app/Services/AI/AiIntentMatcher.php
+app/Services/AI/AiSimulatedResponseBuilder.php
+app/Services/AI/AiSimulatedService.php
 app/Http/Controllers/Api/AiChatController.php
 database/migrations/2026_02_27_200001_create_ai_conversations_table.php
 database/migrations/2026_02_27_200002_create_ai_messages_table.php

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AiConversation;
 use App\Services\AI\AiChatService;
+use App\Services\AI\AiSimulatedService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +17,7 @@ class AiChatController extends Controller
 {
     public function __construct(
         private readonly AiChatService $chatService,
+        private readonly AiSimulatedService $simulatedService,
     ) {}
 
     /**
@@ -123,10 +125,12 @@ class AiChatController extends Controller
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute) {
             try {
-                $generator = $this->chatService->sendMessage($user, $conversation, $message, $currentRoute);
+                $generator = $user->is_preview_user
+                    ? $this->simulatedService->sendMessage($user, $conversation, $message, $currentRoute)
+                    : $this->chatService->sendMessage($user, $conversation, $message, $currentRoute);
 
                 foreach ($generator as $event) {
-                    echo 'data: ' . json_encode($event) . "\n\n";
+                    echo 'data: '.json_encode($event)."\n\n";
 
                     if (ob_get_level() > 0) {
                         ob_flush();
@@ -140,10 +144,10 @@ class AiChatController extends Controller
                     'error' => $e->getMessage(),
                 ]);
 
-                echo 'data: ' . json_encode([
+                echo 'data: '.json_encode([
                     'type' => 'error',
                     'message' => 'An unexpected error occurred. Please try again.',
-                ]) . "\n\n";
+                ])."\n\n";
 
                 if (ob_get_level() > 0) {
                     ob_flush();
