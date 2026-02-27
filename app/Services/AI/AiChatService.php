@@ -12,9 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class AiChatService
 {
-    private const API_URL = 'https://api.anthropic.com/v1/messages';
-
-    private const ANTHROPIC_VERSION = '2023-06-01';
+    private const API_URL = 'https://api.openai.com/v1/chat/completions';
 
     private const TIMEOUT_SECONDS = 180;
 
@@ -66,7 +64,7 @@ class AiChatService
         $messages = $messageHistory;
 
         while (true) {
-            $response = $this->callAnthropicApi($model, $systemPrompt, $messages, $tools, $maxTokens);
+            $response = $this->callOpenAiApi($model, $systemPrompt, $messages, $tools, $maxTokens);
 
             if (isset($response['error'])) {
                 yield ['type' => 'error', 'message' => 'I apologise, but I encountered an issue processing your request. Please try again.'];
@@ -74,36 +72,44 @@ class AiChatService
                 return;
             }
 
-            $totalInputTokens += $response['usage']['input_tokens'] ?? 0;
-            $totalOutputTokens += $response['usage']['output_tokens'] ?? 0;
+            $totalInputTokens += $response['usage']['prompt_tokens'] ?? 0;
+            $totalOutputTokens += $response['usage']['completion_tokens'] ?? 0;
 
-            // Process content blocks
-            $hasToolUse = false;
-            $assistantContent = [];
+            // Extract the response choice
+            $choice = $response['choices'][0] ?? [];
+            $responseMessage = $choice['message'] ?? [];
+            $finishReason = $choice['finish_reason'] ?? 'stop';
 
-            foreach ($response['content'] ?? [] as $block) {
-                if ($block['type'] === 'text') {
-                    $fullResponse .= $block['text'];
-                    yield ['type' => 'content', 'text' => $block['text']];
-                    $assistantContent[] = $block;
-                } elseif ($block['type'] === 'tool_use') {
-                    $hasToolUse = true;
+            // Handle text content
+            $textContent = $responseMessage['content'] ?? null;
+            if ($textContent) {
+                $fullResponse .= $textContent;
+                yield ['type' => 'content', 'text' => $textContent];
+            }
+
+            // Handle tool calls
+            $toolCalls = $responseMessage['tool_calls'] ?? [];
+            $hasToolCalls = ! empty($toolCalls);
+
+            if ($hasToolCalls) {
+                // Add the full assistant message (with tool_calls) to history
+                $messages[] = $responseMessage;
+
+                foreach ($toolCalls as $toolCall) {
                     $toolCallCount++;
-                    // Store block with input cast to object so empty {} re-encodes correctly
-                    $replayBlock = $block;
-                    $replayBlock['input'] = (object) ($block['input'] ?? []);
-                    $assistantContent[] = $replayBlock;
+                    $functionName = $toolCall['function']['name'];
+                    $functionArgs = json_decode($toolCall['function']['arguments'], true) ?? [];
 
                     yield [
                         'type' => 'tool_use',
-                        'tool' => $block['name'],
+                        'tool' => $functionName,
                         'status' => 'running',
                     ];
 
                     // Execute the tool
                     $toolResult = $this->toolExecutor->execute(
-                        $block['name'],
-                        $block['input'] ?? [],
+                        $functionName,
+                        $functionArgs,
                         $user
                     );
 
@@ -126,34 +132,23 @@ class AiChatService
                         ];
                     }
 
-                    // Add assistant message with tool use, then tool result
-                    $messages[] = ['role' => 'assistant', 'content' => $assistantContent];
+                    // Add tool result message (OpenAI format: role=tool with tool_call_id)
                     $messages[] = [
-                        'role' => 'user',
-                        'content' => [
-                            [
-                                'type' => 'tool_result',
-                                'tool_use_id' => $block['id'],
-                                'content' => json_encode($toolResult),
-                            ],
-                        ],
+                        'role' => 'tool',
+                        'tool_call_id' => $toolCall['id'],
+                        'content' => json_encode($toolResult),
                     ];
-
-                    // Reset assistant content for next iteration
-                    $assistantContent = [];
 
                     yield [
                         'type' => 'tool_use',
-                        'tool' => $block['name'],
+                        'tool' => $functionName,
                         'status' => 'complete',
                     ];
                 }
             }
 
             // If model wants to continue with tool results, loop
-            $stopReason = $response['stop_reason'] ?? 'end_turn';
-
-            if ($hasToolUse && $stopReason === 'tool_use' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
+            if ($hasToolCalls && $finishReason === 'tool_calls' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
                 continue;
             }
 
@@ -180,42 +175,45 @@ class AiChatService
     }
 
     /**
-     * Call the Anthropic Messages API.
+     * Call the OpenAI Chat Completions API.
      */
-    private function callAnthropicApi(
+    private function callOpenAiApi(
         string $model,
         string $systemPrompt,
         array $messages,
         array $tools,
         int $maxTokens
     ): array {
-        $apiKey = config('services.anthropic.api_key');
+        $apiKey = config('services.openai.api_key');
 
         if (! $apiKey) {
-            Log::error('[AiChatService] Anthropic API key not configured');
+            Log::error('[AiChatService] OpenAI API key not configured');
 
             return ['error' => 'API key not configured'];
         }
 
-        $headers = [
-            'x-api-key' => $apiKey,
-            'anthropic-version' => self::ANTHROPIC_VERSION,
-            'content-type' => 'application/json',
-        ];
+        // Prepend system message to conversation history
+        $allMessages = array_merge(
+            [['role' => 'system', 'content' => $systemPrompt]],
+            $messages
+        );
 
         $payload = [
             'model' => $model,
-            'max_tokens' => $maxTokens,
-            'system' => $systemPrompt,
-            'messages' => $messages,
+            'max_completion_tokens' => $maxTokens,
+            'messages' => $allMessages,
         ];
 
         if (! empty($tools)) {
             $payload['tools'] = $tools;
+            $payload['tool_choice'] = 'auto';
         }
 
         try {
-            $response = Http::withHeaders($headers)
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+            ])
                 ->timeout(self::TIMEOUT_SECONDS)
                 ->post(self::API_URL, $payload);
 

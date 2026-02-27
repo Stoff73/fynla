@@ -31,10 +31,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'anthropic' => [
-        'api_key' => env('ANTHROPIC_API_KEY', ''),
-        'chat_model_pro' => env('ANTHROPIC_CHAT_MODEL_PRO', 'claude-sonnet-4-6-20250514'),
-        'chat_model_standard' => env('ANTHROPIC_CHAT_MODEL_STANDARD', 'claude-haiku-4-5-20251001'),
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY', ''),
+        'chat_model_pro' => env('OPENAI_CHAT_MODEL_PRO', 'gpt-5-mini-2025-08-07'),
+        'chat_model_standard' => env('OPENAI_CHAT_MODEL_STANDARD', 'gpt-5-mini-2025-08-07'),
     ],
 
     'getaddress' => [

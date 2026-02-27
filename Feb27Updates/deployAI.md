@@ -69,17 +69,17 @@ routes/api.php
 
 ## Step 3: Environment Variables
 
-Add to `.env` on production (already exists from document upload feature):
+Add to `.env` on production:
 
 ```text
-ANTHROPIC_API_KEY=sk-ant-api03-...
+OPENAI_API_KEY=sk-...
 ```
 
 Optional overrides (defaults are fine):
 
 ```text
-ANTHROPIC_CHAT_MODEL_PRO=claude-sonnet-4-6-20250514
-ANTHROPIC_CHAT_MODEL_STANDARD=claude-haiku-4-5-20251001
+OPENAI_CHAT_MODEL_PRO=gpt-5-mini-2025-08-07
+OPENAI_CHAT_MODEL_STANDARD=gpt-5-mini-2025-08-07
 ```
 
 ## Step 4: SSH Commands

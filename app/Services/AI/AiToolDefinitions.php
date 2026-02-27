@@ -7,7 +7,7 @@ namespace App\Services\AI;
 class AiToolDefinitions
 {
     /**
-     * Get all tool definitions for the Anthropic Messages API.
+     * Get all tool definitions for the OpenAI Chat Completions API.
      */
     public function getTools(bool $isPreviewMode = false): array
     {
@@ -22,7 +22,11 @@ class AiToolDefinitions
             $tools = array_merge($tools, $this->dataCreationTools());
         }
 
-        return $tools;
+        // Wrap each tool in OpenAI's { type: 'function', function: { ... } } envelope
+        return array_map(fn (array $tool) => [
+            'type' => 'function',
+            'function' => $tool,
+        ], $tools);
     }
 
     private function navigationTools(): array
@@ -31,7 +35,7 @@ class AiToolDefinitions
             [
                 'name' => 'navigate_to_page',
                 'description' => 'Navigate the user to a specific page in the application. Use this when the user asks to go somewhere or when showing them relevant information would be helpful.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'route_path' => [
@@ -55,7 +59,7 @@ class AiToolDefinitions
             [
                 'name' => 'get_module_analysis',
                 'description' => 'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'module' => [
@@ -70,7 +74,7 @@ class AiToolDefinitions
             [
                 'name' => 'run_what_if_scenario',
                 'description' => 'Run a what-if scenario to show the user how changes would affect their financial plan. For example: "What if I increase pension contributions by £200/month?" or "What if I retire at 60 instead of 67?"',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'module' => [
@@ -90,7 +94,7 @@ class AiToolDefinitions
             [
                 'name' => 'get_recommendations',
                 'description' => 'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
                 ],
@@ -104,7 +108,7 @@ class AiToolDefinitions
             [
                 'name' => 'get_tax_information',
                 'description' => 'Get current UK tax year information for a specific topic. Use this when the user asks about tax thresholds, allowances, or rates.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'topic' => [
@@ -125,7 +129,7 @@ class AiToolDefinitions
             [
                 'name' => 'generate_financial_plan',
                 'description' => 'Generate a comprehensive holistic financial plan for the user. Analyses all modules (protection, savings, investment, retirement, estate, goals) and returns an executive summary, top recommendations, overall score, and action plan. Use this when the user asks for a financial plan, overview of their position, or wants to know what they should prioritise.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
                 ],
@@ -155,7 +159,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_goal',
                 'description' => 'Create a new financial goal for the user. Use this when the user says they want to save for something specific.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'name' => [
@@ -187,7 +191,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_life_event',
                 'description' => 'Create a future life event that may impact the user\'s financial plan.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'event_type' => [
@@ -219,7 +223,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_savings_account',
                 'description' => 'Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'account_name' => [
@@ -262,7 +266,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_investment_account',
                 'description' => 'Create an investment account for the user. Use this when the user mentions a Stocks and Shares Individual Savings Account, general investment account, investment bond, or other investment.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'account_name' => [
@@ -297,7 +301,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_pension',
                 'description' => 'Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'pension_category' => [
@@ -354,7 +358,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_property',
                 'description' => 'Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'property_type' => [
@@ -405,7 +409,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_mortgage',
                 'description' => 'Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'property_address_hint' => [
@@ -455,7 +459,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_protection_policy',
                 'description' => 'Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'policy_type' => [
@@ -505,7 +509,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_estate_asset',
                 'description' => 'Create an estate planning asset. Use this for assets being tracked specifically for Inheritance Tax and estate planning purposes (e.g., collectibles, business interests, or other assets not captured elsewhere).',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'asset_name' => [
@@ -536,7 +540,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_estate_liability',
                 'description' => 'Create an estate planning liability. Use this for debts and liabilities being tracked for estate planning purposes.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'liability_name' => [
@@ -567,7 +571,7 @@ class AiToolDefinitions
             [
                 'name' => 'create_estate_gift',
                 'description' => 'Record a gift for Inheritance Tax planning. Use this when the user mentions gifts they have made or plan to make, as these affect their Inheritance Tax position under the 7-year rule.',
-                'input_schema' => [
+                'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'gift_date' => [

@@ -8,17 +8,17 @@ use App\Models\User;
 
 class AiModelResolver
 {
-    private const MODEL_PRO = 'claude-sonnet-4-6-20250514';
+    private const MODEL_PRO = 'gpt-5-mini-2025-08-07';
 
-    private const MODEL_STANDARD = 'claude-haiku-4-5-20251001';
+    private const MODEL_STANDARD = 'gpt-5-mini-2025-08-07';
 
     public function getModel(User $user): string
     {
         $plan = $this->getUserPlan($user);
 
         return match ($plan) {
-            'pro' => config('services.anthropic.chat_model_pro', self::MODEL_PRO),
-            default => config('services.anthropic.chat_model_standard', self::MODEL_STANDARD),
+            'pro' => config('services.openai.chat_model_pro', self::MODEL_PRO),
+            default => config('services.openai.chat_model_standard', self::MODEL_STANDARD),
         };
     }
 
