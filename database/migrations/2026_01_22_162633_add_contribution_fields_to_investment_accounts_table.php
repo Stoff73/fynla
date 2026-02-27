@@ -18,18 +18,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('investment_accounts', function (Blueprint $table) {
-            // Regular contribution fields (like DC pensions)
-            $table->decimal('monthly_contribution_amount', 12, 2)->nullable()->after('contributions_ytd')
-                ->comment('Regular monthly contribution amount');
-            $table->enum('contribution_frequency', ['monthly', 'quarterly', 'annually'])
-                ->default('monthly')->after('monthly_contribution_amount')
-                ->comment('How often regular contributions are made');
+            // Regular contribution fields (like DC pensions) - only add if not exists
+            if (! Schema::hasColumn('investment_accounts', 'monthly_contribution_amount')) {
+                $table->decimal('monthly_contribution_amount', 12, 2)->nullable()->after('contributions_ytd')
+                    ->comment('Regular monthly contribution amount');
+            }
+            if (! Schema::hasColumn('investment_accounts', 'contribution_frequency')) {
+                $table->enum('contribution_frequency', ['monthly', 'quarterly', 'annually'])
+                    ->default('monthly')->after('monthly_contribution_amount')
+                    ->comment('How often regular contributions are made');
+            }
 
-            // Planned lump sum fields
-            $table->decimal('planned_lump_sum_amount', 12, 2)->nullable()->after('contribution_frequency')
-                ->comment('One-off lump sum contribution planned');
-            $table->date('planned_lump_sum_date')->nullable()->after('planned_lump_sum_amount')
-                ->comment('Date when lump sum will be contributed');
+            // Planned lump sum fields - only add if not exists
+            if (! Schema::hasColumn('investment_accounts', 'planned_lump_sum_amount')) {
+                $table->decimal('planned_lump_sum_amount', 12, 2)->nullable()->after('contribution_frequency')
+                    ->comment('One-off lump sum contribution planned');
+            }
+            if (! Schema::hasColumn('investment_accounts', 'planned_lump_sum_date')) {
+                $table->date('planned_lump_sum_date')->nullable()->after('planned_lump_sum_amount')
+                    ->comment('Date when lump sum will be contributed');
+            }
         });
     }
 

@@ -1,0 +1,1395 @@
+{
+  "meta": {
+    "version": "4.5.0",
+    "lastUpdated": 1772185844191
+  },
+  "today": {
+    "location": {
+      "country": "GB"
+    },
+    "schema": 4.4,
+    "tab": 0,
+    "partnerStatus": "couple",
+    "age": 52,
+    "birthYear": 1973,
+    "birthMonth": 10,
+    "yourName": "You",
+    "yourColor": "ink",
+    "yourIcon": "mdi-face-shimmer",
+    "spouseAge": 50,
+    "spouseAgeGap": 2,
+    "spouseBirthYear": 1976,
+    "spouseBirthMonth": 1,
+    "spouseName": "Angela",
+    "spouseColor": "blue-grey-lighten-1",
+    "spouseIcon": "mdi-face-shimmer-outline",
+    "savingsAccounts": [
+      {
+        "type": "savings",
+        "title": "Savings",
+        "icon": "mdi-piggy-bank",
+        "balance": 5000,
+        "owner": "me",
+        "color": "teal-lighten-1",
+        "investmentGrowthType": "fixed",
+        "investmentGrowthRate": 0.05,
+        "dividendType": "none",
+        "dividendRate": 0,
+        "liquid": true,
+        "withdraw": true,
+        "withdrawAge": {
+          "type": "keyword",
+          "value": "now",
+          "modifier": "include"
+        },
+        "isPassiveIncome": true,
+        "repurpose": true,
+        "id": "21f88aa7-a465-4cc0-93b2-c5811a427bb2",
+        "name": "Savings"
+      }
+    ],
+    "investmentAccounts": [
+      {
+        "type": "sipp",
+        "country": "GB",
+        "title": "SIPP",
+        "icon": "mdi-finance",
+        "subtitle": "Self-Invested Personal Pension",
+        "balance": 500000,
+        "owner": "me",
+        "color": "light-blue",
+        "investmentGrowthType": "plan",
+        "investmentGrowthRate": 0,
+        "dividendType": "plan",
+        "dividendRate": 0,
+        "hasEWPenalty": true,
+        "EWPenaltyRate": 55,
+        "EWAge": 57,
+        "taxFreeWithdrawalPercentage": 25,
+        "yearlyFee": 0,
+        "yearlyFeeType": "%",
+        "liquid": true,
+        "withdraw": true,
+        "withdrawAge": {
+          "type": "keyword",
+          "value": "now",
+          "modifier": "include"
+        },
+        "isPassiveIncome": false,
+        "dividendsArePassiveIncome": true,
+        "id": "bfc3ab24-3622-4607-813e-cb9fbbaa35b2",
+        "name": "SIPP"
+      }
+    ],
+    "debts": [
+      {
+        "type": "debt",
+        "title": "Debt",
+        "icon": "mdi-weight-pound",
+        "color": "orange-lighten-1",
+        "order": 20,
+        "additionalFields": {
+          "disabled": false,
+          "whitelist": [
+            "fundWithAccounts",
+            "taxDeductible",
+            "itemized"
+          ]
+        },
+        "owner": "me",
+        "amount": 11000,
+        "amountType": "today$",
+        "start": {
+          "type": "keyword",
+          "value": "beforeCurrentYear"
+        },
+        "end": {
+          "type": "keyword",
+          "value": "never"
+        },
+        "frequency": "monthly",
+        "frequencyChoices": true,
+        "yearlyChange": {
+          "amount": 0,
+          "amountType": "today$",
+          "type": "none",
+          "limitEnabled": false,
+          "limit": 0,
+          "limitType": "today$"
+        },
+        "monthlyPayment": 380,
+        "monthlyPaymentType": "today$",
+        "interestRate": 6,
+        "interestType": "compound",
+        "compounding": "daily",
+        "effectiveDate": {
+          "type": "keyword",
+          "value": "beforeCurrentYear"
+        },
+        "hasForgiveness": false,
+        "forgiveAt": {
+          "type": "keyword",
+          "value": "now",
+          "modifier": "include"
+        },
+        "planPath": "expenses",
+        "id": "a44aa1d7-1a56-4a90-a329-3ac094f022b5",
+        "name": "Debt"
+      }
+    ],
+    "assets": [
+      {
+        "type": "real-estate",
+        "title": "House",
+        "icon": "mdi-home",
+        "color": "indigo-lighten-1",
+        "order": 0,
+        "start": {
+          "type": "keyword",
+          "value": "beforeCurrentYear"
+        },
+        "end": {
+          "type": "keyword",
+          "value": "never"
+        },
+        "initialValue": 750000,
+        "initialValueType": "today$",
+        "amount": 1000000,
+        "amountType": "today$",
+        "balance": 350000,
+        "balanceType": "today$",
+        "paymentMethod": "financed",
+        "downPayment": 0,
+        "downPaymentType": "today$",
+        "monthlyPayment": 2000,
+        "monthlyPaymentType": "today$",
+        "interestRate": 7,
+        "interestType": "simple",
+        "compounding": "monthly",
+        "assessedValueType": "market-value",
+        "assessedValue": 0,
+        "assessedValueGrowthRateLimitType": "auto",
+        "assessedValueGrowthRateLimit": 0,
+        "taxRate": 1.25,
+        "taxRateType": "%",
+        "maintenanceRate": 2,
+        "maintenanceRateType": "%",
+        "insuranceRate": 0.5,
+        "insuranceRateType": "%",
+        "brokersFee": 5.5,
+        "yearlyChange": {
+          "amount": 3.9,
+          "amountType": "today$",
+          "type": "appreciate",
+          "limitEnabled": false,
+          "limit": 0,
+          "limitType": "today$"
+        },
+        "repeat": false,
+        "excludeLoanFromLNW": false,
+        "sellIfNeeded": false,
+        "owner": "joint",
+        "improvementRate": 0,
+        "improvementRateType": "%",
+        "managementRate": 0,
+        "managementRateType": "%",
+        "cancelRent": true,
+        "generateIncome": false,
+        "isPassiveIncome": false,
+        "incomeRate": 8,
+        "incomeRateType": "%",
+        "monthlyHOA": 0,
+        "estimateRentalDeductions": true,
+        "estimateQBI": false,
+        "percentRented": 50,
+        "initialBuildingValue": 0,
+        "initialBuildingValueType": "today$",
+        "selfEmployment": false,
+        "classification": "residential",
+        "planPath": "assets",
+        "id": "7653410c-56f1-408d-a218-1f119a7666e5",
+        "name": "House"
+      }
+    ],
+    "lastUpdated": 1772185438575
+  },
+  "plans": [
+    {
+      "schema": 4.4,
+      "id": "adc96510-6fa1-4552-a62c-d47d22d4e6c8",
+      "name": "New plan",
+      "icon": "mdi-chart-areaspline",
+      "simKey": 5,
+      "active": false,
+      "initialized": true,
+      "variables": {
+        "assumptionsMode": "custom",
+        "startYear": 1928,
+        "loopYear": 1928,
+        "investmentReturn": 7,
+        "investmentReturnModifier": 0,
+        "investmentReturnCustom": {
+          "data": [
+            {
+              "x": 0.156164,
+              "y": 7
+            },
+            {
+              "x": 19,
+              "y": 7
+            },
+            {
+              "x": 36,
+              "y": 7
+            }
+          ],
+          "type": "%"
+        },
+        "dividendRate": 1.5,
+        "dividendRateModifier": 0,
+        "dividendRateCustom": {
+          "data": [
+            {
+              "x": 0.156164,
+              "y": 1.5
+            },
+            {
+              "x": 19,
+              "y": 1.5
+            },
+            {
+              "x": 36,
+              "y": 1.5
+            }
+          ],
+          "type": "%"
+        },
+        "inflation": 3,
+        "inflationModifier": 0,
+        "inflationCustom": {
+          "data": [
+            {
+              "x": 0.156164,
+              "y": 3
+            },
+            {
+              "x": 19,
+              "y": 3
+            },
+            {
+              "x": 36,
+              "y": 3
+            }
+          ],
+          "type": "%"
+        },
+        "bondDividendRate": 3.5,
+        "bondDividendRateModifier": 0,
+        "bondDividendRateCustom": {
+          "data": [
+            {
+              "x": 0.156164,
+              "y": 3.5
+            },
+            {
+              "x": 19,
+              "y": 3.5
+            },
+            {
+              "x": 36,
+              "y": 3.5
+            }
+          ],
+          "type": "%"
+        },
+        "bondInvestmentReturn": 1.5,
+        "bondInvestmentReturnModifier": 0,
+        "bondInvestmentReturnCustom": {
+          "data": [
+            {
+              "x": 0.156164,
+              "y": 1.5
+            },
+            {
+              "x": 19,
+              "y": 1.5
+            },
+            {
+              "x": 36,
+              "y": 1.5
+            }
+          ],
+          "type": "%"
+        },
+        "bondAllocationType": "none",
+        "bondAllocation": [
+          {
+            "x": 25,
+            "y": 0
+          },
+          {
+            "x": 40,
+            "y": 15
+          },
+          {
+            "x": 60,
+            "y": 40
+          }
+        ],
+        "bondLocation": {
+          "type": "default",
+          "accountOrder": [
+            "8ad0d4d7-2171-456d-a7c5-dfd098fa226e"
+          ]
+        },
+        "showFutureDollars": false,
+        "projectFrom": "now",
+        "cashFlowDefault": "save",
+        "startDate": "2026-02-27",
+        "drawdownOrder": [
+          "excess-cash",
+          "uk-pension",
+          "all-cash",
+          "non-qualified-uk-pension"
+        ],
+        "showRothConversionIcons": true,
+        "flexSpending": {
+          "enabled": false,
+          "points": [],
+          "scope": "discretionary",
+          "interpolation": "none"
+        },
+        "estate": {
+          "taxDeferredRate": 25,
+          "taxableGainsRate": 15,
+          "stepUpBasis": true,
+          "assetLiquidationFee": 6,
+          "adminRate": 1,
+          "charityRate": 0
+        },
+        "estimateTaxes": true,
+        "filingStatus": "joint",
+        "incomeTaxMode": "fixed",
+        "effectiveIncomeTaxRate": 30,
+        "incomeTaxNational": {
+          "icon": "mdi-flag",
+          "name": "National Income Tax",
+          "brackets": [],
+          "standardDeduction": 0
+        },
+        "incomeTaxExtra": [],
+        "incomeTaxModifier": 0,
+        "capGainsMode": "fixed",
+        "capGainsTaxablePercent": 100,
+        "capGainsTaxAsIncome": false,
+        "capGainsTaxRate": 15,
+        "capGains": {
+          "brackets": [],
+          "offset": "income"
+        },
+        "capGainsModifier": 0,
+        "dividendTaxMode": "capGains",
+        "dividendTaxRate": 20,
+        "dividendTax": {
+          "brackets": [],
+          "offset": "income",
+          "allowance": 0
+        },
+        "bondDividendTaxMode": "income",
+        "bondDividendTaxRate": 20,
+        "bondDividendTax": {
+          "brackets": [],
+          "offset": "income"
+        },
+        "localIncomeTaxRate": 1,
+        "fttMode": "none",
+        "fttRate": 0.2,
+        "fttTaxableEvent": "buy-sell",
+        "wealthTaxMode": "none",
+        "wealthTaxRate": 0.5,
+        "wealthTaxMetric": "netWorth",
+        "wealthTax": {
+          "brackets": [],
+          "standardDeduction": 0,
+          "allowance": 0
+        },
+        "medicare": true,
+        "irmaa": true,
+        "tcjaReversion": false,
+        "bbbSaltReversion": true,
+        "bbbSeniorReversion": true,
+        "withholding": {
+          "taxDeferred": 20,
+          "taxable": 10,
+          "conversions": 0
+        }
+      },
+      "milestones": [
+        {
+          "id": "retirement",
+          "name": "Your Retirement",
+          "criteria": [
+            {
+              "type": "date",
+              "value": "2033-10-01"
+            }
+          ],
+          "icon": "mdi-palm-tree",
+          "color": "teal-lighten-1"
+        },
+        {
+          "id": "spouseRetirement",
+          "name": "Angela's Retirement",
+          "criteria": [
+            {
+              "type": "date",
+              "value": "2036-01-01"
+            }
+          ],
+          "icon": "mdi-palm-tree",
+          "color": "light-blue-lighten-1"
+        },
+        {
+          "id": "lifeExpectancy",
+          "name": "Your Life Expectancy",
+          "criteria": [
+            {
+              "type": "year",
+              "value": "2058-01-01"
+            }
+          ],
+          "icon": "mdi-heart-pulse",
+          "color": "blue-grey-lighten-1"
+        },
+        {
+          "id": "spouseLifeExpectancy",
+          "name": "Angela's Life Expectancy",
+          "criteria": [
+            {
+              "type": "year",
+              "value": "2061-01-01"
+            }
+          ],
+          "icon": "mdi-heart-pulse",
+          "color": "blue-grey-lighten-1"
+        },
+        {
+          "name": "Financial Independence",
+          "id": "fi",
+          "icon": "mdi-flag-variant",
+          "color": "blue-lighten-1",
+          "criteria": [
+            {
+              "type": "netWorth",
+              "operator": ">=",
+              "value": 25,
+              "valueType": "spending",
+              "range": 3,
+              "fixedRange": false,
+              "measurement": "avg"
+            }
+          ]
+        }
+      ],
+      "computedMilestones": [],
+      "montecarlo": {
+        "sampling": "backtest-random-restart",
+        "iterations": 2,
+        "blockSize": 5,
+        "trials": 250,
+        "investmentReturn": "backtest",
+        "investmentReturnMean": 8,
+        "investmentReturnStdDev": 12,
+        "dividendRate": "backtest",
+        "dividendRateMean": 2.5,
+        "dividendRateStdDev": 5,
+        "inflation": "backtest",
+        "inflationMean": 3,
+        "inflationStdDev": 8,
+        "bondReturn": "backtest",
+        "bondReturnMean": 3,
+        "bondReturnStdDev": 2,
+        "cryptoReturn": "custom",
+        "cryptoReturnMean": 12,
+        "cryptoReturnStdDev": 50,
+        "metrics": [
+          "netWorth",
+          "expenses",
+          "wr"
+        ],
+        "metric": "netWorth",
+        "statsMetric": "expenses",
+        "splitPoint": "retirement"
+      },
+      "withdrawalStrategy": {
+        "enabled": false,
+        "strategy": "initial-%",
+        "start": {
+          "type": "milestone",
+          "value": "retirement",
+          "modifier": "include"
+        },
+        "income": "increase-spending",
+        "spendMode": "withdraw",
+        "initial-%": {
+          "amount": 4,
+          "min": 0,
+          "minType": "today$",
+          "minEnabled": false,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        },
+        "fixed-%": {
+          "amount": 4,
+          "min": 10000,
+          "minType": "today$",
+          "minEnabled": true,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        },
+        "fixed-amount": {
+          "amount": 40000,
+          "amountType": "today$",
+          "adjust": true
+        },
+        "1/N": {
+          "min": 0,
+          "minType": "today$",
+          "minEnabled": false,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        },
+        "vpw": {
+          "min": 0,
+          "minType": "today$",
+          "minEnabled": false,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        },
+        "kitces-ratchet": {
+          "amount": 4,
+          "threshold": 50,
+          "ratchet": 10,
+          "cooldown": 3,
+          "min": 0,
+          "minType": "today$",
+          "minEnabled": false,
+          "max": 10,
+          "maxType": "%",
+          "maxEnabled": true
+        },
+        "clyatt-95%": {
+          "amount": 4,
+          "percentOfPrevious": 95,
+          "min": 10000,
+          "minType": "today$",
+          "minEnabled": true,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        },
+        "guyton-klinger": {
+          "amount": 4,
+          "guardrail": 20,
+          "adjustment": 5,
+          "min": 0,
+          "minType": "today$",
+          "minEnabled": false,
+          "max": 1000000,
+          "maxType": "today$",
+          "maxEnabled": false
+        }
+      },
+      "meta": {
+        "index": 0,
+        "runKey": 8,
+        "hasAddedPriorities": false,
+        "wizardStep": 7,
+        "dirty": false,
+        "yearlySummary": {
+          "yearXVal": 36,
+          "age": 88,
+          "spouseAge": 85,
+          "date": 2903299199999
+        }
+      },
+      "hasNotes": false,
+      "accounts": {
+        "events": [
+          {
+            "id": "e6d41179-5b1c-46a4-b891-034d05d993de",
+            "accountId": "21f88aa7-a465-4cc0-93b2-c5811a427bb2",
+            "planPath": "accounts",
+            "persistent": true,
+            "type": "savings",
+            "title": "Savings",
+            "icon": "mdi-piggy-bank",
+            "balance": 5000,
+            "owner": "me",
+            "color": "teal-lighten-1",
+            "investmentGrowthType": "fixed",
+            "investmentGrowthRate": 0.05,
+            "dividendType": "none",
+            "dividendRate": 0,
+            "liquid": true,
+            "withdraw": true,
+            "withdrawAge": {
+              "type": "keyword",
+              "value": "now",
+              "modifier": "include"
+            },
+            "isPassiveIncome": true,
+            "repurpose": true,
+            "name": "Savings"
+          },
+          {
+            "id": "8ad0d4d7-2171-456d-a7c5-dfd098fa226e",
+            "accountId": "bfc3ab24-3622-4607-813e-cb9fbbaa35b2",
+            "planPath": "accounts",
+            "persistent": true,
+            "type": "sipp",
+            "country": "GB",
+            "title": "SIPP",
+            "icon": "mdi-finance",
+            "subtitle": "Self-Invested Personal Pension",
+            "balance": 500000,
+            "owner": "me",
+            "color": "light-blue",
+            "investmentGrowthType": "plan",
+            "investmentGrowthRate": 0,
+            "dividendType": "plan",
+            "dividendRate": 0,
+            "hasEWPenalty": true,
+            "EWPenaltyRate": 55,
+            "EWAge": 57,
+            "taxFreeWithdrawalPercentage": 25,
+            "yearlyFee": 0,
+            "yearlyFeeType": "%",
+            "liquid": true,
+            "withdraw": true,
+            "withdrawAge": {
+              "type": "keyword",
+              "value": "now",
+              "modifier": "include"
+            },
+            "isPassiveIncome": false,
+            "dividendsArePassiveIncome": true,
+            "name": "SIPP"
+          }
+        ]
+      },
+      "income": {
+        "events": [
+          {
+            "planPath": "income",
+            "type": "other",
+            "owner": "me",
+            "amount": 150000,
+            "amountType": "today$",
+            "start": {
+              "type": "keyword",
+              "value": "beforeCurrentYear"
+            },
+            "end": {
+              "type": "milestone",
+              "value": "retirement"
+            },
+            "frequency": "yearly",
+            "frequencyChoices": true,
+            "yearlyChange": {
+              "amount": 0,
+              "amountType": "today$",
+              "type": "match-inflation",
+              "limitEnabled": false,
+              "limit": 0,
+              "limitType": "today$"
+            },
+            "selfEmployment": false,
+            "wage": false,
+            "taxWithholding": false,
+            "taxExempt": false,
+            "withhold": 20,
+            "preventOverflow": false,
+            "isDividendIncome": false,
+            "isPassiveIncome": false,
+            "repeat": false,
+            "name": "Custom Income",
+            "title": "Custom Income",
+            "icon": "mdi-currency-usd-circle",
+            "id": "12024354-9a5b-4bc1-b417-c1bbcfebac46"
+          }
+        ]
+      },
+      "expenses": {
+        "events": [
+          {
+            "owner": "me",
+            "amount": 11000,
+            "amountType": "today$",
+            "start": {
+              "type": "keyword",
+              "value": "beforeCurrentYear"
+            },
+            "end": {
+              "type": "keyword",
+              "value": "never"
+            },
+            "frequency": "monthly",
+            "frequencyChoices": true,
+            "yearlyChange": {
+              "amount": 0,
+              "amountType": "today$",
+              "type": "none",
+              "limitEnabled": false,
+              "limit": 0,
+              "limitType": "today$"
+            },
+            "monthlyPayment": 380,
+            "monthlyPaymentType": "today$",
+            "interestRate": 6,
+            "interestType": "compound",
+            "compounding": "daily",
+            "effectiveDate": {
+              "type": "keyword",
+              "value": "beforeCurrentYear"
+            },
+            "hasForgiveness": false,
+            "forgiveAt": {
+              "type": "keyword",
+              "value": "now",
+              "modifier": "include"
+            },
+            "planPath": "expenses",
+            "type": "debt",
+            "title": "Debt",
+            "icon": "mdi-weight-pound",
+            "color": "orange-lighten-1",
+            "order": 20,
+            "additionalFields": {
+              "disabled": false,
+              "whitelist": [
+                "fundWithAccounts",
+                "taxDeductible",
+                "itemized"
+              ]
+            },
+            "id": "f6b552be-c9e7-4a2b-8611-ba852a38502b",
+            "name": "Debt",
+            "debtId": "a44aa1d7-1a56-4a90-a329-3ac094f022b5",
+            "persistent": true
+          },
+          {
+            "planPath": "expenses",
+            "type": "other",
+            "spendingType": "essential",
+            "owner": "me",
+            "amount": 2000,
+            "amountType": "today$",
+            "start": {
+              "type": "keyword",
+              "value": "beforeCurrentYear"
+            },
+            "end": {
+              "type": "keyword",
+              "value": "endOfPlan"
+            },
+            "frequency": "yearly",
+            "frequencyChoices": true,
+            "yearlyChange": {
+              "amount": 0,
+              "amountType": "today$",
+              "type": "match-inflation",
+              "limitEnabled": false,
+              "limit": 0,
+              "limitType": "today$"
+            },
+            "taxDeductible": false,
+            "itemized": false,
+            "repeat": false,
+            "deductFromIncomeId": "",
+            "name": "Custom Expense",
+            "title": "Custom Expense",
+            "color": "brown-lighten-1",
+            "icon": "mdi-currency-usd-circle",
+            "id": "d35310a1-ade2-4750-ba8e-ea9baef10027"
+          }
+        ]
+      },
+      "assets": {
+        "events": [
+          {
+            "start": {
+              "type": "keyword",
+              "value": "beforeCurrentYear"
+            },
+            "end": {
+              "type": "keyword",
+              "value": "never"
+            },
+            "initialValue": 750000,
+            "initialValueType": "today$",
+            "amount": 1000000,
+            "amountType": "today$",
+            "balance": 350000,
+            "balanceType": "today$",
+            "paymentMethod": "financed",
+            "downPayment": 0,
+            "downPaymentType": "today$",
+            "monthlyPayment": 2000,
+            "monthlyPaymentType": "today$",
+            "interestRate": 7,
+            "interestType": "simple",
+            "compounding": "monthly",
+            "assessedValueType": "market-value",
+            "assessedValue": 0,
+            "assessedValueGrowthRateLimitType": "auto",
+            "assessedValueGrowthRateLimit": 0,
+            "taxRate": 1.25,
+            "taxRateType": "%",
+            "maintenanceRate": 2,
+            "maintenanceRateType": "%",
+            "insuranceRate": 0.5,
+            "insuranceRateType": "%",
+            "brokersFee": 5.5,
+            "yearlyChange": {
+              "amount": 3.9,
+              "amountType": "today$",
+              "type": "appreciate",
+              "limitEnabled": false,
+              "limit": 0,
+              "limitType": "today$"
+            },
+            "repeat": false,
+            "excludeLoanFromLNW": false,
+            "sellIfNeeded": false,
+            "owner": "joint",
+            "improvementRate": 0,
+            "improvementRateType": "%",
+            "managementRate": 0,
+            "managementRateType": "%",
+            "cancelRent": true,
+            "generateIncome": false,
+            "isPassiveIncome": false,
+            "incomeRate": 8,
+            "incomeRateType": "%",
+            "monthlyHOA": 0,
+            "estimateRentalDeductions": true,
+            "estimateQBI": false,
+            "percentRented": 50,
+            "initialBuildingValue": 0,
+            "initialBuildingValueType": "today$",
+            "selfEmployment": false,
+            "classification": "residential",
+            "planPath": "assets",
+            "type": "real-estate",
+            "title": "House",
+            "icon": "mdi-home",
+            "color": "indigo-lighten-1",
+            "order": 0,
+            "id": "8a840dab-e05a-4c42-8389-2d23390457e2",
+            "name": "House",
+            "assetId": "7653410c-56f1-408d-a218-1f119a7666e5",
+            "persistent": true
+          }
+        ]
+      },
+      "priorities": {
+        "events": []
+      },
+      "startingConditionsType": "default",
+      "startingConditions": {},
+      "lastUpdated": 1772185634580
+    }
+  ],
+  "settings": {
+    "lastUpdated": 1772185844184,
+    "schema": 4.42,
+    "theme": "modern",
+    "acceptedTerms": true,
+    "storageChoice": "cloud",
+    "keepMeLoggedIn": true,
+    "allowSupportAccess": false,
+    "enablePlugins": false,
+    "plugins": {
+      "enabled": false,
+      "apiKey": "181e1a64-f9f6-48e8-9500-653e0e97c777"
+    },
+    "completedOnboarding": true,
+    "skipPlanWizard": false,
+    "seenVersion": "0.0.1",
+    "seenRebrand": false,
+    "autoProgress": true,
+    "ci": {
+      "currency": "GBP",
+      "locale": "en-GB"
+    },
+    "plots": {
+      "plotChoice": "netWorth",
+      "view": "life",
+      "yscale": "linear",
+      "xlabels": "age",
+      "minimal": false,
+      "completionLabels": "age",
+      "grid": "h-dashed",
+      "chartHeightModifier": 0,
+      "yMirror": true,
+      "showEveryTick": false,
+      "gradientFill": true,
+      "solidStackedFill": true,
+      "roundedBars": true,
+      "thickBars": true,
+      "overlapBars": true,
+      "siPrefixes": true,
+      "siTrailingZeros": false,
+      "tooltipSiPrefixes": false,
+      "summarySiPrefixes": false,
+      "dashboardSiPrefixes": true,
+      "individual": {
+        "customTable": {
+          "mode": "table",
+          "type": "line",
+          "runMetrics": [
+            {
+              "key": "expenses"
+            },
+            {
+              "key": "income"
+            },
+            {
+              "key": "liquidNetWorth"
+            },
+            {
+              "key": "netWorth"
+            }
+          ],
+          "hidden": {
+            "run-metric:liquidNetWorth": true,
+            "run-metric:income": true,
+            "run-metric:expenses": true
+          }
+        },
+        "netWorth": {
+          "mode": "plot",
+          "type": "line"
+        },
+        "stackedAssets": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "netLegacyLine": {
+          "mode": "plot",
+          "type": "line"
+        },
+        "netLegacyStacked": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "netLegacyAccounts": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "incomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "expensesByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "spendingByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "spendingBySection": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "discretionarySpendingByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "essentialSpendingByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "flexSpendingByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "taxesByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "withdrawalsByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "taxableIncomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "stateTaxableIncomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "localTaxableIncomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "savingsRate": {
+          "mode": "plot",
+          "type": "line"
+        },
+        "contributions": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "contributionsAndWithdrawals": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "goalHeatmap": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "incomeBySource": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularExpenses": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularSpending": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularTaxes": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "withdrawalsBySource": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "taxableIncomeBySource": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "stateTaxableIncomeBySource": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "localTaxableIncomeBySource": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "nonTaxableIncomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "passiveIncomeByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularContributions": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularContributionsAndWithdrawals": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularDebtPayments": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "lnwByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "lnwByAccount": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "stackedAccounts": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "changeInNetWorth": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "granularChangeInNetWorth": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "investmentReturnsByCategory": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "investmentReturnsByAccount": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "investmentAllocations": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "investmentAllocationsBalance": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "accountAllocations": {
+          "mode": "plot",
+          "type": "stacked-bar"
+        },
+        "summaryTable": {
+          "mode": "table",
+          "type": "line"
+        },
+        "investmentReturnsTable": {
+          "mode": "plot",
+          "type": "line"
+        },
+        "incomeTable": {
+          "mode": "table",
+          "type": "line"
+        }
+      },
+      "selectedPercentiles": {},
+      "showIcons": "all",
+      "curves": true,
+      "animation": "default",
+      "startAtZero": false,
+      "sankey": {
+        "yscaler": 1,
+        "fullscreen": false,
+        "nodeBorders": false,
+        "dimming": true,
+        "detail": "categorized",
+        "colors": "default",
+        "roundedBars": true
+      },
+      "estate": {
+        "detail": "categorized"
+      },
+      "trialChartType": "bar"
+    },
+    "tables": {
+      "tableChoice": "summaryTable",
+      "yearIndexFormat": "year",
+      "chart": {
+        "visible": true,
+        "heightPercent": 30
+      }
+    },
+    "progress": {
+      "rangeIndex": 5,
+      "metric": "netWorth",
+      "splitMetrics": [
+        "assets",
+        "liabilities"
+      ],
+      "itemsPerPage": 25
+    },
+    "today": {
+      "tab": 1
+    },
+    "plan": {
+      "tabs": {
+        "pinned": true
+      },
+      "alignment": {
+        "type": "calendar"
+      }
+    },
+    "summary": {
+      "hidden": {},
+      "aggregation": {
+        "expenses": true
+      },
+      "rearrange": false,
+      "xscaler": 0,
+      "density": "compact",
+      "showAll": false,
+      "metricOrder": {}
+    },
+    "montecarlo": {
+      "view": "default",
+      "percentileRange": "standard",
+      "maxWorkers": 2,
+      "useRandomSeed": false,
+      "randomSeed": 1234,
+      "successRates": [
+        {
+          "name": "Non-Viable",
+          "icon": "mdi-close",
+          "color": "red-lighten-1",
+          "value": 25
+        },
+        {
+          "name": "Concerning",
+          "icon": "mdi-weather-lightning",
+          "color": "deep-orange-lighten-2",
+          "value": 40
+        },
+        {
+          "name": "Risky",
+          "icon": "mdi-dice-6",
+          "color": "amber-lighten-1",
+          "value": 60
+        },
+        {
+          "name": "Fair",
+          "icon": "mdi-star-half-full",
+          "color": "light-green-lighten-1",
+          "value": 80
+        },
+        {
+          "name": "Good",
+          "icon": "mdi-thumb-up",
+          "color": "teal-lighten-1",
+          "value": 90
+        },
+        {
+          "name": "Excellent",
+          "icon": "mdi-sparkles",
+          "color": "light-blue-lighten-1",
+          "value": 100
+        }
+      ],
+      "outcomeTypes": {
+        "failedEarly": {
+          "name": "Failed Early",
+          "type": "failure",
+          "icon": "mdi-close",
+          "color": "red-darken-3",
+          "value": 40,
+          "order": 5
+        },
+        "failedMid": {
+          "name": "Failed in the Middle",
+          "type": "failure",
+          "icon": "mdi-close",
+          "color": "red-lighten-1",
+          "order": 4
+        },
+        "failedLate": {
+          "name": "Almost Made It",
+          "type": "failure",
+          "icon": "mdi-close",
+          "color": "deep-orange-lighten-2",
+          "value": 80,
+          "order": 3
+        },
+        "almostFailed": {
+          "name": "Barely Made It",
+          "type": "success",
+          "icon": "mdi-check",
+          "color": "amber-lighten-1",
+          "value": 50,
+          "order": 2
+        },
+        "comfortable": {
+          "name": "Comfortable",
+          "type": "success",
+          "icon": "mdi-check",
+          "color": "blue-lighten-1",
+          "order": 1
+        },
+        "largeSurplus": {
+          "name": "Large Surplus",
+          "type": "success",
+          "icon": "mdi-check",
+          "color": "teal-lighten-1",
+          "value": 300,
+          "order": 0
+        },
+        "unknown": {
+          "name": "Unknown",
+          "type": "unknown",
+          "icon": "mdi-circle-small",
+          "color": "grey-lighten-1",
+          "description": "Not started.",
+          "order": 6
+        }
+      }
+    },
+    "eventContainers": {
+      "pinned": [],
+      "active": [],
+      "dense": []
+    },
+    "tours": {
+      "finished": [
+        "welcome",
+        "plan"
+      ]
+    },
+    "forms": {
+      "countryFilter": "GB",
+      "view": "dense"
+    },
+    "billing": "yearly",
+    "taxCenter": {
+      "metricMode": "total",
+      "selectedMetrics": [
+        "netWorth",
+        "effectiveTaxRate",
+        "wr",
+        "taxes"
+      ],
+      "jurisdiction": "all",
+      "plots": {
+        "granular": false,
+        "rates": "marginalRates",
+        "income": "incomeTypes"
+      }
+    },
+    "effectiveTaxRate": {
+      "income": {
+        "nonTaxableCapitalWithdrawals": false,
+        "nonTaxableSaleProceeds": false,
+        "taxFreeDistributions": false
+      },
+      "tax": {
+        "local": true,
+        "property": false
+      }
+    },
+    "spending": {
+      "taxes": false,
+      "mortgage": true,
+      "mortgagePrincipal": true,
+      "consumerDebtPrincipal": true
+    },
+    "layout": {
+      "cardDensity": "default"
+    },
+    "pro": {
+      "itemsPerPage": 10
+    }
+  },
+  "progress": {
+    "data": [
+      {
+        "date": 1772150400000,
+        "netWorth": 1144000,
+        "savings": 5000,
+        "taxable": 0,
+        "taxDeferred": 500000,
+        "taxFree": 0,
+        "crypto": 0,
+        "assets": 1000000,
+        "loans": 350000,
+        "debt": 11000
+      }
+    ],
+    "lastUpdated": 1772185438585
+  }
+}
