@@ -39,6 +39,10 @@
     <!-- Information Guide (floating help button + panel) -->
     <InfoGuideButton />
     <InfoGuidePanel />
+
+    <!-- AI Chat (floating button + panel) -->
+    <AiChatButton />
+    <AiChatPanel />
   </div>
 </template>
 
@@ -51,6 +55,8 @@ import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
+import AiChatButton from '@/components/Shared/AiChatButton.vue';
+import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 
@@ -67,6 +73,8 @@ export default {
     DataRetentionOverlay,
     InfoGuideButton,
     InfoGuidePanel,
+    AiChatButton,
+    AiChatPanel,
     SideMenu,
     SideMenuMobileToggle,
   },

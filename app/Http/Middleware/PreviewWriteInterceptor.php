@@ -49,6 +49,7 @@ class PreviewWriteInterceptor
         'api/onboarding',         // Allow onboarding to work in preview mode
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction
+        'api/ai-chat/conversations', // Allow AI chat in preview — tool executor handles write blocking
     ];
 
     /**
