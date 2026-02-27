@@ -57,10 +57,28 @@ PROMPT;
         $prompt .= "- You can fetch detailed analysis for any financial module using get_module_analysis\n";
         $prompt .= "- You can run what-if scenarios to show impact of changes using run_what_if_scenario\n";
         $prompt .= "- You can look up current UK tax information using get_tax_information\n";
+        $prompt .= "- You can generate a comprehensive holistic financial plan using generate_financial_plan\n";
 
         if (! $isPreview) {
             $prompt .= "- You can create financial goals using create_goal\n";
             $prompt .= "- You can create life events using create_life_event\n";
+            $prompt .= "- You can create savings accounts (including Cash Individual Savings Accounts) using create_savings_account\n";
+            $prompt .= "- You can create investment accounts (including Stocks & Shares Individual Savings Accounts) using create_investment_account\n";
+            $prompt .= "- You can create pensions (Defined Contribution and Defined Benefit) using create_pension\n";
+            $prompt .= "- You can create properties (with optional auto-linked mortgage) using create_property\n";
+            $prompt .= "- You can create standalone mortgages linked to existing properties using create_mortgage\n";
+            $prompt .= "- You can create protection policies (life, critical illness, income protection) using create_protection_policy\n";
+            $prompt .= "- You can create estate planning assets using create_estate_asset\n";
+            $prompt .= "- You can create estate planning liabilities using create_estate_liability\n";
+            $prompt .= "- You can record gifts for Inheritance Tax planning using create_estate_gift\n";
+
+            $prompt .= "\n## Data Creation Guidance\n";
+            $prompt .= "When the user tells you about a financial product they hold, create it immediately — do not just acknowledge it.\n";
+            $prompt .= "- Individual Savings Accounts must always have ownership_type 'individual' (UK tax law — one per person)\n";
+            $prompt .= "- Default ownership to 'individual' unless the user specifically mentions joint ownership\n";
+            $prompt .= "- Set sensible defaults for fields the user does not mention\n";
+            $prompt .= "- After creating a record, briefly confirm what was created and suggest what to add next\n";
+            $prompt .= "- If the user mentions a property with a mortgage, use create_property with the outstanding_mortgage field to create both at once\n";
         }
 
         return $prompt;

@@ -79,6 +79,17 @@ export default {
                 goal: 'Goal',
                 life_event: 'Life event',
                 savings_account: 'Savings account',
+                investment_account: 'Investment account',
+                dc_pension: 'Pension',
+                db_pension: 'Pension',
+                property: 'Property',
+                mortgage: 'Mortgage',
+                life_insurance_policy: 'Life insurance policy',
+                critical_illness_policy: 'Critical illness policy',
+                income_protection_policy: 'Income protection policy',
+                estate_asset: 'Estate asset',
+                estate_liability: 'Estate liability',
+                estate_gift: 'Gift',
             };
             return labels[type] || 'Item';
         },

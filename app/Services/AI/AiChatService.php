@@ -89,7 +89,10 @@ class AiChatService
                 } elseif ($block['type'] === 'tool_use') {
                     $hasToolUse = true;
                     $toolCallCount++;
-                    $assistantContent[] = $block;
+                    // Store block with input cast to object so empty {} re-encodes correctly
+                    $replayBlock = $block;
+                    $replayBlock['input'] = (object) ($block['input'] ?? []);
+                    $assistantContent[] = $replayBlock;
 
                     yield [
                         'type' => 'tool_use',
