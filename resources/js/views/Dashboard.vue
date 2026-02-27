@@ -60,6 +60,7 @@
           v-if="isStudentPersona"
           title="Recent Activity"
           :loading="false"
+          @click="navigateTo('/net-worth/cash')"
         >
           <div v-if="recentTransactions.length" class="space-y-0">
             <div class="max-h-[340px] overflow-y-auto -mx-1 px-1">
@@ -95,6 +96,7 @@
           v-if="isStudentPersona"
           title="Student Debt"
           :loading="loading.netWorth"
+          @click="navigateTo('/net-worth/liabilities')"
         >
           <div v-if="studentLiability" class="space-y-4">
             <div class="border-b border-gray-200 pb-4">

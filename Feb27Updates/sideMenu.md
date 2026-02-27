@@ -1,5 +1,7 @@
 # Deployment Guide: Side Navigation Menu
 
+## Status: DEPLOYED (27 Feb 2026)
+
 ## Rebuild Required: YES (frontend)
 
 New Vue components were added and existing ones modified. A frontend rebuild is required.

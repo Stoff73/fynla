@@ -32,6 +32,7 @@ const PensionList = () => import('@/components/NetWorth/PensionList.vue');
 const InvestmentList = () => import('@/components/NetWorth/InvestmentList.vue');
 const BusinessInterestsList = () => import('@/components/NetWorth/BusinessInterestsList.vue');
 const ChattelsList = () => import('@/components/NetWorth/ChattelsList.vue');
+const LiabilitiesList = () => import('@/components/NetWorth/LiabilitiesList.vue');
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
 const ProtectionDashboard = () => import('@/views/Protection/ProtectionDashboard.vue');
 const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
@@ -298,6 +299,11 @@ const routes = [
         path: 'chattels',
         name: 'NetWorthChattels',
         component: ChattelsList,
+      },
+      {
+        path: 'liabilities',
+        name: 'NetWorthLiabilities',
+        component: LiabilitiesList,
       },
       {
         path: 'joint-history',
@@ -679,6 +685,11 @@ const routes = [
         path: 'strategy-detail',
         name: 'PreviewStrategyDetail',
         component: () => import('@/components/NetWorth/StrategyDetail.vue'),
+      },
+      {
+        path: 'liabilities',
+        name: 'PreviewNetWorthLiabilities',
+        component: LiabilitiesList,
       },
     ],
   },

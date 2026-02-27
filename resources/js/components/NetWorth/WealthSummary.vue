@@ -363,16 +363,14 @@ export default {
     },
 
     getLiabilityLink(type) {
-      // Mortgages link to property tab, other liabilities go to profile
       const isPreview = this.$route.path.startsWith('/preview');
+      const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
 
       if (type === 'mortgages') {
-        const basePath = isPreview ? '/preview/net-worth' : '/net-worth';
         return `${basePath}/property`;
       }
 
-      // Other liabilities go to profile liabilities section
-      return '/profile?section=liabilities';
+      return `${basePath}/liabilities`;
     },
   },
 };

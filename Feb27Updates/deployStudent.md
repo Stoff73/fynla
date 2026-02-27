@@ -1,5 +1,7 @@
 # Deployment Guide: Student Preview Persona (Janice Taylor)
 
+## Status: DEPLOYED (27 Feb 2026)
+
 ## Rebuild Required: YES (frontend)
 
 New JSON persona file and Vue store/component changes require a frontend rebuild.
@@ -11,6 +13,15 @@ New JSON persona file and Vue store/component changes require a frontend rebuild
 ## Summary
 
 Added a 7th preview persona — Janice Taylor, a 21-year-old university Economics student. Showcases Fynla for younger users with student loans, minimal savings, and early-stage financial planning.
+
+### Student Dashboard Layout
+The dashboard shows a student-specific layout when Janice Taylor is selected:
+- **Recent Activity** card — scrollable list of 12 mock transactions (wages, rent, ISA transfers, maintenance loan, etc.) with relative dates and account badges
+- **Student Debt** card — £35k Plan 5 loan balance, interest rate, repayment threshold, info banner about when repayments begin
+- **Allowances** card — LISA + ISA allowances (existing, unchanged)
+- **Goals & Life Events** card — 3 goals with chart (existing, unchanged)
+- **Net Worth card hidden** — not relevant for a student persona
+- **Optimised loading** — skips protection, estate, retirement, trusts, and investment analysis modules
 
 ### Persona Details
 - **Name:** Janice Taylor, 21, single, female
@@ -35,7 +46,9 @@ resources/js/data/personas/student.json
 app/Http/Controllers/Api/PreviewController.php
 database/seeders/PreviewUserSeeder.php
 resources/js/components/Preview/PersonaSelector.vue
+resources/js/components/Preview/PreviewBanner.vue
 resources/js/store/modules/preview.js
+resources/js/views/Dashboard.vue
 ```
 
 ## Post-Upload: SSH Commands
