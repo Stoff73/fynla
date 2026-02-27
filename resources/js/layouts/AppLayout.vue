@@ -1,23 +1,40 @@
 <template>
   <div class="min-h-screen flex flex-col">
-    <Navbar />
+    <!-- Side Menu (teleported to body) -->
+    <SideMenu
+      :collapsed="sideMenuCollapsed"
+      :mobile-open="sideMenuMobileOpen"
+      @toggle="toggleSideMenu"
+      @update:mobile-open="sideMenuMobileOpen = $event"
+    />
 
-    <!-- Trial Countdown Banner (non-preview users only) -->
-    <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
+    <!-- Mobile hamburger toggle -->
+    <SideMenuMobileToggle @toggle="sideMenuMobileOpen = !sideMenuMobileOpen" />
 
-    <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
-    <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
+    <!-- Main content wrapper with left margin for side menu -->
+    <div
+      class="flex flex-col min-h-screen transition-all duration-300 ease-out"
+      :class="contentMarginClass"
+    >
+      <Navbar />
 
-    <!-- Preview Mode Banner -->
-    <PreviewBanner v-if="isPreviewMode" />
+      <!-- Trial Countdown Banner (non-preview users only) -->
+      <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
 
-    <main class="flex-grow bg-gray-50">
-      <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
-        <slot />
-      </div>
-    </main>
+      <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
+      <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
 
-    <Footer />
+      <!-- Preview Mode Banner -->
+      <PreviewBanner v-if="isPreviewMode" />
+
+      <main class="flex-grow bg-gray-50">
+        <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
+          <slot />
+        </div>
+      </main>
+
+      <Footer />
+    </div>
 
     <!-- Information Guide (floating help button + panel) -->
     <InfoGuideButton />
@@ -34,6 +51,10 @@ import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
+import SideMenu from '@/components/SideMenu.vue';
+import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
+
+const STORAGE_KEY = 'sideMenuCollapsed';
 
 export default {
   name: 'AppLayout',
@@ -46,11 +67,28 @@ export default {
     DataRetentionOverlay,
     InfoGuideButton,
     InfoGuidePanel,
+    SideMenu,
+    SideMenuMobileToggle,
+  },
+
+  data() {
+    return {
+      sideMenuCollapsed: localStorage.getItem(STORAGE_KEY) === 'true',
+      sideMenuMobileOpen: false,
+    };
   },
 
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated']),
+
+    contentMarginClass() {
+      // No margin on mobile (menu is overlay)
+      // On desktop, margin matches side menu width
+      return this.sideMenuCollapsed
+        ? 'sm:ml-16'   // 64px collapsed
+        : 'sm:ml-56';  // 224px expanded
+    },
   },
 
   mounted() {
@@ -62,6 +100,11 @@ export default {
 
   methods: {
     ...mapActions('infoGuide', { fetchInfoGuidePreference: 'fetchPreference' }),
+
+    toggleSideMenu() {
+      this.sideMenuCollapsed = !this.sideMenuCollapsed;
+      localStorage.setItem(STORAGE_KEY, String(this.sideMenuCollapsed));
+    },
   },
 };
 </script>

@@ -75,7 +75,18 @@
       "Bash(brew install:*)",
       "Bash(mkcert:*)",
       "Bash(npm view:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(echo === $view ===:*)",
+      "Bash(echo === $service ===:*)",
+      "Bash(echo EXISTS: $f:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_network_requests"
     ]
   },
   "enabledMcpjsonServers": [

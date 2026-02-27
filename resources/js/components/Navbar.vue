@@ -5,59 +5,16 @@
     @close="handleLogoutModalClose"
   />
 
-  <!-- Bug Report Modal -->
-  <BugReportModal
-    :show="showBugReportModal"
-    @close="closeBugReport"
-  />
-
   <nav class="bg-gray-50 shadow-sm border-b border-gray-200" style="background-color: #F9FAFB;">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
-        <div class="flex">
-          <div class="flex-shrink-0 flex items-center">
-            <router-link to="/dashboard" class="cursor-pointer">
-              <img :src="logoUrl" alt="Fynla" class="h-36 w-auto mt-4" />
-            </router-link>
-          </div>
-          <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-            <router-link
-              to="/dashboard"
-              class="inline-flex items-center px-1 pt-1 border-b-2 text-body-sm font-medium"
-              :class="isActive('/dashboard') ? 'border-primary-600 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-            >
-              Dashboard
-            </router-link>
-          </div>
-        </div>
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
 
-        <!-- Center - Feedback & Bug Report Buttons -->
-        <div class="hidden sm:flex sm:items-center space-x-3">
-          <!-- Feedback Button -->
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-500 text-body-sm font-medium rounded-button text-blue-700 bg-white hover:bg-blue-50 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Feedback
-          </a>
-          <!-- Bug Report Button -->
-          <button
-            @click="openBugReport"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-300 text-body-sm font-medium rounded-button text-blue-600 bg-white hover:text-blue-800 hover:border-blue-400 transition-colors"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            Bug Report
-          </button>
-        </div>
+        <!-- Page Title -->
+        <h1 v-if="pageTitle" class="text-lg font-semibold text-gray-900">{{ pageTitle }}</h1>
+        <div v-else></div>
 
-        <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+        <div class="flex items-center">
+        <div class="hidden sm:flex sm:items-center space-x-4">
           <!-- 2FA Reminder -->
           <router-link
             v-if="showMFAReminder"
@@ -202,122 +159,11 @@
             </transition>
           </div>
         </div>
-
-        <div class="flex items-center sm:hidden">
-          <button
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            class="inline-flex items-center justify-center p-2 rounded-button text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-          >
-            <span class="sr-only">Open main menu</span>
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                v-if="!mobileMenuOpen"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-              <path
-                v-else
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
         </div>
+
       </div>
     </div>
 
-    <div v-if="mobileMenuOpen" class="sm:hidden">
-      <div class="pt-2 pb-3 space-y-1">
-        <router-link
-          to="/dashboard"
-          class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-          :class="isActive('/dashboard') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
-        >
-          Dashboard
-        </router-link>
-        <router-link
-          v-if="showMFAReminder"
-          to="/settings/security"
-          class="block pl-3 pr-4 py-2 border-l-4 border-green-600 text-base font-medium bg-green-600 text-white"
-        >
-          Enable 2FA
-        </router-link>
-        <router-link
-          v-if="showCompleteSetupButton"
-          to="/onboarding"
-          class="block pl-3 pr-4 py-2 border-l-4 border-primary-600 text-base font-medium bg-primary-50 text-primary-700"
-        >
-          Complete Setup
-        </router-link>
-        <a
-          href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="block pl-3 pr-4 py-2 border-l-4 border-blue-500 text-base font-medium bg-blue-50 text-blue-700"
-        >
-          Feedback
-        </a>
-        <button
-          @click="openBugReport"
-          class="w-full text-left block pl-3 pr-4 py-2 border-l-4 border-blue-500 text-base font-medium bg-blue-50 text-blue-700"
-        >
-          Bug Report
-        </button>
-        <router-link
-          v-if="isAdmin"
-          to="/admin"
-          class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-          :class="isActive('/admin') ? 'bg-red-50 border-red-600 text-red-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
-        >
-          Admin Panel
-        </router-link>
-      </div>
-      <div class="pt-4 pb-3 border-t border-gray-200">
-        <div class="flex items-center px-4 mb-3">
-          <div class="flex-shrink-0">
-            <span class="text-body font-medium text-gray-900">{{ userName }}</span>
-          </div>
-        </div>
-        <div class="space-y-1">
-          <router-link
-            to="/valuable-info"
-            class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-            :class="isActive('/valuable-info') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
-          >
-            Valuable Info
-          </router-link>
-          <router-link
-            to="/profile"
-            class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-            :class="isActive('/profile') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
-          >
-            User Profile
-          </router-link>
-          <router-link
-            to="/settings"
-            class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-            :class="isActive('/settings') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'"
-          >
-            Settings
-          </router-link>
-          <button
-            @click="handleLogout"
-            class="w-full text-left block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
   </nav>
 </template>
 
@@ -325,9 +171,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
-import logoImage from '@/assets/logoTransparent.png';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
-import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
 export default {
@@ -335,7 +179,6 @@ export default {
 
   components: {
     LogoutSuccessModal,
-    BugReportModal,
   },
 
   setup() {
@@ -343,12 +186,46 @@ export default {
     const route = useRoute();
     const router = useRouter();
 
-    const logoUrl = logoImage;
-    const mobileMenuOpen = ref(false);
     const userDropdownOpen = ref(false);
-    const showLogoutModal = ref(false);
-    const showBugReportModal = ref(false);
 
+    const pageTitle = computed(() => {
+      const path = route.path;
+      const map = [
+        { prefix: '/net-worth/wealth-summary', label: 'Net Worth' },
+        { prefix: '/net-worth/retirement', label: 'Retirement' },
+        { prefix: '/net-worth/investments', label: 'Investments' },
+        { prefix: '/net-worth/investment-detail', label: 'Investments' },
+        { prefix: '/net-worth/tax-efficiency', label: 'Investments' },
+        { prefix: '/net-worth/holdings-detail', label: 'Investments' },
+        { prefix: '/net-worth/fees-detail', label: 'Investments' },
+        { prefix: '/net-worth/cash', label: 'Cash' },
+        { prefix: '/net-worth/business', label: 'Business' },
+        { prefix: '/net-worth/property', label: 'Property' },
+        { prefix: '/net-worth/chattels', label: 'Personal Valuables' },
+        { prefix: '/protection', label: 'Protection' },
+        { prefix: '/estate', label: 'Estate Planning' },
+        { prefix: '/trusts', label: 'Trusts' },
+        { prefix: '/goals', label: 'Goals' },
+        { prefix: '/risk-profile', label: 'Risk Profile' },
+        { prefix: '/holistic-plan', label: 'Holistic Plan' },
+        { prefix: '/plans', label: 'Plans' },
+        { prefix: '/actions', label: 'Actions' },
+        { prefix: '/profile', label: 'User Profile' },
+        { prefix: '/valuable-info', label: 'Valuable Info' },
+        { prefix: '/settings', label: 'Settings' },
+        { prefix: '/help', label: 'Help' },
+        { prefix: '/admin', label: 'Admin Panel' },
+        { prefix: '/uk-taxes', label: 'UK Taxes' },
+        { prefix: '/savings', label: 'Savings' },
+        { prefix: '/onboarding', label: 'Setup' },
+        { prefix: '/dashboard', label: 'Dashboard' },
+      ];
+      for (const entry of map) {
+        if (path.startsWith(entry.prefix)) return entry.label;
+      }
+      return '';
+    });
+    const showLogoutModal = ref(false);
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
       return user?.name || 'User';
@@ -388,14 +265,8 @@ export default {
       return user.mfa_enabled !== true;
     });
 
-    const isActive = (path) => {
-      return route.path === path;
-    };
-
     const handleLogout = async () => {
-      // Close dropdown menu immediately
       userDropdownOpen.value = false;
-      mobileMenuOpen.value = false;
 
       try {
         // Stop inactivity timer before logout
@@ -415,14 +286,6 @@ export default {
       router.push('/login');
     };
 
-    const openBugReport = () => {
-      showBugReportModal.value = true;
-    };
-
-    const closeBugReport = () => {
-      showBugReportModal.value = false;
-    };
-
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       const dropdown = event.target.closest('.relative');
@@ -440,21 +303,16 @@ export default {
     });
 
     return {
-      logoUrl,
-      mobileMenuOpen,
+      pageTitle,
       userDropdownOpen,
       showLogoutModal,
-      showBugReportModal,
       userName,
       isAdmin,
       onboardingCompleted,
       showCompleteSetupButton,
       showMFAReminder,
-      isActive,
       handleLogout,
       handleLogoutModalClose,
-      openBugReport,
-      closeBugReport,
     };
   },
 };
