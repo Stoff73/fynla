@@ -45,8 +45,8 @@ public function __construct(
 Heavily-used modules have nested subdirectories; simpler modules are flat:
 
 ```
-Services/
-  Investment/         (26 root files + 9 subdirectories)
+Services/             (163 services across 28 module directories)
+  Investment/         (root files + 9 subdirectories)
     Analytics/, AssetLocation/, Fees/, Goals/, ModelPortfolio/,
     Performance/, Rebalancing/, Tax/, Utilities/
   Estate/             (22 services)

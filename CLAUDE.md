@@ -8,10 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 312 |
-| PHP Services | 155 |
+| Vue Components | 329 |
+| PHP Services | 163 |
 | Controllers | 69 |
-| Models | 71 |
+| Models | 74 |
 | Vuex Stores | 21 |
 | Agents | 8 |
 
@@ -69,7 +69,7 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (155 services across 27 module directories)
+- `Services/{Module}/` - Domain calculations (163 services across 28 module directories)
 - `Http/Controllers/Api/` - API endpoints (69 controllers)
 - `Http/Requests/` - Form request validation (70 classes)
 - `Http/Resources/` - API response transformation
@@ -79,12 +79,12 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (312 across 26 modules)
-- `views/` - Page-level route components (61 views)
+- `components/{Module}/` - Vue components (329 across 27 modules)
+- `views/` - Page-level route components (56 views)
 - `store/modules/` - Vuex state management (21 namespaced modules)
-- `services/` - API wrappers (35 services)
+- `services/` - API wrappers (34 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
-- `utils/` - `currency`, `dateFormatter`, `dates`, `ownership`, `poller`, `asyncAction`, `logger`
+- `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
 - `directives/` - `v-preview-disabled` (blocks actions in preview mode)
 - `layouts/` - `AppLayout` (authenticated), `PublicLayout` (public pages)
@@ -239,7 +239,7 @@ Check routes: `php artisan route:list --path=endpoint`
 ```
 
 - **Framework**: Pest (PHPUnit-compatible) with `it()` / `describe()` syntax
-- **Suites**: Unit (59), Feature (37), Architecture (6), Integration (2)
+- **Suites**: Unit (60), Feature (37), Architecture (6), Integration (2)
 - **Database**: `RefreshDatabase` trait resets between tests; TaxConfiguration auto-seeded in `beforeEach()`
 - **Auth**: `$this->actingAs($user)` or `Sanctum::actingAs($user)`
 - **Factories**: 42 factories in `database/factories/` with state methods
@@ -253,8 +253,8 @@ When working on this codebase, automatically use these without prompting:
 **Skills** (invoke with `/command`):
 
 - `/systematic-debugging` - For any bug, error, or unexpected behaviour investigation
-- `/deploy-checklist` - Before any production deployment, generates file list and SSH commands
-- `/scaffold-feature` - When creating a new feature, scaffolds all required files
+- `/feature-dev` - Guided feature development with codebase understanding and architecture focus
+- `/code-review` - Code review a pull request
 
 **Agents** (invoke automatically when relevant):
 

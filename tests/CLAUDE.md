@@ -6,7 +6,7 @@ This file supplements the root `CLAUDE.md` with testing-specific patterns.
 
 ```
 tests/
-  Unit/           59 tests - Isolated service/agent/model tests
+  Unit/           60 tests - Isolated service/agent/model tests
     Agents/       Agent orchestration tests
     Models/       Model domain logic
     Services/     Service calculations (organised by module)
