@@ -17,12 +17,9 @@
 
     <!-- What-If Comparison -->
     <PlanWhatIfComparison
-      :is-approximate="plan.what_if?.is_approximate"
-      :recalculating="recalculating"
       :current-scenario="plan.what_if?.current_scenario"
       :projected-scenario="plan.what_if?.projected_scenario"
       :chart-metrics="chartMetrics"
-      @recalculate="$emit('recalculate')"
     >
       <template #current>
         <InvestmentWhatIfControls :scenario="plan.what_if?.current_scenario" label="current" />
@@ -61,7 +58,6 @@ export default {
 
   props: {
     plan: { type: Object, required: true },
-    recalculating: { type: Boolean, default: false },
   },
 
   data() {
@@ -74,6 +70,6 @@ export default {
     };
   },
 
-  emits: ['toggle-action', 'recalculate'],
+  emits: ['toggle-action'],
 };
 </script>

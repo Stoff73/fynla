@@ -11,9 +11,7 @@
     <RetirementPlanContent
       v-if="plan"
       :plan="plan"
-      :recalculating="recalculating"
       @toggle-action="handleToggle"
-      @recalculate="handleRecalculate"
     />
   </PlanPageLayout>
 </template>
@@ -30,24 +28,20 @@ export default {
   mixins: [planPrintMixin],
 
   computed: {
-    ...mapGetters('plans', ['getPlan', 'isLoading', 'isRecalculating']),
+    ...mapGetters('plans', ['getPlan', 'isLoading']),
     plan() { return this.getPlan('retirement'); },
     loading() { return this.isLoading; },
-    recalculating() { return this.isRecalculating; },
     error() { return this.$store.state.plans.error; },
   },
 
   mounted() { this.loadPlan(); },
 
   methods: {
-    ...mapActions('plans', ['fetchPlan', 'toggleAction', 'recalculateScenario']),
+    ...mapActions('plans', ['fetchPlan', 'toggleAction']),
     async loadPlan() {
       try { await this.fetchPlan('retirement'); } catch { /* handled */ }
     },
     handleToggle(actionId) { this.toggleAction({ planKey: 'retirement', actionId }); },
-    async handleRecalculate() {
-      try { await this.recalculateScenario({ type: 'retirement' }); } catch { /* handled */ }
-    },
     handlePrint() { this.printPlan(this.plan, 'Retirement Plan'); },
   },
 };

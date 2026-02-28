@@ -11,9 +11,7 @@
     <InvestmentPlanContent
       v-if="plan"
       :plan="plan"
-      :recalculating="recalculating"
       @toggle-action="handleToggle"
-      @recalculate="handleRecalculate"
     />
   </PlanPageLayout>
 </template>
@@ -35,11 +33,10 @@ export default {
   mixins: [planPrintMixin],
 
   computed: {
-    ...mapGetters('plans', ['getPlan', 'isLoading', 'isRecalculating']),
+    ...mapGetters('plans', ['getPlan', 'isLoading']),
 
     plan() { return this.getPlan('investment'); },
     loading() { return this.isLoading; },
-    recalculating() { return this.isRecalculating; },
     error() { return this.$store.state.plans.error; },
   },
 
@@ -48,7 +45,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('plans', ['fetchPlan', 'toggleAction', 'recalculateScenario']),
+    ...mapActions('plans', ['fetchPlan', 'toggleAction']),
 
     async loadPlan() {
       try {
@@ -60,14 +57,6 @@ export default {
 
     handleToggle(actionId) {
       this.toggleAction({ planKey: 'investment', actionId });
-    },
-
-    async handleRecalculate() {
-      try {
-        await this.recalculateScenario({ type: 'investment' });
-      } catch {
-        // Error handled via store
-      }
     },
 
     handlePrint() {

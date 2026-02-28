@@ -11,7 +11,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS } from '@/constants/designSystem';
+import { CHART_DEFAULTS, CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PlanWhatIfChart',
@@ -65,11 +65,10 @@ export default {
     chartOptions() {
       const self = this;
       return {
+        ...CHART_DEFAULTS,
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          toolbar: { show: false },
-          zoom: { enabled: false },
         },
         plotOptions: {
           bar: {
@@ -78,52 +77,39 @@ export default {
             borderRadius: 3,
           },
         },
-        colors: [PRIMARY_COLORS[400], '#10B981'],
+        colors: [CHART_COLORS[1], CHART_COLORS[2]],
         dataLabels: { enabled: false },
         xaxis: {
+          ...CHART_DEFAULTS.xaxis,
           categories: this.categories,
           labels: {
-            style: {
-              colors: '#6B7280',
-              fontSize: '11px',
-            },
+            ...CHART_DEFAULTS.xaxis.labels,
             formatter(val) {
               return self.formatCurrencyCompact(val);
             },
           },
-          axisBorder: { show: false },
-          axisTicks: { show: false },
         },
         yaxis: {
-          labels: {
-            style: {
-              colors: '#6B7280',
-              fontSize: '11px',
-            },
-          },
+          ...CHART_DEFAULTS.yaxis,
         },
         grid: {
-          borderColor: '#E5E7EB',
-          strokeDashArray: 4,
+          ...CHART_DEFAULTS.grid,
           xaxis: { lines: { show: true } },
           yaxis: { lines: { show: false } },
         },
         legend: {
+          ...CHART_DEFAULTS.legend,
           position: 'top',
           horizontalAlign: 'right',
           fontSize: '12px',
-          fontFamily: 'Inter, system-ui, sans-serif',
           markers: { radius: 2 },
         },
         tooltip: {
+          ...CHART_DEFAULTS.tooltip,
           y: {
             formatter(val) {
               return self.formatCurrency(val);
             },
-          },
-          style: {
-            fontSize: '12px',
-            fontFamily: 'Inter, system-ui, sans-serif',
           },
         },
       };

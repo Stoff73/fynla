@@ -5,12 +5,9 @@
     <ProtectionCurrentSituation :situation="plan.current_situation" />
     <PlanActionsList :actions="plan.actions" @toggle="$emit('toggle-action', $event)" />
     <PlanWhatIfComparison
-      :is-approximate="plan.what_if?.is_approximate"
-      :recalculating="recalculating"
       :current-scenario="plan.what_if?.current_scenario"
       :projected-scenario="plan.what_if?.projected_scenario"
       :chart-metrics="chartMetrics"
-      @recalculate="$emit('recalculate')"
     >
       <template #current>
         <ProtectionWhatIfControls :scenario="plan.what_if?.current_scenario" />
@@ -37,18 +34,15 @@ export default {
   components: { PlanMissingDataPrompt, PlanExecutiveSummary, PlanActionsList, PlanWhatIfComparison, PlanConclusion, ProtectionCurrentSituation, ProtectionWhatIfControls },
   props: {
     plan: { type: Object, required: true },
-    recalculating: { type: Boolean, default: false },
   },
   data() {
     return {
       chartMetrics: [
-        { key: 'total_coverage_gap', label: 'Total Coverage Gap' },
-        { key: 'life_insurance_gap', label: 'Life Insurance Gap' },
-        { key: 'critical_illness_gap', label: 'Critical Illness Gap' },
-        { key: 'income_protection_gap', label: 'Income Protection Gap' },
+        { key: 'life_insurance_coverage', label: 'Life Insurance Cover' },
+        { key: 'critical_illness_coverage', label: 'Critical Illness Cover' },
       ],
     };
   },
-  emits: ['toggle-action', 'recalculate'],
+  emits: ['toggle-action'],
 };
 </script>

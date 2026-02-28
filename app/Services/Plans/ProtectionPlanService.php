@@ -612,18 +612,38 @@ class ProtectionPlanService extends BasePlanService
         $projectedIp = max(0, $ipGap - $ipReduction);
         $projectedTotal = $projectedLife + $projectedCi + ($projectedIp * 12);
 
+        // Coverage amounts for chart (these always have positive values on both sides)
+        $lifeNeed = (float) ($coverageAnalysis['life_insurance']['need'] ?? 0);
+        $lifeCoverage = (float) ($coverageAnalysis['life_insurance']['coverage'] ?? 0);
+        $ciNeed = (float) ($coverageAnalysis['critical_illness']['need'] ?? 0);
+        $ciCoverage = (float) ($coverageAnalysis['critical_illness']['coverage'] ?? 0);
+        $ipNeed = (float) ($coverageAnalysis['income_protection']['need'] ?? 0);
+        $ipCoverage = (float) ($coverageAnalysis['income_protection']['coverage'] ?? 0);
+
         return [
             'current_scenario' => [
                 'total_coverage_gap' => $this->roundToPenny($totalGap),
                 'life_insurance_gap' => $this->roundToPenny($lifeGap),
                 'critical_illness_gap' => $this->roundToPenny($ciGap),
                 'income_protection_gap' => $this->roundToPenny($ipGap),
+                'life_insurance_coverage' => $this->roundToPenny($lifeCoverage),
+                'critical_illness_coverage' => $this->roundToPenny($ciCoverage),
+                'income_protection_coverage' => $this->roundToPenny($ipCoverage),
+                'life_insurance_need' => $this->roundToPenny($lifeNeed),
+                'critical_illness_need' => $this->roundToPenny($ciNeed),
+                'income_protection_need' => $this->roundToPenny($ipNeed),
             ],
             'projected_scenario' => [
                 'total_coverage_gap' => $this->roundToPenny($projectedTotal),
                 'life_insurance_gap' => $this->roundToPenny($projectedLife),
                 'critical_illness_gap' => $this->roundToPenny($projectedCi),
                 'income_protection_gap' => $this->roundToPenny($projectedIp),
+                'life_insurance_coverage' => $this->roundToPenny($lifeCoverage + $lifeReduction),
+                'critical_illness_coverage' => $this->roundToPenny($ciCoverage + $ciReduction),
+                'income_protection_coverage' => $this->roundToPenny($ipCoverage + $ipReduction),
+                'life_insurance_need' => $this->roundToPenny($lifeNeed),
+                'critical_illness_need' => $this->roundToPenny($ciNeed),
+                'income_protection_need' => $this->roundToPenny($ipNeed),
                 'estimated_additional_premium' => $this->roundToPenny($additionalPremium),
             ],
             'is_approximate' => true,

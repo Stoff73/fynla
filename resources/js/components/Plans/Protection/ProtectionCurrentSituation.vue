@@ -285,13 +285,13 @@ export default {
       const s = (status || '').toLowerCase();
       if (s === 'excellent') return 'bg-green-100 text-green-800';
       if (s === 'good') return 'bg-blue-100 text-blue-800';
-      if (s === 'fair') return 'bg-yellow-100 text-yellow-800';
+      if (s === 'fair') return 'bg-blue-100 text-blue-800';
       return 'bg-red-100 text-red-800';
     },
     progressBarColor(percentage) {
       if (percentage >= 80) return 'bg-green-500';
       if (percentage >= 60) return 'bg-blue-500';
-      if (percentage >= 40) return 'bg-yellow-500';
+      if (percentage >= 40) return 'bg-blue-500';
       return 'bg-red-500';
     },
   },
