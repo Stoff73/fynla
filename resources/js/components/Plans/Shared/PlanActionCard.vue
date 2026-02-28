@@ -17,7 +17,7 @@
         <h4 class="text-sm font-semibold text-gray-900">{{ action.title }}</h4>
         <p class="text-sm text-gray-600 mt-1">{{ action.description }}</p>
         <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
-          Estimated impact: {{ formatCurrency(action.estimated_impact) }}
+          Estimated impact: {{ formatCurrency(action.estimated_impact) }} (this is not a real figure until we connect to a quote engine)
         </p>
       </div>
       <div class="flex-shrink-0">

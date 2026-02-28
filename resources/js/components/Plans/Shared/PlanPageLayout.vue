@@ -98,7 +98,7 @@ export default {
     },
   },
 
-  emits: ['retry'],
+  emits: ['retry', 'print'],
 
   methods: {
     handlePrint() {

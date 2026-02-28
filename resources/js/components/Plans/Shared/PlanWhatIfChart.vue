@@ -1,6 +1,7 @@
 <template>
   <div v-if="chartSeries.length && hasData" class="mb-4">
     <apexchart
+      :key="chartKey"
       type="bar"
       :height="chartHeight"
       :options="chartOptions"
@@ -11,7 +12,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_DEFAULTS, CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PlanWhatIfChart',
@@ -33,8 +34,12 @@ export default {
       return this.currentScenario && this.projectedScenario;
     },
 
-    categories() {
-      return this.metrics.map((m) => m.label);
+    chartKey() {
+      if (!this.hasData) return 'no-data';
+      const total = this.metrics.reduce((sum, m) => {
+        return sum + (this.currentScenario[m.key] || 0) + (this.projectedScenario[m.key] || 0);
+      }, 0);
+      return `whatif-${this.metrics.length}-${Math.round(total)}`;
     },
 
     chartHeight() {
@@ -65,10 +70,11 @@ export default {
     chartOptions() {
       const self = this;
       return {
-        ...CHART_DEFAULTS,
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'bar',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
         },
         plotOptions: {
           bar: {
@@ -80,32 +86,43 @@ export default {
         colors: [CHART_COLORS[1], CHART_COLORS[2]],
         dataLabels: { enabled: false },
         xaxis: {
-          ...CHART_DEFAULTS.xaxis,
-          categories: this.categories,
+          categories: this.metrics.map((m) => m.label),
           labels: {
-            ...CHART_DEFAULTS.xaxis.labels,
             formatter(val) {
               return self.formatCurrencyCompact(val);
             },
+            style: {
+              fontSize: '11px',
+            },
           },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
         },
         yaxis: {
-          ...CHART_DEFAULTS.yaxis,
+          labels: {
+            style: {
+              fontSize: '11px',
+            },
+          },
         },
         grid: {
-          ...CHART_DEFAULTS.grid,
+          borderColor: '#E2E8F0',
+          strokeDashArray: 4,
           xaxis: { lines: { show: true } },
           yaxis: { lines: { show: false } },
         },
         legend: {
-          ...CHART_DEFAULTS.legend,
           position: 'top',
           horizontalAlign: 'right',
           fontSize: '12px',
+          fontFamily: 'Inter, system-ui, sans-serif',
           markers: { radius: 2 },
         },
         tooltip: {
-          ...CHART_DEFAULTS.tooltip,
+          style: {
+            fontSize: '14px',
+            fontFamily: 'Inter, system-ui, sans-serif',
+          },
           y: {
             formatter(val) {
               return self.formatCurrency(val);
