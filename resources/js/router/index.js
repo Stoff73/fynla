@@ -529,14 +529,58 @@ const routes = [
   },
   {
     path: '/plans/investment-savings',
-    name: 'InvestmentSavingsPlan',
-    component: () => import('@/views/Plans/InvestmentSavingsPlan.vue'),
+    redirect: '/plans/investment',
+  },
+  {
+    path: '/plans/investment',
+    name: 'InvestmentPlan',
+    component: () => import('@/views/Plans/InvestmentPlan.vue'),
     meta: {
       requiresAuth: true,
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Plans', path: '/plans' },
-        { label: 'Investment & Savings Plan', path: '/plans/investment-savings' },
+        { label: 'Investment Plan', path: '/plans/investment' },
+      ],
+    },
+  },
+  {
+    path: '/plans/protection',
+    name: 'ProtectionPlan',
+    component: () => import('@/views/Plans/ProtectionPlan.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Plans', path: '/plans' },
+        { label: 'Protection Plan', path: '/plans/protection' },
+      ],
+    },
+  },
+  {
+    path: '/plans/retirement',
+    name: 'RetirementPlan',
+    component: () => import('@/views/Plans/RetirementPlan.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Plans', path: '/plans' },
+        { label: 'Retirement Plan', path: '/plans/retirement' },
+      ],
+    },
+  },
+  {
+    path: '/plans/goal/:goalId',
+    name: 'GoalPlan',
+    component: () => import('@/views/Plans/GoalPlan.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Plans', path: '/plans' },
+        { label: 'Goal Plan', path: '' },
       ],
     },
   },

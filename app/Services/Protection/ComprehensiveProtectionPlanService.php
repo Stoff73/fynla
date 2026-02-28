@@ -268,47 +268,41 @@ class ComprehensiveProtectionPlanService
         $policies = $data['policies'] ?? [];
 
         $lifePolicies = [];
-        if (isset($policies['life_insurance']) && is_array($policies['life_insurance'])) {
-            foreach ($policies['life_insurance'] as $policy) {
-                $policyType = is_string($policy['policy_type'] ?? '') ? $policy['policy_type'] : 'standard';
-                $lifePolicies[] = [
-                    'provider' => $policy['provider'] ?? 'Not specified',
-                    'type' => ucfirst(str_replace('_', ' ', $policyType)),
-                    'sum_assured' => $policy['sum_assured'] ?? 0,
-                    'annual_premium' => $this->convertToAnnualPremium(
-                        $policy['premium_amount'] ?? 0,
-                        $policy['premium_frequency'] ?? 'monthly'
-                    ),
-                ];
-            }
+        foreach (collect($policies['life_insurance'] ?? []) as $policy) {
+            $policyType = is_string($policy['policy_type'] ?? '') ? $policy['policy_type'] : 'standard';
+            $lifePolicies[] = [
+                'provider' => $policy['provider'] ?? 'Not specified',
+                'type' => ucfirst(str_replace('_', ' ', $policyType)),
+                'sum_assured' => $policy['sum_assured'] ?? 0,
+                'annual_premium' => $this->convertToAnnualPremium(
+                    $policy['premium_amount'] ?? 0,
+                    $policy['premium_frequency'] ?? 'monthly'
+                ),
+            ];
         }
 
         $ciPolicies = [];
-        if (isset($policies['critical_illness']) && is_array($policies['critical_illness'])) {
-            foreach ($policies['critical_illness'] as $policy) {
-                $policyType = is_string($policy['policy_type'] ?? '') ? $policy['policy_type'] : 'standard';
-                $ciPolicies[] = [
-                    'provider' => $policy['provider'] ?? 'Not specified',
-                    'type' => ucfirst(str_replace('_', ' ', $policyType)),
-                    'sum_assured' => $policy['sum_assured'] ?? 0,
-                    'annual_premium' => $this->convertToAnnualPremium(
-                        $policy['premium_amount'] ?? 0,
-                        $policy['premium_frequency'] ?? 'monthly'
-                    ),
-                ];
-            }
+        foreach (collect($policies['critical_illness'] ?? []) as $policy) {
+            $policyType = is_string($policy['policy_type'] ?? '') ? $policy['policy_type'] : 'standard';
+            $ciPolicies[] = [
+                'provider' => $policy['provider'] ?? 'Not specified',
+                'type' => ucfirst(str_replace('_', ' ', $policyType)),
+                'sum_assured' => $policy['sum_assured'] ?? 0,
+                'annual_premium' => $this->convertToAnnualPremium(
+                    $policy['premium_amount'] ?? 0,
+                    $policy['premium_frequency'] ?? 'monthly'
+                ),
+            ];
         }
 
         $ipPolicies = [];
-        if (isset($policies['income_protection']) && is_array($policies['income_protection'])) {
-            foreach ($policies['income_protection'] as $policy) {
-                $ipPolicies[] = [
-                    'provider' => $policy['provider'] ?? 'Not specified',
-                    'benefit_amount' => $policy['benefit_amount'] ?? 0,
-                    'benefit_frequency' => ucfirst($policy['benefit_frequency'] ?? 'monthly'),
-                    'deferred_period_weeks' => $policy['deferred_period_weeks'] ?? 0,
-                ];
-            }
+        foreach (collect($policies['income_protection'] ?? []) as $policy) {
+            $ipPolicies[] = [
+                'provider' => $policy['provider'] ?? 'Not specified',
+                'benefit_amount' => $policy['benefit_amount'] ?? 0,
+                'benefit_frequency' => ucfirst($policy['benefit_frequency'] ?? 'monthly'),
+                'deferred_period_weeks' => $policy['deferred_period_weeks'] ?? 0,
+            ];
         }
 
         $totalAnnualPremiums = 0;

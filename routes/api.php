@@ -892,9 +892,20 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
-    // Investment & Savings Plan
+    // Legacy Investment & Savings Plan (backward compatibility)
     Route::get('/investment-savings', [InvestmentSavingsPlanController::class, 'generate']);
     Route::delete('/investment-savings/clear-cache', [InvestmentSavingsPlanController::class, 'clearCache']);
+
+    // New plan system
+    Route::get('/statuses', [\App\Http\Controllers\Api\Plans\PlanController::class, 'statuses']);
+    Route::get('/goal/{goalId}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generateGoalPlan']);
+    Route::post('/goal/{goalId}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculateGoalPlan']);
+    Route::get('/{type}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generate'])
+        ->where('type', 'investment|protection|retirement');
+    Route::post('/{type}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculate'])
+        ->where('type', 'investment|protection|retirement');
+    Route::delete('/{type}/clear-cache', [\App\Http\Controllers\Api\Plans\PlanController::class, 'clearCache'])
+        ->where('type', 'investment|protection|retirement');
 });
 
 // Holistic Planning routes (coordinating agent)

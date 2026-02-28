@@ -15,16 +15,20 @@ class CoverageGapAnalyzer
     ) {}
 
     /**
-     * Calculate human capital value.
-     * Uses NET income (after tax and NI) because that's what the family would actually receive.
+     * Calculate the life cover capital required to replace the family's lost income.
+     *
+     * Uses a sustainable drawdown approach: the lump sum needed so the family
+     * can draw the required annual income indefinitely at a 4.7% withdrawal rate.
+     *
+     * Formula: Annual Income Need / 0.047
      */
-    public function calculateHumanCapital(float $netIncome, int $age, int $retirementAge): float
+    public function calculateHumanCapital(float $annualIncomeNeed): float
     {
-        $yearsToRetirement = max(0, $retirementAge - $age);
-        $multiplier = 10; // Standard rule of thumb
-        $effectiveYears = min($yearsToRetirement, 10);
+        if ($annualIncomeNeed <= 0) {
+            return 0.0;
+        }
 
-        return $netIncome * $multiplier * $effectiveYears;
+        return $annualIncomeNeed / 0.047;
     }
 
     /**
@@ -322,11 +326,7 @@ class CoverageGapAnalyzer
         // (family income would stay same or increase)
         $humanCapital = 0;
         if ($netIncomeDifference > 0) {
-            $humanCapital = $this->calculateHumanCapital(
-                $netIncomeDifference,
-                $age,
-                $profile->retirement_age
-            );
+            $humanCapital = $this->calculateHumanCapital($netIncomeDifference);
         }
 
         $debtProtection = $this->calculateDebtProtectionNeed($profile);
