@@ -69,23 +69,46 @@ class RetirementAgent extends BaseAgent
             $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
 
             $targetIncome = (float) $profile->target_retirement_income;
-            $projectedIncome = $incomeProjection['total_projected_income'];
-            $incomeGap = $targetIncome - $projectedIncome;
+            $statePensionAge = $statePension->state_pension_age ?? 67;
+            $retirementAge = $profile->target_retirement_age;
+
+            // Income at retirement: only include state pension if retiring at or after SPA
+            $incomeAtRetirement = ($incomeProjection['dc_annual_income'] ?? 0)
+                + ($incomeProjection['db_annual_income'] ?? 0);
+            $retiresBeforeSPA = $retirementAge < $statePensionAge;
+            $statePensionIncome = $incomeProjection['state_pension_income'] ?? 0;
+
+            if (! $retiresBeforeSPA) {
+                $incomeAtRetirement += $statePensionIncome;
+            }
+
+            $incomeGap = max(0, $targetIncome - $incomeAtRetirement);
+
+            // Income after SPA (when state pension kicks in)
+            $incomeAfterSPA = $incomeAtRetirement + ($retiresBeforeSPA ? $statePensionIncome : 0);
+            $incomeGapAfterSPA = max(0, $targetIncome - $incomeAfterSPA);
 
             // Check annual allowance
             $taxYear = $this->taxConfig->getTaxYear();
             $allowance = $this->allowanceChecker->checkAnnualAllowance($userId, $taxYear);
 
             // Calculate years to retirement
-            $yearsToRetirement = max(0, $profile->target_retirement_age - $profile->current_age);
+            $yearsToRetirement = max(0, $retirementAge - $profile->current_age);
 
             // Summary metrics
+            $currentDcValue = (float) $dcPensions->sum('current_fund_value');
             $summary = [
                 'years_to_retirement' => $yearsToRetirement,
-                'target_retirement_age' => $profile->target_retirement_age,
-                'projected_retirement_income' => $projectedIncome,
+                'target_retirement_age' => $retirementAge,
+                'projected_retirement_income' => $incomeAtRetirement,
                 'target_retirement_income' => $targetIncome,
                 'income_gap' => $incomeGap,
+                'retires_before_spa' => $retiresBeforeSPA,
+                'state_pension_age' => $statePensionAge,
+                'state_pension_income' => $statePensionIncome,
+                'income_after_spa' => $retiresBeforeSPA ? $incomeAfterSPA : null,
+                'income_gap_after_spa' => $retiresBeforeSPA ? $incomeGapAfterSPA : null,
+                'current_dc_value' => $currentDcValue,
                 'total_dc_value' => $incomeProjection['dc_total_value'],
                 'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
             ];
@@ -119,30 +142,43 @@ class RetirementAgent extends BaseAgent
         $recommendations = [];
         $priority = 1;
 
-        // Income gap based recommendations
         $incomeGap = $analysisData['summary']['income_gap'] ?? 0;
-        if ($incomeGap > 0) {
-            $recommendations[] = [
-                'priority' => $priority++,
-                'category' => 'Contribution',
-                'title' => 'Increase Pension Contributions',
-                'description' => sprintf('Your projected income is £%s below your target. Consider increasing contributions.', number_format($incomeGap, 0)),
-                'action' => 'Review your budget and increase monthly pension contributions.',
-                'impact' => 'High',
-            ];
-        }
 
         // Contribution optimization
         $optimization = $this->optimizer->optimizeContributions($profile, $dcPensions);
         foreach ($optimization['recommendations'] as $rec) {
-            $recommendations[] = [
+            $title = match ($rec['type']) {
+                'employer_match' => 'Maximise Employer Pension Match',
+                'start_contributions' => 'Start Pension Contributions',
+                'contribution_increase' => 'Increase Pension Contributions',
+                'tax_relief' => 'Optimise Pension Tax Relief',
+                default => $rec['message'],
+            };
+
+            $recData = [
                 'priority' => $priority++,
                 'category' => ucfirst($rec['type']),
-                'title' => $rec['message'],
+                'title' => $title,
                 'description' => $rec['message'],
                 'action' => 'See detailed recommendations',
                 'impact' => ucfirst($rec['priority']),
             ];
+
+            // Match account-specific recs to their DC pension by scheme_name
+            if (in_array($rec['type'], ['employer_match', 'start_contributions']) && isset($rec['scheme_name'])) {
+                $matchedPension = $dcPensions->first(fn ($p) => $p->scheme_name === $rec['scheme_name']);
+                if ($matchedPension) {
+                    $recData['scope'] = 'account';
+                    $recData['account_id'] = $matchedPension->id;
+                    $recData['account_name'] = $matchedPension->scheme_name;
+                } else {
+                    $recData['scope'] = 'portfolio';
+                }
+            } else {
+                $recData['scope'] = 'portfolio';
+            }
+
+            $recommendations[] = $recData;
         }
 
         // Annual allowance warnings
@@ -157,35 +193,51 @@ class RetirementAgent extends BaseAgent
                 ),
                 'action' => 'Consult with a financial adviser to minimize tax charges.',
                 'impact' => 'High',
+                'scope' => 'portfolio',
             ];
         }
 
-        // State Pension optimization
+        // State Pension optimization — only flag if unlikely to reach 35 years through continued employment
         $statePension = StatePension::where('user_id', $userId)->first();
         if ($statePension && $statePension->ni_years_completed < $statePension->ni_years_required) {
             $yearsShort = $statePension->ni_years_required - $statePension->ni_years_completed;
-            $recommendations[] = [
-                'priority' => $priority++,
-                'category' => 'State Pension',
-                'title' => 'National Insurance Gaps',
-                'description' => sprintf(
-                    'You need %d more years of NI contributions to get full State Pension.',
-                    $yearsShort
-                ),
-                'action' => 'Check your NI record and consider making voluntary contributions if cost-effective.',
-                'impact' => 'Medium',
-            ];
+            $yearsUntilSPA = max(0, ($statePension->state_pension_age ?? 67) - ($profile->current_age ?? 0));
+            $willReachNaturally = ($statePension->ni_years_completed + $yearsUntilSPA) >= $statePension->ni_years_required;
+
+            if (! $willReachNaturally) {
+                $recommendations[] = [
+                    'priority' => $priority++,
+                    'category' => 'State Pension',
+                    'title' => 'National Insurance Gaps',
+                    'description' => sprintf(
+                        'You need %d more qualifying years but only have %d years until State Pension age. Consider voluntary contributions to fill the gap.',
+                        $yearsShort,
+                        $yearsUntilSPA
+                    ),
+                    'action' => 'Check your NI record and consider making voluntary contributions if cost-effective.',
+                    'impact' => 'High',
+                    'scope' => 'portfolio',
+                ];
+            }
         }
 
-        // Retirement age adjustment - suggest if significant income gap
-        if ($incomeGap > 5000) {
+        // Retirement age adjustment - suggest if income gap > 10% of target
+        $targetIncome = $analysisData['summary']['target_retirement_income'] ?? 0;
+        $retirementAge = $analysisData['summary']['target_retirement_age'] ?? 0;
+        if ($targetIncome > 0 && $incomeGap > ($targetIncome * 0.10) && $retirementAge > 0) {
+            $suggestedAge = min($retirementAge + 3, 70);
             $recommendations[] = [
                 'priority' => $priority++,
                 'category' => 'Retirement Planning',
                 'title' => 'Consider Adjusting Retirement Age',
-                'description' => 'Working a few extra years could significantly improve your retirement income.',
-                'action' => 'Review scenarios for retiring at 68 or 70 instead of your target age.',
+                'description' => sprintf(
+                    'Retiring at %d instead of %d would allow additional years of contributions and growth, significantly reducing your income shortfall.',
+                    $suggestedAge,
+                    $retirementAge
+                ),
+                'action' => sprintf('Review scenarios for retiring at %d.', $suggestedAge),
                 'impact' => 'High',
+                'scope' => 'portfolio',
             ];
         }
 

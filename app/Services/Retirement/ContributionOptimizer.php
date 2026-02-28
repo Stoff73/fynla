@@ -6,6 +6,7 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\StatePension;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -28,7 +29,7 @@ class ContributionOptimizer
     {
         $recommendations = [];
 
-        // Check employer match optimization
+        // Check employer match optimization and zero-contribution pensions
         foreach ($pensions as $pension) {
             if ($pension->scheme_type === 'workplace') {
                 $matchAnalysis = $this->checkEmployerMatch($pension);
@@ -42,6 +43,20 @@ class ContributionOptimizer
                     ];
                 }
             }
+
+            // Flag pensions with no ongoing contributions
+            $annualContrib = $this->calculateAnnualContributionForPension($pension);
+            if ($annualContrib <= 0 && (float) $pension->current_fund_value > 0) {
+                $recommendations[] = [
+                    'type' => 'start_contributions',
+                    'priority' => 'high',
+                    'scheme_name' => $pension->scheme_name,
+                    'message' => sprintf(
+                        'Your %s has no ongoing contributions. Regular contributions would benefit from compound growth over your remaining years to retirement.',
+                        $pension->scheme_name ?: 'pension'
+                    ),
+                ];
+            }
         }
 
         // Calculate required contribution to meet target
@@ -49,22 +64,24 @@ class ContributionOptimizer
         $targetIncome = (float) $profile->target_retirement_income;
 
         if ($targetIncome > 0 && $yearsToRetirement > 0) {
-            $requiredContribution = $this->calculateRequiredContribution(
+            $requiredAdditionalContribution = $this->calculateRequiredContribution(
                 $profile,
                 $pensions,
                 $yearsToRetirement
             );
 
-            $recommendations[] = [
-                'type' => 'contribution_increase',
-                'priority' => 'medium',
-                'message' => sprintf(
-                    'To meet your retirement income target, consider increasing total contributions to £%s per month.',
-                    number_format($requiredContribution / 12, 2)
-                ),
-                'required_annual_contribution' => round($requiredContribution, 2),
-                'required_monthly_contribution' => round($requiredContribution / 12, 2),
-            ];
+            if ($requiredAdditionalContribution > 0) {
+                $recommendations[] = [
+                    'type' => 'contribution_increase',
+                    'priority' => 'medium',
+                    'message' => sprintf(
+                        'To meet your retirement income target, consider contributing an additional £%s per month across your pensions.',
+                        number_format($requiredAdditionalContribution / 12, 2)
+                    ),
+                    'required_annual_contribution' => round($requiredAdditionalContribution, 2),
+                    'required_monthly_contribution' => round($requiredAdditionalContribution / 12, 2),
+                ];
+            }
         }
 
         // Tax relief optimization
@@ -89,9 +106,14 @@ class ContributionOptimizer
     }
 
     /**
-     * Calculate required annual contribution to meet retirement goal.
+     * Calculate required ADDITIONAL annual contribution to meet retirement goal.
      *
-     * @return float Required annual contribution
+     * Accounts for:
+     * - State pension income (reduces the required DC pot)
+     * - Future growth of existing DC pots
+     * - Future value of existing contributions
+     *
+     * @return float Required additional annual contribution
      */
     public function calculateRequiredContribution(
         RetirementProfile $profile,
@@ -99,28 +121,73 @@ class ContributionOptimizer
         int $yearsToRetirement
     ): float {
         $targetIncome = (float) $profile->target_retirement_income;
-
-        // Using 4% withdrawal rate, calculate required pot
-        $requiredPot = $targetIncome / 0.04;
-
-        // Get current DC pension values
-        $currentValue = $pensions->sum('current_fund_value');
-
-        // Calculate gap
-        $gap = max(0, $requiredPot - $currentValue);
-
-        // Calculate required annual contribution using FV formula
-        // Assuming 5% growth rate
         $growthRate = 0.05;
 
         if ($yearsToRetirement <= 0 || $growthRate <= 0) {
             return 0.0;
         }
 
-        // PMT = (FV × r) / ((1 + r)^n - 1)
-        $requiredAnnualContribution = ($gap * $growthRate) / (pow(1 + $growthRate, $yearsToRetirement) - 1);
+        // Only subtract state pension if user retires at or after state pension age
+        $userId = $profile->user_id;
+        $statePension = StatePension::where('user_id', $userId)->first();
+        $statePensionAge = $statePension ? ($statePension->state_pension_age ?? 67) : 67;
+        $retiresBeforeSPA = $profile->target_retirement_age < $statePensionAge;
 
-        return max(0, $requiredAnnualContribution);
+        $statePensionIncome = 0;
+        if (! $retiresBeforeSPA && $statePension) {
+            $statePensionIncome = (float) ($statePension->state_pension_forecast_annual ?? 0);
+        }
+        $dcTargetIncome = max(0, $targetIncome - $statePensionIncome);
+
+        // Required DC pot using 4% withdrawal rate
+        $requiredPot = $dcTargetIncome / 0.04;
+
+        // Project future value of existing pots + existing contributions
+        $projectedValue = 0;
+        foreach ($pensions as $pension) {
+            $currentValue = (float) $pension->current_fund_value;
+            $annualContrib = $this->calculateAnnualContributionForPension($pension);
+            $netGrowth = $growthRate - ((float) ($pension->platform_fee_percent ?? 0) / 100);
+
+            // FV of current pot
+            $projectedValue += $currentValue * pow(1 + $netGrowth, $yearsToRetirement);
+
+            // FV of existing contributions (annuity)
+            if ($annualContrib > 0 && $netGrowth > 0) {
+                $projectedValue += $annualContrib * ((pow(1 + $netGrowth, $yearsToRetirement) - 1) / $netGrowth);
+            }
+        }
+
+        // Gap between required pot and projected value
+        $gap = max(0, $requiredPot - $projectedValue);
+
+        if ($gap <= 0) {
+            return 0.0;
+        }
+
+        // PMT = (FV × r) / ((1 + r)^n - 1) — additional annual contribution needed
+        return ($gap * $growthRate) / (pow(1 + $growthRate, $yearsToRetirement) - 1);
+    }
+
+    /**
+     * Calculate annual contribution for a single pension.
+     */
+    private function calculateAnnualContributionForPension(DCPension $pension): float
+    {
+        $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
+        if ($monthly > 0) {
+            return $monthly * 12;
+        }
+
+        $salary = (float) ($pension->annual_salary ?? 0);
+        $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
+        $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
+
+        if ($salary > 0 && ($employeePct + $employerPct) > 0) {
+            return $salary * ($employeePct + $employerPct) / 100;
+        }
+
+        return 0;
     }
 
     /**
