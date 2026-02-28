@@ -127,7 +127,7 @@ class InvestmentAgent extends BaseAgent
     /**
      * Generate personalized recommendations
      */
-    public function generateRecommendations(array $analysis): array
+    public function generateRecommendations(array $analysis, array $accountFeeAnalyses = []): array
     {
         $recommendations = [];
         $priority = 1;
@@ -143,6 +143,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Complete Your Risk Profile',
                 'description' => 'Set up your risk profile to get personalised investment recommendations and target allocations.',
                 'action' => 'Complete the risk questionnaire to determine your investment strategy',
+                'scope' => 'portfolio',
             ];
         }
 
@@ -154,6 +155,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Add Your Holdings',
                 'description' => 'Add your fund holdings to get detailed fee analysis, diversification scores, and tax efficiency recommendations.',
                 'action' => 'Click on your investment account and add your holdings',
+                'scope' => 'portfolio',
             ];
         }
 
@@ -166,44 +168,77 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Improve Portfolio Diversification',
                 'description' => 'Your diversification score is '.$analysis['diversification_score'].'/100. Consider spreading investments across more asset types.',
                 'action' => 'Review asset allocation and consider adding different asset classes',
+                'scope' => 'portfolio',
             ];
         }
 
-        // Fee recommendations (threshold: £50 annual savings - meaningful savings)
-        if (isset($analysis['low_cost_comparison']['annual_saving']) && $analysis['low_cost_comparison']['annual_saving'] > 50) {
-            $saving = round($analysis['low_cost_comparison']['annual_saving']);
-            $recommendations[] = [
-                'category' => 'Fees',
-                'priority' => $priority++,
-                'title' => 'Reduce Investment Fees',
-                'description' => "You could save £{$saving} per year by switching to lower-cost funds",
-                'action' => 'Review holdings and consider lower-cost index funds',
-            ];
-        }
+        // Per-account fee recommendations (replaces portfolio-level fee recs)
+        foreach ($accountFeeAnalyses as $acctFees) {
+            $accountName = $acctFees['account_name'] ?? 'Unknown Account';
+            $accountId = $acctFees['account_id'] ?? null;
+            $totalFeePercent = $acctFees['total_fee_percent'] ?? 0;
+            $holdingsInAccount = $acctFees['holdings_count'] ?? 0;
 
-        // High-fee holdings recommendation (any holding with OCF > 0.5%)
-        if (isset($analysis['fee_analysis']['high_fee_holdings']) && count($analysis['fee_analysis']['high_fee_holdings']) > 0) {
-            $count = count($analysis['fee_analysis']['high_fee_holdings']);
-            $recommendations[] = [
-                'category' => 'High Fees',
-                'priority' => $priority++,
-                'title' => 'Review High-Fee Holdings',
-                'description' => "You have {$count} holding(s) with fees above 0.5%. Consider lower-cost alternatives.",
-                'action' => 'Compare fund fees and switch to low-cost index alternatives where appropriate',
-            ];
-        }
+            // High total fees on account (above 1.0%)
+            if ($totalFeePercent > 1.0) {
+                $annualFees = $acctFees['total_annual_fees'] ?? 0;
+                $recommendations[] = [
+                    'category' => 'Fees',
+                    'priority' => $priority++,
+                    'title' => "Review fees on {$accountName}",
+                    'description' => sprintf(
+                        'Total fees on this account are %.2f%% (£%s per year). Reducing fees could significantly improve long-term returns.',
+                        $totalFeePercent,
+                        number_format($annualFees, 0)
+                    ),
+                    'action' => 'Review platform and fund fees on this account',
+                    'estimated_impact' => round($annualFees * 0.4, 2),
+                    'scope' => 'account',
+                    'account_id' => $accountId,
+                    'account_name' => $accountName,
+                ];
+            }
 
-        // High platform fee recommendation (platform fees above 0.8% of portfolio)
-        $platformFeeEntry = collect($analysis['fee_analysis']['fee_breakdown'] ?? [])
-            ->firstWhere('type', 'Platform Fees');
-        if ($platformFeeEntry && ($platformFeeEntry['percent_of_portfolio'] ?? 0) > 0.8) {
-            $recommendations[] = [
-                'category' => 'Platform Fees',
-                'priority' => $priority++,
-                'title' => 'Review Platform Fees',
-                'description' => 'Your platform fees are '.round($platformFeeEntry['percent_of_portfolio'], 2).'% of your portfolio. Consider switching to a lower-cost platform.',
-                'action' => 'Compare platform fees across providers',
-            ];
+            // High-fee holdings within this account (OCF > 0.5%)
+            if ($holdingsInAccount > 0) {
+                $weightedOcf = $acctFees['weighted_ocf'] ?? 0;
+                if ($weightedOcf > 0.5) {
+                    $recommendations[] = [
+                        'category' => 'High Fees',
+                        'priority' => $priority++,
+                        'title' => "Review high-fee holdings in {$accountName}",
+                        'description' => sprintf(
+                            'The weighted fund charge on this account is %.2f%%. Consider switching to lower-cost index funds.',
+                            $weightedOcf
+                        ),
+                        'action' => 'Compare fund fees and switch to low-cost index alternatives where appropriate',
+                        'scope' => 'account',
+                        'account_id' => $accountId,
+                        'account_name' => $accountName,
+                    ];
+                }
+            }
+
+            // High platform fee on this account (above 0.8%)
+            $platformFeePercent = 0;
+            if (isset($acctFees['fees']['platform_fee']) && ($acctFees['account_value'] ?? 0) > 0) {
+                $platformFeePercent = ($acctFees['fees']['platform_fee'] / $acctFees['account_value']) * 100;
+            }
+            if ($platformFeePercent > 0.8) {
+                $recommendations[] = [
+                    'category' => 'Platform Fees',
+                    'priority' => $priority++,
+                    'title' => "Review platform fees on {$accountName}",
+                    'description' => sprintf(
+                        'Platform fees on this account are %.2f%%. Consider switching to a lower-cost platform.',
+                        $platformFeePercent
+                    ),
+                    'action' => 'Compare platform fees across providers',
+                    'scope' => 'account',
+                    'account_id' => $accountId,
+                    'account_name' => $accountName,
+                ];
+            }
         }
 
         // Allocation recommendations (only when holdings exist - can't rebalance with no holdings)
@@ -214,6 +249,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Rebalance Portfolio',
                 'description' => 'Your current allocation deviates significantly from your risk profile',
                 'action' => 'Consider rebalancing to match your target allocation',
+                'scope' => 'portfolio',
             ];
         }
 
@@ -232,6 +268,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Open a Stocks & Shares ISA',
                 'description' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to '.number_format($taxWrappers['isa_allowance'] ?? 20000).'/year from income tax and capital gains tax.',
                 'action' => 'Open an ISA and transfer or contribute up to the annual allowance',
+                'scope' => 'portfolio',
             ];
         } elseif ($hasIsa && $isaRemaining > 0 && $hasGia) {
             // Priority 2: Has ISA with allowance remaining and GIA holdings to shelter
@@ -241,6 +278,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Use Your ISA Allowance',
                 'description' => 'You have '.number_format($isaRemaining).' ISA allowance remaining this tax year. Consider moving GIA holdings ('.number_format($giaValue).') into your ISA before 5 April.',
                 'action' => 'Transfer or contribute GIA funds into your ISA to shelter from tax',
+                'scope' => 'portfolio',
             ];
         } elseif ($hasGia && $giaValue > 50000 && ! ($taxWrappers['has_onshore_bond'] ?? false) && ! ($taxWrappers['has_offshore_bond'] ?? false)) {
             // Priority 3: ISA used but significant GIA value - suggest bonds
@@ -250,6 +288,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Consider Tax-Efficient Bonds',
                 'description' => 'With '.number_format($giaValue).' in your GIA, consider onshore bonds (tax-deferred growth, 5% annual tax-free withdrawal) or offshore bonds (gross roll-up, no annual UK tax on gains) for additional tax efficiency.',
                 'action' => 'Speak to your adviser about investment bonds for tax-deferred growth',
+                'scope' => 'portfolio',
             ];
         }
 
@@ -265,6 +304,7 @@ class InvestmentAgent extends BaseAgent
                 'title' => 'Tax Loss Harvesting Opportunity',
                 'description' => "{$count} holdings have unrealized losses. Potential tax saving: £{$saving}",
                 'action' => 'Consider selling losing positions to offset capital gains',
+                'scope' => 'portfolio',
             ];
         }
 
