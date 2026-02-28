@@ -3,9 +3,9 @@
     <PlanSectionHeader title="Current Situation" subtitle="Your pension and retirement overview" color="teal" />
 
     <div class="space-y-4">
-      <!-- Defined Contribution Pensions -->
+      <!-- Pensions -->
       <div v-if="situation.dc_pensions && situation.dc_pensions.length" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Defined Contribution Pensions</h3>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Pensions</h3>
         <div class="space-y-2">
           <div
             v-for="pension in situation.dc_pensions"
@@ -75,14 +75,17 @@
           <p class="text-lg font-bold text-gray-900">{{ situation.summary?.years_to_retirement ?? 'N/A' }}</p>
         </div>
         <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-          <p class="text-xs text-gray-500 uppercase">Income Gap</p>
+          <p class="text-xs text-gray-500 uppercase">Income Gap at Retirement</p>
           <p class="text-lg font-bold" :class="incomeGapColor">
             {{ formatCurrency(Math.max(0, situation.summary?.income_gap || 0)) }}/year
           </p>
+          <p v-if="retiresBeforeSPA && incomeGapAfterSPA !== null" class="text-xs text-gray-500 mt-1">
+            {{ formatCurrency(incomeGapAfterSPA) }}/year from age {{ situation.summary?.state_pension_age }}
+          </p>
         </div>
         <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-          <p class="text-xs text-gray-500 uppercase">Total Defined Contribution Value</p>
-          <p class="text-lg font-bold text-gray-900">{{ formatCurrency(situation.summary?.total_dc_value || 0) }}</p>
+          <p class="text-xs text-gray-500 uppercase">Total Pension Value</p>
+          <p class="text-lg font-bold text-gray-900">{{ formatCurrency(situation.summary?.current_dc_value || 0) }}</p>
         </div>
       </div>
     </div>
@@ -101,6 +104,12 @@ export default {
     situation: { type: Object, required: true },
   },
   computed: {
+    retiresBeforeSPA() {
+      return this.situation.summary?.retires_before_spa || false;
+    },
+    incomeGapAfterSPA() {
+      return this.situation.summary?.income_gap_after_spa ?? null;
+    },
     incomeGapColor() {
       const gap = this.situation.summary?.income_gap || 0;
       return gap <= 0 ? 'text-green-700' : 'text-red-700';

@@ -12,6 +12,7 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\PensionProjector;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Collection;
 
 class RetirementPlanService extends BasePlanService
 {
@@ -36,6 +37,7 @@ class RetirementPlanService extends BasePlanService
                 'executive_summary' => $this->buildEmptyExecutiveSummary(),
                 'current_situation' => [],
                 'actions' => [],
+                'pension_projections' => [],
                 'what_if' => [],
                 'conclusion' => $this->generateDynamicConclusion([], [], 'retirement'),
                 'error' => $analysis['message'] ?? 'Unable to generate retirement analysis.',
@@ -48,7 +50,14 @@ class RetirementPlanService extends BasePlanService
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
-        $whatIf = $this->buildWhatIfData($data, $currentSituation, $enabledActions);
+        // Compute years to retirement for projections
+        $profile = RetirementProfile::where('user_id', $userId)->first();
+        $yearsToRetirement = $profile ? max(0, $profile->target_retirement_age - $profile->current_age) : 0;
+
+        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $pensionProjections = $this->buildPensionGrowthProjections($actions, $dcPensions, $yearsToRetirement);
+
+        $whatIf = $this->buildWhatIfData($data, $currentSituation, $enabledActions, $yearsToRetirement);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'retirement');
 
         return [
@@ -57,6 +66,7 @@ class RetirementPlanService extends BasePlanService
             'executive_summary' => $this->buildExecutiveSummary($user, $data, $userId),
             'current_situation' => $currentSituation,
             'actions' => $actions,
+            'pension_projections' => $pensionProjections,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
         ];
@@ -146,7 +156,7 @@ class RetirementPlanService extends BasePlanService
         $incomeGap = $summary['income_gap'] ?? 0;
         $yearsToRetirement = $summary['years_to_retirement'] ?? 0;
         $retirementAge = $summary['target_retirement_age'] ?? 0;
-        $totalDcValue = $summary['total_dc_value'] ?? 0;
+        $currentDcValue = $summary['current_dc_value'] ?? 0;
 
         $dcPensions = DCPension::where('user_id', $userId)->get();
         $dbPensions = DBPension::where('user_id', $userId)->get();
@@ -180,8 +190,8 @@ class RetirementPlanService extends BasePlanService
         $pensionDescriptions = [];
         if ($dcPensions->isNotEmpty()) {
             foreach ($dcPensions as $dc) {
-                $name = $dc->scheme_name ?: ($dc->provider ?: 'a defined contribution pension');
-                $value = $this->formatCurrency((float) $dc->current_value);
+                $name = $dc->scheme_name ?: ($dc->provider ?: 'a pension');
+                $value = $this->formatCurrency((float) $dc->current_fund_value);
                 $pensionDescriptions[] = "{$name} (valued at {$value})";
             }
         }
@@ -201,9 +211,10 @@ class RetirementPlanService extends BasePlanService
         }
 
         // State pension
-        if ($statePension && ($statePension->projected_weekly_amount ?? 0) > 0) {
-            $weeklyAmount = $this->formatCurrency((float) $statePension->projected_weekly_amount);
-            $niYears = $statePension->ni_qualifying_years ?? 0;
+        $forecastAnnual = (float) ($statePension->state_pension_forecast_annual ?? 0);
+        if ($statePension && $forecastAnnual > 0) {
+            $weeklyAmount = $this->formatCurrency(round($forecastAnnual / 52, 2));
+            $niYears = $statePension->ni_years_completed ?? 0;
             $lines[] = sprintf(
                 'Your State Pension is projected at %s per week based on %d qualifying years of National Insurance contributions.',
                 $weeklyAmount,
@@ -211,15 +222,18 @@ class RetirementPlanService extends BasePlanService
             );
         }
 
-        // Total DC value
-        if ($totalDcValue > 0) {
+        // Total current pension pot
+        if ($currentDcValue > 0) {
             $lines[] = sprintf(
-                'Your total defined contribution pension pot stands at %s.',
-                $this->formatCurrency($totalDcValue)
+                'Your total pension pot currently stands at %s.',
+                $this->formatCurrency($currentDcValue)
             );
         }
 
         // Income target and gap
+        $retiresBeforeSPA = $summary['retires_before_spa'] ?? false;
+        $statePensionAge = $summary['state_pension_age'] ?? 67;
+
         $lines[] = '';
         if ($targetIncome > 0) {
             $lines[] = sprintf(
@@ -233,20 +247,54 @@ class RetirementPlanService extends BasePlanService
                     $this->formatCurrency($projectedIncome)
                 );
             } else {
-                $lines[] = sprintf(
-                    'Based on your current arrangements, your projected retirement income is %s per year, leaving a shortfall of %s per year against your target. The recommendations below outline steps to close this gap.',
-                    $this->formatCurrency($projectedIncome),
-                    $this->formatCurrency($incomeGap)
-                );
+                if ($retiresBeforeSPA) {
+                    $incomeGapAfterSPA = $summary['income_gap_after_spa'] ?? 0;
+                    $incomeAfterSPA = $summary['income_after_spa'] ?? 0;
+                    $spIncome = $summary['state_pension_income'] ?? 0;
+
+                    $lines[] = sprintf(
+                        'Because you plan to retire at %d, which is %d years before your State Pension begins at age %d, your projected income at retirement is %s per year from your pensions alone, leaving a shortfall of %s per year.',
+                        $retirementAge,
+                        $statePensionAge - $retirementAge,
+                        $statePensionAge,
+                        $this->formatCurrency($projectedIncome),
+                        $this->formatCurrency($incomeGap)
+                    );
+
+                    if ($incomeGapAfterSPA > 0) {
+                        $lines[] = sprintf(
+                            'Once your State Pension of %s per year begins at age %d, your total income rises to %s, reducing the shortfall to %s per year.',
+                            $this->formatCurrency($spIncome),
+                            $statePensionAge,
+                            $this->formatCurrency($incomeAfterSPA),
+                            $this->formatCurrency($incomeGapAfterSPA)
+                        );
+                    } else {
+                        $lines[] = sprintf(
+                            'Once your State Pension of %s per year begins at age %d, your total income rises to %s, which meets your target.',
+                            $this->formatCurrency($spIncome),
+                            $statePensionAge,
+                            $this->formatCurrency($incomeAfterSPA)
+                        );
+                    }
+                } else {
+                    $lines[] = sprintf(
+                        'Based on your current arrangements, your projected retirement income is %s per year, leaving a shortfall of %s per year against your target. The recommendations below outline steps to close this gap.',
+                        $this->formatCurrency($projectedIncome),
+                        $this->formatCurrency($incomeGap)
+                    );
+                }
             }
+
+            $lines[] = 'The recommendations below outline steps to close this gap.';
         }
 
         // Employer contributions
-        $totalEmployerContrib = $dcPensions->sum('employer_contribution_amount');
-        if ($totalEmployerContrib > 0) {
+        $totalMonthlyEmployer = $dcPensions->sum(fn ($p) => $this->calculateMonthlyEmployerContribution($p));
+        if ($totalMonthlyEmployer > 0) {
             $lines[] = sprintf(
                 'Your employer currently contributes %s per month towards your pension, which is factored into our projections.',
-                $this->formatCurrency($totalEmployerContrib)
+                $this->formatCurrency(round($totalMonthlyEmployer, 2))
             );
         }
 
@@ -287,9 +335,9 @@ class RetirementPlanService extends BasePlanService
                     'id' => $pension->id,
                     'scheme_name' => $pension->scheme_name,
                     'provider' => $pension->provider,
-                    'current_value' => $this->roundToPenny((float) $pension->current_value),
-                    'monthly_contribution' => $this->roundToPenny((float) ($pension->employee_contribution_amount ?? 0)),
-                    'employer_contribution' => $this->roundToPenny((float) ($pension->employer_contribution_amount ?? 0)),
+                    'current_value' => $this->roundToPenny((float) $pension->current_fund_value),
+                    'monthly_contribution' => $this->roundToPenny($this->calculateMonthlyEmployeeContribution($pension)),
+                    'employer_contribution' => $this->roundToPenny($this->calculateMonthlyEmployerContribution($pension)),
                     'pension_type' => $pension->pension_type,
                 ];
             })->toArray(),
@@ -302,9 +350,9 @@ class RetirementPlanService extends BasePlanService
                 ];
             })->toArray(),
             'state_pension' => $statePension ? [
-                'weekly_amount' => $this->roundToPenny((float) ($statePension->projected_weekly_amount ?? 0)),
-                'annual_amount' => $this->roundToPenny((float) ($statePension->projected_weekly_amount ?? 0) * 52),
-                'ni_years' => $statePension->ni_qualifying_years ?? 0,
+                'weekly_amount' => $this->roundToPenny(round((float) ($statePension->state_pension_forecast_annual ?? 0) / 52, 2)),
+                'annual_amount' => $this->roundToPenny((float) ($statePension->state_pension_forecast_annual ?? 0)),
+                'ni_years' => $statePension->ni_years_completed ?? 0,
                 'state_pension_age' => $statePension->state_pension_age ?? null,
             ] : null,
             'income_projection' => $incomeProjection,
@@ -313,21 +361,24 @@ class RetirementPlanService extends BasePlanService
         ];
     }
 
-    private function buildWhatIfData(array $data, array $currentSituation, array $enabledActions): array
+    private function buildWhatIfData(array $data, array $currentSituation, array $enabledActions, int $yearsToRetirement = 0): array
     {
         $summary = $data['summary'] ?? [];
         $projectedIncome = $summary['projected_retirement_income'] ?? 0;
         $targetIncome = $summary['target_retirement_income'] ?? 0;
         $incomeGap = max(0, $summary['income_gap'] ?? 0);
-        $totalDcValue = $summary['total_dc_value'] ?? 0;
-        $yearsToRetirement = $summary['years_to_retirement'] ?? 0;
+        $currentDcValue = $summary['current_dc_value'] ?? 0;
+        $projectedDcValueAtRetirement = $summary['total_dc_value'] ?? 0;
+        if ($yearsToRetirement === 0) {
+            $yearsToRetirement = $summary['years_to_retirement'] ?? 0;
+        }
 
         $additionalContribution = 0;
         $incomeImprovement = 0;
 
         foreach ($enabledActions as $action) {
             $category = strtolower($action['category'] ?? '');
-            if (str_contains($category, 'contribution')) {
+            if (str_contains($category, 'contribution') || str_contains($category, 'start_contribution')) {
                 $additionalContribution += 200; // £200/month increase estimate
                 $incomeImprovement += $this->estimateIncomeFromContribution(200, $yearsToRetirement);
             } elseif (str_contains($category, 'consolid')) {
@@ -342,31 +393,105 @@ class RetirementPlanService extends BasePlanService
         $projectedWithActions = $projectedIncome + $incomeImprovement;
         $projectedGap = max(0, $targetIncome - $projectedWithActions);
 
-        // Project DC value with additional contributions
-        $projectedDcValue = $this->projectDcValue($totalDcValue, $additionalContribution, $yearsToRetirement);
+        // Add FV of additional contributions on top of the already-projected value
+        // (which already includes existing contributions)
+        $additionalFv = $this->projectDcValue(0, $additionalContribution, $yearsToRetirement);
+        $projectedDcWithActions = $projectedDcValueAtRetirement + $additionalFv;
 
         return [
             'current_scenario' => [
                 'projected_annual_income' => $this->roundToPenny($projectedIncome),
                 'income_gap' => $this->roundToPenny($incomeGap),
-                'total_dc_value' => $this->roundToPenny($totalDcValue),
-                'dc_value_at_retirement' => $this->roundToPenny($this->projectDcValue($totalDcValue, 0, $yearsToRetirement)),
+                'total_dc_value' => $this->roundToPenny($currentDcValue),
+                'dc_value_at_retirement' => $this->roundToPenny($projectedDcValueAtRetirement),
             ],
             'projected_scenario' => [
                 'projected_annual_income' => $this->roundToPenny($projectedWithActions),
                 'income_gap' => $this->roundToPenny($projectedGap),
-                'total_dc_value' => $this->roundToPenny($totalDcValue),
-                'dc_value_at_retirement' => $this->roundToPenny($projectedDcValue),
+                'total_dc_value' => $this->roundToPenny($currentDcValue),
+                'dc_value_at_retirement' => $this->roundToPenny($projectedDcWithActions),
                 'additional_monthly_contribution' => $this->roundToPenny($additionalContribution),
             ],
             'is_approximate' => true,
             'frontend_calc_params' => [
-                'current_dc_value' => $totalDcValue,
+                'current_dc_value' => $currentDcValue,
                 'growth_rate' => 0.05,
                 'years' => $yearsToRetirement,
                 'annuity_rate' => 0.04,
             ],
         ];
+    }
+
+    /**
+     * Build per-pension growth projection series for each DC pension.
+     */
+    private function buildPensionGrowthProjections(array $actions, Collection $dcPensions, int $yearsToRetirement): array
+    {
+        if ($yearsToRetirement <= 0 || $dcPensions->isEmpty()) {
+            return [];
+        }
+
+        $projections = [];
+
+        foreach ($dcPensions as $pension) {
+            $currentValue = (float) $pension->current_fund_value;
+            $platformFee = (float) ($pension->platform_fee_percent ?? 0);
+            $netGrowthRate = 0.05 - ($platformFee / 100);
+
+            // Compute annual contribution
+            $monthlyContribution = (float) ($pension->monthly_contribution_amount ?? 0);
+            if ($monthlyContribution > 0) {
+                $annualContribution = $monthlyContribution * 12;
+            } else {
+                $salary = (float) ($pension->annual_salary ?? 0);
+                $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
+                $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
+                $annualContribution = $salary * ($employeePct + $employerPct) / 100;
+            }
+
+            // Estimate additional annual contribution from enabled account-level actions
+            $accountActions = array_filter($actions, fn ($a) =>
+                ($a['scope'] ?? '') === 'account'
+                && ($a['account_id'] ?? null) == $pension->id
+                && ($a['enabled'] ?? false)
+            );
+            $additionalAnnual = count($accountActions) * 2400; // £200/month per action estimate
+
+            // Build two series: current trajectory and with-actions
+            $currentSeries = [];
+            $withActionsSeries = [];
+
+            for ($y = 0; $y <= $yearsToRetirement; $y++) {
+                if ($y === 0) {
+                    $currentSeries[] = round($currentValue);
+                    $withActionsSeries[] = round($currentValue);
+                } else {
+                    // Current: compound growth with current contributions
+                    $prevCurrent = $currentSeries[$y - 1];
+                    $currentSeries[] = round(($prevCurrent + $annualContribution) * (1 + $netGrowthRate));
+
+                    // With actions: add estimated additional contributions
+                    $prevActions = $withActionsSeries[$y - 1];
+                    $withActionsSeries[] = round(($prevActions + $annualContribution + $additionalAnnual) * (1 + $netGrowthRate));
+                }
+            }
+
+            $projections[] = [
+                'pension_id' => $pension->id,
+                'pension_name' => $pension->scheme_name ?: ($pension->provider ?: 'Pension'),
+                'pension_type' => $pension->scheme_type ?? $pension->pension_type ?? 'dc',
+                'current_value' => $this->roundToPenny($currentValue),
+                'annual_contribution' => $this->roundToPenny($annualContribution),
+                'growth_rate' => round($netGrowthRate, 4),
+                'years' => $yearsToRetirement,
+                'projection_label' => 'to retirement',
+                'current_series' => $currentSeries,
+                'with_actions_series' => $withActionsSeries,
+                'projection_difference' => max(0, end($withActionsSeries) - end($currentSeries)),
+            ];
+        }
+
+        return $projections;
     }
 
     /**
@@ -401,5 +526,40 @@ class RetirementPlanService extends BasePlanService
 
         // Assume 4% sustainable withdrawal rate
         return $fundAtRetirement * 0.04;
+    }
+
+    /**
+     * Calculate monthly employee contribution (fixed amount or percentage-based).
+     */
+    private function calculateMonthlyEmployeeContribution(DCPension $pension): float
+    {
+        $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
+        if ($monthly > 0) {
+            return $monthly;
+        }
+
+        $salary = (float) ($pension->annual_salary ?? 0);
+        $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
+
+        if ($salary > 0 && $employeePct > 0) {
+            return ($salary * $employeePct / 100) / 12;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Calculate monthly employer contribution from percentage-based data.
+     */
+    private function calculateMonthlyEmployerContribution(DCPension $pension): float
+    {
+        $salary = (float) ($pension->annual_salary ?? 0);
+        $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
+
+        if ($salary > 0 && $employerPct > 0) {
+            return ($salary * $employerPct / 100) / 12;
+        }
+
+        return 0;
     }
 }

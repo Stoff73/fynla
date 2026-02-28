@@ -2,8 +2,8 @@
   <div v-if="scenario" class="space-y-0">
     <PlanWhatIfMetricRow label="Projected Annual Income" :value="scenario.projected_annual_income" format="currency" />
     <PlanWhatIfMetricRow label="Income Gap" :value="scenario.income_gap" format="currency" />
-    <PlanWhatIfMetricRow label="Total Defined Contribution Value" :value="scenario.total_dc_value" format="currency" />
-    <PlanWhatIfMetricRow label="Defined Contribution Value at Retirement" :value="scenario.dc_value_at_retirement" format="currency" />
+    <PlanWhatIfMetricRow label="Total Pension Value" :value="scenario.total_dc_value" format="currency" />
+    <PlanWhatIfMetricRow label="At Retirement" :value="scenario.dc_value_at_retirement" format="currency" />
     <PlanWhatIfMetricRow
       v-if="scenario.additional_monthly_contribution"
       label="Additional Monthly Contribution"
