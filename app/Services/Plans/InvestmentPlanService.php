@@ -66,13 +66,11 @@ class InvestmentPlanService extends BasePlanService
         $investmentAnalysis = $this->investmentAgent->analyze($userId);
         $savingsAnalysis = $this->savingsAgent->analyze($userId);
 
-        $investmentRecs = $this->investmentAgent->generateRecommendations($investmentAnalysis);
+        $investmentResult = $this->investmentAgent->generateRecommendations($investmentAnalysis);
+        $investmentRecs = $investmentResult['recommendations'] ?? [];
         $savingsRecs = $this->buildSavingsRecommendations($savingsAnalysis);
 
-        return array_merge(
-            is_array($investmentRecs) && isset($investmentRecs[0]) ? $investmentRecs : [],
-            $savingsRecs
-        );
+        return array_merge($investmentRecs, $savingsRecs);
     }
 
     public function checkDataCompleteness(int $userId): array
