@@ -901,11 +901,11 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     Route::get('/goal/{goalId}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generateGoalPlan']);
     Route::post('/goal/{goalId}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculateGoalPlan']);
     Route::get('/{type}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generate'])
-        ->where('type', 'investment|protection|retirement');
+        ->where('type', 'investment|protection|retirement|estate');
     Route::post('/{type}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculate'])
-        ->where('type', 'investment|protection|retirement');
+        ->where('type', 'investment|protection|retirement|estate');
     Route::delete('/{type}/clear-cache', [\App\Http\Controllers\Api\Plans\PlanController::class, 'clearCache'])
-        ->where('type', 'investment|protection|retirement');
+        ->where('type', 'investment|protection|retirement|estate');
 });
 
 // Holistic Planning routes (coordinating agent)

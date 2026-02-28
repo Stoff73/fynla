@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Plans;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Services\Plans\EstatePlanService;
 use App\Services\Plans\GoalPlanService;
 use App\Services\Plans\InvestmentPlanService;
 use App\Services\Plans\ProtectionPlanService;
@@ -24,6 +25,7 @@ class PlanController extends Controller
         private readonly ProtectionPlanService $protectionPlanService,
         private readonly RetirementPlanService $retirementPlanService,
         private readonly GoalPlanService $goalPlanService,
+        private readonly EstatePlanService $estatePlanService,
         private readonly WhatIfCalculator $whatIfCalculator
     ) {}
 
@@ -145,6 +147,7 @@ class PlanController extends Controller
                 'investment' => $this->investmentPlanService->checkDataCompleteness($userId),
                 'protection' => $this->protectionPlanService->checkDataCompleteness($userId),
                 'retirement' => $this->retirementPlanService->checkDataCompleteness($userId),
+                'estate' => $this->estatePlanService->checkDataCompleteness($userId),
             ];
 
             return response()->json([
@@ -159,12 +162,13 @@ class PlanController extends Controller
     /**
      * Resolve the plan service for a given type.
      */
-    private function getPlanService(string $type): InvestmentPlanService|ProtectionPlanService|RetirementPlanService
+    private function getPlanService(string $type): InvestmentPlanService|ProtectionPlanService|RetirementPlanService|EstatePlanService
     {
         return match ($type) {
             'investment' => $this->investmentPlanService,
             'protection' => $this->protectionPlanService,
             'retirement' => $this->retirementPlanService,
+            'estate' => $this->estatePlanService,
             default => throw new \InvalidArgumentException("Unknown plan type: {$type}"),
         };
     }

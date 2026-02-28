@@ -76,23 +76,20 @@ class EstateAgent extends BaseAgent
                     ->sum('sum_assured');
             }
 
-            // Aggregate all estate assets
-            $assetSummary = $this->assetAggregator->aggregateEstateAssets($user);
+            // Aggregate all estate assets into summary
+            $assetSummary = $this->buildAssetSummary($user);
 
-            // Calculate IHT if profile exists
+            // Calculate IHT
             $ihtCalculation = null;
             $ihtLiability = 0;
             $effectiveTaxRate = 0;
 
-            if ($user->ihtProfile) {
-                try {
-                    $ihtCalculation = $this->ihtCalculator->calculateIHT($user);
-                    $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
-                    $grossEstate = $ihtCalculation['gross_estate'] ?? 1;
-                    $effectiveTaxRate = $grossEstate > 0 ? ($ihtLiability / $grossEstate) * 100 : 0;
-                } catch (\Exception $e) {
-                    // Continue without IHT calculation
-                }
+            try {
+                $ihtCalculation = $this->ihtCalculator->calculate($user);
+                $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
+                $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
+            } catch (\Exception $e) {
+                // Continue without IHT calculation
             }
 
             // Calculate estate health score (0-100)
@@ -100,17 +97,39 @@ class EstateAgent extends BaseAgent
 
             // Get trust recommendations
             $trustRecommendations = [];
-            try {
-                $trustRecommendations = $this->trustStrategyService->getPersonalizedStrategies($user);
-            } catch (\Exception $e) {
-                // Continue without trust recommendations
+            if ($user->ihtProfile) {
+                try {
+                    $assets = $this->assetAggregator->gatherUserAssets($user);
+                    $trustRecommendations = $this->trustStrategyService->generatePersonalizedTrustStrategy(
+                        $assets,
+                        $ihtLiability,
+                        $user->ihtProfile,
+                        $user
+                    );
+                } catch (\Throwable $e) {
+                    // Continue without trust recommendations
+                }
             }
 
             // Get gifting opportunities
             $giftingOpportunities = [];
             try {
-                $giftingOpportunities = $this->giftingOptimizer->identifyOpportunities($user);
-            } catch (\Exception $e) {
+                $currentAge = $user->date_of_birth
+                    ? (int) $user->date_of_birth->diffInYears(now())
+                    : EstateDefaults::DEFAULT_CURRENT_AGE;
+                $yearsUntilDeath = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
+                $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
+                $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
+
+                $giftingOpportunities = $this->giftingOptimizer->calculateOptimalGiftingStrategy(
+                    $assetSummary['net_estate'] ?? 0,
+                    $ihtLiability,
+                    $yearsUntilDeath,
+                    $user,
+                    $nrb,
+                    $rnrb
+                );
+            } catch (\Throwable $e) {
                 // Continue without gifting opportunities
             }
 
@@ -121,7 +140,7 @@ class EstateAgent extends BaseAgent
                 if ($will) {
                     $trustWishTriggers = $this->willAnalysisService->detectTrustTriggeringWishes($will);
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Continue without wish triggers
             }
 
@@ -130,7 +149,7 @@ class EstateAgent extends BaseAgent
             try {
                 $netEstate = $assetSummary['net_estate'] ?? 0;
                 $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Continue without charitable analysis
             }
 
@@ -638,6 +657,35 @@ class EstateAgent extends BaseAgent
     }
 
     /**
+     * Build asset summary array from gathered assets and liabilities.
+     */
+    private function buildAssetSummary(User $user): array
+    {
+        $assets = $this->assetAggregator->gatherUserAssets($user);
+        $grossEstate = $assets->sum('current_value');
+        $totalLiabilities = $this->assetAggregator->calculateUserLiabilities($user);
+        $netEstate = $grossEstate - $totalLiabilities;
+
+        // Classify by liquidity
+        $liquidTypes = ['cash', 'savings', 'investment'];
+        $semiLiquidTypes = ['pension', 'dc_pension', 'db_pension'];
+        $liquid = $assets->filter(fn ($a) => in_array($a->asset_type ?? '', $liquidTypes))->sum('current_value');
+        $semiLiquid = $assets->filter(fn ($a) => in_array($a->asset_type ?? '', $semiLiquidTypes))->sum('current_value');
+        $illiquid = $grossEstate - $liquid - $semiLiquid;
+
+        return [
+            'gross_estate' => $grossEstate,
+            'net_estate' => $netEstate,
+            'total_liabilities' => $totalLiabilities,
+            'breakdown' => [
+                'liquid' => $liquid,
+                'semi_liquid' => $semiLiquid,
+                'illiquid' => max(0, $illiquid),
+            ],
+        ];
+    }
+
+    /**
      * Calculate estate health score (0-100).
      */
     private function calculateEstateHealthScore(User $user, array $assetSummary, float $ihtLiability): int
@@ -686,16 +734,14 @@ class EstateAgent extends BaseAgent
      */
     private function buildCurrentScenario(User $user): array
     {
-        $assetSummary = $this->assetAggregator->aggregateEstateAssets($user);
+        $assetSummary = $this->buildAssetSummary($user);
 
         $ihtLiability = 0;
-        if ($user->ihtProfile) {
-            try {
-                $result = $this->ihtCalculator->calculateIHT($user);
-                $ihtLiability = $result['iht_liability'] ?? 0;
-            } catch (\Exception $e) {
-                // Continue with zero
-            }
+        try {
+            $result = $this->ihtCalculator->calculate($user);
+            $ihtLiability = $result['iht_liability'] ?? 0;
+        } catch (\Exception $e) {
+            // Continue with zero
         }
 
         return [

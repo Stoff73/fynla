@@ -14,7 +14,8 @@ class WhatIfCalculator
         private readonly InvestmentPlanService $investmentPlanService,
         private readonly ProtectionPlanService $protectionPlanService,
         private readonly RetirementPlanService $retirementPlanService,
-        private readonly GoalPlanService $goalPlanService
+        private readonly GoalPlanService $goalPlanService,
+        private readonly EstatePlanService $estatePlanService
     ) {}
 
     /**
@@ -47,6 +48,7 @@ class WhatIfCalculator
             'protection' => $this->protectionPlanService,
             'retirement' => $this->retirementPlanService,
             'goal' => $this->goalPlanService,
+            'estate' => $this->estatePlanService,
             default => throw new \InvalidArgumentException("Unknown plan type: {$planType}"),
         };
     }

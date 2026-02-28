@@ -571,6 +571,19 @@ const routes = [
     },
   },
   {
+    path: '/plans/estate',
+    name: 'EstatePlan',
+    component: () => import('@/views/Plans/EstatePlan.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Plans', path: '/plans' },
+        { label: 'Estate Plan', path: '/plans/estate' },
+      ],
+    },
+  },
+  {
     path: '/plans/goal/:goalId',
     name: 'GoalPlan',
     component: () => import('@/views/Plans/GoalPlan.vue'),

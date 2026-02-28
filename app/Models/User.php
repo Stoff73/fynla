@@ -390,6 +390,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's IHT profile (Estate module).
+     */
+    public function ihtProfile(): HasOne
+    {
+        return $this->hasOne(\App\Models\Estate\IHTProfile::class);
+    }
+
+    /**
+     * Get the user's estate assets (Estate module).
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(\App\Models\Estate\Asset::class);
+    }
+
+    /**
+     * Get the user's gifts (Estate module).
+     */
+    public function gifts(): HasMany
+    {
+        return $this->hasMany(\App\Models\Estate\Gift::class);
+    }
+
+    /**
      * Get the user's business interests.
      */
     public function businessInterests(): HasMany
