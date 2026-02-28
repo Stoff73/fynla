@@ -48,6 +48,9 @@ abstract class BasePlanService
                 'estimated_impact' => $rec['estimated_impact'] ?? $rec['potential_saving'] ?? $rec['estimated_cost'] ?? null,
                 'impact_parameters' => $rec['impact_parameters'] ?? [],
                 'action_detail' => $rec['action'] ?? null,
+                'scope' => $rec['scope'] ?? 'portfolio',
+                'account_id' => $rec['account_id'] ?? null,
+                'account_name' => $rec['account_name'] ?? null,
             ];
         }
 

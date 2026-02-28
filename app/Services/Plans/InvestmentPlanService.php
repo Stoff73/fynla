@@ -6,16 +6,19 @@ namespace App\Services\Plans;
 
 use App\Agents\InvestmentAgent;
 use App\Agents\SavingsAgent;
+use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Investment\FeeAnalyzer;
 
 class InvestmentPlanService extends BasePlanService
 {
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
-        private readonly SavingsAgent $savingsAgent
+        private readonly SavingsAgent $savingsAgent,
+        private readonly FeeAnalyzer $feeAnalyzer
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -47,8 +50,16 @@ class InvestmentPlanService extends BasePlanService
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
-        $whatIf = $this->buildWhatIfData($investmentAnalysis, $savingsAnalysis, $currentSituation, $enabledActions);
+        $userAge = $user->date_of_birth ? (int) \Carbon\Carbon::parse($user->date_of_birth)->age : null;
+        $retirementAge = $user->target_retirement_age ? (int) $user->target_retirement_age : null;
+        $yearsToRetirement = ($userAge !== null && $retirementAge !== null && $retirementAge > $userAge)
+            ? $retirementAge - $userAge
+            : null;
+
+        $whatIf = $this->buildWhatIfData($investmentAnalysis, $savingsAnalysis, $currentSituation, $enabledActions, $yearsToRetirement);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'investment');
+
+        $accountProjections = $this->buildAccountGrowthProjections($actions, $investmentAccounts, $userId, $yearsToRetirement);
 
         return [
             'metadata' => $this->buildPlanMetadata($user, 'investment', $completeness),
@@ -58,6 +69,7 @@ class InvestmentPlanService extends BasePlanService
             'actions' => $actions,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
+            'account_projections' => $accountProjections,
         ];
     }
 
@@ -66,13 +78,22 @@ class InvestmentPlanService extends BasePlanService
         $investmentAnalysis = $this->investmentAgent->analyze($userId);
         $savingsAnalysis = $this->savingsAgent->analyze($userId);
 
-        $investmentRecs = $this->investmentAgent->generateRecommendations($investmentAnalysis);
+        $investmentAccounts = InvestmentAccount::where('user_id', $userId)
+            ->orWhere('joint_owner_id', $userId)
+            ->with('holdings')
+            ->get();
+
+        $accountFeeAnalyses = $investmentAccounts->map(
+            fn ($acct) => $this->feeAnalyzer->analyzeAccountFees($acct)
+        )->filter(fn ($a) => $a['success'] ?? false)->values()->toArray();
+
+        $investmentResult = $this->investmentAgent->generateRecommendations(
+            $investmentAnalysis, $accountFeeAnalyses
+        );
+        $investmentRecs = $investmentResult['recommendations'] ?? [];
         $savingsRecs = $this->buildSavingsRecommendations($savingsAnalysis);
 
-        return array_merge(
-            is_array($investmentRecs) && isset($investmentRecs[0]) ? $investmentRecs : [],
-            $savingsRecs
-        );
+        return array_merge($investmentRecs, $savingsRecs);
     }
 
     public function checkDataCompleteness(int $userId): array
@@ -361,11 +382,13 @@ class InvestmentPlanService extends BasePlanService
         array $investmentAnalysis,
         array $savingsAnalysis,
         array $currentSituation,
-        array $enabledActions
+        array $enabledActions,
+        ?int $yearsToRetirement = null
     ): array {
         $totalInvestment = $currentSituation['total_investment_value'];
         $totalSavings = $currentSituation['total_savings_value'];
         $emergencyMonths = $currentSituation['emergency_fund']['runway_months'] ?? 0;
+        $projectionYears = $yearsToRetirement ?? 10;
 
         $feeReduction = 0;
         $additionalSavings = 0;
@@ -385,21 +408,145 @@ class InvestmentPlanService extends BasePlanService
                 'total_wealth' => $this->roundToPenny($totalInvestment + $totalSavings),
                 'annual_fees' => $this->roundToPenny($investmentAnalysis['fee_analysis']['total_annual_fees'] ?? 0),
                 'emergency_fund_months' => round($emergencyMonths, 1),
-                'projected_5yr_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, 5, 0)),
+                'projected_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, $projectionYears, 0)),
             ],
             'projected_scenario' => [
                 'total_wealth' => $this->roundToPenny($totalInvestment + $totalSavings + ($additionalSavings * 12)),
                 'annual_fees' => $this->roundToPenny(max(0, ($investmentAnalysis['fee_analysis']['total_annual_fees'] ?? 0) - $feeReduction)),
                 'emergency_fund_months' => round($emergencyMonths + ($additionalSavings > 0 ? 2 : 0), 1),
-                'projected_5yr_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, 5, $additionalSavings)),
+                'projected_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, $projectionYears, $additionalSavings)),
             ],
             'is_approximate' => true,
             'frontend_calc_params' => [
                 'current_value' => $totalInvestment,
                 'growth_rate' => 0.05,
-                'years' => 5,
+                'years' => $projectionYears,
             ],
         ];
+    }
+
+    /**
+     * Build per-account growth projections comparing current fees vs reduced fees.
+     * Each account projects to its latest linked goal target date, or retirement if no goal.
+     */
+    private function buildAccountGrowthProjections(array $actions, $investmentAccounts, int $userId, ?int $yearsToRetirement = null): array
+    {
+        $accountActions = collect($actions)->where('scope', 'account')->where('enabled', true);
+
+        if ($accountActions->isEmpty()) {
+            return [];
+        }
+
+        $accountIdsWithActions = $accountActions->pluck('account_id')->unique()->filter()->values();
+
+        // Load goals linked to investment accounts for this user
+        $accountGoals = Goal::where('user_id', $userId)
+            ->whereNotNull('linked_investment_account_id')
+            ->whereNotNull('target_date')
+            ->get()
+            ->groupBy('linked_investment_account_id');
+
+        $projections = [];
+        $growthRate = 0.05;
+        $now = \Carbon\Carbon::now();
+
+        foreach ($accountIdsWithActions as $accountId) {
+            $account = $investmentAccounts->firstWhere('id', $accountId);
+            if (! $account) {
+                continue;
+            }
+
+            $feeAnalysis = $this->feeAnalyzer->analyzeAccountFees($account);
+            if (! ($feeAnalysis['success'] ?? false)) {
+                continue;
+            }
+
+            $currentValue = (float) ($feeAnalysis['account_value'] ?? $account->current_value ?? 0);
+            if ($currentValue <= 0) {
+                continue;
+            }
+
+            // Determine projection years: latest goal target date, or retirement, or 10
+            $years = $yearsToRetirement ?? 10;
+            $projectionLabel = 'to retirement';
+            $goals = $accountGoals->get($accountId);
+
+            if ($goals && $goals->isNotEmpty()) {
+                $latestGoal = $goals->sortByDesc('target_date')->first();
+                $goalYears = (int) ceil($now->diffInMonths(\Carbon\Carbon::parse($latestGoal->target_date)) / 12);
+                if ($goalYears > 0) {
+                    $years = $goalYears;
+                    $projectionLabel = $latestGoal->goal_name;
+                }
+            }
+
+            $currentFeePercent = $feeAnalysis['total_fee_percent'] ?? 0;
+            $currentFeeRate = $currentFeePercent / 100;
+
+            $actionsForAccount = $accountActions->where('account_id', $accountId);
+            $reducedFeePercent = $this->estimateReducedFeePercent($feeAnalysis, $actionsForAccount->toArray());
+            $reducedFeeRate = $reducedFeePercent / 100;
+
+            $currentFeesSeries = [];
+            $reducedFeesSeries = [];
+
+            for ($y = 0; $y <= $years; $y++) {
+                $currentFeesSeries[] = $this->roundToPenny($currentValue * pow(1 + $growthRate - $currentFeeRate, $y));
+                $reducedFeesSeries[] = $this->roundToPenny($currentValue * pow(1 + $growthRate - $reducedFeeRate, $y));
+            }
+
+            $projectionDifference = $reducedFeesSeries[$years] - $currentFeesSeries[$years];
+            $annualFeeSaving = ($currentFeePercent - $reducedFeePercent) / 100 * $currentValue;
+
+            $projections[] = [
+                'account_id' => $account->id,
+                'account_name' => $account->account_name,
+                'account_type' => $account->account_type,
+                'current_value' => $this->roundToPenny($currentValue),
+                'current_fee_percent' => round($currentFeePercent, 2),
+                'reduced_fee_percent' => round($reducedFeePercent, 2),
+                'annual_fee_saving' => $this->roundToPenny($annualFeeSaving),
+                'years' => $years,
+                'projection_label' => $projectionLabel,
+                'current_fees_series' => $currentFeesSeries,
+                'reduced_fees_series' => $reducedFeesSeries,
+                'projection_difference' => $this->roundToPenny($projectionDifference),
+            ];
+        }
+
+        return $projections;
+    }
+
+    /**
+     * Estimate what fees could be reduced to based on enabled account-level actions.
+     */
+    private function estimateReducedFeePercent(array $feeAnalysis, array $actions): float
+    {
+        $currentFeePercent = $feeAnalysis['total_fee_percent'] ?? 0;
+        $totalReduction = 0;
+        $accountValue = $feeAnalysis['account_value'] ?? 0;
+
+        if ($accountValue <= 0) {
+            return $currentFeePercent;
+        }
+
+        foreach ($actions as $action) {
+            $category = strtolower($action['category'] ?? '');
+
+            if (str_contains($category, 'platform')) {
+                // Reduce platform fee to 0.25% benchmark
+                $currentPlatformPercent = $accountValue > 0
+                    ? (($feeAnalysis['fees']['platform_fee'] ?? 0) / $accountValue) * 100
+                    : 0;
+                $totalReduction += max(0, $currentPlatformPercent - 0.25);
+            } elseif (str_contains($category, 'high fee') || str_contains($category, 'fees')) {
+                // Reduce OCF to 0.15% benchmark
+                $currentOcf = $feeAnalysis['weighted_ocf'] ?? 0;
+                $totalReduction += max(0, $currentOcf - 0.15);
+            }
+        }
+
+        return max(0, round($currentFeePercent - $totalReduction, 2));
     }
 
     /**
