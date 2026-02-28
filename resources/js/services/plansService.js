@@ -6,7 +6,7 @@ import api from './api';
  */
 const plansService = {
   /**
-   * Generate comprehensive Investment & Savings Plan
+   * Generate comprehensive Investment & Savings Plan (legacy)
    * @returns {Promise} API response with plan data
    */
   async generateInvestmentSavingsPlan() {
@@ -15,11 +15,76 @@ const plansService = {
   },
 
   /**
-   * Clear Investment & Savings Plan cache
+   * Clear Investment & Savings Plan cache (legacy)
    * @returns {Promise} API response
    */
   async clearInvestmentSavingsPlanCache() {
     const response = await api.delete('/plans/investment-savings/clear-cache');
+    return response.data;
+  },
+
+  /**
+   * Generate a plan for the given type (investment, protection, retirement).
+   * @param {string} type - Plan type
+   * @returns {Promise} API response with plan data
+   */
+  async generatePlan(type) {
+    const response = await api.get(`/plans/${type}`);
+    return response.data;
+  },
+
+  /**
+   * Generate a goal-specific plan.
+   * @param {number} goalId - Goal ID
+   * @returns {Promise} API response with plan data
+   */
+  async generateGoalPlan(goalId) {
+    const response = await api.get(`/plans/goal/${goalId}`);
+    return response.data;
+  },
+
+  /**
+   * Recalculate what-if scenario with specific enabled actions.
+   * @param {string} type - Plan type
+   * @param {string[]} enabledActionIds - Array of enabled action IDs
+   * @returns {Promise} API response with recalculated plan
+   */
+  async recalculateScenario(type, enabledActionIds) {
+    const response = await api.post(`/plans/${type}/recalculate`, {
+      enabled_action_ids: enabledActionIds,
+    });
+    return response.data;
+  },
+
+  /**
+   * Recalculate what-if scenario for a goal plan.
+   * @param {number} goalId - Goal ID
+   * @param {string[]} enabledActionIds - Array of enabled action IDs
+   * @returns {Promise} API response with recalculated plan
+   */
+  async recalculateGoalScenario(goalId, enabledActionIds) {
+    const response = await api.post(`/plans/goal/${goalId}/recalculate`, {
+      enabled_action_ids: enabledActionIds,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get dashboard plan readiness statuses.
+   * @returns {Promise} API response with status per plan type
+   */
+  async getDashboardStatuses() {
+    const response = await api.get('/plans/statuses');
+    return response.data;
+  },
+
+  /**
+   * Clear plan cache for a given type.
+   * @param {string} type - Plan type
+   * @returns {Promise} API response
+   */
+  async clearPlanCache(type) {
+    const response = await api.delete(`/plans/${type}/clear-cache`);
     return response.data;
   },
 };

@@ -100,9 +100,9 @@ class RecommendationEngine
             );
         }
 
-        // Policy optimisation
+        // Policy optimisation (only if income is known)
         $totalPremiums = $this->calculateTotalPremiums($profile);
-        if ($totalPremiums > $profile->annual_income * 0.05) {
+        if ($profile->annual_income > 0 && $totalPremiums > $profile->annual_income * 0.05) {
             $recommendations[] = $this->createRecommendation(
                 priority: 5,
                 category: 'Policy Optimisation',

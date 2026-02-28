@@ -138,6 +138,9 @@ The amber (`amber-*`) and orange (`orange-*`) colors are banned from the applica
 ### 10. No Acronyms in User-Facing Text
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
 
+### 12. No Scores in User-Facing UI
+Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
+
 ### 11. Design System Compliance
 **CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `designStyle.md`. This includes:
 - Colors (especially risk level colors, semantic colors, and forbidden colors)

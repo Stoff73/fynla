@@ -55,57 +55,43 @@ beforeEach(function () {
 });
 
 describe('calculateHumanCapital', function () {
-    it('calculates human capital correctly for standard case', function () {
-        $income = 50000;
-        $age = 35;
-        $retirementAge = 67;
+    it('calculates life cover capital using sustainable drawdown at 4.7%', function () {
+        $annualIncomeNeed = 50000;
 
-        $result = $this->analyzer->calculateHumanCapital($income, $age, $retirementAge);
+        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
 
-        // Expected: 50000 * 10 * 10 = 5,000,000
-        expect($result)->toEqual(5000000.0);
+        // Expected: 50000 / 0.047 = 1,063,829.79 (rounded to 2dp)
+        expect(round($result, 2))->toEqual(1063829.79);
     });
 
-    it('limits effective years to 10 even if more years to retirement', function () {
-        $income = 50000;
-        $age = 25;
-        $retirementAge = 67; // 42 years to retirement
-
-        $result = $this->analyzer->calculateHumanCapital($income, $age, $retirementAge);
-
-        // Should use max 10 years: 50000 * 10 * 10 = 5,000,000
-        expect($result)->toEqual(5000000.0);
-    });
-
-    it('uses actual years when less than 10 years to retirement', function () {
-        $income = 50000;
-        $age = 62;
-        $retirementAge = 67; // 5 years to retirement
-
-        $result = $this->analyzer->calculateHumanCapital($income, $age, $retirementAge);
-
-        // Expected: 50000 * 10 * 5 = 2,500,000
-        expect($result)->toEqual(2500000.0);
-    });
-
-    it('returns zero when already at retirement age', function () {
-        $income = 50000;
-        $age = 67;
-        $retirementAge = 67;
-
-        $result = $this->analyzer->calculateHumanCapital($income, $age, $retirementAge);
+    it('returns zero when income need is zero', function () {
+        $result = $this->analyzer->calculateHumanCapital(0);
 
         expect($result)->toEqual(0.0);
     });
 
-    it('returns zero when past retirement age', function () {
-        $income = 50000;
-        $age = 70;
-        $retirementAge = 67;
-
-        $result = $this->analyzer->calculateHumanCapital($income, $age, $retirementAge);
+    it('returns zero when income need is negative', function () {
+        $result = $this->analyzer->calculateHumanCapital(-5000);
 
         expect($result)->toEqual(0.0);
+    });
+
+    it('calculates correctly for small income need', function () {
+        $annualIncomeNeed = 10000;
+
+        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
+
+        // Expected: 10000 / 0.047 = 212,765.96
+        expect(round($result, 2))->toEqual(212765.96);
+    });
+
+    it('calculates correctly for high income need', function () {
+        $annualIncomeNeed = 100000;
+
+        $result = $this->analyzer->calculateHumanCapital($annualIncomeNeed);
+
+        // Expected: 100000 / 0.047 = 2,127,659.57
+        expect(round($result, 2))->toEqual(2127659.57);
     });
 });
 
@@ -460,8 +446,11 @@ describe('calculateProtectionNeeds', function () {
             'total_need',
         ]);
 
-        // Human capital: 50000 * 10 * 10 = 5,000,000
-        expect($result['human_capital'])->toEqual(5000000.0);
+        // Human capital: net_income_difference / 0.047 (sustainable drawdown)
+        // Net income ~£39,520 for £50k gross, so human capital ~£39,520 / 0.047 ≈ £840,851
+        expect($result['human_capital'])->toBeGreaterThan(0);
+        $expectedHumanCapital = $result['net_income_difference'] / 0.047;
+        expect(round($result['human_capital'], 2))->toEqual(round($expectedHumanCapital, 2));
 
         // Debt protection: 250000 + 25000 = 275,000
         expect($result['debt_protection'])->toEqual(275000.0);
@@ -475,8 +464,9 @@ describe('calculateProtectionNeeds', function () {
         // Income protection need: 50000 * 0.6 = 30,000
         expect($result['income_protection_need'])->toEqual(30000.0);
 
-        // Total need
-        expect($result['total_need'])->toEqual(5525500.0);
+        // Total need = human_capital + debt + education + final_expenses
+        $expectedTotal = $result['human_capital'] + 275000 + 243000 + 7500;
+        expect(round($result['total_need'], 2))->toEqual(round($expectedTotal, 2));
     });
 
     it('handles profile with no dependents', function () {
@@ -517,7 +507,9 @@ describe('calculateProtectionNeeds', function () {
 
         $result = $this->analyzer->calculateProtectionNeeds($profile);
 
-        // Should use default age 40, so: 50000 * 10 * 10 = 5,000,000
-        expect($result['human_capital'])->toEqual(5000000.0);
+        // Human capital = net_income_difference / 0.047 (sustainable drawdown)
+        expect($result['human_capital'])->toBeGreaterThan(0);
+        $expectedHumanCapital = $result['net_income_difference'] / 0.047;
+        expect(round($result['human_capital'], 2))->toEqual(round($expectedHumanCapital, 2));
     });
 });

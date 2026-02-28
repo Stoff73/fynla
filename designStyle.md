@@ -1257,7 +1257,7 @@ const chartDefaults = {
 
 ### Gauge Charts
 
-For metrics like financial health score, emergency fund:
+For metrics like emergency fund runway:
 
 - Use radial bar chart
 - Start angle: -135, End angle: 135
@@ -1265,6 +1265,7 @@ For metrics like financial health score, emergency fund:
   - Green (`#10B981`): >= 80% or >= 6 months
   - Blue (`#3B82F6`): 60-79% or 3-5 months
   - Red (`#EF4444`): < 60% or < 3 months
+- **Note:** Gauge charts must NOT display numerical scores (e.g. "75/100"). Use descriptive metrics instead (e.g. "6 months", currency values).
 
 ### Color Meaning in Charts
 
@@ -1461,6 +1462,16 @@ Respect user preferences:
 ---
 
 ## Do's and Don'ts
+
+### No Scores
+
+Numerical scores (e.g. "75/100", adequacy scores, diversification scores, portfolio health scores) are **banned** from all user-facing UI. They oversimplify complex financial positions and can mislead users.
+
+| Do | Don't |
+|----|-------|
+| Show specific metrics (currency, percentages, time periods) | Display "75/100" score badges |
+| Use descriptive text ("coverage is strong") | Show "Adequacy Score: 82" |
+| Present actionable guidance | Reduce complex positions to a single number |
 
 ### Colors
 

@@ -424,10 +424,9 @@ Injected: `UKTaxCalculator`
 - Human capital = 0 if spouse earns more than user
 - `income_protection_need` = `gross_income * 0.6` (60% standard)
 
-**`calculateHumanCapital(float $netIncome, int $age, int $retirementAge): float`**
-- `yearsToRetirement = max(0, retirementAge - age)`
-- `effectiveYears = min(yearsToRetirement, 10)` (capped at 10 years)
-- `result = netIncome * 10 * effectiveYears`
+**`calculateHumanCapital(float $annualIncomeNeed): float`**
+- Sustainable drawdown approach: capital needed so family can draw income indefinitely at 4.7% rate
+- `result = annualIncomeNeed / 0.047`
 
 **`calculateDebtProtectionNeed(ProtectionProfile $profile): float`**
 - Uses `profile->mortgage_balance + profile->other_debts` if non-zero
@@ -898,8 +897,7 @@ DELETE /api/protection/policies/sickness-illness/{id}
 
 | Concept | Value | Source |
 |---|---|---|
-| Human capital multiplier | 10x net income per effective year | `CoverageGapAnalyzer::calculateHumanCapital()` |
-| Human capital effective years cap | min(yearsToRetirement, 10) | Same |
+| Life cover capital (sustainable drawdown) | Annual income need / 0.047 (4.7% withdrawal rate) | `CoverageGapAnalyzer::calculateHumanCapital()` |
 | Education cost per child | £9,000/year until age 21 | `calculateEducationFunding()` |
 | Final expenses | £7,500 (fixed) | `calculateFinalExpenses()` |
 | Income protection need | 60% of gross income | `calculateProtectionNeeds()` |
@@ -984,7 +982,7 @@ The coverage gap calculation in `CoverageGapAnalyzer::calculateCoverageGap()` us
 ### Allocation Priority Order
 
 1. **Debt Protection** (highest priority) - Mortgage balance + other debts
-2. **Human Capital** - Net income replacement over effective years
+2. **Human Capital** - Sustainable drawdown capital (annual income need / 0.047)
 3. **Final Expenses** - Fixed £7,500
 4. **Education Funding** (lowest priority) - £9,000/year per child until 21
 
