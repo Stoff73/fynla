@@ -9,12 +9,117 @@
     <template v-if="hasActions">
       <div class="mb-5">
         <div class="space-y-3">
-          <PlanActionCard
+          <div
             v-for="action in sortByPriority(actions)"
             :key="action.id"
-            :action="action"
-            @toggle="$emit('toggle', $event)"
-          />
+            class="bg-white rounded-lg border p-4 transition-all duration-200"
+            :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-75'"
+          >
+            <!-- Action header with toggle -->
+            <div class="flex items-start justify-between">
+              <div class="flex-1 min-w-0 mr-4">
+                <div class="flex items-center space-x-2 mb-1">
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                    :class="priorityClasses(action.priority)"
+                  >
+                    {{ priorityLabel(action.priority) }}
+                  </span>
+                  <span class="text-xs text-gray-500">{{ action.category }}</span>
+                </div>
+                <h4 class="text-sm font-semibold text-gray-900">{{ action.title }}</h4>
+                <p class="text-sm text-gray-600 mt-1">{{ action.description }}</p>
+
+                <!-- Estimated impact -->
+                <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
+                  Estimated impact: {{ formatCurrency(action.estimated_impact) }}
+                </p>
+
+                <!-- Affordability indicator for life cover -->
+                <div v-if="action.affordability" class="mt-2">
+                  <div
+                    class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium"
+                    :class="action.affordability.is_affordable
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'"
+                  >
+                    <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path v-if="action.affordability.is_affordable" fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      <path v-else fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ action.affordability.is_affordable ? 'Affordable' : 'May exceed budget' }}
+                    <span class="ml-1 text-gray-500">
+                      ({{ formatCurrency(action.affordability.monthly_premium_estimate) }}/month)
+                    </span>
+                  </div>
+                  <p v-if="action.affordability_warning" class="text-xs text-red-600 mt-1">
+                    {{ action.affordability_warning }}
+                  </p>
+                </div>
+
+                <!-- Funding source for charitable/gifting -->
+                <div v-if="action.funding_source" class="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                  <span class="font-medium text-gray-700">Funding:</span>
+                  {{ action.funding_source.note }}
+                  <span v-if="action.funding_source.liquid_assets_available > 0" class="text-gray-500 ml-1">
+                    ({{ formatCurrency(action.funding_source.liquid_assets_available) }} liquid assets available)
+                  </span>
+                </div>
+
+                <!-- Expandable guidance section -->
+                <div v-if="action.guidance && action.guidance.steps && action.guidance.steps.length > 0" class="mt-3">
+                  <button
+                    class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors duration-150 flex items-center"
+                    @click="toggleGuidance(action.id)"
+                  >
+                    <svg
+                      class="w-3.5 h-3.5 mr-1 transition-transform duration-200"
+                      :class="{ 'rotate-90': expandedGuidance[action.id] }"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {{ expandedGuidance[action.id] ? 'Hide' : 'Show' }} step-by-step guidance
+                  </button>
+
+                  <div v-if="expandedGuidance[action.id]" class="mt-2 pl-1">
+                    <ol class="list-decimal list-inside space-y-1.5 text-xs text-gray-600">
+                      <li v-for="(step, idx) in action.guidance.steps" :key="idx">
+                        {{ step }}
+                      </li>
+                    </ol>
+                    <div class="mt-2 flex flex-wrap gap-3 text-xs">
+                      <span v-if="action.guidance.timeframe" class="text-gray-500">
+                        <span class="font-medium text-gray-700">Timeframe:</span> {{ action.guidance.timeframe }}
+                      </span>
+                      <span v-if="action.guidance.professional_advice" class="text-gray-500">
+                        <span class="font-medium text-gray-700">Advice:</span> {{ action.guidance.professional_advice }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Toggle switch -->
+              <div class="flex-shrink-0">
+                <button
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  :class="action.enabled ? 'bg-[#1257A0]' : 'bg-gray-300'"
+                  role="switch"
+                  :aria-checked="action.enabled"
+                  :aria-label="`${action.enabled ? 'Disable' : 'Enable'} action: ${action.title}`"
+                  @click="$emit('toggle', action.id)"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                    :class="action.enabled ? 'translate-x-6' : 'translate-x-1'"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- What-if comparison -->
@@ -25,7 +130,7 @@
               <EstateWhatIfControls :scenario="whatIf.current_scenario" />
             </div>
             <div class="pl-4">
-              <h5 class="text-xs font-semibold text-purple-700 uppercase tracking-wider mb-3">With Actions</h5>
+              <h5 class="text-xs font-semibold text-primary-700 uppercase tracking-wider mb-3">With Actions</h5>
               <EstateWhatIfControls :scenario="projectedScenario" show-savings />
             </div>
           </div>
@@ -41,7 +146,6 @@
 
 <script>
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
-import PlanActionCard from '@/components/Plans/Shared/PlanActionCard.vue';
 import EstateWhatIfControls from './EstateWhatIfControls.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -52,7 +156,6 @@ export default {
 
   components: {
     PlanSectionHeader,
-    PlanActionCard,
     EstateWhatIfControls,
   },
 
@@ -68,6 +171,12 @@ export default {
   },
 
   emits: ['toggle'],
+
+  data() {
+    return {
+      expandedGuidance: {},
+    };
+  },
 
   computed: {
     hasActions() {
@@ -107,7 +216,7 @@ export default {
 
       const projectedLiability = Math.max(0, currentLiability - totalSavings);
       const projectedRate = grossEstate > 0 ? (projectedLiability / grossEstate) * 100 : 0;
-      const projectedToBeneficiaries = netEstate - projectedLiability;
+      const projectedToBeneficiaries = Math.max(0, netEstate - projectedLiability);
 
       return {
         iht_liability: projectedLiability,
@@ -124,6 +233,28 @@ export default {
       return [...actions].sort((a, b) => {
         return (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2);
       });
+    },
+
+    priorityLabel(priority) {
+      const labels = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+      return labels[priority] || 'Medium';
+    },
+
+    priorityClasses(priority) {
+      const map = {
+        critical: 'bg-red-100 text-red-800',
+        high: 'bg-blue-100 text-blue-800',
+        medium: 'bg-gray-100 text-gray-800',
+        low: 'bg-green-100 text-green-800',
+      };
+      return map[priority] || map.medium;
+    },
+
+    toggleGuidance(actionId) {
+      this.expandedGuidance = {
+        ...this.expandedGuidance,
+        [actionId]: !this.expandedGuidance[actionId],
+      };
     },
   },
 };

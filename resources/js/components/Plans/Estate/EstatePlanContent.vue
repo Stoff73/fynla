@@ -2,6 +2,10 @@
   <div>
     <PlanMissingDataPrompt :warning="plan.completeness_warning" />
     <PlanExecutiveSummary :summary="plan.executive_summary" />
+    <EstateJointView
+      v-if="plan.joint_estate_view"
+      :joint-view="plan.joint_estate_view"
+    />
     <EstateCurrentSituation :situation="plan.current_situation" />
     <EstateGroupedActions
       :actions="plan.actions"
@@ -18,10 +22,11 @@ import PlanExecutiveSummary from '@/components/Plans/Shared/PlanExecutiveSummary
 import PlanConclusion from '@/components/Plans/Shared/PlanConclusion.vue';
 import EstateCurrentSituation from './EstateCurrentSituation.vue';
 import EstateGroupedActions from './EstateGroupedActions.vue';
+import EstateJointView from './EstateJointView.vue';
 
 export default {
   name: 'EstatePlanContent',
-  components: { PlanMissingDataPrompt, PlanExecutiveSummary, PlanConclusion, EstateCurrentSituation, EstateGroupedActions },
+  components: { PlanMissingDataPrompt, PlanExecutiveSummary, PlanConclusion, EstateCurrentSituation, EstateGroupedActions, EstateJointView },
   props: {
     plan: { type: Object, required: true },
   },

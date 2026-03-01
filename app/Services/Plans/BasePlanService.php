@@ -181,6 +181,10 @@ abstract class BasePlanService
                 'account_name' => $rec['account_name'] ?? null,
                 'source' => $rec['source'] ?? 'module',
                 'goal_id' => $rec['goal_id'] ?? null,
+                'funding_source' => $rec['funding_source'] ?? null,
+                'affordability' => $rec['affordability'] ?? null,
+                'affordability_warning' => $rec['affordability_warning'] ?? null,
+                'guidance' => $rec['guidance'] ?? null,
             ];
         }
 

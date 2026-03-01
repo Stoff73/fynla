@@ -92,9 +92,6 @@ class EstateAgent extends BaseAgent
                 // Continue without IHT calculation
             }
 
-            // Calculate estate health score (0-100)
-            $healthScore = $this->calculateEstateHealthScore($user, $assetSummary, $ihtLiability);
-
             // Get trust recommendations
             $trustRecommendations = [];
             if ($user->ihtProfile) {
@@ -167,7 +164,6 @@ class EstateAgent extends BaseAgent
                         'total_liabilities' => $assetSummary['total_liabilities'] ?? 0,
                         'iht_liability' => $ihtLiability,
                         'effective_tax_rate' => round($effectiveTaxRate, 2),
-                        'health_score' => $healthScore,
                     ],
                     'asset_breakdown' => $assetSummary['breakdown'] ?? [],
                     'iht_calculation' => $ihtCalculation,
@@ -220,7 +216,6 @@ class EstateAgent extends BaseAgent
         $recommendations = [];
         $data = $analysisData['data'];
         $ihtLiability = $data['summary']['iht_liability'] ?? 0;
-        $healthScore = $data['summary']['health_score'] ?? 0;
         $netEstate = $data['summary']['net_estate'] ?? 0;
         $currentAge = $data['profile']['current_age'] ?? 50;
         $charitableAnalysis = $data['charitable_analysis'] ?? [];
@@ -303,16 +298,17 @@ class EstateAgent extends BaseAgent
             ];
         }
 
-        // Low health score recommendations
-        if ($healthScore < 50) {
+        // Recommend completing missing setup items
+        $profile = $data['profile'] ?? [];
+        if (! ($profile['has_iht_profile'] ?? false)) {
             $recommendations[] = [
                 'category' => 'planning',
                 'priority' => 'high',
                 'step' => 0,
-                'title' => 'Estate Planning Needs Attention',
-                'description' => 'Your estate planning score indicates room for improvement.',
+                'title' => 'Complete Your Inheritance Tax Profile',
+                'description' => 'Setting up your Inheritance Tax profile allows us to calculate your allowances, spouse exemptions, and projected liability accurately.',
                 'actions' => [
-                    'Complete your IHT profile',
+                    'Complete your Inheritance Tax profile',
                     'Review beneficiary designations',
                     'Consider writing or updating your will',
                 ],
@@ -324,7 +320,6 @@ class EstateAgent extends BaseAgent
             'Recommendations generated successfully.',
             [
                 'recommendations' => $recommendations,
-                'health_score' => $healthScore,
                 'mitigation_steps_applied' => count(array_filter($recommendations, fn ($r) => ($r['step'] ?? 0) > 0)),
             ]
         );
@@ -683,50 +678,6 @@ class EstateAgent extends BaseAgent
                 'illiquid' => max(0, $illiquid),
             ],
         ];
-    }
-
-    /**
-     * Calculate estate health score (0-100).
-     */
-    private function calculateEstateHealthScore(User $user, array $assetSummary, float $ihtLiability): int
-    {
-        $score = 100;
-
-        // Deduct for missing IHT profile
-        if (! $user->ihtProfile) {
-            $score -= 20;
-        }
-
-        // Deduct for high IHT liability relative to estate
-        $grossEstate = $assetSummary['gross_estate'] ?? 0;
-        if ($grossEstate > 0) {
-            $ihtRatio = $ihtLiability / $grossEstate;
-            if ($ihtRatio > 0.3) {
-                $score -= 25;
-            } elseif ($ihtRatio > 0.2) {
-                $score -= 15;
-            } elseif ($ihtRatio > 0.1) {
-                $score -= 10;
-            }
-        }
-
-        // Deduct for no trusts when estate is significant
-        if ($grossEstate > 650000 && $user->trusts()->count() === 0) {
-            $score -= 10;
-        }
-
-        // Deduct for no spouse allowance utilization potential
-        if ($user->marital_status === 'married' && ! $user->spouse) {
-            $score -= 5;
-        }
-
-        // Deduct for high liquidity risk
-        $liquidAssets = $assetSummary['breakdown']['liquid'] ?? 0;
-        if ($ihtLiability > 0 && $liquidAssets < $ihtLiability * 0.5) {
-            $score -= 15;
-        }
-
-        return max(0, min(100, $score));
     }
 
     /**

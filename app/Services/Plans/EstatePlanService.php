@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Agents\EstateAgent;
+use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -17,7 +18,8 @@ class EstatePlanService extends BasePlanService
         private readonly EstateAgent $estateAgent,
         private readonly IHTCalculationService $ihtCalculator,
         private readonly TaxConfigService $taxConfig,
-        private readonly PlanConfigService $planConfig
+        private readonly PlanConfigService $planConfig,
+        private readonly DisposableIncomeAccessor $disposableIncome
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -38,14 +40,26 @@ class EstatePlanService extends BasePlanService
             ];
         }
 
-        // Gate check: IHT liability > 0
-        $ihtLiability = 0;
-        try {
-            $ihtResult = $this->ihtCalculator->calculate($user);
-            $ihtLiability = $ihtResult['iht_liability'] ?? 0;
-        } catch (\Exception $e) {
-            // Continue with zero
+        // Run analysis once and reuse throughout
+        $analysis = $this->estateAgent->analyze($userId);
+        $data = $analysis['data'] ?? [];
+
+        // Check for analysis failure first (before gate checks)
+        if (! ($analysis['success'] ?? false)) {
+            return [
+                'metadata' => $this->buildPlanMetadata($user, 'estate', $completeness),
+                'completeness_warning' => $this->buildCompletenessWarning($completeness),
+                'executive_summary' => $this->buildEmptyExecutiveSummary(),
+                'current_situation' => [],
+                'actions' => [],
+                'what_if' => null,
+                'conclusion' => $this->generateDynamicConclusion([], [], 'estate'),
+                'error' => $analysis['message'] ?? 'Unable to generate estate analysis.',
+            ];
         }
+
+        // Gate check: IHT liability > 0 (use analysis data, no separate calculation)
+        $ihtLiability = (float) ($data['summary']['iht_liability'] ?? 0);
 
         if ($ihtLiability <= 0) {
             return [
@@ -55,37 +69,29 @@ class EstatePlanService extends BasePlanService
             ];
         }
 
-        // Run full analysis
-        $analysis = $this->estateAgent->analyze($userId);
-        $data = $analysis['data'] ?? [];
-
-        if (! ($analysis['success'] ?? false)) {
-            return [
-                'metadata' => $this->buildPlanMetadata($user, 'estate', $completeness),
-                'completeness_warning' => $this->buildCompletenessWarning($completeness),
-                'executive_summary' => $this->buildEmptyExecutiveSummary(),
-                'current_situation' => [],
-                'actions' => [],
-                'what_if' => [],
-                'conclusion' => $this->generateDynamicConclusion([], [], 'estate'),
-                'error' => $analysis['message'] ?? 'Unable to generate estate analysis.',
-            ];
-        }
-
-        $currentSituation = $this->buildCurrentSituation($data);
-        $recommendations = $this->getRecommendations($userId);
+        // Generate recommendations from the same analysis (no redundant analyze() call)
+        $recommendations = $this->buildRecommendationsFromAnalysis($analysis);
+        $recommendations = $this->enrichRecommendations($recommendations, $user, $data);
         $actions = $this->structureActions($recommendations, 'estate');
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
+        $currentSituation = $this->buildCurrentSituation($data);
         $whatIf = $this->buildWhatIfData($data, $enabledActions);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'estate');
+
+        // Build executive summary using the already-computed recommendations count
+        $executiveSummary = $this->buildExecutiveSummary($user, $data, count($recommendations));
+
+        // Build joint estate view if married with spouse data
+        $jointEstateView = $this->buildJointEstateView($user, $data);
 
         return [
             'metadata' => $this->buildPlanMetadata($user, 'estate', $completeness),
             'completeness_warning' => $this->buildCompletenessWarning($completeness),
-            'executive_summary' => $this->buildExecutiveSummary($user, $data),
+            'executive_summary' => $executiveSummary,
             'current_situation' => $currentSituation,
+            'joint_estate_view' => $jointEstateView,
             'actions' => $actions,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
@@ -96,6 +102,14 @@ class EstatePlanService extends BasePlanService
     {
         $analysis = $this->estateAgent->analyze($userId);
 
+        return $this->buildRecommendationsFromAnalysis($analysis);
+    }
+
+    /**
+     * Extract recommendations from an existing analysis result.
+     */
+    private function buildRecommendationsFromAnalysis(array $analysis): array
+    {
         if (empty($analysis['data'] ?? [])) {
             return [];
         }
@@ -103,6 +117,160 @@ class EstatePlanService extends BasePlanService
         $result = $this->estateAgent->generateRecommendations($analysis);
 
         return $result['data']['recommendations'] ?? $result['recommendations'] ?? [];
+    }
+
+    /**
+     * Enrich recommendations with funding sources, affordability checks, and detailed guidance.
+     */
+    private function enrichRecommendations(array $recommendations, User $user, array $data): array
+    {
+        $monthlyDisposable = $this->disposableIncome->getMonthlyForUser($user);
+        $liquidAssets = (float) ($data['asset_breakdown']['liquid'] ?? 0);
+
+        foreach ($recommendations as &$rec) {
+            $category = $rec['category'] ?? '';
+
+            // Add funding source for charitable and gifting recommendations
+            if (in_array($category, ['charitable_bequest', 'annual_gifting', 'pet_gifting', 'clt_trust'])) {
+                $rec['funding_source'] = $this->identifyFundingSource($category, $rec, $liquidAssets);
+            }
+
+            // Add affordability check for life cover recommendations
+            if (in_array($category, ['new_life_cover'])) {
+                $estimatedPremium = (float) ($rec['estimated_premium'] ?? 0);
+                $monthlyPremium = $estimatedPremium > 0 ? $estimatedPremium / 12 : 0;
+                $isAffordable = $monthlyDisposable > 0 && $monthlyPremium <= ($monthlyDisposable * 0.15);
+
+                $rec['affordability'] = [
+                    'monthly_premium_estimate' => $this->roundToPenny($monthlyPremium),
+                    'monthly_disposable_income' => $this->roundToPenny($monthlyDisposable),
+                    'is_affordable' => $isAffordable,
+                    'affordability_ratio' => $monthlyDisposable > 0
+                        ? round($monthlyPremium / $monthlyDisposable * 100, 1)
+                        : 0,
+                ];
+
+                if (! $isAffordable && $monthlyPremium > 0) {
+                    $rec['affordability_warning'] = sprintf(
+                        'The estimated monthly premium of %s represents %.0f%% of your disposable income. Consider a lower cover amount or alternative strategies.',
+                        $this->formatCurrency($monthlyPremium),
+                        $monthlyDisposable > 0 ? ($monthlyPremium / $monthlyDisposable * 100) : 0
+                    );
+                }
+            }
+
+            // Add detailed "what to do" guidance for each recommendation
+            $rec['guidance'] = $this->buildActionGuidance($category, $rec);
+        }
+        unset($rec);
+
+        return $recommendations;
+    }
+
+    /**
+     * Identify which accounts a charitable or gifting amount would come from.
+     */
+    private function identifyFundingSource(string $category, array $rec, float $liquidAssets): array
+    {
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $giftingConfig = $this->taxConfig->getGiftingExemptions();
+        $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION);
+
+        $amount = match ($category) {
+            'charitable_bequest' => (float) ($rec['shortfall'] ?? $rec['potential_saving'] ?? 0),
+            'annual_gifting' => $annualExemption,
+            'pet_gifting' => $ihtRate > 0 ? (float) ($rec['potential_saving'] ?? 0) / $ihtRate : 0,
+            'clt_trust' => (float) ($rec['amount'] ?? 0),
+            default => 0,
+        };
+
+        return [
+            'recommended_from' => $liquidAssets >= $amount ? 'liquid_assets' : 'mixed_assets',
+            'liquid_assets_available' => $this->roundToPenny($liquidAssets),
+            'amount_needed' => $this->roundToPenny($amount),
+            'note' => $liquidAssets >= $amount
+                ? 'Can be funded from existing liquid assets (savings and investments).'
+                : 'May require restructuring assets or phasing the strategy over time.',
+        ];
+    }
+
+    /**
+     * Build step-by-step guidance for a recommendation.
+     */
+    private function buildActionGuidance(string $category, array $rec): array
+    {
+        return match ($category) {
+            'charitable_bequest' => [
+                'steps' => [
+                    'Review your current will with a solicitor.',
+                    'Discuss adding or increasing charitable bequests to reach the 10% threshold.',
+                    'Ensure charities named are registered with the Charity Commission.',
+                    'Update your will and store a copy securely.',
+                ],
+                'timeframe' => 'Can be completed within 2-4 weeks.',
+                'professional_advice' => 'Solicitor or will writer recommended.',
+            ],
+            'annual_gifting' => [
+                'steps' => [
+                    'Set up a standing order or annual reminder for gift payments.',
+                    'Use your annual exemption each tax year before 5 April.',
+                    'Keep records of all gifts including dates, amounts, and recipients.',
+                    'Consider gifts from surplus income for additional exemptions.',
+                ],
+                'timeframe' => 'Start immediately. Review annually before 5 April.',
+                'professional_advice' => 'No professional advice typically needed for annual exemptions.',
+            ],
+            'new_life_cover' => [
+                'steps' => [
+                    'Obtain quotes from at least 3 life insurance providers.',
+                    'Request whole of life cover for the required amount.',
+                    'Ensure the policy is written in trust from the outset.',
+                    'Consider joint life second death cover if married (usually cheaper).',
+                    'Review cover amount periodically as your estate value changes.',
+                ],
+                'timeframe' => 'Allow 4-8 weeks for medical underwriting and policy setup.',
+                'professional_advice' => 'Independent financial adviser recommended for policy selection.',
+            ],
+            'pet_gifting' => [
+                'steps' => [
+                    'Identify assets or cash to gift to beneficiaries.',
+                    'Ensure you can maintain your standard of living after gifting.',
+                    'Make the gift and record the date and amount.',
+                    'Survive 7 years for the gift to become fully exempt.',
+                    'Consider taper relief if concerned about the 7-year period.',
+                ],
+                'timeframe' => '7 years for full exemption. Taper relief applies from year 3.',
+                'professional_advice' => 'Financial adviser recommended for larger amounts.',
+            ],
+            'clt_trust' => [
+                'steps' => [
+                    'Consult a trust specialist or solicitor.',
+                    'Determine the trust type (discretionary is most common for Inheritance Tax planning).',
+                    'Prepare a trust deed naming trustees and beneficiaries.',
+                    'Transfer assets into the trust.',
+                    'Register the trust with HMRC if required.',
+                    'Budget for the immediate 20% charge on amounts exceeding the Nil Rate Band.',
+                ],
+                'timeframe' => 'Allow 6-12 weeks for trust establishment.',
+                'professional_advice' => 'Specialist trust solicitor essential. Ongoing trustee responsibilities.',
+            ],
+            'liquidity' => [
+                'steps' => [
+                    'Review your asset allocation for liquidity.',
+                    'Consider whole of life insurance written in trust to cover the Inheritance Tax liability.',
+                    'Explore partial property sale or equity release as a last resort.',
+                    'Build liquid savings over time to improve your position.',
+                ],
+                'timeframe' => 'Ongoing. Life insurance can be arranged within 4-8 weeks.',
+                'professional_advice' => 'Financial adviser recommended.',
+            ],
+            default => [
+                'steps' => $rec['actions'] ?? [],
+                'timeframe' => 'Discuss with your financial adviser.',
+                'professional_advice' => 'Seek professional advice before proceeding.',
+            ],
+        };
     }
 
     public function checkDataCompleteness(int $userId): array
@@ -154,7 +322,10 @@ class EstatePlanService extends BasePlanService
         ];
     }
 
-    private function buildExecutiveSummary(User $user, array $data): array
+    /**
+     * Build executive summary using pre-computed data (no redundant API calls).
+     */
+    private function buildExecutiveSummary(User $user, array $data, int $recCount): array
     {
         $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
         $summary = $data['summary'] ?? [];
@@ -223,10 +394,7 @@ class EstatePlanService extends BasePlanService
             );
         }
 
-        // Recommendations count
-        $analysis = $this->estateAgent->analyze($user->id);
-        $recs = $this->estateAgent->generateRecommendations($analysis);
-        $recCount = count($recs['data']['recommendations'] ?? []);
+        // Recommendations count (passed in, not recalculated)
         if ($recCount > 0) {
             $lines[] = '';
             $lines[] = sprintf(
@@ -293,6 +461,65 @@ class EstatePlanService extends BasePlanService
         ];
     }
 
+    /**
+     * Build joint estate view for married users with spouse data.
+     */
+    private function buildJointEstateView(User $user, array $data): ?array
+    {
+        $profile = $data['profile'] ?? [];
+
+        if (! ($profile['has_spouse'] ?? false) || ! $user->spouse) {
+            return null;
+        }
+
+        $spouse = $user->spouse;
+        $ihtCalc = $data['iht_calculation'] ?? [];
+
+        // Primary user figures from analysis
+        $primaryGross = (float) ($ihtCalc['user_gross_assets'] ?? $data['summary']['gross_estate'] ?? 0);
+        $primaryLiabilities = (float) ($ihtCalc['user_total_liabilities'] ?? $data['summary']['total_liabilities'] ?? 0);
+        $primaryNet = $primaryGross - $primaryLiabilities;
+
+        // Spouse figures from IHT calculation (if data sharing enabled)
+        $spouseGross = (float) ($ihtCalc['spouse_gross_assets'] ?? 0);
+        $spouseLiabilities = (float) ($ihtCalc['spouse_total_liabilities'] ?? 0);
+        $spouseNet = $spouseGross - $spouseLiabilities;
+
+        // Combined figures
+        $combinedGross = $primaryGross + $spouseGross;
+        $combinedLiabilities = $primaryLiabilities + $spouseLiabilities;
+        $combinedNet = $primaryNet + $spouseNet;
+
+        // Life cover split
+        $lifeCover = $data['life_cover'] ?? [];
+
+        return [
+            'is_joint_view' => true,
+            'primary' => [
+                'name' => $user->first_name ?? $user->name,
+                'gross_estate' => $this->roundToPenny($primaryGross),
+                'liabilities' => $this->roundToPenny($primaryLiabilities),
+                'net_estate' => $this->roundToPenny($primaryNet),
+                'cover_in_trust' => $this->roundToPenny((float) ($lifeCover['user_cover_in_trust'] ?? 0)),
+            ],
+            'spouse' => [
+                'name' => $spouse->first_name ?? $spouse->name,
+                'gross_estate' => $this->roundToPenny($spouseGross),
+                'liabilities' => $this->roundToPenny($spouseLiabilities),
+                'net_estate' => $this->roundToPenny($spouseNet),
+                'cover_in_trust' => $this->roundToPenny((float) ($lifeCover['spouse_cover_in_trust'] ?? 0)),
+            ],
+            'combined' => [
+                'gross_estate' => $this->roundToPenny($combinedGross),
+                'liabilities' => $this->roundToPenny($combinedLiabilities),
+                'net_estate' => $this->roundToPenny($combinedNet),
+                'nil_rate_band' => $this->roundToPenny((float) ($ihtCalc['nrb_available'] ?? 0)),
+                'residence_nil_rate_band' => $this->roundToPenny((float) ($ihtCalc['rnrb_available'] ?? 0)),
+            ],
+            'spouse_exemption_note' => 'Assets passing between spouses are exempt from Inheritance Tax. The Inheritance Tax liability shown is calculated on the second death.',
+        ];
+    }
+
     private function buildWhatIfData(array $data, array $enabledActions): array
     {
         $summary = $data['summary'] ?? [];
@@ -300,7 +527,7 @@ class EstatePlanService extends BasePlanService
         $netEstate = (float) ($summary['net_estate'] ?? 0);
         $grossEstate = (float) ($summary['gross_estate'] ?? 0);
 
-        $currentToBeneficiaries = $netEstate - $ihtLiability;
+        $currentToBeneficiaries = max(0, $netEstate - $ihtLiability);
         $currentEffectiveRate = $grossEstate > 0 ? ($ihtLiability / $grossEstate) * 100 : 0;
 
         // Calculate total mitigation from enabled actions
@@ -314,7 +541,7 @@ class EstatePlanService extends BasePlanService
         }
 
         $projectedLiability = max(0, $ihtLiability - $totalSavings);
-        $projectedToBeneficiaries = $netEstate - $projectedLiability;
+        $projectedToBeneficiaries = max(0, $netEstate - $projectedLiability);
         $projectedEffectiveRate = $grossEstate > 0 ? ($projectedLiability / $grossEstate) * 100 : 0;
 
         return [
