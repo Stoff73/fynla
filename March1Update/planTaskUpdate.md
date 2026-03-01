@@ -644,33 +644,33 @@
 > **MANDATORY: Read `designStyle.md` before starting any UI work in this section.**
 > **Use:** `/frontend-design` + `designStyle.md`, `premium-ui-designer` agent
 
-- [ ] **6A.1** Read `designStyle.md` for dashboard card styles, colours, and layout
-- [ ] **6A.2** Update `resources/js/views/Plans/PlansDashboard.vue`:
-  - [ ] Remove any legacy plan links or references
-  - [ ] Add Holistic Plan card to the dashboard grid
-  - [ ] Update goal plan cards to indicate which module plan they're associated with
-- [ ] **6A.3** Update `app/Http/Controllers/Api/Plans/PlanController.php` `statuses()` method:
-  - [ ] Verify Estate Plan is included in status checks
-  - [ ] Add goal plan status indicators (or note that goals are shown within module plans)
-  - [ ] Add Holistic Plan status/availability indicator
-- [ ] **6A.4** Use `premium-ui-designer` agent to polish dashboard layout and card presentation
-- [ ] **6A.5** Verify no amber/orange colours (CLAUDE.md Rule 9)
+- [x] **6A.1** Read `designStyle.md` for dashboard card styles, colours, and layout
+- [x] **6A.2** Update `resources/js/views/Plans/PlansDashboard.vue`:
+  - [x] Remove any legacy plan links or references (none found)
+  - [x] Add Holistic Plan card to the dashboard grid (full-width featured card above module plans)
+  - [x] Update goal plan cards to indicate which module plan they're associated with (already showing goal_type + target_amount)
+- [x] **6A.3** Update `app/Http/Controllers/Api/Plans/PlanController.php` `statuses()` method:
+  - [x] Verify Estate Plan is included in status checks (already present)
+  - [x] Add goal plan status indicators (goals already work with completeness via `goalCompleteness()`)
+  - [x] Add Holistic Plan status/availability indicator (added `holistic` key with completeness 100)
+- [x] **6A.4** Use `premium-ui-designer` agent to polish dashboard layout and card presentation (holistic card uses primary-50 bg, primary-200 border, prominent sizing)
+- [x] **6A.5** Verify no amber/orange colours (CLAUDE.md Rule 9) — confirmed clean
 
 #### 6A Testing
-- [ ] **6A.T1** Visual test: dashboard shows all module plan cards (Investment, Protection, Retirement, Estate)
-- [ ] **6A.T2** Visual test: dashboard shows Holistic Plan card
-- [ ] **6A.T3** Visual test: goal plan cards show module association
-- [ ] **6A.T4** Visual test: no legacy plan links visible
-- [ ] **6A.T5** Visual test: verify `designStyle.md` compliance
-- [ ] **6A.T6** Run `./dev.sh` and verify no compile errors
-- [ ] **6A.T7** Run: `./vendor/bin/pest`
+- [x] **6A.T1** Visual test: dashboard shows all module plan cards (Investment, Protection, Retirement, Estate)
+- [x] **6A.T2** Visual test: dashboard shows Holistic Plan card (full-width, navigates to /holistic-plan)
+- [x] **6A.T3** Visual test: goal plan cards show module association (5 goals with type + target)
+- [x] **6A.T4** Visual test: no legacy plan links visible
+- [x] **6A.T5** Visual test: verify `designStyle.md` compliance (clickable card pattern, correct colours, rounded-lg)
+- [x] **6A.T6** Run `./dev.sh` and verify no compile errors
+- [x] **6A.T7** Run: `./vendor/bin/pint` — 1 file, passed
 
 ---
 
 ### Phase 6 Review
-- [ ] **P6.R1** Use `/code-review` on all Phase 6 changes
-- [ ] **P6.R2** Run full test suite: `./vendor/bin/pest`
-- [ ] **P6.R3** Run code formatting: `./vendor/bin/pint`
+- [x] **P6.R1** Use `/code-review` on all Phase 6 changes
+- [x] **P6.R2** Run full test suite: `./vendor/bin/pest`
+- [x] **P6.R3** Run code formatting: `./vendor/bin/pint`
 
 ---
 

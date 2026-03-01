@@ -150,6 +150,7 @@ class PlanController extends Controller
                 'protection' => $this->protectionPlanService->checkDataCompleteness($userId),
                 'retirement' => $this->retirementPlanService->checkDataCompleteness($userId),
                 'estate' => $this->estatePlanService->checkDataCompleteness($userId),
+                'holistic' => ['completeness' => 100, 'available' => true],
             ];
 
             return response()->json([

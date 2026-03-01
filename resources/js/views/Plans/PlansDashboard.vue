@@ -10,7 +10,36 @@
           </p>
         </div>
 
+        <!-- Holistic Plan - Featured -->
+        <div
+          class="bg-white rounded-lg border border-primary-200 shadow-sm p-6 mb-8
+                 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-400
+                 transition-all duration-200 cursor-pointer"
+          @click="$router.push('/holistic-plan')"
+        >
+          <div class="flex items-center gap-6">
+            <div class="flex-shrink-0 p-4 bg-primary-50 rounded-lg">
+              <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xl font-semibold text-gray-900 mb-1">Holistic Financial Plan</h2>
+              <p class="text-gray-600 text-sm">
+                Your complete financial strategy across all modules — net worth projection, cross-module recommendations, cashflow allocation, and risk assessment
+              </p>
+            </div>
+            <div class="flex-shrink-0 flex items-center text-primary-600 font-medium text-sm">
+              <span>View Plan</span>
+              <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <!-- Module Plans -->
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Module Plans</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <PlanDashboardCard
             title="Investment & Savings Plan"
