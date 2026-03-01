@@ -104,7 +104,7 @@ describe('Goal Integration into Plans', function () {
             ->and($goals['linked'][0]['type'])->toBe('retirement');
     });
 
-    it('includes wealth_accumulation goal in estate plan linked_goals [3A.T4]', function () {
+    it('returns empty goals for estate plan [3A.T4]', function () {
         $investmentAccount = InvestmentAccount::factory()->create(['user_id' => $this->user->id]);
 
         Goal::factory()->create([
@@ -117,8 +117,8 @@ describe('Goal Integration into Plans', function () {
 
         $goals = $this->service->publicGetGoalsForPlan($this->user->id, 'estate');
 
-        expect($goals['linked'])->toHaveCount(1)
-            ->and($goals['linked'][0]['type'])->toBe('wealth_accumulation');
+        expect($goals['linked'])->toBeEmpty()
+            ->and($goals['unlinked'])->toBeEmpty();
     });
 
     it('sorts goal-sourced actions before module-sourced actions [3A.T5]', function () {
@@ -159,6 +159,23 @@ describe('Goal Integration into Plans', function () {
         expect($goals['linked'])->toBeEmpty()
             ->and($goals['unlinked'])->toHaveCount(1)
             ->and($goals['unlinked'][0]['type'])->toBe('emergency_fund');
+    });
+
+    it('excludes retirement goal from investment plan even when linked to account [3A.T8]', function () {
+        $savingsAccount = SavingsAccount::factory()->create(['user_id' => $this->user->id]);
+
+        Goal::factory()->create([
+            'user_id' => $this->user->id,
+            'goal_type' => 'retirement',
+            'assigned_module' => 'retirement',
+            'status' => 'active',
+            'linked_savings_account_id' => $savingsAccount->id,
+        ]);
+
+        $goals = $this->service->publicGetGoalsForPlan($this->user->id, 'investment');
+
+        expect($goals['linked'])->toBeEmpty()
+            ->and($goals['unlinked'])->toBeEmpty();
     });
 
     it('returns empty arrays when user has no goals [3A.T7]', function () {

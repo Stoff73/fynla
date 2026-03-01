@@ -68,18 +68,13 @@ class EstatePlanService extends BasePlanService
                 'actions' => [],
                 'what_if' => [],
                 'conclusion' => $this->generateDynamicConclusion([], [], 'estate'),
-                'linked_goals' => [],
-                'unlinked_goals' => [],
                 'error' => $analysis['message'] ?? 'Unable to generate estate analysis.',
             ];
         }
 
         $currentSituation = $this->buildCurrentSituation($data);
         $recommendations = $this->getRecommendations($userId);
-        $goals = $this->getGoalsForPlan($userId, 'estate');
-        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
-        $allRecs = array_merge($goalRecommendations, $recommendations);
-        $actions = $this->structureActions($allRecs, 'estate');
+        $actions = $this->structureActions($recommendations, 'estate');
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
@@ -94,8 +89,6 @@ class EstatePlanService extends BasePlanService
             'actions' => $actions,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
-            'linked_goals' => $goals['linked'],
-            'unlinked_goals' => $goals['unlinked'],
         ];
     }
 

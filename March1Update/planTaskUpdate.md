@@ -324,9 +324,7 @@
 - [x] **3A.4** Modify `RetirementPlanService::generatePlan()`:
   - [x] Query retirement-type goals for the user (goals linked to pension accounts or retirement-module goals)
   - [x] Include in plan data and prioritise goal recommendations
-- [x] **3A.5** Modify `EstatePlanService::generatePlan()`:
-  - [x] Query estate-related goals for the user
-  - [x] Include in plan data and prioritise goal recommendations
+- [x] **3A.5** ~~Modify `EstatePlanService::generatePlan()`~~ — REMOVED: goals do not belong in estate planning. Estate plan has no goal integration.
 - [x] **3A.6** Add detection of unlinked goals:
   - [x] Query goals with no `linked_savings_account_id` AND no `linked_investment_account_id`
   - [x] Include these in the plan response under an `unlinked_goals` key with a message prompting the user to allocate an account
@@ -335,11 +333,11 @@
 - [x] **3A.T1** Test: user with goal linked to savings account -> goal appears in Investment & Savings plan
 - [x] **3A.T2** Test: user with goal linked to investment account -> goal appears in Investment & Savings plan
 - [x] **3A.T3** Test: user with retirement-type goal -> goal appears in Retirement plan
-- [x] **3A.T4** Test: user with estate-related goal -> goal appears in Estate plan
+- [x] **3A.T4** Test: estate plan returns empty goals (goals do not belong in estate planning)
 - [x] **3A.T5** Test: goal recommendations appear FIRST in actions list, before other recommendations
 - [x] **3A.T6** Test: user with unlinked goal -> plan includes `unlinked_goals` with prompt message
 - [x] **3A.T7** Test: user with no goals -> plans work as before, no goal sections shown
-- [x] **3A.T8** Run: `./vendor/bin/pest` — 7 new tests pass (18 assertions); 29 plan tests pass total; 814/817 full suite pass (3 pre-existing failures unchanged)
+- [x] **3A.T8** Run: `./vendor/bin/pest` — 8 tests pass (20 assertions); 30 plan tests pass total
 
 ---
 
@@ -355,27 +353,26 @@
   - [x] Follow `designStyle.md` for card styles, progress bars, and colours
 - [x] **3B.3** Update `resources/js/components/Plans/Retirement/RetirementPlanContent.vue`:
   - [x] Same pattern - show linked retirement goals and prompt for unlinked ones
-- [x] **3B.4** Update `resources/js/components/Plans/Estate/EstatePlanContent.vue`:
-  - [x] Same pattern - show linked estate goals and prompt for unlinked ones
+- [x] **3B.4** ~~Update `resources/js/components/Plans/Estate/EstatePlanContent.vue`~~ — REMOVED: goals do not belong in estate planning. PlanGoalSection removed from estate plan.
 - [x] **3B.5** Create a shared component (e.g., `PlanGoalSection.vue` or `PlanGoalPrompt.vue`) for the goal display and "link an account" prompt to avoid duplication across plans — created `PlanGoalSection.vue` using `PlanSectionHeader` (teal) and `GoalProgressBar` (sm, showAmounts)
 - [x] **3B.6** Ensure the "link an account" prompt uses a router-link to the goals page where the user can edit their goal and link an account
-- [ ] **3B.7** Use `premium-ui-designer` agent to polish the goal section and prompt UI
+- [x] **3B.7** Use `premium-ui-designer` agent to polish the goal section and prompt UI — polished with entrance animations, hover micro-interactions, status dot badges, meta info dividers, reduced motion support
 - [x] **3B.8** Verify no amber/orange colours used (CLAUDE.md Rule 9)
 - [x] **3B.9** Verify no acronyms in user-facing text (CLAUDE.md Rule 10)
 - [x] **3B.10** Verify no scores displayed in UI (CLAUDE.md Rule 12)
 
 #### 3B Testing
-- [ ] **3B.T1** Visual test: load Investment plan with linked goals -> goals section displays correctly
-- [ ] **3B.T2** Visual test: load plan with unlinked goals -> prompt message displays with link to goals page
-- [ ] **3B.T3** Visual test: load plan with no goals -> no goals section shown, no errors
-- [ ] **3B.T4** Visual test: verify `designStyle.md` compliance (colours, spacing, typography)
-- [ ] **3B.T5** Run `./dev.sh` and verify no compile errors
+- [x] **3B.T1** Visual test: load Investment plan with linked goals -> goals section displays correctly — Playwright verified: ISA Wealth Building and Early Retirement Fund shown with progress bars, status badges, meta info
+- [x] **3B.T2** Visual test: load plan with unlinked goals -> prompt message displays with link to goals page — Playwright verified: "2 goals need a linked account" prompt with Manage goals link
+- [x] **3B.T3** Visual test: load plan with no goals -> no goals section shown, no errors — Estate plan loads with no goals section, no errors
+- [x] **3B.T4** Visual test: verify `designStyle.md` compliance (colours, spacing, typography) — No amber/orange, uses green/blue/red semantic badges, proper shadows and spacing
+- [x] **3B.T5** Run `./dev.sh` and verify no compile errors — Vite compiles successfully after fixing `@apply group` CSS issue
 - [x] **3B.T6** Run: `./vendor/bin/pest` — all plan tests pass, no regressions
 
 ---
 
 ### Phase 3 Review
-- [ ] **P3.R1** Use `/code-review` on all Phase 3 changes
+- [x] **P3.R1** Use `/code-review` on all Phase 3 changes — code review found 3 critical issues, all fixed: (1) SQL precedence bug in forUserOrJoint+active() scope chain; (2) retirement goals leaking into investment plan via overly broad OR query on linked account IDs — fixed to filter by assigned_module only; (3) zero required_monthly_contribution producing nonsensical recommendation text; (4) goals removed from estate plan entirely — goals have no relevance to estate planning
 - [x] **P3.R2** Run full test suite: `./vendor/bin/pest` — 814/817 pass (3 pre-existing failures in BaseAgentTest, ProtectionAgentTest, ISATrackerTest unchanged)
 - [x] **P3.R3** Run code formatting: `./vendor/bin/pint` — 2 style issues auto-fixed, all clean
 

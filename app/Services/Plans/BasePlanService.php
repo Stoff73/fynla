@@ -34,19 +34,17 @@ abstract class BasePlanService
      */
     protected function getGoalsForPlan(int $userId, string $planType): array
     {
-        $baseQuery = Goal::forUserOrJoint($userId)->active();
+        $baseQuery = Goal::query()->active()->where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId);
+        });
 
         $goals = match ($planType) {
-            'investment' => (clone $baseQuery)->where(function ($q) {
-                $q->whereIn('assigned_module', ['investment', 'savings'])
-                    ->orWhereNotNull('linked_investment_account_id')
-                    ->orWhereNotNull('linked_savings_account_id');
-            })->get(),
+            'investment' => (clone $baseQuery)->whereIn('assigned_module', ['investment', 'savings'])->get(),
             'retirement' => (clone $baseQuery)->where(function ($q) {
                 $q->where('assigned_module', 'retirement')
                     ->orWhere('goal_type', 'retirement');
             })->get(),
-            'estate' => (clone $baseQuery)->where('goal_type', 'wealth_accumulation')->get(),
+            'estate' => collect(),
             default => collect(),
         };
 
@@ -107,7 +105,7 @@ abstract class BasePlanService
                 continue;
             }
 
-            if ($monthlyContribution <= 0) {
+            if ($monthlyContribution <= 0 && ($goal['required_monthly_contribution'] ?? 0) > 0) {
                 $recommendations[] = [
                     'title' => "Start contributing to {$goal['name']}",
                     'description' => sprintf(
