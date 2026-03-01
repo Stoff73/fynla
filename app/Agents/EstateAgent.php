@@ -79,13 +79,15 @@ class EstateAgent extends BaseAgent
             // Aggregate all estate assets into summary
             $assetSummary = $this->buildAssetSummary($user);
 
-            // Calculate IHT
+            // Calculate IHT (include spouse data when married and linked)
             $ihtCalculation = null;
             $ihtLiability = 0;
             $effectiveTaxRate = 0;
 
             try {
-                $ihtCalculation = $this->ihtCalculator->calculate($user);
+                $spouse = $user->spouse;
+                $dataSharingEnabled = $spouse !== null;
+                $ihtCalculation = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
                 $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
                 $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
             } catch (\Exception $e) {
@@ -689,7 +691,9 @@ class EstateAgent extends BaseAgent
 
         $ihtLiability = 0;
         try {
-            $result = $this->ihtCalculator->calculate($user);
+            $spouse = $user->spouse;
+            $dataSharingEnabled = $spouse !== null;
+            $result = $this->ihtCalculator->calculate($user, $spouse, $dataSharingEnabled);
             $ihtLiability = $result['iht_liability'] ?? 0;
         } catch (\Exception $e) {
             // Continue with zero

@@ -389,39 +389,39 @@
 
 > **Use:** `/feature-dev`, `Explore` agent, `tax-compliance-reviewer` agent
 
-- [ ] **4A.1** Use `Explore` agent to map all data already available from the Estate Module (existing services, cached agent results, `iht_calculations` table) to understand what can be fetched instead of recalculated
-- [ ] **4A.2** Refactor `EstatePlanService::generatePlan()` to fetch estate data from the Estate Module's existing services/tables rather than recalculating:
-  - [ ] Use cached `EstateAgent::analyze()` results
-  - [ ] Query existing `iht_calculations` table for IHT figures
-  - [ ] Fetch existing strategy recommendations from estate services
-  - [ ] Remove redundant calls that duplicate estate module calculations
-- [ ] **4A.3** Refactor `EstatePlanService::buildExecutiveSummary()` to stop re-calling `$this->estateAgent->analyze()` - use the data already fetched
-- [ ] **4A.4** Add joint estate view logic when user is married and has spouse data or a linked account:
-  - [ ] Fetch spouse's estate data alongside the primary user's
-  - [ ] Build side-by-side estate positions for both partners
-  - [ ] Calculate combined estate figures and separate IHT positions
-- [ ] **4A.5** Add funding source tracking to charitable/gifting recommendations:
-  - [ ] For each charitable/gifting recommendation, identify which accounts the money would come from
-  - [ ] Include `funding_source` field in recommendation data (account name, type, available balance)
-- [ ] **4A.6** Add affordability check for life cover recommendations:
-  - [ ] Fetch disposable income from income tab (same accessor as Task 1B.2)
-  - [ ] Compare estimated premium against disposable income
-  - [ ] Flag unaffordable recommendations with an affordability warning
-- [ ] **4A.7** Add detailed "what to do" guidance for each recommendation:
-  - [ ] Step-by-step actionable instructions (not just strategy names)
-  - [ ] Include estimated timeframes and next actions
-- [ ] **4A.8** Use `tax-compliance-reviewer` agent to verify all IHT calculations, NRB/RNRB values, spouse exemptions, and charitable giving thresholds remain correct after the refactor
+- [x] **4A.1** Use `Explore` agent to map all data already available from the Estate Module (existing services, cached agent results, `iht_calculations` table) to understand what can be fetched instead of recalculated
+- [x] **4A.2** Refactor `EstatePlanService::generatePlan()` to fetch estate data from the Estate Module's existing services/tables rather than recalculating:
+  - [x] Use cached `EstateAgent::analyze()` results
+  - [x] Query existing `iht_calculations` table for IHT figures
+  - [x] Fetch existing strategy recommendations from estate services
+  - [x] Remove redundant calls that duplicate estate module calculations
+- [x] **4A.3** Refactor `EstatePlanService::buildExecutiveSummary()` to stop re-calling `$this->estateAgent->analyze()` - use the data already fetched
+- [x] **4A.4** Add joint estate view logic when user is married and has spouse data or a linked account:
+  - [x] Fetch spouse's estate data alongside the primary user's
+  - [x] Build side-by-side estate positions for both partners
+  - [x] Calculate combined estate figures and separate IHT positions
+- [x] **4A.5** Add funding source tracking to charitable/gifting recommendations:
+  - [x] For each charitable/gifting recommendation, identify which accounts the money would come from
+  - [x] Include `funding_source` field in recommendation data (account name, type, available balance)
+- [x] **4A.6** Add affordability check for life cover recommendations:
+  - [x] Fetch disposable income from income tab (same accessor as Task 1B.2)
+  - [x] Compare estimated premium against disposable income
+  - [x] Flag unaffordable recommendations with an affordability warning
+- [x] **4A.7** Add detailed "what to do" guidance for each recommendation:
+  - [x] Step-by-step actionable instructions (not just strategy names)
+  - [x] Include estimated timeframes and next actions
+- [x] **4A.8** Use `tax-compliance-reviewer` agent to verify all IHT calculations, NRB/RNRB values, spouse exemptions, and charitable giving thresholds remain correct after the refactor
 
 #### 4A Testing
-- [ ] **4A.T1** Test: estate plan generates with data from estate module (not recalculated)
-- [ ] **4A.T2** Test: married user -> joint view data returned with both partners' positions
-- [ ] **4A.T3** Test: single user -> no joint view, standard single view
-- [ ] **4A.T4** Test: charitable recommendation includes funding source
-- [ ] **4A.T5** Test: gifting recommendation includes funding source
-- [ ] **4A.T6** Test: affordable life cover -> no affordability warning
-- [ ] **4A.T7** Test: unaffordable life cover -> affordability warning included
-- [ ] **4A.T8** Test: IHT calculation results match what the estate module produces
-- [ ] **4A.T9** Run: `./vendor/bin/pest`
+- [x] **4A.T1** Test: estate plan generates with data from estate module (not recalculated)
+- [x] **4A.T2** Test: married user -> joint view data returned with both partners' positions
+- [x] **4A.T3** Test: single user -> no joint view, standard single view
+- [x] **4A.T4** Test: charitable recommendation includes funding source
+- [x] **4A.T5** Test: gifting recommendation includes funding source
+- [x] **4A.T6** Test: affordable life cover -> no affordability warning
+- [x] **4A.T7** Test: unaffordable life cover -> affordability warning included
+- [x] **4A.T8** Test: IHT calculation results match what the estate module produces
+- [x] **4A.T9** Run: `./vendor/bin/pest`
 
 ---
 
@@ -429,21 +429,21 @@
 
 > **Use:** `/feature-dev`
 
-- [ ] **4B.1** Remove estate health score calculation from `app/Agents/EstateAgent.php`:
-  - [ ] Remove the score calculation logic (starts at 100, deducts points)
-  - [ ] Remove `health_score` from the analysis return data
-- [ ] **4B.2** Search frontend components for any health score display and remove:
-  - [ ] Check `EstateCurrentSituation.vue`
-  - [ ] Check `EstatePlanContent.vue`
-  - [ ] Check `EstateGroupedActions.vue`
-  - [ ] Check any other estate-related components
-- [ ] **4B.3** Replace any score-based text with descriptive text and specific metrics (per CLAUDE.md Rule 12)
+- [x] **4B.1** Remove estate health score calculation from `app/Agents/EstateAgent.php`:
+  - [x] Remove the score calculation logic (starts at 100, deducts points)
+  - [x] Remove `health_score` from the analysis return data
+- [x] **4B.2** Search frontend components for any health score display and remove:
+  - [x] Check `EstateCurrentSituation.vue`
+  - [x] Check `EstatePlanContent.vue`
+  - [x] Check `EstateGroupedActions.vue`
+  - [x] Check any other estate-related components
+- [x] **4B.3** Replace any score-based text with descriptive text and specific metrics (per CLAUDE.md Rule 12)
 
 #### 4B Testing
-- [ ] **4B.T1** Test: estate agent analysis returns no `health_score` field
-- [ ] **4B.T2** Grep entire codebase for `health_score` in estate context - confirm none remain
-- [ ] **4B.T3** Visual test: estate plan UI shows no scores anywhere
-- [ ] **4B.T4** Run: `./vendor/bin/pest`
+- [x] **4B.T1** Test: estate agent analysis returns no `health_score` field
+- [x] **4B.T2** Grep entire codebase for `health_score` in estate context - confirm none remain
+- [x] **4B.T3** Visual test: estate plan UI shows no scores anywhere
+- [x] **4B.T4** Run: `./vendor/bin/pest`
 
 ---
 
@@ -452,42 +452,42 @@
 > **MANDATORY: Read `designStyle.md` before starting any UI work in this section.**
 > **Use:** `/frontend-design` + `designStyle.md`, `premium-ui-designer` agent
 
-- [ ] **4C.1** Read `designStyle.md` for colours, typography, spacing, component patterns
-- [ ] **4C.2** Update `resources/js/components/Plans/Estate/EstatePlanContent.vue`:
-  - [ ] Add joint view display when plan data includes spouse estate data
-  - [ ] Add what-if scenarios with side-by-side comparisons
-  - [ ] Add more detailed guidance sections
-- [ ] **4C.3** Update `resources/js/components/Plans/Estate/EstateCurrentSituation.vue`:
-  - [ ] Add side-by-side layout for joint estate view (primary user | spouse)
-  - [ ] Show combined estate totals alongside individual positions
-- [ ] **4C.4** Update `resources/js/components/Plans/Estate/EstateGroupedActions.vue`:
-  - [ ] Display funding source for each charitable/gifting recommendation
-  - [ ] Display affordability indicator for life cover recommendations
-  - [ ] Show step-by-step "what to do" guidance for each action
-- [ ] **4C.5** Update `resources/js/components/Plans/Estate/EstateWhatIfControls.vue`:
-  - [ ] Enhance with side-by-side comparison metrics
-- [ ] **4C.6** Use `premium-ui-designer` agent to polish the joint view layout, side-by-side comparisons, and funding source displays
-- [ ] **4C.7** Verify no amber/orange colours (CLAUDE.md Rule 9)
-- [ ] **4C.8** Verify no acronyms in user-facing text (CLAUDE.md Rule 10)
-- [ ] **4C.9** Verify no scores in UI (CLAUDE.md Rule 12)
+- [x] **4C.1** Read `designStyle.md` for colours, typography, spacing, component patterns
+- [x] **4C.2** Update `resources/js/components/Plans/Estate/EstatePlanContent.vue`:
+  - [x] Add joint view display when plan data includes spouse estate data
+  - [x] Add what-if scenarios with side-by-side comparisons
+  - [x] Add more detailed guidance sections
+- [x] **4C.3** Update `resources/js/components/Plans/Estate/EstateCurrentSituation.vue`:
+  - [x] Add side-by-side layout for joint estate view (primary user | spouse)
+  - [x] Show combined estate totals alongside individual positions
+- [x] **4C.4** Update `resources/js/components/Plans/Estate/EstateGroupedActions.vue`:
+  - [x] Display funding source for each charitable/gifting recommendation
+  - [x] Display affordability indicator for life cover recommendations
+  - [x] Show step-by-step "what to do" guidance for each action
+- [x] **4C.5** Update `resources/js/components/Plans/Estate/EstateWhatIfControls.vue`:
+  - [x] Enhance with side-by-side comparison metrics
+- [x] **4C.6** Use `premium-ui-designer` agent to polish the joint view layout, side-by-side comparisons, and funding source displays
+- [x] **4C.7** Verify no amber/orange colours (CLAUDE.md Rule 9)
+- [x] **4C.8** Verify no acronyms in user-facing text (CLAUDE.md Rule 10)
+- [x] **4C.9** Verify no scores in UI (CLAUDE.md Rule 12)
 
 #### 4C Testing
-- [ ] **4C.T1** Visual test: married user -> joint estate view displays correctly with side-by-side
-- [ ] **4C.T2** Visual test: single user -> standard single view, no joint layout
-- [ ] **4C.T3** Visual test: funding sources display next to charitable/gifting recommendations
-- [ ] **4C.T4** Visual test: affordability indicator shows on life cover recommendations
-- [ ] **4C.T5** Visual test: step-by-step guidance displays for each action
-- [ ] **4C.T6** Visual test: verify `designStyle.md` compliance
-- [ ] **4C.T7** Run `./dev.sh` and verify no compile errors
-- [ ] **4C.T8** Run: `./vendor/bin/pest`
+- [x] **4C.T1** Visual test: married user -> joint estate view displays correctly with side-by-side
+- [x] **4C.T2** Visual test: single user -> standard single view, no joint layout
+- [x] **4C.T3** Visual test: funding sources display next to charitable/gifting recommendations
+- [x] **4C.T4** Visual test: affordability indicator shows on life cover recommendations
+- [x] **4C.T5** Visual test: step-by-step guidance displays for each action
+- [x] **4C.T6** Visual test: verify `designStyle.md` compliance
+- [x] **4C.T7** Run `./dev.sh` and verify no compile errors
+- [x] **4C.T8** Run: `./vendor/bin/pest`
 
 ---
 
 ### Phase 4 Review
-- [ ] **P4.R1** Use `/code-review` on all Phase 4 changes
-- [ ] **P4.R2** Use `tax-compliance-reviewer` agent for final review of estate/IHT changes
-- [ ] **P4.R3** Run full test suite: `./vendor/bin/pest`
-- [ ] **P4.R4** Run code formatting: `./vendor/bin/pint`
+- [x] **P4.R1** Use `/code-review` on all Phase 4 changes
+- [x] **P4.R2** Use `tax-compliance-reviewer` agent for final review of estate/IHT changes
+- [x] **P4.R3** Run full test suite: `./vendor/bin/pest`
+- [x] **P4.R4** Run code formatting: `./vendor/bin/pint`
 
 ---
 
