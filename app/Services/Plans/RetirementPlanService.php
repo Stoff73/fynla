@@ -19,7 +19,9 @@ class RetirementPlanService extends BasePlanService
     public function __construct(
         private readonly RetirementAgent $retirementAgent,
         private readonly PensionProjector $projector,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PlanConfigService $planConfig,
+        private readonly DisposableIncomeAccessor $incomeAccessor
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -40,13 +42,18 @@ class RetirementPlanService extends BasePlanService
                 'pension_projections' => [],
                 'what_if' => [],
                 'conclusion' => $this->generateDynamicConclusion([], [], 'retirement'),
+                'linked_goals' => [],
+                'unlinked_goals' => [],
                 'error' => $analysis['message'] ?? 'Unable to generate retirement analysis.',
             ];
         }
 
         $currentSituation = $this->buildCurrentSituation($data, $userId);
         $recommendations = $this->getRecommendations($userId);
-        $actions = $this->structureActions($recommendations, 'retirement');
+        $goals = $this->getGoalsForPlan($userId, 'retirement');
+        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
+        $allRecs = array_merge($goalRecommendations, $recommendations);
+        $actions = $this->structureActions($allRecs, 'retirement');
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
@@ -55,9 +62,9 @@ class RetirementPlanService extends BasePlanService
         $yearsToRetirement = $profile ? max(0, $profile->target_retirement_age - $profile->current_age) : 0;
 
         $dcPensions = DCPension::where('user_id', $userId)->get();
-        $pensionProjections = $this->buildPensionGrowthProjections($actions, $dcPensions, $yearsToRetirement);
+        $pensionProjections = $this->buildPensionGrowthProjections($user, $actions, $dcPensions, $yearsToRetirement);
 
-        $whatIf = $this->buildWhatIfData($data, $currentSituation, $enabledActions, $yearsToRetirement);
+        $whatIf = $this->buildWhatIfData($user, $data, $currentSituation, $enabledActions, $yearsToRetirement);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'retirement');
 
         return [
@@ -69,6 +76,8 @@ class RetirementPlanService extends BasePlanService
             'pension_projections' => $pensionProjections,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
+            'linked_goals' => $goals['linked'],
+            'unlinked_goals' => $goals['unlinked'],
         ];
     }
 
@@ -361,7 +370,7 @@ class RetirementPlanService extends BasePlanService
         ];
     }
 
-    private function buildWhatIfData(array $data, array $currentSituation, array $enabledActions, int $yearsToRetirement = 0): array
+    private function buildWhatIfData(User $user, array $data, array $currentSituation, array $enabledActions, int $yearsToRetirement = 0): array
     {
         $summary = $data['summary'] ?? [];
         $projectedIncome = $summary['projected_retirement_income'] ?? 0;
@@ -373,20 +382,25 @@ class RetirementPlanService extends BasePlanService
             $yearsToRetirement = $summary['years_to_retirement'] ?? 0;
         }
 
+        // Use disposable income via DistributionAccount instead of hardcoded amounts
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
+
         $additionalContribution = 0;
         $incomeImprovement = 0;
 
         foreach ($enabledActions as $action) {
             $category = strtolower($action['category'] ?? '');
             if (str_contains($category, 'contribution') || str_contains($category, 'start_contribution')) {
-                $additionalContribution += 200; // £200/month increase estimate
-                $incomeImprovement += $this->estimateIncomeFromContribution(200, $yearsToRetirement);
+                $allocated = $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3);
+                $additionalContribution += $allocated;
+                $incomeImprovement += $this->estimateIncomeFromContribution($allocated, $yearsToRetirement);
             } elseif (str_contains($category, 'consolid')) {
-                $incomeImprovement += $projectedIncome * 0.02; // 2% efficiency gain
+                $incomeImprovement += $projectedIncome * $this->planConfig->getConsolidationEfficiencyGain();
             } elseif (str_contains($category, 'tax') || str_contains($category, 'allowance')) {
-                $incomeImprovement += $projectedIncome * 0.03; // 3% from tax optimisation
+                $incomeImprovement += $projectedIncome * $this->planConfig->getTaxOptimisationGain();
             } else {
-                $incomeImprovement += $projectedIncome * 0.01;
+                $incomeImprovement += $projectedIncome * $this->planConfig->getDefaultActionGain();
             }
         }
 
@@ -415,9 +429,9 @@ class RetirementPlanService extends BasePlanService
             'is_approximate' => true,
             'frontend_calc_params' => [
                 'current_dc_value' => $currentDcValue,
-                'growth_rate' => 0.05,
+                'growth_rate' => $this->planConfig->getDefaultGrowthRate(),
                 'years' => $yearsToRetirement,
-                'annuity_rate' => 0.04,
+                'annuity_rate' => $this->planConfig->getWithdrawalRate(),
             ],
         ];
     }
@@ -425,18 +439,22 @@ class RetirementPlanService extends BasePlanService
     /**
      * Build per-pension growth projection series for each DC pension.
      */
-    private function buildPensionGrowthProjections(array $actions, Collection $dcPensions, int $yearsToRetirement): array
+    private function buildPensionGrowthProjections(User $user, array $actions, Collection $dcPensions, int $yearsToRetirement): array
     {
         if ($yearsToRetirement <= 0 || $dcPensions->isEmpty()) {
             return [];
         }
+
+        // Use disposable income for additional contribution estimates
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
 
         $projections = [];
 
         foreach ($dcPensions as $pension) {
             $currentValue = (float) $pension->current_fund_value;
             $platformFee = (float) ($pension->platform_fee_percent ?? 0);
-            $netGrowthRate = 0.05 - ($platformFee / 100);
+            $netGrowthRate = $this->planConfig->getDefaultGrowthRate() - ($platformFee / 100);
 
             // Compute annual contribution
             $monthlyContribution = (float) ($pension->monthly_contribution_amount ?? 0);
@@ -450,12 +468,12 @@ class RetirementPlanService extends BasePlanService
             }
 
             // Estimate additional annual contribution from enabled account-level actions
-            $accountActions = array_filter($actions, fn ($a) =>
-                ($a['scope'] ?? '') === 'account'
+            $accountActions = array_filter($actions, fn ($a) => ($a['scope'] ?? '') === 'account'
                 && ($a['account_id'] ?? null) == $pension->id
                 && ($a['enabled'] ?? false)
             );
-            $additionalAnnual = count($accountActions) * 2400; // £200/month per action estimate
+            $perActionMonthly = $budget->allocate("pension_{$pension->id}", $monthlyDisposable * 0.3);
+            $additionalAnnual = count($accountActions) > 0 ? $perActionMonthly * 12 : 0;
 
             // Build two series: current trajectory and with-actions
             $currentSeries = [];
@@ -503,7 +521,7 @@ class RetirementPlanService extends BasePlanService
             return $currentValue;
         }
 
-        $monthlyRate = 0.05 / 12;
+        $monthlyRate = $this->planConfig->getDefaultGrowthRate() / 12;
         $months = $years * 12;
         $fv = $currentValue * pow(1 + $monthlyRate, $months);
         if ($monthlyExtra > 0 && $monthlyRate > 0) {
@@ -524,8 +542,7 @@ class RetirementPlanService extends BasePlanService
 
         $fundAtRetirement = $this->projectDcValue(0, $monthlyContribution, $years);
 
-        // Assume 4% sustainable withdrawal rate
-        return $fundAtRetirement * 0.04;
+        return $fundAtRetirement * $this->planConfig->getWithdrawalRate();
     }
 
     /**

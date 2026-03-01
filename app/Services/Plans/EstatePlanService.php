@@ -16,7 +16,8 @@ class EstatePlanService extends BasePlanService
     public function __construct(
         private readonly EstateAgent $estateAgent,
         private readonly IHTCalculationService $ihtCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PlanConfigService $planConfig
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -29,7 +30,7 @@ class EstatePlanService extends BasePlanService
             ? (int) $user->date_of_birth->diffInYears(now())
             : null;
 
-        if ($currentAge !== null && $currentAge < 35) {
+        if ($currentAge !== null && $currentAge < $this->planConfig->getEstateAgeGate()) {
             return [
                 'metadata' => $this->buildPlanMetadata($user, 'estate', $completeness),
                 'not_applicable' => true,
@@ -67,13 +68,18 @@ class EstatePlanService extends BasePlanService
                 'actions' => [],
                 'what_if' => [],
                 'conclusion' => $this->generateDynamicConclusion([], [], 'estate'),
+                'linked_goals' => [],
+                'unlinked_goals' => [],
                 'error' => $analysis['message'] ?? 'Unable to generate estate analysis.',
             ];
         }
 
         $currentSituation = $this->buildCurrentSituation($data);
         $recommendations = $this->getRecommendations($userId);
-        $actions = $this->structureActions($recommendations, 'estate');
+        $goals = $this->getGoalsForPlan($userId, 'estate');
+        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
+        $allRecs = array_merge($goalRecommendations, $recommendations);
+        $actions = $this->structureActions($allRecs, 'estate');
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
@@ -88,6 +94,8 @@ class EstatePlanService extends BasePlanService
             'actions' => $actions,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
+            'linked_goals' => $goals['linked'],
+            'unlinked_goals' => $goals['unlinked'],
         ];
     }
 
@@ -285,7 +293,7 @@ class EstatePlanService extends BasePlanService
             'charitable_giving' => [
                 'status' => $charitableAnalysis['status'] ?? 'none',
                 'current_percentage' => round((float) ($charitableAnalysis['current_percentage'] ?? 0), 1),
-                'threshold' => 10,
+                'threshold' => $this->planConfig->getCharitableGivingThreshold(),
                 'shortfall' => $this->roundToPenny((float) ($charitableAnalysis['shortfall'] ?? 0)),
                 'potential_saving' => $this->roundToPenny((float) ($charitableAnalysis['potential_saving'] ?? 0)),
             ],

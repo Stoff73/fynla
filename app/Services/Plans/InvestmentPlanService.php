@@ -6,19 +6,24 @@ namespace App\Services\Plans;
 
 use App\Agents\InvestmentAgent;
 use App\Agents\SavingsAgent;
+use App\Constants\TaxDefaults;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Investment\FeeAnalyzer;
+use App\Services\TaxConfigService;
 
 class InvestmentPlanService extends BasePlanService
 {
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
         private readonly SavingsAgent $savingsAgent,
-        private readonly FeeAnalyzer $feeAnalyzer
+        private readonly FeeAnalyzer $feeAnalyzer,
+        private readonly PlanConfigService $planConfig,
+        private readonly DisposableIncomeAccessor $incomeAccessor,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -46,7 +51,10 @@ class InvestmentPlanService extends BasePlanService
         );
 
         $recommendations = $this->getRecommendations($userId);
-        $actions = $this->structureActions($recommendations, 'investment');
+        $goals = $this->getGoalsForPlan($userId, 'investment');
+        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
+        $allRecs = array_merge($goalRecommendations, $recommendations);
+        $actions = $this->structureActions($allRecs, 'investment');
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
@@ -56,7 +64,7 @@ class InvestmentPlanService extends BasePlanService
             ? $retirementAge - $userAge
             : null;
 
-        $whatIf = $this->buildWhatIfData($investmentAnalysis, $savingsAnalysis, $currentSituation, $enabledActions, $yearsToRetirement);
+        $whatIf = $this->buildWhatIfData($user, $investmentAnalysis, $savingsAnalysis, $currentSituation, $enabledActions, $yearsToRetirement);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'investment');
 
         $accountProjections = $this->buildAccountGrowthProjections($actions, $investmentAccounts, $userId, $yearsToRetirement);
@@ -70,6 +78,8 @@ class InvestmentPlanService extends BasePlanService
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
             'account_projections' => $accountProjections,
+            'linked_goals' => $goals['linked'],
+            'unlinked_goals' => $goals['unlinked'],
         ];
     }
 
@@ -91,7 +101,7 @@ class InvestmentPlanService extends BasePlanService
             $investmentAnalysis, $accountFeeAnalyses
         );
         $investmentRecs = $investmentResult['recommendations'] ?? [];
-        $savingsRecs = $this->buildSavingsRecommendations($savingsAnalysis);
+        $savingsRecs = $this->buildSavingsRecommendations($savingsAnalysis, $userId);
 
         return array_merge($investmentRecs, $savingsRecs);
     }
@@ -99,15 +109,12 @@ class InvestmentPlanService extends BasePlanService
     public function checkDataCompleteness(int $userId): array
     {
         $missing = [];
+        $user = User::find($userId);
         $checks = [
             'investment_accounts' => InvestmentAccount::where('user_id', $userId)->exists(),
             'risk_profile' => RiskProfile::where('user_id', $userId)->exists(),
             'savings_accounts' => SavingsAccount::where('user_id', $userId)->exists(),
-            'income' => User::where('id', $userId)
-                ->where(function ($q) {
-                    $q->whereNotNull('annual_employment_income')
-                        ->orWhereNotNull('annual_self_employment_income');
-                })->exists(),
+            'income' => $user && ($user->annual_employment_income || $user->annual_self_employment_income),
         ];
 
         $hasHoldings = false;
@@ -161,7 +168,18 @@ class InvestmentPlanService extends BasePlanService
             ];
         }
 
-        $total = count($checks) + 1; // +1 for holdings
+        // Check retirement date for projection horizon
+        $hasRetirementDate = $user && $user->target_retirement_age && $user->date_of_birth;
+        if (! $hasRetirementDate) {
+            $missing[] = [
+                'field' => 'retirement_date',
+                'label' => 'Target retirement age',
+                'description' => 'Set your target retirement age to enable investment growth projections.',
+                'link' => '/net-worth/retirement',
+            ];
+        }
+
+        $total = count($checks) + 2; // +1 for holdings, +1 for retirement date
         $present = $total - count($missing);
 
         return [
@@ -308,7 +326,7 @@ class InvestmentPlanService extends BasePlanService
             'savings_accounts' => $savings,
             'asset_allocation' => $investmentAnalysis['asset_allocation'] ?? [],
             'fee_analysis' => $investmentAnalysis['fee_analysis'] ?? [],
-            'diversification_score' => $investmentAnalysis['diversification_score'] ?? null,
+            'diversification' => $investmentAnalysis['diversification_summary'] ?? null,
             'tax_wrappers' => $investmentAnalysis['tax_wrappers'] ?? [],
             'emergency_fund' => [
                 'runway_months' => $savingsAnalysis['emergency_fund']['runway_months'] ?? 0,
@@ -324,7 +342,7 @@ class InvestmentPlanService extends BasePlanService
         ];
     }
 
-    private function buildSavingsRecommendations(array $savingsAnalysis): array
+    private function buildSavingsRecommendations(array $savingsAnalysis, int $userId): array
     {
         $recommendations = [];
 
@@ -375,10 +393,118 @@ class InvestmentPlanService extends BasePlanService
             ];
         }
 
+        // Surplus waterfall: when emergency fund exceeds 6 months and no goals are reducing it
+        if ($runway > 6) {
+            $surplusRecs = $this->buildSurplusWaterfall($savingsAnalysis, $userId);
+            $recommendations = array_merge($recommendations, $surplusRecs);
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Build surplus waterfall recommendations when emergency fund exceeds 6 months.
+     * Priority: ISA -> Pension -> Bond -> Gifting
+     */
+    private function buildSurplusWaterfall(array $savingsAnalysis, int $userId): array
+    {
+        // Check if any goals are set to draw down the emergency fund
+        $hasDrawdownGoal = Goal::where('user_id', $userId)
+            ->whereNotNull('linked_savings_account_id')
+            ->where('status', '!=', 'completed')
+            ->exists();
+
+        if ($hasDrawdownGoal) {
+            return [];
+        }
+
+        $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
+        $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
+        $targetFund = $monthlyExpenditure * 6;
+        $surplus = max(0, $totalSavings - $targetFund);
+
+        if ($surplus <= 0) {
+            return [];
+        }
+
+        $recommendations = [];
+        $remaining = $surplus;
+
+        // 1. ISA - tax-free growth
+        $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
+        if ($isaRemaining > 0 && $remaining > 0) {
+            $isaAmount = min($remaining, $isaRemaining);
+            $recommendations[] = [
+                'category' => 'Emergency Fund Surplus',
+                'priority' => 'medium',
+                'title' => 'Move Surplus to ISA',
+                'description' => sprintf(
+                    'Your emergency fund exceeds 6 months. Move %s into an ISA for tax-free growth. You have %s of ISA allowance remaining this tax year.',
+                    $this->formatCurrency($isaAmount),
+                    $this->formatCurrency($isaRemaining)
+                ),
+                'action' => 'Transfer surplus cash into a Cash ISA or Stocks & Shares ISA.',
+                'estimated_impact' => $this->roundToPenny($isaAmount),
+            ];
+            $remaining -= $isaAmount;
+        }
+
+        // 2. Pension - tax relief
+        if ($remaining > 0) {
+            $pensionAllowances = $this->taxConfig->getPensionAllowances();
+            $annualAllowance = $pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
+            $pensionAmount = min($remaining, $annualAllowance);
+            if ($pensionAmount > 0) {
+                $recommendations[] = [
+                    'category' => 'Emergency Fund Surplus',
+                    'priority' => 'low',
+                    'title' => 'Contribute Surplus to Pension',
+                    'description' => sprintf(
+                        'Consider contributing %s to your pension. You will receive tax relief, boosting the value of your contribution.',
+                        $this->formatCurrency($pensionAmount)
+                    ),
+                    'action' => 'Make an additional pension contribution via your SIPP or workplace scheme.',
+                    'estimated_impact' => $this->roundToPenny($pensionAmount),
+                ];
+                $remaining -= $pensionAmount;
+            }
+        }
+
+        // 3. Investment bond
+        if ($remaining > 0) {
+            $recommendations[] = [
+                'category' => 'Emergency Fund Surplus',
+                'priority' => 'low',
+                'title' => 'Consider an Investment Bond',
+                'description' => sprintf(
+                    'You could place %s in an investment bond. Bonds offer tax-deferred growth and can be useful for estate planning.',
+                    $this->formatCurrency($remaining)
+                ),
+                'action' => 'Speak to a financial adviser about investment bond options.',
+                'estimated_impact' => $this->roundToPenny($remaining),
+            ];
+        }
+
+        // 4. Gifting
+        if ($remaining > 0) {
+            $giftExemption = $this->taxConfig->getGiftingExemptions()['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
+            $recommendations[] = [
+                'category' => 'Emergency Fund Surplus',
+                'priority' => 'low',
+                'title' => 'Consider Gifting Surplus Funds',
+                'description' => sprintf(
+                    'If your emergency fund significantly exceeds your needs, consider gifting to family members. Annual exempt gifts of up to %s per year are free from Inheritance Tax.',
+                    $this->formatCurrency($giftExemption)
+                ),
+                'action' => 'Review your gifting strategy in the Estate Planning section.',
+            ];
+        }
+
         return $recommendations;
     }
 
     private function buildWhatIfData(
+        User $user,
         array $investmentAnalysis,
         array $savingsAnalysis,
         array $currentSituation,
@@ -388,7 +514,12 @@ class InvestmentPlanService extends BasePlanService
         $totalInvestment = $currentSituation['total_investment_value'];
         $totalSavings = $currentSituation['total_savings_value'];
         $emergencyMonths = $currentSituation['emergency_fund']['runway_months'] ?? 0;
-        $projectionYears = $yearsToRetirement ?? 10;
+        $projectionYears = $yearsToRetirement;
+        $growthRate = $this->planConfig->getDefaultGrowthRate();
+
+        // Use disposable income via DistributionAccount instead of hardcoded amounts
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
 
         $feeReduction = 0;
         $additionalSavings = 0;
@@ -399,27 +530,35 @@ class InvestmentPlanService extends BasePlanService
                 $feeReduction += ($action['estimated_impact'] ?? 200);
             }
             if (str_contains($category, 'emergency') || str_contains($category, 'saving')) {
-                $additionalSavings += 500;
+                $additionalSavings += $budget->allocate($action['id'] ?? 'savings', $monthlyDisposable * 0.2);
             }
         }
+
+        $currentProjected = $projectionYears !== null
+            ? $this->roundToPenny($this->projectValue($totalInvestment, $growthRate, $projectionYears, 0))
+            : null;
+
+        $projectedWithActions = $projectionYears !== null
+            ? $this->roundToPenny($this->projectValue($totalInvestment, $growthRate, $projectionYears, $additionalSavings))
+            : null;
 
         return [
             'current_scenario' => [
                 'total_wealth' => $this->roundToPenny($totalInvestment + $totalSavings),
                 'annual_fees' => $this->roundToPenny($investmentAnalysis['fee_analysis']['total_annual_fees'] ?? 0),
                 'emergency_fund_months' => round($emergencyMonths, 1),
-                'projected_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, $projectionYears, 0)),
+                'projected_value' => $currentProjected,
             ],
             'projected_scenario' => [
                 'total_wealth' => $this->roundToPenny($totalInvestment + $totalSavings + ($additionalSavings * 12)),
                 'annual_fees' => $this->roundToPenny(max(0, ($investmentAnalysis['fee_analysis']['total_annual_fees'] ?? 0) - $feeReduction)),
                 'emergency_fund_months' => round($emergencyMonths + ($additionalSavings > 0 ? 2 : 0), 1),
-                'projected_value' => $this->roundToPenny($this->projectValue($totalInvestment, 0.05, $projectionYears, $additionalSavings)),
+                'projected_value' => $projectedWithActions,
             ],
             'is_approximate' => true,
             'frontend_calc_params' => [
                 'current_value' => $totalInvestment,
-                'growth_rate' => 0.05,
+                'growth_rate' => $growthRate,
                 'years' => $projectionYears,
             ],
         ];
@@ -447,7 +586,7 @@ class InvestmentPlanService extends BasePlanService
             ->groupBy('linked_investment_account_id');
 
         $projections = [];
-        $growthRate = 0.05;
+        $growthRate = $this->planConfig->getDefaultGrowthRate();
         $now = \Carbon\Carbon::now();
 
         foreach ($accountIdsWithActions as $accountId) {
@@ -466,8 +605,8 @@ class InvestmentPlanService extends BasePlanService
                 continue;
             }
 
-            // Determine projection years: latest goal target date, or retirement, or 10
-            $years = $yearsToRetirement ?? 10;
+            // Determine projection years: latest goal target date, or retirement
+            $years = $yearsToRetirement;
             $projectionLabel = 'to retirement';
             $goals = $accountGoals->get($accountId);
 
@@ -478,6 +617,11 @@ class InvestmentPlanService extends BasePlanService
                     $years = $goalYears;
                     $projectionLabel = $latestGoal->goal_name;
                 }
+            }
+
+            // Skip if no projection horizon available
+            if ($years === null || $years <= 0) {
+                continue;
             }
 
             $currentFeePercent = $feeAnalysis['total_fee_percent'] ?? 0;
@@ -534,15 +678,13 @@ class InvestmentPlanService extends BasePlanService
             $category = strtolower($action['category'] ?? '');
 
             if (str_contains($category, 'platform')) {
-                // Reduce platform fee to 0.25% benchmark
                 $currentPlatformPercent = $accountValue > 0
                     ? (($feeAnalysis['fees']['platform_fee'] ?? 0) / $accountValue) * 100
                     : 0;
-                $totalReduction += max(0, $currentPlatformPercent - 0.25);
+                $totalReduction += max(0, $currentPlatformPercent - $this->planConfig->getPlatformFeeBenchmark());
             } elseif (str_contains($category, 'high fee') || str_contains($category, 'fees')) {
-                // Reduce OCF to 0.15% benchmark
                 $currentOcf = $feeAnalysis['weighted_ocf'] ?? 0;
-                $totalReduction += max(0, $currentOcf - 0.15);
+                $totalReduction += max(0, $currentOcf - $this->planConfig->getOCFBenchmark());
             }
         }
 
