@@ -119,8 +119,12 @@ class HolisticPlanningController extends Controller
         // Get chart data
         $chartData = $this->cashFlowCoordinator->createCashFlowChartData($userId, $allocation);
 
-        // Get sustainable contribution analysis
-        $sustainableAnalysis = $this->cashFlowCoordinator->calculateSustainableContributions(4500, 3200); // Placeholder values
+        // Get sustainable contribution analysis from real user data
+        $financials = $this->cashFlowCoordinator->getMonthlyFinancials($userId);
+        $sustainableAnalysis = $this->cashFlowCoordinator->calculateSustainableContributions(
+            $financials['monthly_income'],
+            $financials['monthly_expenses']
+        );
 
         return response()->json([
             'success' => true,
@@ -272,7 +276,7 @@ class HolisticPlanningController extends Controller
                 'user_id' => $userId,
                 'recommendation_id' => Str::uuid()->toString(),
                 'module' => $rec['module'] ?? 'unknown',
-                'recommendation_text' => $rec['text'] ?? $rec['recommendation_text'] ?? 'No description',
+                'recommendation_text' => $rec['title'] ?? $rec['description'] ?? $rec['text'] ?? $rec['recommendation_text'] ?? 'No description',
                 'priority_score' => $rec['priority_score'] ?? 50,
                 'timeline' => $rec['timeline'] ?? 'medium_term',
                 'status' => 'pending',
@@ -329,6 +333,7 @@ class HolisticPlanningController extends Controller
             'investment' => 'investment',
             'retirement' => 'pension',
             'estate' => 'estate',
+            'goals' => 'goals',
             default => $module,
         };
     }

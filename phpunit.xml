@@ -3,6 +3,8 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         failOnDeprecation="false"
+         displayDetailsOnTestsThatTriggerDeprecations="false"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -21,6 +23,8 @@
         </include>
     </source>
     <php>
+        <ini name="error_reporting" value="22527"/>
+        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>

@@ -64,6 +64,8 @@ class PreviewWriteInterceptor
         '/reprocess',           // Document re-extraction endpoint
         '/analyze',             // Analysis endpoints (investment portfolio analysis)
         '/toggle-retirement',   // Retirement inclusion toggle for assets (investment & savings)
+        '/holistic/plan',       // Holistic plan generation (read-only computation)
+        '/holistic/analyze',    // Holistic analysis (read-only computation)
     ];
 
     /**

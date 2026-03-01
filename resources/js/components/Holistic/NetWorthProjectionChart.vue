@@ -1,6 +1,10 @@
 <template>
   <div class="net-worth-projection">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Net Worth Projection</h3>
+    <PlanSectionHeader
+      title="Net Worth Projection"
+      subtitle="Baseline versus optimised trajectory over the next 20 years"
+      color="green"
+    />
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -67,9 +71,11 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 
 export default {
   name: 'NetWorthProjectionChart',
+  components: { PlanSectionHeader },
   mixins: [currencyMixin],
 
   props: {

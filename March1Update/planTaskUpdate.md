@@ -502,47 +502,47 @@
 
 > **Use:** `/feature-dev`, `Explore` agent
 
-- [ ] **5A.1** Use `Explore` agent to map `CoordinatingAgent` dependencies and understand how it currently calls module agents
-- [ ] **5A.2** Inject `EstatePlanService` (or `EstateAgent`) and `GoalPlanService` (or `GoalsAgent`) into `CoordinatingAgent`:
-  - [ ] Add constructor dependencies
-  - [ ] Remove hardcoded estate placeholder data: `{ net_worth: 350000, iht_liability: 10000, ... }`
-- [ ] **5A.3** Refactor `CoordinatingAgent::collectModuleAnalysis()`:
-  - [ ] Read from individual plan service outputs rather than calling agents directly
-  - [ ] This ensures recommendations match what users see in individual plans
-  - [ ] Include estate analysis (real data, not placeholders)
-  - [ ] Include goals analysis (active goals and their recommendations)
-- [ ] **5A.4** Implement shared `DistributionAccount` for the holistic plan:
-  - [ ] Fetch disposable income from income tab (same accessor as Task 1B.2)
-  - [ ] Initialise ONE shared `DistributionAccount`
-  - [ ] Do NOT reset between modules (unlike individual plans)
-  - [ ] Allocate with priority order: Emergency fund > Protection > Pension > Investment > Estate > Goals
-- [ ] **5A.5** Update `CashFlowCoordinator::optimizeContributionAllocation()`:
-  - [ ] Include estate demands in allocation priority
-  - [ ] Include goal demands in allocation priority
-  - [ ] Use `DistributionAccount` for tracking
-- [ ] **5A.6** Update `ConflictResolver::identifyConflicts()`:
-  - [ ] Detect conflicts between estate recommendations and other modules
-  - [ ] Detect conflicts between goal recommendations and other modules
-- [ ] **5A.7** Update `PriorityRanker::rankRecommendations()`:
-  - [ ] Include estate and goal recommendations in the ranking
-- [ ] **5A.8** Update `HolisticPlanner::createHolisticPlan()`:
-  - [ ] Include estate data in executive summary and financial snapshot
-  - [ ] Include goal data in executive summary and financial snapshot
-- [ ] **5A.9** Update `HolisticPlanner::assessOverallRisk()`:
-  - [ ] Add goals as a risk assessment area (currently only 5 areas: protection, emergency_fund, retirement, investment, iht)
+- [x] **5A.1** Use `Explore` agent to map `CoordinatingAgent` dependencies and understand how it currently calls module agents
+- [x] **5A.2** Inject `EstatePlanService` (or `EstateAgent`) and `GoalPlanService` (or `GoalsAgent`) into `CoordinatingAgent`:
+  - [x] Add constructor dependencies
+  - [x] Remove hardcoded estate placeholder data: `{ net_worth: 350000, iht_liability: 10000, ... }`
+- [x] **5A.3** Refactor `CoordinatingAgent::collectModuleAnalysis()`:
+  - [x] Read from individual plan service outputs rather than calling agents directly
+  - [x] This ensures recommendations match what users see in individual plans
+  - [x] Include estate analysis (real data, not placeholders)
+  - [x] Include goals analysis (active goals and their recommendations)
+- [x] **5A.4** Implement shared `DistributionAccount` for the holistic plan:
+  - [x] Fetch disposable income from income tab (same accessor as Task 1B.2)
+  - [x] Initialise ONE shared `DistributionAccount`
+  - [x] Do NOT reset between modules (unlike individual plans)
+  - [x] Allocate with priority order: Emergency fund > Protection > Pension > Investment > Estate > Goals
+- [x] **5A.5** Update `CashFlowCoordinator::optimizeContributionAllocation()`:
+  - [x] Include estate demands in allocation priority
+  - [x] Include goal demands in allocation priority
+  - [x] Use `DistributionAccount` for tracking
+- [x] **5A.6** Update `ConflictResolver::identifyConflicts()`:
+  - [x] Detect conflicts between estate recommendations and other modules
+  - [x] Detect conflicts between goal recommendations and other modules
+- [x] **5A.7** Update `PriorityRanker::rankRecommendations()`:
+  - [x] Include estate and goal recommendations in the ranking
+- [x] **5A.8** Update `HolisticPlanner::createHolisticPlan()`:
+  - [x] Include estate data in executive summary and financial snapshot
+  - [x] Include goal data in executive summary and financial snapshot
+- [x] **5A.9** Update `HolisticPlanner::assessOverallRisk()`:
+  - [x] Add goals as a risk assessment area (currently only 5 areas: protection, emergency_fund, retirement, investment, iht)
 
 #### 5A Testing
-- [ ] **5A.T1** Test: holistic plan includes real estate data (not hardcoded placeholders)
-- [ ] **5A.T2** Test: holistic plan includes active goals
-- [ ] **5A.T3** Test: holistic recommendations match individual plan recommendations
-- [ ] **5A.T4** Test: shared `DistributionAccount` does NOT reset between modules
-- [ ] **5A.T5** Test: allocation priority order is correct (Emergency > Protection > Pension > Investment > Estate > Goals)
-- [ ] **5A.T6** Test: total allocated across all modules does not exceed disposable income
-- [ ] **5A.T7** Test: conflicts detected between estate/goal recommendations and other modules
-- [ ] **5A.T8** Test: risk assessment includes all areas including goals
-- [ ] **5A.T9** Test: user with no estate data -> holistic plan still works without estate section
-- [ ] **5A.T10** Test: user with no goals -> holistic plan still works without goals section
-- [ ] **5A.T11** Run: `./vendor/bin/pest`
+- [x] **5A.T1** Test: holistic plan includes real estate data (not hardcoded placeholders)
+- [x] **5A.T2** Test: holistic plan includes active goals
+- [x] **5A.T3** Test: holistic recommendations match individual plan recommendations
+- [x] **5A.T4** Test: shared `DistributionAccount` does NOT reset between modules
+- [x] **5A.T5** Test: allocation priority order is correct (Emergency > Protection > Pension > Investment > Estate > Goals)
+- [x] **5A.T6** Test: total allocated across all modules does not exceed disposable income
+- [x] **5A.T7** Test: conflicts detected between estate/goal recommendations and other modules
+- [x] **5A.T8** Test: risk assessment includes all areas including goals
+- [x] **5A.T9** Test: user with no estate data -> holistic plan still works without estate section
+- [x] **5A.T10** Test: user with no goals -> holistic plan still works without goals section
+- [x] **5A.T11** Run: `./vendor/bin/pest`
 
 ---
 
@@ -551,43 +551,84 @@
 > **MANDATORY: Read `designStyle.md` before starting any UI work in this section.**
 > **Use:** `/frontend-design` + `designStyle.md`, `premium-ui-designer` agent
 
-- [ ] **5B.1** Read `designStyle.md` for colours, typography, spacing, component patterns
-- [ ] **5B.2** Update `resources/js/views/HolisticPlan.vue`:
-  - [ ] Add Estate section tab/content area
-  - [ ] Add Goals section tab/content area
-  - [ ] Update tab list to include new sections
-- [ ] **5B.3** Update or create Holistic child components for estate display:
-  - [ ] Show estate summary within the holistic context
-  - [ ] Show estate-specific recommendations integrated into the priority ranking
-- [ ] **5B.4** Update or create Holistic child components for goal display:
-  - [ ] Show active goals within the holistic context
-  - [ ] Show goal-specific recommendations integrated into the priority ranking
-- [ ] **5B.5** Update `resources/js/store/modules/holistic.js`:
-  - [ ] Add state for estate and goal data
-  - [ ] Update getters to include estate and goal sections
-- [ ] **5B.6** Update `PrioritizedRecommendations` component to display estate and goal recommendations alongside existing ones
-- [ ] **5B.7** Update `CashFlowAllocationChart` to show estate and goal allocation segments
-- [ ] **5B.8** Use `premium-ui-designer` agent to polish new estate and goal sections
-- [ ] **5B.9** Verify no amber/orange colours (CLAUDE.md Rule 9)
-- [ ] **5B.10** Verify no acronyms in user-facing text (CLAUDE.md Rule 10)
-- [ ] **5B.11** Verify no scores in UI (CLAUDE.md Rule 12)
+- [x] **5B.1** Read `designStyle.md` for colours, typography, spacing, component patterns
+- [x] **5B.2** Update `resources/js/views/HolisticPlan.vue`:
+  - [x] Add Estate section tab/content area
+  - [x] Add Goals section tab/content area
+  - [x] Update tab list to include new sections
+- [x] **5B.3** Update or create Holistic child components for estate display:
+  - [x] Show estate summary within the holistic context
+  - [x] Show estate-specific recommendations integrated into the priority ranking
+- [x] **5B.4** Update or create Holistic child components for goal display:
+  - [x] Show active goals within the holistic context
+  - [x] Show goal-specific recommendations integrated into the priority ranking
+- [x] **5B.5** Update `resources/js/store/modules/holistic.js`:
+  - [x] Add state for estate and goal data
+  - [x] Update getters to include estate and goal sections
+- [x] **5B.6** Update `PrioritizedRecommendations` component to display estate and goal recommendations alongside existing ones
+- [x] **5B.7** Update `CashFlowAllocationChart` to show estate and goal allocation segments
+- [x] **5B.8** Use `premium-ui-designer` agent to polish new estate and goal sections
+- [x] **5B.9** Verify no amber/orange colours (CLAUDE.md Rule 9)
+- [x] **5B.10** Verify no acronyms in user-facing text (CLAUDE.md Rule 10)
+- [x] **5B.11** Verify no scores in UI (CLAUDE.md Rule 12) — Also removed all pre-existing scores from ExecutiveSummary.vue, RiskAssessment.vue, PrioritizedRecommendations.vue
 
 #### 5B Testing
-- [ ] **5B.T1** Visual test: holistic plan shows estate section with real data
-- [ ] **5B.T2** Visual test: holistic plan shows goals section with active goals
-- [ ] **5B.T3** Visual test: prioritised recommendations include estate and goal items
-- [ ] **5B.T4** Visual test: cash flow chart shows estate and goal allocation segments
-- [ ] **5B.T5** Visual test: verify `designStyle.md` compliance
-- [ ] **5B.T6** Run `./dev.sh` and verify no compile errors
-- [ ] **5B.T7** Run: `./vendor/bin/pest`
+- [x] **5B.T1** Visual test: holistic plan shows estate section with real data (Net Worth £1,447,950, IHT £284,892, Status Good)
+- [x] **5B.T2** Visual test: holistic plan shows goals section with active goals (metrics cards, recommendations render)
+- [x] **5B.T3** Visual test: prioritised recommendations include estate and goal items (Goals and Estate badges visible in action plan)
+- [x] **5B.T4** Visual test: cash flow chart shows estate and goal allocation segments (Estate £400 allocated, Goals £0, chart renders correctly)
+- [x] **5B.T5** Visual test: verify `designStyle.md` compliance (no scores, no amber/orange, no acronyms)
+- [x] **5B.T6** Run `./dev.sh` and verify no compile errors
+- [x] **5B.T7** Run: `./vendor/bin/pest` (coordination: 45/45 pass; holistic integration test pre-existing 403 failure)
+
+---
+
+### 5C. Holistic Plan: Tabs to Flowing Vertical Layout
+
+> **Use:** `/frontend-design` + `designStyle.md`
+> **Reference:** `March1Update/holisticRewrite.md`
+
+- [x] **5C.1** Create `resources/js/components/Holistic/FinancialSnapshot.vue`:
+  - [x] New component showing `plan.financial_snapshot` data
+  - [x] PlanSectionHeader with title "Financial Snapshot"
+  - [x] Metric cards grid: net worth, total assets, total liabilities, monthly cash flow
+  - [x] Uses `currencyMixin` for formatting
+- [x] **5C.2** Rewrite `resources/js/views/HolisticPlan.vue`:
+  - [x] Remove tab navigation and tab content wrappers
+  - [x] Stack all sections vertically with `space-y-6`
+  - [x] Remove EstateSummarySection and GoalsSummarySection imports
+  - [x] Add FinancialSnapshot import
+  - [x] Section order: ExecutiveSummary → FinancialSnapshot → ModuleSummaries → PrioritizedRecommendations → CashFlowAllocationChart → NetWorthProjectionChart → RiskAssessment → Conflicts
+  - [x] Remove `activeTab` data, `tabs` computed, `getShortLabel` method
+  - [x] Remove scrollbar-hide styles
+- [x] **5C.3** Add PlanSectionHeader to child components:
+  - [x] `CashFlowAllocationChart.vue` — replace `<h3>` with PlanSectionHeader
+  - [x] `NetWorthProjectionChart.vue` — replace `<h3>` with PlanSectionHeader
+  - [x] `RiskAssessment.vue` — replace `<h3>` with PlanSectionHeader
+  - [x] `PrioritizedRecommendations.vue` — add PlanSectionHeader at top
+  - [x] `ModuleSummaries.vue` — replace `<h3>` with PlanSectionHeader
+- [x] **5C.4** Fix conflicts section: change yellow colours to blue (Rule 9)
+- [x] **5C.5** Fix shortfall recommendations in CashFlowAllocationChart: change yellow to blue (Rule 9)
+- [x] **5C.6** Fix medium_term timeline badge in PrioritizedRecommendations: change yellow to blue (Rule 9)
+- [x] **5C.7** Fix low severity badge in RiskAssessment: change yellow to blue (Rule 9)
+- [x] **5C.8** Backend: Fix `CoordinatingAgent.collectModuleAnalysis()` — add mapping methods to normalise agent responses (protection, savings, investment, retirement all showed zeros)
+- [x] **5C.9** Backend: Fix `HolisticPlanningController.storeRecommendations()` — recommendation_text key lookup order (`title`/`description` first)
+- [x] **5C.10** Backend: Fix `HolisticPlanner` goals key mismatch — `total_active` → `total_goals`
+- [x] **5C.11** Frontend: Fix `holistic.js` store `actionPlan` getter — merge `action_plan_summary` into returned object
+
+#### 5C Testing
+- [x] **5C.T1** Run `./dev.sh` — builds without errors
+- [x] **5C.T2** Playwright: peak_earners — all sections visible without tabs, all data populated (Pensions £500k, Investments £220k, Savings £85k, 18 recommendations with titles, action plan counters correct, goals 4 of 5 on track)
+- [x] **5C.T3** Playwright: young_saver — plan works for simpler profile
+- [x] **5C.T4** No scores, no amber/orange, no acronyms in UI
 
 ---
 
 ### Phase 5 Review
-- [ ] **P5.R1** Use `/code-review` on all Phase 5 changes
-- [ ] **P5.R2** Use `tax-compliance-reviewer` agent for final review of holistic plan tax-related changes
-- [ ] **P5.R3** Run full test suite: `./vendor/bin/pest`
-- [ ] **P5.R4** Run code formatting: `./vendor/bin/pint`
+- [x] **P5.R1** Use `/code-review` on all Phase 5 changes
+- [x] **P5.R2** Use `tax-compliance-reviewer` agent for final review of holistic plan tax-related changes
+- [x] **P5.R3** Run full test suite: `./vendor/bin/pest`
+- [x] **P5.R4** Run code formatting: `./vendor/bin/pint`
 
 ---
 

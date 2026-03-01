@@ -1,5 +1,11 @@
 <template>
   <div class="prioritized-recommendations">
+    <PlanSectionHeader
+      title="Prioritised Recommendations"
+      subtitle="Cross-module actions ranked by impact and urgency"
+      color="blue"
+    />
+
     <!-- Timeline Filter -->
     <div class="mb-6 flex items-center justify-between">
       <div class="flex space-x-2">
@@ -52,12 +58,6 @@
                 <span :class="getTimelineBadgeClass(rec.timeline)" class="px-3 py-1 text-xs font-medium rounded-full">
                   {{ formatTimelineName(rec.timeline) }}
                 </span>
-                <div class="flex items-center">
-                  <svg class="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                  </svg>
-                  <span class="text-sm font-semibold text-gray-900">{{ rec.priority_score }}</span>
-                </div>
               </div>
 
               <!-- Recommendation Text -->
@@ -163,9 +163,9 @@
         <p class="text-2xl font-bold text-blue-600">{{ actionPlan.summary?.short_term_actions || 0 }}</p>
         <p class="text-xs text-blue-700 mt-1">Short Term (0-3mo)</p>
       </div>
-      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-        <p class="text-2xl font-bold text-yellow-600">{{ actionPlan.summary?.medium_term_actions || 0 }}</p>
-        <p class="text-xs text-yellow-700 mt-1">Medium Term (3-12mo)</p>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+        <p class="text-2xl font-bold text-blue-600">{{ actionPlan.summary?.medium_term_actions || 0 }}</p>
+        <p class="text-xs text-blue-700 mt-1">Medium Term (3-12mo)</p>
       </div>
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
         <p class="text-2xl font-bold text-blue-600">{{ actionPlan.summary?.long_term_actions || 0 }}</p>
@@ -176,8 +176,11 @@
 </template>
 
 <script>
+import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
+
 export default {
   name: 'PrioritizedRecommendations',
+  components: { PlanSectionHeader },
 
   props: {
     recommendations: {
@@ -237,6 +240,7 @@ export default {
         investment: 'Investment',
         retirement: 'Retirement',
         estate: 'Estate',
+        goals: 'Goals',
       };
       return names[module] || module;
     },
@@ -258,6 +262,7 @@ export default {
         investment: 'bg-blue-100 text-blue-800',
         retirement: 'bg-indigo-100 text-indigo-800',
         estate: 'bg-gray-100 text-gray-800',
+        goals: 'bg-teal-100 text-teal-800',
       };
       return classes[module] || 'bg-gray-100 text-gray-800';
     },
@@ -266,7 +271,7 @@ export default {
       const classes = {
         immediate: 'bg-red-100 text-red-800',
         short_term: 'bg-blue-100 text-blue-800',
-        medium_term: 'bg-yellow-100 text-yellow-800',
+        medium_term: 'bg-blue-100 text-blue-800',
         long_term: 'bg-blue-100 text-blue-800',
       };
       return classes[timeline] || 'bg-gray-100 text-gray-800';

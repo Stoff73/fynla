@@ -83,7 +83,35 @@ const getters = {
     },
 
     actionPlan: (state) => {
-        return state.plan?.action_plan || null;
+        if (!state.plan?.action_plan) return null;
+        return {
+            ...state.plan.action_plan,
+            summary: state.plan.action_plan_summary || null,
+        };
+    },
+
+    moduleSummaries: (state) => {
+        return state.plan?.module_summaries || null;
+    },
+
+    estateSummary: (state) => {
+        return state.plan?.module_summaries?.estate || null;
+    },
+
+    goalsSummary: (state) => {
+        return state.plan?.module_summaries?.goals || null;
+    },
+
+    financialSnapshot: (state) => {
+        return state.plan?.financial_snapshot || null;
+    },
+
+    estateRecommendations: (state) => {
+        return state.recommendations.filter(r => r.module === 'estate');
+    },
+
+    goalsRecommendations: (state) => {
+        return state.recommendations.filter(r => r.module === 'goals');
     },
 };
 

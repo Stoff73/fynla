@@ -98,6 +98,7 @@ class PriorityRanker
             'investment' => [],
             'retirement' => [],
             'estate' => [],
+            'goals' => [],
         ];
 
         foreach ($recommendations as $rec) {
@@ -236,6 +237,20 @@ class PriorityRanker
                     $urgency = min(100, $urgency + 15);
                 }
                 break;
+
+            case 'goals':
+                // Goal urgency based on category and status
+                $category = $recommendation['category'] ?? '';
+                if ($category === 'Progress' || $category === 'Affordability') {
+                    $urgency = 65; // Behind schedule or overcommitted
+                } elseif ($category === 'Safety Net') {
+                    $urgency = 75; // No emergency fund goal
+                } elseif ($category === 'Getting Started') {
+                    $urgency = 50; // No goals set yet
+                } else {
+                    $urgency = 45;
+                }
+                break;
         }
 
         return min(100, max(0, $urgency));
@@ -330,6 +345,20 @@ class PriorityRanker
                     }
                 }
                 break;
+
+            case 'goals':
+                // Goal impact based on category
+                $category = $recommendation['category'] ?? '';
+                if ($category === 'Affordability') {
+                    $impact = 70; // Overcommitted impacts all goals
+                } elseif ($category === 'Safety Net') {
+                    $impact = 75; // Emergency fund is foundational
+                } elseif ($category === 'Progress') {
+                    $impact = 60; // Goals behind schedule
+                } else {
+                    $impact = 45;
+                }
+                break;
         }
 
         return min(100, max(0, $impact));
@@ -397,6 +426,11 @@ class PriorityRanker
                     $ease = 60;
                 }
                 break;
+
+            case 'goals':
+                // Goal actions are generally actionable
+                $ease = 70; // Adjusting contributions/timelines is straightforward
+                break;
         }
 
         return min(100, max(0, $ease));
@@ -416,6 +450,7 @@ class PriorityRanker
             'retirement' => 65,
             'investment' => 60,
             'estate' => 50,
+            'goals' => 55,
         ];
 
         return $priorities[$module] ?? $defaultPriorities[$module] ?? 50;

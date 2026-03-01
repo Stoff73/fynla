@@ -55,13 +55,14 @@ class CashFlowCoordinator
      */
     public function optimizeContributionAllocation(float $surplus, array $demands): array
     {
-        // Priority order: Emergency fund → Protection → Pension → Investment → Estate
+        // Priority order: Emergency fund → Protection → Pension → Investment → Estate → Goals
         $priorityOrder = [
             'emergency_fund' => 1,
             'protection' => 2,
             'pension' => 3,
             'investment' => 4,
             'estate' => 5,
+            'goals' => 6,
         ];
 
         // Sort demands by priority
@@ -175,6 +176,30 @@ class CashFlowCoordinator
             'total_shortfall' => $allocation['total_shortfall'],
             'shortfalls' => $shortfalls,
             'recommendations' => $recommendations,
+        ];
+    }
+
+    /**
+     * Get monthly income, expenses, and surplus for a user.
+     *
+     * @return array{monthly_income: float, monthly_expenses: float, monthly_surplus: float}
+     */
+    public function getMonthlyFinancials(int $userId): array
+    {
+        $user = User::find($userId);
+        if (! $user) {
+            return ['monthly_income' => 0.0, 'monthly_expenses' => 0.0, 'monthly_surplus' => 0.0];
+        }
+
+        $monthlyIncome = $this->calculateMonthlyIncome($user);
+        $resolved = $this->resolveMonthlyExpenditure($user);
+        $monthlyExpenses = $resolved['amount'];
+        $surplus = max(0.0, round($monthlyIncome - $monthlyExpenses, 2));
+
+        return [
+            'monthly_income' => $monthlyIncome,
+            'monthly_expenses' => $monthlyExpenses,
+            'monthly_surplus' => $surplus,
         ];
     }
 

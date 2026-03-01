@@ -49,6 +49,12 @@ class ConflictResolver
             $conflicts[] = $protectionSavingsConflict;
         }
 
+        // Check for estate vs. goals conflicts
+        $estateGoalsConflict = $this->detectEstateVsGoalsConflicts($recommendations);
+        if ($estateGoalsConflict) {
+            $conflicts[] = $estateGoalsConflict;
+        }
+
         return $conflicts;
     }
 
@@ -108,13 +114,14 @@ class ConflictResolver
      */
     public function resolveContributionConflicts(float $availableSurplus, array $demands): array
     {
-        // Priority order: Emergency fund → Protection → Pension → Investment → Estate
+        // Priority order: Emergency fund → Protection → Pension → Investment → Estate → Goals
         $priorityOrder = [
             'emergency_fund' => 1,
             'protection' => 2,
             'pension' => 3,
             'investment' => 4,
             'estate' => 5,
+            'goals' => 6,
         ];
 
         // Sort demands by priority (handle both array and scalar amount formats)
@@ -372,6 +379,53 @@ class ConflictResolver
     }
 
     /**
+     * Detect conflicts between estate and goal recommendations.
+     *
+     * Estate gifting/trust strategies may compete with goal contributions
+     * for the same disposable income.
+     *
+     * @return array|null Conflict details or null
+     */
+    private function detectEstateVsGoalsConflicts(array $recommendations): ?array
+    {
+        $estateDemand = 0;
+        $goalsDemand = 0;
+
+        // Check Estate module for contribution demands
+        if (isset($recommendations['estate'])) {
+            foreach ($recommendations['estate'] as $rec) {
+                $amount = $rec['recommended_monthly_contribution'] ?? $rec['recommended_monthly_premium'] ?? 0;
+                $estateDemand += $amount;
+            }
+        }
+
+        // Check Goals module for contribution demands
+        if (isset($recommendations['goals'])) {
+            foreach ($recommendations['goals'] as $rec) {
+                $amount = $rec['recommended_monthly_contribution'] ?? 0;
+                $goalsDemand += $amount;
+            }
+        }
+
+        $availableSurplus = $recommendations['available_surplus'] ?? 0;
+
+        // Conflict exists when both estate and goals demand funds and combined exceeds surplus
+        if ($estateDemand > 0 && $goalsDemand > 0 && ($estateDemand + $goalsDemand) > $availableSurplus) {
+            return [
+                'type' => 'estate_vs_goals_conflict',
+                'estate_demand' => $estateDemand,
+                'goals_demand' => $goalsDemand,
+                'combined_demand' => $estateDemand + $goalsDemand,
+                'available_surplus' => $availableSurplus,
+                'shortfall' => ($estateDemand + $goalsDemand) - $availableSurplus,
+                'severity' => $this->calculateConflictSeverity($estateDemand + $goalsDemand, $availableSurplus),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * Filter recommendations by module
      */
     private function filterByModule(array $recommendations, string $module): array
@@ -390,6 +444,7 @@ class ConflictResolver
             'investment' => 'investment',
             'retirement' => 'pension',
             'estate' => 'estate',
+            'goals' => 'goals',
         ];
 
         return $mapping[$module] ?? $module;

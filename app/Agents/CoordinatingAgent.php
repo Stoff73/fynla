@@ -27,6 +27,8 @@ class CoordinatingAgent extends BaseAgent
         private readonly InvestmentAgent $investmentAgent,
         private readonly SavingsAgent $savingsAgent,
         private readonly RetirementAgent $retirementAgent,
+        private readonly EstateAgent $estateAgent,
+        private readonly GoalsAgent $goalsAgent,
         private readonly TaxConfigService $taxConfig
     ) {}
 
@@ -206,49 +208,106 @@ class CoordinatingAgent extends BaseAgent
 
         // Protection Module
         try {
-            $analysis['protection'] = $this->protectionAgent->analyze($userId);
+            $protectionResult = $this->protectionAgent->analyze($userId);
+            $analysis['protection'] = $this->mapProtectionAnalysis($protectionResult);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Protection analysis failed: '.$e->getMessage());
-            $analysis['protection'] = ['error' => 'Analysis failed'];
+            $analysis['protection'] = $this->getDefaultProtectionAnalysis();
         }
 
         // Savings Module
         try {
-            $analysis['savings'] = $this->savingsAgent->analyze($userId);
+            $savingsResult = $this->savingsAgent->analyze($userId);
+            $savingsRecs = [];
+
+            try {
+                $savingsRecs = $this->savingsAgent->generateRecommendations($savingsResult);
+            } catch (\Exception $e) {
+                // Recommendations generation is non-critical
+            }
+
+            $analysis['savings'] = $this->mapSavingsAnalysis($savingsResult, $savingsRecs);
         } catch (\Exception $e) {
-            $analysis['savings'] = ['error' => 'Analysis failed'];
+            $analysis['savings'] = $this->getDefaultSavingsAnalysis();
         }
 
         // Investment Module
         try {
-            $analysis['investment'] = $this->investmentAgent->analyze($userId);
+            $investmentResult = $this->investmentAgent->analyze($userId);
+            $investmentRecs = [];
+
+            if (($investmentResult['portfolio_summary']['accounts_count'] ?? 0) > 0) {
+                try {
+                    $recsResult = $this->investmentAgent->generateRecommendations($investmentResult);
+                    $investmentRecs = $recsResult['recommendations'] ?? [];
+                } catch (\Exception $e) {
+                    // Recommendations generation is non-critical
+                }
+            }
+
+            $analysis['investment'] = $this->mapInvestmentAnalysis($investmentResult, $investmentRecs);
         } catch (\Exception $e) {
-            $analysis['investment'] = ['error' => 'Analysis failed'];
+            $analysis['investment'] = $this->getDefaultInvestmentAnalysis();
         }
 
         // Retirement Module
         try {
-            $analysis['retirement'] = $this->retirementAgent->analyze($userId);
+            $retirementResult = $this->retirementAgent->analyze($userId);
+            $retirementData = $retirementResult['data'] ?? $retirementResult;
+            $retirementRecs = [];
+
+            if ($retirementResult['success'] ?? false) {
+                try {
+                    $recsResult = $this->retirementAgent->generateRecommendations($retirementData);
+                    $retirementRecs = $recsResult['recommendations'] ?? [];
+                } catch (\Exception $e) {
+                    // Recommendations generation is non-critical
+                }
+            }
+
+            $analysis['retirement'] = $this->mapRetirementAnalysis($retirementResult, $retirementRecs);
         } catch (\Exception $e) {
-            $analysis['retirement'] = ['error' => 'Analysis failed'];
+            $analysis['retirement'] = $this->getDefaultRetirementAnalysis();
         }
 
-        // Estate Module (Placeholder until EstateAgent is fully implemented)
-        $analysis['estate'] = [
-            'net_worth' => 350000,
-            'iht_liability' => 10000,
-            'monthly_income' => 4500,
-            'monthly_expenses' => 3200,
-            'monthly_surplus' => 1300,
-            'recommendations' => [],
-        ];
+        // Estate Module
+        try {
+            $estateResult = $this->estateAgent->analyze($userId);
+            $estateData = $estateResult['data'] ?? [];
+            $estateRecs = [];
 
-        /*
-        $analysis['user'] = [
-            'age' => 42,
-        ];
-        */
-        // Retrieve user age from profile if possible, or leave as placeholder logic
+            // Generate estate recommendations if analysis succeeded
+            if ($estateResult['success'] ?? false) {
+                $recsResult = $this->estateAgent->generateRecommendations($estateResult);
+                $estateRecs = $recsResult['data']['recommendations'] ?? [];
+            }
+
+            // Map to flat format expected by HolisticPlanner
+            $analysis['estate'] = $this->mapEstateAnalysis($estateData, $estateRecs, $userId);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Estate analysis failed: '.$e->getMessage());
+            $analysis['estate'] = $this->getDefaultEstateAnalysis($userId);
+        }
+
+        // Goals Module
+        try {
+            $goalsResult = $this->goalsAgent->analyze($userId);
+            $goalsRecs = [];
+
+            if ($goalsResult['has_goals'] ?? false) {
+                $goalsRecsResult = $this->goalsAgent->generateRecommendations($goalsResult);
+                $goalsRecs = $goalsRecsResult['recommendations'] ?? [];
+            }
+
+            $analysis['goals'] = array_merge($goalsResult, [
+                'recommendations' => $goalsRecs,
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Goals analysis failed: '.$e->getMessage());
+            $analysis['goals'] = ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed'];
+        }
+
+        // User context
         $user = \App\Models\User::find($userId);
         $analysis['user'] = [
             'age' => $user && $user->date_of_birth ? $user->date_of_birth->age : 40,
@@ -298,6 +357,7 @@ class CoordinatingAgent extends BaseAgent
                 'retirement' => 70,
                 'investment' => 60,
                 'estate' => 50,
+                'goals' => 55,
             ],
         ];
     }
@@ -348,7 +408,193 @@ class CoordinatingAgent extends BaseAgent
             'investment' => 'investment',
             'retirement' => 'pension',
             'estate' => 'estate',
+            'goals' => 'goals',
             default => $module,
         };
+    }
+
+    /**
+     * Map ProtectionAgent analysis response to the flat format expected by HolisticPlanner.
+     */
+    private function mapProtectionAnalysis(array $protectionResult): array
+    {
+        // ProtectionAgent uses $this->response() wrapper
+        $data = $protectionResult['data'] ?? $protectionResult;
+        $adequacy = $data['adequacy_score'] ?? [];
+        $gaps = $data['gaps'] ?? [];
+
+        return [
+            'adequacy_score' => $adequacy['overall_score'] ?? $adequacy['score'] ?? 0,
+            'coverage_gap' => $gaps['total_gap'] ?? 0,
+            'recommendations' => $data['recommendations'] ?? [],
+            'full_analysis' => $data,
+        ];
+    }
+
+    /**
+     * Map SavingsAgent analysis response to the flat format expected by HolisticPlanner.
+     */
+    private function mapSavingsAnalysis(array $savingsData, array $recommendations = []): array
+    {
+        return [
+            'total_savings' => $savingsData['summary']['total_savings'] ?? 0,
+            'emergency_fund_months' => $savingsData['emergency_fund']['runway_months'] ?? 0,
+            'recommendations' => $recommendations,
+            'full_analysis' => $savingsData,
+        ];
+    }
+
+    /**
+     * Map InvestmentAgent analysis response to the flat format expected by HolisticPlanner.
+     */
+    private function mapInvestmentAnalysis(array $investmentData, array $recommendations = []): array
+    {
+        $portfolioSummary = $investmentData['portfolio_summary'] ?? [];
+        $returns = $investmentData['returns'] ?? [];
+
+        return [
+            'total_portfolio_value' => $portfolioSummary['total_value'] ?? 0,
+            'diversification_score' => $investmentData['diversification_score'] ?? 0,
+            'portfolio_health_score' => $investmentData['diversification_score'] ?? 70,
+            'annual_return_percent' => $returns['total_return_percent'] ?? $returns['annualized_return'] ?? 0,
+            'risk_warnings' => $investmentData['risk_metrics']['warnings'] ?? [],
+            'recommendations' => $recommendations,
+            'full_analysis' => $investmentData,
+        ];
+    }
+
+    /**
+     * Map RetirementAgent analysis response to the flat format expected by HolisticPlanner.
+     */
+    private function mapRetirementAnalysis(array $retirementResult, array $recommendations = []): array
+    {
+        // RetirementAgent uses $this->response() wrapper
+        $data = $retirementResult['data'] ?? $retirementResult;
+        $summary = $data['summary'] ?? [];
+
+        return [
+            'total_pension_value' => $summary['current_dc_value'] ?? 0,
+            'projected_annual_income' => $summary['projected_retirement_income'] ?? 0,
+            'target_income' => $summary['target_retirement_income'] ?? 0,
+            'income_gap' => $summary['income_gap'] ?? 0,
+            'recommendations' => $recommendations,
+            'full_analysis' => $data,
+        ];
+    }
+
+    /**
+     * Map EstateAgent analysis response to the flat format expected by HolisticPlanner.
+     */
+    private function mapEstateAnalysis(array $estateData, array $recommendations, int $userId): array
+    {
+        $summary = $estateData['summary'] ?? [];
+        $ihtCalc = $estateData['iht_calculation'] ?? [];
+
+        // Get real cashflow data from CashFlowCoordinator
+        $cashFlowData = $this->cashFlowCoordinator->getMonthlyFinancials($userId);
+
+        return [
+            'net_worth' => $summary['net_estate'] ?? 0,
+            'gross_estate' => $summary['gross_estate'] ?? 0,
+            'iht_liability' => $summary['iht_liability'] ?? 0,
+            'effective_tax_rate' => $summary['effective_tax_rate'] ?? 0,
+            'total_liabilities' => $summary['total_liabilities'] ?? 0,
+            'property_value' => $ihtCalc['user_gross_assets'] ?? $summary['gross_estate'] ?? 0,
+            'monthly_income' => $cashFlowData['monthly_income'],
+            'monthly_expenses' => $cashFlowData['monthly_expenses'],
+            'monthly_surplus' => $cashFlowData['monthly_surplus'],
+            'nrb_available' => $ihtCalc['nrb_available'] ?? 0,
+            'rnrb_available' => $ihtCalc['rnrb_available'] ?? 0,
+            'has_spouse' => $estateData['profile']['has_spouse'] ?? false,
+            'recommendations' => $recommendations,
+            'full_analysis' => $estateData,
+        ];
+    }
+
+    /**
+     * Get default estate analysis when EstateAgent fails.
+     */
+    private function getDefaultEstateAnalysis(int $userId): array
+    {
+        $cashFlowData = $this->cashFlowCoordinator->getMonthlyFinancials($userId);
+
+        return [
+            'net_worth' => 0,
+            'gross_estate' => 0,
+            'iht_liability' => 0,
+            'effective_tax_rate' => 0,
+            'total_liabilities' => 0,
+            'property_value' => 0,
+            'monthly_income' => $cashFlowData['monthly_income'],
+            'monthly_expenses' => $cashFlowData['monthly_expenses'],
+            'monthly_surplus' => $cashFlowData['monthly_surplus'],
+            'nrb_available' => 0,
+            'rnrb_available' => 0,
+            'has_spouse' => false,
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ];
+    }
+
+    /**
+     * Get default protection analysis when ProtectionAgent fails.
+     */
+    private function getDefaultProtectionAnalysis(): array
+    {
+        return [
+            'adequacy_score' => 0,
+            'coverage_gap' => 0,
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ];
+    }
+
+    /**
+     * Get default savings analysis when SavingsAgent fails.
+     */
+    private function getDefaultSavingsAnalysis(): array
+    {
+        return [
+            'total_savings' => 0,
+            'emergency_fund_months' => 0,
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ];
+    }
+
+    /**
+     * Get default investment analysis when InvestmentAgent fails.
+     */
+    private function getDefaultInvestmentAnalysis(): array
+    {
+        return [
+            'total_portfolio_value' => 0,
+            'diversification_score' => 0,
+            'portfolio_health_score' => 70,
+            'annual_return_percent' => 0,
+            'risk_warnings' => [],
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ];
+    }
+
+    /**
+     * Get default retirement analysis when RetirementAgent fails.
+     */
+    private function getDefaultRetirementAnalysis(): array
+    {
+        return [
+            'total_pension_value' => 0,
+            'projected_annual_income' => 0,
+            'target_income' => 0,
+            'income_gap' => 0,
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ];
     }
 }

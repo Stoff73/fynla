@@ -1,24 +1,25 @@
 <template>
   <div class="risk-assessment">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Risk Assessment</h3>
+    <PlanSectionHeader
+      title="Risk Assessment"
+      subtitle="Identified risk areas and mitigation strategies"
+      color="blue"
+    />
 
-    <!-- Overall Risk Score -->
+    <!-- Overall Risk Level -->
     <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-      <div class="flex items-center justify-between">
-        <div class="flex-1">
-          <p class="text-sm text-gray-600 font-medium mb-2">Overall Risk Level</p>
-          <p class="text-3xl font-bold" :class="getRiskLevelColour(riskData.risk_level)">
+      <div class="flex items-center">
+        <div :class="getRiskLevelBg(riskData.risk_level)" class="w-12 h-12 rounded-lg flex items-center justify-center mr-4">
+          <svg :class="getRiskLevelColour(riskData.risk_level)" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path v-if="isHighRisk(riskData.risk_level)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 font-medium mb-1">Overall Risk Level</p>
+          <p class="text-2xl font-bold" :class="getRiskLevelColour(riskData.risk_level)">
             {{ riskData.risk_level }}
           </p>
-          <p class="text-sm text-gray-500 mt-1">Risk Score: {{ riskData.overall_risk_score }}/100</p>
-        </div>
-        <div class="ml-6">
-          <apexchart
-            type="radialBar"
-            width="180"
-            :options="gaugeOptions"
-            :series="[riskData.overall_risk_score]"
-          ></apexchart>
         </div>
       </div>
     </div>
@@ -41,17 +42,7 @@
               </span>
               <span class="text-lg font-semibold text-gray-900">{{ risk.area }}</span>
             </div>
-            <p class="text-sm text-gray-700 mb-3">{{ risk.description }}</p>
-            <div class="flex items-center">
-              <div class="flex-1 bg-gray-200 rounded-full h-2">
-                <div
-                  :class="getScoreBarClass(risk.score)"
-                  class="h-2 rounded-full transition-all"
-                  :style="{ width: `${100 - risk.score}%` }"
-                ></div>
-              </div>
-              <span class="ml-3 text-sm font-medium text-gray-600">{{ risk.score }}/100</span>
-            </div>
+            <p class="text-sm text-gray-700">{{ risk.description }}</p>
           </div>
           <svg
             :class="getSeverityIconClass(risk.severity)"
@@ -119,10 +110,11 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
+import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 
 export default {
   name: 'RiskAssessment',
+  components: { PlanSectionHeader },
 
   props: {
     riskData: {
@@ -131,48 +123,12 @@ export default {
     },
   },
 
-  computed: {
-    gaugeOptions() {
-      return {
-        chart: {
-          type: 'radialBar',
-        },
-        plotOptions: {
-          radialBar: {
-            startAngle: -90,
-            endAngle: 90,
-            hollow: {
-              size: '65%',
-            },
-            dataLabels: {
-              name: {
-                show: false,
-              },
-              value: {
-                fontSize: '24px',
-                fontWeight: 'bold',
-                offsetY: 0,
-                formatter: (val) => `${val.toFixed(0)}`,
-              },
-            },
-          },
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'dark',
-            type: 'horizontal',
-            shadeIntensity: 0.5,
-            gradientToColours: this.getGaugeColour(this.riskData.overall_risk_score),
-            stops: [0, 100],
-          },
-        },
-        colours: this.getGaugeColour(this.riskData.overall_risk_score),
-      };
-    },
-  },
-
   methods: {
+    isHighRisk(level) {
+      const levelLower = level?.toLowerCase();
+      return levelLower?.includes('high') || levelLower?.includes('critical');
+    },
+
     getRiskLevelColour(level) {
       const levelLower = level?.toLowerCase();
       if (levelLower?.includes('high') || levelLower?.includes('critical')) {
@@ -182,16 +138,23 @@ export default {
         return 'text-blue-600';
       }
       if (levelLower?.includes('low')) {
-        return 'text-yellow-600';
+        return 'text-blue-600';
       }
       return 'text-green-600';
     },
 
-    getGaugeColour(score) {
-      if (score >= 70) return [ERROR_COLORS[600]]; // red
-      if (score >= 50) return [WARNING_COLORS[500]]; // orange
-      if (score >= 30) return [WARNING_COLORS[500]]; // yellow
-      return [SUCCESS_COLORS[500]]; // green
+    getRiskLevelBg(level) {
+      const levelLower = level?.toLowerCase();
+      if (levelLower?.includes('high') || levelLower?.includes('critical')) {
+        return 'bg-red-100';
+      }
+      if (levelLower?.includes('moderate')) {
+        return 'bg-blue-100';
+      }
+      if (levelLower?.includes('low')) {
+        return 'bg-blue-100';
+      }
+      return 'bg-green-100';
     },
 
     getSeverityBadgeClass(severity) {
@@ -202,7 +165,7 @@ export default {
       if (severityLower === 'medium') {
         return 'bg-blue-100 text-blue-800';
       }
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-blue-100 text-blue-800';
     },
 
     getSeverityIconClass(severity) {
@@ -213,7 +176,7 @@ export default {
       if (severityLower === 'medium') {
         return 'text-blue-500';
       }
-      return 'text-yellow-500';
+      return 'text-blue-500';
     },
 
     getRiskBorderClass(severity) {
@@ -224,14 +187,7 @@ export default {
       if (severityLower === 'medium') {
         return 'border-blue-200';
       }
-      return 'border-yellow-200';
-    },
-
-    getScoreBarClass(score) {
-      if (score < 30) return 'bg-red-500';
-      if (score < 50) return 'bg-blue-500';
-      if (score < 70) return 'bg-yellow-500';
-      return 'bg-green-500';
+      return 'border-blue-200';
     },
   },
 };

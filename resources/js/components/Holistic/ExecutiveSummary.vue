@@ -6,19 +6,6 @@
     </div>
 
     <div class="px-6 py-5">
-      <!-- Overall Score -->
-      <div class="flex items-center justify-between mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-        <div>
-          <p class="text-sm font-medium text-gray-600">Overall Financial Health Score</p>
-          <p class="text-3xl font-bold text-indigo-600 mt-1">{{ summary.overall_score }}<span class="text-lg">/100</span></p>
-        </div>
-        <div class="text-right">
-          <span :class="getScoreClass(summary.overall_score)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
-            {{ getScoreLabel(summary.overall_score) }}
-          </span>
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Key Strengths -->
         <div>
@@ -136,41 +123,18 @@ export default {
   },
 
   methods: {
-    getScoreClass(score) {
-      if (score >= 80) return 'bg-green-100 text-green-800';
-      if (score >= 60) return 'bg-yellow-100 text-yellow-800';
-      if (score >= 40) return 'bg-blue-100 text-blue-800';
-      return 'bg-red-100 text-red-800';
-    },
-
-    getScoreLabel(score) {
-      if (score >= 80) return 'Excellent';
-      if (score >= 60) return 'Good';
-      if (score >= 40) return 'Needs Improvement';
-      return 'Critical';
-    },
-
     getSeverityClass(severity) {
       const severityLower = severity?.toLowerCase();
       if (severityLower === 'high' || severityLower === 'critical') {
         return 'bg-red-100 text-red-800';
       }
-      if (severityLower === 'medium') {
-        return 'bg-blue-100 text-blue-800';
-      }
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-blue-100 text-blue-800';
     },
 
     getUrgencyClass(urgency) {
       const urgencyLower = urgency?.toLowerCase();
       if (urgencyLower === 'immediate') {
         return 'bg-red-100 text-red-800';
-      }
-      if (urgencyLower === 'short_term') {
-        return 'bg-blue-100 text-blue-800';
-      }
-      if (urgencyLower === 'medium_term') {
-        return 'bg-yellow-100 text-yellow-800';
       }
       return 'bg-blue-100 text-blue-800';
     },

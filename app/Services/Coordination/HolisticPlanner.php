@@ -164,6 +164,35 @@ class HolisticPlanner
             ];
         }
 
+        // Goals risk
+        $goalsData = $allAnalysis['goals'] ?? [];
+        if ($goalsData['has_goals'] ?? false) {
+            $summary = $goalsData['summary'] ?? [];
+            $behindCount = $summary['behind_count'] ?? 0;
+            $totalActive = $summary['total_active'] ?? 0;
+
+            if ($totalActive > 0 && $behindCount > 0) {
+                $behindRatio = $behindCount / $totalActive;
+                if ($behindRatio > 0.5) {
+                    $riskAreas[] = [
+                        'area' => 'Goals',
+                        'severity' => 'medium',
+                        'description' => "{$behindCount} of {$totalActive} goals are behind schedule.",
+                        'score' => 50,
+                    ];
+                }
+            }
+
+            if (($goalsData['affordability']['status'] ?? '') === 'overcommitted') {
+                $riskAreas[] = [
+                    'area' => 'Goal Affordability',
+                    'severity' => 'medium',
+                    'description' => 'Goal commitments exceed available savings capacity.',
+                    'score' => 45,
+                ];
+            }
+        }
+
         $overallRiskScore = $this->calculateOverallRiskScore($allAnalysis);
 
         return [
@@ -229,6 +258,7 @@ class HolisticPlanner
                 'iht_liability' => $allAnalysis['estate']['iht_liability'] ?? 0,
                 'key_message' => $this->getEstateMessage($allAnalysis['estate'] ?? []),
             ],
+            'goals' => $this->createGoalsSummary($allAnalysis['goals'] ?? []),
         ];
     }
 
@@ -614,6 +644,62 @@ class HolisticPlanner
             return 'Moderate inheritance tax liability identified.';
         } else {
             return 'Significant inheritance tax planning opportunities exist.';
+        }
+    }
+
+    /**
+     * Create goals module summary for holistic plan.
+     */
+    private function createGoalsSummary(array $goalsData): array
+    {
+        if (! ($goalsData['has_goals'] ?? false)) {
+            return [
+                'status' => 'not_started',
+                'has_goals' => false,
+                'total_goals' => 0,
+                'on_track_count' => 0,
+                'behind_count' => 0,
+                'key_message' => $this->getGoalsMessage($goalsData),
+            ];
+        }
+
+        $summary = $goalsData['summary'] ?? [];
+        $totalActive = $summary['total_goals'] ?? $summary['total_active'] ?? 0;
+        $onTrack = $summary['on_track_count'] ?? 0;
+        $behind = $summary['behind_count'] ?? 0;
+
+        $score = $totalActive > 0 ? ($onTrack / $totalActive) * 100 : 0;
+
+        return [
+            'status' => $this->getModuleStatus($score),
+            'has_goals' => true,
+            'total_goals' => $totalActive,
+            'on_track_count' => $onTrack,
+            'behind_count' => $behind,
+            'key_message' => $this->getGoalsMessage($goalsData),
+        ];
+    }
+
+    /**
+     * Get goals status message.
+     */
+    private function getGoalsMessage(array $data): string
+    {
+        if (! ($data['has_goals'] ?? false)) {
+            return 'No financial goals set. Setting goals helps focus your planning.';
+        }
+
+        $summary = $data['summary'] ?? [];
+        $onTrack = $summary['on_track_count'] ?? 0;
+        $behind = $summary['behind_count'] ?? 0;
+        $total = $summary['total_goals'] ?? $summary['total_active'] ?? 0;
+
+        if ($behind === 0 && $total > 0) {
+            return "All {$total} goals are on track.";
+        } elseif ($behind > 0) {
+            return "{$behind} of {$total} goals need attention.";
+        } else {
+            return 'Goal progress is being tracked.';
         }
     }
 }

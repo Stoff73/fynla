@@ -1,6 +1,10 @@
 <template>
   <div class="cashflow-allocation">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Cashflow Allocation</h3>
+    <PlanSectionHeader
+      title="Cashflow Allocation"
+      subtitle="How your surplus income is distributed across financial priorities"
+      color="blue"
+    />
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -75,15 +79,15 @@
     </div>
 
     <!-- Shortfall Recommendations -->
-    <div v-if="hasShortfall && cashflowData.shortfall_analysis?.recommendations" class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-      <h4 class="text-md font-semibold text-yellow-900 mb-3 flex items-center">
+    <div v-if="hasShortfall && cashflowData.shortfall_analysis?.recommendations" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <h4 class="text-md font-semibold text-blue-900 mb-3 flex items-center">
         <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
         </svg>
         Recommendations to Address Shortfall
       </h4>
       <ul class="space-y-2">
-        <li v-for="(recommendation, index) in cashflowData.shortfall_analysis.recommendations" :key="index" class="flex items-start text-sm text-yellow-800">
+        <li v-for="(recommendation, index) in cashflowData.shortfall_analysis.recommendations" :key="index" class="flex items-start text-sm text-blue-800">
           <svg class="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
           </svg>
@@ -97,9 +101,11 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { SUCCESS_COLORS, ERROR_COLORS } from '@/constants/designSystem';
+import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 
 export default {
   name: 'CashFlowAllocationChart',
+  components: { PlanSectionHeader },
   mixins: [currencyMixin],
 
   props: {
@@ -194,13 +200,14 @@ export default {
         pension: 'Pension',
         investment: 'Investment',
         estate: 'Estate',
+        goals: 'Goals',
       };
       return names[category] || category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     },
 
     getPercentFundedClass(percent) {
       if (percent >= 100) return 'bg-green-100 text-green-800';
-      if (percent >= 75) return 'bg-yellow-100 text-yellow-800';
+      if (percent >= 75) return 'bg-blue-100 text-blue-800';
       if (percent >= 50) return 'bg-blue-100 text-blue-800';
       return 'bg-red-100 text-red-800';
     },
