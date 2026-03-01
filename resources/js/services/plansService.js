@@ -6,25 +6,7 @@ import api from './api';
  */
 const plansService = {
   /**
-   * Generate comprehensive Investment & Savings Plan (legacy)
-   * @returns {Promise} API response with plan data
-   */
-  async generateInvestmentSavingsPlan() {
-    const response = await api.get('/plans/investment-savings');
-    return response.data;
-  },
-
-  /**
-   * Clear Investment & Savings Plan cache (legacy)
-   * @returns {Promise} API response
-   */
-  async clearInvestmentSavingsPlanCache() {
-    const response = await api.delete('/plans/investment-savings/clear-cache');
-    return response.data;
-  },
-
-  /**
-   * Generate a plan for the given type (investment, protection, retirement).
+   * Generate a plan for the given type (investment, protection, retirement, estate).
    * @param {string} type - Plan type
    * @returns {Promise} API response with plan data
    */

@@ -7,6 +7,7 @@ namespace App\Agents;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
+use App\Services\Plans\PlanConfigService;
 use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Savings\GoalProgressCalculator;
 use App\Services\Savings\ISATracker;
@@ -17,15 +18,21 @@ use App\Traits\ResolvesExpenditure;
 class SavingsAgent extends BaseAgent
 {
     use ResolvesExpenditure;
-    protected int $cacheTtl = 1800; // 30 minutes
+
+    protected int $cacheTtl = 1800;
 
     public function __construct(
         private readonly EmergencyFundCalculator $emergencyFundCalculator,
         private readonly ISATracker $isaTracker,
         private readonly GoalProgressCalculator $goalProgressCalculator,
         private readonly LiquidityAnalyzer $liquidityAnalyzer,
-        private readonly RateComparator $rateComparator
-    ) {}
+        private readonly RateComparator $rateComparator,
+        private readonly ?PlanConfigService $planConfig = null
+    ) {
+        if ($this->planConfig) {
+            $this->cacheTtl = $this->planConfig->getSavingsCacheTTL();
+        }
+    }
 
     /**
      * Analyze user's savings situation

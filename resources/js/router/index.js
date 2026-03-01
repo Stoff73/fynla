@@ -36,7 +36,6 @@ const LiabilitiesList = () => import('@/components/NetWorth/LiabilitiesList.vue'
 const JointAccountHistory = () => import('@/components/NetWorth/JointAccountHistory.vue');
 const ProtectionDashboard = () => import('@/views/Protection/ProtectionDashboard.vue');
 const PolicyDetail = () => import('@/components/Protection/PolicyDetail.vue');
-const ComprehensiveProtectionPlan = () => import('@/views/Protection/ComprehensiveProtectionPlan.vue');
 const SavingsDashboard = () => import('@/views/Savings/SavingsDashboard.vue');
 const SavingsAccountDetail = () => import('@/views/Savings/SavingsAccountDetail.vue');
 const GoalsDashboard = () => import('@/views/Goals/GoalsDashboard.vue');
@@ -46,7 +45,6 @@ const RiskLevelsExplainedPage = () => import('@/views/Risk/RiskLevelsExplainedPa
 const RiskFactorDetailPage = () => import('@/views/Risk/RiskFactorDetailPage.vue');
 const PensionDetail = () => import('@/views/Retirement/PensionDetail.vue');
 const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
-const ComprehensiveEstatePlan = () => import('@/views/Estate/ComprehensiveEstatePlan.vue');
 const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
@@ -351,18 +349,6 @@ const routes = [
     },
   },
   {
-    path: '/protection-plan',
-    name: 'ComprehensiveProtectionPlan',
-    component: ComprehensiveProtectionPlan,
-    meta: {
-      requiresAuth: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'Comprehensive Protection Plan', path: '/protection-plan' },
-      ],
-    },
-  },
-  {
     path: '/savings',
     name: 'Savings',
     component: SavingsDashboard,
@@ -455,18 +441,6 @@ const routes = [
     },
   },
   {
-    path: '/estate-plan',
-    name: 'ComprehensiveEstatePlan',
-    component: ComprehensiveEstatePlan,
-    meta: {
-      requiresAuth: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'Comprehensive Estate Plan', path: '/estate-plan' },
-      ],
-    },
-  },
-  {
     path: '/trusts',
     name: 'Trusts',
     component: TrustsDashboard,
@@ -526,10 +500,6 @@ const routes = [
         { label: 'Plans', path: '/plans' },
       ],
     },
-  },
-  {
-    path: '/plans/investment-savings',
-    redirect: '/plans/investment',
   },
   {
     path: '/plans/investment',

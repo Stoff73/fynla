@@ -9,6 +9,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Plans\EstatePlanService;
 use App\Services\Plans\GoalPlanService;
 use App\Services\Plans\InvestmentPlanService;
+use App\Services\Plans\PlanConfigService;
 use App\Services\Plans\ProtectionPlanService;
 use App\Services\Plans\RetirementPlanService;
 use App\Services\Plans\WhatIfCalculator;
@@ -26,7 +27,8 @@ class PlanController extends Controller
         private readonly RetirementPlanService $retirementPlanService,
         private readonly GoalPlanService $goalPlanService,
         private readonly EstatePlanService $estatePlanService,
-        private readonly WhatIfCalculator $whatIfCalculator
+        private readonly WhatIfCalculator $whatIfCalculator,
+        private readonly PlanConfigService $planConfig
     ) {}
 
     /**
@@ -39,7 +41,7 @@ class PlanController extends Controller
         try {
             $cacheKey = "plan_{$type}_{$userId}";
 
-            $plan = Cache::remember($cacheKey, 1800, function () use ($type, $userId) {
+            $plan = Cache::remember($cacheKey, $this->planConfig->getPlanCacheTTL(), function () use ($type, $userId) {
                 return $this->getPlanService($type)->generatePlan($userId);
             });
 
@@ -64,7 +66,7 @@ class PlanController extends Controller
         try {
             $cacheKey = "plan_goal_{$goalId}_{$userId}";
 
-            $plan = Cache::remember($cacheKey, 1800, function () use ($userId, $goalId) {
+            $plan = Cache::remember($cacheKey, $this->planConfig->getPlanCacheTTL(), function () use ($userId, $goalId) {
                 return $this->goalPlanService->generatePlan($userId, ['goal_id' => $goalId]);
             });
 

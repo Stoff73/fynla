@@ -23,8 +23,6 @@ use App\Http\Controllers\Api\Investment\ContributionOptimizerController;
 use App\Http\Controllers\Api\Investment\EfficientFrontierController;
 use App\Http\Controllers\Api\Investment\FeeImpactController;
 use App\Http\Controllers\Api\Investment\GoalProgressController;
-use App\Http\Controllers\Api\Investment\InvestmentPlanController;
-use App\Http\Controllers\Api\Investment\InvestmentRecommendationController;
 use App\Http\Controllers\Api\Investment\InvestmentScenarioController;
 use App\Http\Controllers\Api\Investment\ModelPortfolioController;
 use App\Http\Controllers\Api\Investment\PerformanceAttributionController;
@@ -43,7 +41,6 @@ use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PersonalAccountsController;
-use App\Http\Controllers\Api\Plans\InvestmentSavingsPlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\PreviewController;
@@ -322,9 +319,6 @@ Route::middleware('auth:sanctum')->prefix('protection')->group(function () {
     Route::post('/analyze', [ProtectionController::class, 'analyze']);
     Route::get('/recommendations', [ProtectionController::class, 'recommendations']);
     Route::post('/scenarios', [ProtectionController::class, 'scenarios']);
-
-    // Comprehensive Protection Plan
-    Route::get('/comprehensive-plan', [ProtectionController::class, 'getComprehensiveProtectionPlan']);
 
     // Protection profile
     Route::post('/profile', [ProtectionController::class, 'storeProfile']);
@@ -709,40 +703,6 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::get('/default-assumptions', [EfficientFrontierController::class, 'getDefaultAssumptions']);
     });
 
-    // Investment Plan Generation (Phase 1.1)
-    Route::prefix('plan')->group(function () {
-        // Generate comprehensive plan
-        Route::post('/generate', [InvestmentPlanController::class, 'generatePlan']);
-
-        // Get plans
-        Route::get('/', [InvestmentPlanController::class, 'getLatestPlan']);
-        Route::get('/all', [InvestmentPlanController::class, 'getAllPlans']);
-        Route::get('/{id}', [InvestmentPlanController::class, 'getPlanById']);
-
-        // Delete plan
-        Route::delete('/{id}', [InvestmentPlanController::class, 'deletePlan']);
-
-        // Cache management
-        Route::delete('/clear-cache', [InvestmentPlanController::class, 'clearCache']);
-    });
-
-    // Investment Recommendations (Phase 1.2)
-    Route::prefix('recommendations')->group(function () {
-        // Dashboard/summary
-        Route::get('/dashboard', [InvestmentRecommendationController::class, 'dashboard']);
-
-        // CRUD operations
-        Route::get('/', [InvestmentRecommendationController::class, 'index']);
-        Route::post('/', [InvestmentRecommendationController::class, 'store']);
-        Route::get('/{id}', [InvestmentRecommendationController::class, 'show']);
-        Route::put('/{id}', [InvestmentRecommendationController::class, 'update']);
-        Route::delete('/{id}', [InvestmentRecommendationController::class, 'destroy']);
-
-        // Status management
-        Route::put('/{id}/status', [InvestmentRecommendationController::class, 'updateStatus']);
-        Route::post('/bulk-update-status', [InvestmentRecommendationController::class, 'bulkUpdateStatus']);
-    });
-
     // Investment Scenarios (Phase 1.3)
     Route::prefix('scenarios')->group(function () {
         // Templates
@@ -775,9 +735,6 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
     Route::post('/calculate-iht', [IHTController::class, 'calculateIHT']);
     Route::get('/net-worth', [EstateController::class, 'getNetWorth']);
     Route::get('/cash-flow', [EstateController::class, 'getCashFlow']);
-
-    // Comprehensive Estate Plan
-    Route::get('/comprehensive-plan', [EstateController::class, 'getComprehensiveEstatePlan']);
 
     // IHT Profile
     Route::post('/profile', [IHTController::class, 'storeOrUpdateIHTProfile']);
@@ -892,11 +849,7 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
-    // Legacy Investment & Savings Plan (backward compatibility)
-    Route::get('/investment-savings', [InvestmentSavingsPlanController::class, 'generate']);
-    Route::delete('/investment-savings/clear-cache', [InvestmentSavingsPlanController::class, 'clearCache']);
-
-    // New plan system
+    // Plan system
     Route::get('/statuses', [\App\Http\Controllers\Api\Plans\PlanController::class, 'statuses']);
     Route::get('/goal/{goalId}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generateGoalPlan']);
     Route::post('/goal/{goalId}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculateGoalPlan']);

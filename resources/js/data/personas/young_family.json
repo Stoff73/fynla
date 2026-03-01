@@ -263,7 +263,21 @@
 
   "db_pensions": [],
 
-  "state_pension": null,
+  "state_pension": {
+    "forecast_weekly_amount": 176.96,
+    "forecast_annual_amount": 9202,
+    "state_pension_age": 68,
+    "qualifying_years": 13,
+    "years_remaining": 33
+  },
+
+  "spouse_state_pension": {
+    "forecast_weekly_amount": 165.26,
+    "forecast_annual_amount": 8594,
+    "state_pension_age": 68,
+    "qualifying_years": 11,
+    "years_remaining": 35
+  },
 
   "life_insurance_policies": [
     {

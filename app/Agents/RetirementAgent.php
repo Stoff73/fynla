@@ -14,6 +14,7 @@ use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\TaxEfficiencyCalculator;
+use App\Services\Plans\PlanConfigService;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
@@ -29,7 +30,7 @@ use App\Services\TaxConfigService;
  */
 class RetirementAgent extends BaseAgent
 {
-    protected int $cacheTtl = 3600; // 1 hour cache for retirement analysis
+    protected int $cacheTtl = 3600;
 
     public function __construct(
         private readonly PensionProjector $projector,
@@ -43,8 +44,13 @@ class RetirementAgent extends BaseAgent
         private readonly MonteCarloSimulator $monteCarloSimulator,
         private readonly AssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
-        private readonly TaxEfficiencyCalculator $taxCalculator
-    ) {}
+        private readonly TaxEfficiencyCalculator $taxCalculator,
+        private readonly ?PlanConfigService $planConfig = null
+    ) {
+        if ($this->planConfig) {
+            $this->cacheTtl = $this->planConfig->getRetirementCacheTTL();
+        }
+    }
 
     /**
      * Analyze user's retirement position.
@@ -330,7 +336,8 @@ class RetirementAgent extends BaseAgent
         // Simulate increased contributions
         $yearsToRetirement = max(0, $profile->target_retirement_age - $profile->current_age);
         $additionalAnnualContribution = $additionalMonthlyContribution * 12;
-        $growthRate = TaxDefaults::DEFAULT_GROWTH_RATE;
+        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? TaxDefaults::DEFAULT_GROWTH_RATE;
+        $withdrawalRate = $this->planConfig?->getWithdrawalRate() ?? TaxDefaults::SAFE_WITHDRAWAL_RATE;
 
         $additionalValue = 0.0;
         if ($yearsToRetirement > 0 && $growthRate > 0) {
@@ -339,7 +346,7 @@ class RetirementAgent extends BaseAgent
 
         $currentProjection = $this->projector->projectTotalRetirementIncome($userId);
         $newDCValue = $currentProjection['dc_total_value'] + $additionalValue;
-        $newDCIncome = $newDCValue * 0.04;
+        $newDCIncome = $newDCValue * $withdrawalRate;
         $newTotalIncome = $newDCIncome + $currentProjection['db_annual_income'] + $currentProjection['state_pension_income'];
 
         $targetIncome = (float) $profile->target_retirement_income;
@@ -371,12 +378,13 @@ class RetirementAgent extends BaseAgent
         $currentProjection = $this->projector->projectTotalRetirementIncome($userId);
 
         // Rough calculation: additional years of growth on current pot plus new contributions
-        $growthRate = TaxDefaults::DEFAULT_GROWTH_RATE;
+        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? TaxDefaults::DEFAULT_GROWTH_RATE;
+        $withdrawalRate = $this->planConfig?->getWithdrawalRate() ?? TaxDefaults::SAFE_WITHDRAWAL_RATE;
         $additionalGrowth = $currentProjection['dc_total_value'] * (pow(1 + $growthRate, $additionalYears) - 1);
         $additionalFromContributions = $additionalContributions * (1 + $growthRate * ($additionalYears / 2)); // Simplified
 
         $newDCValue = $currentProjection['dc_total_value'] + $additionalGrowth + $additionalFromContributions;
-        $newDCIncome = $newDCValue * 0.04;
+        $newDCIncome = $newDCValue * $withdrawalRate;
         $newTotalIncome = $newDCIncome + $currentProjection['db_annual_income'] + $currentProjection['state_pension_income'];
 
         $targetIncome = (float) $profile->target_retirement_income;

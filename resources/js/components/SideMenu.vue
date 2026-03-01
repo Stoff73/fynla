@@ -215,7 +215,7 @@ export default {
              path.startsWith('/net-worth/fees-detail');
     });
 
-    // Estate active for /estate and /estate-plan
+    // Estate active for /estate routes
     const isEstateActive = computed(() => {
       return currentPath.value.startsWith('/estate');
     });

@@ -48,6 +48,9 @@ class DatabaseSeeder extends Seeder
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
 
+            // Plan configuration - admin-configurable plan rates, benchmarks, and defaults
+            PlanConfigurationSeeder::class,
+
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
         ]);
@@ -80,6 +83,8 @@ class DatabaseSeeder extends Seeder
             RolesPermissionsSeeder::class,
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
+            SavingsMarketRatesSeeder::class,
+            PlanConfigurationSeeder::class,
         ]);
     }
 }

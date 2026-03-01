@@ -562,6 +562,14 @@
     "years_remaining": 8
   },
 
+  "spouse_state_pension": {
+    "forecast_weekly_amount": 218.39,
+    "forecast_annual_amount": 11356,
+    "state_pension_age": 67,
+    "qualifying_years": 26,
+    "years_remaining": 20
+  },
+
   "life_insurance_policies": [
     {
       "id": 1,

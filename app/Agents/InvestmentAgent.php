@@ -135,26 +135,26 @@ class InvestmentAgent extends BaseAgent
         $holdingsCount = $analysis['portfolio_summary']['holdings_count'] ?? 0;
         $hasRiskProfile = isset($analysis['allocation_deviation']);
 
-        // No risk profile recommendation - always show if not set
+        // No risk profile - request specific information needed
         if (! $hasRiskProfile) {
             $recommendations[] = [
                 'category' => 'Risk Profile',
                 'priority' => $priority++,
-                'title' => 'Complete Your Risk Profile',
-                'description' => 'Set up your risk profile to get personalised investment recommendations and target allocations.',
-                'action' => 'Complete the risk questionnaire to determine your investment strategy',
+                'title' => 'Provide Your Investment Preferences',
+                'description' => 'To personalise your investment plan, we need three key pieces of information: your investment time horizon (how long you plan to invest), your capacity for loss (how much you could afford to lose), and your risk tolerance (how comfortable you are with investment volatility). This allows us to recommend an appropriate asset allocation.',
+                'action' => 'Complete the risk questionnaire in the Risk Profile section to provide this information',
                 'scope' => 'portfolio',
             ];
         }
 
-        // No holdings recommendation - show if accounts exist but no holdings
+        // No holdings - explain default allocation approach
         if ($holdingsCount === 0 && ($analysis['portfolio_summary']['accounts_count'] ?? 0) > 0) {
             $recommendations[] = [
                 'category' => 'Portfolio Setup',
                 'priority' => $priority++,
-                'title' => 'Add Your Holdings',
-                'description' => 'Add your fund holdings to get detailed fee analysis, diversification scores, and tax efficiency recommendations.',
-                'action' => 'Click on your investment account and add your holdings',
+                'title' => 'Add Your Fund Holdings',
+                'description' => 'Without your fund holdings, this plan uses risk-based fee-optimised allocations as a benchmark. This means we estimate your portfolio performance based on a diversified allocation matched to your risk profile with low-cost fund assumptions. Adding your actual holdings will give you a more accurate analysis of your fees, diversification, and tax efficiency.',
+                'action' => 'Click on your investment account and add your fund holdings for a personalised analysis',
                 'scope' => 'portfolio',
             ];
         }
@@ -166,7 +166,7 @@ class InvestmentAgent extends BaseAgent
                 'category' => 'Diversification',
                 'priority' => $priority++,
                 'title' => 'Improve Portfolio Diversification',
-                'description' => 'Your diversification score is '.$analysis['diversification_score'].'/100. Consider spreading investments across more asset types.',
+                'description' => 'Your portfolio is concentrated in a limited number of asset types. Consider spreading investments across more asset classes to reduce risk.',
                 'action' => 'Review asset allocation and consider adding different asset classes',
                 'scope' => 'portfolio',
             ];
@@ -266,7 +266,7 @@ class InvestmentAgent extends BaseAgent
                 'category' => 'Tax Efficiency',
                 'priority' => $priority++,
                 'title' => 'Open a Stocks & Shares ISA',
-                'description' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to '.number_format($taxWrappers['isa_allowance'] ?? 20000).'/year from income tax and capital gains tax.',
+                'description' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to '.number_format($taxWrappers['isa_allowance'] ?? TaxDefaults::ISA_ALLOWANCE).'/year from income tax and capital gains tax.',
                 'action' => 'Open an ISA and transfer or contribute up to the annual allowance',
                 'scope' => 'portfolio',
             ];

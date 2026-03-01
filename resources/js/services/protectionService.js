@@ -224,22 +224,6 @@ const protectionService = {
         const response = await api.delete(`/protection/policies/sickness-illness/${id}`);
         return response.data;
     },
-
-    /**
-     * Get comprehensive protection plan
-     * Generates a complete protection plan document that includes:
-     * - User profile and financial situation
-     * - Current coverage (Life, CI, IP policies)
-     * - Protection needs analysis
-     * - Coverage gaps and recommendations
-     * - Scenario analysis
-     * - Optimised protection strategy
-     * @returns {Promise} Comprehensive protection plan document
-     */
-    async getComprehensiveProtectionPlan() {
-        const response = await api.get('/protection/comprehensive-plan');
-        return response.data;
-    },
 };
 
 export default protectionService;

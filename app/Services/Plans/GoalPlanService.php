@@ -17,7 +17,9 @@ class GoalPlanService extends BasePlanService
         private readonly GoalsAgent $goalsAgent,
         private readonly GoalProgressService $progressService,
         private readonly GoalAffordabilityService $affordabilityService,
-        private readonly GoalStrategyService $strategyService
+        private readonly GoalStrategyService $strategyService,
+        private readonly PlanConfigService $planConfig,
+        private readonly DisposableIncomeAccessor $incomeAccessor
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -47,7 +49,7 @@ class GoalPlanService extends BasePlanService
         $actions = $this->applyActionFilter($actions, $options);
         $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
 
-        $whatIf = $this->buildWhatIfData($goal, $progress, $affordability, $enabledActions);
+        $whatIf = $this->buildWhatIfData($user, $goal, $progress, $affordability, $enabledActions);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'goal');
 
         return [
@@ -104,7 +106,11 @@ class GoalPlanService extends BasePlanService
         $missing = [];
 
         if ($goalId) {
-            $goal = Goal::find($goalId);
+            $goal = Goal::where('id', $goalId)
+                ->where(function ($q) use ($userId) {
+                    $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId);
+                })
+                ->first();
             if (! $goal) {
                 $missing[] = [
                     'field' => 'goal',
@@ -262,7 +268,7 @@ class GoalPlanService extends BasePlanService
         ];
     }
 
-    private function buildWhatIfData(Goal $goal, array $progress, array $affordability, array $enabledActions): array
+    private function buildWhatIfData(User $user, Goal $goal, array $progress, array $affordability, array $enabledActions): array
     {
         $targetAmount = (float) $goal->target_amount;
         $currentAmount = (float) $goal->current_amount;
@@ -270,17 +276,21 @@ class GoalPlanService extends BasePlanService
         $monthlyContribution = (float) ($goal->monthly_contribution ?? 0);
         $monthsRemaining = $progress['months_remaining'] ?? 12;
 
+        // Use disposable income via DistributionAccount instead of hardcoded amounts
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
+
         $additionalMonthly = 0;
         $lumpSum = 0;
 
         foreach ($enabledActions as $action) {
             $category = strtolower($action['category'] ?? '');
             if (str_contains($category, 'contribution') || str_contains($category, 'increase')) {
-                $additionalMonthly += 50;
+                $additionalMonthly += $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.2);
             } elseif (str_contains($category, 'lump') || str_contains($category, 'transfer')) {
-                $lumpSum += 500;
+                $lumpSum += $budget->allocate($action['id'] ?? 'lump_sum', $monthlyDisposable * 0.5);
             } else {
-                $additionalMonthly += 25;
+                $additionalMonthly += $budget->allocate($action['id'] ?? 'other', $monthlyDisposable * 0.1);
             }
         }
 

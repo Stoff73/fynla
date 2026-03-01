@@ -9,6 +9,7 @@ use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\DisabilityPolicy;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTProfile;
@@ -17,19 +18,18 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\Goal;
-use App\Models\DisabilityPolicy;
 use App\Models\IncomeProtectionPolicy;
-use App\Models\SicknessIllnessPolicy;
-use App\Models\LifeEvent;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LetterToSpouse;
+use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
+use App\Models\SicknessIllnessPolicy;
 use App\Models\SpousePermission;
 use App\Models\StatePension;
 use App\Models\User;
@@ -1038,7 +1038,7 @@ class PreviewUserSeeder extends Seeder
         if ($statePension) {
             StatePension::create([
                 'user_id' => $user->id,
-                'ni_years_completed' => 35,
+                'ni_years_completed' => $statePension['qualifying_years'] ?? 35,
                 'ni_years_required' => 35,
                 'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
                 'state_pension_age' => $statePension['state_pension_age'] ?? 66,
@@ -1050,7 +1050,7 @@ class PreviewUserSeeder extends Seeder
         if ($spouse && $spouseStatePension) {
             StatePension::create([
                 'user_id' => $spouse->id,
-                'ni_years_completed' => 35,
+                'ni_years_completed' => $spouseStatePension['qualifying_years'] ?? 35,
                 'ni_years_required' => 35,
                 'state_pension_forecast_annual' => $spouseStatePension['forecast_annual_amount'] ?? 0,
                 'state_pension_age' => $spouseStatePension['state_pension_age'] ?? 66,

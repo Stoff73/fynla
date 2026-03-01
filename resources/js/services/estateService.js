@@ -234,24 +234,6 @@ const estateService = {
         return response.data;
     },
 
-    /**
-     * Get comprehensive estate plan combining all strategies
-     * Generates a complete estate plan document that includes:
-     * - User profile and estate overview
-     * - Current IHT position
-     * - Gifting strategy
-     * - Trust planning strategy
-     * - Life policy strategy
-     * - Optimised combined recommendations with priorities
-     * - Implementation timeline
-     * - Next steps categorized by timeframe
-     * @returns {Promise} Comprehensive estate plan document
-     */
-    async getComprehensiveEstatePlan() {
-        const response = await api.get('/estate/comprehensive-plan');
-        return response.data;
-    },
-
     // ==================== TRUSTS ====================
 
     /**
