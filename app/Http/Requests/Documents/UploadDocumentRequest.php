@@ -55,7 +55,7 @@ class UploadDocumentRequest extends FormRequest
             $sanitised = preg_replace('/[^\w\s\-\.]/', '', pathinfo($originalName, PATHINFO_FILENAME));
             $sanitised = trim($sanitised);
             if (empty($sanitised)) {
-                $sanitised = 'document_' . time();
+                $sanitised = 'document_'.time();
             }
         }
     }

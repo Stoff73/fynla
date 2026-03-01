@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Estate\CalculateIntestacyRequest;
-use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\Estate\StoreBequestRequest;
 use App\Http\Requests\Estate\StoreWillRequest;
 use App\Http\Requests\Estate\UpdateBequestRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;

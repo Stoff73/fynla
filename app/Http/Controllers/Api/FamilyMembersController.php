@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Mail;
 class FamilyMembersController extends Controller
 {
     use SanitizedErrorResponse;
+
     /**
      * Display a listing of the authenticated user's family members.
      *

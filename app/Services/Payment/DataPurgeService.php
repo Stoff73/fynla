@@ -30,7 +30,7 @@ class DataPurgeService
         $totalDeleted = 0;
         $tablesPurged = 0;
 
-        DB::transaction(function () use ($userId, $userEmail, $user, &$totalDeleted, &$tablesPurged) {
+        DB::transaction(function () use ($userId, $userEmail, &$totalDeleted, &$tablesPurged) {
 
             // ─── Phase 1: Clean up reverse references in OTHER users' records ───
             $this->cleanupReverseReferences($userId);

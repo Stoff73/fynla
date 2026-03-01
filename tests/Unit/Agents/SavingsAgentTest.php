@@ -243,7 +243,7 @@ describe('analyze', function () {
         $this->goalProgressCalculator
             ->shouldReceive('prioritizeGoals')
             ->once()
-            ->andReturn(new \Illuminate\Database\Eloquent\Collection());
+            ->andReturn(new \Illuminate\Database\Eloquent\Collection);
 
         $result = $this->agent->analyze($user->id);
 

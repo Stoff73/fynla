@@ -284,7 +284,7 @@ class AiToolExecutor
             'entity_type' => 'savings_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'message' => "Savings account \"{$account->account_name}\" created with a balance of £" . number_format((float) $account->current_balance, 2) . '.',
+            'message' => "Savings account \"{$account->account_name}\" created with a balance of £".number_format((float) $account->current_balance, 2).'.',
         ];
     }
 
@@ -319,7 +319,7 @@ class AiToolExecutor
             'entity_type' => 'investment_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'message' => "Investment account \"{$account->account_name}\" created with a value of £" . number_format((float) $account->current_value, 2) . '.',
+            'message' => "Investment account \"{$account->account_name}\" created with a value of £".number_format((float) $account->current_value, 2).'.',
         ];
     }
 
@@ -358,8 +358,8 @@ class AiToolExecutor
             'entity_type' => 'dc_pension',
             'entity_id' => $pension->id,
             'name' => $pension->scheme_name,
-            'message' => "Defined Contribution pension \"{$pension->scheme_name}\" created" .
-                ($pension->current_fund_value > 0 ? " with a fund value of £" . number_format((float) $pension->current_fund_value, 2) : '') . '.',
+            'message' => "Defined Contribution pension \"{$pension->scheme_name}\" created".
+                ($pension->current_fund_value > 0 ? ' with a fund value of £'.number_format((float) $pension->current_fund_value, 2) : '').'.',
         ];
     }
 
@@ -381,8 +381,8 @@ class AiToolExecutor
             'entity_type' => 'db_pension',
             'entity_id' => $pension->id,
             'name' => $pension->scheme_name,
-            'message' => "Defined Benefit pension \"{$pension->scheme_name}\" created" .
-                ($pension->accrued_annual_pension > 0 ? " with an accrued pension of £" . number_format((float) $pension->accrued_annual_pension, 2) . ' per year' : '') . '.',
+            'message' => "Defined Benefit pension \"{$pension->scheme_name}\" created".
+                ($pension->accrued_annual_pension > 0 ? ' with an accrued pension of £'.number_format((float) $pension->accrued_annual_pension, 2).' per year' : '').'.',
         ];
     }
 
@@ -422,7 +422,7 @@ class AiToolExecutor
                 'ownership_percentage' => 100,
                 'country' => 'GB',
             ]);
-            $mortgageMessage = ' A linked mortgage of £' . number_format((float) $input['outstanding_mortgage'], 2) . ' was also created.';
+            $mortgageMessage = ' A linked mortgage of £'.number_format((float) $input['outstanding_mortgage'], 2).' was also created.';
         }
 
         $this->invalidateModuleCache($user->id, 'property');
@@ -432,7 +432,7 @@ class AiToolExecutor
             'entity_type' => 'property',
             'entity_id' => $property->id,
             'name' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $input['property_type'] ?? 'main_residence')),
-            'message' => "Property created with a value of £" . number_format((float) $property->current_value, 2) . '.' . $mortgageMessage,
+            'message' => 'Property created with a value of £'.number_format((float) $property->current_value, 2).'.'.$mortgageMessage,
         ];
     }
 
@@ -470,8 +470,8 @@ class AiToolExecutor
             'created' => true,
             'entity_type' => 'mortgage',
             'entity_id' => $mortgage->id,
-            'name' => ($input['lender_name'] ?? 'Mortgage') . ' mortgage',
-            'message' => "Mortgage created with an outstanding balance of £" . number_format((float) $mortgage->outstanding_balance, 2) . '.',
+            'name' => ($input['lender_name'] ?? 'Mortgage').' mortgage',
+            'message' => 'Mortgage created with an outstanding balance of £'.number_format((float) $mortgage->outstanding_balance, 2).'.',
         ];
     }
 
@@ -515,9 +515,9 @@ class AiToolExecutor
             'created' => true,
             'entity_type' => 'life_insurance_policy',
             'entity_id' => $policy->id,
-            'name' => ($input['provider'] ?? 'Life insurance') . ' - ' . $typeLabel,
-            'message' => "Life insurance policy created" .
-                ($policy->sum_assured > 0 ? " for £" . number_format((float) $policy->sum_assured, 2) : '') . '.',
+            'name' => ($input['provider'] ?? 'Life insurance').' - '.$typeLabel,
+            'message' => 'Life insurance policy created'.
+                ($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.',
         ];
     }
 
@@ -545,9 +545,9 @@ class AiToolExecutor
             'created' => true,
             'entity_type' => 'critical_illness_policy',
             'entity_id' => $policy->id,
-            'name' => ($input['provider'] ?? 'Critical illness') . ' policy',
-            'message' => "Critical illness policy created" .
-                ($policy->sum_assured > 0 ? " for £" . number_format((float) $policy->sum_assured, 2) : '') . '.',
+            'name' => ($input['provider'] ?? 'Critical illness').' policy',
+            'message' => 'Critical illness policy created'.
+                ($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.',
         ];
     }
 
@@ -567,9 +567,9 @@ class AiToolExecutor
             'created' => true,
             'entity_type' => 'income_protection_policy',
             'entity_id' => $policy->id,
-            'name' => ($input['provider'] ?? 'Income protection') . ' policy',
-            'message' => "Income protection policy created" .
-                ($policy->benefit_amount > 0 ? " with a monthly benefit of £" . number_format((float) $policy->benefit_amount, 2) : '') . '.',
+            'name' => ($input['provider'] ?? 'Income protection').' policy',
+            'message' => 'Income protection policy created'.
+                ($policy->benefit_amount > 0 ? ' with a monthly benefit of £'.number_format((float) $policy->benefit_amount, 2) : '').'.',
         ];
     }
 
@@ -597,7 +597,7 @@ class AiToolExecutor
             'entity_type' => 'estate_asset',
             'entity_id' => $asset->id,
             'name' => $asset->asset_name,
-            'message' => "Estate asset \"{$asset->asset_name}\" created with a value of £" . number_format((float) $asset->current_value, 2) . '.',
+            'message' => "Estate asset \"{$asset->asset_name}\" created with a value of £".number_format((float) $asset->current_value, 2).'.',
         ];
     }
 
@@ -625,7 +625,7 @@ class AiToolExecutor
             'entity_type' => 'estate_liability',
             'entity_id' => $liability->id,
             'name' => $liability->liability_name,
-            'message' => "Estate liability \"{$liability->liability_name}\" created with a balance of £" . number_format((float) $liability->current_balance, 2) . '.',
+            'message' => "Estate liability \"{$liability->liability_name}\" created with a balance of £".number_format((float) $liability->current_balance, 2).'.',
         ];
     }
 
@@ -654,7 +654,7 @@ class AiToolExecutor
             'entity_type' => 'estate_gift',
             'entity_id' => $gift->id,
             'name' => "Gift to {$gift->recipient}",
-            'message' => "Gift of £" . number_format((float) $gift->gift_value, 2) . " to {$gift->recipient} recorded.",
+            'message' => 'Gift of £'.number_format((float) $gift->gift_value, 2)." to {$gift->recipient} recorded.",
         ];
     }
 
@@ -730,7 +730,7 @@ class AiToolExecutor
 
         // Try matching by address or postcode
         foreach ($properties as $property) {
-            $address = Str::lower(($property->address_line_1 ?? '') . ' ' . ($property->postcode ?? ''));
+            $address = Str::lower(($property->address_line_1 ?? '').' '.($property->postcode ?? ''));
             if (Str::contains($address, $hintLower) || Str::contains($hintLower, trim($address))) {
                 return $property->id;
             }

@@ -77,7 +77,7 @@ class AssetFactory extends Factory
                 'Premium Bonds',
                 'Savings Account',
             ]),
-            'business_interest' => $this->faker->company() . ' Shares',
+            'business_interest' => $this->faker->company().' Shares',
             'personal_possession' => $this->faker->randomElement([
                 'Jewellery Collection',
                 'Art Collection',

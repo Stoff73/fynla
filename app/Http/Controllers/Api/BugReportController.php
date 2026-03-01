@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Mail\BugReportMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class BugReportController extends Controller
 {
@@ -37,7 +37,7 @@ class BugReportController extends Controller
 
         $bugReportData = [
             'user_id' => $user?->id,
-            'user_name' => $user ? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) : null,
+            'user_name' => $user ? trim(($user->first_name ?? '').' '.($user->last_name ?? '')) : null,
             'user_email' => $user?->email,
             'is_preview_user' => $user?->is_preview_user ?? false,
             'description' => $validated['description'],

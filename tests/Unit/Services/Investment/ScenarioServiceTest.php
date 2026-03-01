@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Services\Investment\ScenarioService;
 
 beforeEach(function () {
-    $this->service = new ScenarioService();
+    $this->service = new ScenarioService;
 });
 
 describe('ScenarioService', function () {

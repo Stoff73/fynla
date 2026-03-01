@@ -18,7 +18,7 @@ class BugReportMail extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param array<string, mixed> $bugReport
+     * @param  array<string, mixed>  $bugReport
      */
     public function __construct(
         public array $bugReport

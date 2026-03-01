@@ -42,9 +42,9 @@ class TaxConfigurationTest extends TestCase
 
         // Calculate dynamic tax years (UK tax year runs April 6 - April 5)
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
-        $this->currentTaxYear = $startYear . '/' . ($startYear + 1 - 2000);
-        $this->previousTaxYear = ($startYear - 1) . '/' . ($startYear - 2000);
-        $this->nextTaxYear = ($startYear + 1) . '/' . ($startYear + 2 - 2000);
+        $this->currentTaxYear = $startYear.'/'.($startYear + 1 - 2000);
+        $this->previousTaxYear = ($startYear - 1).'/'.($startYear - 2000);
+        $this->nextTaxYear = ($startYear + 1).'/'.($startYear + 2 - 2000);
 
         // Seed roles and permissions (required for RBAC middleware)
         $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
@@ -258,8 +258,8 @@ class TaxConfigurationTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
                 'tax_year' => $this->nextTaxYear,
-                'effective_from' => ($nextStartYear) . '-04-06',
-                'effective_to' => ($nextStartYear + 1) . '-04-05',
+                'effective_from' => ($nextStartYear).'-04-06',
+                'effective_to' => ($nextStartYear + 1).'-04-05',
                 'is_active' => false,
                 'config_data' => [
                     'income_tax' => [
@@ -358,7 +358,7 @@ class TaxConfigurationTest extends TestCase
     public function test_admin_can_delete_inactive_tax_config(): void
     {
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
-        $twoYearsAgo = ($startYear - 2) . '/' . ($startYear - 1 - 2000);
+        $twoYearsAgo = ($startYear - 2).'/'.($startYear - 1 - 2000);
 
         $config = TaxConfiguration::factory()->create([
             'tax_year' => $twoYearsAgo,
@@ -415,8 +415,8 @@ class TaxConfigurationTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson("/api/tax-settings/{$sourceConfig->id}/duplicate", [
                 'new_tax_year' => $this->currentTaxYear,
-                'effective_from' => $startYear . '-04-06',
-                'effective_to' => ($startYear + 1) . '-04-05',
+                'effective_from' => $startYear.'-04-06',
+                'effective_to' => ($startYear + 1).'-04-05',
             ]);
 
         $response->assertStatus(201)
@@ -463,8 +463,8 @@ class TaxConfigurationTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
                 'tax_year' => $this->currentTaxYear,
-                'effective_from' => $startYear . '-04-06',
-                'effective_to' => ($startYear + 1) . '-04-05',
+                'effective_from' => $startYear.'-04-06',
+                'effective_to' => ($startYear + 1).'-04-05',
                 'is_active' => true,
                 'config_data' => [
                     'income_tax' => [
@@ -552,9 +552,9 @@ class TaxConfigurationTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
-                'tax_year' => $startYear . '-' . ($startYear + 1), // Wrong format (dash instead of slash)
-                'effective_from' => $startYear . '-04-06',
-                'effective_to' => ($startYear + 1) . '-04-05',
+                'tax_year' => $startYear.'-'.($startYear + 1), // Wrong format (dash instead of slash)
+                'effective_from' => $startYear.'-04-06',
+                'effective_to' => ($startYear + 1).'-04-05',
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],
@@ -571,8 +571,8 @@ class TaxConfigurationTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
                 'tax_year' => $this->currentTaxYear,
-                'effective_from' => ($startYear + 1) . '-04-05',
-                'effective_to' => $startYear . '-04-06', // Before effective_from
+                'effective_from' => ($startYear + 1).'-04-05',
+                'effective_to' => $startYear.'-04-06', // Before effective_from
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],
@@ -593,8 +593,8 @@ class TaxConfigurationTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/tax-settings/create', [
                 'tax_year' => $this->currentTaxYear, // Duplicate
-                'effective_from' => $startYear . '-04-06',
-                'effective_to' => ($startYear + 1) . '-04-05',
+                'effective_from' => $startYear.'-04-06',
+                'effective_to' => ($startYear + 1).'-04-05',
                 'config_data' => [
                     'income_tax' => ['personal_allowance' => 12570, 'bands' => []],
                 ],

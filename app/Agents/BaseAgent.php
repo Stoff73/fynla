@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 abstract class BaseAgent
 {
     use FormatsCurrency;
+
     protected const CACHE_VERSION = 'v1';
 
     /**
@@ -76,7 +77,7 @@ abstract class BaseAgent
     {
         $agentName = strtolower(class_basename(static::class));
 
-        return static::CACHE_VERSION . "_{$agentName}_{$userId}_{$suffix}";
+        return static::CACHE_VERSION."_{$agentName}_{$userId}_{$suffix}";
     }
 
     /**
@@ -117,7 +118,7 @@ abstract class BaseAgent
         }
 
         // Clear any agent-specific cache key pattern
-        Cache::forget(static::CACHE_VERSION . "_{$agentName}_analysis_{$userId}");
+        Cache::forget(static::CACHE_VERSION."_{$agentName}_analysis_{$userId}");
 
         // Clear additional specified keys
         foreach ($additionalKeys as $key) {

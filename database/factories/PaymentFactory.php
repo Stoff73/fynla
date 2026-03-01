@@ -21,12 +21,12 @@ class PaymentFactory extends Factory
         return [
             'subscription_id' => Subscription::factory(),
             'user_id' => User::factory(),
-            'revolut_order_id' => 'rev_' . $this->faker->uuid(),
+            'revolut_order_id' => 'rev_'.$this->faker->uuid(),
             'amount' => $this->faker->randomElement([499, 999, 1999, 4999]),
             'currency' => 'GBP',
             'status' => 'completed',
             'revolut_payment_data' => [
-                'order_id' => 'rev_' . $this->faker->uuid(),
+                'order_id' => 'rev_'.$this->faker->uuid(),
                 'state' => 'COMPLETED',
                 'created_at' => now()->toIso8601String(),
             ],
@@ -41,7 +41,7 @@ class PaymentFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'pending',
             'revolut_payment_data' => [
-                'order_id' => $attributes['revolut_order_id'] ?? 'rev_' . $this->faker->uuid(),
+                'order_id' => $attributes['revolut_order_id'] ?? 'rev_'.$this->faker->uuid(),
                 'state' => 'PENDING',
                 'created_at' => now()->toIso8601String(),
             ],
@@ -56,7 +56,7 @@ class PaymentFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'failed',
             'revolut_payment_data' => [
-                'order_id' => $attributes['revolut_order_id'] ?? 'rev_' . $this->faker->uuid(),
+                'order_id' => $attributes['revolut_order_id'] ?? 'rev_'.$this->faker->uuid(),
                 'state' => 'FAILED',
                 'failure_reason' => 'insufficient_funds',
                 'created_at' => now()->toIso8601String(),
@@ -72,7 +72,7 @@ class PaymentFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'refunded',
             'revolut_payment_data' => [
-                'order_id' => $attributes['revolut_order_id'] ?? 'rev_' . $this->faker->uuid(),
+                'order_id' => $attributes['revolut_order_id'] ?? 'rev_'.$this->faker->uuid(),
                 'state' => 'REFUNDED',
                 'created_at' => now()->toIso8601String(),
             ],

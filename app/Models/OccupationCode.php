@@ -57,7 +57,6 @@ class OccupationCode extends Model
      *
      * @param  string  $query  Search term (minimum 3 characters)
      * @param  int  $limit  Maximum results to return
-     * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function search(string $query, int $limit = 10): \Illuminate\Database\Eloquent\Collection
     {
@@ -69,9 +68,9 @@ class OccupationCode extends Model
 
         // Search using LIKE for partial matches at word boundaries
         // Prioritise exact matches and starts-with matches
-        return self::where('title', 'LIKE', $query . '%')
-            ->orWhere('title', 'LIKE', '% ' . $query . '%')
-            ->orderByRaw("CASE WHEN title LIKE ? THEN 0 WHEN title LIKE ? THEN 1 ELSE 2 END", [$query . '%', '% ' . $query . '%'])
+        return self::where('title', 'LIKE', $query.'%')
+            ->orWhere('title', 'LIKE', '% '.$query.'%')
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 WHEN title LIKE ? THEN 1 ELSE 2 END', [$query.'%', '% '.$query.'%'])
             ->orderBy('title')
             ->limit($limit)
             ->get(['id', 'title', 'soc_code', 'unit_group']);

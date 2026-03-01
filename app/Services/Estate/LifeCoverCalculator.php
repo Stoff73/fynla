@@ -13,6 +13,7 @@ class LifeCoverCalculator
     public function __construct(
         private readonly AssumptionsService $assumptionsService
     ) {}
+
     /**
      * Calculate life cover recommendations for IHT liability
      *

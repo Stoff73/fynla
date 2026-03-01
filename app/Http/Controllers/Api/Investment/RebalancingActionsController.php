@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 class RebalancingActionsController extends Controller
 {
     use SanitizedErrorResponse;
+
     /**
      * Save rebalancing actions
      *

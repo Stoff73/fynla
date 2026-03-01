@@ -33,8 +33,8 @@ class TaxConfigServiceTest extends TestCase
 
         // Calculate dynamic tax years (UK tax year runs April 6 - April 5)
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
-        $this->currentTaxYear = $startYear . '/' . ($startYear + 1 - 2000);
-        $this->previousTaxYear = ($startYear - 1) . '/' . ($startYear - 2000);
+        $this->currentTaxYear = $startYear.'/'.($startYear + 1 - 2000);
+        $this->previousTaxYear = ($startYear - 1).'/'.($startYear - 2000);
     }
 
     /**
@@ -176,7 +176,7 @@ class TaxConfigServiceTest extends TestCase
 
         // Assert
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
-        $this->assertEquals($startYear . '-04-06', $effectiveFrom);
+        $this->assertEquals($startYear.'-04-06', $effectiveFrom);
     }
 
     /**
@@ -192,7 +192,7 @@ class TaxConfigServiceTest extends TestCase
 
         // Assert
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
-        $this->assertEquals(($startYear + 1) . '-04-05', $effectiveTo);
+        $this->assertEquals(($startYear + 1).'-04-05', $effectiveTo);
     }
 
     /**
@@ -206,11 +206,11 @@ class TaxConfigServiceTest extends TestCase
         $startYear = now()->month >= 4 ? now()->year : now()->year - 1;
 
         // Act & Assert
-        $this->assertTrue($this->service->isInCurrentTaxYear($startYear . '-04-06')); // Start date
-        $this->assertTrue($this->service->isInCurrentTaxYear($startYear . '-10-15')); // Mid-year
-        $this->assertTrue($this->service->isInCurrentTaxYear(($startYear + 1) . '-04-05')); // End date
-        $this->assertFalse($this->service->isInCurrentTaxYear($startYear . '-04-05')); // Before
-        $this->assertFalse($this->service->isInCurrentTaxYear(($startYear + 1) . '-04-06')); // After
+        $this->assertTrue($this->service->isInCurrentTaxYear($startYear.'-04-06')); // Start date
+        $this->assertTrue($this->service->isInCurrentTaxYear($startYear.'-10-15')); // Mid-year
+        $this->assertTrue($this->service->isInCurrentTaxYear(($startYear + 1).'-04-05')); // End date
+        $this->assertFalse($this->service->isInCurrentTaxYear($startYear.'-04-05')); // Before
+        $this->assertFalse($this->service->isInCurrentTaxYear(($startYear + 1).'-04-06')); // After
     }
 
     /**
@@ -522,8 +522,8 @@ class TaxConfigServiceTest extends TestCase
         // Parse the tax year string (e.g., '2025/26') to derive effective dates
         $parts = explode('/', $taxYear);
         $fullStartYear = (int) $parts[0];
-        $effectiveFrom = $fullStartYear . '-04-06';
-        $effectiveTo = ($fullStartYear + 1) . '-04-05';
+        $effectiveFrom = $fullStartYear.'-04-06';
+        $effectiveTo = ($fullStartYear + 1).'-04-05';
 
         return TaxConfiguration::create([
             'tax_year' => $taxYear,

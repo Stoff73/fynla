@@ -8,7 +8,7 @@ use App\Services\Investment\ReturnCalculationService;
 use Carbon\Carbon;
 
 beforeEach(function () {
-    $this->service = new ReturnCalculationService();
+    $this->service = new ReturnCalculationService;
 });
 
 describe('ReturnCalculationService', function () {

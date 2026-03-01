@@ -163,7 +163,7 @@ class AdminController extends Controller
                 ? Role::find($request->role_id)
                 : Role::findByName(Role::ROLE_USER);
 
-            $user = new User();
+            $user = new User;
             $user->first_name = $request->first_name;
             $user->surname = $request->surname;
             $user->name = trim($request->first_name.' '.$request->surname);

@@ -24,7 +24,7 @@ class OccupationCodeSeeder extends Seeder
             OccupationCode::insert($chunk);
         }
 
-        $this->command->info('Seeded ' . count($occupations) . ' occupation codes.');
+        $this->command->info('Seeded '.count($occupations).' occupation codes.');
     }
 
     private function getOccupations(): array

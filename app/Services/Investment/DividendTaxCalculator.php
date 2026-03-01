@@ -20,7 +20,7 @@ class DividendTaxCalculator
      *
      * @param  float  $dividendIncome  Total dividend income for the year
      * @param  float  $nonDividendIncome  All other income (employment, rental, etc.)
-     * @return float  Tax due on dividends
+     * @return float Tax due on dividends
      */
     public function calculate(float $dividendIncome, float $nonDividendIncome): float
     {

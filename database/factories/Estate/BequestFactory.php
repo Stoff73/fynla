@@ -31,7 +31,7 @@ class BequestFactory extends Factory
             'percentage_of_estate' => $bequestType === 'percentage' ? $this->faker->randomElement([10.00, 20.00, 25.00, 50.00]) : null,
             'specific_amount' => $bequestType === 'specific_amount' ? $this->faker->randomFloat(2, 1000, 100000) : null,
             'specific_asset_description' => $bequestType === 'specific_asset' ? $this->faker->randomElement([
-                'Family home at ' . $this->faker->streetAddress(),
+                'Family home at '.$this->faker->streetAddress(),
                 'Jewellery collection',
                 'Classic car',
                 'Art collection',

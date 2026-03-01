@@ -47,10 +47,16 @@ class FeeAnalyzer
             if ($account->platform_fee_type === 'fixed') {
                 $amount = (float) ($account->platform_fee_amount ?? 0);
                 $frequency = $account->platform_fee_frequency ?? 'annually';
-                if ($frequency === 'monthly') return $amount * 12;
-                if ($frequency === 'quarterly') return $amount * 4;
+                if ($frequency === 'monthly') {
+                    return $amount * 12;
+                }
+                if ($frequency === 'quarterly') {
+                    return $amount * 4;
+                }
+
                 return $amount;
             }
+
             return $account->current_value * (($account->platform_fee_percent ?? 0) / 100);
         });
 
@@ -162,6 +168,7 @@ class FeeAnalyzer
                 // Don't let advisory fee reduction push below zero
                 $feesForComparison = max(0, $feesForComparison);
             }
+
             return $feesForComparison > $highFeeThreshold;
         })->map(function ($holding) {
             return [

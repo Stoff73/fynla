@@ -32,6 +32,9 @@ yarn-error.log
 .DS_Store
 **/.DS_Store
 
+# Playwright MCP logs/screenshots
+.playwright-mcp/
+
 # build files
 /public/build/
 

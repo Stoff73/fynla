@@ -9,7 +9,6 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**

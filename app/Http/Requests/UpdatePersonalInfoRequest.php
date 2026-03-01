@@ -31,7 +31,7 @@ class UpdatePersonalInfoRequest extends FormRequest
             'first_name' => ['sometimes', 'string', 'max:255'],
             'surname' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($this->user()->id)],
-            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:' . $minAge18, 'after:' . $maxAge105],
+            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:'.$minAge18, 'after:'.$maxAge105],
             'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'marital_status' => ['sometimes', 'nullable', Rule::in(['single', 'married', 'divorced', 'widowed'])],
             'national_insurance_number' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{2}[0-9]{6}[A-Z]{1}$/'],

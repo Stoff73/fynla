@@ -12,6 +12,7 @@ use Carbon\Carbon;
 class PersonalAccountsService
 {
     use CalculatesOwnershipShare;
+
     /**
      * Calculate Profit and Loss statement for the user
      *

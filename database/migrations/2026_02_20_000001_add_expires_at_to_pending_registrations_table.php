@@ -24,7 +24,7 @@ return new class extends Migration
         // Set expiry for existing records (24 hours from their creation)
         DB::table('pending_registrations')
             ->whereNull('expires_at')
-            ->update(['expires_at' => DB::raw("DATE_ADD(created_at, INTERVAL 24 HOUR)")]);
+            ->update(['expires_at' => DB::raw('DATE_ADD(created_at, INTERVAL 24 HOUR)')]);
     }
 
     /**

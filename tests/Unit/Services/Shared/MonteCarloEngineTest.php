@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Services\Shared\MonteCarloEngine;
 
 beforeEach(function () {
-    $this->engine = new MonteCarloEngine();
+    $this->engine = new MonteCarloEngine;
 });
 
 it('returns required result keys from simulate', function () {

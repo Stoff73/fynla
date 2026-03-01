@@ -89,7 +89,7 @@ class PreviewWriteInterceptor
         // Check if this route should be excluded from interception
         $currentPath = $request->path();
         foreach (self::EXCLUDED_ROUTES as $excludedRoute) {
-            if ($currentPath === $excludedRoute || str_starts_with($currentPath, $excludedRoute . '/')) {
+            if ($currentPath === $excludedRoute || str_starts_with($currentPath, $excludedRoute.'/')) {
                 return $next($request);
             }
         }

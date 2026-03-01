@@ -449,7 +449,7 @@ class ProtectionPlanService extends BasePlanService
 
             $gapDescriptions = $this->describeActions($disabledActions, 'unaddressed');
             if (! empty($gapDescriptions)) {
-                $lines[] = 'This means the following gaps remain: ' . implode('; ', $gapDescriptions) . '.';
+                $lines[] = 'This means the following gaps remain: '.implode('; ', $gapDescriptions).'.';
             }
 
             $lines[] = sprintf(

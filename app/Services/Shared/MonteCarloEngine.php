@@ -93,7 +93,7 @@ class MonteCarloEngine
      *
      * @param  float[]  $finalValues  Sorted array of simulation final values
      * @param  float  $targetAmount  Target to reach
-     * @return float  Probability as percentage (0-100)
+     * @return float Probability as percentage (0-100)
      */
     public function calculateGoalProbability(array $finalValues, float $targetAmount): float
     {
@@ -110,7 +110,7 @@ class MonteCarloEngine
      * Calculate percentiles from a sorted array of values.
      *
      * @param  float[]  $sortedValues  Pre-sorted values
-     * @return array  Array of percentile objects with 10th, 25th, 50th, 75th, 90th
+     * @return array Array of percentile objects with 10th, 25th, 50th, 75th, 90th
      */
     public function calculatePercentiles(array $sortedValues): array
     {
@@ -138,7 +138,6 @@ class MonteCarloEngine
      *
      * @param  float[]  $sortedValues  Pre-sorted values
      * @param  int  $percentile  Percentile (0-100)
-     * @return float
      */
     public function getPercentileValue(array $sortedValues, int $percentile): float
     {

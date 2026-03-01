@@ -228,5 +228,4 @@ class IHTController extends Controller
             'message' => 'IHT calculation cache cleared',
         ]);
     }
-
 }

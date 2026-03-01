@@ -105,10 +105,10 @@ class TestUserSeeder extends Seeder
         $this->createGoals($chris, $angela);
         $this->createLifeEvents($chris, $angela);
 
-        $this->command->info("✓ Created test user: Chris Jones (chris@fynla.org) - ADMIN");
-        $this->command->info("✓ Created spouse: Angela Jones (c.jones@csjones.co)");
-        $this->command->info("✓ Onboarding: NOT COMPLETE (setup button will show)");
-        $this->command->info("✓ Total properties: 5");
+        $this->command->info('✓ Created test user: Chris Jones (chris@fynla.org) - ADMIN');
+        $this->command->info('✓ Created spouse: Angela Jones (c.jones@csjones.co)');
+        $this->command->info('✓ Onboarding: NOT COMPLETE (setup button will show)');
+        $this->command->info('✓ Total properties: 5');
     }
 
     /**

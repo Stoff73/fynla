@@ -1224,7 +1224,6 @@ class RetirementIncomeService
             $taxPaid = $taxableAmount * $basicRate;
             $yearData['tax_paid'] = round($taxPaid, 2);
 
-
             $projections[] = $yearData;
         }
 

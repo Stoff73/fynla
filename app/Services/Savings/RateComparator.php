@@ -12,6 +12,7 @@ class RateComparator
     public function __construct(
         private readonly ISATracker $isaTracker
     ) {}
+
     /**
      * Compare account rate to market benchmarks
      *

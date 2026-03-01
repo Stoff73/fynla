@@ -30,7 +30,7 @@ class UpdateFamilyMemberRequest extends FormRequest
             'first_name' => ['sometimes', 'string', 'max:255'],
             'middle_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'last_name' => ['sometimes', 'string', 'max:255'],
-            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:today', 'after:' . $maxAge105],
+            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:today', 'after:'.$maxAge105],
             'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'national_insurance_number' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{2}[0-9]{6}[A-Z]{1}$/'],
             'annual_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
@@ -47,7 +47,7 @@ class UpdateFamilyMemberRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if (!$this->date_of_birth || $validator->errors()->has('date_of_birth')) {
+            if (! $this->date_of_birth || $validator->errors()->has('date_of_birth')) {
                 return;
             }
 
@@ -55,6 +55,7 @@ class UpdateFamilyMemberRequest extends FormRequest
                 $dob = \Carbon\Carbon::parse($this->date_of_birth);
             } catch (\Exception $e) {
                 $validator->errors()->add('date_of_birth', 'Please provide a valid date.');
+
                 return;
             }
             $age = $dob->diffInYears(now());

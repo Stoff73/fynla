@@ -27,7 +27,7 @@ return [
             env('FRONTEND_URL', ''),
             env('APP_URL', ''),
         ]
-    )), fn($origin) => !empty($origin) && (env('APP_ENV') === 'local' || !str_contains($origin, '*'))),
+    )), fn ($origin) => ! empty($origin) && (env('APP_ENV') === 'local' || ! str_contains($origin, '*'))),
 
     'allowed_origins_patterns' => [],
 

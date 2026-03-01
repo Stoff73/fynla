@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 
 describe('PlanConfigService', function () {
     it('returns built-in defaults when no active configuration exists', function () {
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
 
         expect($service->getDefaultGrowthRate())->toBe(0.05)
             ->and($service->getWithdrawalRate())->toBe(0.04)
@@ -54,7 +54,7 @@ describe('PlanConfigService', function () {
             'is_active' => true,
         ]);
 
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
 
         expect($service->getDefaultGrowthRate())->toBe(0.06)
             ->and($service->getWithdrawalRate())->toBe(0.035)
@@ -71,14 +71,14 @@ describe('PlanConfigService', function () {
     });
 
     it('supports dot-notation get with custom defaults', function () {
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
 
         expect($service->get('rates.default_growth_rate'))->toBe(0.05)
             ->and($service->get('nonexistent.key', 'fallback'))->toBe('fallback');
     });
 
     it('checks key existence correctly', function () {
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
 
         expect($service->has('rates.default_growth_rate'))->toBeTrue()
             ->and($service->has('nonexistent.key'))->toBeFalse();
@@ -91,7 +91,7 @@ describe('PlanConfigService', function () {
             'is_active' => true,
         ]);
 
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
         expect($service->getDefaultGrowthRate())->toBe(0.07);
 
         // Update DB directly
@@ -108,7 +108,7 @@ describe('PlanConfigService', function () {
     });
 
     it('returns all config data via getAll', function () {
-        $service = new PlanConfigService();
+        $service = new PlanConfigService;
         $all = $service->getAll();
 
         expect($all)->toBeArray()

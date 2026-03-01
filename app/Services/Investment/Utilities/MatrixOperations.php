@@ -189,7 +189,7 @@ class MatrixOperations
      * Cholesky decomposition: decompose symmetric positive-definite matrix A into L * L^T.
      *
      * @param  array  $matrix  Symmetric positive-definite matrix
-     * @return array  Lower triangular matrix L
+     * @return array Lower triangular matrix L
      *
      * @throws \InvalidArgumentException If matrix is not positive-definite
      */
@@ -225,7 +225,7 @@ class MatrixOperations
      *
      * @param  array  $matrix  Matrix (n x m)
      * @param  array  $vector  Vector (m elements)
-     * @return array  Result vector (n elements)
+     * @return array Result vector (n elements)
      */
     public function multiplyVector(array $matrix, array $vector): array
     {
