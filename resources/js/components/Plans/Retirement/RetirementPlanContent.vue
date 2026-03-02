@@ -2,6 +2,7 @@
   <div>
     <PlanMissingDataPrompt :warning="plan.completeness_warning" />
     <RetirementExecutiveSummary :summary="plan.executive_summary" />
+    <RetirementPersonalInformation :info="plan.personal_information" />
     <PlanGoalSection
       :linked-goals="plan.linked_goals || []"
       :unlinked-goals="plan.unlinked_goals || []"
@@ -22,12 +23,13 @@ import PlanMissingDataPrompt from '@/components/Plans/Shared/PlanMissingDataProm
 import PlanGoalSection from '@/components/Plans/Shared/PlanGoalSection.vue';
 import PlanConclusion from '@/components/Plans/Shared/PlanConclusion.vue';
 import RetirementExecutiveSummary from './RetirementExecutiveSummary.vue';
+import RetirementPersonalInformation from './RetirementPersonalInformation.vue';
 import RetirementCurrentSituation from './RetirementCurrentSituation.vue';
 import RetirementGroupedActions from './RetirementGroupedActions.vue';
 
 export default {
   name: 'RetirementPlanContent',
-  components: { PlanMissingDataPrompt, RetirementExecutiveSummary, PlanGoalSection, PlanConclusion, RetirementCurrentSituation, RetirementGroupedActions },
+  components: { PlanMissingDataPrompt, RetirementExecutiveSummary, RetirementPersonalInformation, PlanGoalSection, PlanConclusion, RetirementCurrentSituation, RetirementGroupedActions },
   props: {
     plan: { type: Object, required: true },
   },

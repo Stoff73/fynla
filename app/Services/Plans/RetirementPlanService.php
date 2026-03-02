@@ -7,6 +7,7 @@ namespace App\Services\Plans;
 use App\Agents\RetirementAgent;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
@@ -39,6 +40,7 @@ class RetirementPlanService extends BasePlanService
                 'metadata' => $this->buildPlanMetadata($user, 'retirement', $completeness),
                 'completeness_warning' => $this->buildCompletenessWarning($completeness),
                 'executive_summary' => $this->buildEmptyExecutiveSummary(),
+                'personal_information' => $this->buildPersonalInformation($user),
                 'current_situation' => [],
                 'actions' => [],
                 'pension_projections' => [],
@@ -69,6 +71,7 @@ class RetirementPlanService extends BasePlanService
             'metadata' => $this->buildPlanMetadata($user, 'retirement', $completeness),
             'completeness_warning' => $this->buildCompletenessWarning($completeness),
             'executive_summary' => $this->buildExecutiveSummary($user, $data, $userId, $goals, $actions),
+            'personal_information' => $this->buildPersonalInformation($user),
             'current_situation' => $currentSituation,
             'actions' => $actions,
             'pension_projections' => $pensionProjections,
@@ -230,6 +233,56 @@ class RetirementPlanService extends BasePlanService
             'total_actions' => 0,
             'closing' => '',
             'on_track' => null,
+        ];
+    }
+
+    private function buildPersonalInformation(User $user): array
+    {
+        $fullName = trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')) ?: ($user->name ?? '—');
+        $dob = $user->date_of_birth;
+        $age = $dob ? (int) $dob->diffInYears(now()) : null;
+
+        // Spouse
+        $spouseName = null;
+        if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
+            $spouse = $user->spouse;
+            $spouseName = trim(($spouse->first_name ?? '') . ' ' . ($spouse->surname ?? '')) ?: $spouse->name;
+        }
+
+        // Children
+        $children = $user->familyMembers()
+            ->where('relationship', 'child')
+            ->get()
+            ->map(fn ($child) => $child->name)
+            ->toArray();
+
+        // Income
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+
+        $incomeData = $this->incomeAccessor->getForUser($user);
+
+        // Risk level
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+
+        return [
+            'full_name' => $fullName,
+            'date_of_birth' => $dob?->toDateString(),
+            'age' => $age,
+            'marital_status' => $user->marital_status,
+            'spouse_name' => $spouseName,
+            'children' => $children,
+            'gross_income' => $this->roundToPenny($grossIncome),
+            'net_income' => $this->roundToPenny($incomeData['net_income']),
+            'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            'disposable_income' => $this->roundToPenny($incomeData['annual']),
+            'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
+            'risk_level' => $riskProfile->risk_level ?? null,
         ];
     }
 
