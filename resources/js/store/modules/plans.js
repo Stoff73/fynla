@@ -104,6 +104,34 @@ const mutations = {
     const { [type]: removed, ...rest } = state.plans;
     state.plans = rest;
   },
+
+  setActionFundingSource(state, { planKey, actionId, fundingSourceId, fundingSourceType }) {
+    const plan = state.plans[planKey];
+    if (!plan || !plan.actions) return;
+
+    const updatedPlan = {
+      ...plan,
+      actions: plan.actions.map(a => {
+        if (a.id !== actionId || !a.funding_source) return a;
+
+        const selected = a.funding_source.eligible_accounts.find(
+          acc => acc.id === fundingSourceId && acc.type === fundingSourceType
+        );
+
+        return {
+          ...a,
+          funding_source: {
+            ...a.funding_source,
+            selected_id: selected ? selected.id : a.funding_source.selected_id,
+            selected_type: selected ? selected.type : a.funding_source.selected_type,
+            selected_name: selected ? selected.name : a.funding_source.selected_name,
+            warning: selected ? selected.warning : a.funding_source.warning,
+          },
+        };
+      }),
+    };
+    state.plans = { ...state.plans, [planKey]: updatedPlan };
+  },
 };
 
 const actions = {
@@ -183,6 +211,23 @@ const actions = {
       throw error;
     } finally {
       commit('setRecalculating', false);
+    }
+  },
+
+  async updateActionFundingSource({ commit }, { planKey, actionId, actionCategory, targetAccountId, fundingSourceType, fundingSourceId }) {
+    // Optimistic local update
+    commit('setActionFundingSource', { planKey, actionId, fundingSourceId, fundingSourceType });
+
+    // Persist to backend (will be blocked for preview users by PreviewWriteInterceptor)
+    try {
+      await plansService.updateFundingSource(planKey, {
+        action_category: actionCategory,
+        target_account_id: targetAccountId ?? 0,
+        funding_source_type: fundingSourceType,
+        funding_source_id: fundingSourceId,
+      });
+    } catch {
+      // Non-critical — local state already updated
     }
   },
 

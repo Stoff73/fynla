@@ -6,6 +6,9 @@ namespace App\Http\Controllers\Api\Plans;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\PlanActionFundingSelection;
+use App\Models\SavingsAccount;
 use App\Services\Plans\EstatePlanService;
 use App\Services\Plans\GoalPlanService;
 use App\Services\Plans\InvestmentPlanService;
@@ -160,6 +163,51 @@ class PlanController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching plan statuses');
         }
+    }
+
+    /**
+     * Update the funding source selection for a plan action.
+     */
+    public function updateFundingSource(Request $request, string $type): JsonResponse
+    {
+        $request->validate([
+            'action_category' => 'required|string|max:50',
+            'target_account_id' => 'required|integer|min:0',
+            'funding_source_type' => 'required|string|in:savings,investment',
+            'funding_source_id' => 'required|integer|min:1',
+        ]);
+
+        $user = $request->user();
+        $sourceType = $request->input('funding_source_type');
+        $sourceId = $request->input('funding_source_id');
+
+        // Validate the account belongs to this user
+        $ownsAccount = match ($sourceType) {
+            'savings' => SavingsAccount::where('id', $sourceId)->where('user_id', $user->id)->exists(),
+            'investment' => InvestmentAccount::where('id', $sourceId)->where('user_id', $user->id)->exists(),
+            default => false,
+        };
+
+        if (! $ownsAccount) {
+            return $this->validationErrorResponse('The selected account does not belong to you.');
+        }
+
+        PlanActionFundingSelection::upsertSelection(
+            $user->id,
+            $type,
+            $request->input('action_category'),
+            (int) $request->input('target_account_id'),
+            $sourceType,
+            $sourceId
+        );
+
+        // Clear plan cache so next load reflects the selection
+        Cache::forget("plan_{$type}_{$user->id}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Funding source updated.',
+        ]);
     }
 
     /**

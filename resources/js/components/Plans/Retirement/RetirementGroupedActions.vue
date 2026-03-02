@@ -18,6 +18,7 @@
             <PlanActionCard
               :action="item.action"
               @toggle="$emit('toggle', $event)"
+              @update-funding-source="$emit('update-funding-source', $event)"
             />
             <CascadingActionChart
               :before-series="item.beforeSeries"
@@ -60,6 +61,7 @@
             <PlanActionCard
               :action="action"
               @toggle="$emit('toggle', $event)"
+              @update-funding-source="$emit('update-funding-source', $event)"
             />
             <CascadingActionChart
               v-if="cascadedActionMap[action.id]"
@@ -82,6 +84,7 @@
             <PlanActionCard
               :action="action"
               @toggle="$emit('toggle', $event)"
+              @update-funding-source="$emit('update-funding-source', $event)"
             />
             <CascadingActionChart
               v-if="cascadedActionMap[action.id]"
@@ -152,7 +155,7 @@ export default {
     },
   },
 
-  emits: ['toggle'],
+  emits: ['toggle', 'update-funding-source'],
 
   computed: {
     hasActions() {

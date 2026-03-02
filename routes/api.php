@@ -859,6 +859,8 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
         ->where('type', 'investment|protection|retirement|estate');
     Route::delete('/{type}/clear-cache', [\App\Http\Controllers\Api\Plans\PlanController::class, 'clearCache'])
         ->where('type', 'investment|protection|retirement|estate');
+    Route::put('/{type}/funding-source', [\App\Http\Controllers\Api\Plans\PlanController::class, 'updateFundingSource'])
+        ->where('type', 'investment|protection|retirement|estate');
 });
 
 // Holistic Planning routes (coordinating agent)

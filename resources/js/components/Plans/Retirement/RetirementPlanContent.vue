@@ -13,6 +13,7 @@
       :pension-projections="plan.pension_projections || []"
       :what-if="plan.what_if"
       @toggle="$emit('toggle-action', $event)"
+      @update-funding-source="$emit('update-funding-source', $event)"
     />
     <PlanConclusion :conclusion="plan.conclusion" />
   </div>
@@ -33,6 +34,6 @@ export default {
   props: {
     plan: { type: Object, required: true },
   },
-  emits: ['toggle-action'],
+  emits: ['toggle-action', 'update-funding-source'],
 };
 </script>

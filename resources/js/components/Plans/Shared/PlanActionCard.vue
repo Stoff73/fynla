@@ -19,6 +19,35 @@
         <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
           Estimated impact: {{ formatCurrency(action.estimated_impact) }} (this is not a real figure until we connect to a quote engine)
         </p>
+
+        <!-- Funding source -->
+        <div v-if="hasFundingSource" class="mt-3 pt-3 border-t border-gray-100">
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-xs font-medium text-gray-500 whitespace-nowrap">Fund from</label>
+            <template v-if="eligibleAccounts.length > 1">
+              <select
+                class="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                :value="selectedAccountKey"
+                @change="onFundingSourceChange($event)"
+              >
+                <option
+                  v-for="account in eligibleAccounts"
+                  :key="account.type + '_' + account.id"
+                  :value="account.type + '_' + account.id"
+                >
+                  {{ account.name }} ({{ formatCurrency(account.balance) }})
+                </option>
+              </select>
+            </template>
+            <span v-else-if="eligibleAccounts.length === 1" class="text-xs text-gray-700">
+              {{ eligibleAccounts[0].name }} ({{ formatCurrency(eligibleAccounts[0].balance) }})
+            </span>
+            <span v-else class="text-xs text-gray-500 italic">No eligible accounts</span>
+          </div>
+          <p v-if="selectedWarning" class="text-xs text-red-600 mt-1">
+            {{ selectedWarning }}
+          </p>
+        </div>
       </div>
       <div class="flex-shrink-0">
         <button
@@ -53,22 +82,38 @@ export default {
     },
   },
 
-  emits: ['toggle'],
+  emits: ['toggle', 'update-funding-source'],
 
   computed: {
-    priorityLabel() {
-      const labels = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
-      return labels[this.action.priority] || 'Medium';
+    hasFundingSource() {
+      return this.action.funding_source && this.action.funding_source.eligible_accounts;
     },
 
-    priorityClasses() {
-      const map = {
-        critical: 'bg-red-100 text-red-800',
-        high: 'bg-blue-100 text-blue-800',
-        medium: 'bg-gray-100 text-gray-800',
-        low: 'bg-green-100 text-green-800',
-      };
-      return map[this.action.priority] || map.medium;
+    eligibleAccounts() {
+      return this.action.funding_source?.eligible_accounts || [];
+    },
+
+    selectedAccountKey() {
+      const fs = this.action.funding_source;
+      if (!fs || !fs.selected_id) return '';
+      return fs.selected_type + '_' + fs.selected_id;
+    },
+
+    selectedWarning() {
+      return this.action.funding_source?.warning || null;
+    },
+  },
+
+  methods: {
+    onFundingSourceChange(event) {
+      const [type, id] = event.target.value.split('_');
+      this.$emit('update-funding-source', {
+        actionId: this.action.id,
+        actionCategory: this.action.category,
+        targetAccountId: this.action.account_id ?? 0,
+        fundingSourceType: type,
+        fundingSourceId: parseInt(id, 10),
+      });
     },
   },
 };
