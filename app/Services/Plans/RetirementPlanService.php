@@ -62,6 +62,11 @@ class RetirementPlanService extends BasePlanService
 
         // Use years_to_retirement from analysis (computed from live date_of_birth, not stale stored age)
         $yearsToRetirement = max(0, (int) ($data['summary']['years_to_retirement'] ?? 0));
+
+        // Enrich actions with cascade parameters for per-action what-if charts
+        $actions = $this->enrichActionsWithCascadeParams($user, $data, $actions, $dcPensions);
+        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+
         $pensionProjections = $this->buildPensionGrowthProjections($user, $actions, $dcPensions, $yearsToRetirement);
 
         $whatIf = $this->buildWhatIfData($user, $data, $currentSituation, $enabledActions, $yearsToRetirement);
@@ -389,11 +394,67 @@ class RetirementPlanService extends BasePlanService
             'is_approximate' => true,
             'frontend_calc_params' => [
                 'current_dc_value' => $currentDcValue,
+                'current_annual_contribution' => $this->calculateTotalAnnualContributions($user->id),
                 'growth_rate' => $this->planConfig->getDefaultGrowthRate(),
                 'years' => $yearsToRetirement,
                 'annuity_rate' => $this->planConfig->getWithdrawalRate(),
             ],
         ];
+    }
+
+    /**
+     * Calculate total annual contributions (employee + employer) across all DC pensions.
+     */
+    private function calculateTotalAnnualContributions(int $userId): float
+    {
+        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $total = 0.0;
+
+        foreach ($dcPensions as $pension) {
+            $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
+            if ($monthly > 0) {
+                $total += $monthly * 12;
+            } else {
+                $salary = (float) ($pension->annual_salary ?? 0);
+                $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
+                $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
+                $total += $salary * ($employeePct + $employerPct) / 100;
+            }
+        }
+
+        return $this->roundToPenny($total);
+    }
+
+    /**
+     * Enrich actions with cascade_params for per-action what-if charts.
+     *
+     * Each action gets a cascade_params.additional_monthly value representing
+     * the monthly amount this action adds to the pension pot.
+     */
+    private function enrichActionsWithCascadeParams(User $user, array $data, array $actions, Collection $dcPensions): array
+    {
+        $summary = $data['summary'] ?? [];
+        $projectedIncome = (float) ($summary['projected_retirement_income'] ?? 0);
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
+
+        foreach ($actions as &$action) {
+            $impactType = $this->actionDefinitionService->getWhatIfImpactType($action['category'] ?? '');
+
+            $additionalMonthly = match ($impactType) {
+                'contribution' => $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3),
+                'tax_optimisation' => $projectedIncome * $this->planConfig->getTaxOptimisationGain() / 12,
+                'consolidation' => $projectedIncome * $this->planConfig->getConsolidationEfficiencyGain() / 12,
+                default => $projectedIncome * $this->planConfig->getDefaultActionGain() / 12,
+            };
+
+            $action['cascade_params'] = [
+                'additional_monthly' => $this->roundToPenny($additionalMonthly),
+            ];
+        }
+        unset($action);
+
+        return $actions;
     }
 
     /**

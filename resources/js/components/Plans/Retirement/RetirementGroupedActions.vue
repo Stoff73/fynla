@@ -7,25 +7,27 @@
     />
 
     <template v-if="hasActions">
-      <!-- Single DC pension: no portfolio split, actions + chart + what-if inline -->
+      <!-- Single DC pension: cascading action cards, each with own chart -->
       <template v-if="isSinglePension">
         <div class="mb-5">
-          <div class="space-y-3">
+          <div
+            v-for="item in cascadedActions"
+            :key="item.action.id"
+            class="mb-4"
+          >
             <PlanActionCard
-              v-for="action in sortByPriority(allActions)"
-              :key="action.id"
-              :action="action"
+              :action="item.action"
               @toggle="$emit('toggle', $event)"
             />
+            <CascadingActionChart
+              :before-series="item.beforeSeries"
+              :after-series="item.afterSeries"
+              :years="portfolioYears"
+              :difference-amount="item.differenceAmount"
+            />
           </div>
-          <PensionGrowthProjectionChart
-            v-if="singlePensionProjection"
-            :projection="singlePensionProjection"
-            :enabled-action-count="singlePensionEnabledCount"
-            :total-action-count="singlePensionTotalAccountCount"
-          />
 
-          <!-- What-if metrics below the chart -->
+          <!-- What-if metrics below all cascaded actions -->
           <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-gray-200 p-4 mt-3">
             <div class="grid grid-cols-2 divide-x divide-gray-200">
               <div class="pr-4">
@@ -41,7 +43,7 @@
         </div>
       </template>
 
-      <!-- Multiple DC pensions: per-pension groups, then portfolio -->
+      <!-- Multiple DC pensions: per-pension groups, then portfolio, all with cascading charts -->
       <template v-else>
         <!-- Per-Pension Sections -->
         <div
@@ -50,59 +52,50 @@
           class="mb-5"
         >
           <h3 class="text-sm font-semibold text-gray-700 mb-2 px-1">{{ group.pension_name }}</h3>
-          <div class="space-y-3">
+          <div
+            v-for="action in sortByPriority(group.actions)"
+            :key="action.id"
+            class="mb-4"
+          >
             <PlanActionCard
-              v-for="action in sortByPriority(group.actions)"
-              :key="action.id"
               :action="action"
               @toggle="$emit('toggle', $event)"
             />
+            <CascadingActionChart
+              v-if="cascadedActionMap[action.id]"
+              :before-series="cascadedActionMap[action.id].beforeSeries"
+              :after-series="cascadedActionMap[action.id].afterSeries"
+              :years="portfolioYears"
+              :difference-amount="cascadedActionMap[action.id].differenceAmount"
+            />
           </div>
-          <PensionGrowthProjectionChart
-            v-if="group.projection"
-            :projection="group.projection"
-            :enabled-action-count="group.enabledCount"
-            :total-action-count="group.totalCount"
-          />
         </div>
 
         <!-- Portfolio Actions -->
         <div v-if="portfolioActions.length" class="mb-5">
           <h3 class="text-sm font-semibold text-gray-700 mb-2 px-1">Portfolio Actions</h3>
-          <div class="space-y-3">
+          <div
+            v-for="action in sortByPriority(portfolioActions)"
+            :key="action.id"
+            class="mb-4"
+          >
             <PlanActionCard
-              v-for="action in sortByPriority(portfolioActions)"
-              :key="action.id"
               :action="action"
               @toggle="$emit('toggle', $event)"
+            />
+            <CascadingActionChart
+              v-if="cascadedActionMap[action.id]"
+              :before-series="cascadedActionMap[action.id].beforeSeries"
+              :after-series="cascadedActionMap[action.id].afterSeries"
+              :years="portfolioYears"
+              :difference-amount="cascadedActionMap[action.id].differenceAmount"
             />
           </div>
         </div>
 
-        <!-- Portfolio Projection (total DC pot growth) -->
+        <!-- What-if metrics -->
         <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-gray-200 p-4 mt-3 mb-5">
-          <div class="flex items-center justify-between mb-1">
-            <h4 class="text-sm font-semibold text-gray-900">Portfolio Projection</h4>
-            <span
-              v-if="portfolioProjectionDifference > 0"
-              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-            >
-              +{{ formatCurrency(portfolioProjectionDifference) }} over {{ portfolioYears }} years
-            </span>
-          </div>
-          <p class="text-xs text-gray-500 mb-3">
-            Total pension pot growth &middot;
-            5% assumed growth
-          </p>
-          <apexchart
-            type="line"
-            :height="220"
-            :options="portfolioChartOptions"
-            :series="portfolioChartSeries"
-          />
-
-          <!-- Side-by-side metrics -->
-          <div class="grid grid-cols-2 divide-x divide-gray-200 border-t border-gray-200 mt-4 pt-4">
+          <div class="grid grid-cols-2 divide-x divide-gray-200">
             <div class="pr-4">
               <h5 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Current Position</h5>
               <RetirementWhatIfControls :scenario="whatIf.current_scenario" />
@@ -126,6 +119,7 @@
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
 import PlanActionCard from '@/components/Plans/Shared/PlanActionCard.vue';
 import PensionGrowthProjectionChart from './PensionGrowthProjectionChart.vue';
+import CascadingActionChart from './CascadingActionChart.vue';
 import RetirementWhatIfControls from './RetirementWhatIfControls.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { CHART_COLORS } from '@/constants/designSystem';
@@ -139,6 +133,7 @@ export default {
     PlanSectionHeader,
     PlanActionCard,
     PensionGrowthProjectionChart,
+    CascadingActionChart,
     RetirementWhatIfControls,
   },
 
@@ -201,6 +196,49 @@ export default {
       return this.singlePensionAccountActions.length;
     },
 
+    // Cascading action cards for single-pension mode
+    cascadedActions() {
+      const params = this.whatIf?.frontend_calc_params || {};
+      const baseValue = params.current_dc_value || 0;
+      const growthRate = params.growth_rate || 0.05;
+      const years = params.years || 10;
+      const baseAnnualContrib = params.current_annual_contribution || 0;
+      const sorted = this.sortByPriority(this.allActions);
+
+      let cumulativeAdditionalMonthly = 0;
+
+      return sorted.map((action) => {
+        const beforeMonthly = cumulativeAdditionalMonthly;
+        const beforeSeries = this.projectSeries(baseValue, baseAnnualContrib, beforeMonthly, growthRate, years);
+
+        const actionMonthly = action.cascade_params?.additional_monthly || 0;
+        const afterMonthly = action.enabled ? (beforeMonthly + actionMonthly) : beforeMonthly;
+        const afterSeries = this.projectSeries(baseValue, baseAnnualContrib, afterMonthly, growthRate, years);
+
+        if (action.enabled) {
+          cumulativeAdditionalMonthly += actionMonthly;
+        }
+
+        const differenceAmount = afterSeries[afterSeries.length - 1] - beforeSeries[beforeSeries.length - 1];
+
+        return {
+          action,
+          beforeSeries,
+          afterSeries,
+          differenceAmount: differenceAmount > 0 ? differenceAmount : 0,
+        };
+      });
+    },
+
+    // Lookup map for cascade data by action ID (used by multi-pension template)
+    cascadedActionMap() {
+      const map = {};
+      this.cascadedActions.forEach(item => {
+        map[item.action.id] = item;
+      });
+      return map;
+    },
+
     // For multiple pension mode
     portfolioActions() {
       return this.actions.filter(a => !a.scope || a.scope === 'portfolio');
@@ -232,21 +270,7 @@ export default {
         });
       }
 
-      // Also add projection groups that have no actions (still want the chart)
-      if (this.pensionProjections && this.pensionProjections.length) {
-        this.pensionProjections.forEach(proj => {
-          if (!grouped[proj.pension_id]) {
-            grouped[proj.pension_id] = {
-              pension_id: proj.pension_id,
-              pension_name: proj.pension_name,
-              actions: [],
-              projection: proj,
-            };
-          }
-        });
-      }
-
-      return Object.values(grouped).map(group => ({
+      return Object.values(grouped).filter(group => group.actions.length > 0).map(group => ({
         ...group,
         enabledCount: group.actions.filter(a => a.enabled).length,
         totalCount: group.actions.length,
@@ -364,6 +388,17 @@ export default {
       return [...actions].sort((a, b) => {
         return (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2);
       });
+    },
+
+    projectSeries(startValue, baseAnnualContrib, additionalMonthly, growthRate, years) {
+      const totalAnnual = baseAnnualContrib + (additionalMonthly * 12);
+      const series = [];
+      let value = startValue;
+      for (let y = 0; y <= years; y++) {
+        series.push(Math.round(value));
+        value = (value + totalAnnual) * (1 + growthRate);
+      }
+      return series;
     },
   },
 };
