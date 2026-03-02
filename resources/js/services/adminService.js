@@ -33,6 +33,27 @@ export default {
     return api.get('/admin/subscriptions/stats');
   },
 
+  // Retirement Action Definitions
+  getRetirementActions() {
+    return api.get('/admin/retirement-actions');
+  },
+
+  createRetirementAction(data) {
+    return api.post('/admin/retirement-actions', data);
+  },
+
+  updateRetirementAction(id, data) {
+    return api.put(`/admin/retirement-actions/${id}`, data);
+  },
+
+  deleteRetirementAction(id) {
+    return api.delete(`/admin/retirement-actions/${id}`);
+  },
+
+  toggleRetirementAction(id) {
+    return api.patch(`/admin/retirement-actions/${id}/toggle`);
+  },
+
   // Database Backup
   createBackup() {
     return api.post('/admin/backup/create');

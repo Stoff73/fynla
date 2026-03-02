@@ -51,6 +51,9 @@ class DatabaseSeeder extends Seeder
             // Plan configuration - admin-configurable plan rates, benchmarks, and defaults
             PlanConfigurationSeeder::class,
 
+            // Retirement action definitions - configurable retirement plan action triggers
+            RetirementActionDefinitionSeeder::class,
+
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
         ]);

@@ -313,7 +313,9 @@ export default {
       // Store the token
       authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
-      store.commit('auth/setUser', data.user);
+
+      // Fetch user data fresh from API (sets user, role, and permissions)
+      await store.dispatch('auth/fetchUser');
 
       // Clear preview-related localStorage (user is now a real registered user)
       localStorage.removeItem('preview_persona_id');

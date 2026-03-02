@@ -290,7 +290,9 @@ export default {
       // Store the token
       authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
-      store.commit('auth/setUser', data.user);
+
+      // Fetch user data fresh from API (sets user, role, and permissions)
+      await store.dispatch('auth/fetchUser');
 
       // Check if user must change password
       if (data.must_change_password) {
@@ -312,10 +314,16 @@ export default {
       // Store the token
       authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
-      store.commit('auth/setUser', data.user);
 
-      // Redirect to dashboard
-      router.push({ name: 'Dashboard' });
+      // Fetch user data fresh from API (sets user, role, and permissions)
+      await store.dispatch('auth/fetchUser');
+
+      // Check if user must change password
+      if (data.must_change_password) {
+        showPasswordModal.value = true;
+      } else {
+        router.push({ name: 'Dashboard' });
+      }
     };
 
     const handleMFAClose = () => {
