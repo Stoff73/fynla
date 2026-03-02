@@ -35,6 +35,21 @@ yarn-error.log
 # Playwright MCP logs/screenshots
 .playwright-mcp/
 
+# Claude local settings
+.claude/settings.local.json
+
+# Design source files and screenshots (root-level)
+/*.png
+/*.pdf
+/logo/
+/portraits/
+/Feb/
+/appMapping/
+/revolut/*.pdf
+
+# Planning/review docs (local only)
+/March2Update/
+
 # build files
 /public/build/
 

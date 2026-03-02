@@ -1,2 +1,0 @@
-[     929ms] [WARNING] Allow attribute will take precedence over 'allowpaymentrequest'. @ https://sandbox-merchant.revolut.com/embed.js:0
-[    2502ms] [WARNING] react-i18next:: You will need to pass in an i18next instance by using initReactI18next @ https://sandbox-merchant.revolut.com/sentry-error-tracking.bundle.js?version=de66db47370082dde5f23d57cc14fa615e6e3e39:0
