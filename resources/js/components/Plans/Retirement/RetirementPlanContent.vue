@@ -3,11 +3,11 @@
     <PlanMissingDataPrompt :warning="plan.completeness_warning" />
     <RetirementExecutiveSummary :summary="plan.executive_summary" />
     <RetirementPersonalInformation :info="plan.personal_information" />
+    <RetirementCurrentSituation :situation="plan.current_situation" />
     <PlanGoalSection
       :linked-goals="plan.linked_goals || []"
       :unlinked-goals="plan.unlinked_goals || []"
     />
-    <RetirementCurrentSituation :situation="plan.current_situation" />
     <RetirementGroupedActions
       :actions="plan.actions"
       :pension-projections="plan.pension_projections || []"

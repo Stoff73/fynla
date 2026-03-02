@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Current Situation" subtitle="Your pension and retirement overview" color="teal" />
+    <PlanSectionHeader title="Your Pension Plans" subtitle="Your pension and retirement overview" color="teal" />
 
     <div class="space-y-4">
       <!-- Pensions -->
@@ -84,8 +84,8 @@
           </p>
         </div>
         <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-          <p class="text-xs text-gray-500 uppercase">Total Pension Value</p>
-          <p class="text-lg font-bold text-gray-900">{{ formatCurrency(situation.summary?.current_dc_value || 0) }}</p>
+          <p class="text-xs text-gray-500 uppercase">Pension Value at Retirement</p>
+          <p class="text-lg font-bold text-gray-900">{{ formatCurrency(situation.summary?.total_dc_value || 0) }}</p>
         </div>
       </div>
     </div>
