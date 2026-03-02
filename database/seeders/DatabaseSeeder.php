@@ -54,6 +54,9 @@ class DatabaseSeeder extends Seeder
             // Retirement action definitions - configurable retirement plan action triggers
             RetirementActionDefinitionSeeder::class,
 
+            // Investment action definitions - configurable investment plan action triggers
+            InvestmentActionDefinitionSeeder::class,
+
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
         ]);
@@ -88,6 +91,9 @@ class DatabaseSeeder extends Seeder
             PreviewUserSeeder::class,
             SavingsMarketRatesSeeder::class,
             PlanConfigurationSeeder::class,
+            RetirementActionDefinitionSeeder::class,
+            InvestmentActionDefinitionSeeder::class,
+            SubscriptionPlanSeeder::class,
         ]);
     }
 }
