@@ -341,24 +341,38 @@ abstract class BasePlanService
      */
     public function generateDynamicConclusion(array $currentSituation, array $enabledActions, string $planType): array
     {
-        $actionCount = count($enabledActions);
-        $highPriorityCount = collect($enabledActions)->where('priority', 'high')->count();
-        $criticalCount = collect($enabledActions)->where('priority', 'critical')->count();
+        $all = collect($enabledActions);
+        $actionCount = $all->count();
+        $highPriorityCount = $all->where('priority', 'high')->count();
+        $criticalCount = $all->where('priority', 'critical')->count();
+
+        // Split into essential (critical/high) and optional (medium/low)
+        $essential = $all->whereIn('priority', ['critical', 'high'])->values();
+        $optional = $all->whereIn('priority', ['medium', 'low'])->values();
 
         $summaryParts = [];
 
-        if ($criticalCount > 0) {
-            $summaryParts[] = "There are {$criticalCount} critical action(s) that should be addressed immediately.";
+        if ($essential->isNotEmpty()) {
+            $summaryParts[] = sprintf(
+                'There %s %d action%s that %s essential to reaching your retirement goal.',
+                $essential->count() === 1 ? 'is' : 'are',
+                $essential->count(),
+                $essential->count() === 1 ? '' : 's',
+                $essential->count() === 1 ? 'is' : 'are'
+            );
         }
 
-        if ($highPriorityCount > 0) {
-            $summaryParts[] = "{$highPriorityCount} high-priority recommendation(s) could significantly improve your position.";
+        if ($optional->isNotEmpty()) {
+            $summaryParts[] = sprintf(
+                'A further %d action%s %s optional but would strengthen your position.',
+                $optional->count(),
+                $optional->count() === 1 ? '' : 's',
+                $optional->count() === 1 ? 'is' : 'are'
+            );
         }
 
         if ($actionCount === 0) {
             $summaryParts[] = 'No actions are currently selected. If recommendations were available above, consider enabling them to see their projected impact.';
-        } elseif ($actionCount > 0 && $criticalCount === 0) {
-            $summaryParts[] = "Implementing the {$actionCount} recommended action(s) would strengthen your financial plan.";
         }
 
         return [
@@ -366,6 +380,14 @@ abstract class BasePlanService
             'total_actions' => $actionCount,
             'critical_actions' => $criticalCount,
             'high_priority_actions' => $highPriorityCount,
+            'essential_actions' => $essential->map(fn ($a) => [
+                'title' => $a['title'],
+                'priority' => $a['priority'],
+            ])->toArray(),
+            'optional_actions' => $optional->map(fn ($a) => [
+                'title' => $a['title'],
+                'priority' => $a['priority'],
+            ])->toArray(),
             'detailed_breakdown' => $this->buildDetailedBreakdown($enabledActions),
         ];
     }
