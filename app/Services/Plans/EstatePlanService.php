@@ -72,9 +72,7 @@ class EstatePlanService extends BasePlanService
         // Generate recommendations from the same analysis (no redundant analyze() call)
         $recommendations = $this->buildRecommendationsFromAnalysis($analysis);
         $recommendations = $this->enrichRecommendations($recommendations, $user, $data);
-        $actions = $this->structureActions($recommendations, 'estate');
-        $actions = $this->applyActionFilter($actions, $options);
-        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+        ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'estate', $options);
 
         $currentSituation = $this->buildCurrentSituation($data);
         $whatIf = $this->buildWhatIfData($data, $enabledActions);
@@ -327,7 +325,7 @@ class EstatePlanService extends BasePlanService
      */
     private function buildExecutiveSummary(User $user, array $data, int $recCount): array
     {
-        $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
+        $firstName = $this->getUserFirstName($user);
         $summary = $data['summary'] ?? [];
         $ihtCalc = $data['iht_calculation'] ?? [];
         $lifeCover = $data['life_cover'] ?? [];

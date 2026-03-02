@@ -118,12 +118,14 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PlanDashboardCard from '@/components/Plans/Shared/PlanDashboardCard.vue';
 
 export default {
   name: 'PlansDashboard',
   components: { AppLayout, PlanDashboardCard },
+  mixins: [currencyMixin],
 
   computed: {
     ...mapGetters('plans', ['planStatuses']),
@@ -150,7 +152,7 @@ export default {
         parts.push(goal.goal_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
       }
       if (goal.target_amount) {
-        parts.push(`Target: ${this.formatSimpleCurrency(goal.target_amount)}`);
+        parts.push(`Target: ${this.formatCurrency(goal.target_amount)}`);
       }
       return parts.length ? parts.join(' · ') : 'Track progress and optimise your strategy for this goal';
     },
@@ -162,11 +164,6 @@ export default {
       if (goal.target_date) complete++;
       if (goal.linked_savings_account_id || goal.linked_investment_account_id) complete++;
       return Math.round((complete / total) * 100);
-    },
-
-    formatSimpleCurrency(value) {
-      if (!value && value !== 0) return '£0';
-      return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(value);
     },
   },
 };

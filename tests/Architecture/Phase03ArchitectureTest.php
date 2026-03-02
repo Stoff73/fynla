@@ -66,10 +66,6 @@ describe('Phase 03 Architecture Tests', function () {
             expect($getAssetBreakdown->hasReturnType())->toBeTrue();
             expect($getAssetBreakdown->getReturnType()->getName())->toBe('array');
 
-            $getNetWorthTrend = $reflection->getMethod('getNetWorthTrend');
-            expect($getNetWorthTrend->hasReturnType())->toBeTrue();
-            expect($getNetWorthTrend->getReturnType()->getName())->toBe('array');
-
             $getAssetsSummary = $reflection->getMethod('getAssetsSummary');
             expect($getAssetsSummary->hasReturnType())->toBeTrue();
             expect($getAssetsSummary->getReturnType()->getName())->toBe('array');
@@ -137,7 +133,6 @@ describe('Phase 03 Architecture Tests', function () {
             // These methods should exist and be used with GET routes
             expect($reflection->hasMethod('getOverview'))->toBeTrue();
             expect($reflection->hasMethod('getBreakdown'))->toBeTrue();
-            expect($reflection->hasMethod('getTrend'))->toBeTrue();
             expect($reflection->hasMethod('getAssetsSummary'))->toBeTrue();
             expect($reflection->hasMethod('getJointAssets'))->toBeTrue();
         });
@@ -155,10 +150,10 @@ describe('Phase 03 Architecture Tests', function () {
             $reflection = new ReflectionClass(NetWorthService::class);
 
             // Property, Investment, Cash are handled via CrossModuleAssetAggregator
-            // Direct calculation methods for Business and Chattels
+            // Direct calculation methods for Business, Chattels, and Pensions
             expect($reflection->hasMethod('calculateBusinessValue'))->toBeTrue();
             expect($reflection->hasMethod('calculateChattelValue'))->toBeTrue();
-            expect($reflection->hasMethod('calculatePensionValue'))->toBeTrue();
+            expect($reflection->hasMethod('calculatePensionBreakdown'))->toBeTrue();
         });
 
         it('NetWorthService handles liabilities via breakdown method', function () {

@@ -57,12 +57,17 @@ class HolisticPlanningController extends Controller
         $cacheKey = "holistic_plan_{$userId}";
 
         // Cache for 24 hours (simulation TTL)
-        $plan = Cache::remember($cacheKey, TaxDefaults::CACHE_TTL_SIMULATION, function () use ($userId) {
+        // Only store recommendations when plan is freshly generated (not from cache)
+        $freshlyGenerated = false;
+        $plan = Cache::remember($cacheKey, TaxDefaults::CACHE_TTL_SIMULATION, function () use ($userId, &$freshlyGenerated) {
+            $freshlyGenerated = true;
+
             return $this->coordinatingAgent->generateHolisticPlan($userId);
         });
 
-        // Store recommendations in tracking table
-        $this->storeRecommendations($userId, $plan['ranked_recommendations'] ?? []);
+        if ($freshlyGenerated) {
+            $this->storeRecommendations($userId, $plan['ranked_recommendations'] ?? []);
+        }
 
         return response()->json([
             'success' => true,
@@ -278,6 +283,7 @@ class HolisticPlanningController extends Controller
                 'module' => $rec['module'] ?? 'unknown',
                 'recommendation_text' => $rec['title'] ?? $rec['description'] ?? $rec['text'] ?? $rec['recommendation_text'] ?? 'No description',
                 'priority_score' => $rec['priority_score'] ?? 50,
+                'recommended_amount' => $rec['recommended_monthly_contribution'] ?? $rec['recommended_monthly_premium'] ?? 0,
                 'timeline' => $rec['timeline'] ?? 'medium_term',
                 'status' => 'pending',
             ]);
@@ -296,17 +302,11 @@ class HolisticPlanningController extends Controller
         foreach ($recommendations as $rec) {
             $module = $rec->module;
             $category = $this->mapModuleToCategory($module);
+            $amount = (float) ($rec->recommended_amount ?? 0);
 
-            // For now, use dummy amounts based on module
-            // In full implementation, this would be stored in the recommendation
-            $amount = match ($module) {
-                'protection' => 150,
-                'savings' => 200,
-                'retirement' => 300,
-                'investment' => 250,
-                'estate' => 100,
-                default => 0,
-            };
+            if ($amount <= 0) {
+                continue;
+            }
 
             if (! isset($demands[$category])) {
                 $demands[$category] = [

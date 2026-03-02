@@ -156,6 +156,28 @@ abstract class BasePlanService
     }
 
     /**
+     * Get the user's first name for personalised narratives.
+     */
+    protected function getUserFirstName(User $user): string
+    {
+        return $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
+    }
+
+    /**
+     * Structure recommendations into actions and apply any filter from options.
+     *
+     * @return array{actions: array, enabledActions: array}
+     */
+    protected function prepareActions(array $recommendations, string $planType, array $options = []): array
+    {
+        $actions = $this->structureActions($recommendations, $planType);
+        $actions = $this->applyActionFilter($actions, $options);
+        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+
+        return ['actions' => $actions, 'enabledActions' => $enabledActions];
+    }
+
+    /**
      * Transform agent recommendations into toggleable action cards.
      *
      * @param  array  $recommendations  Raw recommendations from an Agent
@@ -334,6 +356,35 @@ abstract class BasePlanService
             'low' => 'low',
             default => 'medium',
         };
+    }
+
+    /**
+     * Project future value: FV = PV*(1+r)^n + PMT*((1+r)^n - 1)/r  (monthly compounding)
+     *
+     * @param  float  $presentValue  Current lump sum
+     * @param  float  $annualRate  Annual growth rate (e.g. 0.04)
+     * @param  int  $years  Projection horizon
+     * @param  float  $monthlyContribution  Regular monthly addition
+     */
+    protected function projectFutureValue(float $presentValue, float $annualRate, int $years, float $monthlyContribution = 0): float
+    {
+        if ($years <= 0) {
+            return $presentValue;
+        }
+
+        if ($annualRate <= 0) {
+            return $presentValue + ($monthlyContribution * 12 * $years);
+        }
+
+        $monthlyRate = $annualRate / 12;
+        $months = $years * 12;
+        $fv = $presentValue * pow(1 + $monthlyRate, $months);
+
+        if ($monthlyContribution > 0 && $monthlyRate > 0) {
+            $fv += $monthlyContribution * ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
+        }
+
+        return $fv;
     }
 
     /**

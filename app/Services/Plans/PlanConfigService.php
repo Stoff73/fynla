@@ -103,6 +103,15 @@ class PlanConfigService
         return (float) $this->get('rates.default_action_gain', 0.01);
     }
 
+    /**
+     * Optimised annual growth rate (with recommendations implemented).
+     * Higher than default to model the benefit of portfolio optimisation.
+     */
+    public function getOptimisedGrowthRate(): float
+    {
+        return (float) $this->get('rates.optimised_growth_rate', 0.06);
+    }
+
     // =========================================================================
     // Fee Benchmarks
     // =========================================================================
@@ -216,6 +225,7 @@ class PlanConfigService
         return [
             'rates' => [
                 'default_growth_rate' => TaxDefaults::DEFAULT_GROWTH_RATE,
+                'optimised_growth_rate' => 0.06,
                 'withdrawal_rate' => TaxDefaults::SAFE_WITHDRAWAL_RATE,
                 'consolidation_efficiency_gain' => 0.02,
                 'tax_optimisation_gain' => 0.03,

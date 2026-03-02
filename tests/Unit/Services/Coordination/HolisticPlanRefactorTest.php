@@ -6,6 +6,7 @@ use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Plans\PlanConfigService;
 use App\Services\TaxConfigService;
 
 // Helper: create ConflictResolver with mocked TaxConfigService
@@ -16,6 +17,16 @@ function createMockedConflictResolver(): ConflictResolver
         ->andReturn(['annual_allowance' => 20000]);
 
     return new ConflictResolver($taxConfig);
+}
+
+// Helper: create HolisticPlanner with mocked PlanConfigService
+function createHolisticPlanner(): HolisticPlanner
+{
+    $planConfig = Mockery::mock(PlanConfigService::class);
+    $planConfig->shouldReceive('getDefaultGrowthRate')->andReturn(0.04);
+    $planConfig->shouldReceive('getOptimisedGrowthRate')->andReturn(0.06);
+
+    return new HolisticPlanner($planConfig);
 }
 
 afterEach(function () {
@@ -29,7 +40,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // ─────────────────────────────────────────────────────────────
     describe('HolisticPlanner - Estate Data (5A.T1)', function () {
         it('uses estate net_worth in financial snapshot', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -67,7 +78,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('uses estate IHT liability in module summaries', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -95,7 +106,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('uses estate net worth in net worth projection', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 70],
@@ -128,7 +139,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // ─────────────────────────────────────────────────────────────
     describe('HolisticPlanner - Goals Integration (5A.T2)', function () {
         it('creates goals summary when user has active goals', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -163,7 +174,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('returns not_started status when user has no goals', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -188,7 +199,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('shows all goals on track message when none behind', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -374,7 +385,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // ─────────────────────────────────────────────────────────────
     describe('HolisticPlanner - Goals Risk Assessment (5A.T8)', function () {
         it('adds goals risk when more than half are behind schedule', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -398,7 +409,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('adds goal affordability risk when overcommitted', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -423,7 +434,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('does not add goals risk when all goals are on track', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -445,7 +456,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('does not add goals risk when user has no goals', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -575,7 +586,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // ─────────────────────────────────────────────────────────────
     describe('HolisticPlanner - No Estate Data (5A.T9)', function () {
         it('generates plan with zero estate values', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 60],
@@ -619,7 +630,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
     // ─────────────────────────────────────────────────────────────
     describe('HolisticPlanner - No Goals (5A.T10)', function () {
         it('generates plan without goals risk areas when no goals exist', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 80],
@@ -648,7 +659,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
         });
 
         it('generates plan without goals affecting overall score', function () {
-            $planner = new HolisticPlanner;
+            $planner = createHolisticPlanner();
 
             $allAnalysis = [
                 'protection' => ['adequacy_score' => 100],
@@ -667,7 +678,7 @@ describe('Phase 5A: Holistic Plan Refactor', function () {
             $plan = $planner->createHolisticPlan(1, $allAnalysis);
 
             // Plan should still generate without errors
-            expect($plan['executive_summary']['overall_score'])->toBeGreaterThan(0);
+            expect($plan['executive_summary']['health_status'])->toBeString();
             expect($plan['risk_assessment']['risk_level'])->toBeString();
         });
     });

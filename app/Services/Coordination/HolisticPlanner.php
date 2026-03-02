@@ -12,6 +12,10 @@ namespace App\Services\Coordination;
  */
 class HolisticPlanner
 {
+    public function __construct(
+        private readonly \App\Services\Plans\PlanConfigService $planConfig
+    ) {}
+
     /**
      * Create holistic financial plan
      *
@@ -53,7 +57,7 @@ class HolisticPlanner
             'key_strengths' => $strengths,
             'key_vulnerabilities' => $vulnerabilities,
             'top_priorities' => $priorities,
-            'overall_score' => $this->calculateOverallScore($plan),
+            'health_status' => $this->getHealthStatus($plan),
         ];
     }
 
@@ -67,13 +71,12 @@ class HolisticPlanner
     public function projectNetWorthTrajectory(array $allData, int $years): array
     {
         $currentNetWorth = $allData['estate']['net_worth'] ?? 0;
-        $projections = [];
 
         // Baseline: current trajectory without recommendations
-        $baselineProjections = $this->projectBaseline($allData, $years, $currentNetWorth);
+        $baselineProjections = $this->projectNetWorth($allData, $years, $currentNetWorth, $this->planConfig->getDefaultGrowthRate());
 
         // Optimized: trajectory with recommendations implemented
-        $optimizedProjections = $this->projectOptimized($allData, $years, $currentNetWorth);
+        $optimizedProjections = $this->projectNetWorth($allData, $years, $currentNetWorth, $this->planConfig->getOptimisedGrowthRate());
 
         return [
             'current_net_worth' => $currentNetWorth,
@@ -101,14 +104,12 @@ class HolisticPlanner
                 'area' => 'Protection',
                 'severity' => 'high',
                 'description' => 'Significant protection gap exposes family to financial hardship.',
-                'score' => $protectionAdequacy,
             ];
         } elseif ($protectionAdequacy < 75) {
             $riskAreas[] = [
                 'area' => 'Protection',
                 'severity' => 'medium',
                 'description' => 'Protection coverage could be improved.',
-                'score' => $protectionAdequacy,
             ];
         }
 
@@ -119,7 +120,7 @@ class HolisticPlanner
                 'area' => 'Emergency Fund',
                 'severity' => 'high',
                 'description' => 'Insufficient emergency fund creates cashflow risk.',
-                'score' => ($emergencyFundMonths / 6) * 100,
+                'emergency_fund_months' => $emergencyFundMonths,
             ];
         }
 
@@ -148,7 +149,6 @@ class HolisticPlanner
                     'area' => 'Investment',
                     'severity' => $warning['severity'] ?? 'medium',
                     'description' => $warning['description'] ?? 'Investment risk identified.',
-                    'score' => $warning['score'] ?? 50,
                 ];
             }
         }
@@ -159,8 +159,8 @@ class HolisticPlanner
             $riskAreas[] = [
                 'area' => 'Inheritance Tax',
                 'severity' => 'medium',
-                'description' => 'Significant IHT liability on death.',
-                'score' => 50,
+                'description' => 'Significant Inheritance Tax liability on death.',
+                'iht_liability' => $ihtLiability,
             ];
         }
 
@@ -178,7 +178,6 @@ class HolisticPlanner
                         'area' => 'Goals',
                         'severity' => 'medium',
                         'description' => "{$behindCount} of {$totalActive} goals are behind schedule.",
-                        'score' => 50,
                     ];
                 }
             }
@@ -188,16 +187,14 @@ class HolisticPlanner
                     'area' => 'Goal Affordability',
                     'severity' => 'medium',
                     'description' => 'Goal commitments exceed available savings capacity.',
-                    'score' => 45,
                 ];
             }
         }
 
-        $overallRiskScore = $this->calculateOverallRiskScore($allAnalysis);
+        $riskLevel = $this->getRiskLevel($this->calculateOverallRiskScore($allAnalysis));
 
         return [
-            'overall_risk_score' => $overallRiskScore,
-            'risk_level' => $this->getRiskLevel($overallRiskScore),
+            'risk_level' => $riskLevel,
             'risk_areas' => $riskAreas,
             'total_risk_areas' => count($riskAreas),
         ];
@@ -229,7 +226,6 @@ class HolisticPlanner
         return [
             'protection' => [
                 'status' => $this->getModuleStatus($allAnalysis['protection']['adequacy_score'] ?? 0),
-                'adequacy_score' => $allAnalysis['protection']['adequacy_score'] ?? 0,
                 'coverage_gap' => $allAnalysis['protection']['coverage_gap'] ?? 0,
                 'key_message' => $this->getProtectionMessage($allAnalysis['protection'] ?? []),
             ],
@@ -274,7 +270,6 @@ class HolisticPlanner
             $strengths[] = [
                 'area' => 'Protection',
                 'description' => 'Excellent protection coverage in place.',
-                'score' => $plan['protection']['adequacy_score'],
             ];
         }
 
@@ -283,7 +278,6 @@ class HolisticPlanner
             $strengths[] = [
                 'area' => 'Emergency Fund',
                 'description' => 'Strong emergency fund provides financial resilience.',
-                'score' => 100,
             ];
         }
 
@@ -302,7 +296,6 @@ class HolisticPlanner
             $strengths[] = [
                 'area' => 'Investment',
                 'description' => 'Well-diversified investment portfolio.',
-                'score' => $plan['investment']['diversification_score'],
             ];
         }
 
@@ -311,7 +304,6 @@ class HolisticPlanner
             $strengths[] = [
                 'area' => 'Net Worth',
                 'description' => 'Strong positive net worth position.',
-                'score' => 85,
             ];
         }
 
@@ -331,7 +323,6 @@ class HolisticPlanner
                 'area' => 'Protection',
                 'severity' => 'high',
                 'description' => 'Significant protection gap exposes family to financial risk.',
-                'score' => $plan['protection']['adequacy_score'],
             ];
         }
 
@@ -341,7 +332,6 @@ class HolisticPlanner
                 'area' => 'Emergency Fund',
                 'severity' => 'high',
                 'description' => 'Insufficient emergency reserves.',
-                'score' => ($plan['savings']['emergency_fund_months'] ?? 0) / 6 * 100,
             ];
         }
 
@@ -361,8 +351,7 @@ class HolisticPlanner
             $vulnerabilities[] = [
                 'area' => 'Inheritance Tax',
                 'severity' => 'medium',
-                'description' => 'Significant IHT liability on death.',
-                'score' => 50,
+                'description' => 'Significant Inheritance Tax liability on death.',
             ];
         }
 
@@ -372,7 +361,6 @@ class HolisticPlanner
                 'area' => 'Debt',
                 'severity' => 'medium',
                 'description' => 'High debt relative to net worth.',
-                'score' => 40,
             ];
         }
 
@@ -424,17 +412,29 @@ class HolisticPlanner
     private function generateOverviewText(array $plan): string
     {
         $netWorth = $plan['estate']['net_worth'] ?? 0;
-        $overallScore = $this->calculateOverallScore($plan);
+        $healthStatus = $this->getHealthStatus($plan);
 
-        if ($overallScore >= 80) {
-            return 'Your overall financial position is strong with a net worth of £'.number_format($netWorth, 0).'. Continue your current strategy with minor optimizations.';
-        } elseif ($overallScore >= 60) {
-            return 'Your financial position is generally good with a net worth of £'.number_format($netWorth, 0).', but there are areas for improvement.';
-        } elseif ($overallScore >= 40) {
-            return 'Your financial position needs attention. With a net worth of £'.number_format($netWorth, 0).', focus on addressing key vulnerabilities.';
-        } else {
-            return 'Your financial position requires immediate action. Priority should be given to protection and emergency fund.';
-        }
+        return match ($healthStatus) {
+            'strong' => 'Your overall financial position is strong with a net worth of £'.number_format($netWorth, 0).'. Continue your current strategy with minor optimisations.',
+            'good' => 'Your financial position is generally good with a net worth of £'.number_format($netWorth, 0).', but there are areas for improvement.',
+            'needs_attention' => 'Your financial position needs attention. With a net worth of £'.number_format($netWorth, 0).', focus on addressing key vulnerabilities.',
+            default => 'Your financial position requires immediate action. Priority should be given to protection and emergency fund.',
+        };
+    }
+
+    /**
+     * Get overall health status as a descriptive label (not a score).
+     */
+    private function getHealthStatus(array $plan): string
+    {
+        $internalScore = $this->calculateOverallScore($plan);
+
+        return match (true) {
+            $internalScore >= 80 => 'strong',
+            $internalScore >= 60 => 'good',
+            $internalScore >= 40 => 'needs_attention',
+            default => 'requires_action',
+        };
     }
 
     /**
@@ -458,37 +458,13 @@ class HolisticPlanner
     }
 
     /**
-     * Project baseline net worth (current trajectory)
+     * Project net worth trajectory at a given growth rate.
      */
-    private function projectBaseline(array $allData, int $years, float $currentNetWorth): array
+    private function projectNetWorth(array $allData, int $years, float $currentNetWorth, float $growthRate): array
     {
         $projections = [];
         $netWorth = $currentNetWorth;
         $annualSavings = ($allData['estate']['monthly_surplus'] ?? 0) * 12;
-        $growthRate = 0.04; // 4% average growth
-
-        for ($year = 0; $year <= $years; $year++) {
-            $projections[] = [
-                'year' => $year,
-                'age' => ($allData['user']['age'] ?? 30) + $year,
-                'value' => round($netWorth, 2),
-            ];
-
-            $netWorth = ($netWorth + $annualSavings) * (1 + $growthRate);
-        }
-
-        return $projections;
-    }
-
-    /**
-     * Project optimized net worth (with recommendations)
-     */
-    private function projectOptimized(array $allData, int $years, float $currentNetWorth): array
-    {
-        $projections = [];
-        $netWorth = $currentNetWorth;
-        $annualSavings = ($allData['estate']['monthly_surplus'] ?? 0) * 12;
-        $growthRate = 0.06; // 6% with optimized strategy
 
         for ($year = 0; $year <= $years; $year++) {
             $projections[] = [

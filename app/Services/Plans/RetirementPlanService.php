@@ -49,17 +49,14 @@ class RetirementPlanService extends BasePlanService
         }
 
         $currentSituation = $this->buildCurrentSituation($data, $userId);
-        $recommendations = $this->getRecommendations($userId);
+        $recommendations = $this->getRecommendations($userId, $data);
         $goals = $this->getGoalsForPlan($userId, 'retirement');
         $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
         $allRecs = array_merge($goalRecommendations, $recommendations);
-        $actions = $this->structureActions($allRecs, 'retirement');
-        $actions = $this->applyActionFilter($actions, $options);
-        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+        ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'retirement', $options);
 
-        // Compute years to retirement for projections
-        $profile = RetirementProfile::where('user_id', $userId)->first();
-        $yearsToRetirement = $profile ? max(0, $profile->target_retirement_age - $profile->current_age) : 0;
+        // Use years_to_retirement from analysis (computed from live date_of_birth, not stale stored age)
+        $yearsToRetirement = max(0, (int) ($data['summary']['years_to_retirement'] ?? 0));
 
         $dcPensions = DCPension::where('user_id', $userId)->get();
         $pensionProjections = $this->buildPensionGrowthProjections($user, $actions, $dcPensions, $yearsToRetirement);
@@ -81,10 +78,14 @@ class RetirementPlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId): array
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
-        $analysis = $this->retirementAgent->analyze($userId);
-        $data = $analysis['data'] ?? [];
+        $data = $preComputedData;
+
+        if ($data === null) {
+            $analysis = $this->retirementAgent->analyze($userId);
+            $data = $analysis['data'] ?? [];
+        }
 
         if (empty($data)) {
             return [];
@@ -158,7 +159,7 @@ class RetirementPlanService extends BasePlanService
 
     private function buildExecutiveSummary(User $user, array $data, int $userId): array
     {
-        $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
+        $firstName = $this->getUserFirstName($user);
         $summary = $data['summary'] ?? [];
         $projectedIncome = $summary['projected_retirement_income'] ?? 0;
         $targetIncome = $summary['target_retirement_income'] ?? 0;
@@ -288,14 +289,16 @@ class RetirementPlanService extends BasePlanService
                     }
                 } else {
                     $lines[] = sprintf(
-                        'Based on your current arrangements, your projected retirement income is %s per year, leaving a shortfall of %s per year against your target. The recommendations below outline steps to close this gap.',
+                        'Based on your current arrangements, your projected retirement income is %s per year, leaving a shortfall of %s per year against your target.',
                         $this->formatCurrency($projectedIncome),
                         $this->formatCurrency($incomeGap)
                     );
                 }
             }
 
-            $lines[] = 'The recommendations below outline steps to close this gap.';
+            if ($incomeGap > 0) {
+                $lines[] = 'The recommendations below outline steps to close this gap.';
+            }
         }
 
         // Employer contributions
@@ -513,22 +516,11 @@ class RetirementPlanService extends BasePlanService
     }
 
     /**
-     * Project DC pension value: FV = PV*(1+r)^n + PMT*((1+r)^n - 1)/r
+     * Project DC pension value using the shared FV calculation.
      */
     private function projectDcValue(float $currentValue, float $monthlyExtra, int $years): float
     {
-        if ($years <= 0) {
-            return $currentValue;
-        }
-
-        $monthlyRate = $this->planConfig->getDefaultGrowthRate() / 12;
-        $months = $years * 12;
-        $fv = $currentValue * pow(1 + $monthlyRate, $months);
-        if ($monthlyExtra > 0 && $monthlyRate > 0) {
-            $fv += $monthlyExtra * ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
-        }
-
-        return $fv;
+        return $this->projectFutureValue($currentValue, $this->planConfig->getDefaultGrowthRate(), $years, $monthlyExtra);
     }
 
     /**

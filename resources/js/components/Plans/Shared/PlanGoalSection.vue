@@ -21,9 +21,9 @@
               <h4 class="text-sm font-semibold text-gray-900 leading-snug">{{ goal.name }}</h4>
               <span class="text-xs text-gray-500 mt-0.5 block">{{ goal.display_type }}</span>
             </div>
-            <span class="goal-status-badge" :class="statusBadgeClass(goal)">
-              <span class="status-dot" :class="statusDotClass(goal)"></span>
-              {{ statusLabel(goal) }}
+            <span class="goal-status-badge" :class="goalStatus(goal).badge">
+              <span class="status-dot" :class="goalStatus(goal).dot"></span>
+              {{ goalStatus(goal).label }}
             </span>
           </div>
 
@@ -126,34 +126,14 @@ export default {
   },
 
   methods: {
-    statusBadgeClass(goal) {
+    goalStatus(goal) {
       if (goal.progress_percentage >= 100) {
-        return 'badge-complete';
+        return { badge: 'badge-complete', dot: 'dot-complete', label: 'Complete' };
       }
       if (goal.is_on_track) {
-        return 'badge-on-track';
+        return { badge: 'badge-on-track', dot: 'dot-on-track', label: 'On track' };
       }
-      return 'badge-behind';
-    },
-
-    statusDotClass(goal) {
-      if (goal.progress_percentage >= 100) {
-        return 'dot-complete';
-      }
-      if (goal.is_on_track) {
-        return 'dot-on-track';
-      }
-      return 'dot-behind';
-    },
-
-    statusLabel(goal) {
-      if (goal.progress_percentage >= 100) {
-        return 'Complete';
-      }
-      if (goal.is_on_track) {
-        return 'On track';
-      }
-      return 'Behind';
+      return { badge: 'badge-behind', dot: 'dot-behind', label: 'Behind' };
     },
   },
 };

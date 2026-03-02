@@ -206,17 +206,13 @@ class CoordinatingAgent extends BaseAgent
     {
         $analysis = [];
 
-        // Protection Module
-        try {
+        $analysis['protection'] = $this->safeModuleAnalysis('Protection', function () use ($userId) {
             $protectionResult = $this->protectionAgent->analyze($userId);
-            $analysis['protection'] = $this->mapProtectionAnalysis($protectionResult);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Protection analysis failed: '.$e->getMessage());
-            $analysis['protection'] = $this->getDefaultProtectionAnalysis();
-        }
 
-        // Savings Module
-        try {
+            return $this->mapProtectionAnalysis($protectionResult);
+        }, fn () => $this->getDefaultModuleAnalysis(['adequacy_score' => 0, 'coverage_gap' => 0]));
+
+        $analysis['savings'] = $this->safeModuleAnalysis('Savings', function () use ($userId) {
             $savingsResult = $this->savingsAgent->analyze($userId);
             $savingsRecs = [];
 
@@ -226,13 +222,10 @@ class CoordinatingAgent extends BaseAgent
                 // Recommendations generation is non-critical
             }
 
-            $analysis['savings'] = $this->mapSavingsAnalysis($savingsResult, $savingsRecs);
-        } catch (\Exception $e) {
-            $analysis['savings'] = $this->getDefaultSavingsAnalysis();
-        }
+            return $this->mapSavingsAnalysis($savingsResult, $savingsRecs);
+        }, fn () => $this->getDefaultModuleAnalysis(['total_savings' => 0, 'emergency_fund_months' => 0]));
 
-        // Investment Module
-        try {
+        $analysis['investment'] = $this->safeModuleAnalysis('Investment', function () use ($userId) {
             $investmentResult = $this->investmentAgent->analyze($userId);
             $investmentRecs = [];
 
@@ -245,13 +238,13 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
-            $analysis['investment'] = $this->mapInvestmentAnalysis($investmentResult, $investmentRecs);
-        } catch (\Exception $e) {
-            $analysis['investment'] = $this->getDefaultInvestmentAnalysis();
-        }
+            return $this->mapInvestmentAnalysis($investmentResult, $investmentRecs);
+        }, fn () => $this->getDefaultModuleAnalysis([
+            'total_portfolio_value' => 0, 'diversification_score' => 0,
+            'portfolio_health_score' => 70, 'annual_return_percent' => 0, 'risk_warnings' => [],
+        ]));
 
-        // Retirement Module
-        try {
+        $analysis['retirement'] = $this->safeModuleAnalysis('Retirement', function () use ($userId) {
             $retirementResult = $this->retirementAgent->analyze($userId);
             $retirementData = $retirementResult['data'] ?? $retirementResult;
             $retirementRecs = [];
@@ -265,32 +258,26 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
-            $analysis['retirement'] = $this->mapRetirementAnalysis($retirementResult, $retirementRecs);
-        } catch (\Exception $e) {
-            $analysis['retirement'] = $this->getDefaultRetirementAnalysis();
-        }
+            return $this->mapRetirementAnalysis($retirementResult, $retirementRecs);
+        }, fn () => $this->getDefaultModuleAnalysis([
+            'total_pension_value' => 0, 'projected_annual_income' => 0,
+            'target_income' => 0, 'income_gap' => 0,
+        ]));
 
-        // Estate Module
-        try {
+        $analysis['estate'] = $this->safeModuleAnalysis('Estate', function () use ($userId) {
             $estateResult = $this->estateAgent->analyze($userId);
             $estateData = $estateResult['data'] ?? [];
             $estateRecs = [];
 
-            // Generate estate recommendations if analysis succeeded
             if ($estateResult['success'] ?? false) {
                 $recsResult = $this->estateAgent->generateRecommendations($estateResult);
                 $estateRecs = $recsResult['data']['recommendations'] ?? [];
             }
 
-            // Map to flat format expected by HolisticPlanner
-            $analysis['estate'] = $this->mapEstateAnalysis($estateData, $estateRecs, $userId);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Estate analysis failed: '.$e->getMessage());
-            $analysis['estate'] = $this->getDefaultEstateAnalysis($userId);
-        }
+            return $this->mapEstateAnalysis($estateData, $estateRecs, $userId);
+        }, fn () => $this->getDefaultEstateAnalysis($userId));
 
-        // Goals Module
-        try {
+        $analysis['goals'] = $this->safeModuleAnalysis('Goals', function () use ($userId) {
             $goalsResult = $this->goalsAgent->analyze($userId);
             $goalsRecs = [];
 
@@ -299,13 +286,8 @@ class CoordinatingAgent extends BaseAgent
                 $goalsRecs = $goalsRecsResult['recommendations'] ?? [];
             }
 
-            $analysis['goals'] = array_merge($goalsResult, [
-                'recommendations' => $goalsRecs,
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Goals analysis failed: '.$e->getMessage());
-            $analysis['goals'] = ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed'];
-        }
+            return array_merge($goalsResult, ['recommendations' => $goalsRecs]);
+        }, fn () => ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed']);
 
         // User context
         $user = \App\Models\User::find($userId);
@@ -314,6 +296,32 @@ class CoordinatingAgent extends BaseAgent
         ];
 
         return $analysis;
+    }
+
+    /**
+     * Safely run a module analysis with error handling.
+     */
+    private function safeModuleAnalysis(string $module, callable $analyzer, callable $defaultProvider): array
+    {
+        try {
+            return $analyzer();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("{$module} analysis failed: ".$e->getMessage());
+
+            return $defaultProvider();
+        }
+    }
+
+    /**
+     * Build a default analysis result for a failed module.
+     */
+    private function getDefaultModuleAnalysis(array $fields): array
+    {
+        return array_merge($fields, [
+            'recommendations' => [],
+            'full_analysis' => [],
+            'error' => 'Analysis failed',
+        ]);
     }
 
     /**
@@ -531,67 +539,6 @@ class CoordinatingAgent extends BaseAgent
             'nrb_available' => 0,
             'rnrb_available' => 0,
             'has_spouse' => false,
-            'recommendations' => [],
-            'full_analysis' => [],
-            'error' => 'Analysis failed',
-        ];
-    }
-
-    /**
-     * Get default protection analysis when ProtectionAgent fails.
-     */
-    private function getDefaultProtectionAnalysis(): array
-    {
-        return [
-            'adequacy_score' => 0,
-            'coverage_gap' => 0,
-            'recommendations' => [],
-            'full_analysis' => [],
-            'error' => 'Analysis failed',
-        ];
-    }
-
-    /**
-     * Get default savings analysis when SavingsAgent fails.
-     */
-    private function getDefaultSavingsAnalysis(): array
-    {
-        return [
-            'total_savings' => 0,
-            'emergency_fund_months' => 0,
-            'recommendations' => [],
-            'full_analysis' => [],
-            'error' => 'Analysis failed',
-        ];
-    }
-
-    /**
-     * Get default investment analysis when InvestmentAgent fails.
-     */
-    private function getDefaultInvestmentAnalysis(): array
-    {
-        return [
-            'total_portfolio_value' => 0,
-            'diversification_score' => 0,
-            'portfolio_health_score' => 70,
-            'annual_return_percent' => 0,
-            'risk_warnings' => [],
-            'recommendations' => [],
-            'full_analysis' => [],
-            'error' => 'Analysis failed',
-        ];
-    }
-
-    /**
-     * Get default retirement analysis when RetirementAgent fails.
-     */
-    private function getDefaultRetirementAnalysis(): array
-    {
-        return [
-            'total_pension_value' => 0,
-            'projected_annual_income' => 0,
-            'target_income' => 0,
-            'income_gap' => 0,
             'recommendations' => [],
             'full_analysis' => [],
             'error' => 'Analysis failed',

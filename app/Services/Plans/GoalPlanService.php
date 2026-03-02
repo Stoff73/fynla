@@ -45,9 +45,7 @@ class GoalPlanService extends BasePlanService
 
         $currentSituation = $this->buildCurrentSituation($goal, $progress, $affordability);
         $recommendations = $this->getRecommendations($userId, $goalId);
-        $actions = $this->structureActions($recommendations, 'goal');
-        $actions = $this->applyActionFilter($actions, $options);
-        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+        ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'goal', $options);
 
         $whatIf = $this->buildWhatIfData($user, $goal, $progress, $affordability, $enabledActions);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'goal');
@@ -148,10 +146,10 @@ class GoalPlanService extends BasePlanService
         }
 
         $total = 3;
-        $present = $total - count($missing);
+        $present = max(0, $total - count($missing));
 
         return [
-            'percentage' => round(($present / $total) * 100),
+            'percentage' => (int) round(($present / $total) * 100),
             'missing' => $missing,
             'complete' => empty($missing),
         ];
@@ -159,7 +157,7 @@ class GoalPlanService extends BasePlanService
 
     private function buildExecutiveSummary(User $user, Goal $goal, array $progress, array $affordability): array
     {
-        $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
+        $firstName = $this->getUserFirstName($user);
         $targetAmount = (float) $goal->target_amount;
         $currentAmount = (float) $goal->current_amount;
         $remaining = max(0, $targetAmount - $currentAmount);

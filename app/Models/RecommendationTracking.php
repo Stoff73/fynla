@@ -21,6 +21,7 @@ class RecommendationTracking extends Model
         'module',
         'recommendation_text',
         'priority_score',
+        'recommended_amount',
         'timeline',
         'status',
         'completed_at',
@@ -29,6 +30,7 @@ class RecommendationTracking extends Model
 
     protected $casts = [
         'priority_score' => 'float',
+        'recommended_amount' => 'float',
         'completed_at' => 'datetime',
     ];
 

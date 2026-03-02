@@ -213,40 +213,29 @@ export default {
       await this.loadPlan();
     },
 
-    async handleMarkDone(recommendationId) {
+    async handleRecommendationAction(action, payload, successMsg, errorMsg) {
       try {
-        await this.markRecommendationDone(recommendationId);
-        this.$toast?.success('Recommendation marked as completed');
+        await action(payload);
+        this.$toast?.success(successMsg);
       } catch (error) {
-        this.$toast?.error('Failed to update recommendation');
+        this.$toast?.error(errorMsg);
       }
     },
 
-    async handleMarkInProgress(recommendationId) {
-      try {
-        await this.markRecommendationInProgress(recommendationId);
-        this.$toast?.success('Recommendation marked as in progress');
-      } catch (error) {
-        this.$toast?.error('Failed to update recommendation');
-      }
+    handleMarkDone(id) {
+      this.handleRecommendationAction(this.markRecommendationDone, id, 'Recommendation marked as completed', 'Failed to update recommendation');
     },
 
-    async handleDismiss(recommendationId) {
-      try {
-        await this.dismissRecommendation(recommendationId);
-        this.$toast?.success('Recommendation dismissed');
-      } catch (error) {
-        this.$toast?.error('Failed to dismiss recommendation');
-      }
+    handleMarkInProgress(id) {
+      this.handleRecommendationAction(this.markRecommendationInProgress, id, 'Recommendation marked as in progress', 'Failed to update recommendation');
     },
 
-    async handleUpdateNotes({ id, notes }) {
-      try {
-        await this.updateRecommendationNotes({ id, notes });
-        this.$toast?.success('Notes updated successfully');
-      } catch (error) {
-        this.$toast?.error('Failed to update notes');
-      }
+    handleDismiss(id) {
+      this.handleRecommendationAction(this.dismissRecommendation, id, 'Recommendation dismissed', 'Failed to dismiss recommendation');
+    },
+
+    handleUpdateNotes(payload) {
+      this.handleRecommendationAction(this.updateRecommendationNotes, payload, 'Notes updated successfully', 'Failed to update notes');
     },
   },
 };

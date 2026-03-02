@@ -50,13 +50,11 @@ class InvestmentPlanService extends BasePlanService
             $savingsAccounts
         );
 
-        $recommendations = $this->getRecommendations($userId);
+        $recommendations = $this->getRecommendations($userId, $investmentAnalysis, $savingsAnalysis, $investmentAccounts);
         $goals = $this->getGoalsForPlan($userId, 'investment');
         $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
         $allRecs = array_merge($goalRecommendations, $recommendations);
-        $actions = $this->structureActions($allRecs, 'investment');
-        $actions = $this->applyActionFilter($actions, $options);
-        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+        ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'investment', $options);
 
         $userAge = $user->date_of_birth ? (int) \Carbon\Carbon::parse($user->date_of_birth)->age : null;
         $retirementAge = $user->target_retirement_age ? (int) $user->target_retirement_age : null;
@@ -83,12 +81,12 @@ class InvestmentPlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId): array
+    public function getRecommendations(int $userId, ?array $investmentAnalysis = null, ?array $savingsAnalysis = null, $investmentAccounts = null): array
     {
-        $investmentAnalysis = $this->investmentAgent->analyze($userId);
-        $savingsAnalysis = $this->savingsAgent->analyze($userId);
+        $investmentAnalysis ??= $this->investmentAgent->analyze($userId);
+        $savingsAnalysis ??= $this->savingsAgent->analyze($userId);
 
-        $investmentAccounts = InvestmentAccount::where('user_id', $userId)
+        $investmentAccounts ??= InvestmentAccount::where('user_id', $userId)
             ->orWhere('joint_owner_id', $userId)
             ->with('holdings')
             ->get();
@@ -196,7 +194,7 @@ class InvestmentPlanService extends BasePlanService
         $investmentAccounts,
         $savingsAccounts
     ): array {
-        $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'there';
+        $firstName = $this->getUserFirstName($user);
         $totalInvestmentValue = $investmentAccounts->sum('current_value');
         $totalSavingsValue = $savingsAccounts->sum('current_balance');
         $totalWealth = $totalInvestmentValue + $totalSavingsValue;
@@ -678,9 +676,7 @@ class InvestmentPlanService extends BasePlanService
             $category = strtolower($action['category'] ?? '');
 
             if (str_contains($category, 'platform')) {
-                $currentPlatformPercent = $accountValue > 0
-                    ? (($feeAnalysis['fees']['platform_fee'] ?? 0) / $accountValue) * 100
-                    : 0;
+                $currentPlatformPercent = (($feeAnalysis['fees']['platform_fee'] ?? 0) / $accountValue) * 100;
                 $totalReduction += max(0, $currentPlatformPercent - $this->planConfig->getPlatformFeeBenchmark());
             } elseif (str_contains($category, 'high fee') || str_contains($category, 'fees')) {
                 $currentOcf = $feeAnalysis['weighted_ocf'] ?? 0;
@@ -692,19 +688,10 @@ class InvestmentPlanService extends BasePlanService
     }
 
     /**
-     * Simple future value projection: FV = PV*(1+r)^n + PMT*((1+r)^n - 1)/r
+     * Simple future value projection using the shared FV calculation.
      */
     private function projectValue(float $presentValue, float $rate, int $years, float $monthlyContribution): float
     {
-        if ($rate <= 0) {
-            return $presentValue + ($monthlyContribution * 12 * $years);
-        }
-
-        $monthlyRate = $rate / 12;
-        $months = $years * 12;
-        $fvLumpSum = $presentValue * pow(1 + $monthlyRate, $months);
-        $fvContributions = $monthlyContribution * ((pow(1 + $monthlyRate, $months) - 1) / $monthlyRate);
-
-        return $fvLumpSum + $fvContributions;
+        return $this->projectFutureValue($presentValue, $rate, $years, $monthlyContribution);
     }
 }

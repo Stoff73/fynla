@@ -65,14 +65,22 @@ const mutations = {
       [planKey]: { ...current, [actionId]: newState },
     };
 
-    // Update the plan's action enabled state for UI reactivity
+    // Replace the plan object in state for Vue reactivity (not just nested mutation)
     const plan = planKey.startsWith('goal_')
       ? state.goalPlans[planKey.replace('goal_', '')]
       : state.plans[planKey];
     if (plan && plan.actions) {
-      plan.actions = plan.actions.map(a =>
-        a.id === actionId ? { ...a, enabled: newState } : a
-      );
+      const updatedPlan = {
+        ...plan,
+        actions: plan.actions.map(a =>
+          a.id === actionId ? { ...a, enabled: newState } : a
+        ),
+      };
+      if (planKey.startsWith('goal_')) {
+        state.goalPlans = { ...state.goalPlans, [planKey.replace('goal_', '')]: updatedPlan };
+      } else {
+        state.plans = { ...state.plans, [planKey]: updatedPlan };
+      }
     }
   },
 
