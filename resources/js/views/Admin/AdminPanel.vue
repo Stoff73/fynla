@@ -63,6 +63,9 @@
 
         <!-- Investment Actions Tab -->
         <AdminInvestmentActions v-if="activeTab === 'investment-actions'" />
+
+        <!-- Protection Actions Tab -->
+        <AdminProtectionActions v-if="activeTab === 'protection-actions'" />
       </div>
     </div>
   </AppLayout>
@@ -77,6 +80,7 @@ import DatabaseBackup from '../../components/Admin/DatabaseBackup.vue';
 import TaxSettings from '../../components/Admin/TaxSettings.vue';
 import AdminRetirementActions from '../../components/Admin/AdminRetirementActions.vue';
 import AdminInvestmentActions from '../../components/Admin/AdminInvestmentActions.vue';
+import AdminProtectionActions from '../../components/Admin/AdminProtectionActions.vue';
 
 export default {
   name: 'AdminPanel',
@@ -89,6 +93,7 @@ export default {
     TaxSettings,
     AdminRetirementActions,
     AdminInvestmentActions,
+    AdminProtectionActions,
   },
 
   data() {
@@ -119,6 +124,10 @@ export default {
           id: 'investment-actions',
           label: 'Investment Actions',
         },
+        {
+          id: 'protection-actions',
+          label: 'Protection Actions',
+        },
       ],
     };
   },
@@ -136,6 +145,7 @@ export default {
         'tax-settings': 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
         'retirement-actions': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
         'investment-actions': 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+        'protection-actions': 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
       };
       return icons[tabId] || '';
     },
@@ -148,6 +158,7 @@ export default {
         'tax-settings': 'Tax',
         'retirement-actions': 'Retire',
         'investment-actions': 'Invest',
+        'protection-actions': 'Protect',
       };
       return labels[tabId] || tabId;
     },

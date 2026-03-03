@@ -264,73 +264,8 @@ describe('Savings Integration Tests', function () {
         });
     });
 
-    describe('Create goal flow', function () {
-        it('creates savings goal and tracks progress', function () {
-            $user = User::factory()->create();
-
-            $goalData = [
-                'goal_name' => 'Emergency Fund',
-                'target_amount' => 18000,
-                'current_saved' => 0,
-                'target_date' => now()->addMonths(12)->format('Y-m-d'),
-                'priority' => 'high',
-            ];
-
-            $createResponse = $this->actingAs($user)->postJson('/api/savings/goals', $goalData);
-
-            $createResponse->assertCreated()
-                ->assertJsonStructure([
-                    'success',
-                    'message',
-                    'data' => ['id', 'goal_name', 'target_amount'],
-                ]);
-
-            $goalId = $createResponse->json('data.id');
-
-            // Verify goal exists
-            $goal = SavingsGoal::find($goalId);
-            expect($goal)->not->toBeNull();
-            expect($goal->goal_name)->toBe('Emergency Fund');
-            expect($goal->target_amount)->toBe('18000.00');
-        });
-    });
-
-    describe('Update goal progress', function () {
-        it('updates goal progress and recalculates status', function () {
-            $user = User::factory()->create();
-
-            $goal = SavingsGoal::factory()->create([
-                'user_id' => $user->id,
-                'goal_name' => 'Holiday Fund',
-                'target_amount' => 5000,
-                'current_saved' => 1000,
-                'target_date' => now()->addMonths(10),
-            ]);
-
-            // Update progress (sets the amount, not adds to it)
-            $updateResponse = $this->actingAs($user)->patchJson("/api/savings/goals/{$goal->id}/progress", [
-                'amount' => 1500,
-            ]);
-
-            $updateResponse->assertOk()
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Goal progress updated successfully',
-                ]);
-
-            // Verify update
-            $goal->refresh();
-            expect($goal->current_saved)->toBe('1500.00');
-
-            // Verify in full data fetch
-            $fetchResponse = $this->actingAs($user)->getJson('/api/savings');
-            $goals = $fetchResponse->json('data.goals');
-
-            $updatedGoal = collect($goals)->firstWhere('id', $goal->id);
-            // API returns floats for currency
-            expect((float) $updatedGoal['current_saved'])->toBe(1500.0);
-        });
-    });
+    // Savings goal CRUD routes deprecated since v0.7.0
+    // Goals are now managed via unified Goals module: /api/goals?module=savings
 
     describe('Authorization checks', function () {
         it('prevents users from accessing other users data', function () {
@@ -338,22 +273,15 @@ describe('Savings Integration Tests', function () {
             $user2 = User::factory()->create();
 
             $account = SavingsAccount::factory()->create(['user_id' => $user1->id]);
-            $goal = SavingsGoal::factory()->create(['user_id' => $user1->id]);
 
-            // User 2 tries to access user 1's data
+            // User 2 tries to access user 1's account
             $accountResponse = $this->actingAs($user2)->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 99999,
             ]);
             $accountResponse->assertNotFound();
 
-            $goalResponse = $this->actingAs($user2)->patchJson("/api/savings/goals/{$goal->id}/progress", [
-                'amount' => 9999,
-            ]);
-            $goalResponse->assertNotFound();
-
             // Verify data not modified
             expect($account->fresh()->current_balance)->toBe($account->current_balance);
-            expect($goal->fresh()->current_saved)->toBe($goal->current_saved);
         });
     });
 
@@ -393,31 +321,12 @@ describe('Savings Integration Tests', function () {
                 'access_type' => 'immediate',
                 'is_isa' => true,
                 'isa_type' => 'cash',
-                'isa_subscription_year' => '2025/26', // Current tax year
+                'isa_subscription_year' => '2025/26',
                 'isa_subscription_amount' => 5000,
             ]);
             $account2->assertCreated();
 
-            // Step 3: Create savings goals
-            $goal1 = $this->actingAs($user)->postJson('/api/savings/goals', [
-                'goal_name' => 'Emergency Fund',
-                'target_amount' => 18000,
-                'current_saved' => 10000,
-                'target_date' => now()->addMonths(12)->format('Y-m-d'),
-                'priority' => 'high',
-            ]);
-            $goal1->assertCreated();
-
-            $goal2 = $this->actingAs($user)->postJson('/api/savings/goals', [
-                'goal_name' => 'House Deposit',
-                'target_amount' => 50000,
-                'current_saved' => 5000,
-                'target_date' => now()->addMonths(36)->format('Y-m-d'),
-                'priority' => 'high',
-            ]);
-            $goal2->assertCreated();
-
-            // Step 4: Analyze savings
+            // Step 3: Analyze savings
             $analysis = $this->actingAs($user)->postJson('/api/savings/analyze');
             $analysis->assertOk();
 
@@ -427,24 +336,12 @@ describe('Savings Integration Tests', function () {
             expect($analysisData['isa_allowance']['cash_isa_used'])->toBe(5000);
             expect($analysisData['isa_allowance']['remaining'])->toBe(15000);
 
-            // Step 5: Update goal progress (sets amount to 12000)
-            $goalId = $goal1->json('data.id');
-            $progressUpdate = $this->actingAs($user)->patchJson("/api/savings/goals/{$goalId}/progress", [
-                'amount' => 12000,
-            ]);
-            $progressUpdate->assertOk();
-
-            // Step 6: Verify final state
+            // Step 4: Verify final state
             $finalData = $this->actingAs($user)->getJson('/api/savings');
             $finalData->assertOk();
 
             $final = $finalData->json('data');
             expect($final['accounts'])->toHaveCount(2);
-            expect($final['goals'])->toHaveCount(2);
-
-            // Verify goal progress updated
-            $updatedGoal = collect($final['goals'])->firstWhere('goal_name', 'Emergency Fund');
-            expect((float) $updatedGoal['current_saved'])->toBe(12000.0);
         });
     });
 });

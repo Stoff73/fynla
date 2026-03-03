@@ -228,61 +228,8 @@ describe('Holdings Management', function () {
     });
 });
 
-describe('Investment Goals Management', function () {
-    it('can create an investment goal', function () {
-        $response = $this->postJson('/api/investment/goals', [
-            'goal_name' => 'Retirement Fund',
-            'goal_type' => 'retirement',
-            'target_amount' => 1000000,
-            'target_date' => '2045-12-31',
-            'priority' => 'high',
-            'is_essential' => true,
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'goal_name' => 'Retirement Fund',
-                    'goal_type' => 'retirement',
-                    'target_amount' => 1000000.0,
-                ],
-            ]);
-    });
-
-    it('can update an investment goal', function () {
-        $goal = InvestmentGoal::factory()->create([
-            'user_id' => $this->user->id,
-            'target_amount' => 500000,
-        ]);
-
-        $response = $this->putJson("/api/investment/goals/{$goal->id}", [
-            'target_amount' => 750000,
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'target_amount' => 750000.0,
-                ],
-            ]);
-    });
-
-    it('can delete an investment goal', function () {
-        $goal = InvestmentGoal::factory()->create([
-            'user_id' => $this->user->id,
-        ]);
-
-        $response = $this->deleteJson("/api/investment/goals/{$goal->id}");
-
-        $response->assertStatus(200);
-
-        $this->assertDatabaseMissing('investment_goals', [
-            'id' => $goal->id,
-        ]);
-    });
-});
+// Investment Goals CRUD routes deprecated since v0.7.0
+// Goals are now managed via unified Goals module: /api/goals?module=investment
 
 describe('Risk Profile Management', function () {
     it('can create or update risk profile', function () {
@@ -419,7 +366,7 @@ describe('Portfolio Analysis', function () {
                 'success',
                 'data' => [
                     'recommendations',
-                    'stats',
+                    'recommendation_count',
                 ],
             ]);
     });
