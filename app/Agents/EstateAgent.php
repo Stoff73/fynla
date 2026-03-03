@@ -186,7 +186,6 @@ class EstateAgent extends BaseAgent
                         'marital_status' => $user->marital_status,
                         'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
                         'has_spouse' => $user->spouse !== null,
-                        'has_iht_profile' => $user->ihtProfile !== null,
                     ],
                 ]
             );
@@ -300,20 +299,21 @@ class EstateAgent extends BaseAgent
             ];
         }
 
-        // Recommend completing missing setup items
-        $profile = $data['profile'] ?? [];
-        if (! ($profile['has_iht_profile'] ?? false)) {
+        // Recommend completing missing data only when we lack essentials for a meaningful calculation
+        $grossEstate = (float) ($data['summary']['gross_estate'] ?? 0);
+        $hasDob = ($data['profile']['current_age'] ?? EstateDefaults::DEFAULT_CURRENT_AGE) !== EstateDefaults::DEFAULT_CURRENT_AGE;
+        if ($grossEstate <= 0 || ! $hasDob) {
             $recommendations[] = [
                 'category' => 'planning',
                 'priority' => 'high',
                 'step' => 0,
-                'title' => 'Complete Your Inheritance Tax Profile',
-                'description' => 'Setting up your Inheritance Tax profile allows us to calculate your allowances, spouse exemptions, and projected liability accurately.',
-                'actions' => [
-                    'Complete your Inheritance Tax profile',
-                    'Review beneficiary designations',
+                'title' => 'Add Your Estate Data',
+                'description' => 'We need your date of birth and at least one asset (property, savings, or investment) to calculate your Inheritance Tax position accurately.',
+                'actions' => array_filter([
+                    ! $hasDob ? 'Add your date of birth in your profile' : null,
+                    $grossEstate <= 0 ? 'Add your assets (properties, savings, investments)' : null,
                     'Consider writing or updating your will',
-                ],
+                ]),
             ];
         }
 

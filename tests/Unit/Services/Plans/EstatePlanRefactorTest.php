@@ -672,7 +672,6 @@ function buildMockAnalysis(float $ihtLiability, bool $hasSpouse = false, float $
                 'marital_status' => $hasSpouse ? 'married' : 'single',
                 'has_dependents' => true,
                 'has_spouse' => $hasSpouse,
-                'has_iht_profile' => true,
             ],
             'trust_recommendations' => [],
             'gifting_opportunities' => [],
