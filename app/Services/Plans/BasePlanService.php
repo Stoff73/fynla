@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Traits\FormatsCurrency;
+use App\Traits\ResolvesExpenditure;
 
 abstract class BasePlanService
 {
     use FormatsCurrency;
+    use ResolvesExpenditure;
 
     /**
      * Generate a complete plan for the given user.
@@ -85,7 +89,76 @@ abstract class BasePlanService
             'required_monthly_contribution' => $goal->required_monthly_contribution,
             'linked_savings_account_id' => $goal->linked_savings_account_id,
             'linked_investment_account_id' => $goal->linked_investment_account_id,
+            'description' => $goal->description,
+            'is_essential' => (bool) $goal->is_essential,
+            'funding_source' => $this->resolveFundingSource($goal),
         ];
+    }
+
+    /** Liquid cash account types safe to recommend as a funding source. */
+    private const CASH_ACCOUNT_TYPES = [
+        'current_account',
+        'instant_access',
+        'business_current',
+        'business_savings',
+    ];
+
+    /**
+     * Resolve the best non-tax-event funding source for a goal top-up.
+     *
+     * Priority order:
+     * 1. Liquid cash accounts (current / instant access, non-ISA) — only if
+     *    withdrawal won't breach the 6-month emergency fund threshold.
+     * 2. GIA — with a Capital Gains Tax warning explaining why cash wasn't used.
+     * 3. null — no suitable source found.
+     *
+     * Never recommended: ISA, premium bonds, notice accounts, pensions, VCT/EIS.
+     *
+     * @return array{name: string|null, warning: string|null}
+     */
+    private function resolveFundingSource(Goal $goal): array
+    {
+        $userId = $goal->user_id;
+        $user = User::find($userId);
+        $lumpSumNeeded = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
+
+        // Calculate the 6-month emergency threshold
+        $monthlyExpenditure = $user ? $this->resolveMonthlyExpenditure($user)['amount'] : 0.0;
+        $emergencyThreshold = $monthlyExpenditure * 6;
+
+        // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
+        $cashAccounts = SavingsAccount::where('user_id', $userId)
+            ->where('is_isa', false)
+            ->whereIn('account_type', self::CASH_ACCOUNT_TYPES)
+            ->orderByDesc('current_balance')
+            ->get();
+
+        foreach ($cashAccounts as $account) {
+            $balance = (float) $account->current_balance;
+            $balanceAfterWithdrawal = $balance - $lumpSumNeeded;
+
+            if ($balanceAfterWithdrawal >= $emergencyThreshold) {
+                return [
+                    'name' => $account->account_name ?? $account->institution ?? null,
+                    'warning' => null,
+                ];
+            }
+        }
+
+        // 2. Fall back to GIA only (exclude ISA, pension, VCT, EIS, and employee schemes)
+        $gia = InvestmentAccount::where('user_id', $userId)
+            ->where('account_type', 'gia')
+            ->orderByDesc('current_value')
+            ->first();
+
+        if ($gia) {
+            return [
+                'name' => $gia->account_name ?? $gia->provider ?? null,
+                'warning' => 'Selling investments may trigger a Capital Gains Tax event. Cash accounts were not recommended as withdrawing would reduce your emergency fund below 6 months of expenditure.',
+            ];
+        }
+
+        return ['name' => null, 'warning' => null];
     }
 
     /**
@@ -268,24 +341,38 @@ abstract class BasePlanService
      */
     public function generateDynamicConclusion(array $currentSituation, array $enabledActions, string $planType): array
     {
-        $actionCount = count($enabledActions);
-        $highPriorityCount = collect($enabledActions)->where('priority', 'high')->count();
-        $criticalCount = collect($enabledActions)->where('priority', 'critical')->count();
+        $all = collect($enabledActions);
+        $actionCount = $all->count();
+        $highPriorityCount = $all->where('priority', 'high')->count();
+        $criticalCount = $all->where('priority', 'critical')->count();
+
+        // Split into essential (critical/high) and optional (medium/low)
+        $essential = $all->whereIn('priority', ['critical', 'high'])->values();
+        $optional = $all->whereIn('priority', ['medium', 'low'])->values();
 
         $summaryParts = [];
 
-        if ($criticalCount > 0) {
-            $summaryParts[] = "There are {$criticalCount} critical action(s) that should be addressed immediately.";
+        if ($essential->isNotEmpty()) {
+            $summaryParts[] = sprintf(
+                'There %s %d action%s that %s essential to reaching your retirement goal.',
+                $essential->count() === 1 ? 'is' : 'are',
+                $essential->count(),
+                $essential->count() === 1 ? '' : 's',
+                $essential->count() === 1 ? 'is' : 'are'
+            );
         }
 
-        if ($highPriorityCount > 0) {
-            $summaryParts[] = "{$highPriorityCount} high-priority recommendation(s) could significantly improve your position.";
+        if ($optional->isNotEmpty()) {
+            $summaryParts[] = sprintf(
+                'A further %d action%s %s optional but would strengthen your position.',
+                $optional->count(),
+                $optional->count() === 1 ? '' : 's',
+                $optional->count() === 1 ? 'is' : 'are'
+            );
         }
 
         if ($actionCount === 0) {
             $summaryParts[] = 'No actions are currently selected. If recommendations were available above, consider enabling them to see their projected impact.';
-        } elseif ($actionCount > 0 && $criticalCount === 0) {
-            $summaryParts[] = "Implementing the {$actionCount} recommended action(s) would strengthen your financial plan.";
         }
 
         return [
@@ -293,6 +380,14 @@ abstract class BasePlanService
             'total_actions' => $actionCount,
             'critical_actions' => $criticalCount,
             'high_priority_actions' => $highPriorityCount,
+            'essential_actions' => $essential->map(fn ($a) => [
+                'title' => $a['title'],
+                'priority' => $a['priority'],
+            ])->toArray(),
+            'optional_actions' => $optional->map(fn ($a) => [
+                'title' => $a['title'],
+                'priority' => $a['priority'],
+            ])->toArray(),
             'detailed_breakdown' => $this->buildDetailedBreakdown($enabledActions),
         ];
     }

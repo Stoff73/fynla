@@ -20,6 +20,7 @@ use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\TaxConfigService;
 
 /**
@@ -39,6 +40,7 @@ class RetirementAgent extends BaseAgent
         private readonly DecumulationPlanner $planner,
         private readonly PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
         private readonly TaxConfigService $taxConfig,
+        private readonly RetirementActionDefinitionService $actionDefinitionService,
         // Portfolio optimization services (shared with Investment module)
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
@@ -137,121 +139,11 @@ class RetirementAgent extends BaseAgent
     }
 
     /**
-     * Generate retirement recommendations.
+     * Generate retirement recommendations via database-driven action definitions.
      */
     public function generateRecommendations(array $analysisData): array
     {
-        $userId = $analysisData['profile']['user_id'];
-        $profile = RetirementProfile::find($analysisData['profile']['id']);
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-
-        $recommendations = [];
-        $priority = 1;
-
-        $incomeGap = $analysisData['summary']['income_gap'] ?? 0;
-
-        // Contribution optimization
-        $optimization = $this->optimizer->optimizeContributions($profile, $dcPensions);
-        foreach ($optimization['recommendations'] as $rec) {
-            $title = match ($rec['type']) {
-                'employer_match' => 'Maximise Employer Pension Match',
-                'start_contributions' => 'Start Pension Contributions',
-                'contribution_increase' => 'Increase Pension Contributions',
-                'tax_relief' => 'Optimise Pension Tax Relief',
-                default => $rec['message'],
-            };
-
-            $recData = [
-                'priority' => $priority++,
-                'category' => ucfirst($rec['type']),
-                'title' => $title,
-                'description' => $rec['message'],
-                'action' => 'See detailed recommendations',
-                'impact' => ucfirst($rec['priority']),
-            ];
-
-            // Match account-specific recs to their DC pension by scheme_name
-            if (in_array($rec['type'], ['employer_match', 'start_contributions']) && isset($rec['scheme_name'])) {
-                $matchedPension = $dcPensions->first(fn ($p) => $p->scheme_name === $rec['scheme_name']);
-                if ($matchedPension) {
-                    $recData['scope'] = 'account';
-                    $recData['account_id'] = $matchedPension->id;
-                    $recData['account_name'] = $matchedPension->scheme_name;
-                } else {
-                    $recData['scope'] = 'portfolio';
-                }
-            } else {
-                $recData['scope'] = 'portfolio';
-            }
-
-            $recommendations[] = $recData;
-        }
-
-        // Annual allowance warnings
-        if ($analysisData['annual_allowance']['has_excess']) {
-            $recommendations[] = [
-                'priority' => 1, // High priority
-                'category' => 'Tax Planning',
-                'title' => 'Annual Allowance Exceeded',
-                'description' => sprintf(
-                    'You have exceeded your annual allowance by £%s. This may result in tax charges.',
-                    number_format($analysisData['annual_allowance']['excess_contributions'], 2)
-                ),
-                'action' => 'Consult with a financial adviser to minimize tax charges.',
-                'impact' => 'High',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // State Pension optimization — only flag if unlikely to reach 35 years through continued employment
-        $statePension = StatePension::where('user_id', $userId)->first();
-        if ($statePension && $statePension->ni_years_completed < $statePension->ni_years_required) {
-            $yearsShort = $statePension->ni_years_required - $statePension->ni_years_completed;
-            $yearsUntilSPA = max(0, ($statePension->state_pension_age ?? 67) - ($profile->current_age ?? 0));
-            $willReachNaturally = ($statePension->ni_years_completed + $yearsUntilSPA) >= $statePension->ni_years_required;
-
-            if (! $willReachNaturally) {
-                $recommendations[] = [
-                    'priority' => $priority++,
-                    'category' => 'State Pension',
-                    'title' => 'National Insurance Gaps',
-                    'description' => sprintf(
-                        'You need %d more qualifying years but only have %d years until State Pension age. Consider voluntary contributions to fill the gap.',
-                        $yearsShort,
-                        $yearsUntilSPA
-                    ),
-                    'action' => 'Check your NI record and consider making voluntary contributions if cost-effective.',
-                    'impact' => 'High',
-                    'scope' => 'portfolio',
-                ];
-            }
-        }
-
-        // Retirement age adjustment - suggest if income gap > 10% of target
-        $targetIncome = $analysisData['summary']['target_retirement_income'] ?? 0;
-        $retirementAge = $analysisData['summary']['target_retirement_age'] ?? 0;
-        if ($targetIncome > 0 && $incomeGap > ($targetIncome * 0.10) && $retirementAge > 0) {
-            $suggestedAge = min($retirementAge + 3, 70);
-            $recommendations[] = [
-                'priority' => $priority++,
-                'category' => 'Retirement Planning',
-                'title' => 'Consider Adjusting Retirement Age',
-                'description' => sprintf(
-                    'Retiring at %d instead of %d would allow additional years of contributions and growth, significantly reducing your income shortfall.',
-                    $suggestedAge,
-                    $retirementAge
-                ),
-                'action' => sprintf('Review scenarios for retiring at %d.', $suggestedAge),
-                'impact' => 'High',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        return [
-            'recommendations' => $recommendations,
-            'total_count' => count($recommendations),
-            'high_priority_count' => count(array_filter($recommendations, fn ($r) => $r['priority'] <= 2)),
-        ];
+        return $this->actionDefinitionService->evaluateAgentActions($analysisData);
     }
 
     /**

@@ -12,6 +12,7 @@
       v-if="plan"
       :plan="plan"
       @toggle-action="handleToggle"
+      @update-funding-source="handleUpdateFundingSource"
     />
   </PlanPageLayout>
 </template>
@@ -37,11 +38,14 @@ export default {
   mounted() { this.loadPlan(); },
 
   methods: {
-    ...mapActions('plans', ['fetchPlan', 'toggleAction']),
+    ...mapActions('plans', ['fetchPlan', 'toggleAction', 'updateActionFundingSource']),
     async loadPlan() {
       try { await this.fetchPlan('retirement'); } catch { /* handled */ }
     },
     handleToggle(actionId) { this.toggleAction({ planKey: 'retirement', actionId }); },
+    handleUpdateFundingSource(payload) {
+      this.updateActionFundingSource({ planKey: 'retirement', ...payload });
+    },
     handlePrint() { this.printPlan(this.plan, 'Retirement Plan'); },
   },
 };

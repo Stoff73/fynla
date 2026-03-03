@@ -58,6 +58,10 @@ class PlanConfigurationSeeder extends Seeder
                         // Charitable giving threshold for reduced IHT rate (36% vs 40%)
                         'charitable_giving_threshold_percent' => 10.0,
                     ],
+                    'emergency_fund' => [
+                        // Target emergency fund in months of expenses
+                        'target_months' => 6,
+                    ],
                     'cache' => [
                         // Cache TTL for plan generation (seconds) - 30 minutes
                         'plan_ttl' => 1800,

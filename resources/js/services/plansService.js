@@ -69,6 +69,17 @@ const plansService = {
     const response = await api.delete(`/plans/${type}/clear-cache`);
     return response.data;
   },
+
+  /**
+   * Update the funding source for a plan action.
+   * @param {string} type - Plan type (e.g. 'retirement')
+   * @param {Object} payload - { action_category, target_account_id, funding_source_type, funding_source_id }
+   * @returns {Promise} API response
+   */
+  async updateFundingSource(type, payload) {
+    const response = await api.put(`/plans/${type}/funding-source`, payload);
+    return response.data;
+  },
 };
 
 export default plansService;

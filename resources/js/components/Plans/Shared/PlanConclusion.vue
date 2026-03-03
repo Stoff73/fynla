@@ -5,55 +5,43 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <p class="text-gray-700 leading-relaxed mb-4">{{ conclusion.summary_text }}</p>
 
-      <!-- Action summary badges -->
-      <div class="flex items-center space-x-3 mb-4">
-        <span v-if="conclusion.critical_actions > 0" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          {{ conclusion.critical_actions }} critical
-        </span>
-        <span v-if="conclusion.high_priority_actions > 0" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {{ conclusion.high_priority_actions }} high priority
-        </span>
-        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-          {{ conclusion.total_actions }} total actions
-        </span>
+      <!-- Essential actions -->
+      <div v-if="essentialActions.length" class="mb-4">
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Priority Actions</h4>
+        <ul class="space-y-1.5">
+          <li
+            v-for="(action, idx) in essentialActions"
+            :key="'essential-' + idx"
+            class="flex items-start text-sm"
+          >
+            <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mr-2 mt-0.5"
+              :class="action.priority === 'critical' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'"
+            >
+              {{ idx + 1 }}
+            </span>
+            <span class="text-gray-800">{{ action.title }}</span>
+          </li>
+        </ul>
       </div>
 
-      <!-- Collapsible detailed breakdown -->
-      <div v-if="conclusion.detailed_breakdown && conclusion.detailed_breakdown.length">
-        <button
-          class="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          @click="expanded = !expanded"
-        >
-          <svg
-            class="w-4 h-4 mr-1 transition-transform"
-            :class="{ 'rotate-90': expanded }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <!-- Optional actions -->
+      <div v-if="optionalActions.length" class="mb-4">
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Optional Improvements</h4>
+        <ul class="space-y-1.5">
+          <li
+            v-for="(action, idx) in optionalActions"
+            :key="'optional-' + idx"
+            class="flex items-start text-sm text-gray-600"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-          {{ expanded ? 'Hide' : 'Show' }} detailed breakdown
-        </button>
+            <span class="flex-shrink-0 text-gray-400 mr-2 mt-0.5">&mdash;</span>
+            <span>{{ action.title }}</span>
+          </li>
+        </ul>
+      </div>
 
-        <div v-if="expanded" class="mt-3 space-y-2">
-          <div
-            v-for="group in conclusion.detailed_breakdown"
-            :key="group.category"
-            class="bg-gray-50 rounded-lg px-4 py-3"
-          >
-            <p class="text-sm font-medium text-gray-900">
-              {{ group.category }}
-              <span class="text-gray-500 font-normal">({{ group.action_count }} action{{ group.action_count !== 1 ? 's' : '' }})</span>
-            </p>
-            <ul class="mt-1 space-y-0.5">
-              <li v-for="action in group.actions" :key="action" class="text-sm text-gray-600 flex items-start">
-                <span class="text-green-500 mr-1.5 mt-0.5">&#10003;</span>
-                {{ action }}
-              </li>
-            </ul>
-          </div>
-        </div>
+      <!-- No actions state -->
+      <div v-if="conclusion.total_actions === 0" class="text-sm text-gray-500 italic">
+        Enable actions above to see your personalised priority list here.
       </div>
     </div>
   </div>
@@ -74,10 +62,14 @@ export default {
     },
   },
 
-  data() {
-    return {
-      expanded: false,
-    };
+  computed: {
+    essentialActions() {
+      return this.conclusion.essential_actions || [];
+    },
+
+    optionalActions() {
+      return this.conclusion.optional_actions || [];
+    },
   },
 };
 </script>

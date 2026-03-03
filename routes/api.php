@@ -859,6 +859,8 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
         ->where('type', 'investment|protection|retirement|estate');
     Route::delete('/{type}/clear-cache', [\App\Http\Controllers\Api\Plans\PlanController::class, 'clearCache'])
         ->where('type', 'investment|protection|retirement|estate');
+    Route::put('/{type}/funding-source', [\App\Http\Controllers\Api\Plans\PlanController::class, 'updateFundingSource'])
+        ->where('type', 'investment|protection|retirement|estate');
 });
 
 // Holistic Planning routes (coordinating agent)
@@ -956,6 +958,26 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
         Route::delete('/backup/delete', [\App\Http\Controllers\Api\AdminController::class, 'deleteBackup']);
     });
+});
+
+// Retirement Action Definitions (admin-configurable plan actions)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/retirement-actions')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'show']);
+    Route::post('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'toggleEnabled']);
+});
+
+// Investment Action Definitions (admin-configurable plan actions)
+Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/investment-actions')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'show']);
+    Route::post('/', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'toggleEnabled']);
 });
 
 // Tax Settings routes (requires tax config permission)

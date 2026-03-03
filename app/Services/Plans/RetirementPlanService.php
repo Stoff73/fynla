@@ -7,10 +7,15 @@ namespace App\Services\Plans;
 use App\Agents\RetirementAgent;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
+use App\Models\PlanActionFundingSelection;
 use App\Models\RetirementProfile;
+use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\PensionProjector;
+use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -21,7 +26,8 @@ class RetirementPlanService extends BasePlanService
         private readonly PensionProjector $projector,
         private readonly TaxConfigService $taxConfig,
         private readonly PlanConfigService $planConfig,
-        private readonly DisposableIncomeAccessor $incomeAccessor
+        private readonly DisposableIncomeAccessor $incomeAccessor,
+        private readonly RetirementActionDefinitionService $actionDefinitionService
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -37,6 +43,7 @@ class RetirementPlanService extends BasePlanService
                 'metadata' => $this->buildPlanMetadata($user, 'retirement', $completeness),
                 'completeness_warning' => $this->buildCompletenessWarning($completeness),
                 'executive_summary' => $this->buildEmptyExecutiveSummary(),
+                'personal_information' => $this->buildPersonalInformation($user),
                 'current_situation' => [],
                 'actions' => [],
                 'pension_projections' => [],
@@ -50,15 +57,23 @@ class RetirementPlanService extends BasePlanService
 
         $currentSituation = $this->buildCurrentSituation($data, $userId);
         $recommendations = $this->getRecommendations($userId, $data);
+        $dcPensions = DCPension::where('user_id', $userId)->get();
         $goals = $this->getGoalsForPlan($userId, 'retirement');
-        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
+        $goalRecommendations = $this->actionDefinitionService->evaluateGoalActions($goals['linked'], $dcPensions);
         $allRecs = array_merge($goalRecommendations, $recommendations);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'retirement', $options);
 
         // Use years_to_retirement from analysis (computed from live date_of_birth, not stale stored age)
         $yearsToRetirement = max(0, (int) ($data['summary']['years_to_retirement'] ?? 0));
 
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        // Enrich actions with cascade parameters for per-action what-if charts
+        $actions = $this->enrichActionsWithCascadeParams($user, $data, $actions, $dcPensions);
+
+        // Enrich contribution actions with funding source recommendations
+        $actions = $this->enrichActionsWithFundingSource($user, $actions);
+
+        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+
         $pensionProjections = $this->buildPensionGrowthProjections($user, $actions, $dcPensions, $yearsToRetirement);
 
         $whatIf = $this->buildWhatIfData($user, $data, $currentSituation, $enabledActions, $yearsToRetirement);
@@ -67,7 +82,8 @@ class RetirementPlanService extends BasePlanService
         return [
             'metadata' => $this->buildPlanMetadata($user, 'retirement', $completeness),
             'completeness_warning' => $this->buildCompletenessWarning($completeness),
-            'executive_summary' => $this->buildExecutiveSummary($user, $data, $userId),
+            'executive_summary' => $this->buildExecutiveSummary($user, $data, $userId, $goals, $actions),
+            'personal_information' => $this->buildPersonalInformation($user),
             'current_situation' => $currentSituation,
             'actions' => $actions,
             'pension_projections' => $pensionProjections,
@@ -157,165 +173,64 @@ class RetirementPlanService extends BasePlanService
         ];
     }
 
-    private function buildExecutiveSummary(User $user, array $data, int $userId): array
+    private function buildExecutiveSummary(User $user, array $data, int $userId, array $goals = [], array $actions = []): array
     {
         $firstName = $this->getUserFirstName($user);
         $summary = $data['summary'] ?? [];
-        $projectedIncome = $summary['projected_retirement_income'] ?? 0;
         $targetIncome = $summary['target_retirement_income'] ?? 0;
         $incomeGap = $summary['income_gap'] ?? 0;
-        $yearsToRetirement = $summary['years_to_retirement'] ?? 0;
         $retirementAge = $summary['target_retirement_age'] ?? 0;
-        $currentDcValue = $summary['current_dc_value'] ?? 0;
 
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
-        $statePension = StatePension::where('user_id', $userId)->first();
-        $retirementProfile = RetirementProfile::where('user_id', $userId)->first();
+        // Monthly target after tax (approximate: annual target / 12)
+        $monthlyTarget = $targetIncome > 0 ? round($targetIncome / 12) : 0;
 
-        $lines = [];
-        $lines[] = "Dear {$firstName},";
-        $lines[] = '';
-        $lines[] = 'Thank you for using Fynla. Here is your personalised Retirement Plan based on your pension arrangements and retirement goals.';
-        $lines[] = '';
+        // Introduction sentence
+        $introduction = sprintf(
+            'This plan aims to show you how you can achieve retirement at age %d with %s per month after tax, so you can enjoy your retirement.',
+            $retirementAge,
+            $this->formatCurrency($monthlyTarget)
+        );
 
-        // Retirement timeline
-        if ($yearsToRetirement > 0) {
-            $age = $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->age : null;
-            if ($age) {
-                $lines[] = sprintf(
-                    'At %d years old, you have %d years until your target retirement age of %d.',
-                    $age,
-                    $yearsToRetirement,
-                    $retirementAge
-                );
-            } else {
-                $lines[] = sprintf('You have %d years until your target retirement age of %d.', $yearsToRetirement, $retirementAge);
+        // Goals summary for the table
+        $allGoals = array_merge($goals['linked'] ?? [], $goals['unlinked'] ?? []);
+        $goalsSummary = [];
+        foreach ($allGoals as $goal) {
+            $goalsSummary[] = [
+                'name' => $goal['name'] ?? 'Unnamed goal',
+                'target' => $goal['target_amount'] ?? 0,
+                'progress' => $goal['progress_percentage'] ?? 0,
+                'on_track' => $goal['is_on_track'] ?? false,
+            ];
+        }
+
+        // Actions summary for the table (top priority actions, max 5)
+        $actionsSummary = [];
+        $count = 0;
+        foreach ($actions as $action) {
+            if ($count >= 5) {
+                break;
             }
-        } else {
-            $lines[] = 'You have reached or passed your target retirement age, so planning for income in retirement is particularly important.';
+            $actionsSummary[] = [
+                'title' => $action['title'] ?? 'Recommendation',
+                'priority' => $action['priority'] ?? 'medium',
+            ];
+            $count++;
         }
+        $totalActions = count($actions);
 
-        // Pension arrangements
-        $pensionDescriptions = [];
-        if ($dcPensions->isNotEmpty()) {
-            foreach ($dcPensions as $dc) {
-                $name = $dc->scheme_name ?: ($dc->provider ?: 'a pension');
-                $value = $this->formatCurrency((float) $dc->current_fund_value);
-                $pensionDescriptions[] = "{$name} (valued at {$value})";
-            }
-        }
-        if ($dbPensions->isNotEmpty()) {
-            foreach ($dbPensions as $db) {
-                $name = $db->scheme_name ?: 'a defined benefit pension';
-                $annual = $this->formatCurrency((float) ($db->projected_annual_pension ?? 0));
-                $pensionDescriptions[] = "{$name} (projected at {$annual} per year)";
-            }
-        }
-
-        if (! empty($pensionDescriptions)) {
-            $pensionList = count($pensionDescriptions) === 1
-                ? $pensionDescriptions[0]
-                : implode(', ', array_slice($pensionDescriptions, 0, -1)).' and '.end($pensionDescriptions);
-            $lines[] = "Your pension arrangements include {$pensionList}.";
-        }
-
-        // State pension
-        $forecastAnnual = (float) ($statePension->state_pension_forecast_annual ?? 0);
-        if ($statePension && $forecastAnnual > 0) {
-            $weeklyAmount = $this->formatCurrency(round($forecastAnnual / 52, 2));
-            $niYears = $statePension->ni_years_completed ?? 0;
-            $lines[] = sprintf(
-                'Your State Pension is projected at %s per week based on %d qualifying years of National Insurance contributions.',
-                $weeklyAmount,
-                $niYears
-            );
-        }
-
-        // Total current pension pot
-        if ($currentDcValue > 0) {
-            $lines[] = sprintf(
-                'Your total pension pot currently stands at %s.',
-                $this->formatCurrency($currentDcValue)
-            );
-        }
-
-        // Income target and gap
-        $retiresBeforeSPA = $summary['retires_before_spa'] ?? false;
-        $statePensionAge = $summary['state_pension_age'] ?? 67;
-
-        $lines[] = '';
-        if ($targetIncome > 0) {
-            $lines[] = sprintf(
-                'You have set a target retirement income of %s per year.',
-                $this->formatCurrency($targetIncome)
-            );
-
-            if ($incomeGap <= 0) {
-                $lines[] = sprintf(
-                    'Based on your current pension arrangements, your projected retirement income of %s per year meets this target. Your retirement planning is on track.',
-                    $this->formatCurrency($projectedIncome)
-                );
-            } else {
-                if ($retiresBeforeSPA) {
-                    $incomeGapAfterSPA = $summary['income_gap_after_spa'] ?? 0;
-                    $incomeAfterSPA = $summary['income_after_spa'] ?? 0;
-                    $spIncome = $summary['state_pension_income'] ?? 0;
-
-                    $lines[] = sprintf(
-                        'Because you plan to retire at %d, which is %d years before your State Pension begins at age %d, your projected income at retirement is %s per year from your pensions alone, leaving a shortfall of %s per year.',
-                        $retirementAge,
-                        $statePensionAge - $retirementAge,
-                        $statePensionAge,
-                        $this->formatCurrency($projectedIncome),
-                        $this->formatCurrency($incomeGap)
-                    );
-
-                    if ($incomeGapAfterSPA > 0) {
-                        $lines[] = sprintf(
-                            'Once your State Pension of %s per year begins at age %d, your total income rises to %s, reducing the shortfall to %s per year.',
-                            $this->formatCurrency($spIncome),
-                            $statePensionAge,
-                            $this->formatCurrency($incomeAfterSPA),
-                            $this->formatCurrency($incomeGapAfterSPA)
-                        );
-                    } else {
-                        $lines[] = sprintf(
-                            'Once your State Pension of %s per year begins at age %d, your total income rises to %s, which meets your target.',
-                            $this->formatCurrency($spIncome),
-                            $statePensionAge,
-                            $this->formatCurrency($incomeAfterSPA)
-                        );
-                    }
-                } else {
-                    $lines[] = sprintf(
-                        'Based on your current arrangements, your projected retirement income is %s per year, leaving a shortfall of %s per year against your target.',
-                        $this->formatCurrency($projectedIncome),
-                        $this->formatCurrency($incomeGap)
-                    );
-                }
-            }
-
-            if ($incomeGap > 0) {
-                $lines[] = 'The recommendations below outline steps to close this gap.';
-            }
-        }
-
-        // Employer contributions
-        $totalMonthlyEmployer = $dcPensions->sum(fn ($p) => $this->calculateMonthlyEmployerContribution($p));
-        if ($totalMonthlyEmployer > 0) {
-            $lines[] = sprintf(
-                'Your employer currently contributes %s per month towards your pension, which is factored into our projections.',
-                $this->formatCurrency(round($totalMonthlyEmployer, 2))
-            );
-        }
-
-        $lines[] = '';
-        $lines[] = 'The sections below detail your current pension arrangements, projected retirement income, and specific actions you can take to improve your retirement position.';
+        // Closing statement
+        $closing = $incomeGap <= 0
+            ? 'Your current pension arrangements are projected to meet your retirement income target. The details below confirm your position and highlight opportunities to strengthen it further.'
+            : 'The solutions and recommendations outlined below are achievable steps that can bring you closer to your desired retirement income.';
 
         return [
-            'narrative' => implode("\n", $lines),
-            'key_metrics' => [],
+            'opening' => 'Thank you for using Fynla. Here is your personalised Retirement Plan based on your pensions and retirement goals.',
+            'greeting' => "Dear {$firstName},",
+            'introduction' => $introduction,
+            'goals_summary' => $goalsSummary,
+            'actions_summary' => $actionsSummary,
+            'total_actions' => $totalActions,
+            'closing' => $closing,
             'on_track' => $incomeGap <= 0,
         ];
     }
@@ -323,9 +238,63 @@ class RetirementPlanService extends BasePlanService
     private function buildEmptyExecutiveSummary(): array
     {
         return [
-            'narrative' => 'Set up your retirement profile and add your pensions to receive a personalised retirement plan.',
-            'key_metrics' => [],
+            'greeting' => 'Dear User,',
+            'introduction' => 'Set up your retirement profile and add your pensions to receive a personalised retirement plan.',
+            'goals_summary' => [],
+            'actions_summary' => [],
+            'total_actions' => 0,
+            'closing' => '',
             'on_track' => null,
+        ];
+    }
+
+    private function buildPersonalInformation(User $user): array
+    {
+        $fullName = trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')) ?: ($user->name ?? '—');
+        $dob = $user->date_of_birth;
+        $age = $dob ? (int) $dob->diffInYears(now()) : null;
+
+        // Spouse
+        $spouseName = null;
+        if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
+            $spouse = $user->spouse;
+            $spouseName = trim(($spouse->first_name ?? '') . ' ' . ($spouse->surname ?? '')) ?: $spouse->name;
+        }
+
+        // Children
+        $children = $user->familyMembers()
+            ->where('relationship', 'child')
+            ->get()
+            ->map(fn ($child) => $child->name)
+            ->toArray();
+
+        // Income
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+
+        $incomeData = $this->incomeAccessor->getForUser($user);
+
+        // Risk level
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+
+        return [
+            'full_name' => $fullName,
+            'date_of_birth' => $dob?->toDateString(),
+            'age' => $age,
+            'marital_status' => $user->marital_status,
+            'spouse_name' => $spouseName,
+            'children' => $children,
+            'gross_income' => $this->roundToPenny($grossIncome),
+            'net_income' => $this->roundToPenny($incomeData['net_income']),
+            'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            'disposable_income' => $this->roundToPenny($incomeData['annual']),
+            'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
+            'risk_level' => $riskProfile->risk_level ?? null,
         ];
     }
 
@@ -393,18 +362,18 @@ class RetirementPlanService extends BasePlanService
         $incomeImprovement = 0;
 
         foreach ($enabledActions as $action) {
-            $category = strtolower($action['category'] ?? '');
-            if (str_contains($category, 'contribution') || str_contains($category, 'start_contribution')) {
-                $allocated = $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3);
-                $additionalContribution += $allocated;
-                $incomeImprovement += $this->estimateIncomeFromContribution($allocated, $yearsToRetirement);
-            } elseif (str_contains($category, 'consolid')) {
-                $incomeImprovement += $projectedIncome * $this->planConfig->getConsolidationEfficiencyGain();
-            } elseif (str_contains($category, 'tax') || str_contains($category, 'allowance')) {
-                $incomeImprovement += $projectedIncome * $this->planConfig->getTaxOptimisationGain();
-            } else {
-                $incomeImprovement += $projectedIncome * $this->planConfig->getDefaultActionGain();
-            }
+            $impactType = $this->actionDefinitionService->getWhatIfImpactType($action['category'] ?? '');
+
+            match ($impactType) {
+                'contribution' => (function () use ($action, $budget, $monthlyDisposable, $yearsToRetirement, &$additionalContribution, &$incomeImprovement) {
+                    $allocated = $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3);
+                    $additionalContribution += $allocated;
+                    $incomeImprovement += $this->estimateIncomeFromContribution($allocated, $yearsToRetirement);
+                })(),
+                'consolidation' => $incomeImprovement += $projectedIncome * $this->planConfig->getConsolidationEfficiencyGain(),
+                'tax_optimisation' => $incomeImprovement += $projectedIncome * $this->planConfig->getTaxOptimisationGain(),
+                default => $incomeImprovement += $projectedIncome * $this->planConfig->getDefaultActionGain(),
+            };
         }
 
         $projectedWithActions = $projectedIncome + $incomeImprovement;
@@ -432,11 +401,230 @@ class RetirementPlanService extends BasePlanService
             'is_approximate' => true,
             'frontend_calc_params' => [
                 'current_dc_value' => $currentDcValue,
+                'current_annual_contribution' => $this->calculateTotalAnnualContributions($user->id),
                 'growth_rate' => $this->planConfig->getDefaultGrowthRate(),
                 'years' => $yearsToRetirement,
                 'annuity_rate' => $this->planConfig->getWithdrawalRate(),
             ],
         ];
+    }
+
+    /**
+     * Calculate total annual contributions (employee + employer) across all DC pensions.
+     */
+    private function calculateTotalAnnualContributions(int $userId): float
+    {
+        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $total = 0.0;
+
+        foreach ($dcPensions as $pension) {
+            $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
+            if ($monthly > 0) {
+                $total += $monthly * 12;
+            } else {
+                $salary = (float) ($pension->annual_salary ?? 0);
+                $employeePct = (float) ($pension->employee_contribution_percent ?? 0);
+                $employerPct = (float) ($pension->employer_contribution_percent ?? 0);
+                $total += $salary * ($employeePct + $employerPct) / 100;
+            }
+        }
+
+        return $this->roundToPenny($total);
+    }
+
+    /**
+     * Enrich actions with cascade_params for per-action what-if charts.
+     *
+     * Each action gets a cascade_params.additional_monthly value representing
+     * the monthly amount this action adds to the pension pot.
+     */
+    private function enrichActionsWithCascadeParams(User $user, array $data, array $actions, Collection $dcPensions): array
+    {
+        $summary = $data['summary'] ?? [];
+        $projectedIncome = (float) ($summary['projected_retirement_income'] ?? 0);
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
+
+        foreach ($actions as &$action) {
+            $impactType = $this->actionDefinitionService->getWhatIfImpactType($action['category'] ?? '');
+
+            $additionalMonthly = match ($impactType) {
+                'contribution' => $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3),
+                'tax_optimisation' => $projectedIncome * $this->planConfig->getTaxOptimisationGain() / 12,
+                'consolidation' => $projectedIncome * $this->planConfig->getConsolidationEfficiencyGain() / 12,
+                default => $projectedIncome * $this->planConfig->getDefaultActionGain() / 12,
+            };
+
+            $action['cascade_params'] = [
+                'additional_monthly' => $this->roundToPenny($additionalMonthly),
+            ];
+        }
+        unset($action);
+
+        return $actions;
+    }
+
+    /** Contribution action categories that should show a funding source. */
+    private const CONTRIBUTION_CATEGORIES = [
+        'Employer_match',
+        'Start_contributions',
+        'Contribution_increase',
+    ];
+
+    /** Liquid cash account types safe to recommend as a funding source. */
+    private const FUNDING_CASH_ACCOUNT_TYPES = [
+        'current_account',
+        'instant_access',
+        'business_current',
+        'business_savings',
+    ];
+
+    /**
+     * Enrich contribution actions with a recommended funding source and eligible account list.
+     *
+     * Only applies to contribution-type actions (Employer_match, Start_contributions, Contribution_increase).
+     */
+    private function enrichActionsWithFundingSource(User $user, array $actions): array
+    {
+        // Check if any actions need funding source data
+        $hasContributionAction = false;
+        foreach ($actions as $action) {
+            if (in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
+                $hasContributionAction = true;
+                break;
+            }
+        }
+
+        if (! $hasContributionAction) {
+            return $actions;
+        }
+
+        // Load persisted selections (real users only — preview users have none saved)
+        $persistedSelections = PlanActionFundingSelection::getForUser($user->id, 'retirement');
+
+        // Build eligible accounts once for the user
+        $eligibleAccounts = $this->buildEligibleFundingAccounts($user);
+
+        foreach ($actions as &$action) {
+            if (! in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
+                continue;
+            }
+
+            $targetAccountId = $action['account_id'] ?? 0;
+            $selectionKey = ($action['category'] ?? '') . '_' . $targetAccountId;
+
+            // Check for persisted selection
+            $persisted = $persistedSelections->get($selectionKey);
+            $selected = null;
+
+            if ($persisted) {
+                // Verify the persisted account still exists in eligible list
+                $selected = collect($eligibleAccounts)->first(
+                    fn ($a) => $a['id'] === $persisted->funding_source_id
+                        && $a['type'] === $persisted->funding_source_type
+                );
+            }
+
+            // Auto-recommend if no valid persisted selection
+            if (! $selected) {
+                $selected = $this->autoRecommendFundingAccount($eligibleAccounts);
+            }
+
+            $action['funding_source'] = [
+                'selected_id' => $selected['id'] ?? null,
+                'selected_type' => $selected['type'] ?? null,
+                'selected_name' => $selected['name'] ?? null,
+                'warning' => $selected['warning'] ?? null,
+                'eligible_accounts' => $eligibleAccounts,
+            ];
+        }
+        unset($action);
+
+        return $actions;
+    }
+
+    /**
+     * Build the list of eligible funding accounts for a user.
+     */
+    private function buildEligibleFundingAccounts(User $user): array
+    {
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
+        $emergencyThreshold = $monthlyExpenditure * 6;
+
+        $accounts = [];
+
+        // Cash accounts (non-ISA, liquid types)
+        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+            ->where('is_isa', false)
+            ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
+            ->orderByDesc('current_balance')
+            ->get();
+
+        foreach ($cashAccounts as $account) {
+            $balance = (float) $account->current_balance;
+            $additionalMonthly = (float) ($account->additional_monthly_savings ?? 0);
+            $balanceAfterYear = $balance - ($additionalMonthly * 12);
+
+            $warning = null;
+            if ($balanceAfterYear < $emergencyThreshold) {
+                $warning = 'Withdrawing would reduce your emergency fund below 6 months of expenditure.';
+            }
+
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'savings',
+                'name' => $account->account_name ?? $account->institution ?? 'Cash Account',
+                'balance' => $this->roundToPenny($balance),
+                'warning' => $warning,
+            ];
+        }
+
+        // GIA investment accounts
+        $giaAccounts = InvestmentAccount::where('user_id', $user->id)
+            ->where('account_type', 'gia')
+            ->orderByDesc('current_value')
+            ->get();
+
+        foreach ($giaAccounts as $account) {
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'investment',
+                'name' => $account->account_name ?? $account->provider ?? 'General Investment Account',
+                'balance' => $this->roundToPenny((float) $account->current_value),
+                'warning' => 'Using this account may cause a tax event.',
+            ];
+        }
+
+        return $accounts;
+    }
+
+    /**
+     * Auto-recommend the best funding account: safe cash first, then cash with warning, then GIA.
+     */
+    private function autoRecommendFundingAccount(array $eligibleAccounts): ?array
+    {
+        // First: cash without warning
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'savings' && $account['warning'] === null) {
+                return $account;
+            }
+        }
+
+        // Second: cash with warning
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'savings') {
+                return $account;
+            }
+        }
+
+        // Third: GIA
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'investment') {
+                return $account;
+            }
+        }
+
+        return null;
     }
 
     /**
