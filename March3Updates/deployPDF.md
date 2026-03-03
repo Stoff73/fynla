@@ -1,14 +1,14 @@
-# Deploy: Estate Plan Print/Save PDF
+# Deploy: Print/Save PDF — All Plan Types
 
 ## Summary
 
-Updated `planPrintMixin.js` to support the rewritten Estate Plan structure. The print output now renders the full estate-specific content (structured executive summary, personal information, IHT calculation table, detailed actions with gifting schedules, and what-if comparison table). Also added repeating page header/footer on every printed page and removed browser default date/URL text from print output.
+Updated `planPrintMixin.js` to support structured print output for **all plan types**: Estate, Protection, Investment, and Retirement. Each plan type now renders its full on-screen content in the print/save PDF, including plan-specific executive summaries, personal information grids, current situation sections, action cards with cascading projection charts (Investment/Retirement), coverage bar charts (Protection), and what-if comparison metrics.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `resources/js/components/Plans/Shared/planPrintMixin.js` | Estate print support, page header/footer, browser header removal |
+| `resources/js/components/Plans/Shared/planPrintMixin.js` | Multi-plan print support with type-specific builders, cascading line charts, SVG rendering |
 
 ## Upload Steps
 
@@ -29,27 +29,45 @@ Updated `planPrintMixin.js` to support the rewritten Estate Plan structure. The 
 
 ## What Changed
 
-### Estate-Specific Print Rendering
-- `isEstatePlan()` detection — routes estate plans to dedicated builder methods
-- `buildEstateExecutiveSummaryHtml()` — greeting, introduction, key actions table with priority badges
-- `buildEstatePersonalInformationHtml()` — 2x2 info grid (Personal Details, Family, Financial Overview, Estate Profile)
-- `buildEstateCurrentSituationHtml()` — full IHT calculation table with per-owner assets/liabilities, allowances (with widowed transfers), IHT liability in red, effective rate, supplementary cards (asset breakdown, life cover, charitable giving)
-- `buildEstateActionsHtml()` — actions with affordability badges, funding source, PET gifting schedule table, annual gifting grid, step-by-step guidance
-- `buildEstateWhatIfHtml()` — side-by-side comparison table recalculated from enabled actions
+### Plan Type Detection
+- Replaced `isEstatePlan()` with `detectPlanType(plan)` — returns `estate`, `protection`, `investment`, `retirement`, `structured`, or `generic`
+- Three routing methods (`buildCurrentSituationByType`, `buildActionsByType`, `buildWhatIfByType`) dispatch to plan-specific builders
 
-### Page Header/Footer
-- Running page header on every page (small logo + plan title)
-- Running footer on every page (disclaimer + prepared by)
-- `@page { margin: 0 }` removes browser default date/URL/title from printed pages
-- Fixed elements use internal padding for edge spacing
+### Protection Plan Print
+- `buildProtectionCurrentSituationHtml()` — Coverage Analysis cards (Life/Critical Illness/Income Protection) with need/have/gap, progress bars, "How we calculated" breakdowns, Existing Policies, Debt Exposure
+- `buildSimpleActionsHtml()` — Simple action cards sorted by priority (matches PlanActionsList.vue)
+- `buildProtectionWhatIfHtml()` — Bar chart comparing current vs projected coverage + metric rows (gaps, additional premium)
+- `computeProtectionProjectedScenario()` — Replicates frontend projection from enabled actions
 
-### Non-Estate Plans
-- No changes — all new code is behind `isEstatePlan()` guard
+### Investment Plan Print
+- `buildInvestmentCurrentSituationHtml()` — Investment Accounts, Savings Accounts, Key Indicators (Emergency Fund, ISA Used, ISA Remaining)
+- `buildGroupedActionsHtml()` — Actions grouped by account with **cascading projection line charts** after each action (matches InvestmentGroupedActions.vue)
+- `buildInvestmentWhatIfHtml()` — Metric rows: Total Wealth, Annual Fees, Emergency Fund, Additional Monthly Savings, At Retirement
+
+### Retirement Plan Print
+- `buildRetirementCurrentSituationHtml()` — DC Pensions, DB Pensions, State Pension, Key Metrics (Years to Retirement, Income Gap, Pension Value)
+- `buildGroupedActionsHtml()` — Actions grouped by pension with **cascading projection line charts** after each action (matches RetirementGroupedActions.vue)
+- `buildRetirementWhatIfHtml()` — Metric rows: Projected Annual Income, Income Gap, Total Pension Value, At Retirement, Additional Monthly Contribution
+
+### Cascading Projection Charts (NEW)
+- `projectSeries()` — Replicates year-by-year projection logic from CascadingActionChart.vue (compound growth with annual contributions)
+- `buildLineChartHtml()` — Renders static SVG line chart with "Before" vs "After this action" series, grid lines, axis labels, and "+£X at retirement" badge
+- `fmtCurrencyCompact()` — Compact currency formatting for chart Y-axis (£150k, £1.2M)
+- Cascading accumulation: each action's "before" reflects all higher-priority enabled actions
+
+### Estate Plan Print (unchanged from previous deploy)
+- Structured executive summary, personal information grid, IHT calculation table, detailed actions, what-if comparison
+
+### Shared Features (all plans)
+- Structured executive summary with greeting, introduction, coverage/goals tables, actions summary
+- Personal information grid (4 cards, 4th card varies by plan type)
+- Running page header/footer on every page
+- `@page { margin: 0 }` removes browser default date/URL text
 
 ## Testing
 
-Test with preview personas:
-- **peak_earners** (David & Sarah Mitchell) — married couple, both owners' assets/liabilities
-- **widow** (Margaret Thompson) — transferred NRB/RNRB from deceased spouse
-- **entrepreneur** (Alex Chen) — single owner, business interests
-- Any non-estate plan — verify unchanged output
+Test with **peak_earners** (David & Sarah Mitchell) preview persona:
+- **Protection Plan** → Print/Save — coverage analysis, policies, bar chart, action cards
+- **Investment Plan** → Print/Save — accounts, action cards with line charts, what-if metrics
+- **Retirement Plan** → Print/Save — pensions, action cards with line charts, what-if metrics
+- **Estate Plan** → Print/Save — verify unchanged (regression)
