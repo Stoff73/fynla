@@ -2,13 +2,13 @@
 
 **Date:** 3-5 March 2026
 **Branch:** `protectionPlan`
-**Scope:** Database-driven protection action definitions + structured executive summary + personal information section + admin panel tab + dynamic conclusion + test fixes
+**Scope:** Database-driven protection action definitions + structured executive summary + personal information section + admin panel tab + dynamic conclusion + reactive what-if chart + test fixes
 
 ---
 
 ## Summary
 
-Six changes in this deployment:
+Seven changes in this deployment:
 
 1. **Database-driven protection action definitions** — Moved all hardcoded protection recommendation logic from `ProtectionPlanService` (`extractRecommendations()` + `ensureGapActions()`) into a configurable `protection_action_definitions` database table. Added `ProtectionActionDefinitionService` to evaluate triggers against user protection data and render templated actions.
 
@@ -20,7 +20,9 @@ Six changes in this deployment:
 
 5. **Dynamic conclusion** — Replaced the custom `buildProtectionConclusion()` with `generateDynamicConclusion()` from `BasePlanService`, splitting actions into essential and optional categories. Updated `BasePlanService` to be plan-type aware (no longer hardcodes "retirement goal" in summary text).
 
-6. **Test fixes** — Fixed `PAYMENT_ENABLED` not being set to `false` in `phpunit.xml` (caused ~350 Feature tests to return 403). Fixed `BaseAgentTest` to remove tests for methods removed in prior refactoring. Fixed `ProtectionAgentTest` mock mismatch for augmented `$needs` array. Fixed `ISATrackerTest` missing `getTaxYear()` mock expectation. Updated `RegistrationTest` to match actual 422 response for duplicate emails. Removed deprecated savings/investment goals CRUD tests (routes removed in v0.8.1, goals now use unified `/api/goals` module). Fixed `InvestmentModuleTest` recommendations structure assertion (`recommendation_count` not `stats`). Added `RetirementActionDefinitionSeeder` to `RetirementIntegrationTest` setup.
+6. **Reactive what-if chart** — The what-if comparison chart and gap metrics now update instantly when action toggles are switched on/off. Previously the projected scenario was static (computed once at plan generation). Added a `computedProjectedScenario` computed property in `ProtectionPlanContent.vue` that mirrors the backend `buildWhatIfData()` logic client-side — iterating enabled actions, summing coverage by category, and recomputing gaps. Also added Income Protection as a third metric in the chart (previously only showed Life Insurance and Critical Illness). Same pattern as the retirement plan's `cascadedActions`.
+
+7. **Test fixes** — Fixed `PAYMENT_ENABLED` not being set to `false` in `phpunit.xml` (caused ~350 Feature tests to return 403). Fixed `BaseAgentTest` to remove tests for methods removed in prior refactoring. Fixed `ProtectionAgentTest` mock mismatch for augmented `$needs` array. Fixed `ISATrackerTest` missing `getTaxYear()` mock expectation. Updated `RegistrationTest` to match actual 422 response for duplicate emails. Removed deprecated savings/investment goals CRUD tests (routes removed in v0.8.1, goals now use unified `/api/goals` module). Fixed `InvestmentModuleTest` recommendations structure assertion (`recommendation_count` not `stats`). Added `RetirementActionDefinitionSeeder` to `RetirementIntegrationTest` setup.
 
 ---
 
@@ -42,7 +44,7 @@ Six changes in this deployment:
 | `resources/js/components/Plans/Protection/ProtectionExecutiveSummary.vue` | Structured summary with coverage and actions tables |
 | `resources/js/components/Plans/Protection/ProtectionPersonalInformation.vue` | Personal details, family, financial overview, protection profile grid |
 | `tests/Feature/Api/ProtectionActionDefinitionTest.php` | 12 feature tests for admin API |
-| `tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php` | 19 unit tests for trigger evaluation, template rendering |
+| `tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php` | 24 unit tests for trigger evaluation, template rendering, empty data handling |
 
 ### Modified Files (14)
 
@@ -54,7 +56,7 @@ Six changes in this deployment:
 | `routes/api.php` | Added admin protection-actions route group (CRUD + toggle) |
 | `resources/js/views/Admin/AdminPanel.vue` | Added "Protection Actions" tab |
 | `resources/js/services/adminService.js` | Added 5 CRUD methods for protection action definitions |
-| `resources/js/components/Plans/Protection/ProtectionPlanContent.vue` | Added `ProtectionExecutiveSummary`, `ProtectionPersonalInformation`, `PlanGoalSection` sections with fallback for legacy data |
+| `resources/js/components/Plans/Protection/ProtectionPlanContent.vue` | Added `ProtectionExecutiveSummary`, `ProtectionPersonalInformation`, `PlanGoalSection` sections with fallback for legacy data. Added `computedProjectedScenario` computed property for reactive what-if chart. Added Income Protection to `chartMetrics`. |
 | `phpunit.xml` | Added `PAYMENT_ENABLED=false` to prevent `CheckSubscription` middleware blocking test users |
 | `tests/Unit/Agents/BaseAgentTest.php` | Removed tests for 6 methods removed in prior refactoring, updated `formatCurrency` tests for `FormatsCurrency` trait |
 | `tests/Unit/Agents/ProtectionAgentTest.php` | Fixed `generateScoreInsights` mock to accept augmented `$needs` array |
@@ -160,6 +162,22 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - Actions split into essential (priority 1-2) and optional (priority 3+)
 - `BasePlanService` updated to use plan-type-aware language (was hardcoded to say "retirement goal")
 
+### Reactive What-If Chart - Before
+- `projected_scenario` computed once by `ProtectionPlanService.buildWhatIfData()` at plan generation time
+- Passed statically to `PlanWhatIfComparison` and `ProtectionWhatIfControls` — never updated
+- Toggling actions updated `plan.actions[i].enabled` in Vuex but chart and gap metrics stayed frozen
+- Chart only showed Life Insurance and Critical Illness (2 metrics)
+
+### Reactive What-If Chart - After
+- `computedProjectedScenario` computed property in `ProtectionPlanContent.vue` mirrors backend `buildWhatIfData()` logic
+- Reads `current_scenario` base values (coverage, need, gap per type)
+- For each enabled action, matches category (`life` / `critical` / `income`) and sums `impact_parameters.coverage_amount`
+- Computes projected gaps: `Math.max(0, gap - reduction)` and projected coverage: `base + reduction`
+- Returns object with same shape as backend `projected_scenario` (including `estimated_additional_premium`)
+- Both `PlanWhatIfComparison` chart and `ProtectionWhatIfControls` gap metrics now bind to the computed property
+- Chart shows all 3 coverage types: Life Insurance, Critical Illness, Income Protection
+- No API calls — instant feedback on toggle, same pattern as retirement plan's `cascadedActions`
+
 ### Test Fixes
 - **phpunit.xml**: Added `PAYMENT_ENABLED=false` — `CheckSubscription` middleware was returning 403 for all test users without active subscriptions (~350 tests fixed)
 - **BaseAgentTest**: Removed 25 tests for 6 methods removed from `BaseAgent` in commit 2a99d28 (`calculatePercentageChange`, `calculateCompoundGrowth`, `calculatePresentValue`, `getCurrentTaxYear`, `validateRequired`, `calculateAge`). Updated `formatCurrency` tests to match `FormatsCurrency` trait (0 decimal places, no `$decimals` parameter).
@@ -181,7 +199,7 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - [ ] Create a new action > appears in table and evaluates in plans
 - [ ] Non-admin user gets 403 on admin endpoints
 - [ ] 12 feature tests pass: `./vendor/bin/pest tests/Feature/Api/ProtectionActionDefinitionTest.php`
-- [ ] 19 unit tests pass: `./vendor/bin/pest tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php`
+- [ ] 24 unit tests pass: `./vendor/bin/pest tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php`
 
 ### Structured Executive Summary
 - [ ] Preview persona with protection data (e.g. peak_earners) shows greeting, coverage table, actions table, closing
@@ -201,14 +219,20 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - [ ] Conclusion shows essential actions (priority 1-2) and optional actions (priority 3+)
 - [ ] Summary text uses protection-appropriate language (not "retirement goal")
 
+### Reactive What-If Chart
+- [ ] Chart shows 3 metrics: Life Insurance Cover, Critical Illness Cover, Income Protection Cover
+- [ ] Toggle an action OFF → "With Actions" bars decrease, gap metrics increase
+- [ ] Toggle it back ON → bars and metrics return to previous values
+- [ ] Toggle ALL actions OFF → "With Actions" bars match "Current" bars exactly, gap metrics identical
+- [ ] Additional Monthly Premium row appears/disappears as actions with premiums are toggled
+- [ ] No API calls on toggle (instant frontend-only recalculation)
+
 ### Existing Features (Unchanged)
 - [ ] Current situation section displays correctly
-- [ ] Horizontal bar chart (PlanWhatIfChart) works and updates on action toggle
 - [ ] Action cards toggle on/off correctly
-- [ ] What-if comparison metrics update when actions toggled
 
 ### General
-- [ ] All new tests pass: `./vendor/bin/pest tests/Feature/Api/ProtectionActionDefinitionTest.php tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php` (31 tests)
-- [ ] Full test suite: `./vendor/bin/pest` (1592 passing, 0 failures)
+- [ ] All new tests pass: `./vendor/bin/pest tests/Feature/Api/ProtectionActionDefinitionTest.php tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php` (36 tests)
+- [ ] Full test suite: `./vendor/bin/pest` (all passing, 0 failures)
 - [ ] No amber/orange colours present (Rule 9)
 - [ ] Currency formatted via currencyMixin (Rule 6)

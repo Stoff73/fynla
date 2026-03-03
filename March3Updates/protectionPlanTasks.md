@@ -8,8 +8,8 @@
 
 ## Pre-flight
 
-- [ ] **Confirm branch is correct**: `git branch --show-current` should show `protectionPlan`
-- [ ] **Confirm investment code is available**: Check `app/Services/Investment/InvestmentActionDefinitionService.php` exists
+- [x] **Confirm branch is correct**: `git branch --show-current` should show `protectionPlan`
+- [x] **Confirm investment code is available**: Check `app/Services/Investment/InvestmentActionDefinitionService.php` exists
 - [ ] **Seed database**: `php artisan db:seed`
 - [ ] **Run existing tests**: `./vendor/bin/pest tests/Unit/Services/Plans/` — all pass
 
@@ -21,8 +21,8 @@
 
 ### 1.1 Migration — `protection_action_definitions` table
 
-- [ ] **Read reference migration**: Read `database/migrations/*_create_investment_action_definitions_table.php`
-- [ ] **Create migration file**: `database/migrations/2026_03_05_000002_create_protection_action_definitions_table.php`
+- [x] **Read reference migration**: Read `database/migrations/*_create_investment_action_definitions_table.php`
+- [x] **Create migration file**: `database/migrations/2026_03_05_000002_create_protection_action_definitions_table.php`
   - Table name: `protection_action_definitions`
   - Columns: `id`, `key` (string, unique), `source` (string, indexed), `title_template` (text), `description_template` (text), `action_template` (text, nullable), `category` (string), `priority` (enum: critical, high, medium, low), `scope` (string), `what_if_impact_type` (string), `trigger_config` (JSON), `is_enabled` (boolean, default true, indexed), `sort_order` (integer, default 0, indexed), `notes` (text, nullable), `timestamps`
   - Indexes: `source`, `is_enabled`, `sort_order`
@@ -32,8 +32,8 @@
 
 ### 1.2 Model — `ProtectionActionDefinition`
 
-- [ ] **Read reference model**: Read `app/Models/InvestmentActionDefinition.php` (115 lines)
-- [ ] **Create model file**: `app/Models/ProtectionActionDefinition.php`
+- [x] **Read reference model**: Read `app/Models/InvestmentActionDefinition.php` (115 lines)
+- [x] **Create model file**: `app/Models/ProtectionActionDefinition.php`
   - Mirror `InvestmentActionDefinition` exactly
   - `$casts`: `trigger_config` → `array`, `is_enabled` → `boolean`
   - Scopes: `enabled()`, `bySource($source)`
@@ -43,9 +43,9 @@
 
 ### 1.3 Seeder — ~10 action definitions
 
-- [ ] **Read reference seeder**: Read `database/seeders/InvestmentActionDefinitionSeeder.php`
-- [ ] **Read current hardcoded logic**: Read `app/Services/Plans/ProtectionPlanService.php` methods `extractRecommendations()` and `ensureGapActions()` — extract text and conditions
-- [ ] **Create seeder file**: `database/seeders/ProtectionActionDefinitionSeeder.php`
+- [x] **Read reference seeder**: Read `database/seeders/InvestmentActionDefinitionSeeder.php`
+- [x] **Read current hardcoded logic**: Read `app/Services/Plans/ProtectionPlanService.php` methods `extractRecommendations()` and `ensureGapActions()` — extract text and conditions
+- [x] **Create seeder file**: `database/seeders/ProtectionActionDefinitionSeeder.php`
   - Use `updateOrCreate` on `key` field for idempotency
   - ~10 definitions:
     - Gap-sourced (3): `life_insurance_gap`, `critical_illness_gap`, `income_protection_gap`
@@ -59,17 +59,17 @@
 
 ### 1.4 Factory
 
-- [ ] **Read reference factory**: Read `database/factories/InvestmentActionDefinitionFactory.php`
-- [ ] **Create factory file**: `database/factories/ProtectionActionDefinitionFactory.php`
+- [x] **Read reference factory**: Read `database/factories/InvestmentActionDefinitionFactory.php`
+- [x] **Create factory file**: `database/factories/ProtectionActionDefinitionFactory.php`
   - Default state with sensible values
   - `disabled()` state: `is_enabled => false`
   - `gapSourced()` state: `source => 'gap'`
-- [ ] **Verify factory works**: All states verified
+- [x] **Verify factory works**: All states verified
 
 ### 1.5 Register in DatabaseSeeder
 
-- [ ] **Read current DatabaseSeeder**: Read `database/seeders/DatabaseSeeder.php`
-- [ ] **Add seeder call**: Add `$this->call(ProtectionActionDefinitionSeeder::class)` after `InvestmentActionDefinitionSeeder`
+- [x] **Read current DatabaseSeeder**: Read `database/seeders/DatabaseSeeder.php`
+- [x] **Add seeder call**: Add `$this->call(ProtectionActionDefinitionSeeder::class)` after `InvestmentActionDefinitionSeeder`
 - [ ] **Full reseed**: `php artisan db:seed`
 - [ ] **Verify both tables seeded**: investment + protection definitions present
 
@@ -88,87 +88,87 @@
 
 ### 2.1 ProtectionActionDefinitionService
 
-- [ ] **Read primary reference**: Read `app/Services/Investment/InvestmentActionDefinitionService.php` — this is THE pattern to follow
-- [ ] **Read supporting files for context**:
+- [x] **Read primary reference**: Read `app/Services/Investment/InvestmentActionDefinitionService.php` — this is THE pattern to follow
+- [x] **Read supporting files for context**:
   - Read `app/Services/Plans/ProtectionPlanService.php` — understand `extractRecommendations()` and `ensureGapActions()` logic to replace
   - Read `app/Services/Protection/ComprehensiveProtectionPlanService.php` — understand comprehensive plan data shapes
   - Read `app/Agents/ProtectionAgent.php` — understand current recommendation pipeline
-- [ ] **Create service file**: `app/Services/Protection/ProtectionActionDefinitionService.php`
+- [x] **Create service file**: `app/Services/Protection/ProtectionActionDefinitionService.php`
 
   **Constructor dependencies:**
-  - `TaxConfigService`
+  - ~~`TaxConfigService`~~ **DEVIATION**: No constructor; TaxConfigService not needed (no tax calculations in protection evaluations). Uses `FormatsCurrency` trait instead.
 
   **Public method: `evaluateActions()`**
-  - [ ] Signature: `evaluateActions(array $comprehensivePlan): array`
-  - [ ] Load enabled definitions: `ProtectionActionDefinition::getEnabled()`
-  - [ ] Dispatch each definition to appropriate trigger evaluator via `match()` on `trigger_config['condition']`
-  - [ ] Return array of recommendation arrays matching existing format: `priority`, `category`, `action`, `rationale`, `impact`, `estimated_cost`, `impact_parameters`, `timeframe`
+  - [x] Signature: `evaluateActions(array $comprehensivePlan): array`
+  - [x] Load enabled definitions: `ProtectionActionDefinition::getEnabled()`
+  - [x] Dispatch each definition to appropriate trigger evaluator via `match()` on `trigger_config['condition']`
+  - [x] Return array of recommendation arrays matching existing format: `priority`, `category`, `action`, `rationale`, `impact`, `estimated_cost`, `impact_parameters`, `timeframe`
 
   **Private trigger evaluators — Coverage gaps (3):**
-  - [ ] `evaluateLifeInsuranceGap($definition, $coverageAnalysis)` — `life_insurance.gap > 0`
-  - [ ] `evaluateCriticalIllnessGap($definition, $coverageAnalysis)` — `critical_illness.gap > 0`
-  - [ ] `evaluateIncomeProtectionGap($definition, $coverageAnalysis)` — `income_protection.gap > 0`
+  - [x] ~~`evaluateLifeInsuranceGap($definition, $coverageAnalysis)`~~ — Consolidated into generic `evaluateGapCondition()` that handles all 3 gap types via `coverage_type` field. Functionally equivalent.
+  - [x] ~~`evaluateCriticalIllnessGap($definition, $coverageAnalysis)`~~ — Same (handled by `evaluateGapCondition()`)
+  - [x] ~~`evaluateIncomeProtectionGap($definition, $coverageAnalysis)`~~ — Same (handled by `evaluateGapCondition()`)
 
   **Private trigger evaluators — Strategy (4):**
-  - [ ] `evaluateIncreaseLifeCover($definition, $strategyRecs)` — match strategy recommendations with life insurance category
-  - [ ] `evaluateAddCriticalIllness($definition, $strategyRecs)` — match strategy recommendations with critical illness category
-  - [ ] `evaluateAddIncomeProtection($definition, $strategyRecs)` — match strategy recommendations with income protection category
-  - [ ] `evaluateReviewPolicies($definition, $comprehensivePlan)` — policies exist but coverage may be suboptimal
+  - [x] ~~`evaluateIncreaseLifeCover($definition, $strategyRecs)`~~ — Consolidated into generic `evaluateStrategyCondition()` that matches on `category_match`. Functionally equivalent.
+  - [x] ~~`evaluateAddCriticalIllness($definition, $strategyRecs)`~~ — Same
+  - [x] ~~`evaluateAddIncomeProtection($definition, $strategyRecs)`~~ — Same
+  - [x] ~~`evaluateReviewPolicies($definition, $comprehensivePlan)`~~ — Handled by `evaluateStrategyCondition()` path
 
   **Private trigger evaluators — General (3):**
-  - [ ] `evaluateConsolidatePolicies($definition, $comprehensivePlan)` — multiple overlapping policies detected
-  - [ ] `evaluateProfileMissing($definition, $comprehensivePlan)` — no protection profile
-  - [ ] `evaluateNoPoliciesWarning($definition, $comprehensivePlan)` — no policies and gaps exist
+  - [x] ~~`evaluateConsolidatePolicies($definition, $comprehensivePlan)`~~ — Named `evaluateMultiplePolicies()` instead
+  - [x] `evaluateProfileMissing($definition, $comprehensivePlan)` — no protection profile
+  - [x] ~~`evaluateNoPoliciesWarning($definition, $comprehensivePlan)`~~ — Named `evaluateNoPoliciesWithGaps()` instead
 
   **Template variable helpers:**
-  - [ ] Build template variables from comprehensive plan data (gap amounts, coverage amounts, need amounts, monthly costs, etc.)
-  - [ ] Use `renderTitle($vars)`, `renderDescription($vars)`, `renderAction($vars)` on each definition
+  - [x] Build template variables from comprehensive plan data (gap amounts, coverage amounts, need amounts, monthly costs, etc.)
+  - [x] Use `renderTitle($vars)`, `renderDescription($vars)` on each definition. Note: `renderAction($vars)` exists on model but is not called in the service.
 
 - [ ] **Verify service instantiates**: `php artisan tinker` → resolve from container
 
 ### 2.2 Modify ProtectionPlanService
 
-- [ ] **Read current file**: Read `app/Services/Plans/ProtectionPlanService.php` (652 lines)
-- [ ] **Read BasePlanService**: Read `app/Services/Plans/BasePlanService.php` — understand `generateDynamicConclusion()` + `buildPersonalInformation()` patterns
+- [x] **Read current file**: Read `app/Services/Plans/ProtectionPlanService.php` (652 lines)
+- [x] **Read BasePlanService**: Read `app/Services/Plans/BasePlanService.php` — understand `generateDynamicConclusion()` + `buildPersonalInformation()` patterns
 
 **Inject new dependency:**
-- [ ] Add `ProtectionActionDefinitionService` to constructor
+- [x] Add `ProtectionActionDefinitionService` to constructor
 
 **Update `generatePlan()` return array:**
-- [ ] Add `personal_information` key (via new `buildPersonalInformation()`)
-- [ ] Add `linked_goals` and `unlinked_goals` keys
-- [ ] Update `executive_summary` to structured format
-- [ ] Replace `$this->buildProtectionConclusion()` with `$this->generateDynamicConclusion()`
+- [x] Add `personal_information` key (via new `buildPersonalInformation()`)
+- [x] Add `linked_goals` and `unlinked_goals` keys
+- [x] Update `executive_summary` to structured format
+- [x] Replace `$this->buildProtectionConclusion()` with `$this->generateDynamicConclusion()`
 
 **Replace `extractRecommendations()`:**
-- [ ] Delegate to `$this->actionDefinitionService->evaluateActions($comprehensivePlan)`
-- [ ] Remove hardcoded recommendation building logic
+- [x] Delegate to `$this->actionDefinitionService->evaluateActions($comprehensivePlan)` — Method renamed to `getRecommendations()` (line 73), delegates correctly at line 80
+- [x] Remove hardcoded recommendation building logic
 
 **Remove dead methods:**
-- [ ] `ensureGapActions()` — now handled by DB definitions
-- [ ] `buildProtectionConclusion()` — replaced by `generateDynamicConclusion()`
-- [ ] `describeActions()` — only used by old conclusion
-- [ ] `prefixWithArticle()` — only used by old exec summary
-- [ ] `buildEmptyExecutiveSummary()` — replace with structured empty response
+- [x] `ensureGapActions()` — now handled by DB definitions
+- [x] `buildProtectionConclusion()` — replaced by `generateDynamicConclusion()`
+- [x] `describeActions()` — only used by old conclusion
+- [x] `prefixWithArticle()` — only used by old exec summary
+- [x] `buildEmptyExecutiveSummary()` — replace with structured empty response
 
 **New method: `buildExecutiveSummary()` (rewrite):**
-- [ ] Return structured array: `greeting`, `opening`, `introduction`, `coverage_summary` (array of {name, need, coverage, gap, status}), `actions_summary` (top actions with title/priority), `total_actions`, `closing`
-- [ ] Reference `InvestmentPlanService::buildExecutiveSummary()` for pattern
+- [x] Return structured array: `greeting`, `opening`, `introduction`, `coverage_summary` (array of {name, need, coverage, gap, status}), `actions_summary` (top actions with title/priority), `total_actions`, `closing`
+- [x] Reference `InvestmentPlanService::buildExecutiveSummary()` for pattern
 
 **New method: `buildPersonalInformation()`:**
-- [ ] Return: `full_name`, `date_of_birth`, `age`, `marital_status`, `spouse_name`, `children`, `gross_income`, `net_income`, `annual_expenditure`, `disposable_income`, `monthly_disposable`, `occupation`, `smoker_status`, `health_status`, `retirement_age`
-- [ ] Reference `InvestmentPlanService::buildPersonalInformation()` for pattern
+- [x] Return: `full_name`, `date_of_birth`, `age`, `marital_status`, `spouse_name`, `children`, `gross_income`, `net_income`, `annual_expenditure`, `disposable_income`, `monthly_disposable`, `occupation`, `smoker_status`, `health_status`, `retirement_age`
+- [x] Reference `InvestmentPlanService::buildPersonalInformation()` for pattern
 
 **Keep unchanged:**
-- [ ] `buildWhatIfData()` — powers horizontal bar chart
-- [ ] `buildCurrentSituation()` — feeds ProtectionCurrentSituation.vue
-- [ ] `checkDataCompleteness()` — data completeness checks
-- [ ] `getRecommendations()` — update to delegate to service
+- [x] `buildWhatIfData()` — powers horizontal bar chart
+- [x] `buildCurrentSituation()` — feeds ProtectionCurrentSituation.vue
+- [x] `checkDataCompleteness()` — data completeness checks
+- [x] `getRecommendations()` — update to delegate to service
 
 ### 2.3 Update BasePlanService
 
-- [ ] **Read `generateDynamicConclusion()`** — check if "retirement goal" text is hardcoded
-- [ ] **Make plan-type aware**: Update summary text to reference the correct plan type (protection/investment/retirement) instead of hardcoding "retirement goal"
+- [x] **Read `generateDynamicConclusion()`** — check if "retirement goal" text is hardcoded
+- [x] **Make plan-type aware**: Update summary text to reference the correct plan type (protection/investment/retirement) instead of hardcoding "retirement goal"
 
 ### Phase 2 Checkpoint
 
@@ -187,54 +187,54 @@
 
 ### 3.1 Backend — Controller
 
-- [ ] **Read reference controller**: Read `app/Http/Controllers/Api/InvestmentActionDefinitionController.php` (153 lines)
-- [ ] **Create controller**: `app/Http/Controllers/Api/ProtectionActionDefinitionController.php`
+- [x] **Read reference controller**: Read `app/Http/Controllers/Api/InvestmentActionDefinitionController.php` (153 lines)
+- [x] **Create controller**: `app/Http/Controllers/Api/ProtectionActionDefinitionController.php`
   - Mirror investment controller exactly, replacing `InvestmentActionDefinition` with `ProtectionActionDefinition`
   - Methods: index(), show(), store(), update(), destroy(), toggleEnabled()
 
 ### 3.2 Backend — Form Request
 
-- [ ] **Read reference request**: Read `app/Http/Requests/StoreInvestmentActionDefinitionRequest.php`
-- [ ] **Create request**: `app/Http/Requests/StoreProtectionActionDefinitionRequest.php`
+- [x] **Read reference request**: Read `app/Http/Requests/StoreInvestmentActionDefinitionRequest.php`
+- [x] **Create request**: `app/Http/Requests/StoreProtectionActionDefinitionRequest.php`
   - Update class name, protection-specific what_if_impact_type values if needed
 
 ### 3.3 Backend — Routes
 
-- [ ] **Read current routes**: Read `routes/api.php`
-- [ ] **Add protection admin routes**: 6 routes under `admin/protection-actions` with `auth:sanctum` + `permission:admin.access` + `throttle:30,1` middleware
+- [x] **Read current routes**: Read `routes/api.php`
+- [x] **Add protection admin routes**: 6 routes under `admin/protection-actions` with `auth:sanctum` + `permission:admin.access` + `throttle:30,1` middleware
 - [ ] **Verify routes register**: `php artisan route:list --path=protection-action` — 6 routes
 
 ### 3.4 Frontend — Admin Table
 
-- [ ] **Read reference component**: Read `resources/js/components/Admin/AdminInvestmentActions.vue`
-- [ ] **Create component**: `resources/js/components/Admin/AdminProtectionActions.vue`
+- [x] **Read reference component**: Read `resources/js/components/Admin/AdminInvestmentActions.vue`
+- [x] **Create component**: `resources/js/components/Admin/AdminProtectionActions.vue`
   - Clone investment admin table, update labels to "Protection Action Definitions"
   - API calls use `adminService.getProtectionActions()` etc.
 
 ### 3.5 Frontend — Admin Modal
 
-- [ ] **Read reference modal**: Read `resources/js/components/Admin/InvestmentActionModal.vue`
-- [ ] **Create component**: `resources/js/components/Admin/ProtectionActionModal.vue`
+- [x] **Read reference modal**: Read `resources/js/components/Admin/InvestmentActionModal.vue`
+- [x] **Create component**: `resources/js/components/Admin/ProtectionActionModal.vue`
   - Clone investment modal, update title/labels for protection context
   - Protection-specific condition types in dropdown
 
 ### 3.6 Frontend — Admin Panel Tab
 
-- [ ] **Read current AdminPanel**: Read `resources/js/views/Admin/AdminPanel.vue`
-- [ ] **Add "Protection Actions" tab**: After Investment Actions tab with shield icon
-- [ ] **Import and register** `AdminProtectionActions` component
-- [ ] **Add icon** in `getTabIcon()` and short label in `getTabShortLabel()`
+- [x] **Read current AdminPanel**: Read `resources/js/views/Admin/AdminPanel.vue`
+- [x] **Add "Protection Actions" tab**: After Investment Actions tab with shield icon
+- [x] **Import and register** `AdminProtectionActions` component
+- [x] **Add icon** in `getTabIcon()` and short label in `getTabShortLabel()`
 
 ### 3.7 Frontend — Admin Service Methods
 
-- [ ] **Read current adminService**: Read `resources/js/services/adminService.js`
-- [ ] **Add 5 CRUD methods**: `getProtectionActions()`, `createProtectionAction(data)`, `updateProtectionAction(id, data)`, `deleteProtectionAction(id)`, `toggleProtectionAction(id)`
+- [x] **Read current adminService**: Read `resources/js/services/adminService.js`
+- [x] **Add 5 CRUD methods**: `getProtectionActions()`, `createProtectionAction(data)`, `updateProtectionAction(id, data)`, `deleteProtectionAction(id)`, `toggleProtectionAction(id)`
 
 ### Phase 3 Checkpoint
 
 - [ ] **Run existing tests**: All plan and protection tests pass
 - [ ] **Security review**: Use `security-reviewer` agent — review admin controller, routes, form request validation
-- [ ] **Design compliance**: No amber/orange colours, British spelling in labels
+- [x] **Design compliance**: No amber/orange colours, British spelling in labels
 - [ ] **Reseed**: `php artisan db:seed`
 
 ---
@@ -245,10 +245,10 @@
 
 ### 4.1 ProtectionExecutiveSummary.vue (NEW)
 
-- [ ] **Read reference component**: Read `resources/js/components/Plans/Investment/InvestmentExecutiveSummary.vue` (108 lines)
-- [ ] **Create component**: `resources/js/components/Plans/Protection/ProtectionExecutiveSummary.vue`
+- [x] **Read reference component**: Read `resources/js/components/Plans/Investment/InvestmentExecutiveSummary.vue` (108 lines)
+- [x] **Create component**: `resources/js/components/Plans/Protection/ProtectionExecutiveSummary.vue`
   - Greeting, opening, introduction paragraphs
-  - **Coverage Summary Table**: columns Name, Need, Coverage, Gap, Status — green/red badges
+  - **Coverage Summary Table**: columns ~~Name~~ **"Type"** (DEVIATION — spec says "Name", code says "Type"), Need, Coverage, Gap, Status — green/red badges
   - **Key Actions Table**: columns Action, Priority — priority badges
   - "Showing top X of Y actions" note if truncated
   - Closing paragraph
@@ -256,8 +256,8 @@
 
 ### 4.2 ProtectionPersonalInformation.vue (NEW)
 
-- [ ] **Read reference component**: Read `resources/js/components/Plans/Investment/InvestmentPersonalInformation.vue` (128 lines)
-- [ ] **Create component**: `resources/js/components/Plans/Protection/ProtectionPersonalInformation.vue`
+- [x] **Read reference component**: Read `resources/js/components/Plans/Investment/InvestmentPersonalInformation.vue` (128 lines)
+- [x] **Create component**: `resources/js/components/Plans/Protection/ProtectionPersonalInformation.vue`
   - 2x2 grid layout:
     - **Personal Details**: Full Name, Date of Birth, Age, Marital Status
     - **Family**: Spouse, Children
@@ -267,8 +267,8 @@
 
 ### 4.3 ProtectionPlanContent.vue (UPDATE)
 
-- [ ] **Read current component**: Read `resources/js/components/Plans/Protection/ProtectionPlanContent.vue` (48 lines)
-- [ ] **Update template section order**:
+- [x] **Read current component**: Read `resources/js/components/Plans/Protection/ProtectionPlanContent.vue` (48 lines)
+- [x] **Update template section order**:
   1. `PlanMissingDataPrompt` (keep)
   2. `ProtectionExecutiveSummary` (NEW — conditional with `hasStructuredSummary`)
   3. `PlanExecutiveSummary` (KEEP as fallback for legacy narrative data)
@@ -278,9 +278,9 @@
   7. `PlanActionsList` (keep — unchanged)
   8. `PlanWhatIfComparison` with chart (keep — unchanged)
   9. `PlanConclusion` (keep — now receives essential_actions/optional_actions format)
-- [ ] **Add imports**: `ProtectionExecutiveSummary`, `ProtectionPersonalInformation`, `PlanGoalSection`
-- [ ] **Add computed**: `hasStructuredSummary` — check for `greeting` field (same pattern as investment)
-- [ ] **Verify bar chart and toggle system still work**: No changes to PlanActionsList, PlanWhatIfComparison, PlanWhatIfChart, ProtectionWhatIfControls
+- [x] **Add imports**: `ProtectionExecutiveSummary`, `ProtectionPersonalInformation`, `PlanGoalSection`
+- [x] **Add computed**: `hasStructuredSummary` — check for `greeting` field (same pattern as investment)
+- [x] **Verify bar chart and toggle system still work**: No changes to PlanActionsList, PlanWhatIfComparison, PlanWhatIfChart, ProtectionWhatIfControls
 
 ### Phase 4 Checkpoint
 
@@ -301,12 +301,12 @@
   - [ ] entrepreneur (Alex Chen)
   - [ ] young_saver (John Morgan)
   - [ ] retired_couple (Patricia Bennett)
-- [ ] **Design compliance check**: Use `Explore` agent to verify against `designStyle.md`
-  - [ ] No amber/orange colours (Rule 9)
-  - [ ] All currency via `currencyMixin` (Rule 6)
-  - [ ] No acronyms in user-facing text (Rule 10)
-  - [ ] British spelling in all labels
-  - [ ] No scores in UI (Rule 12)
+- [x] **Design compliance check**: Use `Explore` agent to verify against `designStyle.md`
+  - [x] No amber/orange colours (Rule 9)
+  - [x] All currency via `currencyMixin` (Rule 6)
+  - [x] No acronyms in user-facing text (Rule 10)
+  - [x] British spelling in all labels
+  - [x] No scores in UI (Rule 12)
   - [ ] Read `designStyle.md` and verify component patterns match (Rule 11)
 - [ ] **Code review (Phase 4)**: Use `/code-review` skill — review all new/modified Vue components for design system compliance, correct prop types, proper event handling
 - [ ] **UI polish**: Use `premium-ui-designer` agent — review table styling, badge colours, spacing, responsive layout
@@ -319,28 +319,28 @@
 
 ### 5.1 Unit Tests — ProtectionActionDefinitionServiceTest
 
-- [ ] **Read reference tests**: Read `tests/Unit/Services/Investment/InvestmentActionDefinitionServiceTest.php`
-- [ ] **Create test file**: `tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php`
+- [x] **Read reference tests**: Read `tests/Unit/Services/Investment/InvestmentActionDefinitionServiceTest.php`
+- [x] **Create test file**: `tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php`
 
 **Test cases:**
-- [ ] Gap triggers: life_insurance_gap (fire + not fire), critical_illness_gap (fire + not fire), income_protection_gap (fire + not fire)
-- [ ] Strategy triggers: increase_life_cover, add_critical_illness, add_income_protection
-- [ ] General triggers: review_existing_policies, consolidate_policies, protection_profile_missing, no_policies_warning
-- [ ] Disabled definitions: skipped correctly
-- [ ] Template rendering: title, description, missing placeholders cleaned up
-- [ ] Empty data: no errors when comprehensive plan has no coverage analysis
+- [x] Gap triggers: life_insurance_gap (fire + not fire), critical_illness_gap (fire + not fire), income_protection_gap (fire + not fire) — Note: "not fire" for CI and IP covered via shared test, not individually isolated
+- [~] Strategy triggers: increase_life_cover ✅, ~~add_critical_illness~~ ❌ MISSING, ~~add_income_protection~~ ❌ MISSING
+- [x] General triggers: review_existing_policies, consolidate_policies, protection_profile_missing, no_policies_warning
+- [x] Disabled definitions: skipped correctly
+- [x] Template rendering: title, description, missing placeholders cleaned up
+- [ ] Empty data: no errors when comprehensive plan has no coverage analysis — **MISSING TEST**
 
 ### 5.2 Feature Tests — Admin CRUD
 
-- [ ] **Read reference tests**: Read `tests/Feature/Api/InvestmentActionDefinitionTest.php`
-- [ ] **Create test file**: `tests/Feature/Api/ProtectionActionDefinitionTest.php`
+- [x] **Read reference tests**: Read `tests/Feature/Api/InvestmentActionDefinitionTest.php`
+- [x] **Create test file**: `tests/Feature/Api/ProtectionActionDefinitionTest.php`
 
 **Test cases:**
-- [ ] Admin list (all definitions), show, create, update, toggle, delete
-- [ ] Non-admin 403 on all 6 endpoints
-- [ ] Validation errors (required fields)
-- [ ] Duplicate key constraint on create
-- [ ] 404 for non-existent definition
+- [x] Admin list (all definitions), show, create, update, toggle, delete
+- [x] Non-admin 403 on all 6 endpoints
+- [x] Validation errors (required fields)
+- [x] Duplicate key constraint on create
+- [x] 404 for non-existent definition
 
 ### 5.3 Run ALL Tests
 
@@ -414,6 +414,59 @@
 | Phase 5: Tests | 15 | 2 | 0 |
 | Final Integration | 15 | 0 | 0 |
 | **Total** | **~112** | **13** | **7** |
+
+---
+
+## Code Review Findings
+
+### All Files Created (13/13)
+
+| # | File | Status |
+|---|------|--------|
+| 1 | `database/migrations/2026_03_05_000002_create_protection_action_definitions_table.php` | DONE |
+| 2 | `app/Models/ProtectionActionDefinition.php` | DONE |
+| 3 | `database/seeders/ProtectionActionDefinitionSeeder.php` | DONE |
+| 4 | `database/factories/ProtectionActionDefinitionFactory.php` | DONE |
+| 5 | `app/Services/Protection/ProtectionActionDefinitionService.php` | DONE |
+| 6 | `app/Http/Controllers/Api/ProtectionActionDefinitionController.php` | DONE |
+| 7 | `app/Http/Requests/StoreProtectionActionDefinitionRequest.php` | DONE |
+| 8 | `resources/js/components/Admin/AdminProtectionActions.vue` | DONE |
+| 9 | `resources/js/components/Admin/ProtectionActionModal.vue` | DONE |
+| 10 | `resources/js/components/Plans/Protection/ProtectionExecutiveSummary.vue` | DONE |
+| 11 | `resources/js/components/Plans/Protection/ProtectionPersonalInformation.vue` | DONE |
+| 12 | `tests/Unit/Services/Protection/ProtectionActionDefinitionServiceTest.php` | DONE |
+| 13 | `tests/Feature/Api/ProtectionActionDefinitionTest.php` | DONE |
+
+### All Modified Files (7/7)
+
+| # | File | Status |
+|---|------|--------|
+| 1 | `database/seeders/DatabaseSeeder.php` | DONE |
+| 2 | `app/Services/Plans/ProtectionPlanService.php` | DONE |
+| 3 | `app/Services/Plans/BasePlanService.php` | DONE |
+| 4 | `routes/api.php` | DONE |
+| 5 | `resources/js/views/Admin/AdminPanel.vue` | DONE |
+| 6 | `resources/js/services/adminService.js` | DONE |
+| 7 | `resources/js/components/Plans/Protection/ProtectionPlanContent.vue` | DONE |
+
+### Deviations from Spec (Acceptable)
+
+1. **Service method consolidation**: The 10 individual evaluator methods were consolidated into generic handlers (`evaluateGapCondition`, `evaluateStrategyCondition`, `evaluateMultiplePolicies`, `evaluateProfileMissing`, `evaluateNoPoliciesWithGaps`). This is a better design — less code duplication, same functionality.
+2. **No TaxConfigService in ProtectionActionDefinitionService**: Omitted because protection evaluations don't need tax lookups (unlike Investment which checks ISA/pension allowances). Correct simplification.
+3. **Method renamed**: `extractRecommendations()` → `getRecommendations()` in ProtectionPlanService. Delegates correctly to the action definition service.
+4. **`renderAction()` not called in service**: Exists on the model but the service uses `renderTitle`/`renderDescription` only. The action text comes from the template directly in the recommendation output.
+
+### Issues to Fix
+
+1. **Coverage Summary table header says "Type" instead of "Name"** — `ProtectionExecutiveSummary.vue` line 19. Minor label mismatch with spec.
+2. **Missing unit tests for `add_critical_illness` and `add_income_protection` strategy triggers** — Only `increase_life_cover` strategy has a dedicated test.
+3. **Missing unit test for empty/null coverage_analysis** — No test verifying `evaluateActions([])` or a plan with no coverage_analysis throws no errors.
+
+### Remaining Unchecked Items
+
+All unchecked items are **runtime verification tasks** (seeding, running tests, browser testing, running dev server) that require executing commands. These cannot be verified by code review alone.
+
+---
 
 ## Quick Reference — Commands
 

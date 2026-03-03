@@ -108,6 +108,8 @@ describe('gap detection triggers', function () {
 
 describe('strategy recommendation triggers', function () {
     it('fires increase_life_cover when strategy recommends life insurance', function () {
+        ProtectionActionDefinition::where('key', 'increase_life_cover')->update(['is_enabled' => true]);
+
         $plan = [
             'coverage_analysis' => [
                 'life_insurance' => ['gap' => 0, 'coverage' => 250000, 'need' => 250000],
@@ -139,7 +141,79 @@ describe('strategy recommendation triggers', function () {
             ->and($rec['estimated_cost'])->toBe(25.0);
     });
 
+    it('fires add_critical_illness when strategy recommends critical illness cover', function () {
+        ProtectionActionDefinition::where('key', 'add_critical_illness')->update(['is_enabled' => true]);
+
+        $plan = [
+            'coverage_analysis' => [
+                'life_insurance' => ['gap' => 0, 'coverage' => 250000, 'need' => 250000],
+                'critical_illness' => ['gap' => 0, 'coverage' => 100000, 'need' => 100000],
+                'income_protection' => ['gap' => 0, 'coverage' => 2000, 'need' => 2000],
+            ],
+            'optimized_strategy' => [
+                'recommendations' => [
+                    [
+                        'category' => 'Critical Illness',
+                        'action' => 'Add critical illness cover of £150,000',
+                        'details' => 'Standalone critical illness policy recommended',
+                        'coverage_amount' => 150000,
+                        'estimated_monthly_cost' => 35,
+                        'priority' => 2,
+                        'importance' => 'High',
+                        'timeframe' => 'Within 3 months',
+                    ],
+                ],
+            ],
+            'current_coverage' => [],
+            'user_profile' => ['age' => 35],
+        ];
+
+        $result = $this->service->evaluateActions($plan);
+
+        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Critical Illness' && $r['estimated_cost'] > 0);
+        expect($rec)->not->toBeNull()
+            ->and($rec['estimated_cost'])->toBe(35.0);
+    });
+
+    it('fires add_income_protection when strategy recommends income protection', function () {
+        ProtectionActionDefinition::where('key', 'add_income_protection')->update(['is_enabled' => true]);
+
+        $plan = [
+            'coverage_analysis' => [
+                'life_insurance' => ['gap' => 0, 'coverage' => 250000, 'need' => 250000],
+                'critical_illness' => ['gap' => 0, 'coverage' => 100000, 'need' => 100000],
+                'income_protection' => ['gap' => 0, 'coverage' => 2000, 'need' => 2000],
+            ],
+            'optimized_strategy' => [
+                'recommendations' => [
+                    [
+                        'category' => 'Income Protection',
+                        'action' => 'Add income protection of £2,500 per month',
+                        'details' => 'Long-term income protection policy recommended',
+                        'monthly_benefit' => 2500,
+                        'estimated_monthly_cost' => 45,
+                        'priority' => 2,
+                        'importance' => 'High',
+                        'timeframe' => 'Within 3 months',
+                    ],
+                ],
+            ],
+            'current_coverage' => [],
+            'user_profile' => ['age' => 35],
+        ];
+
+        $result = $this->service->evaluateActions($plan);
+
+        $rec = collect($result)->first(fn ($r) => $r['category'] === 'Income Protection' && $r['estimated_cost'] > 0);
+        expect($rec)->not->toBeNull()
+            ->and($rec['estimated_cost'])->toBe(45.0);
+    });
+
     it('does NOT fire strategy action when no matching recommendations exist', function () {
+        // Enable all strategy definitions so we can verify they don't fire
+        ProtectionActionDefinition::whereIn('key', ['increase_life_cover', 'add_critical_illness', 'add_income_protection'])
+            ->update(['is_enabled' => true]);
+
         $plan = [
             'coverage_analysis' => [
                 'life_insurance' => ['gap' => 0, 'coverage' => 250000, 'need' => 250000],
@@ -452,5 +526,51 @@ describe('priority sorting', function () {
         sort($sorted);
 
         expect($priorities)->toBe($sorted);
+    });
+});
+
+// =========================================================================
+// Empty data handling
+// =========================================================================
+
+describe('empty data handling', function () {
+    it('does not throw errors when comprehensive plan is empty', function () {
+        $result = $this->service->evaluateActions([]);
+
+        expect($result)->toBeArray();
+        // Profile missing and no-policies triggers may still fire with empty data — that is correct behaviour
+        foreach ($result as $rec) {
+            expect($rec)->toHaveKeys(['priority', 'category', 'action', 'rationale', 'impact', 'estimated_cost']);
+        }
+    });
+
+    it('handles missing coverage_analysis gracefully', function () {
+        $plan = [
+            'current_coverage' => [],
+            'user_profile' => ['age' => 35],
+        ];
+
+        $result = $this->service->evaluateActions($plan);
+
+        expect($result)->toBeArray();
+        // Should not throw any errors; profile_missing should not fire since age is set
+        $profileMissing = collect($result)->first(fn ($r) => $r['category'] === 'Setup');
+        expect($profileMissing)->toBeNull();
+    });
+
+    it('handles null coverage values without errors', function () {
+        $plan = [
+            'coverage_analysis' => [
+                'life_insurance' => ['gap' => null, 'coverage' => null, 'need' => null],
+                'critical_illness' => ['gap' => null, 'coverage' => null, 'need' => null],
+                'income_protection' => ['gap' => null, 'coverage' => null, 'need' => null],
+            ],
+            'current_coverage' => [],
+            'user_profile' => ['age' => 35],
+        ];
+
+        $result = $this->service->evaluateActions($plan);
+
+        expect($result)->toBeArray();
     });
 });

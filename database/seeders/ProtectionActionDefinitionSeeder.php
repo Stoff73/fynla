@@ -106,9 +106,9 @@ class ProtectionActionDefinitionSeeder extends Seeder
                     'condition' => 'strategy_recommendation',
                     'category_match' => 'life',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 40,
-                'notes' => 'Passthrough for optimized strategy life insurance recommendations.',
+                'notes' => 'Disabled: duplicates life_insurance_gap action. Enable only if gap action is disabled.',
             ],
 
             [
@@ -125,9 +125,9 @@ class ProtectionActionDefinitionSeeder extends Seeder
                     'condition' => 'strategy_recommendation',
                     'category_match' => 'critical',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 50,
-                'notes' => 'Passthrough for optimized strategy critical illness recommendations.',
+                'notes' => 'Disabled: duplicates critical_illness_gap action. Enable only if gap action is disabled.',
             ],
 
             [
@@ -144,9 +144,9 @@ class ProtectionActionDefinitionSeeder extends Seeder
                     'condition' => 'strategy_recommendation',
                     'category_match' => 'income',
                 ],
-                'is_enabled' => true,
+                'is_enabled' => false,
                 'sort_order' => 60,
-                'notes' => 'Passthrough for optimized strategy income protection recommendations.',
+                'notes' => 'Disabled: duplicates income_protection_gap action. Enable only if gap action is disabled.',
             ],
 
             [
