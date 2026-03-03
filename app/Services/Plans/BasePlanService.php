@@ -48,6 +48,7 @@ abstract class BasePlanService
                 $q->where('assigned_module', 'retirement')
                     ->orWhere('goal_type', 'retirement');
             })->get(),
+            'protection' => (clone $baseQuery)->where('assigned_module', 'protection')->get(),
             'estate' => collect(),
             default => collect(),
         };
@@ -352,13 +353,21 @@ abstract class BasePlanService
 
         $summaryParts = [];
 
+        $goalPhrase = match ($planType) {
+            'protection' => 'closing your protection gaps',
+            'investment' => 'reaching your investment goals',
+            'estate' => 'securing your estate plan',
+            default => 'reaching your retirement goal',
+        };
+
         if ($essential->isNotEmpty()) {
             $summaryParts[] = sprintf(
-                'There %s %d action%s that %s essential to reaching your retirement goal.',
+                'There %s %d action%s that %s essential to %s.',
                 $essential->count() === 1 ? 'is' : 'are',
                 $essential->count(),
                 $essential->count() === 1 ? '' : 's',
-                $essential->count() === 1 ? 'is' : 'are'
+                $essential->count() === 1 ? 'is' : 'are',
+                $goalPhrase
             );
         }
 

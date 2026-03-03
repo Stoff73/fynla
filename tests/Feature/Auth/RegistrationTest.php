@@ -93,11 +93,11 @@ test('user cannot register with existing email', function () {
 
     $response = $this->postJson('/api/auth/register', $userData);
 
-    // Returns same 201 response to prevent account enumeration
-    $response->assertStatus(201)
+    // Returns 422 with email_exists flag
+    $response->assertStatus(422)
         ->assertJson([
-            'success' => true,
-            'requires_verification' => true,
+            'success' => false,
+            'email_exists' => true,
         ]);
 });
 

@@ -18,6 +18,8 @@ beforeEach(function () {
                 'annual_allowance' => 4000,
             ],
         ]);
+    $mockTaxConfig->shouldReceive('getTaxYear')
+        ->andReturn('2025/26');
 
     // Bind the mock to the service container
     $this->app->instance(TaxConfigService::class, $mockTaxConfig);

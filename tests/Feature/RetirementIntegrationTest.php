@@ -13,6 +13,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(\Database\Seeders\RetirementActionDefinitionSeeder::class);
     $this->user = User::factory()->create();
     $this->actingAs($this->user, 'sanctum');
 });

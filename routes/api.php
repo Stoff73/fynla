@@ -980,6 +980,16 @@ Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])-
     Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'toggleEnabled']);
 });
 
+// Protection Action Definitions (admin-configurable plan actions)
+Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/protection-actions')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'show']);
+    Route::post('/', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'toggleEnabled']);
+});
+
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
     Route::get('/current', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getCurrent']);

@@ -75,6 +75,27 @@ export default {
     return api.patch(`/admin/investment-actions/${id}/toggle`);
   },
 
+  // Protection Action Definitions
+  getProtectionActions() {
+    return api.get('/admin/protection-actions');
+  },
+
+  createProtectionAction(data) {
+    return api.post('/admin/protection-actions', data);
+  },
+
+  updateProtectionAction(id, data) {
+    return api.put(`/admin/protection-actions/${id}`, data);
+  },
+
+  deleteProtectionAction(id) {
+    return api.delete(`/admin/protection-actions/${id}`);
+  },
+
+  toggleProtectionAction(id) {
+    return api.patch(`/admin/protection-actions/${id}/toggle`);
+  },
+
   // Database Backup
   createBackup() {
     return api.post('/admin/backup/create');
