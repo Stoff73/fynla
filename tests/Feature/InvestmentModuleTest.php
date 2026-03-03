@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;

@@ -3,51 +3,22 @@
     <PlanSectionHeader title="Current Situation" subtitle="Your estate and Inheritance Tax overview" color="purple" />
 
     <div class="space-y-4">
-      <!-- Estate Value -->
+      <!-- IHT Calculation Table (same as estate module) -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Estate Value</h3>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Gross Estate</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.estate_value.gross) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Net Estate</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.estate_value.net) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Total Liabilities</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.estate_value.liabilities) }}</p>
-          </div>
-        </div>
-      </div>
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Inheritance Tax Calculation</h3>
+        <IHTCalculationTable v-if="tableProps" v-bind="tableProps" />
 
-      <!-- Inheritance Tax -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Inheritance Tax</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Inheritance Tax Liability</p>
-            <p class="text-sm font-bold" :class="ihtLiability > 0 ? 'text-red-700' : 'text-green-700'">
-              {{ formatCurrency(ihtLiability) }}
-            </p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Nil Rate Band</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.iht_calculation.nil_rate_band) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Residence Nil Rate Band</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.iht_calculation.residence_nil_rate_band) }}</p>
-          </div>
-          <div v-if="situation.iht_calculation.spouse_exemption > 0" class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Spouse Exemption</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.iht_calculation.spouse_exemption) }}</p>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Effective Tax Rate</p>
-            <p class="text-sm font-bold text-gray-900">{{ situation.iht_calculation.effective_rate }}%</p>
-          </div>
+        <!-- Messages below table -->
+        <div class="mt-3 space-y-1.5">
+          <p v-if="situation.iht_rate_message" class="text-xs text-gray-500">
+            {{ situation.iht_rate_message }}
+          </p>
+          <p v-if="situation.nrb_message" class="text-xs text-gray-500">
+            <span class="font-medium text-gray-600">Nil Rate Band:</span> {{ situation.nrb_message }}
+          </p>
+          <p v-if="situation.rnrb_message" class="text-xs text-gray-500">
+            <span class="font-medium text-gray-600">Residence Nil Rate Band:</span> {{ situation.rnrb_message }}
+          </p>
         </div>
       </div>
 
@@ -118,17 +89,100 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import PlanSectionHeader from '@/components/Plans/Shared/PlanSectionHeader.vue';
+import IHTCalculationTable from '@/components/Estate/IHTCalculationTable.vue';
 
 export default {
   name: 'EstateCurrentSituation',
-  components: { PlanSectionHeader },
+  components: { PlanSectionHeader, IHTCalculationTable },
   mixins: [currencyMixin],
   props: {
     situation: { type: Object, required: true },
   },
   computed: {
-    ihtLiability() {
-      return this.situation.iht_calculation?.liability ?? 0;
+    tableProps() {
+      if (!this.situation?.calculation || !this.situation?.assets_breakdown) return null;
+
+      const summary = this.situation.iht_summary;
+      const totalAllowances = (summary.current.nrb_available || 0) + (summary.current.rnrb_available || 0);
+
+      return {
+        // Raw breakdowns from IHTFormattingService
+        assetsBreakdown: this.situation.assets_breakdown,
+        liabilitiesBreakdown: this.situation.liabilities_breakdown,
+
+        // Totals with 4-scenario shape (minus5/plus5 = 0, not displayed)
+        totals: {
+          grossAssets: {
+            now: summary.current.gross_assets,
+            projected: summary.projected.gross_assets,
+            minus5: 0,
+            plus5: 0,
+          },
+          liabilities: {
+            now: summary.current.liabilities,
+            projected: summary.projected.liabilities,
+            minus5: 0,
+            plus5: 0,
+          },
+          netEstate: {
+            now: summary.current.net_estate,
+            projected: summary.projected.net_estate,
+            minus5: 0,
+            plus5: 0,
+          },
+        },
+
+        // Allowances (follow standardTableProps pattern)
+        allowances: {
+          nrb: summary.current.nrb_individual,
+          nrbFromSpouse: summary.current.nrb_transferred,
+          totalNrb: summary.current.nrb_available,
+          rnrbIndividual: summary.current.rnrb_individual,
+          rnrbFromSpouse: summary.current.rnrb_transferred,
+          totalRnrb: summary.current.rnrb_available,
+          rnrbEligible: (summary.current.rnrb_available || 0) > 0,
+          rnrbTapered: false,
+          rnrbTaperThreshold: 2000000,
+          rnrbTaperAmount: 0,
+          showSeparateSpouseAllowances: (summary.is_widowed &&
+            ((summary.current.nrb_transferred || 0) > 0 ||
+             (summary.current.rnrb_transferred || 0) > 0)) || false,
+        },
+
+        // Estate after NRB
+        estateAfterNRB: {
+          now: Math.max(0, (summary.current.net_estate || 0) - totalAllowances),
+          projected: Math.max(0, (summary.projected.net_estate || 0) - totalAllowances),
+          minus5: 0,
+          plus5: 0,
+        },
+
+        // Taxable estate
+        taxableEstate: {
+          now: summary.current.taxable_estate,
+          projected: summary.projected.taxable_estate,
+          minus5: 0,
+          plus5: 0,
+        },
+
+        // IHT liability
+        ihtLiability: {
+          now: summary.current.iht_liability,
+          projected: summary.projected.iht_liability,
+          minus5: 0,
+          plus5: 0,
+        },
+
+        // Charitable donation (default zeros)
+        charitableDonation: { now: 0, minus5: 0, projected: 0, plus5: 0 },
+
+        // Display flags
+        showSpouse: this.situation.has_linked_spouse && !!this.situation.assets_breakdown?.spouse,
+        estimatedAge: summary.projected.estimated_age_at_death || 0,
+        showMinus5Years: false,
+        showPlus5Years: false,
+        firstColumnHeader: 'Asset / Liability',
+      };
     },
     hasLifeCover() {
       const lc = this.situation.life_cover;

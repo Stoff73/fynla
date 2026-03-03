@@ -9,7 +9,9 @@ use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
+use App\Services\Estate\IHTFormattingService;
 use App\Services\TaxConfigService;
 
 class EstatePlanService extends BasePlanService
@@ -19,7 +21,9 @@ class EstatePlanService extends BasePlanService
         private readonly IHTCalculationService $ihtCalculator,
         private readonly TaxConfigService $taxConfig,
         private readonly PlanConfigService $planConfig,
-        private readonly DisposableIncomeAccessor $disposableIncome
+        private readonly DisposableIncomeAccessor $disposableIncome,
+        private readonly EstateAssetAggregatorService $assetAggregator,
+        private readonly IHTFormattingService $formattingService
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -71,25 +75,26 @@ class EstatePlanService extends BasePlanService
 
         // Generate recommendations from the same analysis (no redundant analyze() call)
         $recommendations = $this->buildRecommendationsFromAnalysis($analysis);
+        $recommendations = array_values(array_filter($recommendations, fn ($r) => ($r['category'] ?? '') !== 'planning'));
         $recommendations = $this->enrichRecommendations($recommendations, $user, $data);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'estate', $options);
 
-        $currentSituation = $this->buildCurrentSituation($data);
+        // Attach gifting detail to actions from the analysis data
+        $actions = $this->attachGiftingDetailToActions($actions, $data);
+
+        $currentSituation = $this->buildCurrentSituation($data, $user);
         $whatIf = $this->buildWhatIfData($data, $enabledActions);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'estate');
 
-        // Build executive summary using the already-computed recommendations count
-        $executiveSummary = $this->buildExecutiveSummary($user, $data, count($recommendations));
-
-        // Build joint estate view if married with spouse data
-        $jointEstateView = $this->buildJointEstateView($user, $data);
+        // Build structured executive summary
+        $executiveSummary = $this->buildExecutiveSummary($user, $data, $actions);
 
         return [
             'metadata' => $this->buildPlanMetadata($user, 'estate', $completeness),
             'completeness_warning' => $this->buildCompletenessWarning($completeness),
             'executive_summary' => $executiveSummary,
+            'personal_information' => $this->buildPersonalInformation($user, $data),
             'current_situation' => $currentSituation,
-            'joint_estate_view' => $jointEstateView,
             'actions' => $actions,
             'what_if' => $whatIf,
             'conclusion' => $conclusion,
@@ -321,122 +326,184 @@ class EstatePlanService extends BasePlanService
     }
 
     /**
-     * Build executive summary using pre-computed data (no redundant API calls).
+     * Build structured executive summary with key actions table.
      */
-    private function buildExecutiveSummary(User $user, array $data, int $recCount): array
+    private function buildExecutiveSummary(User $user, array $data, array $actions): array
     {
         $firstName = $this->getUserFirstName($user);
-        $summary = $data['summary'] ?? [];
-        $ihtCalc = $data['iht_calculation'] ?? [];
-        $lifeCover = $data['life_cover'] ?? [];
-        $profile = $data['profile'] ?? [];
+        $ihtLiability = (float) ($data['summary']['iht_liability'] ?? 0);
 
-        $grossEstate = $summary['gross_estate'] ?? 0;
-        $netEstate = $summary['net_estate'] ?? 0;
-        $ihtLiability = $summary['iht_liability'] ?? 0;
-        $effectiveRate = $summary['effective_tax_rate'] ?? 0;
+        $greeting = "Dear {$firstName},";
+        $opening = 'Thank you for using Fynla. Here is your personalised Estate Plan based on your assets, liabilities, and Inheritance Tax position.';
+        $introduction = 'Below you will find a summary of your Inheritance Tax position, the allowances available to you, and the specific actions you can take to reduce or eliminate your liability.';
 
-        $nrb = $ihtCalc['nrb_available'] ?? 0;
-        $rnrb = $ihtCalc['rnrb_available'] ?? 0;
-        $spouseExemption = $ihtCalc['spouse_net_estate'] ?? 0;
+        // Key actions summary (top 5 enabled)
+        $enabledActions = collect($actions)->where('enabled', true)->values();
+        $actionsSummary = $enabledActions->take(5)->map(fn ($a) => [
+            'title' => $a['title'],
+            'priority' => $a['priority'],
+        ])->toArray();
 
-        $lines = [];
-        $lines[] = "Dear {$firstName},";
-        $lines[] = '';
-        $lines[] = 'Thank you for using Fynla. Here is your personalised Estate Plan based on your assets, liabilities, and Inheritance Tax position.';
-        $lines[] = '';
-
-        // Estate overview
-        $lines[] = sprintf(
-            'Your gross estate is valued at %s with total liabilities of %s, giving a net estate of %s.',
-            $this->formatCurrency($grossEstate),
-            $this->formatCurrency($grossEstate - $netEstate),
-            $this->formatCurrency($netEstate)
-        );
-
-        // IHT position
-        $lines[] = sprintf(
-            'Based on your current position, your estimated Inheritance Tax liability is %s, representing an effective tax rate of %s%% on your gross estate.',
-            $this->formatCurrency($ihtLiability),
-            number_format($effectiveRate, 1)
-        );
-
-        // Allowances
-        $allowanceParts = [];
-        if ($nrb > 0) {
-            $allowanceParts[] = sprintf('a Nil Rate Band of %s', $this->formatCurrency($nrb));
-        }
-        if ($rnrb > 0) {
-            $allowanceParts[] = sprintf('a Residence Nil Rate Band of %s', $this->formatCurrency($rnrb));
-        }
-        if (! empty($allowanceParts)) {
-            $lines[] = sprintf('Your estate benefits from %s.', implode(' and ', $allowanceParts));
-        }
-
-        // Spouse exemption
-        if ($spouseExemption > 0) {
-            $lines[] = sprintf(
-                'Spouse exemption of %s applies to assets passing to your spouse.',
-                $this->formatCurrency($spouseExemption)
-            );
-        } elseif ($profile['has_spouse'] ?? false) {
-            $lines[] = 'As a married individual, assets passing to your spouse are exempt from Inheritance Tax.';
-        }
-
-        // Life cover
-        $coverInTrust = $lifeCover['total_cover_in_trust'] ?? 0;
-        if ($coverInTrust > 0) {
-            $lines[] = sprintf(
-                'You have %s in life cover written in trust, which can help provide liquidity for any Inheritance Tax liability.',
-                $this->formatCurrency($coverInTrust)
-            );
-        }
-
-        // Recommendations count (passed in, not recalculated)
-        if ($recCount > 0) {
-            $lines[] = '';
-            $lines[] = sprintf(
-                'We have identified %d mitigation %s to help reduce your Inheritance Tax liability. The sections below detail your current estate position and specific actions you can take.',
-                $recCount,
-                $recCount === 1 ? 'strategy' : 'strategies'
-            );
-        }
+        $closing = $ihtLiability > 0
+            ? 'The sections below break down your full Inheritance Tax calculation, the assets included in your estate, and the specific strategies you can implement to reduce your liability. You can toggle each action on or off to see its projected impact.'
+            : 'Our analysis shows your estate benefits from sufficient allowances to cover your current position. Review the details below.';
 
         return [
-            'narrative' => implode("\n", $lines),
-            'key_metrics' => [],
+            'greeting' => $greeting,
+            'opening' => $opening,
+            'introduction' => $introduction,
+            'actions_summary' => $actionsSummary,
+            'total_actions' => count($actions),
+            'closing' => $closing,
         ];
     }
 
     private function buildEmptyExecutiveSummary(): array
     {
         return [
+            'greeting' => null,
             'narrative' => 'Set up your Inheritance Tax profile and add your estate assets to receive a personalised estate plan.',
             'key_metrics' => [],
         ];
     }
 
-    private function buildCurrentSituation(array $data): array
+    private function buildCurrentSituation(array $data, User $user): array
     {
-        $summary = $data['summary'] ?? [];
         $ihtCalc = $data['iht_calculation'] ?? [];
         $assetBreakdown = $data['asset_breakdown'] ?? [];
         $lifeCover = $data['life_cover'] ?? [];
         $charitableAnalysis = $data['charitable_analysis'] ?? [];
+        $profile = $data['profile'] ?? [];
+
+        // Determine spouse and data sharing status
+        $hasLinkedSpouse = $user->spouse_id !== null;
+        $spouse = $hasLinkedSpouse ? User::find($user->spouse_id) : null;
+        $dataSharingEnabled = $hasLinkedSpouse && $user->hasAcceptedSpousePermission();
+
+        // Gather assets for formatting service (same as IHTController)
+        $userAssets = $this->assetAggregator->gatherUserAssets($user);
+        $spouseAssets = ($spouse && $dataSharingEnabled)
+            ? $this->assetAggregator->gatherUserAssets($spouse)
+            : collect();
+
+        // Format breakdowns using IHTFormattingService
+        $assetsBreakdown = $this->formattingService->formatAssetsBreakdown(
+            $userAssets,
+            $spouseAssets,
+            $dataSharingEnabled,
+            $user,
+            $spouse,
+            $ihtCalc
+        );
+
+        $liabilitiesBreakdown = $this->formattingService->formatLiabilitiesBreakdown(
+            $user,
+            $spouse,
+            $dataSharingEnabled
+        );
+
+        // Recalculate projected liabilities from formatting service (same as IHTController)
+        $totalLiabilities = $liabilitiesBreakdown['user']['total'];
+        $projectedLiabilities = $liabilitiesBreakdown['user']['projected_total'];
+
+        if ($dataSharingEnabled && isset($liabilitiesBreakdown['spouse'])) {
+            $totalLiabilities += $liabilitiesBreakdown['spouse']['total'];
+            $projectedLiabilities += $liabilitiesBreakdown['spouse']['projected_total'];
+        }
+
+        $ihtCalc['total_liabilities'] = $totalLiabilities;
+        $ihtCalc['projected_liabilities'] = $projectedLiabilities;
+        $ihtCalc['projected_net_estate'] = ($ihtCalc['projected_gross_assets'] ?? 0) - $projectedLiabilities;
+
+        $totalAllowances = ($ihtCalc['nrb_available'] ?? 0) + ($ihtCalc['rnrb_available'] ?? 0);
+        $ihtCalc['projected_taxable_estate'] = max(0, $ihtCalc['projected_net_estate'] - $totalAllowances);
+        $ihtCalc['projected_iht_liability'] = $ihtCalc['projected_taxable_estate'] * 0.40;
+
+        // Build iht_summary matching IHTController response shape
+        $ihtSummary = [
+            'current' => [
+                'net_estate' => $ihtCalc['total_net_estate'] ?? 0,
+                'gross_assets' => $ihtCalc['total_gross_assets'] ?? 0,
+                'liabilities' => $ihtCalc['total_liabilities'] ?? 0,
+                'nrb_available' => $ihtCalc['nrb_available'] ?? 0,
+                'nrb_individual' => $ihtCalc['nrb_individual'] ?? 0,
+                'nrb_transferred' => $ihtCalc['nrb_transferred'] ?? 0,
+                'nrb_message' => $ihtCalc['nrb_message'] ?? '',
+                'rnrb_available' => $ihtCalc['rnrb_available'] ?? 0,
+                'rnrb_individual' => $ihtCalc['rnrb_individual'] ?? 0,
+                'rnrb_transferred' => $ihtCalc['rnrb_transferred'] ?? 0,
+                'rnrb_status' => $ihtCalc['rnrb_status'] ?? 'none',
+                'rnrb_message' => $ihtCalc['rnrb_message'] ?? '',
+                'total_allowances' => $ihtCalc['total_allowances'] ?? 0,
+                'taxable_estate' => $ihtCalc['taxable_estate'] ?? 0,
+                'iht_liability' => $ihtCalc['iht_liability'] ?? 0,
+                'effective_rate' => $ihtCalc['effective_rate'] ?? 0,
+            ],
+            'projected' => [
+                'net_estate' => $ihtCalc['projected_net_estate'] ?? 0,
+                'gross_assets' => $ihtCalc['projected_gross_assets'] ?? 0,
+                'liabilities' => $ihtCalc['projected_liabilities'] ?? 0,
+                'taxable_estate' => $ihtCalc['projected_taxable_estate'] ?? 0,
+                'iht_liability' => $ihtCalc['projected_iht_liability'] ?? 0,
+                'years_to_death' => $ihtCalc['years_to_death'] ?? 0,
+                'estimated_age_at_death' => $ihtCalc['estimated_age_at_death'] ?? 0,
+                'cash' => $ihtCalc['projected_cash'] ?? null,
+                'investments' => $ihtCalc['projected_investments'] ?? null,
+                'properties' => $ihtCalc['projected_properties'] ?? null,
+            ],
+            'is_married' => $ihtCalc['is_married'] ?? false,
+            'is_widowed' => $ihtCalc['is_widowed'] ?? false,
+            'data_sharing_enabled' => $ihtCalc['data_sharing_enabled'] ?? false,
+        ];
+
+        // Rate and NRB/RNRB messages
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtStandardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $charitableRate = (float) ($ihtConfig['reduced_rate_charity'] ?? TaxDefaults::IHT_CHARITABLE_RATE);
+
+        $charitableStatus = $charitableAnalysis['status'] ?? 'none';
+        $appliedRateType = $charitableStatus === 'qualifies' ? 'charitable' : 'standard';
+        $appliedRateMessage = $charitableStatus === 'qualifies'
+            ? sprintf('Reduced rate of %d%% applies as 10%% or more of the net estate is left to charity.', (int) round($charitableRate * 100))
+            : sprintf('Standard Inheritance Tax rate of %d%% applies.', (int) round($ihtStandardRate * 100));
+
+        $isMarried = $profile['has_spouse'] ?? false;
+        $isWidowed = ($profile['marital_status'] ?? '') === 'widowed'
+            || ($ihtCalc['transferable_nrb'] ?? 0) > 0;
+
+        $nrb = (float) ($ihtCalc['nrb_available'] ?? 0);
+        $rnrb = (float) ($ihtCalc['rnrb_available'] ?? 0);
+
+        $nrbMessage = $isWidowed
+            ? 'Includes transferred Nil Rate Band from deceased spouse.'
+            : ($isMarried ? 'Individual Nil Rate Band. On second death, up to double may be available.' : 'Individual Nil Rate Band.');
+
+        $rnrbMessage = $rnrb > 0
+            ? 'Residence Nil Rate Band available as your estate includes a qualifying residential property passing to direct descendants.'
+            : 'Residence Nil Rate Band is not available. This may be because your estate does not include a qualifying residential property, or it does not pass to direct descendants.';
 
         return [
-            'estate_value' => [
-                'gross' => $this->roundToPenny((float) ($summary['gross_estate'] ?? 0)),
-                'net' => $this->roundToPenny((float) ($summary['net_estate'] ?? 0)),
-                'liabilities' => $this->roundToPenny((float) ($summary['total_liabilities'] ?? 0)),
-            ],
-            'iht_calculation' => [
-                'liability' => $this->roundToPenny((float) ($summary['iht_liability'] ?? 0)),
-                'nil_rate_band' => $this->roundToPenny((float) ($ihtCalc['nrb_available'] ?? 0)),
-                'residence_nil_rate_band' => $this->roundToPenny((float) ($ihtCalc['rnrb_available'] ?? 0)),
-                'spouse_exemption' => $this->roundToPenny((float) ($ihtCalc['spouse_net_estate'] ?? 0)),
-                'effective_rate' => round((float) ($summary['effective_tax_rate'] ?? 0), 1),
-            ],
+            // Full IHT calculation (pass-through for frontend)
+            'calculation' => $ihtCalc,
+
+            // Formatted breakdowns from IHTFormattingService
+            'assets_breakdown' => $assetsBreakdown,
+            'liabilities_breakdown' => $liabilitiesBreakdown,
+
+            // Formatted summary matching IHTController shape
+            'iht_summary' => $ihtSummary,
+
+            // Display flags
+            'data_sharing_enabled' => $dataSharingEnabled,
+            'has_linked_spouse' => $hasLinkedSpouse && $spouse !== null,
+
+            // Messages for below the table
+            'iht_rate_type' => $appliedRateType,
+            'iht_rate_message' => $appliedRateMessage,
+            'nrb_message' => $nrbMessage,
+            'rnrb_message' => $rnrbMessage,
+
+            // Keep existing supplementary cards (unchanged)
             'asset_breakdown' => [
                 'liquid' => $this->roundToPenny((float) ($assetBreakdown['liquid'] ?? 0)),
                 'semi_liquid' => $this->roundToPenny((float) ($assetBreakdown['semi_liquid'] ?? 0)),
@@ -450,13 +517,141 @@ class EstatePlanService extends BasePlanService
                 'policies_not_in_trust' => $lifeCover['policies_not_in_trust_count'] ?? 0,
             ],
             'charitable_giving' => [
-                'status' => $charitableAnalysis['status'] ?? 'none',
+                'status' => $charitableStatus,
                 'current_percentage' => round((float) ($charitableAnalysis['current_percentage'] ?? 0), 1),
                 'threshold' => $this->planConfig->getCharitableGivingThreshold(),
                 'shortfall' => $this->roundToPenny((float) ($charitableAnalysis['shortfall'] ?? 0)),
                 'potential_saving' => $this->roundToPenny((float) ($charitableAnalysis['potential_saving'] ?? 0)),
             ],
+            'linked_accounts' => $this->buildLinkedAccountsList($user),
         ];
+    }
+
+    /**
+     * Build personal information section for the estate plan.
+     */
+    private function buildPersonalInformation(User $user, array $data): array
+    {
+        $fullName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? "\u{2014}");
+        $dob = $user->date_of_birth;
+        $age = $dob ? (int) $dob->diffInYears(now()) : null;
+
+        // Spouse
+        $spouseName = null;
+        if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
+            $spouse = $user->spouse;
+            $spouseName = trim(($spouse->first_name ?? '').' '.($spouse->surname ?? '')) ?: $spouse->name;
+        }
+
+        // Children
+        $children = $user->familyMembers()
+            ->where('relationship', 'child')
+            ->get()
+            ->map(fn ($child) => $child->name)
+            ->toArray();
+
+        // Income
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+
+        $incomeData = $this->disposableIncome->getForUser($user);
+
+        // Estate-specific profile fields
+        $ihtCalc = $data['iht_calculation'] ?? [];
+        $profile = $data['profile'] ?? [];
+        $isMarried = $profile['has_spouse'] ?? false;
+        $isWidowed = ($profile['marital_status'] ?? '') === 'widowed'
+            || ($ihtCalc['transferable_nrb'] ?? 0) > 0;
+        $maritalStatusIht = $isMarried ? 'married' : ($isWidowed ? 'widowed' : 'single');
+
+        return [
+            'full_name' => $fullName,
+            'date_of_birth' => $dob?->toDateString(),
+            'age' => $age,
+            'marital_status' => $user->marital_status,
+            'spouse_name' => $spouseName,
+            'children' => $children,
+            'gross_income' => $this->roundToPenny($grossIncome),
+            'net_income' => $this->roundToPenny($incomeData['net_income']),
+            'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            'disposable_income' => $this->roundToPenny($incomeData['annual']),
+            'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
+            'estimated_age_at_death' => $ihtCalc['estimated_age_at_death'] ?? null,
+            'years_to_death' => $ihtCalc['years_to_death'] ?? null,
+            'marital_status_iht' => $maritalStatusIht,
+            'has_will' => Will::where('user_id', $user->id)->exists(),
+        ];
+    }
+
+    /**
+     * Build list of linked accounts included in the estate.
+     */
+    private function buildLinkedAccountsList(User $user): array
+    {
+        $assets = $this->assetAggregator->gatherUserAssets($user);
+
+        $excludedTypes = ['dc_pension', 'db_pension'];
+
+        return $assets
+            ->filter(fn ($asset) => (float) $asset->current_value > 0)
+            ->filter(fn ($asset) => ! in_array($asset->asset_type ?? '', $excludedTypes, true))
+            ->map(fn ($asset) => [
+                'name' => $asset->asset_name ?? 'Unknown Asset',
+                'type' => $asset->asset_type ?? 'other',
+                'value' => $this->roundToPenny((float) $asset->current_value),
+                'is_exempt' => (bool) ($asset->is_iht_exempt ?? false),
+            ])
+            ->sortByDesc('value')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Attach gifting detail from analysis data to matching actions.
+     */
+    private function attachGiftingDetailToActions(array $actions, array $data): array
+    {
+        $giftingStrategies = $data['gifting_opportunities']['strategies'] ?? [];
+
+        // Build lookup by strategy name keywords
+        $petStrategy = null;
+        $annualStrategy = null;
+        foreach ($giftingStrategies as $strategy) {
+            $name = strtolower($strategy['strategy_name'] ?? '');
+            if (str_contains($name, 'pet') || str_contains($name, 'potentially exempt')) {
+                $petStrategy = $strategy;
+            }
+            if (str_contains($name, 'annual exemption')) {
+                $annualStrategy = $strategy;
+            }
+        }
+
+        foreach ($actions as &$action) {
+            $category = $action['category'] ?? '';
+
+            if ($category === 'pet_gifting' && $petStrategy) {
+                $action['gift_schedule'] = $petStrategy['gift_schedule'] ?? [];
+                $action['seven_year_cycles'] = (int) ($petStrategy['number_of_cycles'] ?? 0);
+                $action['amount_per_cycle'] = (float) ($petStrategy['amount_per_cycle'] ?? 0);
+            }
+
+            if ($category === 'annual_gifting' && $annualStrategy) {
+                $action['annual_gifting_detail'] = [
+                    'annual_amount' => (float) ($annualStrategy['annual_amount'] ?? 0),
+                    'years' => (int) ($annualStrategy['years'] ?? 0),
+                    'total_gifted' => (float) ($annualStrategy['total_gifted'] ?? 0),
+                    'iht_saved' => (float) ($annualStrategy['iht_saved'] ?? 0),
+                ];
+            }
+        }
+        unset($action);
+
+        return $actions;
     }
 
     /**

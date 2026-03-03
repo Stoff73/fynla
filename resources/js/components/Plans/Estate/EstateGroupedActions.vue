@@ -66,6 +66,73 @@
                   </span>
                 </div>
 
+                <!-- PET Gifting Schedule -->
+                <div v-if="action.category === 'pet_gifting' && action.gift_schedule && action.gift_schedule.length > 0" class="mt-3">
+                  <button
+                    class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors duration-150 flex items-center"
+                    @click="toggleSchedule(action.id)"
+                  >
+                    <svg
+                      class="w-3.5 h-3.5 mr-1 transition-transform duration-200"
+                      :class="{ 'rotate-90': expandedSchedule[action.id] }"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    {{ expandedSchedule[action.id] ? 'Hide' : 'Show' }} year-by-year gifting schedule
+                  </button>
+
+                  <div v-if="expandedSchedule[action.id]" class="mt-2">
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                          <tr>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Gift Amount</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inheritance Tax Reduction</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Exempt After Year</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                          <tr v-for="(entry, idx) in action.gift_schedule" :key="idx">
+                            <td class="px-3 py-2 text-xs text-gray-900">Year {{ entry.year + 1 }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-900 text-right">{{ formatCurrency(entry.amount) }}</td>
+                            <td class="px-3 py-2 text-xs text-green-700 text-right">{{ formatCurrency(entry.iht_reduction) }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-600 text-right">Year {{ entry.becomes_exempt }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p v-if="action.seven_year_cycles" class="text-xs text-gray-500 mt-1.5">
+                      {{ action.seven_year_cycles }} complete 7-year cycle{{ action.seven_year_cycles !== 1 ? 's' : '' }} of {{ formatCurrency(action.amount_per_cycle) }} each.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Annual Gifting Detail -->
+                <div v-if="action.category === 'annual_gifting' && action.annual_gifting_detail" class="mt-3">
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div class="bg-gray-50 rounded p-2">
+                      <p class="text-xs text-gray-500">Annual Amount</p>
+                      <p class="text-xs font-semibold text-gray-900">{{ formatCurrency(action.annual_gifting_detail.annual_amount) }}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded p-2">
+                      <p class="text-xs text-gray-500">Over</p>
+                      <p class="text-xs font-semibold text-gray-900">{{ action.annual_gifting_detail.years }} years</p>
+                    </div>
+                    <div class="bg-gray-50 rounded p-2">
+                      <p class="text-xs text-gray-500">Total Gifted</p>
+                      <p class="text-xs font-semibold text-gray-900">{{ formatCurrency(action.annual_gifting_detail.total_gifted) }}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded p-2">
+                      <p class="text-xs text-gray-500">Inheritance Tax Saved</p>
+                      <p class="text-xs font-semibold text-green-700">{{ formatCurrency(action.annual_gifting_detail.iht_saved) }}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Expandable guidance section -->
                 <div v-if="action.guidance && action.guidance.steps && action.guidance.steps.length > 0" class="mt-3">
                   <button
@@ -175,6 +242,7 @@ export default {
   data() {
     return {
       expandedGuidance: {},
+      expandedSchedule: {},
     };
   },
 
@@ -254,6 +322,13 @@ export default {
       this.expandedGuidance = {
         ...this.expandedGuidance,
         [actionId]: !this.expandedGuidance[actionId],
+      };
+    },
+
+    toggleSchedule(actionId) {
+      this.expandedSchedule = {
+        ...this.expandedSchedule,
+        [actionId]: !this.expandedSchedule[actionId],
       };
     },
   },

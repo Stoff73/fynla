@@ -244,6 +244,7 @@ class GiftingStrategyOptimizer
                 'year' => ($i * 7),
                 'amount' => round($amountPerCycle, 2),
                 'becomes_exempt' => ($i * 7) + 7,
+                'iht_reduction' => round($amountPerCycle * $ihtRate, 2),
             ];
         }
 

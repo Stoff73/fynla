@@ -32,7 +32,7 @@ class PlanActionFundingSelection extends Model
         return static::where('user_id', $userId)
             ->where('plan_type', $planType)
             ->get()
-            ->keyBy(fn ($row) => $row->action_category . '_' . $row->target_account_id);
+            ->keyBy(fn ($row) => $row->action_category.'_'.$row->target_account_id);
     }
 
     /**

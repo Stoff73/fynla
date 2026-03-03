@@ -250,7 +250,7 @@ class RetirementPlanService extends BasePlanService
 
     private function buildPersonalInformation(User $user): array
     {
-        $fullName = trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')) ?: ($user->name ?? '—');
+        $fullName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? '—');
         $dob = $user->date_of_birth;
         $age = $dob ? (int) $dob->diffInYears(now()) : null;
 
@@ -258,7 +258,7 @@ class RetirementPlanService extends BasePlanService
         $spouseName = null;
         if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
             $spouse = $user->spouse;
-            $spouseName = trim(($spouse->first_name ?? '') . ' ' . ($spouse->surname ?? '')) ?: $spouse->name;
+            $spouseName = trim(($spouse->first_name ?? '').' '.($spouse->surname ?? '')) ?: $spouse->name;
         }
 
         // Children
@@ -511,7 +511,7 @@ class RetirementPlanService extends BasePlanService
             }
 
             $targetAccountId = $action['account_id'] ?? 0;
-            $selectionKey = ($action['category'] ?? '') . '_' . $targetAccountId;
+            $selectionKey = ($action['category'] ?? '').'_'.$targetAccountId;
 
             // Check for persisted selection
             $persisted = $persistedSelections->get($selectionKey);
