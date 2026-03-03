@@ -6,24 +6,41 @@ namespace App\Services\Plans;
 
 use App\Agents\InvestmentAgent;
 use App\Agents\SavingsAgent;
-use App\Constants\TaxDefaults;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
+use App\Models\PlanActionFundingSelection;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Investment\FeeAnalyzer;
+use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\TaxConfigService;
 
 class InvestmentPlanService extends BasePlanService
 {
+    /** Contribution action categories that should show a funding source. */
+    private const CONTRIBUTION_CATEGORIES = [
+        'ISA Allowance',
+        'Emergency Fund Surplus',
+        'Goal',
+    ];
+
+    /** Liquid cash account types safe to recommend as a funding source. */
+    private const FUNDING_CASH_ACCOUNT_TYPES = [
+        'current_account',
+        'instant_access',
+        'business_current',
+        'business_savings',
+    ];
+
     public function __construct(
         private readonly InvestmentAgent $investmentAgent,
         private readonly SavingsAgent $savingsAgent,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly PlanConfigService $planConfig,
         private readonly DisposableIncomeAccessor $incomeAccessor,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly InvestmentActionDefinitionService $actionDefinitionService
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -34,14 +51,11 @@ class InvestmentPlanService extends BasePlanService
         $investmentAnalysis = $this->investmentAgent->analyze($userId);
         $savingsAnalysis = $this->savingsAgent->analyze($userId);
 
-        $investmentAccounts = InvestmentAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $investmentAccounts = InvestmentAccount::forUserOrJoint($userId)
             ->with('holdings')
             ->get();
 
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
-            ->get();
+        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
 
         $currentSituation = $this->buildCurrentSituation(
             $investmentAnalysis,
@@ -50,9 +64,18 @@ class InvestmentPlanService extends BasePlanService
             $savingsAccounts
         );
 
-        $recommendations = $this->getRecommendations($userId, $investmentAnalysis, $savingsAnalysis, $investmentAccounts);
+        // Get recommendations from DB-driven service (replaces agent + buildSavingsRecommendations)
+        $recommendations = $this->getRecommendations($userId, [
+            'investment_analysis' => $investmentAnalysis,
+            'savings_analysis' => $savingsAnalysis,
+            'investment_accounts' => $investmentAccounts,
+        ]);
+
+        // Get goal recommendations from DB-driven service (replaces buildGoalRecommendations)
         $goals = $this->getGoalsForPlan($userId, 'investment');
-        $goalRecommendations = $this->buildGoalRecommendations($goals['linked']);
+        $goalRecommendations = $this->actionDefinitionService->evaluateGoalActions($goals['linked']);
+
+        // Merge: goals first, then agent recs
         $allRecs = array_merge($goalRecommendations, $recommendations);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($allRecs, 'investment', $options);
 
@@ -62,15 +85,24 @@ class InvestmentPlanService extends BasePlanService
             ? $retirementAge - $userAge
             : null;
 
+        // Enrich actions with cascade parameters for per-action what-if charts
+        $actions = $this->enrichActionsWithCascadeParams($user, $investmentAnalysis, $actions, $currentSituation);
+
+        // Enrich contribution actions with funding source recommendations
+        $actions = $this->enrichActionsWithFundingSource($user, $actions);
+
+        // Re-derive enabled actions after enrichment
+        $enabledActions = collect($actions)->where('enabled', true)->values()->toArray();
+
         $whatIf = $this->buildWhatIfData($user, $investmentAnalysis, $savingsAnalysis, $currentSituation, $enabledActions, $yearsToRetirement);
         $conclusion = $this->generateDynamicConclusion($currentSituation, $enabledActions, 'investment');
-
         $accountProjections = $this->buildAccountGrowthProjections($actions, $investmentAccounts, $userId, $yearsToRetirement);
 
         return [
             'metadata' => $this->buildPlanMetadata($user, 'investment', $completeness),
             'completeness_warning' => $this->buildCompletenessWarning($completeness),
-            'executive_summary' => $this->buildExecutiveSummary($user, $investmentAnalysis, $savingsAnalysis, $investmentAccounts, $savingsAccounts),
+            'executive_summary' => $this->buildExecutiveSummary($user, $investmentAnalysis, $savingsAnalysis, $investmentAccounts, $savingsAccounts, $goals, $actions),
+            'personal_information' => $this->buildPersonalInformation($user),
             'current_situation' => $currentSituation,
             'actions' => $actions,
             'what_if' => $whatIf,
@@ -81,27 +113,41 @@ class InvestmentPlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId, ?array $investmentAnalysis = null, ?array $savingsAnalysis = null, $investmentAccounts = null): array
+    /**
+     * Get recommendations by delegating to the DB-driven InvestmentActionDefinitionService.
+     *
+     * Evaluates all investment, savings, tax efficiency, and surplus waterfall triggers
+     * in a single pass. Replaces the previous two-step approach of agent + buildSavingsRecommendations.
+     *
+     * @param  int  $userId  User ID
+     * @param  array|null  $preComputedData  Optional pre-computed data with keys:
+     *                                       investment_analysis, savings_analysis, investment_accounts
+     */
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
-        $investmentAnalysis ??= $this->investmentAgent->analyze($userId);
-        $savingsAnalysis ??= $this->savingsAgent->analyze($userId);
+        $investmentAnalysis = $preComputedData['investment_analysis'] ?? $this->investmentAgent->analyze($userId);
+        $savingsAnalysis = $preComputedData['savings_analysis'] ?? $this->savingsAgent->analyze($userId);
 
-        $investmentAccounts ??= InvestmentAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $investmentAccounts = $preComputedData['investment_accounts'] ?? InvestmentAccount::forUserOrJoint($userId)
             ->with('holdings')
             ->get();
+
+        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
 
         $accountFeeAnalyses = $investmentAccounts->map(
             fn ($acct) => $this->feeAnalyzer->analyzeAccountFees($acct)
         )->filter(fn ($a) => $a['success'] ?? false)->values()->toArray();
 
-        $investmentResult = $this->investmentAgent->generateRecommendations(
-            $investmentAnalysis, $accountFeeAnalyses
+        $result = $this->actionDefinitionService->evaluateAgentActions(
+            $investmentAnalysis,
+            $savingsAnalysis,
+            $investmentAccounts,
+            $savingsAccounts,
+            $userId,
+            $accountFeeAnalyses
         );
-        $investmentRecs = $investmentResult['recommendations'] ?? [];
-        $savingsRecs = $this->buildSavingsRecommendations($savingsAnalysis, $userId);
 
-        return array_merge($investmentRecs, $savingsRecs);
+        return $result['recommendations'] ?? [];
     }
 
     public function checkDataCompleteness(int $userId): array
@@ -187,108 +233,135 @@ class InvestmentPlanService extends BasePlanService
         ];
     }
 
+    /**
+     * Build structured executive summary matching the retirement plan format.
+     */
     private function buildExecutiveSummary(
         User $user,
         array $investmentAnalysis,
         array $savingsAnalysis,
         $investmentAccounts,
-        $savingsAccounts
+        $savingsAccounts,
+        array $goals = [],
+        array $actions = []
     ): array {
         $firstName = $this->getUserFirstName($user);
         $totalInvestmentValue = $investmentAccounts->sum('current_value');
         $totalSavingsValue = $savingsAccounts->sum('current_balance');
         $totalWealth = $totalInvestmentValue + $totalSavingsValue;
+        $totalAccounts = $investmentAccounts->count() + $savingsAccounts->count();
         $emergencyRunway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        $investmentCount = $investmentAccounts->count();
-        $savingsCount = $savingsAccounts->count();
-        $totalAccounts = $investmentCount + $savingsCount;
 
-        $lines = [];
-        $lines[] = "Dear {$firstName},";
-        $lines[] = '';
-        $lines[] = 'Thank you for using Fynla. Here is your personalised Investment Plan based on the accounts and holdings you have provided.';
-        $lines[] = '';
+        // Introduction sentence
+        $introduction = $totalAccounts > 0
+            ? sprintf(
+                'This plan reviews your portfolio of %s across %d %s and provides personalised recommendations to optimise your investment and savings position.',
+                $this->formatCurrency($totalWealth),
+                $totalAccounts,
+                $totalAccounts === 1 ? 'account' : 'accounts'
+            )
+            : 'This plan provides personalised recommendations to help you start building your investment and savings position.';
 
-        // Portfolio overview
-        if ($investmentCount > 0 && $savingsCount > 0) {
-            $lines[] = sprintf(
-                'You currently hold %d investment %s valued at %s and %d savings %s totalling %s, giving you a combined portfolio of %s.',
-                $investmentCount,
-                $investmentCount === 1 ? 'account' : 'accounts',
-                $this->formatCurrency($totalInvestmentValue),
-                $savingsCount,
-                $savingsCount === 1 ? 'account' : 'accounts',
-                $this->formatCurrency($totalSavingsValue),
-                $this->formatCurrency($totalWealth)
-            );
-        } elseif ($investmentCount > 0) {
-            $lines[] = sprintf(
-                'You currently hold %d investment %s valued at %s.',
-                $investmentCount,
-                $investmentCount === 1 ? 'account' : 'accounts',
-                $this->formatCurrency($totalInvestmentValue)
-            );
-        } elseif ($savingsCount > 0) {
-            $lines[] = sprintf(
-                'You currently hold %d savings %s totalling %s.',
-                $savingsCount,
-                $savingsCount === 1 ? 'account' : 'accounts',
-                $this->formatCurrency($totalSavingsValue)
-            );
+        // Goals summary for the table
+        $allGoals = array_merge($goals['linked'] ?? [], $goals['unlinked'] ?? []);
+        $goalsSummary = [];
+        foreach ($allGoals as $goal) {
+            $goalsSummary[] = [
+                'name' => $goal['name'] ?? 'Unnamed goal',
+                'target' => $goal['target_amount'] ?? 0,
+                'progress' => $goal['progress_percentage'] ?? 0,
+                'on_track' => $goal['is_on_track'] ?? false,
+            ];
         }
 
-        // Name specific account types
-        $accountTypes = $investmentAccounts->pluck('account_type')->filter()->unique()->values();
-        if ($accountTypes->isNotEmpty()) {
-            $typeLabels = $accountTypes->map(fn ($t) => ucfirst(str_replace('_', ' ', $t)))->toArray();
-            $lines[] = 'Your investment accounts include '.implode(', ', $typeLabels).'.';
+        // Actions summary for the table (top priority actions, max 5)
+        $actionsSummary = [];
+        $count = 0;
+        foreach ($actions as $action) {
+            if ($count >= 5) {
+                break;
+            }
+            $actionsSummary[] = [
+                'title' => $action['title'] ?? 'Recommendation',
+                'priority' => $action['priority'] ?? 'medium',
+            ];
+            $count++;
         }
+        $totalActions = count($actions);
 
-        // Emergency fund
-        if ($emergencyRunway >= 6) {
-            $lines[] = sprintf(
-                'Your emergency fund is in a strong position, covering approximately %.0f months of expenses — well above the recommended 6-month target.',
-                $emergencyRunway
-            );
-        } elseif ($emergencyRunway >= 3) {
-            $lines[] = sprintf(
-                'Your emergency fund currently covers around %.0f months of expenses. While this provides a reasonable buffer, building it to at least 6 months would strengthen your financial resilience.',
-                $emergencyRunway
-            );
-        } elseif ($emergencyRunway > 0) {
-            $lines[] = sprintf(
-                'Your emergency fund covers only %.0f month(s) of expenses, which is below the recommended minimum of 3 months. Building this up should be a priority.',
-                $emergencyRunway
-            );
-        } else {
-            $lines[] = 'You do not currently have a dedicated emergency fund. Establishing one to cover at least 3 to 6 months of expenses should be a priority.';
-        }
+        // Closing statement
+        $hasCritical = ! empty(array_filter($actions, fn ($a) => ($a['priority'] ?? '') === 'critical'));
+        $closing = $hasCritical
+            ? 'The sections below highlight urgent actions and specific recommendations to strengthen your investment position.'
+            : ($totalActions > 0
+                ? 'The sections below provide a detailed breakdown of your current holdings, asset allocation, fees, and specific recommendations to improve your investment position.'
+                : 'Your investment position looks healthy. Continue monitoring your portfolio and review this plan periodically.');
 
-        // ISA allowance
-        $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
-        $isaUsed = $savingsAnalysis['isa_allowance']['total_used'] ?? 0;
-        if ($isaUsed > 0 || $isaRemaining > 0) {
-            $lines[] = sprintf(
-                'You have used %s of your ISA allowance this tax year, with %s remaining.',
-                $this->formatCurrency($isaUsed),
-                $this->formatCurrency($isaRemaining)
-            );
-        }
-
-        // Risk profile
-        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
-        if ($riskProfile) {
-            $riskLevel = ucfirst($riskProfile->risk_tolerance ?? 'moderate');
-            $lines[] = "Based on your risk questionnaire, your risk profile is {$riskLevel}.";
-        }
-
-        // Point to detail below
-        $lines[] = '';
-        $lines[] = 'The sections below provide a detailed breakdown of your current holdings, asset allocation, fees, and specific recommendations to improve your investment position.';
+        // On track: no critical actions and emergency fund covers at least 6 months
+        $onTrack = ! $hasCritical && $emergencyRunway >= 6;
 
         return [
-            'narrative' => implode("\n", $lines),
-            'key_metrics' => [],
+            'opening' => 'Thank you for using Fynla. Here is your personalised Investment Plan based on the accounts and holdings you have provided.',
+            'greeting' => "Dear {$firstName},",
+            'introduction' => $introduction,
+            'goals_summary' => $goalsSummary,
+            'actions_summary' => $actionsSummary,
+            'total_actions' => $totalActions,
+            'closing' => $closing,
+            'on_track' => $onTrack,
+        ];
+    }
+
+    /**
+     * Build personal information section matching the retirement plan format.
+     */
+    private function buildPersonalInformation(User $user): array
+    {
+        $fullName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? "\u{2014}");
+        $dob = $user->date_of_birth;
+        $age = $dob ? (int) $dob->diffInYears(now()) : null;
+
+        // Spouse
+        $spouseName = null;
+        if (in_array($user->marital_status, ['married', 'civil_partnership']) && $user->spouse) {
+            $spouse = $user->spouse;
+            $spouseName = trim(($spouse->first_name ?? '').' '.($spouse->surname ?? '')) ?: $spouse->name;
+        }
+
+        // Children
+        $children = $user->familyMembers()
+            ->where('relationship', 'child')
+            ->get()
+            ->map(fn ($child) => $child->name)
+            ->toArray();
+
+        // Income
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+
+        $incomeData = $this->incomeAccessor->getForUser($user);
+
+        // Risk level
+        $riskProfile = RiskProfile::where('user_id', $user->id)->first();
+
+        return [
+            'full_name' => $fullName,
+            'date_of_birth' => $dob?->toDateString(),
+            'age' => $age,
+            'marital_status' => $user->marital_status,
+            'spouse_name' => $spouseName,
+            'children' => $children,
+            'gross_income' => $this->roundToPenny($grossIncome),
+            'net_income' => $this->roundToPenny($incomeData['net_income']),
+            'annual_expenditure' => $this->roundToPenny($incomeData['annual_expenditure']),
+            'disposable_income' => $this->roundToPenny($incomeData['annual']),
+            'monthly_disposable' => $this->roundToPenny($incomeData['monthly']),
+            'risk_level' => $riskProfile->risk_level ?? null,
         ];
     }
 
@@ -340,167 +413,9 @@ class InvestmentPlanService extends BasePlanService
         ];
     }
 
-    private function buildSavingsRecommendations(array $savingsAnalysis, int $userId): array
-    {
-        $recommendations = [];
-
-        $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
-        if ($runway < 3) {
-            $recommendations[] = [
-                'category' => 'Emergency Fund',
-                'priority' => 'critical',
-                'title' => 'Build Emergency Fund to 3 Months',
-                'description' => 'Your emergency fund is critically low. Prioritise building savings to cover at least 3 months of expenses.',
-                'action' => 'Set up a monthly standing order to your savings account.',
-            ];
-        } elseif ($runway < 6) {
-            $recommendations[] = [
-                'category' => 'Emergency Fund',
-                'priority' => 'high',
-                'title' => 'Grow Emergency Fund to 6 Months',
-                'description' => sprintf('Your emergency fund covers %.0f months. The recommended target is 6 months of expenses.', $runway),
-                'action' => 'Continue building your emergency fund alongside other goals.',
-            ];
-        }
-
-        $rateComparisons = $savingsAnalysis['rate_comparisons'] ?? [];
-        $lowRateAccounts = collect($rateComparisons)->filter(function ($comp) {
-            return ($comp['comparison']['rating'] ?? '') === 'Poor';
-        });
-
-        if ($lowRateAccounts->isNotEmpty()) {
-            $totalGain = $lowRateAccounts->sum('potential_gain');
-            $recommendations[] = [
-                'category' => 'Interest Rate',
-                'priority' => 'medium',
-                'title' => 'Switch to Higher-Rate Savings Accounts',
-                'description' => sprintf('You could earn an additional %s per year by moving to better-rate accounts.', $this->formatCurrency($totalGain)),
-                'action' => 'Compare savings rates and switch accounts with below-market rates.',
-                'estimated_impact' => $this->roundToPenny($totalGain),
-            ];
-        }
-
-        $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
-        if ($isaRemaining > 0 && $runway >= 6) {
-            $recommendations[] = [
-                'category' => 'ISA Allowance',
-                'priority' => 'medium',
-                'title' => 'Use Remaining ISA Allowance',
-                'description' => sprintf('You have %s of ISA allowance remaining this tax year. Use it for tax-free growth.', $this->formatCurrency($isaRemaining)),
-                'action' => 'Transfer savings into a Cash ISA or Stocks & Shares ISA.',
-            ];
-        }
-
-        // Surplus waterfall: when emergency fund exceeds 6 months and no goals are reducing it
-        if ($runway > 6) {
-            $surplusRecs = $this->buildSurplusWaterfall($savingsAnalysis, $userId);
-            $recommendations = array_merge($recommendations, $surplusRecs);
-        }
-
-        return $recommendations;
-    }
-
     /**
-     * Build surplus waterfall recommendations when emergency fund exceeds 6 months.
-     * Priority: ISA -> Pension -> Bond -> Gifting
+     * Build what-if data using DB-driven impact types instead of str_contains().
      */
-    private function buildSurplusWaterfall(array $savingsAnalysis, int $userId): array
-    {
-        // Check if any goals are set to draw down the emergency fund
-        $hasDrawdownGoal = Goal::where('user_id', $userId)
-            ->whereNotNull('linked_savings_account_id')
-            ->where('status', '!=', 'completed')
-            ->exists();
-
-        if ($hasDrawdownGoal) {
-            return [];
-        }
-
-        $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
-        $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
-        $targetFund = $monthlyExpenditure * 6;
-        $surplus = max(0, $totalSavings - $targetFund);
-
-        if ($surplus <= 0) {
-            return [];
-        }
-
-        $recommendations = [];
-        $remaining = $surplus;
-
-        // 1. ISA - tax-free growth
-        $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
-        if ($isaRemaining > 0 && $remaining > 0) {
-            $isaAmount = min($remaining, $isaRemaining);
-            $recommendations[] = [
-                'category' => 'Emergency Fund Surplus',
-                'priority' => 'medium',
-                'title' => 'Move Surplus to ISA',
-                'description' => sprintf(
-                    'Your emergency fund exceeds 6 months. Move %s into an ISA for tax-free growth. You have %s of ISA allowance remaining this tax year.',
-                    $this->formatCurrency($isaAmount),
-                    $this->formatCurrency($isaRemaining)
-                ),
-                'action' => 'Transfer surplus cash into a Cash ISA or Stocks & Shares ISA.',
-                'estimated_impact' => $this->roundToPenny($isaAmount),
-            ];
-            $remaining -= $isaAmount;
-        }
-
-        // 2. Pension - tax relief
-        if ($remaining > 0) {
-            $pensionAllowances = $this->taxConfig->getPensionAllowances();
-            $annualAllowance = $pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
-            $pensionAmount = min($remaining, $annualAllowance);
-            if ($pensionAmount > 0) {
-                $recommendations[] = [
-                    'category' => 'Emergency Fund Surplus',
-                    'priority' => 'low',
-                    'title' => 'Contribute Surplus to Pension',
-                    'description' => sprintf(
-                        'Consider contributing %s to your pension. You will receive tax relief, boosting the value of your contribution.',
-                        $this->formatCurrency($pensionAmount)
-                    ),
-                    'action' => 'Make an additional pension contribution via your SIPP or workplace scheme.',
-                    'estimated_impact' => $this->roundToPenny($pensionAmount),
-                ];
-                $remaining -= $pensionAmount;
-            }
-        }
-
-        // 3. Investment bond
-        if ($remaining > 0) {
-            $recommendations[] = [
-                'category' => 'Emergency Fund Surplus',
-                'priority' => 'low',
-                'title' => 'Consider an Investment Bond',
-                'description' => sprintf(
-                    'You could place %s in an investment bond. Bonds offer tax-deferred growth and can be useful for estate planning.',
-                    $this->formatCurrency($remaining)
-                ),
-                'action' => 'Speak to a financial adviser about investment bond options.',
-                'estimated_impact' => $this->roundToPenny($remaining),
-            ];
-        }
-
-        // 4. Gifting
-        if ($remaining > 0) {
-            $giftExemption = $this->taxConfig->getGiftingExemptions()['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
-            $recommendations[] = [
-                'category' => 'Emergency Fund Surplus',
-                'priority' => 'low',
-                'title' => 'Consider Gifting Surplus Funds',
-                'description' => sprintf(
-                    'If your emergency fund significantly exceeds your needs, consider gifting to family members. Annual exempt gifts of up to %s per year are free from Inheritance Tax.',
-                    $this->formatCurrency($giftExemption)
-                ),
-                'action' => 'Review your gifting strategy in the Estate Planning section.',
-            ];
-        }
-
-        return $recommendations;
-    }
-
     private function buildWhatIfData(
         User $user,
         array $investmentAnalysis,
@@ -523,13 +438,15 @@ class InvestmentPlanService extends BasePlanService
         $additionalSavings = 0;
 
         foreach ($enabledActions as $action) {
-            $category = strtolower($action['category'] ?? '');
-            if (str_contains($category, 'fee')) {
-                $feeReduction += ($action['estimated_impact'] ?? 200);
-            }
-            if (str_contains($category, 'emergency') || str_contains($category, 'saving')) {
-                $additionalSavings += $budget->allocate($action['id'] ?? 'savings', $monthlyDisposable * 0.2);
-            }
+            $impactType = $this->actionDefinitionService->getWhatIfImpactType($action['category'] ?? '');
+
+            match ($impactType) {
+                'fee_reduction' => $feeReduction += ($action['estimated_impact'] ?? 200),
+                'savings_increase' => $additionalSavings += $budget->allocate($action['id'] ?? 'savings', $monthlyDisposable * 0.2),
+                'contribution' => $additionalSavings += $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3),
+                'tax_optimisation' => $feeReduction += $totalInvestment * $this->planConfig->getTaxOptimisationGain(),
+                default => $additionalSavings += $budget->allocate($action['id'] ?? 'default', $monthlyDisposable * 0.1),
+            };
         }
 
         $currentProjected = $projectionYears !== null
@@ -552,6 +469,7 @@ class InvestmentPlanService extends BasePlanService
                 'annual_fees' => $this->roundToPenny(max(0, ($investmentAnalysis['fee_analysis']['total_annual_fees'] ?? 0) - $feeReduction)),
                 'emergency_fund_months' => round($emergencyMonths + ($additionalSavings > 0 ? 2 : 0), 1),
                 'projected_value' => $projectedWithActions,
+                'additional_monthly_savings' => $this->roundToPenny($additionalSavings),
             ],
             'is_approximate' => true,
             'frontend_calc_params' => [
@@ -560,6 +478,187 @@ class InvestmentPlanService extends BasePlanService
                 'years' => $projectionYears,
             ],
         ];
+    }
+
+    /**
+     * Enrich actions with cascade_params for per-action what-if charts.
+     *
+     * Each action gets a cascade_params.additional_monthly value representing
+     * the monthly amount this action adds to the investment/savings pot.
+     */
+    private function enrichActionsWithCascadeParams(User $user, array $investmentAnalysis, array $actions, array $currentSituation): array
+    {
+        $totalInvestment = $currentSituation['total_investment_value'] ?? 0;
+        $monthlyDisposable = $this->incomeAccessor->getMonthlyForUser($user);
+        $budget = new DistributionAccount($monthlyDisposable);
+
+        foreach ($actions as &$action) {
+            $impactType = $this->actionDefinitionService->getWhatIfImpactType($action['category'] ?? '');
+
+            $additionalMonthly = match ($impactType) {
+                'fee_reduction' => $this->estimateFeeReductionMonthly($action),
+                'savings_increase' => $budget->allocate($action['id'] ?? 'savings', $monthlyDisposable * 0.2),
+                'contribution' => $budget->allocate($action['id'] ?? 'contribution', $monthlyDisposable * 0.3),
+                'tax_optimisation' => $totalInvestment * $this->planConfig->getTaxOptimisationGain() / 12,
+                default => $totalInvestment * $this->planConfig->getDefaultActionGain() / 12,
+            };
+
+            $action['cascade_params'] = [
+                'additional_monthly' => $this->roundToPenny($additionalMonthly),
+            ];
+        }
+        unset($action);
+
+        return $actions;
+    }
+
+    /**
+     * Enrich contribution actions with a recommended funding source and eligible account list.
+     *
+     * Only applies to contribution-type actions (ISA Allowance, Emergency Fund Surplus, Goal).
+     */
+    private function enrichActionsWithFundingSource(User $user, array $actions): array
+    {
+        // Check if any actions need funding source data
+        $hasContributionAction = false;
+        foreach ($actions as $action) {
+            if (in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
+                $hasContributionAction = true;
+                break;
+            }
+        }
+
+        if (! $hasContributionAction) {
+            return $actions;
+        }
+
+        // Load persisted selections (real users only - preview users have none saved)
+        $persistedSelections = PlanActionFundingSelection::getForUser($user->id, 'investment');
+
+        // Build eligible accounts once for the user
+        $eligibleAccounts = $this->buildEligibleFundingAccounts($user);
+
+        foreach ($actions as &$action) {
+            if (! in_array($action['category'] ?? '', self::CONTRIBUTION_CATEGORIES, true)) {
+                continue;
+            }
+
+            $targetAccountId = $action['account_id'] ?? 0;
+            $selectionKey = ($action['category'] ?? '').'_'.$targetAccountId;
+
+            // Check for persisted selection
+            $persisted = $persistedSelections->get($selectionKey);
+            $selected = null;
+
+            if ($persisted) {
+                // Verify the persisted account still exists in eligible list
+                $selected = collect($eligibleAccounts)->first(
+                    fn ($a) => $a['id'] === $persisted->funding_source_id
+                        && $a['type'] === $persisted->funding_source_type
+                );
+            }
+
+            // Auto-recommend if no valid persisted selection
+            if (! $selected) {
+                $selected = $this->autoRecommendFundingAccount($eligibleAccounts);
+            }
+
+            $action['funding_source'] = [
+                'selected_id' => $selected['id'] ?? null,
+                'selected_type' => $selected['type'] ?? null,
+                'selected_name' => $selected['name'] ?? null,
+                'warning' => $selected['warning'] ?? null,
+                'eligible_accounts' => $eligibleAccounts,
+            ];
+        }
+        unset($action);
+
+        return $actions;
+    }
+
+    /**
+     * Build the list of eligible funding accounts for a user.
+     */
+    private function buildEligibleFundingAccounts(User $user): array
+    {
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
+        $targetMonths = $this->planConfig->getEmergencyFundTargetMonths();
+        $emergencyThreshold = $monthlyExpenditure * $targetMonths;
+
+        $accounts = [];
+
+        // Cash accounts (non-ISA, liquid types)
+        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+            ->where('is_isa', false)
+            ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
+            ->orderByDesc('current_balance')
+            ->get();
+
+        foreach ($cashAccounts as $account) {
+            $balance = (float) $account->current_balance;
+            $additionalMonthly = (float) ($account->additional_monthly_savings ?? 0);
+            $balanceAfterYear = $balance - ($additionalMonthly * 12);
+
+            $warning = null;
+            if ($balanceAfterYear < $emergencyThreshold) {
+                $warning = "Withdrawing would reduce your emergency fund below {$targetMonths} months of expenditure.";
+            }
+
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'savings',
+                'name' => $account->account_name ?? $account->institution ?? 'Cash Account',
+                'balance' => $this->roundToPenny($balance),
+                'warning' => $warning,
+            ];
+        }
+
+        // GIA investment accounts
+        $giaAccounts = InvestmentAccount::where('user_id', $user->id)
+            ->where('account_type', 'gia')
+            ->orderByDesc('current_value')
+            ->get();
+
+        foreach ($giaAccounts as $account) {
+            $accounts[] = [
+                'id' => $account->id,
+                'type' => 'investment',
+                'name' => $account->account_name ?? $account->provider ?? 'General Investment Account',
+                'balance' => $this->roundToPenny((float) $account->current_value),
+                'warning' => 'Using this account may trigger a Capital Gains Tax event.',
+            ];
+        }
+
+        return $accounts;
+    }
+
+    /**
+     * Auto-recommend the best funding account: safe cash first, then cash with warning, then GIA.
+     */
+    private function autoRecommendFundingAccount(array $eligibleAccounts): ?array
+    {
+        // First: cash without warning
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'savings' && $account['warning'] === null) {
+                return $account;
+            }
+        }
+
+        // Second: cash with warning
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'savings') {
+                return $account;
+            }
+        }
+
+        // Third: GIA
+        foreach ($eligibleAccounts as $account) {
+            if ($account['type'] === 'investment') {
+                return $account;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -685,6 +784,20 @@ class InvestmentPlanService extends BasePlanService
         }
 
         return max(0, round($currentFeePercent - $totalReduction, 2));
+    }
+
+    /**
+     * Estimate monthly equivalent of fee reduction for cascade params.
+     */
+    private function estimateFeeReductionMonthly(array $action): float
+    {
+        $estimatedImpact = $action['estimated_impact'] ?? 0;
+
+        if ($estimatedImpact > 0) {
+            return $estimatedImpact / 12;
+        }
+
+        return 0;
     }
 
     /**

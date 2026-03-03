@@ -4,7 +4,17 @@
     <PlanMissingDataPrompt :warning="plan.completeness_warning" />
 
     <!-- Executive Summary -->
-    <PlanExecutiveSummary :summary="plan.executive_summary" />
+    <InvestmentExecutiveSummary
+      v-if="hasStructuredSummary"
+      :summary="plan.executive_summary"
+    />
+    <PlanExecutiveSummary
+      v-else-if="plan.executive_summary"
+      :summary="plan.executive_summary"
+    />
+
+    <!-- Personal Information -->
+    <InvestmentPersonalInformation :info="plan.personal_information" />
 
     <!-- Linked Goals -->
     <PlanGoalSection
@@ -15,12 +25,12 @@
     <!-- Current Situation -->
     <InvestmentCurrentSituation :situation="plan.current_situation" />
 
-    <!-- Recommended Actions (accounts first, portfolio second, portfolio projection at bottom) -->
+    <!-- Recommended Actions (accounts first, portfolio second, cascading charts per action) -->
     <InvestmentGroupedActions
       :actions="plan.actions"
-      :account-projections="plan.account_projections || []"
       :what-if="plan.what_if"
       @toggle="$emit('toggle-action', $event)"
+      @update-funding-source="$emit('update-funding-source', $event)"
     />
 
     <!-- Conclusion -->
@@ -33,6 +43,8 @@ import PlanMissingDataPrompt from '@/components/Plans/Shared/PlanMissingDataProm
 import PlanExecutiveSummary from '@/components/Plans/Shared/PlanExecutiveSummary.vue';
 import PlanGoalSection from '@/components/Plans/Shared/PlanGoalSection.vue';
 import PlanConclusion from '@/components/Plans/Shared/PlanConclusion.vue';
+import InvestmentExecutiveSummary from './InvestmentExecutiveSummary.vue';
+import InvestmentPersonalInformation from './InvestmentPersonalInformation.vue';
 import InvestmentCurrentSituation from './InvestmentCurrentSituation.vue';
 import InvestmentGroupedActions from './InvestmentGroupedActions.vue';
 
@@ -42,6 +54,8 @@ export default {
   components: {
     PlanMissingDataPrompt,
     PlanExecutiveSummary,
+    InvestmentExecutiveSummary,
+    InvestmentPersonalInformation,
     PlanGoalSection,
     PlanConclusion,
     InvestmentCurrentSituation,
@@ -52,6 +66,13 @@ export default {
     plan: { type: Object, required: true },
   },
 
-  emits: ['toggle-action'],
+  emits: ['toggle-action', 'update-funding-source'],
+
+  computed: {
+    hasStructuredSummary() {
+      const s = this.plan.executive_summary;
+      return s && s.greeting && !s.narrative;
+    },
+  },
 };
 </script>

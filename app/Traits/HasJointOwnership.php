@@ -19,8 +19,10 @@ trait HasJointOwnership
      */
     public function scopeForUserOrJoint(Builder $query, int $userId): Builder
     {
-        return $query->where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId);
+        return $query->where(function (Builder $q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->orWhere('joint_owner_id', $userId);
+        });
     }
 
     /**

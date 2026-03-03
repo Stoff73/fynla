@@ -110,6 +110,6 @@ class InvestmentActionDefinition extends Model
             $template = str_replace('{'.$key.'}', (string) $value, $template);
         }
 
-        return $template;
+        return preg_replace('/\{[a-z_]+\}/', '', $template);
     }
 }

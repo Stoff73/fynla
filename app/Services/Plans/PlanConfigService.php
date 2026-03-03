@@ -113,6 +113,19 @@ class PlanConfigService
     }
 
     // =========================================================================
+    // Emergency Fund
+    // =========================================================================
+
+    /**
+     * Target emergency fund in months of expenses.
+     * Used for surplus waterfall calculations and funding source eligibility.
+     */
+    public function getEmergencyFundTargetMonths(): int
+    {
+        return (int) $this->get('emergency_fund.target_months', 6);
+    }
+
+    // =========================================================================
     // Fee Benchmarks
     // =========================================================================
 
@@ -238,6 +251,9 @@ class PlanConfigService
             'estate' => [
                 'age_gate' => 35,
                 'charitable_giving_threshold_percent' => 10.0,
+            ],
+            'emergency_fund' => [
+                'target_months' => 6,
             ],
             'cache' => [
                 'plan_ttl' => 1800,

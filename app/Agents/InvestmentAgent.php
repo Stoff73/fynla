@@ -11,6 +11,7 @@ use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
 use App\Services\Investment\FeeAnalyzer;
+use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
@@ -26,7 +27,8 @@ class InvestmentAgent extends BaseAgent
         private readonly AssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly TaxEfficiencyCalculator $taxCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly InvestmentActionDefinitionService $actionDefinitionService
     ) {}
 
     /**
@@ -125,192 +127,31 @@ class InvestmentAgent extends BaseAgent
     }
 
     /**
-     * Generate personalized recommendations
+     * Generate personalized recommendations.
+     *
+     * Delegates to InvestmentActionDefinitionService for DB-driven evaluation.
+     * This agent-level path provides a simplified subset of recommendations:
+     * - Investment-only triggers fire (risk, diversification, rebalancing, tax wrappers)
+     * - Savings/surplus triggers do NOT fire (empty savings data)
+     * - Fee triggers do NOT fire (no account fee analyses at agent level)
+     *
+     * The full evaluation (all triggers including savings, surplus waterfall, and fees)
+     * happens in InvestmentPlanService::getRecommendations() which calls the service directly.
      */
-    public function generateRecommendations(array $analysis, array $accountFeeAnalyses = []): array
+    public function generateRecommendations(array $analysis): array
     {
-        $recommendations = [];
-        $priority = 1;
-
-        $holdingsCount = $analysis['portfolio_summary']['holdings_count'] ?? 0;
-        $hasRiskProfile = isset($analysis['allocation_deviation']);
-
-        // No risk profile - request specific information needed
-        if (! $hasRiskProfile) {
-            $recommendations[] = [
-                'category' => 'Risk Profile',
-                'priority' => $priority++,
-                'title' => 'Provide Your Investment Preferences',
-                'description' => 'To personalise your investment plan, we need three key pieces of information: your investment time horizon (how long you plan to invest), your capacity for loss (how much you could afford to lose), and your risk tolerance (how comfortable you are with investment volatility). This allows us to recommend an appropriate asset allocation.',
-                'action' => 'Complete the risk questionnaire in the Risk Profile section to provide this information',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // No holdings - explain default allocation approach
-        if ($holdingsCount === 0 && ($analysis['portfolio_summary']['accounts_count'] ?? 0) > 0) {
-            $recommendations[] = [
-                'category' => 'Portfolio Setup',
-                'priority' => $priority++,
-                'title' => 'Add Your Fund Holdings',
-                'description' => 'Without your fund holdings, this plan uses risk-based fee-optimised allocations as a benchmark. This means we estimate your portfolio performance based on a diversified allocation matched to your risk profile with low-cost fund assumptions. Adding your actual holdings will give you a more accurate analysis of your fees, diversification, and tax efficiency.',
-                'action' => 'Click on your investment account and add your fund holdings for a personalised analysis',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // Diversification recommendations (threshold: 70 - room for improvement if not well diversified)
-        // Only show when there are actual holdings (not for accounts with no holdings)
-        if ($holdingsCount > 0 && $analysis['diversification_score'] < 70) {
-            $recommendations[] = [
-                'category' => 'Diversification',
-                'priority' => $priority++,
-                'title' => 'Improve Portfolio Diversification',
-                'description' => 'Your portfolio is concentrated in a limited number of asset types. Consider spreading investments across more asset classes to reduce risk.',
-                'action' => 'Review asset allocation and consider adding different asset classes',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // Per-account fee recommendations (replaces portfolio-level fee recs)
-        foreach ($accountFeeAnalyses as $acctFees) {
-            $accountName = $acctFees['account_name'] ?? 'Unknown Account';
-            $accountId = $acctFees['account_id'] ?? null;
-            $totalFeePercent = $acctFees['total_fee_percent'] ?? 0;
-            $holdingsInAccount = $acctFees['holdings_count'] ?? 0;
-
-            // High total fees on account (above 1.0%)
-            if ($totalFeePercent > 1.0) {
-                $annualFees = $acctFees['total_annual_fees'] ?? 0;
-                $recommendations[] = [
-                    'category' => 'Fees',
-                    'priority' => $priority++,
-                    'title' => "Review fees on {$accountName}",
-                    'description' => sprintf(
-                        'Total fees on this account are %.2f%% (£%s per year). Reducing fees could significantly improve long-term returns.',
-                        $totalFeePercent,
-                        number_format($annualFees, 0)
-                    ),
-                    'action' => 'Review platform and fund fees on this account',
-                    'estimated_impact' => round($annualFees * 0.4, 2),
-                    'scope' => 'account',
-                    'account_id' => $accountId,
-                    'account_name' => $accountName,
-                ];
-            }
-
-            // High-fee holdings within this account (OCF > 0.5%)
-            if ($holdingsInAccount > 0) {
-                $weightedOcf = $acctFees['weighted_ocf'] ?? 0;
-                if ($weightedOcf > 0.5) {
-                    $recommendations[] = [
-                        'category' => 'High Fees',
-                        'priority' => $priority++,
-                        'title' => "Review high-fee holdings in {$accountName}",
-                        'description' => sprintf(
-                            'The weighted fund charge on this account is %.2f%%. Consider switching to lower-cost index funds.',
-                            $weightedOcf
-                        ),
-                        'action' => 'Compare fund fees and switch to low-cost index alternatives where appropriate',
-                        'scope' => 'account',
-                        'account_id' => $accountId,
-                        'account_name' => $accountName,
-                    ];
-                }
-            }
-
-            // High platform fee on this account (above 0.8%)
-            $platformFeePercent = 0;
-            if (isset($acctFees['fees']['platform_fee']) && ($acctFees['account_value'] ?? 0) > 0) {
-                $platformFeePercent = ($acctFees['fees']['platform_fee'] / $acctFees['account_value']) * 100;
-            }
-            if ($platformFeePercent > 0.8) {
-                $recommendations[] = [
-                    'category' => 'Platform Fees',
-                    'priority' => $priority++,
-                    'title' => "Review platform fees on {$accountName}",
-                    'description' => sprintf(
-                        'Platform fees on this account are %.2f%%. Consider switching to a lower-cost platform.',
-                        $platformFeePercent
-                    ),
-                    'action' => 'Compare platform fees across providers',
-                    'scope' => 'account',
-                    'account_id' => $accountId,
-                    'account_name' => $accountName,
-                ];
-            }
-        }
-
-        // Allocation recommendations (only when holdings exist - can't rebalance with no holdings)
-        if ($holdingsCount > 0 && isset($analysis['allocation_deviation']['needs_rebalancing']) && $analysis['allocation_deviation']['needs_rebalancing']) {
-            $recommendations[] = [
-                'category' => 'Asset Allocation',
-                'priority' => $priority++,
-                'title' => 'Rebalance Portfolio',
-                'description' => 'Your current allocation deviates significantly from your risk profile',
-                'action' => 'Consider rebalancing to match your target allocation',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // Tax efficiency recommendations - practical hierarchy
-        $taxWrappers = $analysis['tax_wrappers'] ?? [];
-        $hasGia = $taxWrappers['has_gia'] ?? false;
-        $hasIsa = $taxWrappers['has_isa'] ?? false;
-        $isaRemaining = $taxWrappers['isa_remaining'] ?? 0;
-        $giaValue = $taxWrappers['gia_value'] ?? 0;
-
-        if ($hasGia && ! $hasIsa) {
-            // Priority 1: Has GIA but no ISA - most tax inefficient
-            $recommendations[] = [
-                'category' => 'Tax Efficiency',
-                'priority' => $priority++,
-                'title' => 'Open a Stocks & Shares ISA',
-                'description' => 'Your investments are in a General Investment Account where gains and dividends are taxable. An ISA shelters up to '.number_format($taxWrappers['isa_allowance'] ?? TaxDefaults::ISA_ALLOWANCE).'/year from income tax and capital gains tax.',
-                'action' => 'Open an ISA and transfer or contribute up to the annual allowance',
-                'scope' => 'portfolio',
-            ];
-        } elseif ($hasIsa && $isaRemaining > 0 && $hasGia) {
-            // Priority 2: Has ISA with allowance remaining and GIA holdings to shelter
-            $recommendations[] = [
-                'category' => 'Tax Efficiency',
-                'priority' => $priority++,
-                'title' => 'Use Your ISA Allowance',
-                'description' => 'You have '.number_format($isaRemaining).' ISA allowance remaining this tax year. Consider moving GIA holdings ('.number_format($giaValue).') into your ISA before 5 April.',
-                'action' => 'Transfer or contribute GIA funds into your ISA to shelter from tax',
-                'scope' => 'portfolio',
-            ];
-        } elseif ($hasGia && $giaValue > 50000 && ! ($taxWrappers['has_onshore_bond'] ?? false) && ! ($taxWrappers['has_offshore_bond'] ?? false)) {
-            // Priority 3: ISA used but significant GIA value - suggest bonds
-            $recommendations[] = [
-                'category' => 'Tax Efficiency',
-                'priority' => $priority++,
-                'title' => 'Consider Tax-Efficient Bonds',
-                'description' => 'With '.number_format($giaValue).' in your GIA, consider onshore bonds (tax-deferred growth, 5% annual tax-free withdrawal) or offshore bonds (gross roll-up, no annual UK tax on gains) for additional tax efficiency.',
-                'action' => 'Speak to your adviser about investment bonds for tax-deferred growth',
-                'scope' => 'portfolio',
-            ];
-        }
-
-        // Tax loss harvesting
-        if (isset($analysis['tax_efficiency']['harvesting_opportunities']['opportunities_count']) &&
-            $analysis['tax_efficiency']['harvesting_opportunities']['opportunities_count'] > 0) {
-            $count = $analysis['tax_efficiency']['harvesting_opportunities']['opportunities_count'];
-            $saving = $analysis['tax_efficiency']['harvesting_opportunities']['potential_tax_saving'];
-
-            $recommendations[] = [
-                'category' => 'Tax Planning',
-                'priority' => $priority++,
-                'title' => 'Tax Loss Harvesting Opportunity',
-                'description' => "{$count} holdings have unrealized losses. Potential tax saving: £{$saving}",
-                'action' => 'Consider selling losing positions to offset capital gains',
-                'scope' => 'portfolio',
-            ];
-        }
+        $result = $this->actionDefinitionService->evaluateAgentActions(
+            $analysis,
+            [],                 // No savings analysis (handled by InvestmentPlanService)
+            collect(),          // No investment accounts collection at agent level
+            collect(),          // No savings accounts collection at agent level
+            0,                  // No userId needed for investment-only triggers
+            []                  // No fee analyses at agent level
+        );
 
         return [
-            'recommendation_count' => count($recommendations),
-            'recommendations' => $recommendations,
+            'recommendation_count' => $result['total_count'],
+            'recommendations' => $result['recommendations'],
         ];
     }
 

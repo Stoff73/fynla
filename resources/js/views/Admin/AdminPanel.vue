@@ -60,6 +60,9 @@
 
         <!-- Retirement Actions Tab -->
         <AdminRetirementActions v-if="activeTab === 'retirement-actions'" />
+
+        <!-- Investment Actions Tab -->
+        <AdminInvestmentActions v-if="activeTab === 'investment-actions'" />
       </div>
     </div>
   </AppLayout>
@@ -73,6 +76,7 @@ import UserManagement from '../../components/Admin/UserManagement.vue';
 import DatabaseBackup from '../../components/Admin/DatabaseBackup.vue';
 import TaxSettings from '../../components/Admin/TaxSettings.vue';
 import AdminRetirementActions from '../../components/Admin/AdminRetirementActions.vue';
+import AdminInvestmentActions from '../../components/Admin/AdminInvestmentActions.vue';
 
 export default {
   name: 'AdminPanel',
@@ -84,6 +88,7 @@ export default {
     DatabaseBackup,
     TaxSettings,
     AdminRetirementActions,
+    AdminInvestmentActions,
   },
 
   data() {
@@ -110,6 +115,10 @@ export default {
           id: 'retirement-actions',
           label: 'Retirement Actions',
         },
+        {
+          id: 'investment-actions',
+          label: 'Investment Actions',
+        },
       ],
     };
   },
@@ -126,6 +135,7 @@ export default {
         backups: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4',
         'tax-settings': 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
         'retirement-actions': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+        'investment-actions': 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
       };
       return icons[tabId] || '';
     },
@@ -136,7 +146,8 @@ export default {
         users: 'Users',
         backups: 'Backups',
         'tax-settings': 'Tax',
-        'retirement-actions': 'Actions',
+        'retirement-actions': 'Retire',
+        'investment-actions': 'Invest',
       };
       return labels[tabId] || tabId;
     },

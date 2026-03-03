@@ -54,6 +54,27 @@ export default {
     return api.patch(`/admin/retirement-actions/${id}/toggle`);
   },
 
+  // Investment Action Definitions
+  getInvestmentActions() {
+    return api.get('/admin/investment-actions');
+  },
+
+  createInvestmentAction(data) {
+    return api.post('/admin/investment-actions', data);
+  },
+
+  updateInvestmentAction(id, data) {
+    return api.put(`/admin/investment-actions/${id}`, data);
+  },
+
+  deleteInvestmentAction(id) {
+    return api.delete(`/admin/investment-actions/${id}`);
+  },
+
+  toggleInvestmentAction(id) {
+    return api.patch(`/admin/investment-actions/${id}/toggle`);
+  },
+
   // Database Backup
   createBackup() {
     return api.post('/admin/backup/create');
