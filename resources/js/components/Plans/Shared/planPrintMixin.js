@@ -2740,5 +2740,462 @@ export const planPrintMixin = {
       </div>
       `;
     },
+
+    // ── Holistic Plan Print ──────────────────────────────────────────
+
+    printHolisticPlan(plans) {
+      if (!plans || Object.keys(plans).length === 0) return;
+      this.generatingPdf = true;
+
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      if (!printWindow) {
+        alert('Please allow pop-ups to print the plan');
+        this.generatingPdf = false;
+        return;
+      }
+
+      const html = this.buildHolisticPlanHtml(plans);
+
+      const doc = printWindow.document;
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      const triggerPrint = () => {
+        printWindow.print();
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+        if (this.closeTimeout) clearTimeout(this.closeTimeout);
+        this.closeTimeout = setTimeout(() => {
+          if (!printWindow.closed) {
+            printWindow.close();
+          }
+        }, 1000);
+        this.generatingPdf = false;
+      };
+
+      const logos = printWindow.document.querySelectorAll('.logo, .page-header-logo');
+      if (logos.length > 0) {
+        let loadCount = 0;
+        let imageHandled = false;
+        const handleAllLoaded = () => {
+          if (!imageHandled) {
+            imageHandled = true;
+            setTimeout(triggerPrint, 250);
+          }
+        };
+        logos.forEach(img => {
+          const onDone = () => {
+            loadCount++;
+            if (loadCount >= logos.length) handleAllLoaded();
+          };
+          img.addEventListener('load', onDone);
+          img.addEventListener('error', onDone);
+        });
+        setTimeout(() => {
+          if (!imageHandled) handleAllLoaded();
+        }, 3000);
+      } else {
+        setTimeout(triggerPrint, 250);
+      }
+    },
+
+    buildHolisticPlanHtml(plans) {
+      const title = 'Holistic Financial Plan';
+      const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const firstPlan = plans.investment || plans.retirement || plans.protection || plans.estate;
+      const userName = firstPlan?.metadata?.user_name || '';
+      const personalInfo = firstPlan?.personal_information || {};
+      const planTypes = Object.keys(plans);
+      const planNames = {
+        protection: 'Protection',
+        investment: 'Investment & Savings',
+        retirement: 'Retirement',
+        estate: 'Estate Planning',
+      };
+
+      // Build module sections
+      let currentSituationHtml = '';
+      let actionsHtml = '';
+
+      planTypes.forEach(type => {
+        const plan = plans[type];
+        if (!plan) return;
+        const moduleName = planNames[type] || type;
+
+        // Current Situation per module
+        const situationContent = this.buildCurrentSituationByType(plan, type);
+        if (situationContent) {
+          currentSituationHtml += `
+            <div class="section">
+              <div class="subsection-title">${this.escapeHtml(moduleName)}</div>
+              ${situationContent}
+            </div>
+          `;
+        }
+
+        // Actions per module
+        const actionsContent = this.buildActionsByType(plan, type);
+        const whatIfContent = this.buildWhatIfByType(plan, type);
+        if (actionsContent || whatIfContent) {
+          actionsHtml += `
+            <div class="section">
+              <div class="subsection-title">${this.escapeHtml(moduleName)}</div>
+              ${actionsContent}
+              ${whatIfContent}
+            </div>
+          `;
+        }
+      });
+
+      // Priority Area
+      const priorityHtml = this.buildHolisticPriorityAreaHtml(plans, personalInfo);
+
+      // Aggregated Conclusion
+      const conclusionHtml = this.buildHolisticConclusionHtml(plans);
+
+      return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${this.escapeHtml(title)}</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    @media print { html, body { margin: 0; padding: 0; } }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 11px; line-height: 1.4; color: #1f2937;
+      background: white; padding: 0;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      position: relative; min-height: 100vh;
+    }
+    .page-header {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10mm 15mm 4px 15mm; border-bottom: 1px solid #e2e8f0;
+      background: white; z-index: 999;
+    }
+    .page-header-logo { height: 26px; width: auto; }
+    .page-header-text { font-size: 9px; color: #94a3b8; letter-spacing: 0.3px; }
+    .plan-content { padding: 20mm 15mm 16mm 15mm; }
+    .title-page {
+      position: relative; padding: 10mm 15mm 0 15mm;
+      page-break-after: always; break-after: page;
+    }
+    .title-page .logo { position: absolute; top: 10mm; right: 15mm; height: 110px; width: auto; }
+    .header-content { text-align: center; padding-top: 280px; }
+    .header-content h1 { font-size: 28px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .header-content .subtitle { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+    .header-content .date { font-size: 12px; color: #64748b; }
+    .section { margin-bottom: 16px; page-break-inside: auto; }
+    .section-title {
+      font-size: 15px; font-weight: 700; color: #0f172a;
+      padding-bottom: 6px; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0;
+      page-break-after: avoid; page-break-inside: avoid;
+    }
+    .section-subtitle {
+      font-size: 10px; color: #64748b; margin-top: -8px; margin-bottom: 12px;
+      page-break-after: avoid; page-break-inside: avoid;
+    }
+    .narrative { font-size: 11px; color: #374151; line-height: 1.6; white-space: pre-wrap; }
+    .subsection-title {
+      font-size: 12px; font-weight: 600; color: #374151;
+      margin-bottom: 6px; margin-top: 14px; page-break-after: avoid;
+    }
+    .action-item { display: flex; align-items: flex-start; margin-bottom: 10px; break-inside: avoid; }
+    .action-number {
+      background: #f3f4f6; color: #374151; width: 18px; height: 18px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; margin-right: 8px; flex-shrink: 0;
+    }
+    .action-text { font-size: 11px; color: #374151; line-height: 1.4; }
+    .action-detail { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-gray { background: #f3f4f6; color: #374151; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; margin-bottom: 8px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+    th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .conclusion-box {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;
+      padding: 12px; margin-top: 12px; font-size: 11px; line-height: 1.6; color: #374151;
+    }
+    .disabled-actions { margin-top: 12px; }
+    .disabled-action {
+      font-size: 10px; color: #6b7280; margin-bottom: 4px; padding-left: 12px; position: relative;
+    }
+    .disabled-action::before { content: '\\2014'; position: absolute; left: 0; }
+    .footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 9px; color: #94a3b8; padding: 4px 15mm 8mm 15mm;
+      border-top: 1px solid #e2e8f0; background: white; z-index: 1000;
+    }
+    .footer-left { text-align: left; }
+    .footer-right { text-align: right; font-size: 10px; color: #64748b; }
+    .iht-table { font-size: 10px; }
+    .iht-table th { font-size: 10px; padding: 5px 8px; }
+    .iht-table td { padding: 4px 8px; font-size: 10px; }
+    .iht-owner-header td { font-weight: 700; background: #f9fafb; }
+    .iht-asset-row td:first-child { padding-left: 20px; }
+    .iht-subtotal td { font-weight: 600; border-top: 1px solid #d1d5db; }
+    .iht-total td { font-weight: 700; border-top: 2px solid #9ca3af; }
+    .iht-allowance td { background: #f0fdf4; }
+    .iht-liability td { color: #b91c1c; font-weight: 700; }
+    .metric-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .metric-card {
+      flex: 1 1 45%; min-width: 140px;
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px;
+    }
+    .metric-card .metric-label { font-size: 9px; color: #6b7280; margin-bottom: 2px; }
+    .metric-card .metric-value { font-size: 12px; font-weight: 700; color: #1f2937; }
+    .info-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .info-card {
+      flex: 1 1 45%; min-width: 200px;
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px;
+    }
+    .info-card h4 {
+      font-size: 11px; font-weight: 600; color: #374151;
+      margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb;
+    }
+    .info-card .info-row { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; }
+    .info-card .info-label { color: #6b7280; }
+    .info-card .info-value { font-weight: 600; color: #1f2937; }
+    .guidance-list { list-style: decimal; padding-left: 16px; margin-top: 4px; }
+    .guidance-list li { font-size: 10px; color: #374151; margin-bottom: 3px; line-height: 1.4; }
+    .gifting-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .gifting-cell {
+      flex: 1 1 22%; min-width: 100px;
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 6px 8px;
+    }
+    .gifting-cell .gifting-label { font-size: 9px; color: #6b7280; }
+    .gifting-cell .gifting-value { font-size: 11px; font-weight: 600; color: #1f2937; }
+    .priority-bar {
+      width: 100%; height: 10px; background: #f3f4f6; border-radius: 5px; overflow: hidden; margin: 6px 0;
+    }
+    .priority-bar-fill { height: 100%; border-radius: 5px; }
+    .priority-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 8px; margin-bottom: 4px; border-radius: 4px;
+      border: 1px solid #e5e7eb; font-size: 10px;
+    }
+    .priority-row-exceeded { background: #fef2f2; border-color: #fecaca; }
+    .priority-row-disabled { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <img src="${this.logoUrl}" alt="Fynla" class="page-header-logo" />
+    <span class="page-header-text">${this.escapeHtml(title)} &bull; ${this.escapeHtml(userName)}</span>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">
+      This document was generated by Fynla Financial Planning Software &bull; www.fynla.org &bull; This is not financial advice
+    </div>
+    <div class="footer-right">
+      Prepared by ${this.escapeHtml(userName)}
+    </div>
+  </div>
+
+  <div class="title-page">
+    <img src="${this.logoUrl}" alt="Fynla" class="logo" />
+    <div class="header-content">
+      <h1>${this.escapeHtml(title)}</h1>
+      <div class="subtitle">Prepared for ${this.escapeHtml(userName)}</div>
+      <div class="date">${this.escapeHtml(date)}</div>
+    </div>
+  </div>
+
+  <div class="plan-content">
+    <!-- Executive Summary -->
+    <div class="section">
+      <div class="section-title">Executive Summary</div>
+      <div class="section-subtitle">Your holistic financial plan overview</div>
+      <div class="narrative">This holistic financial plan brings together your individual module plans into a single unified view, covering ${this.escapeHtml(planTypes.map(t => planNames[t] || t).join(', '))}.</div>
+      <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
+        ${planTypes.map(t => `<span class="badge badge-blue">${this.escapeHtml(planNames[t] || t)}</span>`).join('')}
+      </div>
+    </div>
+
+    ${personalInfo ? this.buildPersonalInformationHtml(personalInfo, 'investment') : ''}
+
+    <!-- Current Situation -->
+    <div class="section">
+      <div class="section-title">Current Situation</div>
+      <div class="section-subtitle">Overview across all financial areas</div>
+      ${currentSituationHtml}
+    </div>
+
+    <!-- Recommended Actions -->
+    <div class="section">
+      <div class="section-title">Recommended Actions</div>
+      <div class="section-subtitle">Actions grouped by financial area</div>
+      ${actionsHtml}
+    </div>
+
+    <!-- Priority Area -->
+    ${priorityHtml}
+
+    <!-- Conclusion -->
+    ${conclusionHtml}
+  </div>
+</body>
+</html>`;
+    },
+
+    buildHolisticPriorityAreaHtml(plans, personalInfo) {
+      const monthlyDisposable = personalInfo?.monthly_disposable || 0;
+      const planNames = {
+        protection: 'Protection',
+        investment: 'Investment & Savings',
+        retirement: 'Retirement',
+        estate: 'Estate',
+      };
+
+      // Collect all enabled actions with costs
+      const allActions = [];
+      Object.keys(plans).forEach(type => {
+        const plan = plans[type];
+        if (!plan || !plan.actions) return;
+        plan.actions.forEach(action => {
+          if (!action.enabled) return;
+          const monthlyCost = this.extractHolisticMonthlyCost(action);
+          allActions.push({
+            title: action.title,
+            priority: action.priority || 'medium',
+            sourceModule: type,
+            monthlyCost,
+          });
+        });
+      });
+
+      // Sort: goals first, tax optimisation, then priority
+      const priorityRank = { critical: 0, high: 1, medium: 2, low: 3 };
+      allActions.sort((a, b) => (priorityRank[a.priority] ?? 2) - (priorityRank[b.priority] ?? 2));
+
+      if (allActions.length === 0) return '';
+
+      const totalAllocated = allActions.reduce((sum, a) => sum + a.monthlyCost, 0);
+      const pct = monthlyDisposable > 0 ? Math.min(100, (totalAllocated / monthlyDisposable) * 100) : 0;
+      const barColor = pct >= 100 ? '#ef4444' : pct >= 80 ? '#3b82f6' : '#22c55e';
+
+      let cumulative = 0;
+      const rows = allActions.map(a => {
+        cumulative += a.monthlyCost;
+        const exceeded = cumulative > monthlyDisposable && monthlyDisposable > 0;
+        const badgeMap = { critical: 'badge-red', high: 'badge-blue', medium: 'badge-gray', low: 'badge-green' };
+        const moduleBadge = { protection: 'badge-purple', investment: 'badge-blue', retirement: 'badge-green', estate: 'badge-gray' };
+
+        return `
+          <div class="priority-row ${exceeded ? 'priority-row-exceeded' : ''}">
+            <div style="flex: 1;">
+              <span class="badge ${badgeMap[a.priority] || 'badge-gray'}">${this.escapeHtml((a.priority || 'medium').charAt(0).toUpperCase() + (a.priority || 'medium').slice(1))}</span>
+              <span class="badge ${moduleBadge[a.sourceModule] || 'badge-gray'}" style="margin-left: 4px;">${this.escapeHtml(planNames[a.sourceModule] || a.sourceModule)}</span>
+              <span style="margin-left: 8px; font-weight: 500;">${this.escapeHtml(a.title)}</span>
+            </div>
+            <div style="text-align: right; white-space: nowrap;">
+              ${this.fmtCurrency(a.monthlyCost)}/mo
+              ${exceeded ? '<span style="color: #dc2626; font-size: 9px; margin-left: 4px;">Over budget</span>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+      <div class="section">
+        <div class="section-title">Priority Area</div>
+        <div class="section-subtitle">All actions ranked and allocated against your shared monthly disposable income</div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
+          <span>Monthly Disposable: <strong>${this.fmtCurrency(monthlyDisposable)}</strong></span>
+          <span>Total Allocated: <strong style="color: ${totalAllocated > monthlyDisposable ? '#dc2626' : '#16a34a'}">${this.fmtCurrency(totalAllocated)}</strong></span>
+        </div>
+        <div class="priority-bar">
+          <div class="priority-bar-fill" style="width: ${Math.round(pct)}%; background: ${barColor};"></div>
+        </div>
+        <div style="font-size: 9px; color: #64748b; margin-bottom: 10px;">${Math.round(pct)}% allocated</div>
+        ${rows}
+      </div>
+      `;
+    },
+
+    buildHolisticConclusionHtml(plans) {
+      const allActions = [];
+      const planNames = {
+        protection: 'Protection',
+        investment: 'Investment & Savings',
+        retirement: 'Retirement',
+        estate: 'Estate',
+      };
+
+      Object.keys(plans).forEach(type => {
+        const plan = plans[type];
+        if (!plan || !plan.actions) return;
+        plan.actions.filter(a => a.enabled).forEach(action => {
+          allActions.push({
+            title: action.title,
+            priority: action.priority || 'medium',
+            sourceModule: type,
+          });
+        });
+      });
+
+      const essential = allActions.filter(a => a.priority === 'critical' || a.priority === 'high');
+      const optional = allActions.filter(a => a.priority !== 'critical' && a.priority !== 'high');
+
+      let essentialHtml = '';
+      if (essential.length) {
+        essentialHtml = `
+          <div style="margin-top: 10px;">
+            <div style="font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Priority Actions</div>
+            ${essential.map((a, i) => `
+              <div class="action-item">
+                <div class="action-number" style="${a.priority === 'critical' ? 'background: #fee2e2; color: #991b1b;' : ''}">${i + 1}</div>
+                <div class="action-text">${this.escapeHtml(a.title)} <span style="font-size: 9px; color: #6b7280;">(${this.escapeHtml(planNames[a.sourceModule] || a.sourceModule)})</span></div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      let optionalHtml = '';
+      if (optional.length) {
+        optionalHtml = `
+          <div style="margin-top: 10px;">
+            <div style="font-size: 9px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Optional Improvements</div>
+            ${optional.map(a => `
+              <div class="disabled-action">${this.escapeHtml(a.title)} <span style="font-size: 9px; color: #6b7280;">(${this.escapeHtml(planNames[a.sourceModule] || a.sourceModule)})</span></div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      return `
+      <div class="section">
+        <div class="section-title">Conclusion</div>
+        <div class="section-subtitle">Aggregated summary across all plans</div>
+        <div class="conclusion-box">
+          This holistic plan brings together recommendations from ${Object.keys(plans).length} area${Object.keys(plans).length !== 1 ? 's' : ''} of your financial life.
+        </div>
+        ${essentialHtml}
+        ${optionalHtml}
+      </div>
+      `;
+    },
+
+    extractHolisticMonthlyCost(action) {
+      if (action.cascade_params?.additional_monthly) return action.cascade_params.additional_monthly;
+      if (action.impact_parameters?.monthly_premium_estimate) return action.impact_parameters.monthly_premium_estimate;
+      if (action.impact_parameters?.premium) return action.impact_parameters.premium;
+      if (action.affordability?.monthly_premium_estimate) return action.affordability.monthly_premium_estimate;
+      if (action.estimated_impact) return Math.abs(action.estimated_impact) / 12;
+      return 0;
+    },
   },
 };
