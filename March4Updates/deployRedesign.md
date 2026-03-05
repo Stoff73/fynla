@@ -2,7 +2,7 @@
 
 **Date:** 05 March 2026
 **Branch:** `centraliseUI`
-**Scope:** 443 files changed (16,205 insertions, 19,090 deletions)
+**Scope:** 479 files changed (24,284 insertions, 20,016 deletions)
 
 ## What Changed
 
@@ -20,6 +20,8 @@ Complete visual rebrand from `designStyle.md` (v1.1.0) to `fynlaDesignGuide.md` 
 | Font stack | Inter | Segoe UI, Inter (fallback) |
 | Hover states | gray-50 | Savannah (#FDFAF7) |
 | Logos | Scattered across 4+ directories | Consolidated to `public/images/logos/` |
+| Holistic Plan | Standalone store/service | Aggregates from individual module plans |
+| Landing Page | Original layout | Redesigned to match Fynla-Homepagev1 mockup |
 
 ## Pre-Deployment Checklist
 
@@ -54,10 +56,17 @@ resources/js/constants/designSystem.js
 resources/js/constants/eventIcons.js
 ```
 
-### 5. All Vue Components (~400+ files)
-Due to the scale (443 files), upload the entire `resources/js/` directory:
+### 5. All Vue Components (~479 files)
+Due to the scale, upload the entire `resources/js/` directory:
 ```
 resources/js/
+```
+
+**Note:** The following were removed and should be deleted from the server:
+```
+resources/js/components/Holistic/          (8 standalone components — replaced by Plans/Holistic/)
+resources/js/services/holisticService.js   (replaced by individual module plan services)
+resources/js/store/modules/holistic.js     (removed from Vuex store)
 ```
 
 ### 6. Logo Assets (new consolidated directory)
@@ -65,7 +74,7 @@ Upload entire `public/images/logos/` directory:
 ```
 public/images/logos/LogoHiResFynlaDark.png   (nav logos)
 public/images/logos/LogoHiResFynlaLight.png  (footer logos)
-public/images/logos/logoTransparent.png      (login, register, onboarding, print)
+public/images/logos/logoTransparent.png      (legacy — no longer referenced)
 public/images/logos/logoMain.png             (email templates)
 public/images/logos/favicon.png              (browser tab, collapsed sidebar)
 public/images/logos/favicon.ico              (browser tab)
@@ -114,15 +123,20 @@ CLAUDE.md
 
 ## Post-Deployment Verification
 
-1. Login page shows raspberry CTA buttons (not blue)
-2. Page background is warm eggshell (#F7F6F4), not cool gray
-3. Navigation bar is dark navy (#1F2A44)
-4. Form inputs have violet focus rings
-5. Success messages use spring green
-6. Warning badges/alerts use violet
-7. No amber or orange colours visible anywhere
-8. Charts render with new colour palette
-9. All preview personas load correctly
+1. Login page shows new hi-res logo (`LogoHiResFynlaDark.png`) and raspberry CTA buttons
+2. Register page shows new hi-res logo
+3. Page background is warm eggshell (#F7F6F4), not cool gray
+4. Navigation bar uses dark logo, footer uses light logo
+5. Form inputs have violet focus rings
+6. Success messages use spring green
+7. Warning badges/alerts use violet
+8. No amber or orange colours visible anywhere
+9. Charts render with new colour palette
+10. All preview personas load correctly
+11. Landing page matches Fynla-Homepagev1 mockup
+12. Holistic Plan aggregates from individual module plans (no standalone data)
+13. Print headers and PDF exports use new hi-res logo
+14. Onboarding focus area selection shows new logo
 
 ## Rollback
 
@@ -132,9 +146,12 @@ If rollback needed, revert to the previous `public/build/` directory and source 
 
 These old files are no longer used and can be deleted:
 ```
-public/favicon.png          (moved to public/images/logos/)
-public/favicon.ico          (moved to public/images/logos/)
-public/images/logoMain.png  (moved to public/images/logos/)
+public/favicon.png                              (moved to public/images/logos/)
+public/favicon.ico                              (moved to public/images/logos/)
+public/images/logoMain.png                      (moved to public/images/logos/)
+resources/js/components/Holistic/               (entire directory — 8 files)
+resources/js/services/holisticService.js
+resources/js/store/modules/holistic.js
 ```
 
 ## No Backend Logic Changes
@@ -143,3 +160,16 @@ No PHP controllers, services, models, or migrations were modified. Changes are l
 - Frontend (Vue components, CSS, Tailwind config, JS constants)
 - Blade templates (favicon paths in `app.blade.php`, logo paths in email templates)
 - Static assets (logo consolidation to `public/images/logos/`)
+
+## Logo Reference Map
+
+All logo references now use the centralised `public/images/logos/` directory:
+
+| Logo File | Used By |
+|-----------|---------|
+| `LogoHiResFynlaDark.png` | Navbar (`SideMenu.vue`), Login, Register, Onboarding, PrintHeader, planPrintMixin, LetterToSpouse, PublicLayout (header) |
+| `LogoHiResFynlaLight.png` | Footer, PublicLayout (footer) |
+| `favicon.png` | `app.blade.php` |
+| `favicon.ico` | `app.blade.php` |
+| `logoMain.png` | Email templates (11 blade files) |
+| `logoTransparent.png` | No longer referenced — legacy only |
