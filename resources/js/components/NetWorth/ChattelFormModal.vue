@@ -1,16 +1,16 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
     <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
       <div class="overflow-y-auto max-h-[90vh]">
         <!-- Header -->
-        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg z-10">
+        <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 rounded-t-lg z-10">
           <div class="flex items-center justify-between">
-            <h3 class="text-xl font-semibold text-gray-900">
+            <h3 class="text-xl font-semibold text-horizon-500">
               {{ isEditing ? 'Edit Valuable' : 'Add Valuable' }}
             </h3>
             <button
               @click="$emit('close')"
-              class="text-gray-400 hover:text-gray-600 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -22,13 +22,13 @@
         <!-- Form -->
         <form @submit.prevent="handleSave" class="px-6 py-4 space-y-6">
           <!-- Error Message -->
-          <div v-if="error" class="p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-red-700">{{ error }}</p>
+          <div v-if="error" class="p-4 bg-savannah-100 rounded-lg">
+            <p class="text-sm text-raspberry-700">{{ error }}</p>
           </div>
 
           <!-- Type Selection -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+            <label class="block text-sm font-medium text-horizon-500 mb-2">Type *</label>
             <div class="grid grid-cols-3 gap-2">
               <button
                 v-for="type in chattelTypes"
@@ -38,7 +38,7 @@
                 class="px-4 py-3 border rounded-lg text-sm font-medium transition-all"
                 :class="form.chattel_type === type.value
                   ? 'border-pink-500 bg-pink-500 text-white'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'"
+                  : 'border-light-gray hover:border-horizon-300 text-neutral-500'"
               >
                 {{ type.label }}
               </button>
@@ -48,69 +48,69 @@
           <!-- Basic Information -->
           <div class="space-y-4">
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+              <label for="name" class="block text-sm font-medium text-horizon-500 mb-1">Name *</label>
               <input
                 id="name"
                 v-model="form.name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="e.g., Vintage Rolex Submariner"
                 required
               />
             </div>
 
             <div>
-              <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label for="description" class="block text-sm font-medium text-horizon-500 mb-1">Description</label>
               <textarea
                 id="description"
                 v-model="form.description"
                 rows="2"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="Brief description of the item"
               ></textarea>
             </div>
           </div>
 
           <!-- Vehicle Details (conditional) -->
-          <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-gray-50 rounded-lg">
-            <h4 class="font-medium text-blue-900">Vehicle Details</h4>
-            <p class="text-xs text-blue-700 mb-3">Vehicles are classified as wasting assets and are Capital Gains Tax exempt.</p>
+          <div v-if="form.chattel_type === 'vehicle'" class="space-y-4 p-4 bg-savannah-100 rounded-lg">
+            <h4 class="font-medium text-violet-900">Vehicle Details</h4>
+            <p class="text-xs text-violet-700 mb-3">Vehicles are classified as wasting assets and are Capital Gains Tax exempt.</p>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Make</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Make</label>
                 <input
                   v-model="form.make"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="e.g., BMW"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Model</label>
                 <input
                   v-model="form.model"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="e.g., M5"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Year</label>
                 <input
                   v-model.number="form.year"
                   type="number"
                   min="1900"
                   :max="currentYear + 1"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="2024"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Registration</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Registration</label>
                 <input
                   v-model="form.registration_number"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="AB12 CDE"
                 />
               </div>
@@ -119,55 +119,55 @@
 
           <!-- Valuation -->
           <div class="space-y-4">
-            <h4 class="font-medium text-gray-900">Valuation</h4>
+            <h4 class="font-medium text-horizon-500">Valuation</h4>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">Current Value *</label>
+                <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">Current Value *</label>
                 <div class="relative">
-                  <span class="absolute left-3 top-2 text-gray-500">£</span>
+                  <span class="absolute left-3 top-2 text-neutral-500">£</span>
                   <input
                     id="current_value"
                     v-model.number="form.current_value"
                     type="number"
                     min="0"
                     step="0.01"
-                    class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    class="w-full pl-7 pr-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                     placeholder="0.00"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label for="valuation_date" class="block text-sm font-medium text-gray-700 mb-1">Valuation Date</label>
+                <label for="valuation_date" class="block text-sm font-medium text-horizon-500 mb-1">Valuation Date</label>
                 <input
                   id="valuation_date"
                   v-model="form.valuation_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               </div>
               <div>
-                <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-1">Purchase Price</label>
+                <label for="purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Price</label>
                 <div class="relative">
-                  <span class="absolute left-3 top-2 text-gray-500">£</span>
+                  <span class="absolute left-3 top-2 text-neutral-500">£</span>
                   <input
                     id="purchase_price"
                     v-model.number="form.purchase_price"
                     type="number"
                     min="0"
                     step="0.01"
-                    class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    class="w-full pl-7 pr-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                     placeholder="0.00"
                   />
                 </div>
               </div>
               <div>
-                <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
+                <label for="purchase_date" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Date</label>
                 <input
                   id="purchase_date"
                   v-model="form.purchase_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               </div>
             </div>
@@ -175,9 +175,9 @@
 
           <!-- Ownership -->
           <div class="space-y-4">
-            <h4 class="font-medium text-gray-900">Ownership</h4>
+            <h4 class="font-medium text-horizon-500">Ownership</h4>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ownership Type</label>
+              <label class="block text-sm font-medium text-horizon-500 mb-2">Ownership Type</label>
               <div class="flex gap-4">
                 <label class="flex items-center">
                   <input
@@ -200,21 +200,21 @@
               </div>
             </div>
 
-            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-gray-50 rounded-lg">
+            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-savannah-100 rounded-lg">
               <!-- Ownership Split Display -->
               <div class="bg-white p-3 rounded border border-pink-300">
                 <div class="flex justify-between items-center">
                   <div>
-                    <p class="text-sm font-medium text-gray-700">Your Share</p>
+                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
                     <p class="text-2xl font-bold text-pink-600">{{ form.ownership_percentage || 50 }}%</p>
                   </div>
-                  <div class="text-gray-400">
+                  <div class="text-horizon-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
                   <div class="text-right">
-                    <p class="text-sm font-medium text-gray-700">Joint Owner's Share</p>
+                    <p class="text-sm font-medium text-horizon-500">Joint Owner's Share</p>
                     <p class="text-2xl font-bold text-pink-600">{{ 100 - (form.ownership_percentage || 50) }}%</p>
                   </div>
                 </div>
@@ -222,25 +222,25 @@
 
               <!-- Ownership Percentage Input -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Your Ownership Share (%)</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Your Ownership Share (%)</label>
                 <input
                   v-model.number="form.ownership_percentage"
                   type="number"
                   min="1"
                   max="99"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="50"
                 />
-                <p class="text-xs text-gray-500 mt-1">Default is 50/50. Adjust if ownership split is different.</p>
+                <p class="text-xs text-neutral-500 mt-1">Default is 50/50. Adjust if ownership split is different.</p>
               </div>
 
               <!-- Joint Owner Selection -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Joint Owner</label>
                 <select
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -250,19 +250,19 @@
 
               <!-- Free Text Joint Owner Name -->
               <div v-if="jointOwnerSelection === 'other'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Joint Owner Name</label>
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Joint Owner Name</label>
                 <input
                   v-model="form.joint_owner_name"
                   type="text"
                   placeholder="Enter joint owner's full name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Note: This person doesn't have an account in the system. The chattel will only appear in your account.
                 </p>
               </div>
 
-              <p class="text-xs text-gray-500">
+              <p class="text-xs text-neutral-500">
                 Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
               </p>
             </div>
@@ -270,23 +270,23 @@
 
           <!-- Notes -->
           <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label for="notes" class="block text-sm font-medium text-horizon-500 mb-1">Notes</label>
             <textarea
               id="notes"
               v-model="form.notes"
               rows="2"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="Any additional notes about this item"
             ></textarea>
           </div>
         </form>
 
         <!-- Footer -->
-        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+        <div class="bg-savannah-100 border-t border-light-gray px-6 py-4 flex justify-end gap-3 rounded-b-lg">
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+            class="px-4 py-2 border border-horizon-300 rounded-md text-neutral-500 hover:bg-savannah-100 transition-colors"
           >
             Cancel
           </button>

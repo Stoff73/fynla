@@ -1,27 +1,27 @@
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <!-- Current Net Worth -->
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-      <p class="text-sm text-gray-600 font-medium">Current Net Worth</p>
-      <p class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
+    <div class="bg-savannah-100 border border-light-gray rounded-lg p-4">
+      <p class="text-sm text-neutral-500 font-medium">Current Net Worth</p>
+      <p class="text-xl sm:text-2xl font-bold text-horizon-500 mt-1">
         {{ formatCurrency(summary.starting_net_worth) }}
       </p>
-      <p class="text-xs text-gray-500 mt-1">Age {{ projection.current_age }}</p>
+      <p class="text-xs text-neutral-500 mt-1">Age {{ projection.current_age }}</p>
     </div>
 
     <!-- Projected Net Worth at Retirement -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <p class="text-sm text-blue-600 font-medium">Projected Net Worth at {{ summary.retirement_age }}</p>
-      <p class="text-xl sm:text-2xl font-bold text-blue-900 mt-1">
+    <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+      <p class="text-sm text-violet-600 font-medium">Projected Net Worth at {{ summary.retirement_age }}</p>
+      <p class="text-xl sm:text-2xl font-bold text-violet-900 mt-1">
         {{ formatCurrency(summary.retirement_net_worth) }}
       </p>
-      <p class="text-xs text-blue-600 mt-1">Retirement age</p>
+      <p class="text-xs text-violet-600 mt-1">Retirement age</p>
     </div>
 
     <!-- Projected Net Worth at 90 -->
-    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-      <p class="text-sm text-green-600 font-medium">Projected Net Worth at {{ projection.projection_end_age }}</p>
-      <p class="text-xl sm:text-2xl font-bold text-green-900 mt-1">
+    <div class="bg-spring-50 border border-spring-200 rounded-lg p-4">
+      <p class="text-sm text-spring-600 font-medium">Projected Net Worth at {{ projection.projection_end_age }}</p>
+      <p class="text-xl sm:text-2xl font-bold text-spring-900 mt-1">
         {{ formatCurrency(summary.ending_net_worth) }}
       </p>
     </div>
@@ -32,17 +32,17 @@
       <div class="mt-2 space-y-1">
         <div class="flex justify-between text-sm">
           <span>
-            <span class="font-semibold text-green-700">{{ summary.income_event_count || 0 }}</span>
-            <span class="text-gray-600"> cash inflow events</span>
+            <span class="font-semibold text-spring-700">{{ summary.income_event_count || 0 }}</span>
+            <span class="text-neutral-500"> cash inflow events</span>
           </span>
-          <span class="font-semibold text-green-700">{{ formatCompact(summary.total_income_events) }}</span>
+          <span class="font-semibold text-spring-700">{{ formatCompact(summary.total_income_events) }}</span>
         </div>
         <div class="flex justify-between text-sm">
           <span>
-            <span class="font-semibold text-red-700">{{ summary.expense_event_count || 0 }}</span>
-            <span class="text-gray-600"> cash outflow events</span>
+            <span class="font-semibold text-raspberry-700">{{ summary.expense_event_count || 0 }}</span>
+            <span class="text-neutral-500"> cash outflow events</span>
           </span>
-          <span class="font-semibold text-red-700">{{ formatCompact(summary.total_expense_events) }}</span>
+          <span class="font-semibold text-raspberry-700">{{ formatCompact(summary.total_expense_events) }}</span>
         </div>
       </div>
     </div>

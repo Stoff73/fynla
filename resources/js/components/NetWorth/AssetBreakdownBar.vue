@@ -61,7 +61,7 @@ export default {
       return {
         chart: {
           type: 'bar',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: false,
           },
@@ -153,11 +153,11 @@ export default {
 
 <style scoped>
 .asset-breakdown-bar {
-  @apply bg-white rounded-card p-6 shadow-sm border border-gray-200 transition-all duration-200;
+  @apply bg-white rounded-card p-6 shadow-sm border border-light-gray transition-all duration-200;
 }
 
 .chart-title {
-  @apply text-lg font-semibold text-gray-900 mb-5;
+  @apply text-lg font-semibold text-horizon-500 mb-5;
 }
 
 .chart-container {
@@ -165,7 +165,7 @@ export default {
 }
 
 .no-data {
-  @apply text-center py-12 px-5 text-gray-400;
+  @apply text-center py-12 px-5 text-horizon-400;
 }
 
 .no-data p {

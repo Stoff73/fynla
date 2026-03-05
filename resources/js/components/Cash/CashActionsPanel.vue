@@ -235,7 +235,7 @@ export default {
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 12px 0;
 }
 
@@ -247,7 +247,7 @@ export default {
 .clear-cash-value {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
@@ -257,14 +257,14 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 /* Payday */
@@ -281,13 +281,13 @@ export default {
 
 .payday-date {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .payday-value {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin-bottom: 8px;
 }
 
@@ -297,7 +297,7 @@ export default {
 
 .empty-prompt {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   line-height: 1.5;
   margin: 0 0 12px 0;
 }
@@ -322,7 +322,7 @@ export default {
 
 .credit-card-subtext {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 /* Alerts */
@@ -337,7 +337,7 @@ export default {
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .alert-dot {
@@ -353,7 +353,7 @@ export default {
 }
 
 .alert-item.info .alert-dot {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .alert-message {
@@ -363,7 +363,7 @@ export default {
 /* Tips */
 .tip-content {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   line-height: 1.5;
   margin: 0;
 }
@@ -372,7 +372,7 @@ export default {
   padding: 4px;
   background: none;
   border: none;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   cursor: pointer;
   transition: color 0.2s;
 }

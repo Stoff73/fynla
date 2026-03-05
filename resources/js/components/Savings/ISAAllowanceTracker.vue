@@ -1,17 +1,17 @@
 <template>
-  <div class="isa-allowance-tracker bg-white rounded-lg border border-gray-200 p-6">
+  <div class="isa-allowance-tracker bg-white rounded-lg border border-light-gray p-6">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold text-gray-900">Tax-Free Savings Allowance {{ currentTaxYear }}</h3>
-      <span class="text-sm text-gray-600">{{ formatCurrency(overallAllowance) }} total</span>
+      <h3 class="text-lg font-semibold text-horizon-500">Tax-Free Savings Allowance {{ currentTaxYear }}</h3>
+      <span class="text-sm text-neutral-500">{{ formatCurrency(overallAllowance) }} total</span>
     </div>
 
     <!-- Lifetime ISA Section (eligible users only) -->
-    <div v-if="lisaEligible" class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+    <div v-if="lisaEligible" class="mb-4 p-3 bg-eggshell-500 rounded-lg border border-light-gray">
       <div class="flex justify-between items-baseline mb-2">
-        <span class="text-sm font-semibold text-gray-700">Lifetime ISA</span>
-        <span class="text-xs text-gray-500">{{ formatCurrency(4000) }} limit</span>
+        <span class="text-sm font-semibold text-neutral-500">Lifetime ISA</span>
+        <span class="text-xs text-neutral-500">{{ formatCurrency(4000) }} limit</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+      <div class="w-full bg-savannah-200 rounded-full h-2 mb-2">
         <div
           class="h-2 rounded-full transition-all"
           :class="lisaBarClass"
@@ -19,28 +19,28 @@
         ></div>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-gray-600">{{ formatCurrency(lisaUsed) }} used</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(lisaRemaining) }} remaining</span>
+        <span class="text-neutral-500">{{ formatCurrency(lisaUsed) }} used</span>
+        <span class="text-spring-600 font-medium">{{ formatCurrency(lisaRemaining) }} remaining</span>
       </div>
-      <div class="text-xs text-gray-500 mt-1">
+      <div class="text-xs text-neutral-500 mt-1">
         25% bonus: {{ formatCurrency(lisaBonusEarned) }} earned of {{ formatCurrency(1000) }} max
       </div>
     </div>
 
     <!-- ISA Allowance label when LISA eligible -->
     <div v-if="lisaEligible" class="flex justify-between items-baseline mb-2">
-      <span class="text-sm font-semibold text-gray-700">Other ISAs</span>
-      <span class="text-xs text-gray-500">{{ formatCurrency(totalAllowance) }} limit</span>
+      <span class="text-sm font-semibold text-neutral-500">Other ISAs</span>
+      <span class="text-xs text-neutral-500">{{ formatCurrency(totalAllowance) }} limit</span>
     </div>
 
     <!-- Progress Bar -->
     <div class="mb-4">
-      <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+      <div class="w-full bg-savannah-200 rounded-full h-4 overflow-hidden">
         <div class="h-full flex">
           <!-- Cash ISA -->
           <div
             v-if="cashISAUsed > 0"
-            class="bg-blue-500 flex items-center justify-center text-xs text-white font-medium"
+            class="bg-violet-500 flex items-center justify-center text-xs text-white font-medium"
             :style="{ width: cashISAPercent + '%' }"
             :title="`Cash ISA: ${formatCurrency(cashISAUsed)}`"
           >
@@ -61,31 +61,31 @@
 
     <!-- Breakdown -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      <div class="text-center p-3 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-600 mb-1">Cash ISA</p>
-        <p class="text-lg font-bold text-blue-700">{{ formatCurrency(cashISAUsed) }}</p>
-        <p v-if="projectedCashISA > cashISAUsed" class="text-xs text-gray-500 mt-1">
+      <div class="text-center p-3 bg-eggshell-500 rounded-lg">
+        <p class="text-sm text-neutral-500 mb-1">Cash ISA</p>
+        <p class="text-lg font-bold text-violet-700">{{ formatCurrency(cashISAUsed) }}</p>
+        <p v-if="projectedCashISA > cashISAUsed" class="text-xs text-neutral-500 mt-1">
           Projected: {{ formatCurrency(projectedCashISA) }}
         </p>
       </div>
 
-      <div class="text-center p-3 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-600 mb-1">Stocks & Shares ISA</p>
+      <div class="text-center p-3 bg-eggshell-500 rounded-lg">
+        <p class="text-sm text-neutral-500 mb-1">Stocks & Shares ISA</p>
         <p class="text-lg font-bold text-purple-700">{{ formatCurrency(stocksISAUsed) }}</p>
       </div>
 
-      <div class="text-center p-3 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-600 mb-1">Remaining</p>
-        <p class="text-lg font-bold text-green-700">{{ formatCurrency(remaining) }}</p>
-        <p v-if="projectedRemaining !== null && projectedRemaining < remaining" class="text-xs text-gray-500 mt-1">
+      <div class="text-center p-3 bg-eggshell-500 rounded-lg">
+        <p class="text-sm text-neutral-500 mb-1">Remaining</p>
+        <p class="text-lg font-bold text-spring-700">{{ formatCurrency(remaining) }}</p>
+        <p v-if="projectedRemaining !== null && projectedRemaining < remaining" class="text-xs text-neutral-500 mt-1">
           Projected: {{ formatCurrency(projectedRemaining) }}
         </p>
       </div>
     </div>
 
     <!-- Info Message -->
-    <div class="p-3 bg-gray-50 rounded-lg">
-      <p class="text-sm text-gray-700">
+    <div class="p-3 bg-eggshell-500 rounded-lg">
+      <p class="text-sm text-neutral-500">
         <span class="font-medium">Tax year {{ currentTaxYear }}:</span>
         <template v-if="lisaEligible">
           You can save up to {{ formatCurrency(overallAllowance) }} across all ISAs ({{ formatCurrency(4000) }} Lifetime ISA + {{ formatCurrency(totalAllowance) }} other ISAs).
@@ -207,9 +207,9 @@ export default {
     },
 
     lisaBarClass() {
-      if (this.lisaPercentUsed >= 95) return 'bg-red-500';
-      if (this.lisaPercentUsed >= 75) return 'bg-blue-500';
-      return 'bg-green-500';
+      if (this.lisaPercentUsed >= 95) return 'bg-raspberry-500';
+      if (this.lisaPercentUsed >= 75) return 'bg-violet-500';
+      return 'bg-spring-500';
     },
   },
 };

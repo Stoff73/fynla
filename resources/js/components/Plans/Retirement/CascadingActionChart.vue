@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-3 mt-2 mb-1">
+  <div class="bg-white rounded-lg border border-light-gray p-3 mt-2 mb-1">
     <div class="flex items-center justify-between mb-2">
-      <p class="text-xs text-gray-500">
+      <p class="text-xs text-neutral-500">
         {{ years }}-year projection &middot; impact of this action
       </p>
       <span
         v-if="differenceAmount > 0"
-        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-spring-100 text-spring-800"
       >
         +{{ formatCurrency(differenceAmount) }} at retirement
       </span>
@@ -63,7 +63,7 @@ export default {
           type: 'line',
           toolbar: { show: false },
           zoom: { enabled: false },
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           sparkline: { enabled: false },
         },
         colors: [CHART_COLORS[1], CHART_COLORS[2]],

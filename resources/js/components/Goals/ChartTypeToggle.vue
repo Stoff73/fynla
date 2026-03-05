@@ -6,8 +6,8 @@
       :class="[
         'px-3 py-2 text-sm font-medium rounded-l-md border transition-colors',
         modelValue === 'area'
-          ? 'bg-primary-600 text-white border-primary-600'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+          ? 'bg-raspberry-600 text-white border-raspberry-600'
+          : 'bg-white text-neutral-500 border-horizon-300 hover:bg-savannah-100'
       ]"
       title="Line Chart"
     >
@@ -21,8 +21,8 @@
       :class="[
         'px-3 py-2 text-sm font-medium rounded-r-md border-t border-r border-b -ml-px transition-colors',
         modelValue === 'bar'
-          ? 'bg-primary-600 text-white border-primary-600'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+          ? 'bg-raspberry-600 text-white border-raspberry-600'
+          : 'bg-white text-neutral-500 border-horizon-300 hover:bg-savannah-100'
       ]"
       title="Bar Chart"
     >

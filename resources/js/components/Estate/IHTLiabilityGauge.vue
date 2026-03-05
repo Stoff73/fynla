@@ -104,9 +104,9 @@ export default {
     },
 
     liabilityColourClass() {
-      if (this.ihtPercentage >= 20) return 'text-red-600';
-      if (this.ihtPercentage >= 10) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.ihtPercentage >= 20) return 'text-raspberry-600';
+      if (this.ihtPercentage >= 10) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     statusClass() {
@@ -225,13 +225,13 @@ export default {
 .gauge-header h3 {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -242,7 +242,7 @@ export default {
 .gauge-details {
   margin-top: 24px;
   padding-top: 20px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -253,12 +253,12 @@ export default {
 }
 
 .detail-row .label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .detail-row .value {
-  @apply text-gray-800;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
@@ -282,14 +282,14 @@ export default {
 }
 
 .status-good {
-  @apply bg-green-100 text-green-800 border border-green-500;
+  @apply bg-spring-100 text-spring-800 border border-spring-500;
 }
 
 .status-warning {
-  @apply bg-blue-100 text-blue-800 border border-blue-500;
+  @apply bg-violet-100 text-violet-800 border border-violet-500;
 }
 
 .status-critical {
-  @apply bg-red-100 text-red-800 border border-red-500;
+  @apply bg-raspberry-100 text-raspberry-800 border border-raspberry-500;
 }
 </style>

@@ -1,16 +1,16 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
+  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
     <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
       <div ref="formContent" class="overflow-y-auto max-h-[90vh]">
       <!-- Header -->
-      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg z-10">
+      <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 rounded-t-lg z-10">
         <div class="flex items-center justify-between">
-          <h3 class="text-2xl font-semibold text-gray-900">
+          <h3 class="text-2xl font-semibold text-horizon-500">
             {{ isEditMode ? 'Edit Property' : 'Add Property' }}
           </h3>
           <button
             @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
+            class="text-horizon-400 hover:text-neutral-500 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -30,24 +30,24 @@
                 class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all cursor-pointer hover:opacity-80"
                 :class="
                   currentStep === index + 1
-                    ? 'bg-primary-600 border-blue-600 text-white'
+                    ? 'bg-raspberry-500 border-violet-600 text-white'
                     : (isEditMode || currentStep > index + 1)
-                    ? 'bg-green-600 border-green-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-400'
+                    ? 'bg-spring-600 border-spring-600 text-white'
+                    : 'bg-white border-horizon-300 text-horizon-400'
                 "
                 @click="goToStep(index + 1)"
                 :title="'Go to ' + step"
               >
                 {{ index + 1 }}
               </div>
-              <span class="text-xs mt-1 text-center px-1" :class="currentStep === index + 1 ? 'text-blue-600 font-semibold' : 'text-gray-500'">
+              <span class="text-xs mt-1 text-center px-1" :class="currentStep === index + 1 ? 'text-violet-600 font-semibold' : 'text-neutral-500'">
                 {{ step }}
               </span>
               <div
                 v-if="index < activeSteps.length - 1"
                 class="absolute h-0.5 top-5 left-1/2 -z-10"
                 :style="{ width: 'calc(100% - 2.5rem)' }"
-                :class="(isEditMode || currentStep > index + 1) ? 'bg-green-600' : 'bg-gray-300'"
+                :class="(isEditMode || currentStep > index + 1) ? 'bg-spring-600' : 'bg-horizon-300'"
               ></div>
             </div>
           </div>
@@ -58,26 +58,26 @@
       <form @submit.prevent="handleSubmit" novalidate>
         <div class="px-6 py-4">
           <!-- Error Message -->
-          <div v-if="error" class="mb-4 p-4 bg-gray-50 rounded-lg">
+          <div v-if="error" class="mb-4 p-4 bg-savannah-100 rounded-lg">
             <div class="flex items-start">
-              <svg class="w-5 h-5 text-red-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-5 h-5 text-raspberry-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
               </svg>
-              <p class="text-sm text-red-700">{{ error }}</p>
+              <p class="text-sm text-raspberry-700">{{ error }}</p>
             </div>
           </div>
 
           <!-- Step 1: Basic Information -->
           <div v-show="currentStep === stepMapping[1]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
+            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Basic Information</h4>
 
             <div>
-              <label for="property_type" class="block text-sm font-medium text-gray-700 mb-1">Property Type <span class="text-red-500">*</span></label>
+              <label for="property_type" class="block text-sm font-medium text-horizon-500 mb-1">Property Type <span class="text-raspberry-500">*</span></label>
               <select
                 id="property_type"
                 name="property_type"
                 v-model="form.property_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               >
                 <option value="">Select property type</option>
                 <option value="main_residence">Main Residence</option>
@@ -88,58 +88,58 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="address_line_1" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1 <span class="text-red-500">*</span></label>
+                <label for="address_line_1" class="block text-sm font-medium text-horizon-500 mb-1">Address Line 1 <span class="text-raspberry-500">*</span></label>
                 <input
                   id="address_line_1"
                   name="address_line_1"
                   v-model="form.address_line_1"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="address_line_2" class="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                <label for="address_line_2" class="block text-sm font-medium text-horizon-500 mb-1">Address Line 2</label>
                 <input
                   id="address_line_2"
                   name="address_line_2"
                   v-model="form.address_line_2"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+                <label for="city" class="block text-sm font-medium text-horizon-500 mb-1">City <span class="text-raspberry-500">*</span></label>
                 <input
                   id="city"
                   name="city"
                   v-model="form.city"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="county" class="block text-sm font-medium text-gray-700 mb-1">County</label>
+                <label for="county" class="block text-sm font-medium text-horizon-500 mb-1">County</label>
                 <input
                   id="county"
                   name="county"
                   v-model="form.county"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="postcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode <span class="text-red-500">*</span></label>
+                <label for="postcode" class="block text-sm font-medium text-horizon-500 mb-1">Postcode <span class="text-raspberry-500">*</span></label>
                 <input
                   id="postcode"
                   name="postcode"
                   v-model="form.postcode"
                   type="text"
                   pattern="^[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}$"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 uppercase"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500 uppercase"
                   placeholder="SW1A 1AA"
                 />
               </div>
@@ -147,17 +147,17 @@
 
             <!-- Country Selector -->
             <div>
-              <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Property Country</label>
+              <label for="country" class="block text-sm font-medium text-horizon-500 mb-1">Property Country</label>
               <CountrySelector
                 v-model="form.country"
                 placeholder="Select country where property is located"
                 id="country"
               />
-              <p class="text-sm text-gray-500 mt-1">Country where the property is located</p>
+              <p class="text-sm text-neutral-500 mt-1">Country where the property is located</p>
 
               <!-- Non-UK Property Message -->
-              <div v-if="form.country !== 'United Kingdom'" class="mt-2 p-3 bg-gray-50 rounded-md">
-                <p class="text-sm text-blue-800">
+              <div v-if="form.country !== 'United Kingdom'" class="mt-2 p-3 bg-savannah-100 rounded-md">
+                <p class="text-sm text-violet-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                   </svg>
@@ -168,18 +168,18 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
+                <label for="purchase_date" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Date</label>
                 <input
                   id="purchase_date"
                   name="purchase_date"
                   v-model="form.purchase_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-1">Purchase Price (£)</label>
+                <label for="purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Price (£)</label>
                 <input
                   id="purchase_price"
                   name="purchase_price"
@@ -187,13 +187,13 @@
                   type="number"
                   step="any"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="current_value" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-red-500">*</span>
+                <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">
+                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="current_value"
@@ -202,46 +202,46 @@
                   type="number"
                   step="any"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
+                <p v-if="isJointPropertyEdit" class="text-xs text-violet-600 mt-1">
                   Enter the full property value. Your {{ form.ownership_percentage }}% share will be calculated automatically.
                 </p>
               </div>
 
               <div>
-                <label for="valuation_date" class="block text-sm font-medium text-gray-700 mb-1">Valuation Date</label>
+                <label for="valuation_date" class="block text-sm font-medium text-horizon-500 mb-1">Valuation Date</label>
                 <input
                   id="valuation_date"
                   name="valuation_date"
                   v-model="form.valuation_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div class="mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   v-model="hasMortgage"
-                  class="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-green-300 rounded"
+                  class="mr-3 h-4 w-4 text-spring-600 focus:ring-green-500 border-spring-300 rounded"
                 />
-                <span class="text-sm font-medium text-green-800">This property has a mortgage</span>
+                <span class="text-sm font-medium text-spring-800">This property has a mortgage</span>
               </label>
-              <p class="text-xs text-green-600 mt-1 ml-7">Check this if you want to add mortgage details</p>
+              <p class="text-xs text-spring-600 mt-1 ml-7">Check this if you want to add mortgage details</p>
             </div>
           </div>
 
           <!-- Step 2: Ownership -->
           <div v-show="currentStep === stepMapping[2]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Ownership</h4>
+            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Ownership</h4>
 
             <!-- Tenure Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Tenure Type</label>
+              <label class="block text-sm font-medium text-horizon-500 mb-2">Tenure Type</label>
               <div class="space-y-2">
                 <label class="flex items-center">
                   <input
@@ -262,17 +262,17 @@
                   <span>Leasehold</span>
                 </label>
               </div>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-neutral-500 mt-1">
                 Note: UK government is phasing out leasehold for new builds. Ground rent eliminated for new leases from 2022.
               </p>
             </div>
 
             <!-- Leasehold Details (conditional) -->
-            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-gray-50 rounded-md space-y-4">
-              <p class="text-sm text-blue-800 font-medium">Leasehold Property Details</p>
+            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-savannah-100 rounded-md space-y-4">
+              <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
 
               <div>
-                <label for="lease_remaining_years" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="lease_remaining_years" class="block text-sm font-medium text-horizon-500 mb-1">
                   Remaining Lease Term (Years)
                 </label>
                 <input
@@ -281,32 +281,32 @@
                   type="number"
                   min="1"
                   max="999"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-blue-600 mt-1">
+                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-violet-600 mt-1">
                   ⚠️ Properties with less than 80 years remaining may be difficult to mortgage
                 </p>
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 60" class="text-xs text-red-600 mt-1">
+                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 60" class="text-xs text-raspberry-600 mt-1">
                   ⚠️ Properties with less than 60 years remaining may significantly lose value
                 </p>
               </div>
 
               <div>
-                <label for="lease_expiry_date" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">
                   Lease Expiry Date
                 </label>
                 <input
                   id="lease_expiry_date"
                   v-model="form.lease_expiry_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
             </div>
 
             <!-- Ownership Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ownership Type</label>
+              <label class="block text-sm font-medium text-horizon-500 mb-2">Ownership Type</label>
               <div class="space-y-2">
                 <label class="flex items-start">
                   <input
@@ -317,7 +317,7 @@
                   />
                   <div>
                     <span class="font-medium">Individual Owner</span>
-                    <p class="text-xs text-gray-600">You own 100% of the property</p>
+                    <p class="text-xs text-neutral-500">You own 100% of the property</p>
                   </div>
                 </label>
                 <label class="flex items-start">
@@ -329,7 +329,7 @@
                   />
                   <div>
                     <span class="font-medium">Joint Tenancy</span>
-                    <p class="text-xs text-gray-600">Equal rights to whole property. Passes automatically to survivor (bypasses will).</p>
+                    <p class="text-xs text-neutral-500">Equal rights to whole property. Passes automatically to survivor (bypasses will).</p>
                   </div>
                 </label>
                 <label class="flex items-start">
@@ -341,7 +341,7 @@
                   />
                   <div>
                     <span class="font-medium">Tenants in Common</span>
-                    <p class="text-xs text-gray-600">Specified shares (may be unequal). Your share passes via your will.</p>
+                    <p class="text-xs text-neutral-500">Specified shares (may be unequal). Your share passes via your will.</p>
                   </div>
                 </label>
                 <label class="flex items-start">
@@ -353,46 +353,46 @@
                   />
                   <div>
                     <span class="font-medium">Trust</span>
-                    <p class="text-xs text-gray-600">Property held in trust</p>
+                    <p class="text-xs text-neutral-500">Property held in trust</p>
                   </div>
                 </label>
               </div>
             </div>
 
             <!-- Joint Tenancy Details -->
-            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-gray-50 rounded-md">
-              <p class="text-sm text-blue-800 font-medium">Joint Tenancy Details</p>
+            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
+              <p class="text-sm text-violet-800 font-medium">Joint Tenancy Details</p>
 
               <!-- Ownership Split Display -->
-              <div class="bg-white p-3 rounded border border-blue-300">
+              <div class="bg-white p-3 rounded border border-violet-300">
                 <div class="flex justify-between items-center">
                   <div>
-                    <p class="text-sm font-medium text-gray-700">Your Share</p>
-                    <p class="text-2xl font-bold text-blue-600">50%</p>
+                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
+                    <p class="text-2xl font-bold text-violet-600">50%</p>
                   </div>
-                  <div class="text-gray-400">
+                  <div class="text-horizon-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
                   <div class="text-right">
-                    <p class="text-sm font-medium text-gray-700">Joint Owner's Share</p>
-                    <p class="text-2xl font-bold text-blue-600">50%</p>
+                    <p class="text-sm font-medium text-horizon-500">Joint Owner's Share</p>
+                    <p class="text-2xl font-bold text-violet-600">50%</p>
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 text-center">Equal shares - Passes to survivor automatically</p>
+                <p class="text-xs text-neutral-500 mt-2 text-center">Equal shares - Passes to survivor automatically</p>
               </div>
 
               <!-- Joint Owner Selection -->
               <div>
-                <label for="joint_owner_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
                   Joint Owner
                 </label>
                 <select
                   id="joint_owner_selection"
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -402,7 +402,7 @@
 
               <!-- Free Text Joint Owner Name -->
               <div v-if="jointOwnerSelection === 'other'">
-                <label for="joint_owner_name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
                   Joint Owner Name
                 </label>
                 <input
@@ -410,25 +410,25 @@
                   v-model="form.joint_owner_name"
                   type="text"
                   placeholder="Enter joint owner's full name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Note: This person doesn't have an account in the system. The property will only appear in your account.
                 </p>
               </div>
 
-              <p class="text-xs text-gray-500">
+              <p class="text-xs text-neutral-500">
                 Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
               </p>
             </div>
 
             <!-- Tenants in Common Details -->
-            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-gray-50 rounded-md">
-              <p class="text-sm text-green-800 font-medium">Tenants in Common Details</p>
+            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
+              <p class="text-sm text-spring-800 font-medium">Tenants in Common Details</p>
 
               <!-- Ownership Percentage Input -->
               <div>
-                <label for="ownership_percentage" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">
                   Your Ownership Share (%)
                 </label>
                 <input
@@ -437,43 +437,43 @@
                   type="number"
                   min="1"
                   max="99"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Enter your percentage share. Shares can be unequal (e.g., 60/40, 70/30).
                 </p>
               </div>
 
               <!-- Ownership Split Display -->
-              <div class="bg-white p-3 rounded border border-green-300">
+              <div class="bg-white p-3 rounded border border-spring-300">
                 <div class="flex justify-between items-center">
                   <div>
-                    <p class="text-sm font-medium text-gray-700">Your Share</p>
-                    <p class="text-2xl font-bold text-green-600">{{ form.ownership_percentage || 0 }}%</p>
+                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
+                    <p class="text-2xl font-bold text-spring-600">{{ form.ownership_percentage || 0 }}%</p>
                   </div>
-                  <div class="text-gray-400">
+                  <div class="text-horizon-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
                   <div class="text-right">
-                    <p class="text-sm font-medium text-gray-700">Co-Owner's Share</p>
-                    <p class="text-2xl font-bold text-green-600">{{ coOwnerPercentage }}%</p>
+                    <p class="text-sm font-medium text-horizon-500">Co-Owner's Share</p>
+                    <p class="text-2xl font-bold text-spring-600">{{ coOwnerPercentage }}%</p>
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 text-center">Your share passes via your will or intestacy rules</p>
+                <p class="text-xs text-neutral-500 mt-2 text-center">Your share passes via your will or intestacy rules</p>
               </div>
 
               <!-- Joint Owner Selection -->
               <div>
-                <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
                   Co-Owner
                 </label>
                 <select
                   id="tenants_joint_owner_selection"
                   v-model="jointOwnerSelection"
                   @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Select co-owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -483,7 +483,7 @@
 
               <!-- Free Text Joint Owner Name -->
               <div v-if="jointOwnerSelection === 'other'">
-                <label for="tenants_joint_owner_name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="tenants_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
                   Co-Owner Name
                 </label>
                 <input
@@ -491,25 +491,25 @@
                   v-model="form.joint_owner_name"
                   type="text"
                   placeholder="Enter co-owner's full name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Note: This person doesn't have an account in the system. The property will only appear in your account.
                 </p>
               </div>
 
-              <p class="text-xs text-gray-500">
+              <p class="text-xs text-neutral-500">
                 Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
               </p>
             </div>
 
             <!-- Trust Details -->
-            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-gray-50 rounded-md">
+            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
               <p class="text-sm text-purple-800 font-medium">Trust Ownership Details</p>
 
               <!-- Trust Feature Notice -->
-              <div class="p-3 bg-gray-50 rounded-md">
-                <p class="text-sm text-blue-800">
+              <div class="p-3 bg-savannah-100 rounded-md">
+                <p class="text-sm text-violet-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                   </svg>
@@ -521,32 +521,32 @@
               <div class="bg-white p-3 rounded border border-purple-300">
                 <div class="flex justify-between items-center">
                   <div>
-                    <p class="text-sm font-medium text-gray-700">Your Share</p>
+                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
                     <p class="text-2xl font-bold text-purple-600">0%</p>
                   </div>
-                  <div class="text-gray-400">
+                  <div class="text-horizon-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
                   <div class="text-right">
-                    <p class="text-sm font-medium text-gray-700">Trust's Share</p>
+                    <p class="text-sm font-medium text-horizon-500">Trust's Share</p>
                     <p class="text-2xl font-bold text-purple-600">100%</p>
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 text-center">Property held entirely in trust</p>
+                <p class="text-xs text-neutral-500 mt-2 text-center">Property held entirely in trust</p>
               </div>
 
               <!-- Trust Selection -->
               <div>
-                <label for="trust_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="trust_selection" class="block text-sm font-medium text-horizon-500 mb-1">
                   Trust
                 </label>
                 <select
                   id="trust_selection"
                   v-model="trustSelection"
                   @change="handleTrustSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Select trust</option>
                   <option value="other">Other (Enter Trust Name)</option>
@@ -556,7 +556,7 @@
 
               <!-- Free Text Trust Name -->
               <div v-if="trustSelection === 'other'">
-                <label for="trust_name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="trust_name" class="block text-sm font-medium text-horizon-500 mb-1">
                   Trust Name
                 </label>
                 <input
@@ -564,9 +564,9 @@
                   v-model="form.trust_name"
                   type="text"
                   placeholder="Enter trust name"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Note: This trust is not formally registered in the system. You can add full trust details in the Estate Planning module.
                 </p>
               </div>
@@ -575,36 +575,36 @@
 
           <!-- Step 3: Mortgage (Conditional - only if hasMortgage) -->
           <div v-if="hasMortgage" v-show="currentStep === stepMapping[3]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Mortgage Details</h4>
+            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Mortgage Details</h4>
 
             <div>
-              <label for="lender_name" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="lender_name" class="block text-sm font-medium text-horizon-500 mb-1">
                 Lender Name
               </label>
               <input
                 id="lender_name"
                 v-model="mortgageForm.lender_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               />
             </div>
 
             <div>
-              <label for="mortgage_account_number" class="block text-sm font-medium text-gray-700 mb-1">Mortgage Account Number</label>
+              <label for="mortgage_account_number" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Account Number</label>
               <input
                 id="mortgage_account_number"
                 v-model="mortgageForm.mortgage_account_number"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               />
             </div>
 
             <div>
-              <label for="mortgage_type" class="block text-sm font-medium text-gray-700 mb-1">Mortgage Type</label>
+              <label for="mortgage_type" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Type</label>
               <select
                 id="mortgage_type"
                 v-model="mortgageForm.mortgage_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               >
                 <option value="">Select mortgage type</option>
                 <option value="repayment">Repayment</option>
@@ -614,14 +614,14 @@
             </div>
 
             <!-- Mixed Mortgage Type Fields -->
-            <div v-if="mortgageForm.mortgage_type === 'mixed'" class="bg-gray-50 rounded-md p-4 space-y-4">
+            <div v-if="mortgageForm.mortgage_type === 'mixed'" class="bg-savannah-100 rounded-md p-4 space-y-4">
               <div class="flex items-start gap-2 mb-3">
-                <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p class="text-sm font-medium text-blue-900">Mixed Mortgage - Repayment Split</p>
-                  <p class="text-xs text-blue-700 mt-1">
+                  <p class="text-sm font-medium text-violet-900">Mixed Mortgage - Repayment Split</p>
+                  <p class="text-xs text-violet-700 mt-1">
                     Specify what percentage is on a repayment basis vs interest-only basis
                   </p>
                 </div>
@@ -629,7 +629,7 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="repayment_percentage" class="block text-sm font-medium text-blue-900 mb-1">
+                  <label for="repayment_percentage" class="block text-sm font-medium text-violet-900 mb-1">
                     Repayment Portion (%)
                   </label>
                   <input
@@ -639,14 +639,14 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    class="w-full px-3 py-2 border border-violet-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500 bg-white"
                     placeholder="e.g., 40"
                   />
-                  <p class="text-xs text-blue-700 mt-1">Percentage on repayment basis</p>
+                  <p class="text-xs text-violet-700 mt-1">Percentage on repayment basis</p>
                 </div>
 
                 <div>
-                  <label for="interest_only_percentage" class="block text-sm font-medium text-blue-900 mb-1">
+                  <label for="interest_only_percentage" class="block text-sm font-medium text-violet-900 mb-1">
                     Interest-Only Portion (%)
                   </label>
                   <input
@@ -656,16 +656,16 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    class="w-full px-3 py-2 border border-violet-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500 bg-white"
                     placeholder="e.g., 60"
                   />
-                  <p class="text-xs text-blue-700 mt-1">Percentage on interest-only basis</p>
+                  <p class="text-xs text-violet-700 mt-1">Percentage on interest-only basis</p>
                 </div>
               </div>
 
               <div v-if="mortgageTypePercentageTotal !== 100 && (mortgageForm.repayment_percentage || mortgageForm.interest_only_percentage)"
-                   class="bg-gray-50 rounded-md p-3">
-                <p class="text-sm text-red-800">
+                   class="bg-savannah-100 rounded-md p-3">
+                <p class="text-sm text-raspberry-800">
                   ⚠️ Percentages must total 100%. Current total: {{ mortgageTypePercentageTotal }}%
                 </p>
               </div>
@@ -673,20 +673,20 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="original_loan_amount" class="block text-sm font-medium text-gray-700 mb-1">Original Loan Amount (£)</label>
+                <label for="original_loan_amount" class="block text-sm font-medium text-horizon-500 mb-1">Original Loan Amount (£)</label>
                 <input
                   id="original_loan_amount"
                   v-model.number="mortgageForm.original_loan_amount"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="outstanding_balance" class="block text-sm font-medium text-gray-700 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-red-500">*</span>
+                <label for="outstanding_balance" class="block text-sm font-medium text-horizon-500 mb-1">
+                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="outstanding_balance"
@@ -694,9 +694,9 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p v-if="isJointPropertyEdit" class="text-xs text-blue-600 mt-1">
+                <p v-if="isJointPropertyEdit" class="text-xs text-violet-600 mt-1">
                   Enter the full mortgage balance. Your {{ form.ownership_percentage }}% share will be calculated automatically.
                 </p>
               </div>
@@ -705,7 +705,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Hide standard interest rate when mixed rate type is selected -->
               <div v-if="mortgageForm.rate_type !== 'mixed'">
-                <label for="interest_rate" class="block text-sm font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+                <label for="interest_rate" class="block text-sm font-medium text-horizon-500 mb-1">Interest Rate (%)</label>
                 <input
                   id="interest_rate"
                   v-model.number="mortgageForm.interest_rate"
@@ -713,16 +713,16 @@
                   step="0.01"
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div :class="{ 'md:col-span-2': mortgageForm.rate_type === 'mixed' }">
-                <label for="rate_type" class="block text-sm font-medium text-gray-700 mb-1">Rate Type</label>
+                <label for="rate_type" class="block text-sm font-medium text-horizon-500 mb-1">Rate Type</label>
                 <select
                   id="rate_type"
                   v-model="mortgageForm.rate_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select rate type</option>
                   <option value="fixed">Fixed</option>
@@ -735,24 +735,24 @@
             </div>
 
             <div v-if="mortgageForm.rate_type === 'fixed'">
-              <label for="rate_fix_end_date" class="block text-sm font-medium text-gray-700 mb-1">Rate Fix End Date</label>
+              <label for="rate_fix_end_date" class="block text-sm font-medium text-horizon-500 mb-1">Rate Fix End Date</label>
               <input
                 id="rate_fix_end_date"
                 v-model="mortgageForm.rate_fix_end_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               />
             </div>
 
             <!-- Mixed Rate Type Fields -->
-            <div v-if="mortgageForm.rate_type === 'mixed'" class="bg-gray-50 rounded-md p-4 space-y-4">
+            <div v-if="mortgageForm.rate_type === 'mixed'" class="bg-savannah-100 rounded-md p-4 space-y-4">
               <div class="flex items-start gap-2 mb-3">
-                <svg class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-spring-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p class="text-sm font-medium text-green-900">Mixed Rate - Interest Rate Split</p>
-                  <p class="text-xs text-green-700 mt-1">
+                  <p class="text-sm font-medium text-spring-900">Mixed Rate - Interest Rate Split</p>
+                  <p class="text-xs text-spring-700 mt-1">
                     Specify what percentage has a fixed rate vs variable rate and the rates for each portion
                   </p>
                 </div>
@@ -760,7 +760,7 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="fixed_rate_percentage" class="block text-sm font-medium text-green-900 mb-1">
+                  <label for="fixed_rate_percentage" class="block text-sm font-medium text-spring-900 mb-1">
                     Fixed Rate Portion (%)
                   </label>
                   <input
@@ -770,14 +770,14 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 20"
                   />
-                  <p class="text-xs text-green-700 mt-1">Percentage at fixed rate</p>
+                  <p class="text-xs text-spring-700 mt-1">Percentage at fixed rate</p>
                 </div>
 
                 <div>
-                  <label for="variable_rate_percentage" class="block text-sm font-medium text-green-900 mb-1">
+                  <label for="variable_rate_percentage" class="block text-sm font-medium text-spring-900 mb-1">
                     Variable Rate Portion (%)
                   </label>
                   <input
@@ -787,16 +787,16 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 80"
                   />
-                  <p class="text-xs text-green-700 mt-1">Percentage at variable rate</p>
+                  <p class="text-xs text-spring-700 mt-1">Percentage at variable rate</p>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="fixed_interest_rate" class="block text-sm font-medium text-green-900 mb-1">
+                  <label for="fixed_interest_rate" class="block text-sm font-medium text-spring-900 mb-1">
                     Fixed Interest Rate (%)
                   </label>
                   <input
@@ -806,14 +806,14 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 3.5"
                   />
-                  <p class="text-xs text-green-700 mt-1">Annual rate for fixed portion</p>
+                  <p class="text-xs text-spring-700 mt-1">Annual rate for fixed portion</p>
                 </div>
 
                 <div>
-                  <label for="variable_interest_rate" class="block text-sm font-medium text-green-900 mb-1">
+                  <label for="variable_interest_rate" class="block text-sm font-medium text-spring-900 mb-1">
                     Variable Interest Rate (%)
                   </label>
                   <input
@@ -823,24 +823,24 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                     placeholder="e.g., 4.2"
                   />
-                  <p class="text-xs text-green-700 mt-1">Annual rate for variable portion</p>
+                  <p class="text-xs text-spring-700 mt-1">Annual rate for variable portion</p>
                 </div>
               </div>
 
               <div v-if="rateTypePercentageTotal !== 100 && (mortgageForm.fixed_rate_percentage || mortgageForm.variable_rate_percentage)"
-                   class="bg-gray-50 rounded-md p-3">
-                <p class="text-sm text-red-800">
+                   class="bg-savannah-100 rounded-md p-3">
+                <p class="text-sm text-raspberry-800">
                   ⚠️ Percentages must total 100%. Current total: {{ rateTypePercentageTotal }}%
                 </p>
               </div>
             </div>
 
             <div>
-              <label for="monthly_payment" class="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Payment (£) <span class="text-red-500">*</span>
+              <label for="monthly_payment" class="block text-sm font-medium text-horizon-500 mb-1">
+                Monthly Payment (£) <span class="text-raspberry-500">*</span>
               </label>
               <input
                 id="monthly_payment"
@@ -848,13 +848,13 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               />
-              <p class="text-sm text-gray-500 mt-1">Enter your monthly mortgage payment amount</p>
+              <p class="text-sm text-neutral-500 mt-1">Enter your monthly mortgage payment amount</p>
             </div>
 
             <div v-if="form.property_type === 'buy_to_let' && (mortgageForm.mortgage_type === 'repayment' || mortgageForm.mortgage_type === 'mixed')">
-              <label for="monthly_interest_portion" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="monthly_interest_portion" class="block text-sm font-medium text-horizon-500 mb-1">
                 Monthly Interest Portion (£)
               </label>
               <input
@@ -863,46 +863,46 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
               />
-              <p class="text-sm text-gray-500 mt-1">The interest portion of your monthly repayment, used for Section 24 tax credit calculation</p>
+              <p class="text-sm text-neutral-500 mt-1">The interest portion of your monthly repayment, used for Section 24 tax credit calculation</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Mortgage Start Date</label>
+                <label for="start_date" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Start Date</label>
                 <input
                   id="start_date"
                   v-model="mortgageForm.start_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <div>
-                <label for="maturity_date" class="block text-sm font-medium text-gray-700 mb-1">Mortgage End Date</label>
+                <label for="maturity_date" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage End Date</label>
                 <input
                   id="maturity_date"
                   v-model="mortgageForm.maturity_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
-                <p class="text-xs text-gray-500 mt-1">If no end date specified, chosen retirement date will be used</p>
+                <p class="text-xs text-neutral-500 mt-1">If no end date specified, chosen retirement date will be used</p>
               </div>
             </div>
 
             <!-- Mortgage Ownership Section -->
-            <div class="space-y-4 pt-4 border-t border-gray-200">
-              <h5 class="text-sm font-semibold text-gray-900">Mortgage Ownership</h5>
+            <div class="space-y-4 pt-4 border-t border-light-gray">
+              <h5 class="text-sm font-semibold text-horizon-500">Mortgage Ownership</h5>
 
               <div>
-                <label for="mortgage_ownership_type" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="mortgage_ownership_type" class="block text-sm font-medium text-horizon-500 mb-1">
                   Ownership Type
                 </label>
                 <select
                   id="mortgage_ownership_type"
                   v-model="mortgageForm.ownership_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="individual">Individual Owner</option>
                   <option value="joint">Joint Owner</option>
@@ -910,14 +910,14 @@
               </div>
 
               <div v-if="mortgageForm.ownership_type === 'joint'">
-                <label for="mortgage_joint_owner_selection" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="mortgage_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
                   Joint Owner
                 </label>
                 <select
                   id="mortgage_joint_owner_selection"
                   v-model="mortgageJointOwnerSelection"
                   @change="handleMortgageJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -927,14 +927,14 @@
 
               <!-- Free Text Joint Owner Name -->
               <div v-if="mortgageJointOwnerSelection === 'other'">
-                <label for="mortgage_joint_owner_name" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="mortgage_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
                   Joint Owner Name
                 </label>
                 <input
                   id="mortgage_joint_owner_name"
                   v-model="mortgageForm.joint_owner_name"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                   placeholder="Enter joint owner's name"
                 />
               </div>
@@ -943,112 +943,112 @@
 
           <!-- Step 4: Costs -->
           <div v-show="currentStep === stepMapping[4]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Monthly Costs</h4>
+            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Monthly Costs</h4>
 
             <!-- Shared ownership note -->
-            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-violet-700 bg-violet-50 border border-violet-200 rounded-lg p-3">
               <strong>Note:</strong> Enter 100% of all property costs. These will be shared 50/50 between you and your joint owner.
             </p>
-            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-violet-700 bg-violet-50 border border-violet-200 rounded-lg p-3">
               <strong>Note:</strong> Enter 100% of all property costs. These will be split by your ownership percentage ({{ form.ownership_percentage }}%).
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Mortgage Payment (pulled from mortgage data) -->
               <div v-if="hasMortgage && mortgageForm.monthly_payment">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Mortgage Payment (£/month)</label>
-                <div class="w-full px-3 py-2 bg-gray-50 rounded-md text-gray-700 font-medium">
+                <label class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Payment (£/month)</label>
+                <div class="w-full px-3 py-2 bg-savannah-100 rounded-md text-neutral-500 font-medium">
                   {{ formatCurrency(mortgageForm.monthly_payment) }}
                 </div>
               </div>
 
               <!-- Council Tax -->
               <div>
-                <label for="monthly_council_tax" class="block text-sm font-medium text-gray-700 mb-1">Council Tax (£/month)</label>
+                <label for="monthly_council_tax" class="block text-sm font-medium text-horizon-500 mb-1">Council Tax (£/month)</label>
                 <input
                   id="monthly_council_tax"
                   v-model.number="form.monthly_council_tax"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Gas -->
               <div>
-                <label for="monthly_gas" class="block text-sm font-medium text-gray-700 mb-1">Gas (£/month)</label>
+                <label for="monthly_gas" class="block text-sm font-medium text-horizon-500 mb-1">Gas (£/month)</label>
                 <input
                   id="monthly_gas"
                   v-model.number="form.monthly_gas"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Electricity -->
               <div>
-                <label for="monthly_electricity" class="block text-sm font-medium text-gray-700 mb-1">Electricity (£/month)</label>
+                <label for="monthly_electricity" class="block text-sm font-medium text-horizon-500 mb-1">Electricity (£/month)</label>
                 <input
                   id="monthly_electricity"
                   v-model.number="form.monthly_electricity"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Water -->
               <div>
-                <label for="monthly_water" class="block text-sm font-medium text-gray-700 mb-1">Water (£/month)</label>
+                <label for="monthly_water" class="block text-sm font-medium text-horizon-500 mb-1">Water (£/month)</label>
                 <input
                   id="monthly_water"
                   v-model.number="form.monthly_water"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Building Insurance -->
               <div>
-                <label for="monthly_building_insurance" class="block text-sm font-medium text-gray-700 mb-1">Building Insurance (£/month)</label>
+                <label for="monthly_building_insurance" class="block text-sm font-medium text-horizon-500 mb-1">Building Insurance (£/month)</label>
                 <input
                   id="monthly_building_insurance"
                   v-model.number="form.monthly_building_insurance"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Contents Insurance -->
               <div>
-                <label for="monthly_contents_insurance" class="block text-sm font-medium text-gray-700 mb-1">Contents Insurance (£/month)</label>
+                <label for="monthly_contents_insurance" class="block text-sm font-medium text-horizon-500 mb-1">Contents Insurance (£/month)</label>
                 <input
                   id="monthly_contents_insurance"
                   v-model.number="form.monthly_contents_insurance"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Service Charge (with tooltip) -->
               <div>
-                <label for="monthly_service_charge" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="monthly_service_charge" class="block text-sm font-medium text-horizon-500 mb-1">
                   Service Charge (£/month)
                   <span class="relative inline-block group">
-                    <svg class="inline w-4 h-4 text-gray-400 cursor-help ml-1" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="inline w-4 h-4 text-horizon-400 cursor-help ml-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                     </svg>
-                    <span class="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md whitespace-nowrap z-10">
+                    <span class="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-horizon-500 rounded-md whitespace-nowrap z-10">
                       For flats/apartments: fees for communal areas, maintenance, lift, porter
                     </span>
                   </span>
@@ -1059,19 +1059,19 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Maintenance Reserve (with tooltip) -->
               <div>
-                <label for="monthly_maintenance_reserve" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="monthly_maintenance_reserve" class="block text-sm font-medium text-horizon-500 mb-1">
                   Maintenance Reserve (£/month)
                   <span class="relative inline-block group">
-                    <svg class="inline w-4 h-4 text-gray-400 cursor-help ml-1" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="inline w-4 h-4 text-horizon-400 cursor-help ml-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                     </svg>
-                    <span class="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md whitespace-nowrap z-10">
+                    <span class="invisible group-hover:visible absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-horizon-500 rounded-md whitespace-nowrap z-10">
                       Monthly amount set aside for repairs, replacements, and future maintenance
                     </span>
                   </span>
@@ -1082,162 +1082,162 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
 
               <!-- Other Monthly Costs -->
               <div>
-                <label for="other_monthly_costs" class="block text-sm font-medium text-gray-700 mb-1">Other Monthly Costs (£/month)</label>
+                <label for="other_monthly_costs" class="block text-sm font-medium text-horizon-500 mb-1">Other Monthly Costs (£/month)</label>
                 <input
                   id="other_monthly_costs"
                   v-model.number="form.other_monthly_costs"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
               </div>
             </div>
 
             <!-- Total Monthly Costs Summary -->
-            <div class="mt-6 p-4 bg-gray-50 border-2 border-gray-300 rounded-lg">
+            <div class="mt-6 p-4 bg-savannah-100 border-2 border-horizon-300 rounded-lg">
               <div class="flex justify-between items-center">
-                <span class="text-lg font-semibold text-gray-900">Total Monthly Costs</span>
-                <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalMonthlyCosts) }}</span>
+                <span class="text-lg font-semibold text-horizon-500">Total Monthly Costs</span>
+                <span class="text-2xl font-bold text-horizon-500">{{ formatCurrency(totalMonthlyCosts) }}</span>
               </div>
-              <p class="text-sm text-gray-600 mt-2">Total Annual: {{ formatCurrency(totalMonthlyCosts * 12) }}</p>
+              <p class="text-sm text-neutral-500 mt-2">Total Annual: {{ formatCurrency(totalMonthlyCosts * 12) }}</p>
             </div>
           </div>
 
           <!-- Step 5: BTL Details (Conditional - only if property_type is buy_to_let) -->
           <div v-if="form.property_type === 'buy_to_let'" v-show="currentStep === stepMapping[5]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Buy to Let Details</h4>
+            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Buy to Let Details</h4>
 
             <!-- Shared ownership note for rental income -->
-            <p v-if="form.ownership_type === 'joint'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p v-if="form.ownership_type === 'joint'" class="text-sm text-violet-700 bg-violet-50 border border-violet-200 rounded-lg p-3">
               <strong>Note:</strong> Enter 100% of the rental income. This will be shared 50/50 between you and your joint owner.
             </p>
-            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p v-else-if="form.ownership_type === 'tenants_in_common'" class="text-sm text-violet-700 bg-violet-50 border border-violet-200 rounded-lg p-3">
               <strong>Note:</strong> Enter 100% of the rental income. This will be split by your ownership percentage ({{ form.ownership_percentage }}%).
             </p>
 
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="monthly_rental_income" class="block text-sm font-medium text-gray-700 mb-1">Monthly Rental Income (£)</label>
+                  <label for="monthly_rental_income" class="block text-sm font-medium text-horizon-500 mb-1">Monthly Rental Income (£)</label>
                   <input
                     id="monthly_rental_income"
                     v-model.number="form.monthly_rental_income"
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                   />
                 </div>
 
                 <div>
-                  <label for="tenant_name" class="block text-sm font-medium text-gray-700 mb-1">Tenant Name</label>
+                  <label for="tenant_name" class="block text-sm font-medium text-horizon-500 mb-1">Tenant Name</label>
                   <input
                     id="tenant_name"
                     v-model="form.tenant_name"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                   />
                 </div>
 
                 <div>
-                  <label for="tenant_email" class="block text-sm font-medium text-gray-700 mb-1">Tenant Email Address</label>
+                  <label for="tenant_email" class="block text-sm font-medium text-horizon-500 mb-1">Tenant Email Address</label>
                   <input
                     id="tenant_email"
                     v-model="form.tenant_email"
                     type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                     placeholder="tenant@example.com"
                   />
-                  <p class="text-xs text-gray-500 mt-1">This information is used in the Letter to Spouse section of the app</p>
+                  <p class="text-xs text-neutral-500 mt-1">This information is used in the Letter to Spouse section of the app</p>
                 </div>
 
                 <div>
-                  <label for="lease_start_date" class="block text-sm font-medium text-gray-700 mb-1">Lease Start Date</label>
+                  <label for="lease_start_date" class="block text-sm font-medium text-horizon-500 mb-1">Lease Start Date</label>
                   <input
                     id="lease_start_date"
                     v-model="form.lease_start_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                   />
                 </div>
 
                 <div>
-                  <label for="lease_end_date" class="block text-sm font-medium text-gray-700 mb-1">Lease End Date</label>
+                  <label for="lease_end_date" class="block text-sm font-medium text-horizon-500 mb-1">Lease End Date</label>
                   <input
                     id="lease_end_date"
                     v-model="form.lease_end_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                   />
                 </div>
               </div>
 
               <!-- Managing Agent Details Section -->
-              <div class="mt-6 pt-6 border-t border-gray-200">
-                <h5 class="text-md font-semibold text-gray-800 mb-4">Managing Agent Details (Optional)</h5>
-                <p class="text-sm text-gray-600 mb-4">If you use a managing agent to manage this property, enter their details below.</p>
+              <div class="mt-6 pt-6 border-t border-light-gray">
+                <h5 class="text-md font-semibold text-horizon-500 mb-4">Managing Agent Details (Optional)</h5>
+                <p class="text-sm text-neutral-500 mb-4">If you use a managing agent to manage this property, enter their details below.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label for="managing_agent_name" class="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                    <label for="managing_agent_name" class="block text-sm font-medium text-horizon-500 mb-1">Agent Name</label>
                     <input
                       id="managing_agent_name"
                       v-model="form.managing_agent_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                       placeholder="e.g., John Smith"
                     />
                   </div>
 
                   <div>
-                    <label for="managing_agent_company" class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                    <label for="managing_agent_company" class="block text-sm font-medium text-horizon-500 mb-1">Company Name</label>
                     <input
                       id="managing_agent_company"
                       v-model="form.managing_agent_company"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                       placeholder="e.g., ABC Property Management Ltd"
                     />
                   </div>
 
                   <div>
-                    <label for="managing_agent_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <label for="managing_agent_email" class="block text-sm font-medium text-horizon-500 mb-1">Email Address</label>
                     <input
                       id="managing_agent_email"
                       v-model="form.managing_agent_email"
                       type="email"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                       placeholder="agent@propertymanagement.com"
                     />
                   </div>
 
                   <div>
-                    <label for="managing_agent_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <label for="managing_agent_phone" class="block text-sm font-medium text-horizon-500 mb-1">Phone Number</label>
                     <input
                       id="managing_agent_phone"
                       v-model="form.managing_agent_phone"
                       type="tel"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                       placeholder="e.g., 020 1234 5678"
                     />
                   </div>
 
                   <div>
-                    <label for="managing_agent_fee" class="block text-sm font-medium text-gray-700 mb-1">Monthly Management Fee (£)</label>
+                    <label for="managing_agent_fee" class="block text-sm font-medium text-horizon-500 mb-1">Monthly Management Fee (£)</label>
                     <input
                       id="managing_agent_fee"
                       v-model.number="form.managing_agent_fee"
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                       placeholder="e.g., 150.00"
                     />
                   </div>
@@ -1247,18 +1247,18 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="mt-4 p-3 bg-gray-50 rounded-md">
-            <p class="text-sm text-red-600">{{ error }}</p>
+          <div v-if="error" class="mt-4 p-3 bg-savannah-100 rounded-md">
+            <p class="text-sm text-raspberry-600">{{ error }}</p>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between rounded-b-lg">
+        <div class="bg-savannah-100 border-t border-light-gray px-6 py-4 flex justify-between rounded-b-lg">
           <button
             type="button"
             @click="previousStep"
             v-show="currentStep > 1"
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
+            class="px-4 py-2 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors"
           >
             Previous
           </button>
@@ -1267,7 +1267,7 @@
             <button
               type="button"
               @click="$emit('close')"
-              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-button hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-button hover:bg-savannah-100 transition-colors"
             >
               Cancel
             </button>
@@ -1276,7 +1276,7 @@
               v-if="currentStep < totalSteps && !isEditMode"
               type="button"
               @click="nextStep"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
             >
               Next
             </button>
@@ -1285,7 +1285,7 @@
               v-if="currentStep < totalSteps && isEditMode"
               type="button"
               @click="nextStep"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors"
+              class="px-4 py-2 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors"
             >
               Next Step
             </button>
@@ -1294,7 +1294,7 @@
               v-if="currentStep >= totalSteps || isEditMode"
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : 'Save Property' }}
             </button>

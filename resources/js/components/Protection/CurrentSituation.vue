@@ -1,21 +1,21 @@
 <template>
   <div class="current-situation">
     <!-- No Protection Notice -->
-    <div v-if="hasNoPolicies" class="bg-gray-50 rounded-lg p-6 mb-8">
+    <div v-if="hasNoPolicies" class="bg-eggshell-500 rounded-lg p-6 mb-8">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="h-6 w-6 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-lg font-medium text-blue-800 mb-2">No Protection Coverage</h3>
-          <p class="text-sm text-blue-700 mb-4">
+          <h3 class="text-lg font-medium text-violet-800 mb-2">No Protection Coverage</h3>
+          <p class="text-sm text-violet-700 mb-4">
             You currently have no protection policies recorded. Without adequate life insurance and protection coverage, your family may face financial difficulties if something unexpected happens.
           </p>
-          <div class="bg-white rounded-lg p-4 border border-blue-300 mb-4">
-            <h4 class="text-sm font-semibold text-gray-900 mb-2">Why Protection is Important:</h4>
-            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside">
+          <div class="bg-white rounded-lg p-4 border border-violet-300 mb-4">
+            <h4 class="text-sm font-semibold text-horizon-500 mb-2">Why Protection is Important:</h4>
+            <ul class="text-sm text-neutral-500 space-y-1 list-disc list-inside">
               <li>Replaces lost income if you're unable to work</li>
               <li>Covers outstanding debts and mortgages</li>
               <li>Provides financial security for dependents</li>
@@ -26,36 +26,36 @@
             <div class="flex gap-3">
               <button
                 @click="$router.push('/protection')"
-                class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors font-medium text-sm"
               >
                 View Gap Analysis →
               </button>
               <button
                 v-preview-disabled="'add'"
                 @click="$emit('add-policy')"
-                class="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-button hover:bg-blue-50 transition-colors font-medium text-sm"
+                class="px-4 py-2 bg-white text-violet-600 border border-violet-600 rounded-button hover:bg-violet-50 transition-colors font-medium text-sm"
               >
                 I Have Protection to Add
               </button>
             </div>
 
             <!-- I Don't Have Protection Checkbox -->
-            <div class="flex items-start pt-2 border-t border-blue-200">
+            <div class="flex items-start pt-2 border-t border-violet-200">
               <div class="flex items-center h-5">
                 <input
                   id="has_no_policies"
                   v-model="hasNoPoliciesChecked"
                   v-preview-disabled="'edit'"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-primary-500"
+                  class="h-4 w-4 text-violet-600 border-horizon-300 rounded focus:ring-violet-500"
                   @change="updateHasNoPoliciesFlag"
                 />
               </div>
               <div class="ml-3 text-sm">
-                <label for="has_no_policies" class="font-medium text-gray-700 cursor-pointer">
+                <label for="has_no_policies" class="font-medium text-neutral-500 cursor-pointer">
                   I currently have no protection policies
                 </label>
-                <p class="text-gray-600 text-xs mt-1">
+                <p class="text-neutral-500 text-xs mt-1">
                   Check this box if you don't have any life insurance or protection coverage. This will mark your protection profile as complete, but we strongly recommend considering protection for your family's financial security.
                 </p>
               </div>
@@ -69,14 +69,14 @@
     <div v-else class="mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">{{ totalPolicyCount === 1 ? 'Policy' : 'Policies' }}</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">{{ totalPolicyCount === 1 ? 'Policy' : 'Policies' }}</h3>
         </div>
 
         <div class="flex gap-3">
           <button
             v-preview-disabled="'add'"
             @click="$emit('add-policy')"
-            class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
+            class="px-4 py-2 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 transition-colors flex items-center gap-2"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -97,7 +97,7 @@
           <button
             v-preview-disabled="'upload'"
             @click="showUploadModal = true"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-lg hover:bg-blue-50 transition-colors font-medium"
+            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-lg hover:bg-violet-50 transition-colors font-medium"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -123,48 +123,48 @@
     <template v-if="!hasNoPolicies">
       <!-- Existing Coverage & Allocation -->
       <div class="mb-8" v-if="existingLifeCoverage > 0">
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Existing Life Insurance Coverage</h3>
-          <p class="text-sm text-gray-600 mb-6">
+        <div class="bg-white rounded-lg border border-light-gray p-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Your Existing Life Insurance Coverage</h3>
+          <p class="text-sm text-neutral-500 mb-6">
             Your life insurance is allocated to cover your debts first, then any excess reduces your income replacement need.
           </p>
 
           <div class="space-y-3">
             <!-- Total Life Cover -->
-            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
-              <span class="font-semibold text-gray-900">Total Life Insurance</span>
-              <span class="text-xl font-bold text-green-600">{{ formatCurrency(existingLifeCoverage) }}</span>
+            <div class="flex justify-between items-center pb-3 border-b border-light-gray">
+              <span class="font-semibold text-horizon-500">Total Life Insurance</span>
+              <span class="text-xl font-bold text-spring-600">{{ formatCurrency(existingLifeCoverage) }}</span>
             </div>
 
             <!-- Allocation Breakdown -->
             <div class="space-y-3">
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">1. Allocated to cover debts</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(debtCoveredAmount) }}</span>
+                <span class="text-neutral-500">1. Allocated to cover debts</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(debtCoveredAmount) }}</span>
               </div>
 
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">2. Excess for {{ spouseName || 'beneficiary' }}'s income</span>
+                <span class="text-neutral-500">2. Excess for {{ spouseName || 'beneficiary' }}'s income</span>
                 <div class="text-right">
-                  <span class="font-medium text-gray-900">{{ formatCurrency(humanCapitalCovered) }}</span>
-                  <span class="text-xs text-gray-500 block">{{ formatCurrency(humanCapitalCoveredAnnual) }} p.a.</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(humanCapitalCovered) }}</span>
+                  <span class="text-xs text-neutral-500 block">{{ formatCurrency(humanCapitalCoveredAnnual) }} p.a.</span>
                 </div>
               </div>
 
-              <div v-if="excessUnused > 0" class="flex justify-between items-center text-blue-700">
+              <div v-if="excessUnused > 0" class="flex justify-between items-center text-violet-700">
                 <span class="font-medium">3. Excess unused</span>
                 <span class="font-medium">{{ formatCurrency(excessUnused) }}</span>
               </div>
             </div>
 
             <!-- Income Replacement Policies -->
-            <div v-if="incomeReplacementCoverageAnnual > 0" class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div v-if="incomeReplacementCoverageAnnual > 0" class="mt-4 p-4 bg-eggshell-500 rounded-lg">
               <div class="flex justify-between items-center">
                 <div>
-                  <span class="font-semibold text-gray-900">Income Replacement Policies</span>
-                  <p class="text-xs text-gray-600 mt-1">Family Income Benefit, Income Protection, etc.</p>
+                  <span class="font-semibold text-horizon-500">Income Replacement Policies</span>
+                  <p class="text-xs text-neutral-500 mt-1">Family Income Benefit, Income Protection, etc.</p>
                 </div>
-                <span class="text-xl font-bold text-blue-600">{{ formatCurrency(incomeReplacementCoverageAnnual) }}/year</span>
+                <span class="text-xl font-bold text-violet-600">{{ formatCurrency(incomeReplacementCoverageAnnual) }}/year</span>
               </div>
             </div>
           </div>
@@ -173,17 +173,17 @@
 
       <!-- Protection Shortfall -->
       <div class="mb-8">
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Protection Shortfall</h3>
-          <p class="text-sm text-gray-600 mb-4">
+        <div class="bg-white rounded-lg border border-light-gray p-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-2">Protection Shortfall</h3>
+          <p class="text-sm text-neutral-500 mb-4">
             After accounting for your existing cover, these are the protection gaps that remain.
           </p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Debt Protection Gap Card -->
-            <div class="p-4 rounded-lg bg-gray-50">
+            <div class="p-4 rounded-lg bg-eggshell-500">
               <div class="flex justify-between items-start mb-3">
-                <h4 class="font-medium text-gray-900">Debt Protection</h4>
+                <h4 class="font-medium text-horizon-500">Debt Protection</h4>
                 <span
                   class="px-2 py-1 text-xs font-semibold rounded"
                   :class="getSeverityBadgeClass(debtGapSeverity)"
@@ -192,32 +192,32 @@
                 </span>
               </div>
 
-              <div class="mb-3 pb-3 border-b border-gray-200">
+              <div class="mb-3 pb-3 border-b border-light-gray">
                 <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">Current Life Cover (for debt)</span>
-                  <span class="font-medium text-green-600">{{ formatCurrency(debtCoveredAmount) }}</span>
+                  <span class="text-neutral-500">Current Life Cover (for debt)</span>
+                  <span class="font-medium text-spring-600">{{ formatCurrency(debtCoveredAmount) }}</span>
                 </div>
               </div>
 
               <div class="space-y-2 text-sm mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Mortgage Debt</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(mortgageDebt) }}</span>
+                  <span class="text-neutral-500">Mortgage Debt</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(mortgageDebt) }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Other Liabilities</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(otherDebt) }}</span>
+                  <span class="text-neutral-500">Other Liabilities</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(otherDebt) }}</span>
                 </div>
-                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">Total Debt</span>
-                  <span class="font-semibold text-gray-900">{{ formatCurrency(totalDebt) }}</span>
+                <div class="flex justify-between items-center pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">Total Debt</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(totalDebt) }}</span>
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-gray-300">
+              <div class="pt-3 border-t border-horizon-300">
                 <div class="flex justify-between items-center">
-                  <span class="font-semibold text-gray-900">Shortfall</span>
-                  <span class="text-lg font-bold" :class="debtProtectionGap > 0 ? 'text-red-600' : 'text-green-600'">
+                  <span class="font-semibold text-horizon-500">Shortfall</span>
+                  <span class="text-lg font-bold" :class="debtProtectionGap > 0 ? 'text-raspberry-600' : 'text-spring-600'">
                     {{ formatCurrency(debtProtectionGap) }}
                   </span>
                 </div>
@@ -225,9 +225,9 @@
             </div>
 
             <!-- Income Replacement Gap Card -->
-            <div class="p-4 rounded-lg bg-gray-50">
+            <div class="p-4 rounded-lg bg-eggshell-500">
               <div class="flex justify-between items-start mb-3">
-                <h4 class="font-medium text-gray-900">Income Replacement</h4>
+                <h4 class="font-medium text-horizon-500">Income Replacement</h4>
                 <span
                   class="px-2 py-1 text-xs font-semibold rounded"
                   :class="getSeverityBadgeClass(incomeGapSeverity)"
@@ -238,32 +238,32 @@
 
               <div class="space-y-2 text-sm mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Annual Income</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(annualIncome) }} p.a.</span>
+                  <span class="text-neutral-500">Annual Income</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(annualIncome) }} p.a.</span>
                 </div>
-                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">75% of Income (Target)</span>
-                  <span class="font-semibold text-gray-900">{{ formatCurrency(incomeReplacementNeed) }} p.a.</span>
+                <div class="flex justify-between items-center pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">75% of Income (Target)</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(incomeReplacementNeed) }} p.a.</span>
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-gray-300">
+              <div class="pt-3 border-t border-horizon-300">
                 <div class="flex justify-between items-center">
-                  <span class="font-semibold text-gray-900">Shortfall</span>
+                  <span class="font-semibold text-horizon-500">Shortfall</span>
                   <div class="text-right">
-                    <span class="text-lg font-bold block" :class="incomeReplacementGap > 0 ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-lg font-bold block" :class="incomeReplacementGap > 0 ? 'text-raspberry-600' : 'text-spring-600'">
                       {{ formatCurrency(incomeReplacementGap) }} p.a.
                     </span>
-                    <span v-if="incomeReplacementGap > 0" class="text-xs text-gray-500">{{ formatCurrency(incomeReplacementGap / 12) }}/month</span>
+                    <span v-if="incomeReplacementGap > 0" class="text-xs text-neutral-500">{{ formatCurrency(incomeReplacementGap / 12) }}/month</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Critical Illness Card -->
-            <div class="p-4 rounded-lg bg-gray-50">
+            <div class="p-4 rounded-lg bg-eggshell-500">
               <div class="flex justify-between items-start mb-3">
-                <h4 class="font-medium text-gray-900">Critical Illness</h4>
+                <h4 class="font-medium text-horizon-500">Critical Illness</h4>
                 <span
                   class="px-2 py-1 text-xs font-semibold rounded"
                   :class="getSeverityBadgeClass(criticalIllnessGapSeverity)"
@@ -272,28 +272,28 @@
                 </span>
               </div>
 
-              <div class="mb-3 pb-3 border-b border-gray-200">
+              <div class="mb-3 pb-3 border-b border-light-gray">
                 <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">Current CI Cover (lump sum)</span>
-                  <span class="font-medium text-green-600">{{ formatCurrency(criticalIllnessCover) }}</span>
+                  <span class="text-neutral-500">Current CI Cover (lump sum)</span>
+                  <span class="font-medium text-spring-600">{{ formatCurrency(criticalIllnessCover) }}</span>
                 </div>
               </div>
 
               <div class="space-y-2 text-sm mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Annual Income</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(annualIncome) }} p.a.</span>
+                  <span class="text-neutral-500">Annual Income</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(annualIncome) }} p.a.</span>
                 </div>
-                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">2x Income (Target)</span>
-                  <span class="font-semibold text-gray-900">{{ formatCurrency(criticalIllnessNeed) }}</span>
+                <div class="flex justify-between items-center pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">2x Income (Target)</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(criticalIllnessNeed) }}</span>
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-gray-300">
+              <div class="pt-3 border-t border-horizon-300">
                 <div class="flex justify-between items-center">
-                  <span class="font-semibold text-gray-900">Shortfall</span>
-                  <span class="text-lg font-bold" :class="criticalIllnessGap > 0 ? 'text-red-600' : 'text-green-600'">
+                  <span class="font-semibold text-horizon-500">Shortfall</span>
+                  <span class="text-lg font-bold" :class="criticalIllnessGap > 0 ? 'text-raspberry-600' : 'text-spring-600'">
                     {{ formatCurrency(criticalIllnessGap) }}
                   </span>
                 </div>
@@ -301,9 +301,9 @@
             </div>
 
             <!-- Sickness Cover Card -->
-            <div class="p-4 rounded-lg bg-gray-50">
+            <div class="p-4 rounded-lg bg-eggshell-500">
               <div class="flex justify-between items-start mb-3">
-                <h4 class="font-medium text-gray-900">Sickness Cover</h4>
+                <h4 class="font-medium text-horizon-500">Sickness Cover</h4>
                 <span
                   class="px-2 py-1 text-xs font-semibold rounded"
                   :class="getSeverityBadgeClass(sicknessGapSeverity)"
@@ -312,59 +312,59 @@
                 </span>
               </div>
 
-              <div class="mb-3 pb-3 border-b border-gray-200 space-y-2">
+              <div class="mb-3 pb-3 border-b border-light-gray space-y-2">
                 <div v-if="isEmployee" class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">
+                  <span class="text-neutral-500">
                     Statutory Sick Pay (SSP)
-                    <span class="text-xs text-gray-400 block">£{{ sspWeeklyRate }}/week for up to 28 weeks</span>
+                    <span class="text-xs text-horizon-400 block">£{{ sspWeeklyRate }}/week for up to 28 weeks</span>
                   </span>
-                  <span class="font-medium text-blue-600">{{ formatCurrency(sspAnnualEquivalent) }} p.a.</span>
+                  <span class="font-medium text-violet-600">{{ formatCurrency(sspAnnualEquivalent) }} p.a.</span>
                 </div>
                 <div v-if="!isEmployee" class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">
+                  <span class="text-neutral-500">
                     Statutory Sick Pay (SSP)
-                    <span class="text-xs text-blue-500 block">Self-employed not eligible</span>
+                    <span class="text-xs text-violet-500 block">Self-employed not eligible</span>
                   </span>
-                  <span class="font-medium text-gray-400">£0</span>
+                  <span class="font-medium text-horizon-400">£0</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">Private Sickness Policies</span>
-                  <span class="font-medium text-green-600">{{ formatCurrency(sicknessCover) }} p.a.</span>
+                  <span class="text-neutral-500">Private Sickness Policies</span>
+                  <span class="font-medium text-spring-600">{{ formatCurrency(sicknessCover) }} p.a.</span>
                 </div>
-                <div class="flex justify-between items-center text-sm pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">Total Sickness Cover</span>
-                  <span class="font-semibold text-green-600">{{ formatCurrency(totalSicknessCover) }} p.a.</span>
+                <div class="flex justify-between items-center text-sm pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">Total Sickness Cover</span>
+                  <span class="font-semibold text-spring-600">{{ formatCurrency(totalSicknessCover) }} p.a.</span>
                 </div>
               </div>
 
               <div class="space-y-2 text-sm mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Annual Income</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(annualIncome) }} p.a.</span>
+                  <span class="text-neutral-500">Annual Income</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(annualIncome) }} p.a.</span>
                 </div>
-                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">50% of Income (Target)</span>
-                  <span class="font-semibold text-gray-900">{{ formatCurrency(sicknessNeed) }} p.a.</span>
+                <div class="flex justify-between items-center pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">50% of Income (Target)</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(sicknessNeed) }} p.a.</span>
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-gray-300">
+              <div class="pt-3 border-t border-horizon-300">
                 <div class="flex justify-between items-center">
-                  <span class="font-semibold text-gray-900">Shortfall</span>
+                  <span class="font-semibold text-horizon-500">Shortfall</span>
                   <div class="text-right">
-                    <span class="text-lg font-bold block" :class="sicknessGap > 0 ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-lg font-bold block" :class="sicknessGap > 0 ? 'text-raspberry-600' : 'text-spring-600'">
                       {{ formatCurrency(sicknessGap) }} p.a.
                     </span>
-                    <span v-if="sicknessGap > 0" class="text-xs text-gray-500">{{ formatCurrency(sicknessGap / 12) }}/month</span>
+                    <span v-if="sicknessGap > 0" class="text-xs text-neutral-500">{{ formatCurrency(sicknessGap / 12) }}/month</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Disability Cover Card -->
-            <div class="p-4 rounded-lg bg-gray-50">
+            <div class="p-4 rounded-lg bg-eggshell-500">
               <div class="flex justify-between items-start mb-3">
-                <h4 class="font-medium text-gray-900">Disability Cover</h4>
+                <h4 class="font-medium text-horizon-500">Disability Cover</h4>
                 <span
                   class="px-2 py-1 text-xs font-semibold rounded"
                   :class="getSeverityBadgeClass(disabilityGapSeverity)"
@@ -373,32 +373,32 @@
                 </span>
               </div>
 
-              <div class="mb-3 pb-3 border-b border-gray-200">
+              <div class="mb-3 pb-3 border-b border-light-gray">
                 <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">Current Disability Cover</span>
-                  <span class="font-medium text-green-600">{{ formatCurrency(disabilityCover) }} p.a.</span>
+                  <span class="text-neutral-500">Current Disability Cover</span>
+                  <span class="font-medium text-spring-600">{{ formatCurrency(disabilityCover) }} p.a.</span>
                 </div>
               </div>
 
               <div class="space-y-2 text-sm mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-600">Annual Income</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(annualIncome) }} p.a.</span>
+                  <span class="text-neutral-500">Annual Income</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(annualIncome) }} p.a.</span>
                 </div>
-                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span class="font-semibold text-gray-900">50% of Income (Target)</span>
-                  <span class="font-semibold text-gray-900">{{ formatCurrency(disabilityNeed) }} p.a.</span>
+                <div class="flex justify-between items-center pt-2 border-t border-light-gray">
+                  <span class="font-semibold text-horizon-500">50% of Income (Target)</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(disabilityNeed) }} p.a.</span>
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-gray-300">
+              <div class="pt-3 border-t border-horizon-300">
                 <div class="flex justify-between items-center">
-                  <span class="font-semibold text-gray-900">Shortfall</span>
+                  <span class="font-semibold text-horizon-500">Shortfall</span>
                   <div class="text-right">
-                    <span class="text-lg font-bold block" :class="disabilityGap > 0 ? 'text-red-600' : 'text-green-600'">
+                    <span class="text-lg font-bold block" :class="disabilityGap > 0 ? 'text-raspberry-600' : 'text-spring-600'">
                       {{ formatCurrency(disabilityGap) }} p.a.
                     </span>
-                    <span v-if="disabilityGap > 0" class="text-xs text-gray-500">{{ formatCurrency(disabilityGap / 12) }}/month</span>
+                    <span v-if="disabilityGap > 0" class="text-xs text-neutral-500">{{ formatCurrency(disabilityGap / 12) }}/month</span>
                   </div>
                 </div>
               </div>
@@ -408,30 +408,30 @@
       </div>
 
       <!-- Affordability Assessment -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Affordability Assessment</h3>
+      <div class="bg-white rounded-lg border border-light-gray p-6 mb-8">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Affordability Assessment</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Monthly Income</p>
-            <p class="text-xl font-bold text-gray-900">
+            <p class="text-sm text-neutral-500 mb-1">Monthly Income</p>
+            <p class="text-xl font-bold text-horizon-500">
               {{ formatCurrency(monthlyNetIncome) }}
             </p>
           </div>
           <div>
-            <p class="text-sm text-gray-600 mb-1">Current Premium Spend</p>
-            <p class="text-xl font-bold text-gray-900">
+            <p class="text-sm text-neutral-500 mb-1">Current Premium Spend</p>
+            <p class="text-xl font-bold text-horizon-500">
               {{ formatCurrency(totalPremium) }}
             </p>
           </div>
           <div>
-            <p class="text-sm text-gray-600 mb-1">% of Income</p>
+            <p class="text-sm text-neutral-500 mb-1">% of Income</p>
             <p
               class="text-xl font-bold"
               :class="premiumPercentageColour"
             >
               {{ premiumPercentage }}%
             </p>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-neutral-500 mt-1">
               Recommended: 5-10% of gross income
             </p>
           </div>
@@ -440,43 +440,43 @@
     </template>
 
     <!-- Coverage Summary -->
-    <div v-if="!hasNoPolicies" class="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Coverage Summary</h3>
+    <div v-if="!hasNoPolicies" class="bg-white rounded-lg border border-light-gray p-4 sm:p-6">
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Coverage Summary</h3>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
         <div class="text-center">
           <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-1" :class="debtCoverageColour">
             {{ debtCoveragePercent }}%
           </div>
-          <div class="text-xs sm:text-sm text-gray-600">Debt Coverage</div>
-          <div class="text-xs text-gray-400 hidden sm:block">{{ formatCurrency(debtCoverage) }} / {{ formatCurrency(totalDebt) }}</div>
+          <div class="text-xs sm:text-sm text-neutral-500">Debt Coverage</div>
+          <div class="text-xs text-horizon-400 hidden sm:block">{{ formatCurrency(debtCoverage) }} / {{ formatCurrency(totalDebt) }}</div>
         </div>
         <div class="text-center">
           <div class="text-xl sm:text-2xl lg:text-3xl font-bold mb-1" :class="incomeProtectedColour">
             {{ incomeProtectedPercent }}%
           </div>
-          <div class="text-xs sm:text-sm text-gray-600">Income Protected</div>
-          <div class="text-xs text-gray-400 hidden sm:block">{{ formatCurrency(incomeProtected) }} / {{ formatCurrency(annualIncome) }} p.a.</div>
+          <div class="text-xs sm:text-sm text-neutral-500">Income Protected</div>
+          <div class="text-xs text-horizon-400 hidden sm:block">{{ formatCurrency(incomeProtected) }} / {{ formatCurrency(annualIncome) }} p.a.</div>
         </div>
         <div class="text-center">
           <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-pink-600 mb-1">
             {{ formatCurrency(criticalIllnessCover) }}
           </div>
-          <div class="text-xs sm:text-sm text-gray-600">Critical Illness</div>
-          <div class="text-xs text-gray-400 hidden sm:block">lump sum</div>
+          <div class="text-xs sm:text-sm text-neutral-500">Critical Illness</div>
+          <div class="text-xs text-horizon-400 hidden sm:block">lump sum</div>
         </div>
         <div class="text-center">
           <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 mb-1">
             {{ formatCurrency(sicknessCover) }}
           </div>
-          <div class="text-xs sm:text-sm text-gray-600">Sickness Cover</div>
-          <div class="text-xs text-gray-400 hidden sm:block">per year</div>
+          <div class="text-xs sm:text-sm text-neutral-500">Sickness Cover</div>
+          <div class="text-xs text-horizon-400 hidden sm:block">per year</div>
         </div>
         <div class="text-center">
-          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-violet-600 mb-1">
             {{ formatCurrency(disabilityCover) }}
           </div>
-          <div class="text-xs sm:text-sm text-gray-600">Disability Cover</div>
-          <div class="text-xs text-gray-400 hidden sm:block">per year</div>
+          <div class="text-xs sm:text-sm text-neutral-500">Disability Cover</div>
+          <div class="text-xs text-horizon-400 hidden sm:block">per year</div>
         </div>
       </div>
     </div>
@@ -592,10 +592,10 @@ export default {
     },
 
     debtCoverageColour() {
-      if (this.totalDebt === 0) return 'text-green-600';
-      if (this.debtCoveragePercent >= 100) return 'text-green-600';
-      if (this.debtCoveragePercent >= 75) return 'text-blue-600';
-      return 'text-red-600';
+      if (this.totalDebt === 0) return 'text-spring-600';
+      if (this.debtCoveragePercent >= 100) return 'text-spring-600';
+      if (this.debtCoveragePercent >= 75) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     incomeProtected() {
@@ -615,11 +615,11 @@ export default {
     },
 
     incomeProtectedColour() {
-      if (this.annualIncome === 0) return 'text-gray-600';
+      if (this.annualIncome === 0) return 'text-neutral-500';
       // Target is typically 50-70% of income
-      if (this.incomeProtectedPercent >= 50) return 'text-green-600';
-      if (this.incomeProtectedPercent >= 25) return 'text-blue-600';
-      return 'text-red-600';
+      if (this.incomeProtectedPercent >= 50) return 'text-spring-600';
+      if (this.incomeProtectedPercent >= 25) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     criticalIllnessCover() {
@@ -788,9 +788,9 @@ export default {
 
     premiumPercentageColour() {
       const percentage = parseFloat(this.premiumPercentage);
-      if (percentage <= 10) return 'text-green-600';
-      if (percentage <= 15) return 'text-blue-600';
-      return 'text-red-600';
+      if (percentage <= 10) return 'text-spring-600';
+      if (percentage <= 15) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
   },
 
@@ -842,12 +842,12 @@ export default {
 
     getSeverityBadgeClass(severity) {
       const classes = {
-        none: 'bg-green-500 text-white',
-        low: 'bg-blue-500 text-white',
-        medium: 'bg-blue-500 text-white',
-        high: 'bg-red-500 text-white',
+        none: 'bg-spring-500 text-white',
+        low: 'bg-violet-500 text-white',
+        medium: 'bg-violet-500 text-white',
+        high: 'bg-raspberry-500 text-white',
       };
-      return classes[severity] || 'bg-gray-500 text-white';
+      return classes[severity] || 'bg-eggshell-5000 text-white';
     },
 
     async updateHasNoPoliciesFlag() {

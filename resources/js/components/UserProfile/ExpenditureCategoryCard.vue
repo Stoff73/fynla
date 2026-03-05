@@ -1,12 +1,12 @@
 <template>
   <div class="card p-6">
-    <h4 class="text-h5 font-semibold text-gray-900 mb-4">{{ title }}</h4>
+    <h4 class="text-h5 font-semibold text-horizon-500 mb-4">{{ title }}</h4>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <template v-for="field in fields" :key="field.key">
         <div>
           <label :for="fieldId(field.key)" class="label">{{ field.label }}</label>
           <div class="relative">
-            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
             <input
               v-if="showUserInput"
               :id="fieldId(field.key)"
@@ -30,7 +30,7 @@
               :placeholder="field.placeholder || '0'"
             />
           </div>
-          <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
+          <p v-if="field.hint" class="mt-1 text-body-sm text-neutral-500">{{ field.hint }}</p>
         </div>
       </template>
     </div>

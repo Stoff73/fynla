@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+  <div class="bg-white rounded-lg border border-light-gray p-6">
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">
       Inheritance Tax Mitigation Strategies
-      <span class="text-sm font-normal text-gray-500">(Prioritized by Effectiveness)</span>
+      <span class="text-sm font-normal text-neutral-500">(Prioritized by Effectiveness)</span>
     </h3>
 
     <!-- No Inheritance Tax liability message -->
-    <div v-if="ihtLiability === 0" class="bg-green-50 border-l-4 border-green-500 p-4">
-      <p class="text-sm text-green-700">
+    <div v-if="ihtLiability === 0" class="bg-spring-50 border-l-4 border-spring-500 p-4">
+      <p class="text-sm text-spring-700">
         ✓ No Inheritance Tax liability projected - no mitigation strategies needed
       </p>
     </div>
@@ -22,7 +22,7 @@
       >
         <!-- Strategy Header (clickable) -->
         <div
-          class="p-4 cursor-pointer hover:bg-gray-50 transition"
+          class="p-4 cursor-pointer hover:bg-eggshell-500 transition"
           @click="toggleStrategy(index)"
         >
           <div class="flex items-start justify-between">
@@ -39,31 +39,31 @@
                 <!-- Effectiveness Badge -->
                 <span
                   v-if="strategy.effectiveness"
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-savannah-100 text-horizon-500"
                 >
                   {{ strategy.effectiveness }} Effectiveness
                 </span>
               </div>
 
-              <h4 class="text-base font-semibold text-gray-900">
+              <h4 class="text-base font-semibold text-horizon-500">
                 {{ strategy.strategy_name }}
               </h4>
 
-              <p class="text-sm text-gray-600 mt-1">
+              <p class="text-sm text-neutral-500 mt-1">
                 {{ strategy.description }}
               </p>
 
               <div class="mt-2 flex items-center space-x-4 text-sm">
-                <div v-if="strategy.iht_saved" class="text-green-600 font-medium">
+                <div v-if="strategy.iht_saved" class="text-spring-600 font-medium">
                   Inheritance Tax Saved: {{ formatCurrency(strategy.iht_saved) }}
                 </div>
-                <div v-if="strategy.total_gifted" class="text-blue-600 font-medium">
+                <div v-if="strategy.total_gifted" class="text-violet-600 font-medium">
                   Total Gifted: {{ formatCurrency(strategy.total_gifted) }}
                 </div>
                 <div v-if="strategy.reduction_percentage" class="text-purple-600 font-medium">
                   {{ strategy.reduction_percentage }}% Reduction
                 </div>
-                <div v-if="strategy.implementation_complexity" class="text-gray-500">
+                <div v-if="strategy.implementation_complexity" class="text-neutral-500">
                   Complexity: {{ strategy.implementation_complexity }}
                 </div>
               </div>
@@ -71,7 +71,7 @@
 
             <!-- Expand icon -->
             <svg
-              class="h-5 w-5 text-gray-400 transition-transform ml-4 flex-shrink-0"
+              class="h-5 w-5 text-horizon-400 transition-transform ml-4 flex-shrink-0"
               :class="{ 'transform rotate-180': expandedStrategies[index] }"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -87,18 +87,18 @@
         </div>
 
         <!-- Strategy Details (expandable) -->
-        <div v-show="expandedStrategies[index]" class="px-4 pb-4 bg-gray-50">
+        <div v-show="expandedStrategies[index]" class="px-4 pb-4 bg-eggshell-500">
           <!-- Gifting Strategy - Special Layout with Link -->
           <div v-if="strategy.strategy_name === 'Gifting Strategy'" class="space-y-3">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-4">
               <div class="flex justify-between items-start mb-3">
                 <div>
-                  <h5 class="text-sm font-semibold text-blue-900 mb-1">Gifting Strategy Summary</h5>
-                  <p class="text-xs text-blue-700">Strategic lifetime gifts to reduce Inheritance Tax liability</p>
+                  <h5 class="text-sm font-semibold text-violet-900 mb-1">Gifting Strategy Summary</h5>
+                  <p class="text-xs text-violet-700">Strategic lifetime gifts to reduce Inheritance Tax liability</p>
                 </div>
                 <button
                   @click="$emit('navigate-to-gifting')"
-                  class="inline-flex items-center px-3 py-1.5 border border-blue-400 rounded-md text-xs font-medium text-blue-800 bg-white hover:bg-blue-50 transition shadow-sm"
+                  class="inline-flex items-center px-3 py-1.5 border border-violet-400 rounded-md text-xs font-medium text-violet-800 bg-white hover:bg-violet-50 transition shadow-sm"
                 >
                   <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -112,7 +112,7 @@
                 <div
                   v-for="(action, actionIndex) in strategy.specific_actions"
                   :key="actionIndex"
-                  class="text-sm text-blue-900 bg-white rounded px-3 py-2 border border-blue-100"
+                  class="text-sm text-violet-900 bg-white rounded px-3 py-2 border border-violet-100"
                 >
                   ✓ {{ action }}
                 </div>
@@ -122,8 +122,8 @@
 
           <!-- Will Strategy - Show Implementation Notice -->
           <div v-if="strategy.strategy_name && strategy.strategy_name.toLowerCase().includes('will')" class="mt-3">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p class="text-sm text-blue-800">
+            <div class="bg-violet-50 border border-violet-200 rounded-lg p-3">
+              <p class="text-sm text-violet-800">
                 <span class="font-medium">⚠️ Note:</span> Full will functionality has not been implemented.
               </p>
             </div>
@@ -131,29 +131,29 @@
 
           <!-- Other Strategies - Standard List -->
           <div v-else-if="strategy.specific_actions && Array.isArray(strategy.specific_actions)" class="mt-3">
-            <h5 class="text-sm font-medium text-gray-900 mb-2">Implementation Steps:</h5>
+            <h5 class="text-sm font-medium text-horizon-500 mb-2">Implementation Steps:</h5>
             <ul class="space-y-2">
               <li
                 v-for="(step, stepIndex) in strategy.specific_actions"
                 :key="stepIndex"
-                class="text-sm text-gray-700 flex items-start"
+                class="text-sm text-neutral-500 flex items-start"
               >
-                <span class="text-blue-600 mr-2 mt-1">→</span>
+                <span class="text-violet-600 mr-2 mt-1">→</span>
                 <span>{{ step }}</span>
               </li>
             </ul>
           </div>
 
           <!-- Cover needed (for life insurance strategy) -->
-          <div v-if="strategy.cover_needed" class="mt-3 bg-blue-50 rounded p-3">
+          <div v-if="strategy.cover_needed" class="mt-3 bg-violet-50 rounded p-3">
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p class="text-blue-600 font-medium">Cover Required</p>
-                <p class="text-lg font-bold text-blue-900">{{ formatCurrency(strategy.cover_needed) }}</p>
+                <p class="text-violet-600 font-medium">Cover Required</p>
+                <p class="text-lg font-bold text-violet-900">{{ formatCurrency(strategy.cover_needed) }}</p>
               </div>
               <div>
-                <p class="text-blue-600 font-medium">Annual Premium</p>
-                <p class="text-lg font-bold text-blue-900">{{ formatCurrency(strategy.estimated_annual_premium) }}</p>
+                <p class="text-violet-600 font-medium">Annual Premium</p>
+                <p class="text-lg font-bold text-violet-900">{{ formatCurrency(strategy.estimated_annual_premium) }}</p>
               </div>
             </div>
           </div>
@@ -172,14 +172,14 @@
     </div>
 
     <!-- Total potential savings -->
-    <div v-if="ihtLiability > 0 && enhancedStrategies.length > 0" class="mt-6 pt-6 border-t border-gray-200">
-      <div class="bg-green-50 rounded-lg p-4">
+    <div v-if="ihtLiability > 0 && enhancedStrategies.length > 0" class="mt-6 pt-6 border-t border-light-gray">
+      <div class="bg-spring-50 rounded-lg p-4">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm text-green-600 font-medium">Total Potential Inheritance Tax Savings</p>
-            <p class="text-xs text-green-500 mt-1">By implementing all recommended strategies</p>
+            <p class="text-sm text-spring-600 font-medium">Total Potential Inheritance Tax Savings</p>
+            <p class="text-xs text-spring-500 mt-1">By implementing all recommended strategies</p>
           </div>
-          <p class="text-2xl font-bold text-green-900">
+          <p class="text-2xl font-bold text-spring-900">
             {{ formatCurrency(totalSavings) }}
           </p>
         </div>
@@ -292,22 +292,22 @@ export default {
 
     getStrategyBorderClass(priority) {
       const classes = {
-        1: 'border-green-300',
-        2: 'border-blue-300',
-        3: 'border-blue-300',
-        4: 'border-gray-300',
+        1: 'border-spring-300',
+        2: 'border-violet-300',
+        3: 'border-violet-300',
+        4: 'border-horizon-300',
       };
-      return classes[priority] || 'border-gray-300';
+      return classes[priority] || 'border-horizon-300';
     },
 
     getPriorityBadgeClass(priority) {
       const classes = {
-        1: 'bg-green-100 text-green-800',
-        2: 'bg-blue-100 text-blue-800',
-        3: 'bg-blue-100 text-blue-800',
-        4: 'bg-gray-100 text-gray-800',
+        1: 'bg-spring-100 text-spring-800',
+        2: 'bg-violet-100 text-violet-800',
+        3: 'bg-violet-100 text-violet-800',
+        4: 'bg-savannah-100 text-horizon-500',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-savannah-100 text-horizon-500';
     },
   },
 };

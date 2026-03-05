@@ -3,10 +3,10 @@
     <label
       v-if="label"
       :for="inputId"
-      class="block text-body-sm font-medium text-gray-700 mb-1"
+      class="block text-body-sm font-medium text-neutral-500 mb-1"
     >
       {{ label }}
-      <span v-if="required" class="text-red-500">*</span>
+      <span v-if="required" class="text-raspberry-500">*</span>
     </label>
 
     <div>
@@ -20,7 +20,7 @@
           :disabled="disabled"
           class="input-field uppercase"
           :class="{
-            'cursor-not-allowed bg-gray-100': disabled,
+            'cursor-not-allowed bg-savannah-100': disabled,
           }"
           @input="clearError"
         />

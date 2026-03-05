@@ -308,11 +308,11 @@ export default {
 
     getAssetTypeBadgeClass(type) {
       const classes = {
-        equity: 'bg-blue-100 text-blue-800',
-        fixed_income: 'bg-green-100 text-green-800',
-        property: 'bg-blue-100 text-blue-800',
-        commodities: 'bg-purple-100 text-purple-800',
-        cash: 'bg-gray-100 text-gray-800',
+        equity: 'bg-violet-100 text-violet-800',
+        fixed_income: 'bg-spring-100 text-spring-800',
+        property: 'bg-violet-100 text-violet-800',
+        commodities: 'bg-violet-100 text-violet-800',
+        cash: 'bg-savannah-100 text-horizon-500',
         alternatives: 'bg-pink-100 text-pink-800',
         other: 'bg-slate-100 text-slate-800',
       };
@@ -370,7 +370,7 @@ export default {
 .panel-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -379,7 +379,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -390,7 +390,7 @@ export default {
 }
 
 .add-holding-btn:hover {
-  background: #2563eb;
+  @apply bg-raspberry-500;
 }
 
 .btn-icon {
@@ -404,15 +404,14 @@ export default {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
+  @apply bg-violet-50 border border-violet-500;
   border-radius: 8px;
 }
 
 .banner-icon {
   width: 20px;
   height: 20px;
-  color: #b45309;
+  @apply text-violet-600;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -424,20 +423,20 @@ export default {
 .banner-title {
   font-size: 14px;
   font-weight: 600;
-  color: #92400e;
+  @apply text-violet-800;
   margin: 0 0 4px 0;
 }
 
 .banner-text {
   font-size: 13px;
-  color: #a16207;
+  @apply text-violet-700;
   margin: 0;
 }
 
 /* Holdings Table */
 .holdings-table-container {
   overflow-x: auto;
-  border: 1px solid #e5e7eb;
+  @apply border border-light-gray;
   border-radius: 12px;
 }
 
@@ -453,17 +452,15 @@ export default {
 }
 
 .holdings-table th {
-  background: #f9fafb;
+  @apply bg-eggshell-500 text-neutral-500 border-b border-light-gray;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .holding-row {
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-light-gray;
 }
 
 .holding-row:last-child {
@@ -471,7 +468,7 @@ export default {
 }
 
 .holding-row:hover {
-  background: #f9fafb;
+  @apply bg-eggshell-500;
 }
 
 .holding-info {
@@ -482,18 +479,18 @@ export default {
 
 .holding-name {
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .holding-ticker {
   font-size: 12px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   font-weight: 500;
 }
 
 .holding-isin {
   font-size: 11px;
-  color: #9ca3af;
+  @apply text-horizon-400;
 }
 
 .type-badge {
@@ -518,61 +515,60 @@ export default {
 
 .date-text {
   font-size: 13px;
-  color: #374151;
+  @apply text-neutral-500;
 }
 
 .date-default {
   font-size: 12px;
-  color: #b45309;
-  background: #fef3c7;
+  @apply text-violet-700 bg-violet-50;
   padding: 2px 6px;
   border-radius: 4px;
   cursor: help;
 }
 
 .td-initial-value {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .td-value {
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .td-initial-allocation {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .totals-initial-value {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .totals-initial-allocation {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .allocation-text {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .totals-row {
-  background: #f9fafb;
+  @apply bg-eggshell-500;
   font-weight: 600;
 }
 
 .totals-label {
   text-align: right;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .totals-value {
-  color: #111827;
+  @apply text-horizon-500;
   font-size: 16px;
 }
 
 .totals-allocation {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 /* Mobile Cards (hidden on desktop) */
@@ -584,34 +580,33 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: white;
-  border: 2px dashed #d1d5db;
+  @apply bg-white border-2 border-dashed border-horizon-300;
   border-radius: 12px;
 }
 
 .empty-icon {
   width: 48px;
   height: 48px;
-  color: #9ca3af;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: #374151;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0 0 20px 0;
 }
 
 .add-first-btn {
   padding: 12px 24px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -622,13 +617,12 @@ export default {
 }
 
 .add-first-btn:hover {
-  background: #2563eb;
+  @apply bg-raspberry-500;
 }
 
 /* Allocation Summary */
 .allocation-summary {
-  background: white;
-  border: 1px solid #e5e7eb;
+  @apply bg-white border border-light-gray;
   border-radius: 12px;
   padding: 20px;
 }
@@ -636,7 +630,7 @@ export default {
 .summary-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -651,7 +645,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: #f9fafb;
+  @apply bg-eggshell-500;
   border-radius: 8px;
 }
 
@@ -669,7 +663,7 @@ export default {
 
 .allocation-type {
   font-size: 14px;
-  color: #374151;
+  @apply text-neutral-500;
 }
 
 .allocation-values {
@@ -681,12 +675,12 @@ export default {
 .allocation-amount {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .allocation-percent {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 @media (max-width: 768px) {
@@ -702,7 +696,7 @@ export default {
 
   .holding-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    @apply border border-light-gray;
     border-radius: 12px;
     padding: 16px;
   }
@@ -728,12 +722,12 @@ export default {
 
   .detail-label {
     font-size: 12px;
-    color: #6b7280;
+    @apply text-neutral-500;
   }
 
   .detail-value {
     font-size: 14px;
-    color: #111827;
+    @apply text-horizon-500;
   }
 
   .panel-header {

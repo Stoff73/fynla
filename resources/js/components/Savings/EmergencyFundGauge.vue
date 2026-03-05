@@ -48,7 +48,7 @@ export default {
       return {
         chart: {
           type: 'radialBar',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
         },
         plotOptions: {
           radialBar: {

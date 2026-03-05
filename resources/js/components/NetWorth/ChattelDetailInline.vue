@@ -1,7 +1,7 @@
 <template>
   <div class="chattel-detail-inline">
     <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <button @click="$emit('back')" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -11,7 +11,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
-      <p class="mt-4 text-gray-600">Loading details...</p>
+      <p class="mt-4 text-neutral-500">Loading details...</p>
     </div>
 
     <!-- Chattel Content -->
@@ -31,8 +31,8 @@
                 {{ chattel.ownership_percentage }}% Ownership
               </span>
             </div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ chattel.name }}</h1>
-            <p v-if="vehicleDescription" class="text-base sm:text-lg text-gray-600 mt-1">{{ vehicleDescription }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ chattel.name }}</h1>
+            <p v-if="vehicleDescription" class="text-base sm:text-lg text-neutral-500 mt-1">{{ vehicleDescription }}</p>
           </div>
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
@@ -56,21 +56,21 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Current Value</p>
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Current Value</p>
             <p class="text-2xl font-bold text-pink-600">{{ formatCurrency(chattel.full_value || chattel.current_value) }}</p>
             <p v-if="chattel.is_shared" class="text-sm text-pink-600 mt-1">
               Your {{ chattel.ownership_percentage }}% share: {{ formatCurrency(chattel.user_share) }}
             </p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Purchase Price</p>
-            <p class="text-2xl font-bold text-gray-900">
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Purchase Price</p>
+            <p class="text-2xl font-bold text-horizon-500">
               {{ chattel.purchase_price ? formatCurrency(chattel.purchase_price) : 'Not recorded' }}
             </p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Unrealised Gain/Loss</p>
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Unrealised Gain/Loss</p>
             <p class="text-2xl font-bold" :class="gainLossClass">
               {{ unrealisedGainLoss !== null ? formatCurrency(unrealisedGainLoss) : 'N/A' }}
             </p>
@@ -78,27 +78,27 @@
         </div>
 
         <!-- CGT Status Notice -->
-        <div v-if="chattel.is_wasting_asset" class="mt-4 bg-gray-50 rounded-lg p-4">
+        <div v-if="chattel.is_wasting_asset" class="mt-4 bg-savannah-100 rounded-lg p-4">
           <div class="flex items-center">
-            <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-5 h-5 text-spring-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm font-medium text-green-800">Wasting Asset - This item is exempt from Capital Gains Tax regardless of sale price</p>
+            <p class="text-sm font-medium text-spring-800">Wasting Asset - This item is exempt from Capital Gains Tax regardless of sale price</p>
           </div>
         </div>
-        <div v-else-if="chattel.current_value && chattel.current_value <= 6000" class="mt-4 bg-gray-50 rounded-lg p-4">
+        <div v-else-if="chattel.current_value && chattel.current_value <= 6000" class="mt-4 bg-savannah-100 rounded-lg p-4">
           <div class="flex items-center">
-            <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-5 h-5 text-violet-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
-            <p class="text-sm font-medium text-blue-800">Below £6,000 threshold - Currently exempt from Capital Gains Tax if sold at this value</p>
+            <p class="text-sm font-medium text-violet-800">Below £6,000 threshold - Currently exempt from Capital Gains Tax if sold at this value</p>
           </div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="bg-white rounded-lg shadow-md">
-        <div class="border-b border-gray-200">
+        <div class="border-b border-light-gray">
           <nav class="flex -mb-px overflow-x-auto">
             <button
               v-for="tab in tabs"
@@ -108,7 +108,7 @@
               :class="
                 activeTab === tab.id
                   ? 'border-pink-600 text-pink-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
               "
             >
               {{ tab.label }}
@@ -121,43 +121,43 @@
           <div v-if="activeTab === 'overview'" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Item Details</h3>
+                <h3 class="text-lg font-semibold text-horizon-500 mb-4">Item Details</h3>
                 <dl class="space-y-3">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Type</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatChattelType(chattel.chattel_type) }}</dd>
+                    <dt class="text-sm text-neutral-500">Type</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatChattelType(chattel.chattel_type) }}</dd>
                   </div>
                   <div v-if="chattel.description" class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Description</dt>
-                    <dd class="text-sm font-medium text-gray-900 text-right max-w-xs">{{ chattel.description }}</dd>
+                    <dt class="text-sm text-neutral-500">Description</dt>
+                    <dd class="text-sm font-medium text-horizon-500 text-right max-w-xs">{{ chattel.description }}</dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Ownership</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatOwnership(chattel) }}</dd>
+                    <dt class="text-sm text-neutral-500">Ownership</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatOwnership(chattel) }}</dd>
                   </div>
                   <div v-if="chattel.valuation_date" class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Last Valued</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(chattel.valuation_date) }}</dd>
+                    <dt class="text-sm text-neutral-500">Last Valued</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatDate(chattel.valuation_date) }}</dd>
                   </div>
                 </dl>
               </div>
 
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Acquisition</h3>
+                <h3 class="text-lg font-semibold text-horizon-500 mb-4">Acquisition</h3>
                 <dl class="space-y-3">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Purchase Price</dt>
-                    <dd class="text-sm font-medium text-gray-900">
+                    <dt class="text-sm text-neutral-500">Purchase Price</dt>
+                    <dd class="text-sm font-medium text-horizon-500">
                       {{ chattel.purchase_price ? formatCurrency(chattel.purchase_price) : 'Not recorded' }}
                     </dd>
                   </div>
                   <div v-if="chattel.purchase_date" class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Purchase Date</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(chattel.purchase_date) }}</dd>
+                    <dt class="text-sm text-neutral-500">Purchase Date</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatDate(chattel.purchase_date) }}</dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Country</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ chattel.country || 'United Kingdom' }}</dd>
+                    <dt class="text-sm text-neutral-500">Country</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ chattel.country || 'United Kingdom' }}</dd>
                   </div>
                 </dl>
               </div>
@@ -165,23 +165,23 @@
 
             <!-- Vehicle Details -->
             <div v-if="chattel.chattel_type === 'vehicle'" class="mt-6">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Vehicle Details</h3>
+              <h3 class="text-lg font-semibold text-horizon-500 mb-4">Vehicle Details</h3>
               <dl class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div v-if="chattel.make" class="bg-gray-50 rounded-lg p-3">
-                  <dt class="text-xs text-gray-500">Make</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ chattel.make }}</dd>
+                <div v-if="chattel.make" class="bg-savannah-100 rounded-lg p-3">
+                  <dt class="text-xs text-neutral-500">Make</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ chattel.make }}</dd>
                 </div>
-                <div v-if="chattel.model" class="bg-gray-50 rounded-lg p-3">
-                  <dt class="text-xs text-gray-500">Model</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ chattel.model }}</dd>
+                <div v-if="chattel.model" class="bg-savannah-100 rounded-lg p-3">
+                  <dt class="text-xs text-neutral-500">Model</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ chattel.model }}</dd>
                 </div>
-                <div v-if="chattel.year" class="bg-gray-50 rounded-lg p-3">
-                  <dt class="text-xs text-gray-500">Year</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ chattel.year }}</dd>
+                <div v-if="chattel.year" class="bg-savannah-100 rounded-lg p-3">
+                  <dt class="text-xs text-neutral-500">Year</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ chattel.year }}</dd>
                 </div>
-                <div v-if="chattel.registration_number" class="bg-gray-50 rounded-lg p-3">
-                  <dt class="text-xs text-gray-500">Registration</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ chattel.registration_number }}</dd>
+                <div v-if="chattel.registration_number" class="bg-savannah-100 rounded-lg p-3">
+                  <dt class="text-xs text-neutral-500">Registration</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ chattel.registration_number }}</dd>
                 </div>
               </dl>
             </div>
@@ -189,14 +189,14 @@
 
           <!-- CGT Calculator Tab -->
           <div v-if="activeTab === 'cgt'" class="space-y-6">
-            <div v-if="chattel.is_wasting_asset" class="bg-gray-50 rounded-lg p-6">
+            <div v-if="chattel.is_wasting_asset" class="bg-savannah-100 rounded-lg p-6">
               <div class="flex items-start">
-                <svg class="w-6 h-6 text-green-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-6 h-6 text-spring-600 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <div>
-                  <h3 class="text-lg font-semibold text-green-800">Wasting Asset - Capital Gains Tax Exempt</h3>
-                  <p class="text-sm text-green-700 mt-2">
+                  <h3 class="text-lg font-semibold text-spring-800">Wasting Asset - Capital Gains Tax Exempt</h3>
+                  <p class="text-sm text-spring-700 mt-2">
                     Vehicles are classified as wasting assets (predictable life of 50 years or less) and are completely exempt from Capital Gains Tax.
                     No Capital Gains Tax will be due regardless of the sale price.
                   </p>
@@ -205,41 +205,41 @@
             </div>
 
             <div v-else>
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Calculate Capital Gains Tax on Disposal</h3>
-              <p class="text-sm text-gray-600 mb-6">
+              <h3 class="text-lg font-semibold text-horizon-500 mb-4">Calculate Capital Gains Tax on Disposal</h3>
+              <p class="text-sm text-neutral-500 mb-6">
                 Enter the expected sale price to calculate potential Capital Gains Tax liability.
                 Capital Gains Tax applies to personal valuables sold for over £6,000, with marginal relief available for sales between £6,000 and £15,000.
               </p>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Disposal Price</label>
+                  <label class="block text-sm font-medium text-horizon-500 mb-1">Disposal Price</label>
                   <div class="relative">
-                    <span class="absolute left-3 top-2 text-gray-500">£</span>
+                    <span class="absolute left-3 top-2 text-neutral-500">£</span>
                     <input
                       v-model.number="cgtForm.disposal_price"
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      class="w-full pl-7 pr-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Disposal Costs</label>
+                  <label class="block text-sm font-medium text-horizon-500 mb-1">Disposal Costs</label>
                   <div class="relative">
-                    <span class="absolute left-3 top-2 text-gray-500">£</span>
+                    <span class="absolute left-3 top-2 text-neutral-500">£</span>
                     <input
                       v-model.number="cgtForm.disposal_costs"
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      class="w-full pl-7 pr-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                       placeholder="0.00"
                     />
                   </div>
-                  <p class="text-xs text-gray-500 mt-1">Agent fees, auction costs, etc.</p>
+                  <p class="text-xs text-neutral-500 mt-1">Agent fees, auction costs, etc.</p>
                 </div>
               </div>
 
@@ -253,66 +253,66 @@
 
               <!-- CGT Result -->
               <div v-if="cgtResult" class="mt-6">
-                <div v-if="cgtResult.is_exempt" class="bg-gray-50 rounded-lg p-6">
-                  <h4 class="text-lg font-semibold text-green-800">Capital Gains Tax Exempt</h4>
-                  <p class="text-sm text-green-700 mt-2">{{ cgtResult.exemption_reason }}</p>
-                  <p class="text-2xl font-bold text-green-600 mt-3">Capital Gains Tax Liability: £0</p>
+                <div v-if="cgtResult.is_exempt" class="bg-savannah-100 rounded-lg p-6">
+                  <h4 class="text-lg font-semibold text-spring-800">Capital Gains Tax Exempt</h4>
+                  <p class="text-sm text-spring-700 mt-2">{{ cgtResult.exemption_reason }}</p>
+                  <p class="text-2xl font-bold text-spring-600 mt-3">Capital Gains Tax Liability: £0</p>
                 </div>
 
-                <div v-else-if="cgtResult.is_loss" class="bg-gray-50 rounded-lg p-6">
-                  <h4 class="text-lg font-semibold text-blue-800">Capital Loss</h4>
+                <div v-else-if="cgtResult.is_loss" class="bg-savannah-100 rounded-lg p-6">
+                  <h4 class="text-lg font-semibold text-violet-800">Capital Loss</h4>
                   <dl class="mt-4 space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Actual Loss</dt>
-                      <dd class="text-sm font-medium text-red-600">{{ formatCurrency(cgtResult.actual_loss) }}</dd>
+                      <dt class="text-sm text-neutral-500">Actual Loss</dt>
+                      <dd class="text-sm font-medium text-raspberry-600">{{ formatCurrency(cgtResult.actual_loss) }}</dd>
                     </div>
                     <div v-if="cgtResult.loss_restriction_applied" class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Allowable Loss (restricted)</dt>
-                      <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(cgtResult.allowable_loss) }}</dd>
+                      <dt class="text-sm text-neutral-500">Allowable Loss (restricted)</dt>
+                      <dd class="text-sm font-medium text-violet-600">{{ formatCurrency(cgtResult.allowable_loss) }}</dd>
                     </div>
                   </dl>
-                  <p class="text-xs text-blue-700 mt-3">
+                  <p class="text-xs text-violet-700 mt-3">
                     Losses can be offset against other capital gains in the same tax year.
                   </p>
                 </div>
 
-                <div v-else class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <h4 class="text-lg font-semibold text-gray-800 mb-4">Capital Gains Tax Calculation Breakdown</h4>
+                <div v-else class="bg-savannah-100 rounded-lg p-6 border border-light-gray">
+                  <h4 class="text-lg font-semibold text-horizon-500 mb-4">Capital Gains Tax Calculation Breakdown</h4>
                   <dl class="space-y-3">
-                    <div class="flex justify-between pb-2 border-b border-gray-200">
-                      <dt class="text-sm text-gray-600">Disposal Price</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(cgtResult.disposal_price) }}</dd>
+                    <div class="flex justify-between pb-2 border-b border-light-gray">
+                      <dt class="text-sm text-neutral-500">Disposal Price</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(cgtResult.disposal_price) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Less: Acquisition Cost</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(cgtResult.acquisition_cost) }}</dd>
+                      <dt class="text-sm text-neutral-500">Less: Acquisition Cost</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(cgtResult.acquisition_cost) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Less: Disposal Costs</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(cgtResult.disposal_costs) }}</dd>
+                      <dt class="text-sm text-neutral-500">Less: Disposal Costs</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(cgtResult.disposal_costs) }}</dd>
                     </div>
-                    <div class="flex justify-between pt-2 border-t border-gray-200">
-                      <dt class="text-sm text-gray-600">Raw Gain</dt>
-                      <dd class="text-sm font-bold text-gray-900">{{ formatCurrency(cgtResult.raw_gain) }}</dd>
+                    <div class="flex justify-between pt-2 border-t border-light-gray">
+                      <dt class="text-sm text-neutral-500">Raw Gain</dt>
+                      <dd class="text-sm font-bold text-horizon-500">{{ formatCurrency(cgtResult.raw_gain) }}</dd>
                     </div>
-                    <div v-if="cgtResult.marginal_relief_applied" class="flex justify-between bg-gray-50 p-2 rounded">
-                      <dt class="text-sm text-blue-700">Marginal Relief Applied</dt>
-                      <dd class="text-sm font-medium text-blue-700">Max gain: {{ formatCurrency(cgtResult.marginal_relief_max_gain) }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Less: Annual Exempt Amount</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(cgtResult.annual_exempt_amount) }}</dd>
-                    </div>
-                    <div class="flex justify-between pt-2 border-t border-gray-200">
-                      <dt class="text-sm text-gray-600">Taxable Gain</dt>
-                      <dd class="text-sm font-bold text-gray-900">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
+                    <div v-if="cgtResult.marginal_relief_applied" class="flex justify-between bg-savannah-100 p-2 rounded">
+                      <dt class="text-sm text-violet-700">Marginal Relief Applied</dt>
+                      <dd class="text-sm font-medium text-violet-700">Max gain: {{ formatCurrency(cgtResult.marginal_relief_max_gain) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Capital Gains Tax Rate</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ cgtResult.cgt_rate }}%</dd>
+                      <dt class="text-sm text-neutral-500">Less: Annual Exempt Amount</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(cgtResult.annual_exempt_amount) }}</dd>
                     </div>
-                    <div class="flex justify-between pt-3 border-t-2 border-gray-300 mt-3">
-                      <dt class="text-base font-semibold text-gray-800">Capital Gains Tax Liability</dt>
+                    <div class="flex justify-between pt-2 border-t border-light-gray">
+                      <dt class="text-sm text-neutral-500">Taxable Gain</dt>
+                      <dd class="text-sm font-bold text-horizon-500">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Capital Gains Tax Rate</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ cgtResult.cgt_rate }}%</dd>
+                    </div>
+                    <div class="flex justify-between pt-3 border-t-2 border-horizon-300 mt-3">
+                      <dt class="text-base font-semibold text-horizon-500">Capital Gains Tax Liability</dt>
                       <dd class="text-xl font-bold text-pink-600">{{ formatCurrency(cgtResult.cgt_liability) }}</dd>
                     </div>
                   </dl>
@@ -323,11 +323,11 @@
 
           <!-- Notes Tab -->
           <div v-if="activeTab === 'notes'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-gray-800">Notes</h3>
-            <div v-if="chattel.notes" class="bg-gray-50 rounded-lg p-4">
-              <p class="text-gray-700 whitespace-pre-wrap">{{ chattel.notes }}</p>
+            <h3 class="text-lg font-semibold text-horizon-500">Notes</h3>
+            <div v-if="chattel.notes" class="bg-savannah-100 rounded-lg p-4">
+              <p class="text-neutral-500 whitespace-pre-wrap">{{ chattel.notes }}</p>
             </div>
-            <div v-else class="text-center py-8 text-gray-500">
+            <div v-else class="text-center py-8 text-neutral-500">
               No notes recorded for this item.
             </div>
           </div>
@@ -406,8 +406,8 @@ export default {
     },
 
     gainLossClass() {
-      if (this.unrealisedGainLoss === null) return 'text-gray-400';
-      return this.unrealisedGainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+      if (this.unrealisedGainLoss === null) return 'text-horizon-400';
+      return this.unrealisedGainLoss >= 0 ? 'text-spring-600' : 'text-raspberry-600';
     },
   },
 
@@ -521,20 +521,6 @@ export default {
   padding: 24px;
 }
 
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  @apply text-gray-500;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.back-button:hover {
-  @apply text-pink-500;
-}
-
 .badge {
   display: inline-block;
   padding: 4px 12px;
@@ -544,8 +530,8 @@ export default {
 }
 
 .badge-blue {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-pink {
@@ -554,8 +540,8 @@ export default {
 }
 
 .badge-blue {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-purple {
@@ -564,13 +550,13 @@ export default {
 }
 
 .badge-green {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .badge-gray {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .badge-indigo {

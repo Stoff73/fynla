@@ -3,23 +3,23 @@
     <!-- Key Metrics Header -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Card 1: Valuation -->
-      <div class="metric-card bg-blue-50 border border-blue-200">
+      <div class="metric-card bg-violet-50 border border-violet-200">
         <p class="metric-label">{{ latestValuation ? 'Latest Valuation' : 'Investment Amount' }}</p>
-        <p class="metric-value text-blue-600">{{ formatCurrency(displayValue) }}</p>
+        <p class="metric-value text-violet-600">{{ formatCurrency(displayValue) }}</p>
         <p v-if="account.latest_valuation_date" class="metric-sub">as of {{ formatDate(account.latest_valuation_date) }}</p>
       </div>
 
       <!-- Card 2: Return Multiple -->
-      <div class="metric-card" :class="returnMultiple && returnMultiple >= 1 ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'">
+      <div class="metric-card" :class="returnMultiple && returnMultiple >= 1 ? 'bg-spring-50 border border-spring-200' : 'bg-eggshell-500 border border-light-gray'">
         <p class="metric-label">Return Multiple</p>
         <template v-if="returnMultiple">
-          <p class="metric-value" :class="returnMultiple >= 1 ? 'text-green-600' : 'text-red-600'">{{ returnMultiple.toFixed(2) }}x</p>
-          <p class="metric-sub" :class="paperGainLoss >= 0 ? 'text-green-600' : 'text-red-600'">
+          <p class="metric-value" :class="returnMultiple >= 1 ? 'text-spring-600' : 'text-raspberry-600'">{{ returnMultiple.toFixed(2) }}x</p>
+          <p class="metric-sub" :class="paperGainLoss >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
             {{ paperGainLoss >= 0 ? '+' : '' }}{{ formatCurrency(paperGainLoss) }}
           </p>
         </template>
         <template v-else>
-          <p class="metric-value text-gray-400">--</p>
+          <p class="metric-value text-horizon-400">--</p>
           <p class="metric-sub">No valuation yet</p>
         </template>
       </div>
@@ -28,13 +28,13 @@
       <div class="metric-card" :class="taxReliefCardClass">
         <p class="metric-label">Tax Relief</p>
         <template v-if="hasTaxRelief">
-          <p class="metric-value" :class="taxReliefStatus === 'claimed' ? 'text-green-600' : 'text-blue-600'">
+          <p class="metric-value" :class="taxReliefStatus === 'claimed' ? 'text-spring-600' : 'text-violet-600'">
             {{ taxReliefLabel }}
           </p>
           <p class="metric-sub">{{ taxReliefStatusLabel }}</p>
         </template>
         <template v-else>
-          <p class="metric-value text-gray-400">None</p>
+          <p class="metric-value text-horizon-400">None</p>
           <p class="metric-sub">No tax relief</p>
         </template>
       </div>
@@ -43,12 +43,12 @@
       <div class="metric-card" :class="statusCardClass">
         <template v-if="disposalRestrictionDays">
           <p class="metric-label">Holding Period</p>
-          <p class="metric-value text-blue-600">{{ disposalRestrictionDays }}</p>
+          <p class="metric-value text-violet-600">{{ disposalRestrictionDays }}</p>
           <p class="metric-sub">days remaining</p>
         </template>
         <template v-else-if="isHoldingPeriodComplete && hasTaxRelief">
           <p class="metric-label">Holding Period</p>
-          <p class="metric-value text-green-600">Complete</p>
+          <p class="metric-value text-spring-600">Complete</p>
           <p class="metric-sub">Can sell without clawback</p>
         </template>
         <template v-else>
@@ -81,7 +81,7 @@
         </div>
         <div v-if="account.company_website" class="detail-item">
           <span class="detail-label">Website</span>
-          <a :href="formatUrl(account.company_website)" target="_blank" rel="noopener noreferrer" class="detail-value text-blue-600 hover:underline">
+          <a :href="formatUrl(account.company_website)" target="_blank" rel="noopener noreferrer" class="detail-value text-violet-600 hover:underline">
             {{ account.company_website }}
           </a>
         </div>
@@ -102,7 +102,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Investment Amount</span>
-          <span class="detail-value text-blue-600 font-bold">{{ formatCurrency(account.investment_amount) }}</span>
+          <span class="detail-value text-violet-600 font-bold">{{ formatCurrency(account.investment_amount) }}</span>
         </div>
         <div v-if="account.funding_round" class="detail-item">
           <span class="detail-label">Funding Round</span>
@@ -167,8 +167,8 @@
     </div>
 
     <!-- UK Tax Relief (if applicable) -->
-    <div v-if="hasTaxRelief" class="details-section bg-blue-50 border-blue-200">
-      <h3 class="section-title text-blue-800">UK Tax Relief</h3>
+    <div v-if="hasTaxRelief" class="details-section bg-violet-50 border-violet-200">
+      <h3 class="section-title text-violet-800">UK Tax Relief</h3>
 
       <!-- Status Banner -->
       <div v-if="taxReliefStatus === 'claimed'" class="alert alert-success mb-4">
@@ -210,25 +210,25 @@
         </div>
         <div v-if="account.relief_amount_claimed" class="detail-item">
           <span class="detail-label">Relief Claimed</span>
-          <span class="detail-value text-green-600">{{ formatCurrency(account.relief_amount_claimed) }}</span>
+          <span class="detail-value text-spring-600">{{ formatCurrency(account.relief_amount_claimed) }}</span>
         </div>
         <div v-if="account.clawback_risk" class="detail-item">
           <span class="detail-label">Clawback Risk</span>
-          <span class="detail-value text-red-600">Flagged</span>
+          <span class="detail-value text-raspberry-600">Flagged</span>
         </div>
       </div>
     </div>
 
     <!-- Business Asset Disposal Relief (if applicable) -->
-    <div v-if="hasBadrPotential" class="details-section bg-green-50 border-green-200">
-      <h3 class="section-title text-green-800">Business Asset Disposal Relief</h3>
+    <div v-if="hasBadrPotential" class="details-section bg-spring-50 border-spring-200">
+      <h3 class="section-title text-spring-800">Business Asset Disposal Relief</h3>
 
       <!-- Eligibility Status Banner -->
-      <div v-if="badrFullyQualified" class="alert bg-green-100 border border-green-300 text-green-800 mb-4">
+      <div v-if="badrFullyQualified" class="alert bg-spring-100 border border-spring-300 text-spring-800 mb-4">
         <p class="font-medium">Potentially Eligible for Business Asset Disposal Relief</p>
         <p class="text-sm">All qualifying conditions appear to be met. Tax rate: 14% (from 6 April 2025)</p>
       </div>
-      <div v-else class="alert bg-blue-100 border border-blue-300 text-blue-800 mb-4">
+      <div v-else class="alert bg-violet-100 border border-violet-300 text-violet-800 mb-4">
         <p class="font-medium">Business Asset Disposal Relief Flagged - Review Conditions</p>
         <p class="text-sm">Some qualifying conditions may not be met. Review the checklist below.</p>
       </div>
@@ -236,31 +236,31 @@
       <div class="details-grid">
         <div class="detail-item">
           <span class="detail-label">Employee/Officer Status</span>
-          <span class="detail-value" :class="account.badr_is_employee ? 'text-green-600' : 'text-gray-400'">
+          <span class="detail-value" :class="account.badr_is_employee ? 'text-spring-600' : 'text-horizon-400'">
             {{ account.badr_is_employee ? '✓ Yes' : '✗ Not confirmed' }}
           </span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Trading Company</span>
-          <span class="detail-value" :class="account.badr_trading_company ? 'text-green-600' : 'text-gray-400'">
+          <span class="detail-value" :class="account.badr_trading_company ? 'text-spring-600' : 'text-horizon-400'">
             {{ account.badr_trading_company ? '✓ Yes' : '✗ Not confirmed' }}
           </span>
         </div>
         <div class="detail-item">
           <span class="detail-label">5% Shareholding</span>
-          <span class="detail-value" :class="account.badr_5_percent_holding || account.badr_emi_shares ? 'text-green-600' : 'text-gray-400'">
+          <span class="detail-value" :class="account.badr_5_percent_holding || account.badr_emi_shares ? 'text-spring-600' : 'text-horizon-400'">
             {{ account.badr_emi_shares ? '✓ N/A (Enterprise Management Incentive)' : (account.badr_5_percent_holding ? '✓ Yes' : '✗ Not confirmed') }}
           </span>
         </div>
         <div class="detail-item">
           <span class="detail-label">2-Year Qualifying Period</span>
-          <span class="detail-value" :class="account.badr_held_2_years ? 'text-green-600' : 'text-gray-400'">
+          <span class="detail-value" :class="account.badr_held_2_years ? 'text-spring-600' : 'text-horizon-400'">
             {{ account.badr_held_2_years ? '✓ Met' : '✗ Not confirmed' }}
           </span>
         </div>
         <div v-if="account.badr_emi_shares" class="detail-item">
           <span class="detail-label">Enterprise Management Incentive Shares</span>
-          <span class="detail-value text-green-600">✓ Yes</span>
+          <span class="detail-value text-spring-600">✓ Yes</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Lifetime Allowance Used</span>
@@ -268,21 +268,21 @@
         </div>
         <div v-if="badrRemainingAllowance !== null" class="detail-item">
           <span class="detail-label">Remaining Allowance</span>
-          <span class="detail-value text-green-600">{{ formatCurrency(badrRemainingAllowance) }}</span>
+          <span class="detail-value text-spring-600">{{ formatCurrency(badrRemainingAllowance) }}</span>
         </div>
         <div v-if="estimatedBadrSaving" class="detail-item">
           <span class="detail-label">Estimated Tax Saving</span>
-          <span class="detail-value text-green-600 font-bold">{{ formatCurrency(estimatedBadrSaving) }}</span>
+          <span class="detail-value text-spring-600 font-bold">{{ formatCurrency(estimatedBadrSaving) }}</span>
         </div>
       </div>
 
       <!-- Info Box -->
-      <div class="mt-4 bg-green-100 border border-green-300 rounded-md p-3">
+      <div class="mt-4 bg-spring-100 border border-spring-300 rounded-md p-3">
         <div class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-green-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-5 h-5 text-spring-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div class="text-xs text-green-800">
+          <div class="text-xs text-spring-800">
             <p class="font-medium">About Business Asset Disposal Relief</p>
             <p class="mt-1">Business Asset Disposal Relief reduces Capital Gains Tax to 14% (from 6 April 2025) on qualifying gains up to a £1m lifetime limit. Claims must be submitted via Self Assessment by 31 January following the tax year of disposal.</p>
           </div>
@@ -300,21 +300,21 @@
         </div>
         <div v-if="latestValuation" class="detail-item">
           <span class="detail-label">Latest Valuation</span>
-          <span class="detail-value text-blue-600 font-bold">{{ formatCurrency(latestValuation) }}</span>
+          <span class="detail-value text-violet-600 font-bold">{{ formatCurrency(latestValuation) }}</span>
         </div>
         <div v-if="account.latest_valuation_date" class="detail-item">
           <span class="detail-label">Valuation Date</span>
-          <span class="detail-value text-gray-500">{{ formatDate(account.latest_valuation_date) }}</span>
+          <span class="detail-value text-neutral-500">{{ formatDate(account.latest_valuation_date) }}</span>
         </div>
         <div v-if="returnMultiple" class="detail-item">
           <span class="detail-label">Return Multiple (MOIC)</span>
-          <span class="detail-value" :class="returnMultiple >= 1 ? 'text-green-600' : 'text-red-600'">
+          <span class="detail-value" :class="returnMultiple >= 1 ? 'text-spring-600' : 'text-raspberry-600'">
             {{ returnMultiple.toFixed(2) }}x
           </span>
         </div>
         <div v-if="paperGainLoss !== null" class="detail-item">
           <span class="detail-label">Unrealised Gain/Loss</span>
-          <span class="detail-value" :class="paperGainLoss >= 0 ? 'text-green-600' : 'text-red-600'">
+          <span class="detail-value" :class="paperGainLoss >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
             {{ paperGainLoss >= 0 ? '+' : '' }}{{ formatCurrency(paperGainLoss) }}
           </span>
         </div>
@@ -326,8 +326,8 @@
     </div>
 
     <!-- Exit Details (if exited) -->
-    <div v-if="isExited" class="details-section bg-blue-50 border-blue-200">
-      <h3 class="section-title text-blue-800">Exit Details</h3>
+    <div v-if="isExited" class="details-section bg-violet-50 border-violet-200">
+      <h3 class="section-title text-violet-800">Exit Details</h3>
       <div class="details-grid">
         <div v-if="account.exit_type" class="detail-item">
           <span class="detail-label">Exit Type</span>
@@ -343,25 +343,25 @@
         </div>
         <div v-if="account.exit_fees" class="detail-item">
           <span class="detail-label">Exit Fees</span>
-          <span class="detail-value text-red-600">-{{ formatCurrency(account.exit_fees) }}</span>
+          <span class="detail-value text-raspberry-600">-{{ formatCurrency(account.exit_fees) }}</span>
         </div>
         <div v-if="account.exit_net_proceeds" class="detail-item">
           <span class="detail-label">Net Proceeds</span>
-          <span class="detail-value text-green-600 font-bold">{{ formatCurrency(account.exit_net_proceeds) }}</span>
+          <span class="detail-value text-spring-600 font-bold">{{ formatCurrency(account.exit_net_proceeds) }}</span>
         </div>
         <div v-if="exitMOIC" class="detail-item">
           <span class="detail-label">Exit MOIC</span>
-          <span class="detail-value" :class="exitMOIC >= 1 ? 'text-green-600' : 'text-red-600'">
+          <span class="detail-value" :class="exitMOIC >= 1 ? 'text-spring-600' : 'text-raspberry-600'">
             {{ exitMOIC.toFixed(2) }}x
           </span>
         </div>
         <div v-if="account.loss_relief_eligible" class="detail-item">
           <span class="detail-label">Loss Relief Eligible</span>
-          <span class="detail-value text-blue-600">Yes</span>
+          <span class="detail-value text-violet-600">Yes</span>
         </div>
         <div v-if="account.capital_loss_amount" class="detail-item">
           <span class="detail-label">Capital Loss</span>
-          <span class="detail-value text-red-600">{{ formatCurrency(account.capital_loss_amount) }}</span>
+          <span class="detail-value text-raspberry-600">{{ formatCurrency(account.capital_loss_amount) }}</span>
         </div>
       </div>
     </div>
@@ -442,9 +442,9 @@ export default {
     },
 
     taxReliefCardClass() {
-      if (!this.hasTaxRelief) return 'bg-gray-50 border border-gray-200';
-      if (this.taxReliefStatus === 'claimed') return 'bg-green-50 border border-green-200';
-      return 'bg-blue-50 border border-blue-200';
+      if (!this.hasTaxRelief) return 'bg-eggshell-500 border border-light-gray';
+      if (this.taxReliefStatus === 'claimed') return 'bg-spring-50 border border-spring-200';
+      return 'bg-violet-50 border border-violet-200';
     },
 
     disposalRestrictionDays() {
@@ -461,9 +461,9 @@ export default {
     },
 
     statusCardClass() {
-      if (this.disposalRestrictionDays) return 'bg-blue-50 border border-blue-200';
-      if (this.isHoldingPeriodComplete && this.hasTaxRelief) return 'bg-green-50 border border-green-200';
-      return 'bg-gray-50 border border-gray-200';
+      if (this.disposalRestrictionDays) return 'bg-violet-50 border border-violet-200';
+      if (this.isHoldingPeriodComplete && this.hasTaxRelief) return 'bg-spring-50 border border-spring-200';
+      return 'bg-eggshell-500 border border-light-gray';
     },
 
     companyStatusLabel() {
@@ -479,24 +479,24 @@ export default {
 
     companyStatusClass() {
       const classes = {
-        'active': 'text-green-600',
-        'distressed': 'text-blue-600',
-        'dormant': 'text-gray-600',
-        'failed': 'text-red-600',
-        'exited': 'text-blue-600',
+        'active': 'text-spring-600',
+        'distressed': 'text-violet-600',
+        'dormant': 'text-neutral-500',
+        'failed': 'text-raspberry-600',
+        'exited': 'text-violet-600',
       };
-      return classes[this.account.company_status] || 'text-green-600';
+      return classes[this.account.company_status] || 'text-spring-600';
     },
 
     companyStatusBadgeClass() {
       const classes = {
-        'active': 'bg-green-100 text-green-800',
-        'distressed': 'bg-blue-100 text-blue-800',
-        'dormant': 'bg-gray-100 text-gray-800',
-        'failed': 'bg-red-100 text-red-800',
-        'exited': 'bg-blue-100 text-blue-800',
+        'active': 'bg-spring-100 text-spring-800',
+        'distressed': 'bg-violet-100 text-violet-800',
+        'dormant': 'bg-savannah-100 text-horizon-500',
+        'failed': 'bg-raspberry-100 text-raspberry-800',
+        'exited': 'bg-violet-100 text-violet-800',
       };
-      return classes[this.account.company_status] || 'bg-green-100 text-green-800';
+      return classes[this.account.company_status] || 'bg-spring-100 text-spring-800';
     },
 
     isExited() {
@@ -646,7 +646,7 @@ export default {
 }
 
 .metric-label {
-  @apply text-sm text-gray-600 mb-1;
+  @apply text-sm text-neutral-500 mb-1;
 }
 
 .metric-value {
@@ -654,15 +654,15 @@ export default {
 }
 
 .metric-sub {
-  @apply text-xs text-gray-500 mt-1;
+  @apply text-xs text-neutral-500 mt-1;
 }
 
 .details-section {
-  @apply bg-white rounded-lg border border-gray-200 p-6;
+  @apply bg-white rounded-lg border border-light-gray p-6;
 }
 
 .section-title {
-  @apply text-lg font-semibold text-gray-900 mb-5 pb-3 border-b border-gray-200;
+  @apply text-lg font-semibold text-horizon-500 mb-5 pb-3 border-b border-light-gray;
 }
 
 .details-grid {
@@ -679,11 +679,11 @@ export default {
 }
 
 .detail-label {
-  @apply text-sm font-medium text-gray-500;
+  @apply text-sm font-medium text-neutral-500;
 }
 
 .detail-value {
-  @apply text-base font-semibold text-gray-900;
+  @apply text-base font-semibold text-horizon-500;
 }
 
 .alert {
@@ -691,11 +691,11 @@ export default {
 }
 
 .alert-success {
-  @apply bg-green-100 border border-green-300 text-green-800;
+  @apply bg-spring-100 border border-spring-300 text-spring-800;
 }
 
 .alert-warning {
-  @apply bg-blue-100 border border-blue-300 text-blue-800;
+  @apply bg-violet-100 border border-violet-300 text-violet-800;
 }
 
 @media (max-width: 640px) {

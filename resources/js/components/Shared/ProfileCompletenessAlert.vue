@@ -33,7 +33,7 @@
                 <span class="text-xs font-semibold">Profile Completeness</span>
                 <span class="text-xs font-semibold">{{ completenessData.completeness_score }}%</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="w-full bg-savannah-200 rounded-full h-2">
                 <div
                   class="h-2 rounded-full transition-all duration-300"
                   :class="progressBarColour"
@@ -156,77 +156,77 @@ export default {
     alertClasses() {
       switch (this.severity) {
         case 'critical':
-          return 'bg-red-50 border-red-400';
+          return 'bg-raspberry-50 border-raspberry-400';
         case 'warning':
-          return 'bg-blue-50 border-blue-400';
+          return 'bg-violet-50 border-violet-400';
         default:
-          return 'bg-green-50 border-green-400';
+          return 'bg-spring-50 border-spring-400';
       }
     },
 
     iconColour() {
       switch (this.severity) {
         case 'critical':
-          return 'text-red-400';
+          return 'text-raspberry-400';
         case 'warning':
-          return 'text-blue-400';
+          return 'text-violet-400';
         default:
-          return 'text-green-400';
+          return 'text-spring-400';
       }
     },
 
     titleColour() {
       switch (this.severity) {
         case 'critical':
-          return 'text-red-800';
+          return 'text-raspberry-800';
         case 'warning':
-          return 'text-blue-800';
+          return 'text-violet-800';
         default:
-          return 'text-green-800';
+          return 'text-spring-800';
       }
     },
 
     textColour() {
       switch (this.severity) {
         case 'critical':
-          return 'text-red-700';
+          return 'text-raspberry-700';
         case 'warning':
-          return 'text-blue-700';
+          return 'text-violet-700';
         default:
-          return 'text-green-700';
+          return 'text-spring-700';
       }
     },
 
     linkColour() {
       switch (this.severity) {
         case 'critical':
-          return 'text-red-700 hover:text-red-900';
+          return 'text-raspberry-700 hover:text-raspberry-900';
         case 'warning':
-          return 'text-blue-700 hover:text-blue-900';
+          return 'text-violet-700 hover:text-violet-900';
         default:
-          return 'text-green-700 hover:text-green-900';
+          return 'text-spring-700 hover:text-spring-900';
       }
     },
 
     progressBarColour() {
       switch (this.severity) {
         case 'critical':
-          return 'bg-red-600';
+          return 'bg-raspberry-600';
         case 'warning':
-          return 'bg-blue-500';
+          return 'bg-violet-500';
         default:
-          return 'bg-green-600';
+          return 'bg-spring-600';
       }
     },
 
     priorityBadgeClass() {
       switch (this.severity) {
         case 'critical':
-          return 'bg-red-200 text-red-800';
+          return 'bg-raspberry-200 text-raspberry-800';
         case 'warning':
-          return 'bg-blue-200 text-blue-800';
+          return 'bg-violet-200 text-violet-800';
         default:
-          return 'bg-green-200 text-green-800';
+          return 'bg-spring-200 text-spring-800';
       }
     },
 

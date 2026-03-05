@@ -108,12 +108,12 @@ export default {
 .filter-group label {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .filter-group select {
   padding: 8px 12px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 6px;
   font-size: 14px;
   background: white;
@@ -122,7 +122,7 @@ export default {
 
 .filter-group select:focus {
   outline: none;
-  @apply border-indigo-600;
+  @apply border-violet-600;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
@@ -143,12 +143,12 @@ export default {
 }
 
 .apply-btn {
-  @apply bg-indigo-600;
+  @apply bg-raspberry-600;
   color: white;
 }
 
 .clear-btn {
-  @apply bg-gray-200 text-gray-700;
+  @apply bg-savannah-100 text-neutral-500;
 }
 
 @media (max-width: 768px) {

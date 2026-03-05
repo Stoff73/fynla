@@ -2,8 +2,8 @@
   <div>
     <div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
-        <h2 class="text-h4 font-semibold text-gray-900">Domicile Information</h2>
-        <p class="mt-1 text-body-sm text-gray-600">
+        <h2 class="text-h4 font-semibold text-horizon-500">Domicile Information</h2>
+        <p class="mt-1 text-body-sm text-neutral-500">
           Your domicile status affects UK inheritance tax on your worldwide assets
         </p>
       </div>
@@ -49,7 +49,7 @@
 
       <!-- Country of Birth -->
       <div>
-        <label for="country_of_birth" class="block text-body-sm font-medium text-gray-700 mb-1">
+        <label for="country_of_birth" class="block text-body-sm font-medium text-neutral-500 mb-1">
           Where were you born?
         </label>
         <CountrySelector
@@ -59,19 +59,19 @@
           placeholder="Search for your country of birth..."
           @update:model-value="handleCountryChange"
         />
-        <p class="mt-1 text-body-xs text-gray-500">
+        <p class="mt-1 text-body-xs text-neutral-500">
           Your country of birth helps us determine your domicile status for tax purposes.
         </p>
       </div>
 
       <!-- UK Arrival Date (conditional - shown only for non-UK born) -->
       <div v-if="shouldShowUKArrivalDate" class="space-y-4 border-t pt-4">
-        <h4 class="text-body font-medium text-gray-900">
+        <h4 class="text-body font-medium text-horizon-500">
           UK Residency Information
         </h4>
 
         <div>
-          <label for="uk_arrival_date" class="block text-body-sm font-medium text-gray-700 mb-1">
+          <label for="uk_arrival_date" class="block text-body-sm font-medium text-neutral-500 mb-1">
             Date Moved to UK
           </label>
           <input
@@ -84,16 +84,16 @@
             :disabled="!isEditing"
             @change="calculateYearsResident"
           />
-          <p class="mt-1 text-body-xs text-gray-500">
+          <p class="mt-1 text-body-xs text-neutral-500">
             When did you first move to the UK?
           </p>
         </div>
 
-        <div v-if="yearsResident !== null" class="bg-gray-50 rounded-lg p-4">
-          <p class="text-body-sm text-gray-700">
+        <div v-if="yearsResident !== null" class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-body-sm text-neutral-500">
             <strong>Years UK Resident:</strong> {{ yearsResident }} years
           </p>
-          <p class="mt-2 text-body-sm font-medium text-gray-900">
+          <p class="mt-2 text-body-sm font-medium text-horizon-500">
             <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
           </p>
           <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-blue-700">

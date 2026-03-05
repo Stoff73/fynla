@@ -3,13 +3,13 @@
     <!-- Filters and Actions Bar -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
       <div class="flex flex-wrap items-center gap-3">
-        <label class="text-sm font-medium text-gray-700">Filter by:</label>
+        <label class="text-sm font-medium text-neutral-500">Filter by:</label>
 
         <!-- Account Filter -->
         <select
           id="account-filter"
           v-model="selectedAccountId"
-          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          class="border border-horizon-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="">All Accounts</option>
           <option v-for="account in accounts" :key="account.id" :value="account.id">
@@ -21,7 +21,7 @@
         <select
           id="asset-type-filter"
           v-model="selectedAssetType"
-          class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          class="border border-horizon-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="">All Asset Types</option>
           <option value="uk_equity">UK Equity</option>
@@ -36,7 +36,7 @@
 
       <button
         @click="$emit('add-holding')"
-        class="bg-primary-600 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-700 transition-colors"
+        class="bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors"
       >
         + Add Holding
       </button>
@@ -44,16 +44,16 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Allocation Chart and Legend (when holdings exist) -->
     <div v-else-if="filteredHoldings.length > 0" class="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Chart Card -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      <div class="bg-white border border-light-gray rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">
           Holdings Allocation
-          <span v-if="selectedAccountId || selectedAssetType" class="text-sm font-normal text-gray-600 ml-2">
+          <span v-if="selectedAccountId || selectedAssetType" class="text-sm font-normal text-neutral-500 ml-2">
             (Filtered View)
           </span>
         </h3>
@@ -70,43 +70,43 @@
       </div>
 
       <!-- Legend Card -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Holdings Breakdown</h3>
+      <div class="bg-white border border-light-gray rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Holdings Breakdown</h3>
         <div class="max-h-96 overflow-y-auto space-y-2">
-          <div v-for="(holding, index) in sortedByValue" :key="holding.id" class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+          <div v-for="(holding, index) in sortedByValue" :key="holding.id" class="flex justify-between items-center py-2 border-b border-savannah-100 last:border-b-0">
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <div
                 class="w-4 h-4 rounded-full flex-shrink-0"
                 :style="{ backgroundColor: chartColours[index % chartColours.length] }"
               ></div>
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ holding.security_name }}</p>
-                <p class="text-xs text-gray-500">{{ formatAssetType(holding.asset_type) }}</p>
+                <p class="text-sm font-medium text-horizon-500 truncate">{{ holding.security_name }}</p>
+                <p class="text-xs text-neutral-500">{{ formatAssetType(holding.asset_type) }}</p>
               </div>
             </div>
             <div class="text-right ml-4">
-              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(holding.current_value) }}</p>
-              <p class="text-xs text-gray-600">{{ getHoldingPercentage(holding) }}%</p>
+              <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(holding.current_value) }}</p>
+              <p class="text-xs text-neutral-500">{{ getHoldingPercentage(holding) }}%</p>
             </div>
           </div>
         </div>
-        <div class="pt-3 mt-3 border-t-2 border-gray-300">
+        <div class="pt-3 mt-3 border-t-2 border-horizon-300">
           <div class="flex justify-between items-center">
-            <p class="text-sm font-bold text-gray-900">Total Value:</p>
-            <p class="text-lg font-bold text-gray-900">{{ formatCurrency(totalValue) }}</p>
+            <p class="text-sm font-bold text-horizon-500">Total Value:</p>
+            <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(totalValue) }}</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Holdings Table -->
-    <div v-else-if="filteredHoldings.length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+    <div v-else-if="filteredHoldings.length > 0" class="overflow-x-auto border border-light-gray rounded-lg">
+      <table class="min-w-full divide-y divide-light-gray">
+        <thead class="bg-eggshell-500">
           <tr>
             <th
               scope="col"
-              class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('security_name')"
             >
               Security
@@ -116,7 +116,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('asset_type')"
             >
               Type
@@ -126,7 +126,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('allocation_percent')"
             >
               Allocation %
@@ -136,7 +136,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('purchase_price')"
             >
               Purchase Price
@@ -146,7 +146,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('current_price')"
             >
               Current Price
@@ -156,7 +156,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('current_value')"
             >
               Current Value
@@ -166,7 +166,7 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-savannah-100"
               @click="sortBy('return_percent')"
             >
               Return (%)
@@ -176,57 +176,57 @@
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider"
             >
               OCF (%)
             </th>
             <th
               scope="col"
-              class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider"
             >
               Actions
             </th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody class="bg-white divide-y divide-light-gray">
           <tr
             v-for="holding in sortedHoldings"
             :key="holding.id"
-            class="hover:bg-gray-50 cursor-pointer"
+            class="hover:bg-eggshell-500 cursor-pointer"
             @click="expandedRow === holding.id ? expandedRow = null : expandedRow = holding.id"
           >
             <td class="px-4 py-3 text-sm">
-              <div class="font-medium text-gray-900">{{ holding.security_name }}</div>
-              <div class="text-xs text-gray-500">{{ holding.ticker || holding.isin || 'N/A' }}</div>
+              <div class="font-medium text-horizon-500">{{ holding.security_name }}</div>
+              <div class="text-xs text-neutral-500">{{ holding.ticker || holding.isin || 'N/A' }}</div>
             </td>
-            <td class="px-4 py-3 text-sm text-gray-700">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
+            <td class="px-4 py-3 text-sm text-neutral-500">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500 text-white">
                 {{ formatAssetType(holding.asset_type) }}
               </span>
             </td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">
+            <td class="px-4 py-3 text-sm text-right text-horizon-500">
               {{ (holding.allocation_percent || 0).toFixed(2) }}%
             </td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">
+            <td class="px-4 py-3 text-sm text-right text-horizon-500">
               {{ formatCurrency(holding.purchase_price) }}
             </td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">
+            <td class="px-4 py-3 text-sm text-right text-horizon-500">
               {{ formatCurrency(holding.current_price) }}
             </td>
-            <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">
+            <td class="px-4 py-3 text-sm text-right font-medium text-horizon-500">
               {{ formatCurrency(holding.current_value) }}
             </td>
             <td class="px-4 py-3 text-sm text-right font-medium" :class="getReturnClass(holding.return_percent)">
               {{ formatReturn(holding.return_percent) }}
             </td>
-            <td class="px-4 py-3 text-sm text-right text-gray-700">
+            <td class="px-4 py-3 text-sm text-right text-neutral-500">
               {{ holding.ocf_percent ? holding.ocf_percent.toFixed(2) : '0.00' }}%
             </td>
             <td class="px-4 py-3 text-sm text-right">
               <div class="flex justify-end gap-2" @click.stop>
                 <button
                   @click="$emit('edit-holding', holding)"
-                  class="text-blue-600 hover:text-blue-800"
+                  class="text-violet-600 hover:text-violet-800"
                   title="Edit"
                 >
                   <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -235,7 +235,7 @@
                 </button>
                 <button
                   @click="$emit('delete-holding', holding)"
-                  class="text-red-600 hover:text-red-800"
+                  class="text-raspberry-600 hover:text-raspberry-800"
                   title="Delete"
                 >
                   <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -247,29 +247,29 @@
           </tr>
 
           <!-- Expanded Row Detail -->
-          <tr v-if="expandedRow" :key="`${expandedRow}-detail`" class="bg-gray-50">
+          <tr v-if="expandedRow" :key="`${expandedRow}-detail`" class="bg-eggshell-500">
             <td colspan="9" class="px-4 py-4">
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span class="text-gray-600">Purchase Date:</span>
-                  <span class="ml-2 text-gray-900 font-medium">
+                  <span class="text-neutral-500">Purchase Date:</span>
+                  <span class="ml-2 text-horizon-500 font-medium">
                     {{ formatDate(getHoldingById(expandedRow).purchase_date) }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600">ISIN:</span>
-                  <span class="ml-2 text-gray-900 font-medium">
+                  <span class="text-neutral-500">ISIN:</span>
+                  <span class="ml-2 text-horizon-500 font-medium">
                     {{ getHoldingById(expandedRow).isin || 'N/A' }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600">Cost Basis:</span>
-                  <span class="ml-2 text-gray-900 font-medium">
+                  <span class="text-neutral-500">Cost Basis:</span>
+                  <span class="ml-2 text-horizon-500 font-medium">
                     {{ formatCurrency((getHoldingById(expandedRow).quantity || 0) * (getHoldingById(expandedRow).purchase_price || 0)) }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600">Unrealised Gain/Loss:</span>
+                  <span class="text-neutral-500">Unrealised Gain/Loss:</span>
                   <span class="ml-2 font-medium" :class="getReturnClass(getHoldingById(expandedRow).return_percent)">
                     {{ formatCurrency(getUnrealisedGainLoss(getHoldingById(expandedRow))) }}
                   </span>
@@ -280,10 +280,10 @@
         </tbody>
 
         <!-- Total Row -->
-        <tfoot class="bg-gray-100 font-semibold">
+        <tfoot class="bg-savannah-100 font-semibold">
           <tr>
-            <td colspan="5" class="px-4 py-3 text-sm text-gray-900">Total</td>
-            <td class="px-4 py-3 text-sm text-right text-gray-900">{{ formatCurrency(totalValue) }}</td>
+            <td colspan="5" class="px-4 py-3 text-sm text-horizon-500">Total</td>
+            <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatCurrency(totalValue) }}</td>
             <td class="px-4 py-3 text-sm text-right" :class="getReturnClass(averageReturn)">
               {{ formatReturn(averageReturn) }}
             </td>
@@ -294,17 +294,17 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-white border border-gray-200 rounded-lg">
-      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div v-else class="text-center py-12 bg-white border border-light-gray rounded-lg">
+      <svg class="mx-auto h-12 w-12 text-horizon-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">No holdings found</h3>
-      <p class="text-gray-500 mb-4">
+      <h3 class="text-lg font-medium text-horizon-500 mb-2">No holdings found</h3>
+      <p class="text-neutral-500 mb-4">
         {{ (selectedAssetType || selectedAccountId) ? 'No holdings match the selected filters.' : 'Get started by adding your first holding.' }}
       </p>
       <button
         @click="$emit('add-holding')"
-        class="bg-primary-600 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-primary-700 transition-colors"
+        class="bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors"
       >
         + Add Holding
       </button>
@@ -422,7 +422,7 @@ export default {
       return {
         chart: {
           type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         labels: this.sortedByValue.map(h => h.security_name),
         colors: this.chartColours,
@@ -554,9 +554,9 @@ export default {
     },
 
     getReturnClass(returnPercent) {
-      if (returnPercent > 0) return 'text-green-600';
-      if (returnPercent < 0) return 'text-red-600';
-      return 'text-gray-600';
+      if (returnPercent > 0) return 'text-spring-600';
+      if (returnPercent < 0) return 'text-raspberry-600';
+      return 'text-neutral-500';
     },
 
     getHoldingById(id) {

@@ -19,7 +19,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-10 h-10 border-[3px] border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Loading edit history...</p>
     </div>
 
@@ -238,13 +238,13 @@ export default {
 .header h2 {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -254,19 +254,19 @@ export default {
   gap: 12px;
   margin-bottom: 24px;
   padding: 16px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
 }
 
 .filter-controls label {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .filter-controls select {
   padding: 8px 12px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 6px;
   font-size: 14px;
   background: white;
@@ -275,7 +275,7 @@ export default {
 
 .filter-controls select:focus {
   outline: none;
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -285,23 +285,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  @apply text-gray-500;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  @apply border-[3px] border-gray-200;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  @apply text-neutral-500;
 }
 
 .empty-state {
@@ -311,28 +295,28 @@ export default {
   justify-content: center;
   padding: 48px;
   text-align: center;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-200;
+  @apply border-2 border-dashed border-light-gray;
 }
 
 .empty-icon {
   width: 48px;
   height: 48px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
   max-width: 400px;
 }
@@ -345,7 +329,7 @@ export default {
 
 .log-item {
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -355,8 +339,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  @apply bg-gray-50;
-  @apply border-b border-gray-200;
+  @apply bg-savannah-100;
+  @apply border-b border-light-gray;
 }
 
 .log-meta {
@@ -373,18 +357,18 @@ export default {
 }
 
 .log-type.type-property {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .log-type.type-mortgage {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .log-type.type-investment {
-  @apply bg-green-100;
-  @apply text-green-700;
+  @apply bg-spring-100;
+  @apply text-spring-700;
 }
 
 .log-type.type-savings {
@@ -400,23 +384,23 @@ export default {
 }
 
 .log-action.update {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .log-action.create {
-  @apply bg-green-100;
-  @apply text-green-700;
+  @apply bg-spring-100;
+  @apply text-spring-700;
 }
 
 .log-action.delete {
-  @apply bg-red-100;
-  @apply text-red-700;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-700;
 }
 
 .log-date {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .log-body {
@@ -428,19 +412,19 @@ export default {
   gap: 24px;
   margin-bottom: 12px;
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .log-asset {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 16px;
 }
 
 .log-changes h4 {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
@@ -454,25 +438,25 @@ export default {
 .changes-table td {
   padding: 10px 12px;
   text-align: left;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .changes-table th {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .field-name {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .before-value {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .after-value {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .error-state {
@@ -480,15 +464,15 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 24px;
-  @apply bg-red-50;
+  @apply bg-raspberry-50;
   border-radius: 8px;
-  @apply text-red-700;
+  @apply text-raspberry-700;
 }
 
 .retry-button {
   margin-top: 12px;
   padding: 8px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 6px;
@@ -498,7 +482,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Mobile responsive */

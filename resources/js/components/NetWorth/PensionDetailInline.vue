@@ -1,7 +1,7 @@
 <template>
   <div class="pension-detail-inline">
     <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <button @click="$emit('back')" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -10,8 +10,8 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Loading pension details...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Loading pension details...</p>
     </div>
 
     <!-- Pension Content -->
@@ -23,14 +23,14 @@
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
               <span :class="['badge', badgeClass]">{{ pensionTypeLabel }}</span>
             </div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ pensionName }}</h1>
-            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ providerName }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ pensionName }}</h1>
+            <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ providerName }}</p>
           </div>
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
               v-preview-disabled="'edit'"
               @click="showEditModal = true"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
             >
               Edit
             </button>
@@ -48,7 +48,7 @@
 
       <!-- Tabs -->
       <div class="bg-white rounded-lg shadow-md">
-        <div class="border-b border-gray-200">
+        <div class="border-b border-light-gray">
           <nav class="flex -mb-px overflow-x-auto">
             <button
               v-for="tab in tabs"
@@ -57,8 +57,8 @@
               class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap"
               :class="
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-violet-600 text-violet-600'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
               "
             >
               {{ tab.label }}
@@ -73,103 +73,103 @@
               <!-- DC Pension Details -->
               <template v-if="pensionType === 'dc'">
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Pension Details</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Pension Details</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Scheme Name:</dt>
-                      <dd class="text-sm font-medium text-gray-900 text-right">{{ pension.scheme_name || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Scheme Name:</dt>
+                      <dd class="text-sm font-medium text-horizon-500 text-right">{{ pension.scheme_name || 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Provider:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.provider || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Provider:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.provider || 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Pension Type:</dt>
-                      <dd class="text-sm font-medium text-gray-900 capitalize">{{ pension.pension_type || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Pension Type:</dt>
+                      <dd class="text-sm font-medium text-horizon-500 capitalize">{{ pension.pension_type || 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Policy Number:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.policy_number || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Policy Number:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.policy_number || 'N/A' }}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Fund Value</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Fund Value</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Current Fund Value:</dt>
-                      <dd class="text-sm font-medium text-blue-600 font-semibold">{{ formatCurrency(pension.current_fund_value) }}</dd>
+                      <dt class="text-sm text-neutral-500">Current Fund Value:</dt>
+                      <dd class="text-sm font-medium text-violet-600 font-semibold">{{ formatCurrency(pension.current_fund_value) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Valuation Date:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatDate(pension.valuation_date) || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Valuation Date:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatDate(pension.valuation_date) || 'N/A' }}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Contributions</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Contributions</h3>
                   <dl class="space-y-2">
                     <div v-if="pension.employee_contribution_percent" class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Employee Rate:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.employee_contribution_percent }}% ({{ formatCurrency(monthlyEmployeeContribution) }}/mo)</dd>
+                      <dt class="text-sm text-neutral-500">Employee Rate:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.employee_contribution_percent }}% ({{ formatCurrency(monthlyEmployeeContribution) }}/mo)</dd>
                     </div>
                     <div v-if="pension.employer_contribution_percent" class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Employer Rate:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.employer_contribution_percent }}% ({{ formatCurrency(monthlyEmployerContribution) }}/mo)</dd>
+                      <dt class="text-sm text-neutral-500">Employer Rate:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.employer_contribution_percent }}% ({{ formatCurrency(monthlyEmployerContribution) }}/mo)</dd>
                     </div>
                     <div v-if="pension.employer_matching_limit" class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Employer Matching:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.employer_matching_limit == 100 ? 'Full matching' : 'Up to ' + pension.employer_matching_limit + '%' }}</dd>
+                      <dt class="text-sm text-neutral-500">Employer Matching:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.employer_matching_limit == 100 ? 'Full matching' : 'Up to ' + pension.employer_matching_limit + '%' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Total Monthly:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(totalMonthlyContribution) }}</dd>
+                      <dt class="text-sm text-neutral-500">Total Monthly:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(totalMonthlyContribution) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Annual Contribution:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(annualContribution) }}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Retirement</h3>
-                  <dl class="space-y-2">
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ userRetirementAge }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Growth Rate Assumption:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.growth_rate ? (pension.growth_rate * 100).toFixed(1) + '%' : 'N/A' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Beneficiary:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.beneficiary_name || 'Not specified' }}</dd>
+                      <dt class="text-sm text-neutral-500">Annual Contribution:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(annualContribution) }}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Fees</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Retirement</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Platform Fee:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ platformFeePercent.toFixed(2) }}%</dd>
+                      <dt class="text-sm text-neutral-500">Retirement Age:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ userRetirementAge }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Growth Rate Assumption:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.growth_rate ? (pension.growth_rate * 100).toFixed(1) + '%' : 'N/A' }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Beneficiary:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.beneficiary_name || 'Not specified' }}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Fees</h3>
+                  <dl class="space-y-2">
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Platform Fee:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ platformFeePercent.toFixed(2) }}%</dd>
                     </div>
                     <div v-if="hasHoldings" class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Avg Fund Fee (OCF):</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ weightedAverageOCF.toFixed(2) }}%</dd>
+                      <dt class="text-sm text-neutral-500">Avg Fund Fee (OCF):</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ weightedAverageOCF.toFixed(2) }}%</dd>
                     </div>
-                    <div class="flex justify-between border-t border-gray-100 pt-2 mt-2">
-                      <dt class="text-sm text-gray-600 font-medium">Total Annual Cost:</dt>
-                      <dd class="text-sm font-semibold text-gray-900">{{ totalFeePercent.toFixed(2) }}%</dd>
+                    <div class="flex justify-between border-t border-light-gray pt-2 mt-2">
+                      <dt class="text-sm text-neutral-500 font-medium">Total Annual Cost:</dt>
+                      <dd class="text-sm font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Annual Fee Impact:</dt>
-                      <dd class="text-sm font-medium text-red-600">{{ formatCurrency(annualFeeCost) }}/year</dd>
+                      <dt class="text-sm text-neutral-500">Annual Fee Impact:</dt>
+                      <dd class="text-sm font-medium text-raspberry-600">{{ formatCurrency(annualFeeCost) }}/year</dd>
                     </div>
                   </dl>
                 </div>
@@ -178,69 +178,69 @@
               <!-- DB Pension Details -->
               <template v-else-if="pensionType === 'db'">
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Scheme Details</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Scheme Details</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Scheme Name:</dt>
-                      <dd class="text-sm font-medium text-gray-900 text-right">{{ pension.scheme_name || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Scheme Name:</dt>
+                      <dd class="text-sm font-medium text-horizon-500 text-right">{{ pension.scheme_name || 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Employer:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.employer || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Employer:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.employer || 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Scheme Type:</dt>
-                      <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatDBSchemeType(pension.scheme_type) }}</dd>
+                      <dt class="text-sm text-neutral-500">Scheme Type:</dt>
+                      <dd class="text-sm font-medium text-horizon-500 capitalize">{{ formatDBSchemeType(pension.scheme_type) }}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Benefits</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Benefits</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Annual Pension:</dt>
+                      <dt class="text-sm text-neutral-500">Annual Pension:</dt>
                       <dd class="text-sm font-medium text-purple-600 font-semibold">{{ formatCurrency(pension.accrued_annual_pension) }}/yr</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Lump Sum Entitlement:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(pension.lump_sum_entitlement || 0) }}</dd>
+                      <dt class="text-sm text-neutral-500">Lump Sum Entitlement:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(pension.lump_sum_entitlement || 0) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Revaluation Rate:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.revaluation_rate ? (pension.revaluation_rate * 100).toFixed(1) + '%' : 'N/A' }}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Payment Details</h3>
-                  <dl class="space-y-2">
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Normal Retirement Age:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.normal_retirement_age || 65 }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Payment Start Age:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.payment_start_age || pension.normal_retirement_age || 65 }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Spouse Pension:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.spouse_pension_percentage ? pension.spouse_pension_percentage + '%' : 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Revaluation Rate:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.revaluation_rate ? (pension.revaluation_rate * 100).toFixed(1) + '%' : 'N/A' }}</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">Service Details</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Payment Details</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Date Joined:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatDate(pension.date_joined) || 'N/A' }}</dd>
+                      <dt class="text-sm text-neutral-500">Normal Retirement Age:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.normal_retirement_age || 65 }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Date Left:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatDate(pension.date_left) || 'Current' }}</dd>
+                      <dt class="text-sm text-neutral-500">Payment Start Age:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.payment_start_age || pension.normal_retirement_age || 65 }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Spouse Pension:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.spouse_pension_percentage ? pension.spouse_pension_percentage + '%' : 'N/A' }}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">Service Details</h3>
+                  <dl class="space-y-2">
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Date Joined:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatDate(pension.date_joined) || 'N/A' }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Date Left:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatDate(pension.date_left) || 'Current' }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -249,33 +249,33 @@
               <!-- State Pension Details -->
               <template v-else-if="pensionType === 'state'">
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">State Pension Details</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">State Pension Details</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Forecast Annual Amount:</dt>
-                      <dd class="text-sm font-medium text-green-600 font-semibold">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}/yr</dd>
+                      <dt class="text-sm text-neutral-500">Forecast Annual Amount:</dt>
+                      <dd class="text-sm font-medium text-spring-600 font-semibold">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}/yr</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Weekly Amount:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ formatCurrency((pension.state_pension_forecast_annual || 0) / 52) }}/wk</dd>
+                      <dt class="text-sm text-neutral-500">Weekly Amount:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency((pension.state_pension_forecast_annual || 0) / 52) }}/wk</dd>
                     </div>
                   </dl>
                 </div>
 
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 mb-3">National Insurance Record</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mb-3">National Insurance Record</h3>
                   <dl class="space-y-2">
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">National Insurance Years Completed:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.ni_years_completed || 0 }}</dd>
+                      <dt class="text-sm text-neutral-500">National Insurance Years Completed:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.ni_years_completed || 0 }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">Years to Full Pension:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ Math.max(0, 35 - (pension.ni_years_completed || 0)) }}</dd>
+                      <dt class="text-sm text-neutral-500">Years to Full Pension:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ Math.max(0, 35 - (pension.ni_years_completed || 0)) }}</dd>
                     </div>
                     <div class="flex justify-between">
-                      <dt class="text-sm text-gray-600">State Pension Age:</dt>
-                      <dd class="text-sm font-medium text-gray-900">{{ pension.state_pension_age || 67 }}</dd>
+                      <dt class="text-sm text-neutral-500">State Pension Age:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.state_pension_age || 67 }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -284,51 +284,51 @@
 
             <!-- Notes -->
             <div v-if="pension.notes" class="mt-6">
-              <h3 class="text-lg font-semibold text-gray-800 mb-3">Notes</h3>
-              <p class="text-gray-700 whitespace-pre-wrap">{{ pension.notes }}</p>
+              <h3 class="text-lg font-semibold text-horizon-500 mb-3">Notes</h3>
+              <p class="text-neutral-500 whitespace-pre-wrap">{{ pension.notes }}</p>
             </div>
           </div>
 
           <!-- Projections Tab (DC pensions only) -->
           <div v-show="activeTab === 'projections'" class="projections-tab">
             <div v-if="projectionLoading" class="text-center py-12">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p class="mt-4 text-gray-600">Loading projections...</p>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+              <p class="mt-4 text-neutral-500">Loading projections...</p>
             </div>
             <div v-else-if="projectionData">
               <!-- Summary Cards -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-gray-50 rounded-lg p-4">
-                  <p class="text-sm text-gray-600">Current Value</p>
-                  <p class="text-xl font-bold text-blue-600">{{ formatCurrency(projectionData.current_value) }}</p>
+                <div class="bg-savannah-100 rounded-lg p-4">
+                  <p class="text-sm text-neutral-500">Current Value</p>
+                  <p class="text-xl font-bold text-violet-600">{{ formatCurrency(projectionData.current_value) }}</p>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4">
-                  <p class="text-sm text-gray-600">80% Probability at Retirement</p>
-                  <p class="text-xl font-bold text-green-600">{{ formatCurrency(projectionData.percentile_20_at_retirement) }}</p>
+                <div class="bg-savannah-100 rounded-lg p-4">
+                  <p class="text-sm text-neutral-500">80% Probability at Retirement</p>
+                  <p class="text-xl font-bold text-spring-600">{{ formatCurrency(projectionData.percentile_20_at_retirement) }}</p>
                 </div>
               </div>
 
               <!-- Monte Carlo Chart -->
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Projected Pension Pot Growth</h3>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h3 class="text-lg font-semibold text-horizon-500 mb-4">Projected Pension Pot Growth</h3>
                 <PensionPotProjectionChart :data="projectionData" />
               </div>
 
               <!-- Assumptions -->
-              <div class="mt-4 text-sm text-gray-500">
+              <div class="mt-4 text-sm text-neutral-500">
                 <p>Based on {{ projectionData.years_to_retirement }} years to retirement age {{ projectionData.retirement_age }},
                 {{ projectionData.risk_level }} risk profile ({{ projectionData.expected_return }}% expected return),
                 and {{ formatCurrency(projectionData.monthly_contribution) }}/month contributions.</p>
               </div>
             </div>
-            <div v-else class="text-center py-12 text-gray-500">
+            <div v-else class="text-center py-12 text-neutral-500">
               <p>Unable to load projection data</p>
             </div>
           </div>
 
           <!-- Documents Tab (placeholder) -->
-          <div v-show="activeTab === 'documents'" class="text-center py-12 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
+          <div v-show="activeTab === 'documents'" class="text-center py-12 text-neutral-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-horizon-400">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
             <p class="text-lg font-medium">Documents Coming Soon</p>
@@ -642,35 +642,6 @@ export default {
   animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  @apply border border-gray-200;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  @apply bg-gray-100;
-  @apply border-gray-300;
-}
-
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -680,7 +651,7 @@ export default {
 }
 
 .badge-dc {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
@@ -690,7 +661,7 @@ export default {
 }
 
 .badge-state {
-  @apply bg-green-500;
+  @apply bg-spring-500;
   color: white;
 }
 </style>

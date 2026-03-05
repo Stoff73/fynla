@@ -14,7 +14,7 @@
                 <!-- Close button -->
                 <button
                     @click="handleClose"
-                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                    class="absolute top-4 right-4 text-horizon-400 hover:text-neutral-500 transition-colors"
                     title="Cancel verification"
                 >
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,13 +24,13 @@
 
                 <!-- Header -->
                 <div class="text-center mb-6">
-                    <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto w-16 h-16 bg-raspberry-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900">Enter Verification Code</h3>
-                    <p class="mt-2 text-sm text-gray-600">
+                    <h3 class="text-xl font-semibold text-horizon-500">Enter Verification Code</h3>
+                    <p class="mt-2 text-sm text-neutral-500">
                         We sent a code to <span class="font-medium">{{ userEmail }}</span>
                     </p>
                 </div>
@@ -45,10 +45,10 @@
                         maxlength="1"
                         inputmode="numeric"
                         pattern="[0-9]*"
-                        class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                        class="w-12 h-14 text-center text-2xl font-bold border-2 border-horizon-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-200 outline-none transition-all"
                         :class="{
-                            'border-red-500 bg-red-50': error,
-                            'border-indigo-500': codeDigits[index] && !error
+                            'border-raspberry-500 bg-raspberry-50': error,
+                            'border-violet-500': codeDigits[index] && !error
                         }"
                         :value="codeDigits[index]"
                         @input="handleInput($event, index)"
@@ -59,8 +59,8 @@
                 </div>
 
                 <!-- Error Message -->
-                <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p class="text-sm text-red-600 text-center">{{ error }}</p>
+                <div v-if="error" class="mb-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+                    <p class="text-sm text-raspberry-500 text-center">{{ error }}</p>
                 </div>
 
                 <!-- Resend Section -->
@@ -68,7 +68,7 @@
                     <button
                         @click="handleResend"
                         :disabled="resending"
-                        class="text-sm text-indigo-600 hover:text-indigo-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                        class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium disabled:text-horizon-400 disabled:cursor-not-allowed transition-colors"
                     >
                         <span v-if="resending">Sending...</span>
                         <span v-else>Resend Code</span>
@@ -76,15 +76,15 @@
                 </div>
 
                 <!-- Help Text -->
-                <div class="text-center text-xs text-gray-500">
+                <div class="text-center text-xs text-neutral-500">
                     <p>Didn't receive the email? Check your spam folder.</p>
                 </div>
 
                 <!-- Loading Overlay -->
                 <div v-if="verifying" class="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
                     <div class="flex flex-col items-center">
-                        <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                        <p class="mt-3 text-sm text-gray-600">Verifying...</p>
+                        <div class="w-10 h-10 border-4 border-violet-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+                        <p class="mt-3 text-sm text-neutral-500">Verifying...</p>
                     </div>
                 </div>
             </div>

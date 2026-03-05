@@ -2,11 +2,11 @@
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
-      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <h3 class="text-xl font-semibold text-gray-900">
+      <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between">
+        <h3 class="text-xl font-semibold text-horizon-500">
           {{ isEdit ? 'Edit' : 'Add' }} Defined Benefit Pension
         </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <button @click="$emit('close')" class="text-horizon-400 hover:text-neutral-500 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -14,13 +14,13 @@
       </div>
 
       <!-- Important Warning -->
-      <div class="mx-6 mt-6 bg-gray-50 rounded-lg p-4 flex items-start">
-        <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="mx-6 mt-6 bg-savannah-100 rounded-lg p-4 flex items-start">
+        <svg class="w-6 h-6 text-violet-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
         <div>
-          <p class="text-sm font-bold text-blue-900">Important Notice About Defined Benefit Pensions</p>
-          <p class="text-sm text-blue-800 mt-2">
+          <p class="text-sm font-bold text-violet-900">Important Notice About Defined Benefit Pensions</p>
+          <p class="text-sm text-violet-800 mt-2">
             Defined Benefit pension information is captured for <strong>income projection only</strong>.
             This system does <strong>not provide Defined Benefit to Defined Contribution transfer advice</strong>.
             Defined Benefit pension transfers are complex and may not be suitable.
@@ -34,14 +34,14 @@
         <div class="space-y-6">
           <!-- Employer Name -->
           <div>
-            <label for="employer_name" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="employer_name" class="block text-sm font-medium text-neutral-500 mb-2">
               Employer / Scheme Name
             </label>
             <input
               id="employer_name"
               v-model="formData.employer_name"
               type="text"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., NHS Pension Scheme"
             />
           </div>
@@ -49,13 +49,13 @@
           <!-- Scheme Status and Type -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="scheme_status" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="scheme_status" class="block text-sm font-medium text-neutral-500 mb-2">
                 Scheme Status
               </label>
               <select
                 id="scheme_status"
                 v-model="formData.scheme_status"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select status</option>
                 <option value="Active">Active</option>
@@ -64,13 +64,13 @@
               </select>
             </div>
             <div>
-              <label for="scheme_type" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="scheme_type" class="block text-sm font-medium text-neutral-500 mb-2">
                 Scheme Type
               </label>
               <select
                 id="scheme_type"
                 v-model="formData.scheme_type"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="final_salary">Final Salary</option>
                 <option value="career_average">Career Average (CARE)</option>
@@ -80,7 +80,7 @@
 
           <!-- Annual Income -->
           <div>
-            <label for="annual_income" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="annual_income" class="block text-sm font-medium text-neutral-500 mb-2">
               Annual Income at Retirement (£)
             </label>
             <input
@@ -89,16 +89,16 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., 15000.00"
             />
-            <p class="text-xs text-gray-500 mt-1">This should be the projected annual pension at your normal retirement age</p>
+            <p class="text-xs text-neutral-500 mt-1">This should be the projected annual pension at your normal retirement age</p>
           </div>
 
           <!-- Service Years and Final/Pensionable Salary -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="service_years" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="service_years" class="block text-sm font-medium text-neutral-500 mb-2">
                 Service Years
               </label>
               <input
@@ -107,12 +107,12 @@
                 type="number"
                 step="0.1"
                 min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 20.5"
               />
             </div>
             <div>
-              <label for="final_salary" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="final_salary" class="block text-sm font-medium text-neutral-500 mb-2">
                 Pensionable Salary (£)
               </label>
               <input
@@ -121,7 +121,7 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 50000.00"
               />
             </div>
@@ -129,7 +129,7 @@
 
           <!-- Accrual Rate -->
           <div>
-            <label for="accrual_rate" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="accrual_rate" class="block text-sm font-medium text-neutral-500 mb-2">
               Accrual Rate (1/X)
             </label>
             <input
@@ -137,15 +137,15 @@
               v-model.number="formData.accrual_rate"
               type="number"
               min="0"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., 60 (for 1/60th)"
             />
-            <p class="text-xs text-gray-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
+            <p class="text-xs text-neutral-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
           </div>
 
           <!-- Revaluation Rate -->
           <div>
-            <label for="revaluation_rate" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="revaluation_rate" class="block text-sm font-medium text-neutral-500 mb-2">
               Revaluation Rate (% p.a.)
             </label>
             <input
@@ -155,15 +155,15 @@
               step="0.01"
               min="0"
               max="10"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., 2.50"
             />
-            <p class="text-xs text-gray-500 mt-1">For CARE schemes - typical: CPI, CPI+1.5%, or fixed %</p>
+            <p class="text-xs text-neutral-500 mt-1">For CARE schemes - typical: CPI, CPI+1.5%, or fixed %</p>
           </div>
 
           <!-- PCLS Available -->
           <div>
-            <label for="pcls_available" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="pcls_available" class="block text-sm font-medium text-neutral-500 mb-2">
               Pension Commencement Lump Sum (PCLS) Available (£)
             </label>
             <input
@@ -172,39 +172,39 @@
               type="number"
               step="0.01"
               min="0"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="e.g., 50000.00"
             />
-            <p class="text-xs text-gray-500 mt-1">Tax-free lump sum available at retirement (if applicable)</p>
+            <p class="text-xs text-neutral-500 mt-1">Tax-free lump sum available at retirement (if applicable)</p>
           </div>
 
           <!-- Notes -->
           <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="notes" class="block text-sm font-medium text-neutral-500 mb-2">
               Notes
             </label>
             <textarea
               id="notes"
               v-model="formData.notes"
               rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               placeholder="Any additional notes about this pension..."
             ></textarea>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+        <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-light-gray">
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+            class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors duration-200"
           >
             {{ isEdit ? 'Update' : 'Add' }} Pension
           </button>
@@ -313,16 +313,6 @@ export default {
 </script>
 
 <style scoped>
-/* Modal animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .fixed {
   animation: fadeIn 0.3s ease-out;
 }
@@ -333,7 +323,7 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {

@@ -226,7 +226,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -238,10 +238,10 @@ export default {
 
 .filter-select {
   padding: 8px 12px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 8px;
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   background: white;
   cursor: pointer;
 }
@@ -293,52 +293,52 @@ export default {
 
 .loading-state p,
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .retry-button {
   margin-top: 16px;
   padding: 8px 16px;
-  @apply bg-gray-100;
-  @apply text-gray-700;
-  @apply border border-gray-300;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
+  @apply border border-horizon-300;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .retry-button:hover {
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 8px;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
   max-width: 400px;

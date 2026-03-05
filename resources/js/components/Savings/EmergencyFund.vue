@@ -2,15 +2,15 @@
   <div class="emergency-fund">
     <!-- Emergency Fund Gauge -->
     <div class="mb-8">
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4 text-center">
           Emergency Fund Status
         </h3>
         <EmergencyFundGauge
           :runway-months="emergencyFundRunway"
           :target-months="targetMonths"
         />
-        <p class="text-center text-sm text-gray-600 mt-4">
+        <p class="text-center text-sm text-neutral-500 mt-4">
           {{ statusMessage }}
         </p>
       </div>
@@ -19,13 +19,13 @@
     <!-- Monthly Expenditure & Target -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <!-- Monthly Expenditure Breakdown -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Monthly Expenditure</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Monthly Expenditure</h3>
           <button
             v-if="!hasExpenditure"
             @click="navigateToAddExpenditure"
-            class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
+            class="px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
           >
             Add Expenditure
           </button>
@@ -34,36 +34,36 @@
         <!-- Show message if no expenditure data -->
         <div v-if="!hasExpenditure" class="text-center py-8">
           <div class="mb-4">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
           </div>
-          <p class="text-gray-600 mb-2">No monthly expenditure data</p>
-          <p class="text-sm text-gray-500">Add your monthly expenditure to calculate emergency fund runway</p>
+          <p class="text-neutral-500 mb-2">No monthly expenditure data</p>
+          <p class="text-sm text-neutral-500">Add your monthly expenditure to calculate emergency fund runway</p>
         </div>
 
         <!-- Show total expenditure if data exists -->
         <div v-else class="text-center py-8">
-          <p class="text-sm text-gray-600 mb-2">Total Monthly Expenditure</p>
-          <p class="text-3xl font-bold text-gray-900">{{ formatCurrency(monthlyTotal) }}</p>
-          <p class="text-sm text-gray-500 mt-2">
-            <router-link to="/profile" class="text-blue-600 hover:text-blue-700">Update in User Profile</router-link>
+          <p class="text-sm text-neutral-500 mb-2">Total Monthly Expenditure</p>
+          <p class="text-3xl font-bold text-horizon-500">{{ formatCurrency(monthlyTotal) }}</p>
+          <p class="text-sm text-neutral-500 mt-2">
+            <router-link to="/profile" class="text-violet-600 hover:text-violet-700">Update in User Profile</router-link>
           </p>
         </div>
       </div>
 
       <!-- Target vs Actual -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Target vs Actual</h3>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Target vs Actual</h3>
         <div class="space-y-4">
           <div>
             <div class="flex justify-between mb-1">
-              <span class="text-sm text-gray-600">Target Fund</span>
+              <span class="text-sm text-neutral-500">Target Fund</span>
               <span class="text-sm font-semibold">{{ formatCurrency(targetAmount) }}</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="w-full bg-savannah-200 rounded-full h-2">
               <div
-                class="h-2 rounded-full bg-primary-600"
+                class="h-2 rounded-full bg-raspberry-500"
                 style="width: 100%"
               ></div>
             </div>
@@ -71,10 +71,10 @@
 
           <div>
             <div class="flex justify-between mb-1">
-              <span class="text-sm text-gray-600">Current Fund</span>
+              <span class="text-sm text-neutral-500">Current Fund</span>
               <span class="text-sm font-semibold">{{ formatCurrency(currentAmount) }}</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="w-full bg-savannah-200 rounded-full h-2">
               <div
                 class="h-2 rounded-full transition-all"
                 :class="currentAmountBarColour"
@@ -83,8 +83,8 @@
             </div>
           </div>
 
-          <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm font-medium text-blue-900">
+          <div class="mt-6 p-4 bg-eggshell-500 rounded-lg">
+            <p class="text-sm font-medium text-violet-900">
               <span v-if="shortfall > 0">
                 Top up needed: {{ formatCurrency(shortfall) }}
               </span>
@@ -98,10 +98,10 @@
     </div>
 
     <!-- Adjust Target -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Adjust Target</h3>
+    <div class="bg-white rounded-lg border border-light-gray p-6">
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Adjust Target</h3>
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Target Months of Expenses
         </label>
         <input
@@ -112,14 +112,14 @@
           step="1"
           class="w-full"
         />
-        <div class="flex justify-between text-sm text-gray-600 mt-1">
+        <div class="flex justify-between text-sm text-neutral-500 mt-1">
           <span>3 months</span>
-          <span class="font-semibold text-gray-900">{{ targetMonths }} months</span>
+          <span class="font-semibold text-horizon-500">{{ targetMonths }} months</span>
           <span>12 months</span>
         </div>
       </div>
-      <div class="p-4 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-700">
+      <div class="p-4 bg-eggshell-500 rounded-lg">
+        <p class="text-sm text-neutral-500">
           With {{ targetMonths }} months of expenses, your target emergency fund would be
           <span class="font-semibold">{{ formatCurrency(targetAmount) }}</span>
         </p>
@@ -199,9 +199,9 @@ export default {
     },
 
     currentAmountBarColour() {
-      if (this.currentAmountPercentage >= 100) return 'bg-green-600';
-      if (this.currentAmountPercentage >= 50) return 'bg-primary-600';
-      return 'bg-red-600';
+      if (this.currentAmountPercentage >= 100) return 'bg-spring-600';
+      if (this.currentAmountPercentage >= 50) return 'bg-raspberry-500';
+      return 'bg-raspberry-600';
     },
 
     hasExpenditure() {
@@ -231,22 +231,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Range slider styling */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 3px;
-  @apply bg-gray-200;
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-[18px] h-[18px] rounded-full bg-primary-500 cursor-pointer;
-}
-
-input[type="range"]::-moz-range-thumb {
-  @apply w-[18px] h-[18px] rounded-full bg-primary-500 cursor-pointer border-none;
-}
-</style>

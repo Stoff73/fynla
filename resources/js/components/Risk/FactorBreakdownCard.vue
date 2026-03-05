@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+  <div class="bg-white rounded-lg border border-light-gray p-4 hover:shadow-md transition-shadow">
     <div class="flex items-start gap-3">
       <!-- Icon -->
       <div
@@ -46,8 +46,8 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-2">
           <div>
-            <h4 class="text-sm font-medium text-gray-900">{{ factor.display_name }}</h4>
-            <p class="text-lg font-semibold text-gray-900 mt-0.5">{{ factor.value }}</p>
+            <h4 class="text-sm font-medium text-horizon-500">{{ factor.display_name }}</h4>
+            <p class="text-lg font-semibold text-horizon-500 mt-0.5">{{ factor.value }}</p>
           </div>
           <!-- Risk Level Badge -->
           <span
@@ -57,7 +57,7 @@
             {{ levelDisplayName }}
           </span>
         </div>
-        <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ factor.description }}</p>
+        <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{{ factor.description }}</p>
       </div>
     </div>
   </div>
@@ -83,7 +83,7 @@ export default {
         upper_medium: 'bg-teal-100',
         high: 'bg-blue-100',
       };
-      return classes[this.factor.level] || 'bg-gray-100';
+      return classes[this.factor.level] || 'bg-savannah-100';
     },
 
     iconColorClass() {
@@ -94,7 +94,7 @@ export default {
         upper_medium: 'text-teal-600',
         high: 'text-blue-600',
       };
-      return classes[this.factor.level] || 'text-gray-600';
+      return classes[this.factor.level] || 'text-neutral-500';
     },
 
     levelBadgeClass() {
@@ -105,7 +105,7 @@ export default {
         upper_medium: 'bg-teal-100 text-teal-800',
         high: 'bg-blue-100 text-blue-800',
       };
-      return classes[this.factor.level] || 'bg-gray-100 text-gray-800';
+      return classes[this.factor.level] || 'bg-savannah-100 text-horizon-500';
     },
 
     levelDisplayName() {
@@ -122,11 +122,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>

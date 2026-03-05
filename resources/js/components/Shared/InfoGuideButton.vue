@@ -3,11 +3,11 @@
     <button
       v-if="shouldShow"
       @click="toggle"
-      class="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary-600
-             text-white shadow-lg hover:bg-primary-700 hover:shadow-xl
+      class="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-raspberry-600
+             text-white shadow-lg hover:bg-raspberry-700 hover:shadow-xl
              transition-all duration-200 flex items-center justify-center
-             focus:outline-none focus:ring-4 focus:ring-blue-300"
-      :class="{ 'ring-4 ring-blue-200': isOpen }"
+             focus:outline-none focus:ring-4 focus:ring-violet-300"
+      :class="{ 'ring-4 ring-violet-200': isOpen }"
       :title="isOpen ? 'Close guide' : 'What data do I need?'"
     >
       <!-- Question mark icon when closed -->
@@ -47,7 +47,7 @@
       <!-- Badge showing missing items count -->
       <span
         v-if="missingCount > 0 && !isOpen"
-        class="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full
+        class="absolute -top-1 -right-1 w-5 h-5 bg-spring-500 rounded-full
                text-xs font-bold flex items-center justify-center shadow"
       >
         {{ missingCount > 9 ? '9+' : missingCount }}

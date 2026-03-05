@@ -10,7 +10,7 @@
       </div>
 
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="w-10 h-10 border-[3px] border-light-gray border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
         <p>Loading assumptions...</p>
       </div>
 
@@ -685,22 +685,6 @@ export default {
 .error-state {
   text-align: center;
   padding: 3rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .error-message {

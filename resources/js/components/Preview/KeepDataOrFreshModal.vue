@@ -28,7 +28,7 @@
                             @click.stop
                         >
                             <!-- Header -->
-                            <div class="bg-gradient-to-br from-primary-500 to-primary-700 p-6 text-white">
+                            <div class="bg-gradient-to-br from-raspberry-500 to-raspberry-700 p-6 text-white">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,8 +44,8 @@
 
                             <!-- Content -->
                             <div class="p-6">
-                                <p class="text-gray-600 mb-6">
-                                    You were exploring <strong class="text-gray-900">{{ personaName }}</strong>'s example data.
+                                <p class="text-neutral-500 mb-6">
+                                    You were exploring <strong class="text-horizon-500">{{ personaName }}</strong>'s example data.
                                     Would you like to keep it as a starting point?
                                 </p>
 
@@ -55,29 +55,29 @@
                                         @click="selected = 'keep'"
                                         class="w-full p-4 border-2 rounded-xl text-left transition-all"
                                         :class="selected === 'keep'
-                                            ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
-                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'"
+                                            ? 'border-raspberry-500 bg-raspberry-50 ring-2 ring-raspberry-200'
+                                            : 'border-light-gray hover:border-horizon-300 hover:bg-savannah-100'"
                                     >
                                         <div class="flex items-start gap-3">
                                             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                 :class="selected === 'keep' ? 'bg-primary-100' : 'bg-gray-100'">
-                                                <svg class="h-5 w-5" :class="selected === 'keep' ? 'text-primary-600' : 'text-gray-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 :class="selected === 'keep' ? 'bg-raspberry-100' : 'bg-savannah-100'">
+                                                <svg class="h-5 w-5" :class="selected === 'keep' ? 'text-raspberry-600' : 'text-neutral-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                                 </svg>
                                             </div>
                                             <div class="flex-1">
-                                                <div class="font-medium text-gray-900">Keep {{ personaFirstName }}'s data</div>
-                                                <div class="text-sm text-gray-500 mt-0.5">
+                                                <div class="font-medium text-horizon-500">Keep {{ personaFirstName }}'s data</div>
+                                                <div class="text-sm text-neutral-500 mt-0.5">
                                                     Start with example data and modify to match your situation.
                                                 </div>
-                                                <div v-if="dataSummary" class="text-xs text-gray-400 mt-2 flex flex-wrap gap-2">
-                                                    <span v-for="item in dataSummary" :key="item" class="bg-gray-100 px-2 py-0.5 rounded">
+                                                <div v-if="dataSummary" class="text-xs text-horizon-400 mt-2 flex flex-wrap gap-2">
+                                                    <span v-for="item in dataSummary" :key="item" class="bg-savannah-100 px-2 py-0.5 rounded">
                                                         {{ item }}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div v-if="selected === 'keep'" class="flex-shrink-0">
-                                                <svg class="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-5 h-5 text-raspberry-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                             </div>
@@ -89,24 +89,24 @@
                                         @click="selected = 'fresh'"
                                         class="w-full p-4 border-2 rounded-xl text-left transition-all"
                                         :class="selected === 'fresh'
-                                            ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
-                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'"
+                                            ? 'border-raspberry-500 bg-raspberry-50 ring-2 ring-raspberry-200'
+                                            : 'border-light-gray hover:border-horizon-300 hover:bg-savannah-100'"
                                     >
                                         <div class="flex items-start gap-3">
                                             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                 :class="selected === 'fresh' ? 'bg-primary-100' : 'bg-gray-100'">
-                                                <svg class="h-5 w-5" :class="selected === 'fresh' ? 'text-primary-600' : 'text-gray-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 :class="selected === 'fresh' ? 'bg-raspberry-100' : 'bg-savannah-100'">
+                                                <svg class="h-5 w-5" :class="selected === 'fresh' ? 'text-raspberry-600' : 'text-neutral-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                                 </svg>
                                             </div>
                                             <div class="flex-1">
-                                                <div class="font-medium text-gray-900">Start fresh</div>
-                                                <div class="text-sm text-gray-500 mt-0.5">
+                                                <div class="font-medium text-horizon-500">Start fresh</div>
+                                                <div class="text-sm text-neutral-500 mt-0.5">
                                                     Begin with a clean slate and enter your own data.
                                                 </div>
                                             </div>
                                             <div v-if="selected === 'fresh'" class="flex-shrink-0">
-                                                <svg class="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-5 h-5 text-raspberry-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                             </div>
@@ -122,16 +122,16 @@
                                         leave-from-class="opacity-100 translate-y-0"
                                         leave-to-class="opacity-0 -translate-y-2"
                                     >
-                                        <div v-if="personaIsMarried && selected === 'keep'" class="ml-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div v-if="personaIsMarried && selected === 'keep'" class="ml-4 p-3 bg-violet-50 rounded-lg border border-violet-200">
                                             <label class="flex items-center gap-3 cursor-pointer">
                                                 <input
                                                     type="checkbox"
                                                     v-model="createSpouseAccount"
-                                                    class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
+                                                    class="w-4 h-4 rounded text-raspberry-600 focus:ring-violet-500"
                                                 />
                                                 <div>
-                                                    <span class="text-sm font-medium text-gray-900">Also create account for {{ spouseName }}</span>
-                                                    <p class="text-xs text-gray-500 mt-0.5">They'll receive an email invitation to join</p>
+                                                    <span class="text-sm font-medium text-horizon-500">Also create account for {{ spouseName }}</span>
+                                                    <p class="text-xs text-neutral-500 mt-0.5">They'll receive an email invitation to join</p>
                                                 </div>
                                             </label>
                                         </div>
@@ -143,8 +143,8 @@
                                     <button
                                         @click="handleContinue"
                                         :disabled="!selected || loading"
-                                        class="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                                        :class="!selected || loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary-700'"
+                                        class="flex-1 bg-raspberry-600 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                        :class="!selected || loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-raspberry-700'"
                                     >
                                         <svg v-if="loading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -158,7 +158,7 @@
                                 </div>
 
                                 <!-- Info note -->
-                                <p class="text-xs text-gray-400 text-center mt-4">
+                                <p class="text-xs text-horizon-400 text-center mt-4">
                                     You can always add, edit, or remove data later from your dashboard.
                                 </p>
                             </div>

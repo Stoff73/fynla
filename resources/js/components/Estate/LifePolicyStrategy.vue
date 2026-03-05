@@ -3,7 +3,7 @@
     <!-- Back to Dashboard Link -->
     <button
       @click="$emit('switch-tab', 'iht')"
-      class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+      class="inline-flex items-center text-sm text-violet-600 hover:text-violet-800 mb-4"
     >
       <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -12,20 +12,20 @@
     </button>
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Calculating life policy strategy...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Calculating life policy strategy...</p>
     </div>
 
     <!-- No Inheritance Tax Liability State -->
-    <div v-else-if="noIHTLiability" class="bg-white border-2 border-green-500 rounded-lg p-6">
+    <div v-else-if="noIHTLiability" class="bg-white border-2 border-spring-500 rounded-lg p-6">
       <div class="flex items-start">
-        <svg class="h-6 w-6 text-green-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-6 w-6 text-spring-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div class="ml-3">
-          <h3 class="text-lg font-semibold text-green-900">No Life Insurance Required</h3>
-          <p class="mt-2 text-green-700">{{ noIHTMessage }}</p>
-          <p class="mt-2 text-sm text-green-600">You have no projected Inheritance Tax liability at expected death. Life insurance for Inheritance Tax planning is not necessary.</p>
+          <h3 class="text-lg font-semibold text-spring-900">No Life Insurance Required</h3>
+          <p class="mt-2 text-spring-700">{{ noIHTMessage }}</p>
+          <p class="mt-2 text-sm text-spring-600">You have no projected Inheritance Tax liability at expected death. Life insurance for Inheritance Tax planning is not necessary.</p>
         </div>
       </div>
     </div>
@@ -49,14 +49,14 @@
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-900">{{ formatCurrency(policy.cover_amount) }}</p>
               <p class="text-xs text-indigo-600 mt-1">Guaranteed payout</p>
             </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-500">
-              <p class="text-xs sm:text-sm text-green-700 font-medium mb-1">Monthly Premium</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(policy.monthly_premium) }}</p>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-spring-500">
+              <p class="text-xs sm:text-sm text-spring-700 font-medium mb-1">Monthly Premium</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-900">{{ formatCurrency(policy.monthly_premium) }}</p>
             </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-blue-500">
-              <p class="text-xs sm:text-sm text-blue-700 font-medium mb-1">Annual Premium</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{{ formatCurrency(policy.annual_premium) }}</p>
-              <p class="text-xs text-blue-600 mt-1">Per year</p>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-violet-500">
+              <p class="text-xs sm:text-sm text-violet-700 font-medium mb-1">Annual Premium</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">{{ formatCurrency(policy.annual_premium) }}</p>
+              <p class="text-xs text-violet-600 mt-1">Per year</p>
             </div>
             <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-purple-500">
               <p class="text-xs sm:text-sm text-purple-700 font-medium mb-1">Total Premiums</p>
@@ -67,26 +67,26 @@
 
           <!-- Key Features -->
           <div class="mb-6">
-            <h4 class="text-md font-semibold text-gray-900 mb-3">Key Features</h4>
+            <h4 class="text-md font-semibold text-horizon-500 mb-3">Key Features</h4>
             <ul class="space-y-2">
               <li v-for="(feature, index) in policy.key_features" :key="index" class="flex items-start">
-                <svg class="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="h-5 w-5 text-spring-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-gray-700">{{ feature }}</span>
+                <span class="text-neutral-500">{{ feature }}</span>
               </li>
             </ul>
           </div>
 
           <!-- Implementation Steps -->
           <div>
-            <h4 class="text-md font-semibold text-gray-900 mb-3">Implementation Steps</h4>
+            <h4 class="text-md font-semibold text-horizon-500 mb-3">Implementation Steps</h4>
             <ol class="space-y-2">
               <li v-for="(step, index) in policy.implementation_steps" :key="index" class="flex items-start">
                 <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-indigo-500 text-indigo-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
                   {{ index + 1 }}
                 </span>
-                <span class="text-gray-700 pt-0.5">{{ step }}</span>
+                <span class="text-neutral-500 pt-0.5">{{ step }}</span>
               </li>
             </ol>
           </div>
@@ -94,27 +94,27 @@
       </div>
 
       <!-- Decision Framework -->
-      <div class="bg-white rounded-lg border border-gray-300 shadow-lg">
-        <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
-          <h3 class="text-xl font-bold text-gray-900">Decision Framework</h3>
-          <p class="text-sm text-gray-600 mt-1">Use this framework to help decide which approach is best for you</p>
+      <div class="bg-white rounded-lg border border-horizon-300 shadow-lg">
+        <div class="bg-savannah-100 px-6 py-4 border-b border-light-gray">
+          <h3 class="text-xl font-bold text-horizon-500">Decision Framework</h3>
+          <p class="text-sm text-neutral-500 mt-1">Use this framework to help decide which approach is best for you</p>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div v-for="(items, decision) in strategy.comparison.decision_framework" :key="decision">
               <h4 class="text-md font-semibold mb-3" :class="{
                 'text-indigo-900': decision.includes('Insurance'),
-                'text-blue-900': decision.includes('Self-Insurance'),
+                'text-violet-900': decision.includes('Self-Insurance'),
                 'text-purple-900': decision.includes('Hybrid')
               }">{{ decision }}</h4>
               <ul class="space-y-2">
                 <li v-for="(item, index) in items" :key="index" class="flex items-start text-sm">
                   <span class="mr-2" :class="{
                     'text-indigo-600': decision.includes('Insurance'),
-                    'text-blue-600': decision.includes('Self-Insurance'),
+                    'text-violet-600': decision.includes('Self-Insurance'),
                     'text-purple-600': decision.includes('Hybrid')
                   }">•</span>
-                  <span class="text-gray-700">{{ item }}</span>
+                  <span class="text-neutral-500">{{ item }}</span>
                 </li>
               </ul>
             </div>
@@ -125,14 +125,14 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-white border-2 border-red-500 rounded-lg p-6">
+    <div v-else-if="error" class="bg-white border-2 border-raspberry-500 rounded-lg p-6">
       <div class="flex items-start">
-        <svg class="h-6 w-6 text-red-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-6 w-6 text-raspberry-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div class="ml-3">
-          <h3 class="text-lg font-semibold text-red-900">Error Loading Strategy</h3>
-          <p class="mt-2 text-red-700">{{ error }}</p>
+          <h3 class="text-lg font-semibold text-raspberry-900">Error Loading Strategy</h3>
+          <p class="mt-2 text-raspberry-700">{{ error }}</p>
         </div>
       </div>
     </div>

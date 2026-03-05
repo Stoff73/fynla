@@ -15,7 +15,7 @@ Investment & Savings Plan
 
 In savings, for the emergency fund, if the emergency fund is larger than 6 months, and the cash accounts have not been allocated to any goals to reduce this over time, we must recommend moving this money into the various tax wrappers, so isa if available, then pension if avalailbe, then bond, then gifting.
 
-This plan, as well as the retirement plan, must use the users disposable income figure in the plan when giving recommendations, no made up numbers or hard coded issues. The users disposable income must be allocated to a temporary distribution account, where all the agents for the investments, savings and retirement plans can draw from, When an amount is allocated to an account the account is reduced, so we do not double count, and we do nto exceed the affordability of the user. The retirement plan uses the whole account, and the investments & savings plan use the whole accont, as these are seperate plans.
+This plan, as well as the retirement plan, must use the users disposable income figure in the plan when giving recommendations, no made up numbers or hard coded issues. The users disposable income must be allocated to a temporary distribution account, where all the agents for the investments, savings and retirement plans can draw from, When an amount is allocated to an account the account is reduced, so we do not double count, and we do nto exceed the affordability of the user. The retirement plan uses the whole account, and the investments & savings plan use the whole account, as these are separate plans.
 
 Projections must either be to goal length if assigned or to retirement no 10 year default
 

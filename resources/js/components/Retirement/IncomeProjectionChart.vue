@@ -163,12 +163,12 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
             style: {
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
         },
@@ -178,7 +178,7 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
@@ -186,7 +186,7 @@ export default {
               return '£' + value.toLocaleString();
             },
             style: {
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
         },
@@ -202,7 +202,7 @@ export default {
         legend: {
           position: 'top',
           horizontalAlign: 'centre',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           fontSize: '14px',
           markers: {
             width: 12,
@@ -225,7 +225,7 @@ export default {
                 style: {
                   color: '#fff',
                   background: WARNING_COLORS[500],
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: 'Segoe UI, Inter, sans-serif',
                 },
                 text: 'Target Income: £' + this.targetIncome.toLocaleString(),
               },

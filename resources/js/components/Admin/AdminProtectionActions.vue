@@ -3,42 +3,42 @@
     <!-- Header Section -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-xl font-semibold text-gray-900">Protection Action Definitions</h2>
-        <p class="text-sm text-gray-600 mt-1">
+        <h2 class="text-xl font-semibold text-horizon-500">Protection Action Definitions</h2>
+        <p class="text-sm text-neutral-500 mt-1">
           Configure the actions that appear in protection plans. Edit thresholds, toggle actions on/off, or create new ones.
         </p>
       </div>
       <button
         @click="openCreateModal"
-        class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
       >
         Add Action
       </button>
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="rounded-md bg-red-50 border border-red-200 p-4">
+    <div v-if="error" class="rounded-md bg-raspberry-50 border border-raspberry-200 p-4">
       <div class="flex">
-        <svg class="h-5 w-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-5 w-5 text-raspberry-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="ml-3 text-sm text-red-800">{{ error }}</p>
+        <p class="ml-3 text-sm text-raspberry-800">{{ error }}</p>
       </div>
     </div>
 
     <!-- Success Message -->
-    <div v-if="successMessage" class="rounded-md bg-green-50 border border-green-200 p-4">
+    <div v-if="successMessage" class="rounded-md bg-spring-50 border border-spring-200 p-4">
       <div class="flex">
-        <svg class="h-5 w-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-5 w-5 text-spring-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="ml-3 text-sm text-green-800">{{ successMessage }}</p>
+        <p class="ml-3 text-sm text-spring-800">{{ successMessage }}</p>
       </div>
     </div>
 
     <!-- Source Filter -->
     <div class="flex items-center gap-2">
-      <span class="text-sm text-gray-600">Filter by source:</span>
+      <span class="text-sm text-neutral-500">Filter by source:</span>
       <button
         v-for="opt in sourceFilterOptions"
         :key="opt.value"
@@ -46,8 +46,8 @@
         :class="[
           'px-3 py-1 rounded-full text-xs font-medium transition-colors',
           sourceFilter === opt.value
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-raspberry-600 text-white'
+            : 'bg-savannah-100 text-neutral-500 hover:bg-savannah-100'
         ]"
       >
         {{ opt.label }}
@@ -56,48 +56,48 @@
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Table -->
     <div v-else-if="filteredDefinitions.length > 0" class="card overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-light-gray">
+          <thead class="bg-savannah-100">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">What-if Type</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trigger</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enabled</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Order</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Title</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Source</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Category</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Priority</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">What-if Type</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Trigger</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Enabled</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr v-for="def in filteredDefinitions" :key="def.id" :class="{ 'opacity-50': !def.is_enabled }">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-neutral-500">
                 {{ def.sort_order }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900">
+              <td class="px-4 py-3 text-sm text-horizon-500">
                 <div class="font-medium">{{ def.title_template }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ def.key }}</div>
+                <div class="text-xs text-neutral-500 mt-0.5">{{ def.key }}</div>
               </td>
               <td class="px-4 py-3 whitespace-nowrap">
                 <span :class="sourceClass(def.source)">{{ def.source }}</span>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-neutral-500">
                 {{ def.category }}
               </td>
               <td class="px-4 py-3 whitespace-nowrap">
                 <span :class="priorityClass(def.priority)">{{ def.priority }}</span>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-neutral-500">
                 {{ def.what_if_impact_type }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-500">
+              <td class="px-4 py-3 text-sm text-neutral-500">
                 <span v-if="def.trigger_config && def.trigger_config.threshold">
                   {{ def.trigger_config.condition }}: {{ def.trigger_config.threshold }}
                 </span>
@@ -109,8 +109,8 @@
                 <button
                   @click="toggleAction(def)"
                   :class="[
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-                    def.is_enabled ? 'bg-primary-600' : 'bg-gray-200'
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2',
+                    def.is_enabled ? 'bg-raspberry-600' : 'bg-savannah-100'
                   ]"
                 >
                   <span
@@ -122,10 +122,10 @@
                 </button>
               </td>
               <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                <button @click="openEditModal(def)" class="text-primary-600 hover:text-primary-800 mr-3">
+                <button @click="openEditModal(def)" class="text-raspberry-600 hover:text-raspberry-800 mr-3">
                   Edit
                 </button>
-                <button @click="confirmDelete(def)" class="text-red-600 hover:text-red-800">
+                <button @click="confirmDelete(def)" class="text-raspberry-600 hover:text-raspberry-800">
                   Delete
                 </button>
               </td>
@@ -137,21 +137,21 @@
 
     <!-- Empty State -->
     <div v-else class="card p-12 text-center">
-      <p class="text-gray-500">No protection action definitions found. Create one to get started.</p>
+      <p class="text-neutral-500">No protection action definitions found. Create one to get started.</p>
     </div>
 
     <!-- Delete Confirmation -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 max-w-md mx-4">
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Delete Action Definition</h3>
-        <p class="text-sm text-gray-600 mb-4">
+        <h3 class="text-lg font-medium text-horizon-500 mb-2">Delete Action Definition</h3>
+        <p class="text-sm text-neutral-500 mb-4">
           Are you sure you want to delete "{{ deleteTarget?.title_template }}"? This cannot be undone.
         </p>
         <div class="flex justify-end space-x-3">
-          <button @click="showDeleteConfirm = false" class="px-4 py-2 border border-gray-300 rounded-button text-gray-700 hover:bg-gray-50">
+          <button @click="showDeleteConfirm = false" class="px-4 py-2 border border-horizon-300 rounded-button text-neutral-500 hover:bg-savannah-100">
             Cancel
           </button>
-          <button @click="executeDelete" class="px-4 py-2 bg-red-600 text-white rounded-button hover:bg-red-700">
+          <button @click="executeDelete" class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700">
             Delete
           </button>
         </div>
@@ -313,11 +313,11 @@ export default {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
 
       return {
-        critical: `${base} bg-red-100 text-red-800`,
-        high: `${base} bg-blue-100 text-blue-800`,
-        medium: `${base} bg-gray-100 text-gray-800`,
-        low: `${base} bg-green-100 text-green-800`,
-      }[priority] || `${base} bg-gray-100 text-gray-800`;
+        critical: `${base} bg-raspberry-100 text-raspberry-800`,
+        high: `${base} bg-violet-100 text-violet-800`,
+        medium: `${base} bg-savannah-100 text-horizon-500`,
+        low: `${base} bg-spring-100 text-spring-800`,
+      }[priority] || `${base} bg-savannah-100 text-horizon-500`;
     },
 
     sourceClass(source) {

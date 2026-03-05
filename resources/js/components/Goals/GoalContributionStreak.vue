@@ -20,7 +20,7 @@
           <!-- Intensity rings for higher streaks -->
           <div
             v-if="streak >= 6"
-            class="absolute inset-0 rounded-full border-2 border-blue-300 animate-ping opacity-50"
+            class="absolute inset-0 rounded-full border-2 border-violet-300 animate-ping opacity-50"
           ></div>
         </div>
 
@@ -28,7 +28,7 @@
         <div class="flex-1">
           <div class="flex items-baseline gap-2">
             <span class="text-2xl font-bold" :class="numberClass">{{ streak }}</span>
-            <span class="text-sm text-gray-600">{{ streak === 1 ? 'month' : 'months' }} streak</span>
+            <span class="text-sm text-neutral-500">{{ streak === 1 ? 'month' : 'months' }} streak</span>
           </div>
           <p v-if="showMessage" class="text-sm" :class="messageClass">{{ streakMessage }}</p>
         </div>
@@ -44,7 +44,7 @@
             :class="getMeterSegmentClass(i)"
           ></div>
         </div>
-        <div v-if="longestStreak > 0" class="mt-1 text-xs text-gray-500 text-right">
+        <div v-if="longestStreak > 0" class="mt-1 text-xs text-neutral-500 text-right">
           Best: {{ longestStreak }} months
         </div>
       </div>
@@ -113,31 +113,31 @@ export default {
     },
 
     backgroundClass() {
-      if (this.streak === 0) return 'bg-gray-50';
-      if (this.streak >= 12) return 'bg-blue-50';
-      if (this.streak >= 6) return 'bg-blue-50';
-      if (this.streak >= 3) return 'bg-blue-50';
+      if (this.streak === 0) return 'bg-savannah-100';
+      if (this.streak >= 12) return 'bg-violet-50';
+      if (this.streak >= 6) return 'bg-violet-50';
+      if (this.streak >= 3) return 'bg-violet-50';
       return 'bg-yellow-50';
     },
 
     textClass() {
-      if (this.streak === 0) return 'text-gray-500';
-      if (this.streak >= 6) return 'text-blue-600';
-      if (this.streak >= 3) return 'text-blue-500';
+      if (this.streak === 0) return 'text-neutral-500';
+      if (this.streak >= 6) return 'text-violet-600';
+      if (this.streak >= 3) return 'text-violet-500';
       return 'text-yellow-600';
     },
 
     numberClass() {
-      if (this.streak === 0) return 'text-gray-400';
-      if (this.streak >= 12) return 'text-blue-600';
-      if (this.streak >= 6) return 'text-blue-600';
-      if (this.streak >= 3) return 'text-blue-500';
+      if (this.streak === 0) return 'text-horizon-400';
+      if (this.streak >= 12) return 'text-violet-600';
+      if (this.streak >= 6) return 'text-violet-600';
+      if (this.streak >= 3) return 'text-violet-500';
       return 'text-yellow-600';
     },
 
     messageClass() {
-      if (this.streak === 0) return 'text-gray-500';
-      return 'text-gray-600';
+      if (this.streak === 0) return 'text-neutral-500';
+      return 'text-neutral-500';
     },
 
     streakMessage() {
@@ -150,15 +150,15 @@ export default {
     },
 
     encouragementBgClass() {
-      if (this.streak >= 6) return 'bg-blue-100';
+      if (this.streak >= 6) return 'bg-violet-100';
       if (this.streak >= 3) return 'bg-yellow-100';
-      return 'bg-green-100';
+      return 'bg-spring-100';
     },
 
     encouragementTextClass() {
-      if (this.streak >= 6) return 'text-blue-700';
+      if (this.streak >= 6) return 'text-violet-700';
       if (this.streak >= 3) return 'text-yellow-700';
-      return 'text-green-700';
+      return 'text-spring-700';
     },
 
     encouragementMessage() {
@@ -182,13 +182,13 @@ export default {
     getMeterSegmentClass(position) {
       if (position <= this.streak) {
         // Filled segment
-        if (this.streak >= 12) return 'bg-blue-500';
-        if (this.streak >= 6) return 'bg-blue-500';
-        if (this.streak >= 3) return 'bg-blue-400';
+        if (this.streak >= 12) return 'bg-violet-500';
+        if (this.streak >= 6) return 'bg-violet-500';
+        if (this.streak >= 3) return 'bg-violet-400';
         return 'bg-yellow-400';
       }
       // Empty segment
-      return 'bg-gray-200';
+      return 'bg-horizon-200';
     },
   },
 };

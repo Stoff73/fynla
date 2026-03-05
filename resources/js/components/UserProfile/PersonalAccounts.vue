@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="mb-6">
-      <h2 class="text-h4 font-semibold text-gray-900">Personal Accounts</h2>
-      <p class="mt-1 text-body-sm text-gray-600">
+      <h2 class="text-h4 font-semibold text-horizon-500">Personal Accounts</h2>
+      <p class="mt-1 text-body-sm text-neutral-500">
         Auto-calculated financial statements from your profile data
       </p>
     </div>
@@ -11,7 +11,7 @@
     <div class="card p-4 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label for="start_date" class="block text-body-sm font-medium text-gray-700 mb-1">
+          <label for="start_date" class="block text-body-sm font-medium text-neutral-500 mb-1">
             Start Date
           </label>
           <input
@@ -24,7 +24,7 @@
           />
         </div>
         <div>
-          <label for="end_date" class="block text-body-sm font-medium text-gray-700 mb-1">
+          <label for="end_date" class="block text-body-sm font-medium text-neutral-500 mb-1">
             End Date
           </label>
           <input
@@ -37,7 +37,7 @@
           />
         </div>
         <div>
-          <label for="as_of_date" class="block text-body-sm font-medium text-gray-700 mb-1">
+          <label for="as_of_date" class="block text-body-sm font-medium text-neutral-500 mb-1">
             Balance Sheet As Of
           </label>
           <input
@@ -53,14 +53,14 @@
     </div>
 
     <!-- Tab Navigation -->
-    <div class="border-b border-gray-200 mb-6">
+    <div class="border-b border-light-gray mb-6">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <button
           @click="activeTab = 'balance_sheet'"
           :class="[
             activeTab === 'balance_sheet'
-              ? 'border-primary-600 text-primary-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-700'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-body-sm transition-colors',
           ]"
         >
@@ -70,8 +70,8 @@
           @click="activeTab = 'cashflow'"
           :class="[
             activeTab === 'cashflow'
-              ? 'border-primary-600 text-primary-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-700'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-body-sm transition-colors',
           ]"
         >
@@ -81,8 +81,8 @@
           @click="activeTab = 'profit_loss'"
           :class="[
             activeTab === 'profit_loss'
-              ? 'border-primary-600 text-primary-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-700'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-body-sm transition-colors',
           ]"
         >
@@ -94,8 +94,8 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p class="mt-4 text-body-base text-gray-600">Calculating accounts...</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500 mx-auto"></div>
+        <p class="mt-4 text-body-base text-neutral-500">Calculating accounts...</p>
       </div>
     </div>
 

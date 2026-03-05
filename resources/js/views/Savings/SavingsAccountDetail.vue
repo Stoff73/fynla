@@ -3,13 +3,13 @@
     <div class="container mx-auto px-4 py-8">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-gray-600">Loading account details...</p>
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+        <p class="mt-4 text-neutral-500">Loading account details...</p>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <p class="text-red-600">{{ error }}</p>
+      <div v-else-if="error" class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-6 text-center">
+        <p class="text-raspberry-600">{{ error }}</p>
         <button
           @click="loadAccount"
           class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
@@ -24,13 +24,13 @@
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div>
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ account.institution }}</h1>
-              <p class="text-base sm:text-lg text-gray-600 mt-1">{{ formatAccountType(account.account_type) }}</p>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.institution }}</h1>
+              <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ formatAccountType(account.account_type) }}</p>
               <div class="flex flex-wrap gap-2 mt-2">
-                <span v-if="account.is_emergency_fund" class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                <span v-if="account.is_emergency_fund" class="inline-block px-2 py-1 text-xs bg-spring-100 text-spring-800 rounded">
                   Emergency Fund
                 </span>
-                <span v-if="account.is_isa" class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                <span v-if="account.is_isa" class="inline-block px-2 py-1 text-xs bg-violet-100 text-violet-800 rounded">
                   ISA
                 </span>
               </div>
@@ -38,7 +38,7 @@
             <div class="flex space-x-2 w-full sm:w-auto">
               <button
                 @click="showEditModal = true"
-                class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+                class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
               >
                 Edit
               </button>
@@ -53,123 +53,123 @@
 
           <!-- Key Metrics -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Full Balance</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</p>
-              <p v-if="account.ownership_type === 'joint'" class="text-xs text-gray-600 mt-1">
+            <div class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Full Balance</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(fullBalance) }}</p>
+              <p v-if="account.ownership_type === 'joint'" class="text-xs text-neutral-500 mt-1">
                 Your Share ({{ account.ownership_percentage }}%): {{ formatCurrency(userShare) }}
               </p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Interest Rate</p>
-              <p class="text-2xl font-bold text-blue-600">{{ formatInterestRate(account.interest_rate) }}</p>
+            <div class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Interest Rate</p>
+              <p class="text-2xl font-bold text-violet-600">{{ formatInterestRate(account.interest_rate) }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Annual Interest</p>
-              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(annualInterest) }}</p>
+            <div class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Annual Interest</p>
+              <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(annualInterest) }}</p>
             </div>
           </div>
         </div>
 
         <!-- Account Details -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-6">Account Details</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-6">Account Details</h3>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Account Information -->
             <div>
-              <h5 class="text-sm font-semibold text-gray-800 mb-3">Account Information</h5>
+              <h5 class="text-sm font-semibold text-horizon-500 mb-3">Account Information</h5>
               <dl class="space-y-2">
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Institution:</dt>
-                  <dd class="text-sm font-medium text-gray-900 text-right">{{ account.institution }}</dd>
+                  <dt class="text-sm text-neutral-500">Institution:</dt>
+                  <dd class="text-sm font-medium text-horizon-500 text-right">{{ account.institution }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Account Type:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ formatAccountType(account.account_type) }}</dd>
+                  <dt class="text-sm text-neutral-500">Account Type:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ formatAccountType(account.account_type) }}</dd>
                 </div>
                 <div v-if="account.account_number" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Account Number:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ account.account_number }}</dd>
+                  <dt class="text-sm text-neutral-500">Account Number:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ account.account_number }}</dd>
                 </div>
                 <div v-if="account.country" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Country:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ account.country }}</dd>
+                  <dt class="text-sm text-neutral-500">Country:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ account.country }}</dd>
                 </div>
               </dl>
             </div>
 
             <!-- Balance & Interest -->
             <div>
-              <h5 class="text-sm font-semibold text-gray-800 mb-3">Balance & Interest</h5>
+              <h5 class="text-sm font-semibold text-horizon-500 mb-3">Balance & Interest</h5>
               <dl class="space-y-2">
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Full Balance:</dt>
-                  <dd class="text-sm font-medium text-gray-900 font-semibold">{{ formatCurrency(fullBalance) }}</dd>
+                  <dt class="text-sm text-neutral-500">Full Balance:</dt>
+                  <dd class="text-sm font-medium text-horizon-500 font-semibold">{{ formatCurrency(fullBalance) }}</dd>
                 </div>
                 <div v-if="account.ownership_type === 'joint'" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Your Share ({{ account.ownership_percentage }}%):</dt>
-                  <dd class="text-sm font-medium text-blue-600">{{ formatCurrency(userShare) }}</dd>
+                  <dt class="text-sm text-neutral-500">Your Share ({{ account.ownership_percentage }}%):</dt>
+                  <dd class="text-sm font-medium text-violet-600">{{ formatCurrency(userShare) }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Interest Rate:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ formatInterestRate(account.interest_rate) }}</dd>
+                  <dt class="text-sm text-neutral-500">Interest Rate:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ formatInterestRate(account.interest_rate) }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Monthly Interest:</dt>
-                  <dd class="text-sm font-medium text-green-600">{{ formatCurrency(monthlyInterest) }}</dd>
+                  <dt class="text-sm text-neutral-500">Monthly Interest:</dt>
+                  <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(monthlyInterest) }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Annual Interest:</dt>
-                  <dd class="text-sm font-medium text-green-600">{{ formatCurrency(annualInterest) }}</dd>
+                  <dt class="text-sm text-neutral-500">Annual Interest:</dt>
+                  <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(annualInterest) }}</dd>
                 </div>
               </dl>
             </div>
 
             <!-- Access & Terms -->
             <div>
-              <h5 class="text-sm font-semibold text-gray-800 mb-3">Access & Terms</h5>
+              <h5 class="text-sm font-semibold text-horizon-500 mb-3">Access & Terms</h5>
               <dl class="space-y-2">
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Access Type:</dt>
-                  <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatAccessType(account.access_type) }}</dd>
+                  <dt class="text-sm text-neutral-500">Access Type:</dt>
+                  <dd class="text-sm font-medium text-horizon-500 capitalize">{{ formatAccessType(account.access_type) }}</dd>
                 </div>
                 <div v-if="account.access_type === 'notice' && account.notice_period_days" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Notice Period:</dt>
-                  <dd class="text-sm font-medium text-blue-600">{{ account.notice_period_days }} days</dd>
+                  <dt class="text-sm text-neutral-500">Notice Period:</dt>
+                  <dd class="text-sm font-medium text-violet-600">{{ account.notice_period_days }} days</dd>
                 </div>
                 <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Maturity Date:</dt>
-                  <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-blue-600'">
+                  <dt class="text-sm text-neutral-500">Maturity Date:</dt>
+                  <dd class="text-sm font-medium" :class="isMatured ? 'text-neutral-500' : 'text-violet-600'">
                     {{ formatDate(account.maturity_date) }}
                   </dd>
                 </div>
                 <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Time to Maturity:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ calculateTimeToMaturity }}</dd>
+                  <dt class="text-sm text-neutral-500">Time to Maturity:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ calculateTimeToMaturity }}</dd>
                 </div>
               </dl>
             </div>
 
             <!-- ISA Details (if applicable) -->
             <div v-if="account.is_isa">
-              <h5 class="text-sm font-semibold text-gray-800 mb-3">ISA Details</h5>
+              <h5 class="text-sm font-semibold text-horizon-500 mb-3">ISA Details</h5>
               <dl class="space-y-2">
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">ISA Type:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ formatISAType(account.isa_type) }}</dd>
+                  <dt class="text-sm text-neutral-500">ISA Type:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ formatISAType(account.isa_type) }}</dd>
                 </div>
                 <div v-if="account.isa_subscription_year" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Subscription Year:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ account.isa_subscription_year }}</dd>
+                  <dt class="text-sm text-neutral-500">Subscription Year:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ account.isa_subscription_year }}</dd>
                 </div>
                 <div v-if="account.isa_subscription_amount" class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Subscription Amount:</dt>
-                  <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
+                  <dt class="text-sm text-neutral-500">Subscription Amount:</dt>
+                  <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-sm text-gray-600">Tax-Free Status:</dt>
-                  <dd class="text-sm font-medium text-green-600">✓ Tax-Free Interest</dd>
+                  <dt class="text-sm text-neutral-500">Tax-Free Status:</dt>
+                  <dd class="text-sm font-medium text-spring-600">✓ Tax-Free Interest</dd>
                 </div>
               </dl>
             </div>

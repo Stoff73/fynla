@@ -3,8 +3,8 @@
     <!-- Header Section -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-xl font-semibold text-gray-900">Database Backups</h2>
-        <p class="text-sm text-gray-600 mt-1">
+        <h2 class="text-xl font-semibold text-horizon-500">Database Backups</h2>
+        <p class="text-sm text-neutral-500 mt-1">
           Create, manage, and restore database backups
         </p>
       </div>
@@ -43,20 +43,20 @@
     <!-- Success Message -->
     <div
       v-if="successMessage"
-      class="rounded-md bg-green-50 border border-green-200 p-4"
+      class="rounded-md bg-spring-50 border border-spring-200 p-4"
     >
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-5 w-5 text-spring-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <p class="text-sm text-green-800">{{ successMessage }}</p>
+          <p class="text-sm text-spring-800">{{ successMessage }}</p>
         </div>
         <div class="ml-auto pl-3">
           <button
-            class="inline-flex text-green-400 hover:text-green-600"
+            class="inline-flex text-spring-400 hover:text-spring-600"
             @click="successMessage = null"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,20 +70,20 @@
     <!-- Error Message -->
     <div
       v-if="error"
-      class="rounded-md bg-red-50 border border-red-200 p-4"
+      class="rounded-md bg-raspberry-50 border border-raspberry-200 p-4"
     >
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-5 w-5 text-raspberry-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <p class="text-sm text-red-800">{{ error }}</p>
+          <p class="text-sm text-raspberry-800">{{ error }}</p>
         </div>
         <div class="ml-auto pl-3">
           <button
-            class="inline-flex text-red-400 hover:text-red-600"
+            class="inline-flex text-raspberry-400 hover:text-raspberry-600"
             @click="error = null"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,16 +96,16 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Backups List -->
     <div v-else class="card">
-      <div class="px-6 py-4 border-b border-gray-200">
+      <div class="px-6 py-4 border-b border-light-gray">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">Available Backups</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Available Backups</h3>
           <button
-            class="text-sm text-primary-600 hover:text-primary-700 inline-flex items-center"
+            class="text-sm text-raspberry-600 hover:text-raspberry-700 inline-flex items-center"
             @click="loadBackups"
           >
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,57 +119,57 @@
       <!-- Empty State -->
       <div v-if="!backups || backups.length === 0" class="px-6 py-12 text-center">
         <svg
-          class="mx-auto h-12 w-12 text-gray-400"
+          class="mx-auto h-12 w-12 text-horizon-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No backups found</h3>
-        <p class="mt-1 text-sm text-gray-500">
+        <h3 class="mt-2 text-sm font-medium text-horizon-500">No backups found</h3>
+        <p class="mt-1 text-sm text-neutral-500">
           Get started by creating your first database backup.
         </p>
       </div>
 
       <!-- Backups Table -->
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-light-gray">
+          <thead class="bg-savannah-100">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Filename
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Size
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Created At
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr v-for="backup in backups" :key="backup.filename">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
-                  <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 text-horizon-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <span class="text-sm font-medium text-gray-900">{{ backup.filename }}</span>
+                  <span class="text-sm font-medium text-horizon-500">{{ backup.filename }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 {{ formatFileSize(backup.size) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 {{ formatDate(backup.created_at) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                 <button
-                  class="text-primary-600 hover:text-primary-900 inline-flex items-center"
+                  class="text-raspberry-600 hover:text-raspberry-900 inline-flex items-center"
                   @click="confirmRestore(backup)"
                 >
                   <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@
                   Restore
                 </button>
                 <button
-                  class="text-red-600 hover:text-red-900 inline-flex items-center"
+                  class="text-raspberry-600 hover:text-raspberry-900 inline-flex items-center"
                   @click="confirmDelete(backup)"
                 >
                   <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

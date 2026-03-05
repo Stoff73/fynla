@@ -2,7 +2,7 @@
   <div class="detail-page">
     <!-- Header -->
     <div class="page-header">
-      <button @click="goBack" class="back-button">
+      <button @click="goBack" class="detail-inline-back">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="back-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
@@ -55,27 +55,6 @@ export default {
   margin-bottom: 32px;
 }
 
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  @apply bg-gray-100;
-  border: none;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 16px;
-}
-
-.back-button:hover {
-  @apply bg-gray-200;
-  @apply text-gray-900;
-}
-
 .back-icon {
   width: 16px;
   height: 16px;
@@ -84,13 +63,13 @@ export default {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 16px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -99,6 +78,6 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 </style>

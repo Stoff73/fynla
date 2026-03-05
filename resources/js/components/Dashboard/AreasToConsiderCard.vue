@@ -1,14 +1,14 @@
 <template>
   <div>
     <!-- Header -->
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Other Areas to Consider</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Other Areas to Consider</h3>
 
     <!-- Areas List -->
     <div v-if="incompleteAreas.length > 0" class="space-y-2">
       <div
         v-for="area in incompleteAreas"
         :key="area.id"
-        class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
+        class="flex items-center justify-between py-2 cursor-pointer hover:bg-savannah-100 -mx-2 px-2 rounded transition-colors"
         @click="navigateTo(area.route)"
       >
         <div class="flex items-center gap-3 min-w-0">
@@ -50,11 +50,11 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <span class="text-sm font-medium text-gray-900 block truncate">{{ area.title }}</span>
-            <span class="text-xs text-gray-500 block truncate">{{ area.description }}</span>
+            <span class="text-sm font-medium text-horizon-500 block truncate">{{ area.title }}</span>
+            <span class="text-xs text-neutral-500 block truncate">{{ area.description }}</span>
           </div>
         </div>
-        <svg class="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-horizon-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
@@ -62,13 +62,13 @@
 
     <!-- All Complete State -->
     <div v-else class="text-center py-6">
-      <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-12 h-12 rounded-full bg-spring-100 flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <p class="text-sm text-gray-600">All areas complete!</p>
-      <p class="text-xs text-gray-400 mt-1">Your financial profile is up to date</p>
+      <p class="text-sm text-neutral-500">All areas complete!</p>
+      <p class="text-xs text-horizon-400 mt-1">Your financial profile is up to date</p>
     </div>
   </div>
 </template>
@@ -166,8 +166,8 @@ export default {
           description: willDescription,
           route: '/valuable-info?section=will',
           icon: 'document',
-          iconBgClass: 'bg-gray-100',
-          iconClass: 'text-gray-600',
+          iconBgClass: 'bg-savannah-100',
+          iconClass: 'text-neutral-500',
           priority: 2,
         });
       }
@@ -182,8 +182,8 @@ export default {
           description: 'Protection if you become seriously ill',
           route: '/protection',
           icon: 'shield',
-          iconBgClass: 'bg-red-100',
-          iconClass: 'text-red-600',
+          iconBgClass: 'bg-raspberry-100',
+          iconClass: 'text-raspberry-600',
           priority: 3,
         });
       }
@@ -197,8 +197,8 @@ export default {
           description: 'Cover your income if unable to work',
           route: '/protection',
           icon: 'shield',
-          iconBgClass: 'bg-blue-100',
-          iconClass: 'text-blue-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
           priority: 4,
         });
       }
@@ -215,8 +215,8 @@ export default {
             description: 'Protect your family if something happens',
             route: '/protection',
             icon: 'shield',
-            iconBgClass: 'bg-green-100',
-            iconClass: 'text-green-600',
+            iconBgClass: 'bg-spring-100',
+            iconClass: 'text-spring-600',
             priority: 5,
           });
         }
@@ -277,8 +277,8 @@ export default {
           description: 'Set and track your objectives',
           route: '/goals',
           icon: 'target',
-          iconBgClass: 'bg-primary-100',
-          iconClass: 'text-primary-600',
+          iconBgClass: 'bg-raspberry-100',
+          iconClass: 'text-raspberry-500',
           priority: 9,
         });
       }

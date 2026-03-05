@@ -485,7 +485,7 @@ const routes = [
       requiresAuth: true,
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
-        { label: 'Holistic Plan', path: '/holistic-plan' },
+        { label: 'Holistic Financial Plan', path: '/holistic-plan' },
       ],
     },
   },

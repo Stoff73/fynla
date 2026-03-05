@@ -18,7 +18,7 @@
 
     <!-- Side menu -->
     <nav
-      class="fixed top-0 bottom-0 left-0 z-[60] bg-white border-r border-gray-200 shadow-lg flex flex-col overflow-hidden"
+      class="fixed top-0 bottom-0 left-0 z-[60] bg-white border-r border-light-gray shadow-lg flex flex-col overflow-hidden"
       :class="[
         menuWidthClass,
         mobileOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0',
@@ -26,17 +26,17 @@
       ]"
     >
       <!-- Logo -->
-      <div class="flex items-center h-16 border-b border-gray-200 flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
+      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
           <img v-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
-          <img v-else :src="logoUrl" alt="Fynla" class="h-28 w-auto mt-3" />
+          <img v-else :src="logoUrl" alt="Fynla" class="h-20 w-auto mt-3" />
         </router-link>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
       <button
         @click="toggleCollapsed"
-        class="hidden sm:flex items-center justify-center h-8 mx-2 mt-2 mb-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+        class="hidden sm:flex items-center justify-center h-8 mx-2 mt-2 mb-1 rounded-md text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 transition-colors flex-shrink-0"
         :title="collapsed ? 'Expand menu' : 'Collapse menu'"
       >
         <svg class="w-5 h-5 transition-transform duration-300" :class="collapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,10 +107,10 @@
       </div>
 
       <!-- Logout button -->
-      <div class="border-t border-gray-200 p-2 flex-shrink-0">
+      <div class="border-t border-light-gray p-2 flex-shrink-0">
         <button
           @click="handleLogout"
-          class="flex items-center w-full rounded-md px-3 py-2.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+          class="flex items-center w-full rounded-md px-3 py-2.5 text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
           :title="effectiveCollapsed ? 'Logout' : ''"
         >
@@ -131,8 +131,6 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
-import logoImage from '@/assets/logoTransparent.png';
-import faviconImage from '@/assets/favicon.png';
 import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
 import BugReportModal from './BugReportModal.vue';
@@ -165,8 +163,8 @@ export default {
     const route = useRoute();
     const router = useRouter();
 
-    const logoUrl = logoImage;
-    const faviconUrl = faviconImage;
+    const logoUrl = '/images/logos/LogoHiResFynlaDark.png';
+    const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
 
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
@@ -284,12 +282,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-</style>

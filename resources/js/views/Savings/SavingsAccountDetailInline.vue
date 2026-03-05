@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="back-button mb-4"
+      class="detail-inline-back mb-4"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -13,13 +13,13 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Loading account details...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Loading account details...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error" class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-6 text-center">
+      <p class="text-raspberry-600">{{ error }}</p>
       <button
         @click="loadAccount"
         class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
@@ -34,13 +34,13 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ account.institution }}</h1>
-            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ formatAccountType(account.account_type) }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.institution }}</h1>
+            <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ formatAccountType(account.account_type) }}</p>
             <div class="flex flex-wrap gap-2 mt-2">
-              <span v-if="account.is_emergency_fund" class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+              <span v-if="account.is_emergency_fund" class="inline-block px-2 py-1 text-xs bg-spring-100 text-spring-800 rounded">
                 Emergency Fund
               </span>
-              <span v-if="account.is_isa" class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+              <span v-if="account.is_isa" class="inline-block px-2 py-1 text-xs bg-violet-100 text-violet-800 rounded">
                 ISA
               </span>
             </div>
@@ -48,7 +48,7 @@
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
               @click="showEditModal = true"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
             >
               Edit
             </button>
@@ -62,17 +62,17 @@
         </div>
 
         <!-- Balance Display -->
-        <div class="mt-4 inline-block bg-gray-50 rounded-lg px-4 py-2">
-          <span class="text-sm text-gray-600">Balance: </span>
-          <span class="text-lg font-bold text-gray-900">{{ formatCurrency(fullBalance) }}</span>
-          <span v-if="isJointAccount" class="text-sm text-gray-500 ml-2">
+        <div class="mt-4 inline-block bg-eggshell-500 rounded-lg px-4 py-2">
+          <span class="text-sm text-neutral-500">Balance: </span>
+          <span class="text-lg font-bold text-horizon-500">{{ formatCurrency(fullBalance) }}</span>
+          <span v-if="isJointAccount" class="text-sm text-neutral-500 ml-2">
             (Your Share: {{ formatCurrency(userShare) }})
           </span>
         </div>
       </div>
 
       <!-- Tab Navigation -->
-      <div class="border-b border-gray-200">
+      <div class="border-b border-light-gray">
         <nav class="flex overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch">
           <button
             v-for="tab in tabs"
@@ -81,8 +81,8 @@
             :class="[
               'px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 flex-shrink-0',
               activeTab === tab.id
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent'
+                ? 'text-violet-600 border-b-2 border-violet-600'
+                : 'text-neutral-500 hover:text-horizon-500 border-b-2 border-transparent'
             ]"
           >
             {{ tab.label }}
@@ -94,33 +94,33 @@
       <transition name="fade" mode="out-in">
         <!-- Overview Tab -->
         <div v-if="activeTab === 'overview'" class="bg-white rounded-lg shadow-md p-6" :key="'overview'">
-          <h3 class="text-lg font-semibold text-gray-800 mb-6">Account Information</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-6">Account Information</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <dl class="space-y-3">
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Institution:</dt>
-                <dd class="text-sm font-medium text-gray-900 text-right">{{ account.institution }}</dd>
+                <dt class="text-sm text-neutral-500">Institution:</dt>
+                <dd class="text-sm font-medium text-horizon-500 text-right">{{ account.institution }}</dd>
               </div>
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Account Type:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ formatAccountType(account.account_type) }}</dd>
+                <dt class="text-sm text-neutral-500">Account Type:</dt>
+                <dd class="text-sm font-medium text-horizon-500">{{ formatAccountType(account.account_type) }}</dd>
               </div>
               <div v-if="account.account_number" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Account Number:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ account.account_number }}</dd>
+                <dt class="text-sm text-neutral-500">Account Number:</dt>
+                <dd class="text-sm font-medium text-horizon-500">{{ account.account_number }}</dd>
               </div>
               <div v-if="account.country" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Country:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ account.country }}</dd>
+                <dt class="text-sm text-neutral-500">Country:</dt>
+                <dd class="text-sm font-medium text-horizon-500">{{ account.country }}</dd>
               </div>
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Ownership:</dt>
-                <dd class="text-sm font-medium text-gray-900 capitalize">{{ account.ownership_type || 'Individual' }}</dd>
+                <dt class="text-sm text-neutral-500">Ownership:</dt>
+                <dd class="text-sm font-medium text-horizon-500 capitalize">{{ account.ownership_type || 'Individual' }}</dd>
               </div>
               <!-- Joint account owners -->
               <div v-if="isJointAccount" class="flex justify-between">
-                <dt class="text-sm text-gray-600">Owners:</dt>
-                <dd class="text-sm font-medium text-gray-900">
+                <dt class="text-sm text-neutral-500">Owners:</dt>
+                <dd class="text-sm font-medium text-horizon-500">
                   {{ account.owner_name || 'Primary' }} &amp; {{ account.joint_owner_name || 'Partner' }}
                 </dd>
               </div>
@@ -128,22 +128,22 @@
             <dl class="space-y-3">
               <!-- Interest Rate -->
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Interest Rate:</dt>
-                <dd class="text-sm font-medium text-blue-600">{{ formatInterestRate(account.interest_rate) }}</dd>
+                <dt class="text-sm text-neutral-500">Interest Rate:</dt>
+                <dd class="text-sm font-medium text-violet-600">{{ formatInterestRate(account.interest_rate) }}</dd>
               </div>
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Annual Interest:</dt>
-                <dd class="text-sm font-medium text-green-600">{{ formatCurrency(annualInterest) }}</dd>
+                <dt class="text-sm text-neutral-500">Annual Interest:</dt>
+                <dd class="text-sm font-medium text-spring-600">{{ formatCurrency(annualInterest) }}</dd>
               </div>
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">Emergency Fund:</dt>
-                <dd class="text-sm font-medium" :class="account.is_emergency_fund ? 'text-green-600' : 'text-gray-500'">
+                <dt class="text-sm text-neutral-500">Emergency Fund:</dt>
+                <dd class="text-sm font-medium" :class="account.is_emergency_fund ? 'text-spring-600' : 'text-neutral-500'">
                   {{ account.is_emergency_fund ? 'Yes' : 'No' }}
                 </dd>
               </div>
               <div class="flex justify-between">
-                <dt class="text-sm text-gray-600">ISA Account:</dt>
-                <dd class="text-sm font-medium" :class="account.is_isa ? 'text-blue-600' : 'text-gray-500'">
+                <dt class="text-sm text-neutral-500">ISA Account:</dt>
+                <dd class="text-sm font-medium" :class="account.is_isa ? 'text-violet-600' : 'text-neutral-500'">
                   {{ account.is_isa ? 'Yes' : 'No' }}
                 </dd>
               </div>
@@ -153,48 +153,48 @@
 
         <!-- Access & Terms Tab -->
         <div v-else-if="activeTab === 'access'" class="bg-white rounded-lg shadow-md p-6" :key="'access'">
-          <h3 class="text-lg font-semibold text-gray-800 mb-6">Access & Terms</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-6">Access & Terms</h3>
           <dl class="space-y-3 max-w-md">
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-600">Access Type:</dt>
-              <dd class="text-sm font-medium text-gray-900 capitalize">{{ formatAccessType(account.access_type) }}</dd>
+              <dt class="text-sm text-neutral-500">Access Type:</dt>
+              <dd class="text-sm font-medium text-horizon-500 capitalize">{{ formatAccessType(account.access_type) }}</dd>
             </div>
             <div v-if="account.access_type === 'notice' && account.notice_period_days" class="flex justify-between">
-              <dt class="text-sm text-gray-600">Notice Period:</dt>
-              <dd class="text-sm font-medium text-blue-600">{{ account.notice_period_days }} days</dd>
+              <dt class="text-sm text-neutral-500">Notice Period:</dt>
+              <dd class="text-sm font-medium text-violet-600">{{ account.notice_period_days }} days</dd>
             </div>
             <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-              <dt class="text-sm text-gray-600">Maturity Date:</dt>
-              <dd class="text-sm font-medium" :class="isMatured ? 'text-gray-600' : 'text-blue-600'">
+              <dt class="text-sm text-neutral-500">Maturity Date:</dt>
+              <dd class="text-sm font-medium" :class="isMatured ? 'text-neutral-500' : 'text-violet-600'">
                 {{ formatDate(account.maturity_date) }}
               </dd>
             </div>
             <div v-if="account.access_type === 'fixed' && account.maturity_date" class="flex justify-between">
-              <dt class="text-sm text-gray-600">Time to Maturity:</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ calculateTimeToMaturity }}</dd>
+              <dt class="text-sm text-neutral-500">Time to Maturity:</dt>
+              <dd class="text-sm font-medium text-horizon-500">{{ calculateTimeToMaturity }}</dd>
             </div>
           </dl>
         </div>
 
         <!-- ISA Details Tab (conditional) -->
         <div v-else-if="activeTab === 'isa' && account.is_isa" class="bg-white rounded-lg shadow-md p-6" :key="'isa'">
-          <h3 class="text-lg font-semibold text-gray-800 mb-6">ISA Details</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-6">ISA Details</h3>
           <dl class="space-y-3 max-w-md">
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-600">ISA Type:</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ formatISAType(account.isa_type) }}</dd>
+              <dt class="text-sm text-neutral-500">ISA Type:</dt>
+              <dd class="text-sm font-medium text-horizon-500">{{ formatISAType(account.isa_type) }}</dd>
             </div>
             <div v-if="account.isa_subscription_year" class="flex justify-between">
-              <dt class="text-sm text-gray-600">Subscription Year:</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ account.isa_subscription_year }}</dd>
+              <dt class="text-sm text-neutral-500">Subscription Year:</dt>
+              <dd class="text-sm font-medium text-horizon-500">{{ account.isa_subscription_year }}</dd>
             </div>
             <div v-if="account.isa_subscription_amount" class="flex justify-between">
-              <dt class="text-sm text-gray-600">Subscription Amount:</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
+              <dt class="text-sm text-neutral-500">Subscription Amount:</dt>
+              <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(account.isa_subscription_amount) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-gray-600">Tax-Free Status:</dt>
-              <dd class="text-sm font-medium text-green-600">Tax-Free Interest</dd>
+              <dt class="text-sm text-neutral-500">Tax-Free Status:</dt>
+              <dd class="text-sm font-medium text-spring-600">Tax-Free Interest</dd>
             </div>
           </dl>
         </div>
@@ -501,35 +501,6 @@ export default {
   to {
     opacity: 1;
   }
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #374151;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-}
-
-/* Hide scrollbar for horizontal tab navigation */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
 }
 
 /* Smooth scrolling on iOS */

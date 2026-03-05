@@ -4,25 +4,25 @@
       <!-- 2FA Security Reminder Banner -->
       <div
         v-if="showMFABanner"
-        class="mb-6 bg-green-100 border border-green-300 rounded-lg p-4 shadow-sm"
+        class="mb-6 bg-spring-100 border border-spring-300 rounded-lg p-4 shadow-sm"
       >
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-              <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 bg-spring-200 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-spring-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
           </div>
           <div class="flex-1">
-            <h3 class="text-sm font-semibold text-green-800">Secure Your Account with Two-Factor Authentication</h3>
-            <p class="mt-1 text-sm text-green-700">
+            <h3 class="text-sm font-semibold text-spring-800">Secure Your Account with Two-Factor Authentication</h3>
+            <p class="mt-1 text-sm text-spring-700">
               Protect your financial data by enabling two-factor authentication. It adds an extra layer of security using an authenticator app on your phone.
             </p>
             <div class="mt-3 flex items-center gap-3">
               <router-link
                 to="/settings/security"
-                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
+                class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -31,7 +31,7 @@
               </router-link>
               <button
                 @click="dismissMFABanner"
-                class="text-sm text-green-700 hover:text-green-900 underline"
+                class="text-sm text-spring-700 hover:text-spring-900 underline"
               >
                 Remind me later
               </button>
@@ -39,7 +39,7 @@
           </div>
           <button
             @click="dismissMFABanner"
-            class="flex-shrink-0 text-green-500 hover:text-green-700"
+            class="flex-shrink-0 text-spring-500 hover:text-spring-700"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -51,7 +51,7 @@
       <!-- Three-column dashboard grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <!-- Areas to Complete Card (shown first when user has skipped steps) -->
-        <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-gray-200 p-6">
+        <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-6">
           <AreasToCompleteCard />
         </div>
 
@@ -68,18 +68,18 @@
                 v-for="(tx, idx) in recentTransactions"
                 :key="idx"
                 class="flex items-center justify-between py-2.5"
-                :class="{ 'border-b border-gray-100': idx < recentTransactions.length - 1 }"
+                :class="{ 'border-b border-light-gray': idx < recentTransactions.length - 1 }"
               >
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium text-gray-900 truncate">{{ tx.description }}</div>
+                  <div class="text-sm font-medium text-horizon-500 truncate">{{ tx.description }}</div>
                   <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-xs text-gray-500">{{ tx.relativeDate }}</span>
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ tx.account }}</span>
+                    <span class="text-xs text-neutral-500">{{ tx.relativeDate }}</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-savannah-100 text-neutral-500">{{ tx.account }}</span>
                   </div>
                 </div>
                 <div
                   class="text-sm font-semibold ml-3 whitespace-nowrap"
-                  :class="tx.type === 'credit' ? 'text-green-600' : 'text-red-600'"
+                  :class="tx.type === 'credit' ? 'text-spring-600' : 'text-raspberry-600'"
                 >
                   {{ tx.type === 'credit' ? '+' : '' }}{{ formatCurrency(tx.amount) }}
                 </div>
@@ -87,7 +87,7 @@
             </div>
           </div>
           <div v-else class="text-center py-4">
-            <p class="text-sm text-gray-500">No recent transactions</p>
+            <p class="text-sm text-neutral-500">No recent transactions</p>
           </div>
         </DashboardCard>
 
@@ -99,10 +99,10 @@
           @click="navigateTo('/net-worth/liabilities')"
         >
           <div v-if="studentLiability" class="space-y-4">
-            <div class="border-b border-gray-200 pb-4">
-              <span class="text-sm text-gray-500">Outstanding Balance</span>
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Outstanding Balance</span>
               <div class="mt-1">
-                <span class="text-3xl font-bold text-red-600">
+                <span class="text-3xl font-bold text-raspberry-600">
                   {{ formatCurrency(studentLiability.balance) }}
                 </span>
               </div>
@@ -110,31 +110,31 @@
 
             <div class="space-y-3">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Plan Type</span>
-                <span class="font-medium text-gray-900">Plan 5</span>
+                <span class="text-neutral-500">Plan Type</span>
+                <span class="font-medium text-horizon-500">Plan 5</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Interest Rate</span>
-                <span class="font-medium text-gray-900">{{ studentLiability.interestRate }}%</span>
+                <span class="text-neutral-500">Interest Rate</span>
+                <span class="font-medium text-horizon-500">{{ studentLiability.interestRate }}%</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Repayment Threshold</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(25000) }}/yr</span>
+                <span class="text-neutral-500">Repayment Threshold</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(25000) }}/yr</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Monthly Repayments</span>
-                <span class="font-medium text-green-600">None (studying)</span>
+                <span class="text-neutral-500">Monthly Repayments</span>
+                <span class="font-medium text-spring-600">None (studying)</span>
               </div>
             </div>
 
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-              <p class="text-xs text-blue-700">
+            <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 mt-3">
+              <p class="text-xs text-violet-700">
                 Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(25000) }} per year. Your loan is written off after 40 years.
               </p>
             </div>
           </div>
           <div v-else class="text-center py-4">
-            <p class="text-sm text-gray-500">No student loan data available.</p>
+            <p class="text-sm text-neutral-500">No student loan data available.</p>
           </div>
         </DashboardCard>
 
@@ -156,7 +156,7 @@
                 height="280"
               />
               <div class="text-center text-sm mt-1">
-                <span class="font-semibold" :class="netWorthData.netWorth >= 0 ? 'text-green-600' : 'text-red-600'">
+                <span class="font-semibold" :class="netWorthData.netWorth >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
                   Net Worth: {{ formatCurrency(netWorthData.netWorth) }}
                 </span>
               </div>
@@ -173,12 +173,12 @@
               />
               <div class="flex justify-between text-sm mt-2">
                 <div>
-                  <span class="text-gray-500">Assets</span>
-                  <div class="font-semibold text-blue-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
+                  <span class="text-neutral-500">Assets</span>
+                  <div class="font-semibold text-violet-600">{{ formatCurrency(netWorthData.totalAssets) }}</div>
                 </div>
                 <div class="text-right">
-                  <span class="text-gray-500">Liabilities</span>
-                  <div class="font-semibold text-red-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
+                  <span class="text-neutral-500">Liabilities</span>
+                  <div class="font-semibold text-raspberry-600">{{ formatCurrency(netWorthData.totalLiabilities) }}</div>
                 </div>
               </div>
             </template>
@@ -186,12 +186,12 @@
 
           <!-- Empty state when no assets or liabilities -->
           <div v-else class="space-y-4">
-            <div class="border-b border-gray-200 pb-4">
-              <span class="text-3xl font-bold text-gray-400">
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-3xl font-bold text-horizon-400">
                 {{ formatCurrency(0) }}
               </span>
             </div>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-neutral-500">
               Add your assets and liabilities to see your net worth here.
             </p>
           </div>
@@ -206,37 +206,37 @@
         >
           <div v-if="hasEstateData" class="space-y-4">
             <!-- Taxable Estate Now -->
-            <div class="border-b border-gray-200 pb-4">
-              <span class="text-sm text-gray-500">Taxable Estate on Joint Death Now</span>
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Taxable Estate on Joint Death Now</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-primary-600">
+                <span class="text-2xl font-bold text-raspberry-500">
                   {{ formatCurrency(estateData.taxableEstate) }}
                 </span>
               </div>
             </div>
 
             <!-- Current IHT Liability -->
-            <div class="border-b border-gray-200 pb-4">
-              <div class="text-sm font-semibold text-gray-900 mb-2">Current Inheritance Tax Liability</div>
+            <div class="border-b border-light-gray pb-4">
+              <div class="text-sm font-semibold text-horizon-500 mb-2">Current Inheritance Tax Liability</div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Amount Due</span>
-                <span class="font-medium text-gray-900">{{ formatCurrency(estateData.ihtLiability) }}</span>
+                <span class="text-neutral-500">Amount Due</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(estateData.ihtLiability) }}</span>
               </div>
             </div>
 
             <!-- Trusts -->
             <div v-if="trustsList.length > 0" class="space-y-3">
-              <div class="text-sm font-semibold text-gray-900">Trusts</div>
+              <div class="text-sm font-semibold text-horizon-500">Trusts</div>
               <div
                 v-for="trust in trustsList"
                 :key="trust.id"
-                class="pb-2 border-b border-gray-100 last:border-0 last:pb-0"
+                class="pb-2 border-b border-light-gray last:border-0 last:pb-0"
               >
                 <div class="flex justify-between text-sm">
-                  <span class="font-medium text-gray-900">{{ trust.trust_name }}</span>
-                  <span class="font-medium text-gray-900">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                  <span class="font-medium text-horizon-500">{{ trust.trust_name }}</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
                 </div>
-                <div v-if="trust.beneficiaries" class="text-xs text-gray-500 mt-1">
+                <div v-if="trust.beneficiaries" class="text-xs text-neutral-500 mt-1">
                   Beneficiaries: {{ trust.beneficiaries }}
                 </div>
               </div>
@@ -245,27 +245,27 @@
 
           <!-- Empty state when no estate data -->
           <div v-else class="space-y-4">
-            <div class="border-b border-gray-200 pb-4">
-              <span class="text-sm text-gray-500">Taxable Estate</span>
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Taxable Estate</span>
               <div class="mt-1">
-                <span class="text-3xl font-bold text-gray-400">
+                <span class="text-3xl font-bold text-horizon-400">
                   {{ formatCurrency(0) }}
                 </span>
               </div>
             </div>
-            <p class="text-sm text-gray-500">
+            <p class="text-sm text-neutral-500">
               Add your assets and liabilities to see your estate value and inheritance tax position.
             </p>
           </div>
 
           <!-- Will question when not yet answered -->
-          <div v-if="!willAnswered" class="mt-4 pt-4 border-t border-gray-200" @click.stop>
-            <div class="text-sm font-semibold text-gray-900 mb-2">Do you currently have a valid will?</div>
+          <div v-if="!willAnswered" class="mt-4 pt-4 border-t border-light-gray" @click.stop>
+            <div class="text-sm font-semibold text-horizon-500 mb-2">Do you currently have a valid will?</div>
             <div class="flex gap-3">
               <button
                 type="button"
                 class="flex-1 py-2 px-3 text-sm font-medium rounded-button border transition-colors"
-                :class="willSelection === true ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                :class="willSelection === true ? 'bg-raspberry-500 text-white border-raspberry-500' : 'bg-white text-neutral-500 border-horizon-300 hover:bg-savannah-100'"
                 @click="selectWill(true)"
               >
                 Yes
@@ -273,13 +273,13 @@
               <button
                 type="button"
                 class="flex-1 py-2 px-3 text-sm font-medium rounded-button border transition-colors"
-                :class="willSelection === false ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                :class="willSelection === false ? 'bg-raspberry-500 text-white border-raspberry-500' : 'bg-white text-neutral-500 border-horizon-300 hover:bg-savannah-100'"
                 @click="selectWill(false)"
               >
                 No
               </button>
             </div>
-            <p v-if="willSelection === false" class="mt-2 text-xs text-gray-500">
+            <p v-if="willSelection === false" class="mt-2 text-xs text-neutral-500">
               A valid will ensures your estate is distributed according to your wishes.
             </p>
           </div>
@@ -297,36 +297,36 @@
           <div v-if="isRetired" class="space-y-3">
             <!-- Income Sources Breakdown -->
             <div v-if="retiredIncomeData.pensionDrawdown > 0" class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">Pension Drawdown</span>
-              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.pensionDrawdown) }}/yr</span>
+              <span class="text-sm text-neutral-500">Pension Drawdown</span>
+              <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(retiredIncomeData.pensionDrawdown) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.dbPensionIncome > 0" class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">Defined Benefit Pension</span>
-              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.dbPensionIncome) }}/yr</span>
+              <span class="text-sm text-neutral-500">Defined Benefit Pension</span>
+              <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(retiredIncomeData.dbPensionIncome) }}/yr</span>
             </div>
             <div v-if="retiredIncomeData.statePensionIncome > 0" class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">State Pension</span>
-              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retiredIncomeData.statePensionIncome) }}/yr</span>
+              <span class="text-sm text-neutral-500">State Pension</span>
+              <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(retiredIncomeData.statePensionIncome) }}/yr</span>
             </div>
 
             <!-- Total Income -->
-            <div class="flex justify-between items-center pt-3 border-t border-gray-200">
-              <span class="text-sm font-medium text-gray-700">Total Income</span>
-              <span class="text-sm font-bold text-green-600">{{ formatCurrency(retiredIncomeData.totalIncome) }}/yr</span>
+            <div class="flex justify-between items-center pt-3 border-t border-light-gray">
+              <span class="text-sm font-medium text-horizon-500">Total Income</span>
+              <span class="text-sm font-bold text-spring-600">{{ formatCurrency(retiredIncomeData.totalIncome) }}/yr</span>
             </div>
 
             <!-- Income Need -->
             <div class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">Income Need</span>
-              <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(retirementData.targetIncome) }}/yr</span>
+              <span class="text-sm text-neutral-500">Income Need</span>
+              <span class="text-sm font-semibold text-horizon-500">{{ formatCurrency(retirementData.targetIncome) }}/yr</span>
             </div>
 
             <!-- Surplus/Shortfall aligned right -->
             <div class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">{{ retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'Surplus' : 'Shortfall' }}</span>
+              <span class="text-sm text-neutral-500">{{ retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'Surplus' : 'Shortfall' }}</span>
               <span
                 class="text-sm font-semibold"
-                :class="retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'text-green-600' : 'text-blue-600'"
+                :class="retiredIncomeData.totalIncome >= retirementData.targetIncome ? 'text-spring-600' : 'text-violet-600'"
               >
                 {{ formatCurrency(Math.abs(retiredIncomeData.totalIncome - retirementData.targetIncome)) }}/yr
               </span>
@@ -336,41 +336,41 @@
           <!-- NON-RETIRED USER: Show projections -->
           <div v-else class="space-y-4">
             <!-- Income row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-gray-200 pb-4">
+            <div class="flex justify-between border-b border-light-gray pb-4">
               <div>
-                <span class="text-sm text-gray-500">Projected Income</span>
+                <span class="text-sm text-neutral-500">Projected Income</span>
                 <div class="flex items-baseline gap-1 mt-1">
-                  <span class="text-2xl font-bold text-green-600">
+                  <span class="text-2xl font-bold text-spring-600">
                     {{ formatCurrency(retirementData.projectedIncome) }}
                   </span>
-                  <span class="text-xs text-gray-500">/yr</span>
+                  <span class="text-xs text-neutral-500">/yr</span>
                 </div>
               </div>
               <div class="text-right">
-                <span class="text-sm text-gray-500">Required Income</span>
+                <span class="text-sm text-neutral-500">Required Income</span>
                 <div class="flex items-baseline justify-end gap-1 mt-1">
-                  <span class="text-2xl font-bold text-gray-700">
+                  <span class="text-2xl font-bold text-horizon-500">
                     {{ formatCurrency(retirementData.targetIncome) }}
                   </span>
-                  <span class="text-xs text-gray-500">/yr</span>
+                  <span class="text-xs text-neutral-500">/yr</span>
                 </div>
               </div>
             </div>
 
             <!-- Capital row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-gray-200 pb-4">
+            <div class="flex justify-between border-b border-light-gray pb-4">
               <div>
-                <span class="text-sm text-gray-500">Projected Capital</span>
+                <span class="text-sm text-neutral-500">Projected Capital</span>
                 <div class="mt-1">
-                  <span class="text-2xl font-bold text-green-600">
+                  <span class="text-2xl font-bold text-spring-600">
                     {{ formatCurrency(retirementData.projectedCapital) }}
                   </span>
                 </div>
               </div>
               <div class="text-right">
-                <span class="text-sm text-gray-500">Capital Required</span>
+                <span class="text-sm text-neutral-500">Capital Required</span>
                 <div class="mt-1">
-                  <span class="text-2xl font-bold text-gray-700">
+                  <span class="text-2xl font-bold text-horizon-500">
                     {{ formatCurrency(retirementData.capitalRequired) }}
                   </span>
                 </div>
@@ -380,12 +380,12 @@
             <!-- Retirement age and years -->
             <div class="flex justify-between">
               <div v-if="retirementData.retirementAge" class="text-center">
-                <span class="text-sm text-gray-500">Retirement Age</span>
-                <div class="text-lg font-semibold text-gray-900">{{ retirementData.retirementAge }}</div>
+                <span class="text-sm text-neutral-500">Retirement Age</span>
+                <div class="text-lg font-semibold text-horizon-500">{{ retirementData.retirementAge }}</div>
               </div>
               <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
-                <span class="text-sm text-gray-500">Years to Retirement</span>
-                <div class="text-lg font-semibold text-gray-900">{{ retirementData.yearsToRetirement }} years</div>
+                <span class="text-sm text-neutral-500">Years to Retirement</span>
+                <div class="text-lg font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
               </div>
             </div>
           </div>
@@ -401,10 +401,10 @@
             <template v-if="lisaAllowanceData">
               <div>
                 <div class="flex justify-between items-baseline mb-1">
-                  <span class="text-sm font-semibold text-gray-700">Lifetime ISA</span>
-                  <span class="text-xs text-gray-500">{{ currentTaxYear }}</span>
+                  <span class="text-sm font-semibold text-horizon-500">Lifetime ISA</span>
+                  <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
                 </div>
-                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                   <div
                     class="h-2 rounded-full transition-all"
                     :class="allowanceBarClass(lisaAllowanceData.percentUsed, false)"
@@ -412,26 +412,26 @@
                   ></div>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
-                  <span class="text-green-600 font-medium">
+                  <span class="text-neutral-500">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
+                  <span class="text-spring-600 font-medium">
                     {{ formatCurrency(lisaAllowanceData.remaining) }} remaining
                   </span>
                 </div>
-                <div class="text-xs text-gray-500 mt-1">
+                <div class="text-xs text-neutral-500 mt-1">
                   25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned of {{ formatCurrency(lisaAllowanceData.maxBonus) }} max
                 </div>
               </div>
-              <div class="border-t border-gray-100"></div>
+              <div class="border-t border-light-gray"></div>
             </template>
 
             <!-- ISA Allowance -->
             <div v-if="isaAllowanceData">
               <div class="flex justify-between items-baseline mb-1">
-                <span class="text-sm font-semibold text-gray-700">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
-                <span class="text-xs text-gray-500">2025/26</span>
+                <span class="text-sm font-semibold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
+                <span class="text-xs text-neutral-500">2025/26</span>
               </div>
               <!-- Progress bar -->
-              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                 <div
                   class="h-2 rounded-full transition-all"
                   :class="allowanceBarClass(isaAllowanceData.percentUsed, false)"
@@ -439,39 +439,39 @@
                 ></div>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
-                <span :class="isaAllowanceData.remaining >= 0 ? 'text-green-600' : 'text-red-600'" class="font-medium">
+                <span class="text-neutral-500">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
+                <span :class="isaAllowanceData.remaining >= 0 ? 'text-spring-600' : 'text-raspberry-600'" class="font-medium">
                   {{ formatCurrency(isaAllowanceData.remaining) }} remaining
                 </span>
               </div>
               <!-- Cash / Stocks & Shares breakdown -->
-              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-gray-500">
+              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-neutral-500">
                 <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
                 <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
               </div>
             </div>
 
             <!-- Divider -->
-            <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-gray-100"></div>
+            <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-light-gray"></div>
 
             <!-- Pension Annual Allowance -->
             <div v-if="pensionAllowanceData">
               <div class="flex justify-between items-baseline mb-1">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-semibold text-gray-700">Pension Annual Allowance</span>
+                  <span class="text-sm font-semibold text-horizon-500">Pension Annual Allowance</span>
                   <span
                     v-if="pensionAllowanceData.isTapered"
-                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700"
                   >Tapered</span>
                   <span
                     v-if="pensionAllowanceData.mpaaTriggered"
-                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700"
                   >Money Purchase Annual Allowance</span>
                 </div>
-                <span class="text-xs text-gray-500">{{ currentTaxYear }}</span>
+                <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
               </div>
               <!-- Progress bar -->
-              <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                 <div
                   class="h-2 rounded-full transition-all"
                   :class="allowanceBarClass(pensionStandardPercent, false)"
@@ -479,25 +479,25 @@
                 ></div>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">{{ formatCurrency(pensionStandardUsed) }} used</span>
-                <span class="text-green-600 font-medium">
+                <span class="text-neutral-500">{{ formatCurrency(pensionStandardUsed) }} used</span>
+                <span class="text-spring-600 font-medium">
                   {{ formatCurrency(pensionStandardRemaining) }} remaining
                 </span>
               </div>
-              <div class="text-xs text-gray-500 mt-1">
+              <div class="text-xs text-neutral-500 mt-1">
                 of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
               </div>
             </div>
 
             <!-- Carry Forward (only when contributions exceed standard allowance) -->
             <template v-if="pensionAllowanceData && carryForwardData">
-              <div class="border-t border-gray-100"></div>
+              <div class="border-t border-light-gray"></div>
               <div>
                 <div class="flex justify-between items-baseline mb-1">
-                  <span class="text-sm font-semibold text-gray-700">Carry Forward</span>
-                  <span class="text-xs text-gray-500">{{ carryForwardTaxYear }}</span>
+                  <span class="text-sm font-semibold text-horizon-500">Carry Forward</span>
+                  <span class="text-xs text-neutral-500">{{ carryForwardTaxYear }}</span>
                 </div>
-                <div class="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                   <div
                     class="h-2 rounded-full transition-all"
                     :class="allowanceBarClass(carryForwardData.percentUsed, false)"
@@ -505,12 +505,12 @@
                   ></div>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">{{ formatCurrency(carryForwardData.used) }} used</span>
-                  <span class="text-green-600 font-medium">
+                  <span class="text-neutral-500">{{ formatCurrency(carryForwardData.used) }} used</span>
+                  <span class="text-spring-600 font-medium">
                     {{ formatCurrency(carryForwardData.remaining) }} remaining
                   </span>
                 </div>
-                <div class="text-xs text-gray-500 mt-1">
+                <div class="text-xs text-neutral-500 mt-1">
                   of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
                 </div>
               </div>
@@ -519,13 +519,13 @@
 
           <!-- Empty state -->
           <div v-else class="text-center py-4">
-            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
-              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="mx-auto w-12 h-12 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-raspberry-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 class="text-sm font-semibold text-gray-900 mb-1">No Allowance Data</h3>
-            <p class="text-xs text-gray-500">
+            <h3 class="text-sm font-semibold text-horizon-500 mb-1">No Allowance Data</h3>
+            <p class="text-xs text-neutral-500">
               Add savings or pension accounts to track your tax allowances.
             </p>
           </div>
@@ -546,13 +546,13 @@
 
           <!-- Empty state for goals -->
           <div v-else class="text-center py-4">
-            <div class="mx-auto w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-3">
-              <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="mx-auto w-12 h-12 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-raspberry-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 class="text-sm font-semibold text-gray-900 mb-1">Set Your First Goal</h3>
-            <p class="text-xs text-gray-500">
+            <h3 class="text-sm font-semibold text-horizon-500 mb-1">Set Your First Goal</h3>
+            <p class="text-xs text-neutral-500">
               Track your financial goals and life events
             </p>
           </div>
@@ -796,7 +796,7 @@ export default {
       return {
         chart: {
           type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         labels: this.netWorthChartLabels,
         colors: this.netWorthChartColors,
@@ -866,7 +866,7 @@ export default {
       return {
         chart: {
           type: 'bar',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: { show: false },
           offsetY: 0,
         },
@@ -1305,9 +1305,9 @@ export default {
     },
 
     allowanceBarClass(percentUsed, isOverLimit) {
-      if (isOverLimit || percentUsed >= 95) return 'bg-red-500';
-      if (percentUsed >= 75) return 'bg-blue-500';
-      return 'bg-green-500';
+      if (isOverLimit || percentUsed >= 95) return 'bg-raspberry-500';
+      if (percentUsed >= 75) return 'bg-violet-500';
+      return 'bg-spring-500';
     },
 
     dismissMFABanner() {

@@ -2,25 +2,25 @@
   <div class="net-worth-tab">
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-blue-50 rounded-lg p-6">
-        <p class="text-sm text-blue-600 font-medium mb-2">Total Assets</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formattedTotalAssets }}</p>
+      <div class="bg-violet-50 rounded-lg p-6">
+        <p class="text-sm text-violet-600 font-medium mb-2">Total Assets</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ formattedTotalAssets }}</p>
       </div>
-      <div class="bg-red-50 rounded-lg p-6">
-        <p class="text-sm text-red-600 font-medium mb-2">Total Liabilities</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formattedTotalLiabilities }}</p>
+      <div class="bg-raspberry-50 rounded-lg p-6">
+        <p class="text-sm text-raspberry-600 font-medium mb-2">Total Liabilities</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ formattedTotalLiabilities }}</p>
       </div>
-      <div class="bg-green-50 rounded-lg p-6">
-        <p class="text-sm text-green-600 font-medium mb-2">Net Worth</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formattedNetWorth }}</p>
+      <div class="bg-spring-50 rounded-lg p-6">
+        <p class="text-sm text-spring-600 font-medium mb-2">Net Worth</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ formattedNetWorth }}</p>
       </div>
     </div>
 
     <!-- Net Worth Waterfall Chart -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Net Worth Breakdown</h3>
+    <div class="bg-white rounded-lg border border-light-gray p-6 mb-8">
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Net Worth Breakdown</h3>
       <!-- Chart temporarily disabled to fix navigation issues -->
-      <div class="text-center py-8 text-gray-500">
+      <div class="text-center py-8 text-neutral-500">
         Chart visualization coming soon
       </div>
       <!-- <NetWorthWaterfallChart :assets="assets" :liabilities="liabilities" /> -->
@@ -28,9 +28,9 @@
 
     <!-- Asset Composition -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Asset Composition</h3>
-        <div v-if="assets.length === 0" class="text-center py-8 text-gray-500">
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Asset Composition</h3>
+        <div v-if="assets.length === 0" class="text-center py-8 text-neutral-500">
           No assets recorded yet
         </div>
         <div v-else class="space-y-4">
@@ -39,17 +39,17 @@
             :key="type"
             class="flex justify-between items-center"
           >
-            <span class="text-sm text-gray-600">{{ type }}</span>
-            <span class="text-sm font-medium text-gray-900">
+            <span class="text-sm text-neutral-500">{{ type }}</span>
+            <span class="text-sm font-medium text-horizon-500">
               {{ formatCurrency(sumAssets(group)) }}
             </span>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Liability Composition</h3>
-        <div v-if="liabilities.length === 0" class="text-center py-8 text-gray-500">
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Liability Composition</h3>
+        <div v-if="liabilities.length === 0" class="text-center py-8 text-neutral-500">
           No liabilities recorded yet
         </div>
         <div v-else class="space-y-4">
@@ -58,8 +58,8 @@
             :key="type"
             class="flex justify-between items-center"
           >
-            <span class="text-sm text-gray-600">{{ type }}</span>
-            <span class="text-sm font-medium text-gray-900">
+            <span class="text-sm text-neutral-500">{{ type }}</span>
+            <span class="text-sm font-medium text-horizon-500">
               {{ formatCurrency(sumLiabilities(group)) }}
             </span>
           </div>

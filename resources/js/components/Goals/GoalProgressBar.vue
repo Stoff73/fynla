@@ -1,10 +1,10 @@
 <template>
   <div class="goal-progress-bar">
     <div class="flex justify-between items-center mb-1">
-      <span v-if="showLabel" class="text-sm text-gray-600">{{ label }}</span>
+      <span v-if="showLabel" class="text-sm text-neutral-500">{{ label }}</span>
       <span class="text-sm font-semibold" :class="percentageClass">{{ displayPercentage }}%</span>
     </div>
-    <div class="w-full bg-gray-200 rounded-full" :class="heightClass">
+    <div class="w-full bg-horizon-200 rounded-full" :class="heightClass">
       <div
         class="rounded-full transition-all duration-500"
         :class="[heightClass, barClass]"
@@ -21,7 +21,7 @@
         </div>
       </div>
     </div>
-    <div v-if="showAmounts" class="flex justify-between items-center mt-1 text-xs text-gray-500">
+    <div v-if="showAmounts" class="flex justify-between items-center mt-1 text-xs text-neutral-500">
       <span>{{ formatCurrency(currentAmount) }}</span>
       <span>{{ formatCurrency(targetAmount) }}</span>
     </div>
@@ -97,34 +97,34 @@ export default {
     barClass() {
       if (this.variant !== 'auto') {
         const variants = {
-          success: 'bg-green-500',
-          warning: 'bg-blue-500',
-          danger: 'bg-red-500',
-          info: 'bg-blue-500',
+          success: 'bg-spring-500',
+          warning: 'bg-violet-500',
+          danger: 'bg-raspberry-500',
+          info: 'bg-violet-500',
         };
-        return variants[this.variant] || 'bg-blue-500';
+        return variants[this.variant] || 'bg-violet-500';
       }
 
       // Auto color based on progress and track status
-      if (this.percentage >= 100) return 'bg-green-500';
-      if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-blue-500';
+      if (this.percentage >= 100) return 'bg-spring-500';
+      if (this.isOnTrack) return 'bg-violet-500';
+      return 'bg-violet-500';
     },
 
     percentageClass() {
       if (this.variant !== 'auto') {
         const variants = {
-          success: 'text-green-600',
-          warning: 'text-blue-600',
-          danger: 'text-red-600',
-          info: 'text-blue-600',
+          success: 'text-spring-600',
+          warning: 'text-violet-600',
+          danger: 'text-raspberry-600',
+          info: 'text-violet-600',
         };
-        return variants[this.variant] || 'text-blue-600';
+        return variants[this.variant] || 'text-violet-600';
       }
 
-      if (this.percentage >= 100) return 'text-green-600';
-      if (this.isOnTrack) return 'text-blue-600';
-      return 'text-blue-600';
+      if (this.percentage >= 100) return 'text-spring-600';
+      if (this.isOnTrack) return 'text-violet-600';
+      return 'text-violet-600';
     },
   },
 };

@@ -8,24 +8,24 @@
             v-for="milestone in milestones"
             :key="milestone.value"
             class="w-2 h-2 rounded-full"
-            :class="milestone.reached ? 'bg-green-500' : 'bg-gray-200'"
+            :class="milestone.reached ? 'bg-spring-500' : 'bg-horizon-200'"
           ></span>
         </div>
-        <span class="text-xs text-gray-500">{{ reachedCount }}/{{ milestones.length }} milestones</span>
+        <span class="text-xs text-neutral-500">{{ reachedCount }}/{{ milestones.length }} milestones</span>
       </div>
     </template>
 
     <!-- Full Mode -->
     <template v-else>
       <div class="flex items-center justify-between mb-2">
-        <h4 class="text-sm font-medium text-gray-900">Milestones</h4>
-        <span class="text-xs text-gray-500">{{ reachedCount }}/{{ milestones.length }} reached</span>
+        <h4 class="text-sm font-medium text-horizon-500">Milestones</h4>
+        <span class="text-xs text-neutral-500">{{ reachedCount }}/{{ milestones.length }} reached</span>
       </div>
 
       <!-- Progress Line with Milestones -->
       <div class="relative pt-2 pb-6">
         <!-- Background Line -->
-        <div class="absolute top-4 left-0 right-0 h-1 bg-gray-200 rounded-full"></div>
+        <div class="absolute top-4 left-0 right-0 h-1 bg-horizon-200 rounded-full"></div>
 
         <!-- Progress Line -->
         <div
@@ -47,13 +47,13 @@
               :class="getMilestoneClass(milestone)"
             >
               <span v-if="milestone.reached" class="text-xs">{{ milestone.icon }}</span>
-              <span v-else class="text-xs text-gray-400">{{ milestone.value }}</span>
+              <span v-else class="text-xs text-horizon-400">{{ milestone.value }}</span>
             </div>
 
             <!-- Label -->
             <span
               class="mt-2 text-xs font-medium"
-              :class="milestone.reached ? 'text-green-600' : 'text-gray-400'"
+              :class="milestone.reached ? 'text-spring-600' : 'text-horizon-400'"
             >
               {{ milestone.label }}
             </span>
@@ -62,14 +62,14 @@
       </div>
 
       <!-- Next Milestone Info -->
-      <div v-if="nextMilestone" class="mt-2 p-3 bg-blue-50 rounded-lg">
+      <div v-if="nextMilestone" class="mt-2 p-3 bg-violet-50 rounded-lg">
         <div class="flex items-center gap-2">
           <span class="text-lg">{{ nextMilestone.icon }}</span>
           <div class="flex-1">
-            <p class="text-sm font-medium text-blue-900">
+            <p class="text-sm font-medium text-violet-900">
               Next: {{ nextMilestone.label }}
             </p>
-            <p class="text-xs text-blue-700">
+            <p class="text-xs text-violet-700">
               {{ formatCurrency(amountToNextMilestone) }} more to reach {{ nextMilestone.value }}%
             </p>
           </div>
@@ -77,20 +77,20 @@
       </div>
 
       <!-- Completion Celebration -->
-      <div v-if="isComplete" class="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+      <div v-if="isComplete" class="mt-2 p-3 bg-spring-50 border border-spring-200 rounded-lg">
         <div class="flex items-center gap-2">
           <span class="text-lg">🎉</span>
-          <p class="text-sm font-medium text-green-700">
+          <p class="text-sm font-medium text-spring-700">
             Goal achieved! All milestones reached!
           </p>
         </div>
       </div>
 
       <!-- Recent Milestone Achievement -->
-      <div v-if="showLastAchievement && lastReachedMilestone" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div v-if="showLastAchievement && lastReachedMilestone" class="mt-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
         <div class="flex items-center gap-2">
           <span class="text-lg">{{ lastReachedMilestone.icon }}</span>
-          <p class="text-sm font-medium text-blue-700">
+          <p class="text-sm font-medium text-violet-700">
             {{ lastReachedMilestone.label }} milestone reached!
           </p>
         </div>
@@ -179,9 +179,9 @@ export default {
   methods: {
     getMilestoneClass(milestone) {
       if (milestone.reached) {
-        return 'bg-green-100 border-green-500 text-green-600';
+        return 'bg-spring-100 border-spring-500 text-spring-600';
       }
-      return 'bg-white border-gray-300';
+      return 'bg-white border-horizon-300';
     },
   },
 };

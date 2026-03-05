@@ -1,6 +1,6 @@
 <template>
   <div
-    class="goal-card bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 cursor-pointer"
+    class="goal-card bg-white border border-light-gray rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 cursor-pointer"
     :class="{ 'border-l-4': true, [borderColorClass]: true }"
     @click="$emit('view', goal)"
   >
@@ -9,7 +9,7 @@
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">
           <span class="text-lg">{{ goalTypeIcon }}</span>
-          <h3 class="text-base font-semibold text-gray-900">{{ goal.goal_name }}</h3>
+          <h3 class="text-base font-semibold text-horizon-500">{{ goal.goal_name }}</h3>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs px-2 py-0.5 rounded-full" :class="moduleTagClass">
@@ -22,7 +22,7 @@
             {{ goal.priority }}
           </span>
           <span v-if="isBlocked"
-            class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 flex items-center gap-1"
+            class="text-xs px-2 py-0.5 rounded-full bg-raspberry-100 text-raspberry-700 flex items-center gap-1"
             title="This goal is blocked by an incomplete dependency"
           >
             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -31,7 +31,7 @@
             Blocked
           </span>
           <span v-else-if="dependencyCount > 0"
-            class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 flex items-center gap-1"
+            class="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 flex items-center gap-1"
             :title="dependencyCount + ' ' + (dependencyCount === 1 ? 'dependency' : 'dependencies')"
           >
             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,7 +44,7 @@
       <div v-if="showActions" class="flex gap-1 ml-3">
         <button
           @click.stop="$emit('edit', goal)"
-          class="p-1.5 text-gray-400 hover:text-blue-600 rounded-button hover:bg-gray-100"
+          class="p-1.5 text-horizon-400 hover:text-violet-600 rounded-button hover:bg-savannah-100"
           title="Edit goal"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -53,7 +53,7 @@
         </button>
         <button
           @click.stop="$emit('delete', goal)"
-          class="p-1.5 text-gray-400 hover:text-red-600 rounded-button hover:bg-gray-100"
+          class="p-1.5 text-horizon-400 hover:text-raspberry-600 rounded-button hover:bg-savannah-100"
           title="Delete goal"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,10 +66,10 @@
     <!-- Progress Section -->
     <div class="mb-4">
       <div class="flex justify-between items-center mb-1.5">
-        <span class="text-sm text-gray-600">{{ formatCurrency(goal.current_amount) }} of {{ formatCurrency(goal.target_amount) }}</span>
+        <span class="text-sm text-neutral-500">{{ formatCurrency(goal.current_amount) }} of {{ formatCurrency(goal.target_amount) }}</span>
         <span class="text-sm font-semibold" :class="progressTextClass">{{ progressPercent }}%</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-2.5">
+      <div class="w-full bg-horizon-200 rounded-full h-2.5">
         <div
           class="h-2.5 rounded-full transition-all duration-500"
           :class="progressBarClass"
@@ -81,23 +81,23 @@
     <!-- Metrics Grid -->
     <div class="grid grid-cols-2 gap-3 text-sm mb-4">
       <div>
-        <p class="text-xs text-gray-500">Time Remaining</p>
-        <p class="font-medium text-gray-900">{{ timeRemaining }}</p>
+        <p class="text-xs text-neutral-500">Time Remaining</p>
+        <p class="font-medium text-horizon-500">{{ timeRemaining }}</p>
       </div>
       <div>
-        <p class="text-xs text-gray-500">Monthly Contribution</p>
-        <p class="font-medium text-gray-900">{{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}</p>
+        <p class="text-xs text-neutral-500">Monthly Contribution</p>
+        <p class="font-medium text-horizon-500">{{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}</p>
       </div>
     </div>
 
     <!-- Streak Display (if available) -->
-    <div v-if="goal.contribution_streak > 0" class="flex items-center gap-2 mb-4 py-2 px-3 bg-blue-50 rounded-lg">
+    <div v-if="goal.contribution_streak > 0" class="flex items-center gap-2 mb-4 py-2 px-3 bg-violet-50 rounded-lg">
       <span class="text-lg">🔥</span>
-      <span class="text-sm font-medium text-blue-700">{{ goal.contribution_streak }} month streak!</span>
+      <span class="text-sm font-medium text-violet-700">{{ goal.contribution_streak }} month streak!</span>
     </div>
 
     <!-- Status Badge -->
-    <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+    <div class="flex items-center justify-between pt-3 border-t border-savannah-100">
       <span
         class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
         :class="statusBadgeClass"
@@ -108,7 +108,7 @@
       <button
         v-if="goal.status === 'active'"
         @click.stop="$emit('add-contribution', goal)"
-        class="text-xs font-medium text-primary-600 hover:text-primary-700"
+        class="text-xs font-medium text-raspberry-600 hover:text-raspberry-700"
       >
         + Add Contribution
       </button>
@@ -160,22 +160,22 @@ export default {
     },
 
     progressTextClass() {
-      if (this.progressPercent >= 100) return 'text-green-600';
-      if (this.isNotStarted) return 'text-gray-500';
-      if (this.isOnTrack) return 'text-blue-600';
-      return 'text-blue-600';
+      if (this.progressPercent >= 100) return 'text-spring-600';
+      if (this.isNotStarted) return 'text-neutral-500';
+      if (this.isOnTrack) return 'text-violet-600';
+      return 'text-violet-600';
     },
 
     progressBarClass() {
-      if (this.progressPercent >= 100) return 'bg-green-500';
-      if (this.isNotStarted) return 'bg-gray-300';
-      if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-blue-500';
+      if (this.progressPercent >= 100) return 'bg-spring-500';
+      if (this.isNotStarted) return 'bg-horizon-300';
+      if (this.isOnTrack) return 'bg-violet-500';
+      return 'bg-violet-500';
     },
 
     borderColorClass() {
       if (this.goal.status === 'completed') return 'border-l-green-500';
-      if (this.isNotStarted) return 'border-l-gray-300';
+      if (this.isNotStarted) return 'border-l-horizon-300';
       if (this.isOnTrack) return 'border-l-blue-500';
       return 'border-l-blue-500';
     },
@@ -207,19 +207,19 @@ export default {
     },
 
     statusBadgeClass() {
-      if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-green-100 text-green-800';
-      if (this.goal.status === 'paused') return 'bg-gray-100 text-gray-800';
-      if (this.isNotStarted) return 'bg-gray-100 text-gray-700';
-      if (this.isOnTrack) return 'bg-blue-100 text-blue-800';
-      return 'bg-blue-100 text-blue-800';
+      if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-spring-100 text-spring-800';
+      if (this.goal.status === 'paused') return 'bg-savannah-100 text-horizon-500';
+      if (this.isNotStarted) return 'bg-savannah-100 text-neutral-500';
+      if (this.isOnTrack) return 'bg-violet-100 text-violet-800';
+      return 'bg-violet-100 text-violet-800';
     },
 
     statusDotClass() {
-      if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-green-500';
-      if (this.goal.status === 'paused') return 'bg-gray-500';
-      if (this.isNotStarted) return 'bg-gray-400';
-      if (this.isOnTrack) return 'bg-blue-500';
-      return 'bg-blue-500';
+      if (this.goal.status === 'completed' || this.progressPercent >= 100) return 'bg-spring-500';
+      if (this.goal.status === 'paused') return 'bg-savannah-1000';
+      if (this.isNotStarted) return 'bg-horizon-400';
+      if (this.isOnTrack) return 'bg-violet-500';
+      return 'bg-violet-500';
     },
 
     moduleLabel() {
@@ -235,17 +235,17 @@ export default {
     moduleTagClass() {
       const classes = {
         savings: 'bg-emerald-100 text-emerald-700',
-        investment: 'bg-blue-100 text-blue-700',
+        investment: 'bg-violet-100 text-violet-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-blue-100 text-blue-700',
+        retirement: 'bg-violet-100 text-violet-700',
       };
-      return classes[this.goal.assigned_module] || 'bg-gray-100 text-gray-700';
+      return classes[this.goal.assigned_module] || 'bg-savannah-100 text-neutral-500';
     },
 
     priorityTagClass() {
-      if (this.goal.priority === 'critical') return 'bg-red-100 text-red-700';
-      if (this.goal.priority === 'high') return 'bg-blue-100 text-blue-700';
-      return 'bg-gray-100 text-gray-700';
+      if (this.goal.priority === 'critical') return 'bg-raspberry-100 text-raspberry-700';
+      if (this.goal.priority === 'high') return 'bg-violet-100 text-violet-700';
+      return 'bg-savannah-100 text-neutral-500';
     },
 
     goalTypeIcon() {

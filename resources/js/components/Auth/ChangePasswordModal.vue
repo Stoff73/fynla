@@ -2,19 +2,19 @@
   <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
     <div class="flex min-h-screen items-center justify-center p-4">
       <!-- Backdrop -->
-      <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"></div>
+      <div class="fixed inset-0 bg-horizon-500 bg-opacity-75 transition-opacity"></div>
 
       <!-- Modal -->
       <div class="relative w-full max-w-md transform rounded-lg bg-white shadow-xl transition-all max-h-[90vh] overflow-y-auto">
         <div class="bg-white px-4 pb-4 pt-5 sm:p-6">
           <div class="mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">
+            <h3 class="text-lg font-semibold text-horizon-500">
               {{ isRequired ? 'Change Your Password' : 'Update Password' }}
             </h3>
-            <p v-if="isRequired" class="mt-2 text-sm text-blue-700 bg-blue-50 rounded p-3 border border-blue-200">
+            <p v-if="isRequired" class="mt-2 text-sm text-violet-700 bg-violet-50 rounded p-3 border border-violet-200">
               For security reasons, you must change your password before continuing.
             </p>
-            <p v-else class="mt-1 text-sm text-gray-600">
+            <p v-else class="mt-1 text-sm text-neutral-500">
               Enter your current password and choose a new one.
             </p>
           </div>
@@ -32,7 +32,7 @@
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Current Password -->
             <div>
-              <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="current_password" class="block text-sm font-medium text-horizon-500 mb-1">
                 Current Password
               </label>
               <input
@@ -47,7 +47,7 @@
 
             <!-- New Password -->
             <div>
-              <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="new_password" class="block text-sm font-medium text-horizon-500 mb-1">
                 New Password
               </label>
               <input
@@ -59,14 +59,14 @@
                 class="input-field w-full"
                 :disabled="submitting"
               />
-              <p class="mt-1 text-xs text-gray-500">
+              <p class="mt-1 text-xs text-neutral-500">
                 Must be at least 8 characters with one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)
               </p>
             </div>
 
             <!-- Confirm New Password -->
             <div>
-              <label for="new_password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="new_password_confirmation" class="block text-sm font-medium text-horizon-500 mb-1">
                 Confirm New Password
               </label>
               <input

@@ -1,7 +1,7 @@
 <template>
   <div class="allocation-comparison">
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">
         Current vs Target Allocation
       </h3>
 
@@ -18,41 +18,41 @@
 
       <!-- Legend / Details Table -->
       <div v-if="allocations && allocations.length > 0" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-light-gray">
+          <thead class="bg-eggshell-500">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Security
               </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Current
               </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Target
               </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                 Difference
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr
               v-for="(allocation, index) in allocations"
               :key="index"
-              class="hover:bg-gray-50"
+              class="hover:bg-eggshell-500"
             >
-              <td class="px-4 py-3 text-sm font-medium text-gray-900">
+              <td class="px-4 py-3 text-sm font-medium text-horizon-500">
                 {{ allocation.security_name }}
               </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-700">
+              <td class="px-4 py-3 text-sm text-right text-neutral-500">
                 {{ formatPercent(allocation.current_weight) }}
-                <div class="text-xs text-gray-500">
+                <div class="text-xs text-neutral-500">
                   £{{ formatCurrency(allocation.current_value) }}
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-right text-gray-700">
+              <td class="px-4 py-3 text-sm text-right text-neutral-500">
                 {{ formatPercent(allocation.target_weight) }}
-                <div class="text-xs text-gray-500">
+                <div class="text-xs text-neutral-500">
                   £{{ formatCurrency(allocation.target_value) }}
                 </div>
               </td>
@@ -60,12 +60,12 @@
                 <span
                   :class="[
                     'font-medium',
-                    allocation.difference > 0 ? 'text-green-600' : 'text-red-600'
+                    allocation.difference > 0 ? 'text-spring-600' : 'text-raspberry-600'
                   ]"
                 >
                   {{ allocation.difference > 0 ? '+' : '' }}£{{ formatCurrency(Math.abs(allocation.difference)) }}
                 </span>
-                <div class="text-xs text-gray-500">
+                <div class="text-xs text-neutral-500">
                   {{ allocation.difference_percent > 0 ? '+' : '' }}{{ allocation.difference_percent.toFixed(1) }}%
                 </div>
               </td>
@@ -76,27 +76,27 @@
 
       <!-- Summary Stats -->
       <div v-if="metrics" class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wide">Tracking Error</p>
-          <p class="text-lg font-semibold text-gray-900 mt-1">
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-neutral-500 uppercase tracking-wide">Tracking Error</p>
+          <p class="text-lg font-semibold text-horizon-500 mt-1">
             {{ (metrics.tracking_error * 100).toFixed(2) }}%
           </p>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wide">Total Turnover</p>
-          <p class="text-lg font-semibold text-gray-900 mt-1">
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-neutral-500 uppercase tracking-wide">Total Turnover</p>
+          <p class="text-lg font-semibold text-horizon-500 mt-1">
             £{{ formatCurrency(metrics.total_turnover) }}
           </p>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-blue-600 uppercase tracking-wide">Buys</p>
-          <p class="text-lg font-semibold text-blue-700 mt-1">
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-violet-600 uppercase tracking-wide">Buys</p>
+          <p class="text-lg font-semibold text-violet-700 mt-1">
             £{{ formatCurrency(metrics.total_buys) }}
           </p>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-red-600 uppercase tracking-wide">Sells</p>
-          <p class="text-lg font-semibold text-red-700 mt-1">
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-raspberry-600 uppercase tracking-wide">Sells</p>
+          <p class="text-lg font-semibold text-raspberry-700 mt-1">
             £{{ formatCurrency(metrics.total_sells) }}
           </p>
         </div>
@@ -277,7 +277,7 @@ export default {
 }
 
 .overflow-x-auto::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 4px;
 }
 

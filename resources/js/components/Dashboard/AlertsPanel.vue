@@ -1,11 +1,11 @@
 <template>
   <div class="alerts-panel bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">Alerts & Notifications</h3>
+      <h3 class="text-xl font-semibold text-horizon-500">Alerts & Notifications</h3>
       <button
         v-if="alerts.length > 0"
         @click="showAllAlerts"
-        class="text-sm text-blue-600 hover:text-blue-700"
+        class="text-sm text-violet-600 hover:text-violet-700"
       >
         View All ({{ alerts.length }})
       </button>
@@ -24,7 +24,7 @@
           <svg
             v-if="alert.severity === 'critical'"
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-red-600"
+            class="h-5 w-5 text-raspberry-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -37,7 +37,7 @@
           <svg
             v-else-if="alert.severity === 'important'"
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-blue-600"
+            class="h-5 w-5 text-violet-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -50,7 +50,7 @@
           <svg
             v-else
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-blue-600"
+            class="h-5 w-5 text-violet-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -69,7 +69,7 @@
               <p class="text-sm font-semibold" :class="alertTextClass(alert.severity)">
                 {{ alert.title }}
               </p>
-              <p class="text-sm text-gray-600 mt-1">{{ alert.message }}</p>
+              <p class="text-sm text-neutral-500 mt-1">{{ alert.message }}</p>
               <div class="flex items-center mt-2">
                 <span
                   class="inline-block px-2 py-1 text-xs rounded-full"
@@ -80,7 +80,7 @@
                 <span v-if="alert.action_link" class="ml-3">
                   <button
                     @click="navigateToAction(alert.action_link)"
-                    class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    class="text-xs text-violet-600 hover:text-violet-700 font-medium"
                   >
                     {{ alert.action_text || 'Take Action' }} →
                   </button>
@@ -91,7 +91,7 @@
             <!-- Dismiss Button -->
             <button
               @click="dismissAlert(alert.id)"
-              class="ml-3 flex-shrink-0 text-gray-400 hover:text-gray-600"
+              class="ml-3 flex-shrink-0 text-horizon-400 hover:text-neutral-500"
               title="Dismiss"
             >
               <svg
@@ -116,7 +116,7 @@
     <div v-else class="text-center py-8">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-12 w-12 text-gray-300 mx-auto mb-3"
+        class="h-12 w-12 text-horizon-300 mx-auto mb-3"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -128,8 +128,8 @@
           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <p class="text-sm text-gray-600">No alerts at this time</p>
-      <p class="text-xs text-gray-500 mt-1">Your financial planning is on track!</p>
+      <p class="text-sm text-neutral-500">No alerts at this time</p>
+      <p class="text-xs text-neutral-500 mt-1">Your financial planning is on track!</p>
     </div>
   </div>
 </template>
@@ -167,31 +167,31 @@ export default {
   methods: {
     alertBorderClass(severity) {
       const classes = {
-        critical: 'border-red-300 bg-red-50',
-        important: 'border-blue-300 bg-blue-50',
-        info: 'border-blue-300 bg-blue-50',
+        critical: 'border-raspberry-300 bg-raspberry-50',
+        important: 'border-violet-300 bg-violet-50',
+        info: 'border-violet-300 bg-violet-50',
       };
-      return classes[severity] || 'border-gray-300 bg-gray-50';
+      return classes[severity] || 'border-horizon-300 bg-savannah-100';
     },
 
     alertTextClass(severity) {
       const classes = {
-        critical: 'text-red-800',
-        important: 'text-blue-800',
-        info: 'text-blue-800',
+        critical: 'text-raspberry-800',
+        important: 'text-violet-800',
+        info: 'text-violet-800',
       };
-      return classes[severity] || 'text-gray-800';
+      return classes[severity] || 'text-horizon-500';
     },
 
     moduleBadgeClass(module) {
       const classes = {
-        Protection: 'bg-red-100 text-red-700',
-        Savings: 'bg-blue-100 text-blue-700',
-        Investment: 'bg-green-100 text-green-700',
+        Protection: 'bg-raspberry-100 text-raspberry-700',
+        Savings: 'bg-violet-100 text-violet-700',
+        Investment: 'bg-spring-100 text-spring-700',
         Retirement: 'bg-purple-100 text-purple-700',
-        Estate: 'bg-blue-100 text-blue-700',
+        Estate: 'bg-violet-100 text-violet-700',
       };
-      return classes[module] || 'bg-gray-100 text-gray-700';
+      return classes[module] || 'bg-savannah-100 text-neutral-500';
     },
 
     dismissAlert(alertId) {

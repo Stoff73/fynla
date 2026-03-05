@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="back-button"
+      class="detail-inline-back"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -13,7 +13,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-12 h-12 border-[3px] border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Calculating required capital...</p>
     </div>
 
@@ -652,45 +652,7 @@ export default {
 
 <style scoped>
 .required-capital-detail {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Back Button */
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-gray-700;
-  background: white;
-  @apply border border-gray-300;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.back-button:hover {
-  @apply bg-gray-50;
-  @apply border-gray-400;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
+  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 /* Loading State */
@@ -703,24 +665,8 @@ export default {
   text-align: center;
 }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  @apply border-[3px] border-gray-200;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -731,25 +677,25 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  @apply text-red-400;
+  @apply text-raspberry-400;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  @apply text-gray-600;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
   padding: 8px 20px;
-  @apply bg-primary-500 text-white;
+  @apply bg-raspberry-500 text-white;
   border: none;
   border-radius: 6px;
   font-weight: 500;
@@ -758,7 +704,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Summary Cards */
@@ -775,12 +721,12 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .summary-card.blue {
   @apply bg-gradient-to-br from-blue-50 to-blue-100;
-  @apply border-blue-200;
+  @apply border-violet-200;
 }
 
 .summary-card.purple {
@@ -790,7 +736,7 @@ export default {
 
 .summary-card.green {
   @apply bg-gradient-to-br from-green-50 to-green-100;
-  @apply border-green-200;
+  @apply border-spring-200;
 }
 
 .summary-card.teal {
@@ -800,18 +746,18 @@ export default {
 
 .summary-card.indigo {
   @apply bg-gradient-to-br from-indigo-50 to-indigo-100;
-  @apply border-indigo-200;
+  @apply border-violet-200;
 }
 
 .summary-card.red {
   @apply bg-gradient-to-br from-red-50 to-red-100;
-  @apply border-red-200;
+  @apply border-raspberry-200;
 }
 
 .summary-label {
   font-size: 14px;
   line-height: 1.3;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   font-weight: 500;
   height: 36px;
@@ -822,19 +768,19 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .per-year {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-top: auto;
   padding-top: 8px;
 }
@@ -847,18 +793,18 @@ export default {
 .section-label {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
 }
 
 .section-note {
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 0 12px 0;
 }
 
 .no-items {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-style: italic;
   font-size: 14px;
 }
@@ -883,7 +829,7 @@ export default {
 }
 
 .asset-card.investment {
-  @apply bg-indigo-50 border-indigo-200;
+  @apply bg-violet-50 border-violet-200;
 }
 
 .asset-card.cash {
@@ -893,25 +839,25 @@ export default {
 .asset-name {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-800;
+  @apply text-horizon-500;
   margin-bottom: 4px;
 }
 
 .asset-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .asset-type {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-top: 4px;
 }
 
 .total-value {
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin-left: 8px;
 }
 
@@ -922,13 +868,13 @@ export default {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid;
-  @apply border-gray-200;
+  @apply border-light-gray;
   cursor: pointer;
 }
 
 .toggle-label {
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .toggle-switch {
@@ -936,14 +882,14 @@ export default {
   width: 36px;
   height: 20px;
   appearance: none;
-  @apply bg-gray-300;
+  @apply bg-horizon-300;
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .toggle-switch:checked {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .toggle-switch::before {
@@ -976,13 +922,13 @@ export default {
   border-radius: 12px;
   padding: 20px;
   flex: 0 0 400px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .progress-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -1004,7 +950,7 @@ export default {
 .progress-type {
   font-size: 13px;
   font-weight: 500;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .progress-percentage {
@@ -1016,29 +962,29 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-top: 4px;
 }
 
 .target-label {
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .progress-percentage.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .progress-percentage.blue {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .progress-percentage.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .progress-bar-container {
   height: 12px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -1051,22 +997,22 @@ export default {
 }
 
 .progress-bar.green {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .progress-bar.blue {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .progress-bar.red {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .progress-labels {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 /* Assumptions Panel */
@@ -1075,7 +1021,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   flex: 1;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .assumptions-header {
@@ -1088,7 +1034,7 @@ export default {
 .assumptions-header h3 {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -1098,13 +1044,13 @@ export default {
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  @apply text-primary-600;
+  @apply text-raspberry-500;
   text-decoration: none;
   transition: all 0.15s;
 }
 
 .edit-link:hover {
-  @apply text-primary-700;
+  @apply text-raspberry-600;
 }
 
 .link-icon {
@@ -1117,7 +1063,7 @@ export default {
   flex-wrap: wrap;
   gap: 4px 20px;
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .assumption-item {
@@ -1125,11 +1071,11 @@ export default {
 }
 
 .assumption-item .label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .assumption-item .note {
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Table Section */
@@ -1138,13 +1084,13 @@ export default {
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -1163,20 +1109,20 @@ export default {
 .projection-table th {
   position: sticky;
   top: 0;
-  @apply bg-gray-50;
-  @apply text-gray-600;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
   font-weight: 600;
   text-align: left;
   padding: 12px 16px;
   border-bottom: 2px solid;
-  @apply border-gray-200;
+  @apply border-light-gray;
 }
 
 .projection-table td {
   padding: 10px 16px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   border-bottom: 1px solid;
-  @apply border-gray-100;
+  @apply border-light-gray;
 }
 
 .projection-table .text-right {
@@ -1184,7 +1130,7 @@ export default {
 }
 
 .projection-table tr:hover {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
 }
 
 .projection-table tr.retirement-row {
@@ -1202,7 +1148,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .formula-grid {
@@ -1232,8 +1178,8 @@ export default {
 }
 
 .formula-icon.blue {
-  @apply bg-blue-100;
-  @apply text-blue-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .formula-icon.purple {
@@ -1242,8 +1188,8 @@ export default {
 }
 
 .formula-icon.green {
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
 }
 
 .formula-content {
@@ -1253,20 +1199,20 @@ export default {
 .formula-content h4 {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .formula-text {
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace;
 }
 
 .formula-example {
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0;
 }
 

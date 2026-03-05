@@ -1,36 +1,36 @@
 <template>
-  <div class="policy-card bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 cursor-pointer" @click="viewDetails">
+  <div class="policy-card bg-white rounded-lg border border-light-gray shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 cursor-pointer" @click="viewDetails">
     <!-- Card Header (Always Visible) -->
     <div class="p-4">
       <div class="flex items-start justify-between">
         <div class="flex-1">
           <div class="flex items-center gap-3 mb-2">
-            <span class="text-sm font-medium text-gray-700">
+            <span class="text-sm font-medium text-neutral-500">
               {{ policyTypeLabel }}
             </span>
             <!-- Life Policy Type Tag (only for life insurance) -->
             <span
               v-if="isLifePolicy && lifePolicyTypeLabel"
-              class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded"
+              class="px-2 py-1 text-xs font-medium bg-spring-100 text-spring-700 rounded"
             >
               {{ lifePolicyTypeLabel }}
             </span>
           </div>
 
-          <h4 class="text-lg font-semibold text-gray-900 mb-1">
+          <h4 class="text-lg font-semibold text-horizon-500 mb-1">
             {{ policy.provider || 'Unknown Provider' }}
           </h4>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
             <div>
-              <span class="text-gray-600">{{ coverageLabel }}:</span>
-              <span class="font-semibold text-gray-900 ml-1">
+              <span class="text-neutral-500">{{ coverageLabel }}:</span>
+              <span class="font-semibold text-horizon-500 ml-1">
                 {{ formatCurrency(coverageAmount) }}
               </span>
             </div>
             <div>
-              <span class="text-gray-600">Premium:</span>
-              <span class="font-semibold text-gray-900 ml-1">
+              <span class="text-neutral-500">Premium:</span>
+              <span class="font-semibold text-horizon-500 ml-1">
                 {{ formatCurrency(policy.premium_amount) }}/{{ policy.premium_frequency || 'month' }}
               </span>
             </div>
@@ -38,7 +38,7 @@
         </div>
 
         <svg
-          class="ml-4 w-5 h-5 text-gray-400 flex-shrink-0"
+          class="ml-4 w-5 h-5 text-horizon-400 flex-shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -83,13 +83,13 @@ export default {
 
     policyTypeBadgeClass() {
       const classes = {
-        life: 'bg-blue-100 text-blue-800',
+        life: 'bg-violet-100 text-violet-800',
         criticalIllness: 'bg-purple-100 text-purple-800',
-        incomeProtection: 'bg-green-100 text-green-800',
+        incomeProtection: 'bg-spring-100 text-spring-800',
         disability: 'bg-indigo-100 text-indigo-800',
-        sicknessIllness: 'bg-red-100 text-red-800',
+        sicknessIllness: 'bg-raspberry-100 text-raspberry-800',
       };
-      return classes[this.policy.policy_type] || 'bg-gray-100 text-gray-800';
+      return classes[this.policy.policy_type] || 'bg-savannah-100 text-horizon-500';
     },
 
     coverageLabel() {

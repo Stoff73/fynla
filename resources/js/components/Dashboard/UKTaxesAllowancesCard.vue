@@ -1,12 +1,12 @@
 <template>
   <div class="card cursor-pointer hover:shadow-lg transition-shadow" @click="openModal">
     <div class="flex items-center justify-between mb-2">
-      <h3 class="text-h4 text-gray-900">UK Taxes & Allowances</h3>
-      <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h3 class="text-h4 text-horizon-500">UK Taxes & Allowances</h3>
+      <svg class="w-6 h-6 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     </div>
-    <p class="text-body text-gray-600 mb-4">
+    <p class="text-body text-neutral-500 mb-4">
       2025/26 UK tax rules, rates, and allowances
     </p>
     <div class="flex gap-2 flex-wrap">
@@ -25,11 +25,11 @@
     >
       <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-primary-50">
-          <h2 class="text-h2 text-gray-900">UK Taxes & Allowances 2025/26</h2>
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between bg-raspberry-50">
+          <h2 class="text-h2 text-horizon-500">UK Taxes & Allowances 2025/26</h2>
           <button
             @click="closeModal"
-            class="text-gray-500 hover:text-gray-700 transition-colors"
+            class="text-neutral-500 hover:text-neutral-500 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -38,7 +38,7 @@
         </div>
 
         <!-- Tabs -->
-        <div class="border-b border-gray-200 bg-gray-50">
+        <div class="border-b border-light-gray bg-savannah-100">
           <nav class="flex overflow-x-auto">
             <button
               v-for="tab in tabs"
@@ -47,8 +47,8 @@
               :class="[
                 'px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                 activeTab === tab.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-raspberry-500 text-raspberry-500'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
               ]"
             >
               {{ tab.label }}
@@ -61,9 +61,9 @@
           <!-- Income Tax Tab -->
           <div v-if="activeTab === 'income'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Income Tax Rates & Bands</h3>
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-blue-900">
+              <h3 class="text-h3 text-horizon-500 mb-4">Income Tax Rates & Bands</h3>
+              <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-violet-900">
                   <strong>Personal Allowance:</strong> £{{ formatNumber(taxConfig.income_tax.personal_allowance) }}
                   <br>
                   <em class="text-xs">Reduces by £1 for every £2 earned over £{{ formatNumber(taxConfig.income_tax.personal_allowance_taper_threshold) }}</em>
@@ -71,52 +71,52 @@
               </div>
 
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Band</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taxable Income</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Band</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Taxable Income</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr v-for="(band, index) in taxConfig.income_tax.bands" :key="index">
-                    <td class="px-4 py-3 text-sm text-gray-900">{{ band.name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">
+                    <td class="px-4 py-3 text-sm text-horizon-500">{{ band.name }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">
                       £{{ formatNumber(band.min) }} - {{ band.max ? '£' + formatNumber(band.max) : 'No limit' }}
                     </td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (band.rate * 100).toFixed(0) }}%</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (band.rate * 100).toFixed(0) }}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">National Insurance (Class 1 - Employed)</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">National Insurance (Class 1 - Employed)</h3>
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Threshold/Limit</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Threshold/Limit</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Employee (Main Rate)</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Employee (Main Rate)</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">
                       £{{ formatNumber(taxConfig.national_insurance.class_1.employee.primary_threshold) }} - £{{ formatNumber(taxConfig.national_insurance.class_1.employee.upper_earnings_limit) }}
                     </td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.national_insurance.class_1.employee.main_rate * 100).toFixed(0) }}%</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.national_insurance.class_1.employee.main_rate * 100).toFixed(0) }}%</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Employee (Additional Rate)</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Above £{{ formatNumber(taxConfig.national_insurance.class_1.employee.upper_earnings_limit) }}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.national_insurance.class_1.employee.additional_rate * 100).toFixed(0) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Employee (Additional Rate)</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Above £{{ formatNumber(taxConfig.national_insurance.class_1.employee.upper_earnings_limit) }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.national_insurance.class_1.employee.additional_rate * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-gray-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Employer</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Above £{{ formatNumber(taxConfig.national_insurance.class_1.employer.secondary_threshold) }}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.national_insurance.class_1.employer.rate * 100).toFixed(1) }}%</td>
+                  <tr class="bg-savannah-100">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Employer</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Above £{{ formatNumber(taxConfig.national_insurance.class_1.employer.secondary_threshold) }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.national_insurance.class_1.employer.rate * 100).toFixed(1) }}%</td>
                   </tr>
                 </tbody>
               </table>
@@ -126,9 +126,9 @@
           <!-- CGT Tab -->
           <div v-if="activeTab === 'cgt'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Capital Gains Tax</h3>
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-green-900">
+              <h3 class="text-h3 text-horizon-500 mb-4">Capital Gains Tax</h3>
+              <div class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-spring-900">
                   <strong>Annual Exempt Amount:</strong> £{{ formatNumber(taxConfig.capital_gains_tax.annual_exempt_amount) }}
                   <br>
                   <em class="text-xs">First £{{ formatNumber(taxConfig.capital_gains_tax.annual_exempt_amount) }} of gains per year are tax-free</em>
@@ -136,40 +136,40 @@
               </div>
 
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Asset Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taxpayer Status</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Asset Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Taxpayer Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">General Assets (stocks, funds, etc.)</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Basic Rate Taxpayer</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.basic_rate_taxpayer * 100).toFixed(0) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">General Assets (stocks, funds, etc.)</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Basic Rate Taxpayer</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.capital_gains_tax.rates.basic_rate_taxpayer * 100).toFixed(0) }}%</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">General Assets</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Higher/Additional Rate Taxpayer</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.higher_rate_taxpayer * 100).toFixed(0) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">General Assets</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Higher/Additional Rate Taxpayer</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.capital_gains_tax.rates.higher_rate_taxpayer * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-blue-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Residential Property</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Basic Rate Taxpayer</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.residential_property_basic * 100).toFixed(0) }}%</td>
+                  <tr class="bg-violet-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Residential Property</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Basic Rate Taxpayer</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.capital_gains_tax.rates.residential_property_basic * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-blue-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Residential Property</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Higher/Additional Rate Taxpayer</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.capital_gains_tax.rates.residential_property_higher * 100).toFixed(0) }}%</td>
+                  <tr class="bg-violet-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Residential Property</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Higher/Additional Rate Taxpayer</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.capital_gains_tax.rates.residential_property_higher * 100).toFixed(0) }}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Dividend Tax</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">Dividend Tax</h3>
               <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
                 <p class="text-sm text-purple-900">
                   <strong>Dividend Allowance:</strong> £{{ formatNumber(taxConfig.dividend_tax.allowance) }}
@@ -179,24 +179,24 @@
               </div>
 
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tax Band</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Tax Band</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Basic Rate</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.dividend_tax.rates.basic_rate * 100).toFixed(2) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Basic Rate</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.dividend_tax.rates.basic_rate * 100).toFixed(2) }}%</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Higher Rate</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.dividend_tax.rates.higher_rate * 100).toFixed(2) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Higher Rate</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.dividend_tax.rates.higher_rate * 100).toFixed(2) }}%</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Additional Rate</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ (taxConfig.dividend_tax.rates.additional_rate * 100).toFixed(2) }}%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Additional Rate</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.dividend_tax.rates.additional_rate * 100).toFixed(2) }}%</td>
                   </tr>
                 </tbody>
               </table>
@@ -206,18 +206,18 @@
           <!-- IHT Tab -->
           <div v-if="activeTab === 'iht'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Inheritance Tax</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">Inheritance Tax</h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p class="text-sm text-green-900">
+                <div class="bg-spring-50 border border-spring-200 rounded-lg p-4">
+                  <p class="text-sm text-spring-900">
                     <strong>Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.nil_rate_band) }}
                     <br>
                     <em class="text-xs">Transferable between spouses/civil partners</em>
                   </p>
                 </div>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p class="text-sm text-blue-900">
+                <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                  <p class="text-sm text-violet-900">
                     <strong>Residence Nil Rate Band:</strong> £{{ formatNumber(taxConfig.inheritance_tax.residence_nil_rate_band) }}
                     <br>
                     <em class="text-xs">For main residence passed to direct descendants</em>
@@ -225,17 +225,17 @@
                 </div>
               </div>
 
-              <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-red-900">
+              <div class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-raspberry-900">
                   <strong>Standard Inheritance Tax Rate:</strong> {{ (taxConfig.inheritance_tax.standard_rate * 100).toFixed(0) }}%
                   <br>
                   <strong>Reduced Rate (10%+ to charity):</strong> {{ (taxConfig.inheritance_tax.reduced_rate_charity * 100).toFixed(0) }}%
                 </p>
               </div>
 
-              <h4 class="text-h4 text-gray-900 mb-3 mt-6">Residence Nil Rate Band Taper</h4>
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-blue-900">
+              <h4 class="text-h4 text-horizon-500 mb-3 mt-6">Residence Nil Rate Band Taper</h4>
+              <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-violet-900">
                   Residence Nil Rate Band tapers by £1 for every £2 the estate exceeds £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold) }}
                   <br>
                   <em class="text-xs">Residence Nil Rate Band is fully lost when estate reaches £{{ formatNumber(taxConfig.inheritance_tax.rnrb_taper_threshold + taxConfig.inheritance_tax.residence_nil_rate_band * 2) }}</em>
@@ -244,79 +244,79 @@
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Potentially Exempt Transfers</h4>
-              <p class="text-sm text-gray-600 mb-3">
+              <h4 class="text-h4 text-horizon-500 mb-3">Potentially Exempt Transfers</h4>
+              <p class="text-sm text-neutral-500 mb-3">
                 Gifts become fully exempt after 7 years. Taper relief applies if donor dies between years 3-7:
               </p>
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Years Since Gift</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inheritance Tax Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Years Since Gift</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Inheritance Tax Rate</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">0-3 years</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-red-600">40%</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">0-3 years</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-raspberry-600">40%</td>
                   </tr>
                   <tr v-for="(relief, index) in taxConfig.inheritance_tax.potentially_exempt_transfers.taper_relief" :key="index">
-                    <td class="px-4 py-3 text-sm text-gray-900">{{ relief.years - 1 }}-{{ relief.years }} years</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">{{ relief.years - 1 }}-{{ relief.years }} years</td>
                     <td class="px-4 py-3 text-sm font-semibold" :class="getReliefColour(relief.rate)">{{ (relief.rate * 100).toFixed(0) }}%</td>
                   </tr>
-                  <tr class="bg-green-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">7+ years</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-green-600">0% (Exempt)</td>
+                  <tr class="bg-spring-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">7+ years</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-spring-600">0% (Exempt)</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Inheritance Tax Gifting Exemptions</h4>
+              <h4 class="text-h4 text-horizon-500 mb-3">Inheritance Tax Gifting Exemptions</h4>
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exemption</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Exemption</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Notes</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Annual Exemption</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.gifting_exemptions.annual_exemption) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Can carry forward 1 year</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Annual Exemption</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.annual_exemption) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Can carry forward 1 year</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Small Gifts</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.gifting_exemptions.small_gifts.amount) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Per person, per year</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Small Gifts</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.small_gifts.amount) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Per person, per year</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Wedding Gift (Child)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.child) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Parent to child</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Wedding Gift (Child)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.child) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Parent to child</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Wedding Gift (Grandchild)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.grandchild_great_grandchild) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Grandparent to grandchild</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Wedding Gift (Grandchild)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.grandchild_great_grandchild) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Grandparent to grandchild</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Wedding Gift (Other)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.other) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Any other person</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Wedding Gift (Other)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.wedding_gifts.other) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Any other person</td>
                   </tr>
-                  <tr class="bg-green-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Normal Expenditure Out of Income</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-green-600">Unlimited</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">If regular and doesn't reduce standard of living</td>
+                  <tr class="bg-spring-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Normal Expenditure Out of Income</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-spring-600">Unlimited</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">If regular and doesn't reduce standard of living</td>
                   </tr>
-                  <tr class="bg-green-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Charity Gifts</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-green-600">Unlimited</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Fully exempt</td>
+                  <tr class="bg-spring-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Charity Gifts</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-spring-600">Unlimited</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Fully exempt</td>
                   </tr>
                 </tbody>
               </table>
@@ -326,18 +326,18 @@
           <!-- Pensions Tab -->
           <div v-if="activeTab === 'pensions'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Pension Allowances</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">Pension Allowances</h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p class="text-sm text-blue-900">
+                <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                  <p class="text-sm text-violet-900">
                     <strong>Annual Allowance:</strong> £{{ formatNumber(taxConfig.pension.annual_allowance) }}
                     <br>
                     <em class="text-xs">Maximum tax-relieved contributions per year</em>
                   </p>
                 </div>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p class="text-sm text-blue-900">
+                <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                  <p class="text-sm text-violet-900">
                     <strong>Reduced Allowance After Accessing Pension:</strong> £{{ formatNumber(taxConfig.pension.money_purchase_annual_allowance) }}
                     <br>
                     <em class="text-xs">After accessing pension flexibly</em>
@@ -345,8 +345,8 @@
                 </div>
               </div>
 
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-green-900">
+              <div class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-spring-900">
                   <strong>Lifetime Allowance:</strong> Abolished April 2024
                   <br>
                   <em class="text-xs">No limit on total pension savings from 2025/26 onwards</em>
@@ -363,42 +363,42 @@
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Tapered Annual Allowance</h4>
-              <p class="text-sm text-gray-600 mb-3">
+              <h4 class="text-h4 text-horizon-500 mb-3">Tapered Annual Allowance</h4>
+              <p class="text-sm text-neutral-500 mb-3">
                 High earners face a reduced annual allowance:
               </p>
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Measure</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Measure</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Threshold Income</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.threshold_income) }}</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Threshold Income</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.threshold_income) }}</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Adjusted Income</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.adjusted_income) }}</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Adjusted Income</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.adjusted_income) }}</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Minimum Allowance</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.minimum_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Minimum Allowance</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.minimum_allowance) }}</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Taper Rate</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£1 for every £2 over adjusted income</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Taper Rate</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£1 for every £2 over adjusted income</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">State Pension</h4>
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p class="text-sm text-blue-900">
+              <h4 class="text-h4 text-horizon-500 mb-3">State Pension</h4>
+              <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                <p class="text-sm text-violet-900">
                   <strong>Full New State Pension:</strong> £{{ formatNumber(taxConfig.pension.state_pension.full_new_state_pension) }} per year
                   <br>
                   <strong>Qualifying Years Required:</strong> {{ taxConfig.pension.state_pension.qualifying_years }} years
@@ -412,10 +412,10 @@
           <!-- ISAs Tab -->
           <div v-if="activeTab === 'isas'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Tax-Free Savings Account Allowances</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">Tax-Free Savings Account Allowances</h3>
 
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p class="text-sm text-green-900">
+              <div class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-spring-900">
                   <strong>Total Annual Tax-Free Savings Allowance:</strong> £{{ formatNumber(taxConfig.isa.annual_allowance) }}
                   <br>
                   <em class="text-xs">Split across Cash ISA, Stocks & Shares ISA, Innovative Finance ISA, and Lifetime ISA</em>
@@ -423,40 +423,40 @@
               </div>
 
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Annual Allowance</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Account Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Annual Allowance</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Notes</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Cash ISA</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.isa.annual_allowance) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Part of total ISA allowance</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Cash ISA</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.isa.annual_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Part of total ISA allowance</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Stocks & Shares ISA</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.isa.annual_allowance) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Part of total ISA allowance</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Stocks & Shares ISA</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.isa.annual_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Part of total ISA allowance</td>
                   </tr>
                   <tr class="bg-purple-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Lifetime ISA (LISA)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.isa.lifetime_isa.annual_allowance) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Counts towards total ISA allowance</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Lifetime ISA (LISA)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.isa.lifetime_isa.annual_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Counts towards total ISA allowance</td>
                   </tr>
-                  <tr class="bg-blue-50">
-                    <td class="px-4 py-3 text-sm text-gray-900">Junior ISA</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.isa.junior_isa.annual_allowance) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Separate allowance for under 18s</td>
+                  <tr class="bg-violet-50">
+                    <td class="px-4 py-3 text-sm text-horizon-500">Junior ISA</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.isa.junior_isa.annual_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Separate allowance for under 18s</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Lifetime ISA Details</h4>
+              <h4 class="text-h4 text-horizon-500 mb-3">Lifetime ISA Details</h4>
               <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <ul class="text-sm text-purple-900 space-y-2">
                   <li><strong>Max Age to Open:</strong> {{ taxConfig.isa.lifetime_isa.max_age_to_open }} years</li>
@@ -471,55 +471,55 @@
           <!-- Other Tab -->
           <div v-if="activeTab === 'other'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">Other Allowances & Rates</h3>
+              <h3 class="text-h3 text-horizon-500 mb-4">Other Allowances & Rates</h3>
 
               <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-savannah-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Allowance</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Allowance</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Details</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Marriage Allowance</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.marriage_allowance.transferable_amount) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Transfer to spouse if non-taxpayer</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Marriage Allowance</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.marriage_allowance.transferable_amount) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Transfer to spouse if non-taxpayer</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Savings Allowance (Basic Rate)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.savings_allowance.basic_rate_taxpayer) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Tax-free savings interest</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Savings Allowance (Basic Rate)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.savings_allowance.basic_rate_taxpayer) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Tax-free savings interest</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Savings Allowance (Higher Rate)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.savings_allowance.higher_rate_taxpayer) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Tax-free savings interest</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Savings Allowance (Higher Rate)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.savings_allowance.higher_rate_taxpayer) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Tax-free savings interest</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Savings Allowance (Additional Rate)</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.savings_allowance.additional_rate_taxpayer) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">No allowance</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Savings Allowance (Additional Rate)</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.savings_allowance.additional_rate_taxpayer) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">No allowance</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Starting Rate for Savings</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.starting_rate_for_savings.band) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">0% rate, reduces with other income</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Starting Rate for Savings</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.starting_rate_for_savings.band) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">0% rate, reduces with other income</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-3 text-sm text-gray-900">Blind Person's Allowance</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">£{{ formatNumber(taxConfig.other.blind_persons_allowance) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">Additional income tax relief</td>
+                    <td class="px-4 py-3 text-sm text-horizon-500">Blind Person's Allowance</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.blind_persons_allowance) }}</td>
+                    <td class="px-4 py-3 text-sm text-neutral-500">Additional income tax relief</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div>
-              <h4 class="text-h4 text-gray-900 mb-3">Child Benefit</h4>
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p class="text-sm text-blue-900">
+              <h4 class="text-h4 text-horizon-500 mb-3">Child Benefit</h4>
+              <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                <p class="text-sm text-violet-900">
                   <strong>Eldest/Only Child:</strong> £{{ taxConfig.other.child_benefit.eldest_child.toFixed(2) }} per week
                   <br>
                   <strong>Additional Children:</strong> £{{ taxConfig.other.child_benefit.additional_child.toFixed(2) }} per week
@@ -535,42 +535,42 @@
           <!-- Calculations Tab -->
           <div v-if="activeTab === 'calculations'" class="space-y-6">
             <div>
-              <h3 class="text-h3 text-gray-900 mb-4">How Fynla Calculations Work</h3>
-              <p class="text-sm text-gray-600 mb-6">
+              <h3 class="text-h3 text-horizon-500 mb-4">How Fynla Calculations Work</h3>
+              <p class="text-sm text-neutral-500 mb-6">
                 This section explains the key financial calculations used throughout the Financial Planning System.
               </p>
             </div>
 
             <!-- Income Tax Calculation -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 class="text-h4 text-gray-900 mb-3 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white border border-light-gray rounded-lg p-6">
+              <h4 class="text-h4 text-horizon-500 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 Income Tax Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Personal Allowance</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   If income > £100,000:
                   <br>Personal Allowance = £12,570 - ((income - £100,000) / 2)
                   <br>Personal Allowance = max(0, Personal Allowance)
                 </code>
 
                 <p><strong>Step 2:</strong> Calculate Taxable Income</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Taxable Income = Gross Income - Personal Allowance
                 </code>
 
                 <p><strong>Step 3:</strong> Apply Tax Bands</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   £0 - £37,700: 20% (Basic Rate)
                   <br>£37,701 - £125,140: 40% (Higher Rate)
                   <br>£125,141+: 45% (Additional Rate)
                 </code>
 
                 <p><strong>Example:</strong> Income of £60,000</p>
-                <code class="block bg-blue-50 p-3 rounded text-xs">
+                <code class="block bg-violet-50 p-3 rounded text-xs">
                   Personal Allowance: £12,570
                   <br>Taxable Income: £60,000 - £12,570 = £47,430
                   <br>Basic Rate Tax: £37,700 × 20% = £7,540
@@ -581,22 +581,22 @@
             </div>
 
             <!-- IHT Calculation -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 class="text-h4 text-gray-900 mb-3 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white border border-light-gray rounded-lg p-6">
+              <h4 class="text-h4 text-horizon-500 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
                 Inheritance Tax Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Gross Estate Value</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Gross Estate = Total Assets - Total Liabilities
                   <br>(Includes: property, investments, savings, personal possessions)
                 </code>
 
                 <p><strong>Step 2:</strong> Determine Available Allowances</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Nil Rate Band Available = £325,000 × (1 + spouse_nrb_transferred)
                   <br><br>If property asset AND passing to descendants:
                   <br>&nbsp;&nbsp;Residence Nil Rate Band Available = £175,000 × (1 + spouse_rnrb_transferred)
@@ -606,19 +606,19 @@
                 </code>
 
                 <p><strong>Step 3:</strong> Calculate Taxable Estate</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Total Allowances = Nil Rate Band Available + Residence Nil Rate Band Available
                   <br>Taxable Estate = max(0, Gross Estate - Total Allowances)
                 </code>
 
                 <p><strong>Step 4:</strong> Calculate Inheritance Tax Liability</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Inheritance Tax Liability = Taxable Estate × 40%
                   <br>(Or 36% if 10%+ of net estate left to charity)
                 </code>
 
                 <p><strong>Example:</strong> Estate worth £800,000 with property, no spouse transfers</p>
-                <code class="block bg-blue-50 p-3 rounded text-xs">
+                <code class="block bg-violet-50 p-3 rounded text-xs">
                   Gross Estate: £800,000
                   <br>Nil Rate Band Available: £325,000
                   <br>Residence Nil Rate Band Available: £175,000 (property present)
@@ -630,27 +630,27 @@
             </div>
 
             <!-- CGT Calculation -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 class="text-h4 text-gray-900 mb-3 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white border border-light-gray rounded-lg p-6">
+              <h4 class="text-h4 text-horizon-500 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
                 Capital Gains Tax Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Capital Gain</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Capital Gain = Sale Price - Purchase Price - Allowable Costs
                   <br>(Allowable costs: purchase fees, improvement costs, sale fees)
                 </code>
 
                 <p><strong>Step 2:</strong> Apply Annual Exempt Amount</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Taxable Gain = max(0, Capital Gain - £3,000)
                 </code>
 
                 <p><strong>Step 3:</strong> Determine Capital Gains Tax Rate</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   General Assets (shares, funds):
                   <br>&nbsp;&nbsp;Basic Rate Taxpayer: 10%
                   <br>&nbsp;&nbsp;Higher/Additional Rate: 20%
@@ -660,12 +660,12 @@
                 </code>
 
                 <p><strong>Step 4:</strong> Calculate Capital Gains Tax Due</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Capital Gains Tax Due = Taxable Gain × Applicable Rate
                 </code>
 
                 <p><strong>Example:</strong> Higher rate taxpayer sells shares</p>
-                <code class="block bg-blue-50 p-3 rounded text-xs">
+                <code class="block bg-violet-50 p-3 rounded text-xs">
                   Sale Price: £50,000
                   <br>Purchase Price: £30,000
                   <br>Sale Costs: £500
@@ -679,8 +679,8 @@
             </div>
 
             <!-- Pension Annual Allowance -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 class="text-h4 text-gray-900 mb-3 flex items-center">
+            <div class="bg-white border border-light-gray rounded-lg p-6">
+              <h4 class="text-h4 text-horizon-500 mb-3 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -688,26 +688,26 @@
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Determine Base Allowance</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   If accessed pension flexibly: £10,000 (Money Purchase Annual Allowance)
                   <br>Otherwise: £60,000 (Standard Annual Allowance)
                 </code>
 
                 <p><strong>Step 2:</strong> Check for Tapering (High Earners)</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   If threshold_income > £200,000 AND adjusted_income > £260,000:
                   <br>&nbsp;&nbsp;Reduction = (adjusted_income - £260,000) / 2
                   <br>&nbsp;&nbsp;Tapered Allowance = max(£10,000, £60,000 - Reduction)
                 </code>
 
                 <p><strong>Step 3:</strong> Add Carry Forward (if applicable)</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Total Available = Current Year Allowance + Unused from Last 3 Years
                   <br>(Subject to pension scheme membership in those years)
                 </code>
 
                 <p><strong>Example:</strong> High earner with £300,000 adjusted income</p>
-                <code class="block bg-blue-50 p-3 rounded text-xs">
+                <code class="block bg-violet-50 p-3 rounded text-xs">
                   Standard Allowance: £60,000
                   <br>Adjusted Income: £300,000
                   <br>Exceeds £260,000 by: £40,000
@@ -718,39 +718,39 @@
             </div>
 
             <!-- Emergency Fund Calculation -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 class="text-h4 text-gray-900 mb-3 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white border border-light-gray rounded-lg p-6">
+              <h4 class="text-h4 text-horizon-500 mb-3 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 Emergency Fund Runway Calculation
               </h4>
               <div class="space-y-3 text-sm">
                 <p><strong>Step 1:</strong> Calculate Monthly Essential Expenses</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Essential Expenses = Mortgage/Rent + Bills + Food + Transport + Insurance
                   <br>(Excludes discretionary spending like entertainment, dining out)
                 </code>
 
                 <p><strong>Step 2:</strong> Calculate Total Emergency Fund</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Emergency Fund = Sum of all savings accounts marked as "emergency fund"
                   <br>(Easy access and notice accounts, not long-term fixed accounts)
                 </code>
 
                 <p><strong>Step 3:</strong> Calculate Runway</p>
-                <code class="block bg-gray-50 p-3 rounded text-xs">
+                <code class="block bg-savannah-100 p-3 rounded text-xs">
                   Runway (months) = Emergency Fund / Monthly Essential Expenses
                 </code>
 
                 <p><strong>Recommendation:</strong></p>
-                <code class="block bg-green-50 p-3 rounded text-xs">
+                <code class="block bg-spring-50 p-3 rounded text-xs">
                   Target: 3-6 months of essential expenses
                   <br>Higher for self-employed or single income households
                 </code>
 
                 <p><strong>Example:</strong></p>
-                <code class="block bg-blue-50 p-3 rounded text-xs">
+                <code class="block bg-violet-50 p-3 rounded text-xs">
                   Monthly Essential Expenses: £2,500
                   <br>Emergency Fund Balance: £15,000
                   <br>Runway: £15,000 / £2,500 = 6 months
@@ -762,13 +762,13 @@
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-          <p class="text-xs text-gray-500">
+        <div class="px-6 py-4 border-t border-light-gray bg-savannah-100 flex justify-between items-center">
+          <p class="text-xs text-neutral-500">
             Tax year: {{ taxConfig.tax_year }} ({{ taxConfig.effective_from }} to {{ taxConfig.effective_to }})
           </p>
           <button
             @click="closeModal"
-            class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors"
+            class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors"
           >
             Close
           </button>
@@ -929,9 +929,9 @@ export default {
     };
 
     const getReliefColour = (rate) => {
-      if (rate >= 0.32) return 'text-red-600';
-      if (rate >= 0.16) return 'text-blue-600';
-      return 'text-green-600';
+      if (rate >= 0.32) return 'text-raspberry-600';
+      if (rate >= 0.16) return 'text-violet-600';
+      return 'text-spring-600';
     };
 
     return {

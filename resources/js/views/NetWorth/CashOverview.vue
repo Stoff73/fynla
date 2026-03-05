@@ -207,46 +207,46 @@
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
           <div class="flex items-start justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Open Banking</h3>
-            <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Coming Soon</span>
+            <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
+            <span class="text-xs font-medium text-neutral-500 bg-savannah-100 px-2 py-1 rounded">Coming Soon</span>
           </div>
-          <p class="text-sm text-gray-600 mb-4">
+          <p class="text-sm text-neutral-500 mb-4">
             Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
           </p>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div>
-              <p class="font-medium text-gray-900">Real-time Balances</p>
-              <p class="text-gray-500">Auto-sync all accounts</p>
+              <p class="font-medium text-horizon-500">Real-time Balances</p>
+              <p class="text-neutral-500">Auto-sync all accounts</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Budget Tracking</p>
-              <p class="text-gray-500">Set and monitor budgets</p>
+              <p class="font-medium text-horizon-500">Budget Tracking</p>
+              <p class="text-neutral-500">Set and monitor budgets</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Credit Card Spending</p>
-              <p class="text-gray-500">Track and categorise</p>
+              <p class="font-medium text-horizon-500">Credit Card Spending</p>
+              <p class="text-neutral-500">Track and categorise</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Cash Flow Forecast</p>
-              <p class="text-gray-500">Predict future balances</p>
+              <p class="font-medium text-horizon-500">Cash Flow Forecast</p>
+              <p class="text-neutral-500">Predict future balances</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Spending Insights</p>
-              <p class="text-gray-500">Where your money goes</p>
+              <p class="font-medium text-horizon-500">Spending Insights</p>
+              <p class="text-neutral-500">Where your money goes</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Payday Tracking</p>
-              <p class="text-gray-500">Income detection</p>
+              <p class="font-medium text-horizon-500">Payday Tracking</p>
+              <p class="text-neutral-500">Income detection</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Bill Reminders</p>
-              <p class="text-gray-500">Never miss a payment</p>
+              <p class="font-medium text-horizon-500">Bill Reminders</p>
+              <p class="text-neutral-500">Never miss a payment</p>
             </div>
             <div>
-              <p class="font-medium text-gray-900">Bank-Grade Security</p>
-              <p class="text-gray-500">Read-only access</p>
+              <p class="font-medium text-horizon-500">Bank-Grade Security</p>
+              <p class="text-neutral-500">Read-only access</p>
             </div>
           </div>
         </div>
@@ -541,14 +541,14 @@ export default {
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
   align-self: flex-start;
 }
 
 .empty-message {
   font-size: 13px;
-  color: #9ca3af;
+  @apply text-horizon-400;
   text-align: center;
   margin: 0 0 12px 0;
 }
@@ -560,14 +560,13 @@ export default {
   align-items: center;
   padding: 8px 12px;
   margin-bottom: 8px;
-  background: #f9fafb;
-  border-radius: 8px;
+  @apply bg-eggshell-500 rounded-lg;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .account-item:hover {
-  background: #f3f4f6;
+  @apply bg-savannah-100;
 }
 
 .account-info {
@@ -577,7 +576,7 @@ export default {
 
 .account-name {
   font-size: 13px;
-  color: #374151;
+  @apply text-horizon-500;
   font-weight: 500;
   display: block;
   overflow: hidden;
@@ -587,7 +586,7 @@ export default {
 
 .joint-badge {
   font-size: 11px;
-  color: #d97706;
+  @apply text-blue-600;
   font-weight: 500;
   margin-left: 4px;
 }
@@ -601,13 +600,13 @@ export default {
 
 .account-balance {
   font-size: 13px;
-  color: #059669;
+  @apply text-green-600;
   font-weight: 600;
 }
 
 .total-balance {
   font-size: 10px;
-  color: #6b7280;
+  @apply text-neutral-500;
   font-weight: 400;
 }
 
@@ -618,16 +617,12 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
-  border-radius: 8px;
+  @apply text-violet-600 bg-violet-50 border border-violet-200 rounded-lg;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  background: #ede9fe;
-  border-color: #c4b5fd;
+  @apply bg-violet-100 border-violet-300;
 }
 </style>

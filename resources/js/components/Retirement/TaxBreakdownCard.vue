@@ -256,7 +256,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 24px;
 }
 
@@ -270,15 +270,15 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .effective-rate {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-500;
-  @apply bg-gray-100;
+  @apply text-neutral-500;
+  @apply bg-savannah-100;
   padding: 4px 12px;
   border-radius: 20px;
 }
@@ -289,11 +289,11 @@ export default {
 }
 
 .source-item {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 8px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .source-item:last-child {
@@ -330,18 +330,18 @@ export default {
 }
 
 .badge-pcls {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .badge-pension {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-isa {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-gia {
@@ -350,19 +350,19 @@ export default {
 }
 
 .badge-savings {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-default {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .source-name {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .source-amount {
@@ -373,7 +373,7 @@ export default {
   display: block;
   font-size: 15px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .source-amount .tax-status {
@@ -383,18 +383,18 @@ export default {
 }
 
 .source-amount .tax-status.tax-free {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .source-amount .tax-status.has-tax {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 /* Band breakdown within source */
 .band-breakdown {
   margin-top: 12px;
   padding-top: 12px;
-  @apply border-t border-dashed border-gray-200;
+  @apply border-t border-dashed border-light-gray;
 }
 
 .band-row {
@@ -409,7 +409,7 @@ export default {
   align-items: center;
   gap: 8px;
   flex: 1;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .band-dot {
@@ -420,42 +420,42 @@ export default {
 }
 
 .band-dot.pa {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .band-dot.basic {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .band-dot.higher {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .band-dot.additional {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .band-amount {
   width: 100px;
   text-align: right;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .band-tax {
   width: 80px;
   text-align: right;
   font-weight: 600;
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .band-tax.tax-free {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 /* Summary Section */
 .summary-section {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -469,28 +469,28 @@ export default {
 }
 
 .summary-row:not(:last-child) {
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .summary-row.total {
-  @apply border-t-2 border-gray-300;
+  @apply border-t-2 border-horizon-300;
   margin-top: 8px;
   padding-top: 16px;
 }
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .summary-value {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .summary-value.tax-amount {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .summary-row.total .summary-label,
@@ -510,7 +510,7 @@ export default {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 16px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -534,21 +534,21 @@ export default {
 .band-name {
   font-size: 13px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .band-rate {
   font-size: 12px;
   font-weight: 700;
-  @apply text-gray-500;
-  @apply bg-gray-100;
+  @apply text-neutral-500;
+  @apply bg-savannah-100;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .band-bar {
   height: 8px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 4px;
@@ -580,7 +580,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Optimisation Tips */
@@ -588,17 +588,17 @@ export default {
   @apply bg-gradient-to-br from-blue-50 to-blue-100;
   border-radius: 8px;
   padding: 16px;
-  @apply border border-blue-200;
+  @apply border border-violet-200;
 }
 
 .tip-icon {
   width: 16px;
   height: 16px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .optimisation-tips .section-title {
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin-bottom: 12px;
 }
 
@@ -609,7 +609,7 @@ export default {
 
 .tips-list li {
   font-size: 13px;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin-bottom: 8px;
   line-height: 1.5;
 }

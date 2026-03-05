@@ -2,8 +2,8 @@
   <div class="account-performance-panel">
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <span class="ml-3 text-gray-600">Running Monte Carlo simulation...</span>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
+      <span class="ml-3 text-neutral-500">Running Monte Carlo simulation...</span>
     </div>
 
     <!-- Content -->
@@ -17,11 +17,11 @@
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
             @click="hasHoldings ? goToDiversificationTab() : $emit('add-holding')"
           >
-            <h4 class="text-sm font-semibold text-gray-900 mb-3">Diversification Insights</h4>
+            <h4 class="text-sm font-semibold text-horizon-500 mb-3">Diversification Insights</h4>
             <!-- No Holdings State -->
             <div v-if="!hasHoldings" class="text-center py-4">
-              <p class="text-lg font-semibold text-blue-600 hover:underline">Enter Holdings</p>
-              <p class="text-xs text-gray-500 mt-1">Add holdings to see diversification analysis</p>
+              <p class="text-lg font-semibold text-violet-600 hover:underline">Enter Holdings</p>
+              <p class="text-xs text-neutral-500 mt-1">Add holdings to see diversification analysis</p>
             </div>
             <!-- Has Holdings -->
             <div v-else-if="recommendations.length > 0" class="space-y-2">
@@ -36,13 +36,13 @@
                   <p class="text-xs leading-relaxed">{{ rec.message }}</p>
                 </div>
               </div>
-              <p v-if="recommendations.length > 3" class="text-xs text-gray-500 text-center pt-1">
+              <p v-if="recommendations.length > 3" class="text-xs text-neutral-500 text-center pt-1">
                 +{{ recommendations.length - 3 }} more insights
               </p>
             </div>
             <div v-else class="text-center py-4">
-              <p class="text-sm text-green-600 font-medium">Well Diversified</p>
-              <p class="text-xs text-gray-500 mt-1">No recommendations at this time</p>
+              <p class="text-sm text-spring-600 font-medium">Well Diversified</p>
+              <p class="text-xs text-neutral-500 mt-1">No recommendations at this time</p>
             </div>
           </div>
 
@@ -51,23 +51,23 @@
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
             @click="hasHoldings ? goToRebalancingTab() : $emit('add-holding')"
           >
-            <h4 class="text-sm font-semibold text-gray-900 mb-3">Rebalancing Status</h4>
+            <h4 class="text-sm font-semibold text-horizon-500 mb-3">Rebalancing Status</h4>
 
             <!-- No Holdings State -->
             <div v-if="!hasHoldings" class="text-center py-4">
-              <p class="text-lg font-semibold text-blue-600 hover:underline">Enter Holdings</p>
-              <p class="text-xs text-gray-500 mt-1">Add holdings to get rebalancing strategies</p>
+              <p class="text-lg font-semibold text-violet-600 hover:underline">Enter Holdings</p>
+              <p class="text-xs text-neutral-500 mt-1">Add holdings to get rebalancing strategies</p>
             </div>
 
             <!-- Has Holdings + Rebalancing Data -->
             <template v-else-if="rebalancingData">
               <!-- Drift Score -->
               <div class="text-center p-3 rounded-lg mb-3" :class="getDriftBgClass()">
-                <p class="text-xs text-gray-600 mb-1">Portfolio Drift</p>
+                <p class="text-xs text-neutral-500 mb-1">Portfolio Drift</p>
                 <p class="text-2xl font-bold" :class="getDriftStatusClass()">
                   {{ rebalancingData.drift_analysis?.drift_score?.toFixed(1) || '0.0' }}%
                 </p>
-                <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-blue-600 font-medium' : 'text-green-600'">
+                <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-violet-600 font-medium' : 'text-spring-600'">
                   {{ rebalancingData.drift_analysis?.needs_rebalancing ? 'Rebalancing Recommended' : 'On Track' }}
                 </p>
               </div>
@@ -76,36 +76,36 @@
               <div class="space-y-2">
                 <div v-if="rebalancingData.current_allocation?.equities !== undefined" class="allocation-row">
                   <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-700">Equities</span>
-                    <span class="text-gray-500">
+                    <span class="font-medium text-neutral-500">Equities</span>
+                    <span class="text-neutral-500">
                       {{ formatAllocation(rebalancingData.current_allocation.equities) }}% → {{ formatAllocation(rebalancingData.target_allocation?.equities) }}%
                     </span>
                   </div>
-                  <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
+                  <div class="h-2 bg-savannah-200 rounded overflow-hidden relative">
                     <div
-                      class="absolute h-full w-0.5 bg-gray-800 z-10"
+                      class="absolute h-full w-0.5 bg-horizon-500 z-10"
                       :style="{ left: formatAllocation(rebalancingData.target_allocation?.equities) + '%' }"
                     ></div>
                     <div
-                      class="h-full bg-blue-500 rounded"
+                      class="h-full bg-violet-500 rounded"
                       :style="{ width: formatAllocation(rebalancingData.current_allocation.equities) + '%' }"
                     ></div>
                   </div>
                 </div>
                 <div v-if="rebalancingData.current_allocation?.bonds !== undefined" class="allocation-row">
                   <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-700">Bonds</span>
-                    <span class="text-gray-500">
+                    <span class="font-medium text-neutral-500">Bonds</span>
+                    <span class="text-neutral-500">
                       {{ formatAllocation(rebalancingData.current_allocation.bonds) }}% → {{ formatAllocation(rebalancingData.target_allocation?.bonds) }}%
                     </span>
                   </div>
-                  <div class="h-2 bg-gray-200 rounded overflow-hidden relative">
+                  <div class="h-2 bg-savannah-200 rounded overflow-hidden relative">
                     <div
-                      class="absolute h-full w-0.5 bg-gray-800 z-10"
+                      class="absolute h-full w-0.5 bg-horizon-500 z-10"
                       :style="{ left: formatAllocation(rebalancingData.target_allocation?.bonds) + '%' }"
                     ></div>
                     <div
-                      class="h-full bg-green-500 rounded"
+                      class="h-full bg-spring-500 rounded"
                       :style="{ width: formatAllocation(rebalancingData.current_allocation.bonds) + '%' }"
                     ></div>
                   </div>
@@ -115,8 +115,8 @@
 
             <!-- Has Holdings but Loading -->
             <div v-else class="text-center py-4">
-              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-              <p class="text-xs text-gray-500 mt-2">Loading...</p>
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-raspberry-500 mx-auto"></div>
+              <p class="text-xs text-neutral-500 mt-2">Loading...</p>
             </div>
           </div>
 
@@ -125,21 +125,21 @@
             class="insight-card cursor-pointer hover:shadow-md transition-shadow"
             @click="handleFeesClick"
           >
-            <h4 class="text-sm font-semibold text-gray-900 mb-3">Total Fees</h4>
+            <h4 class="text-sm font-semibold text-horizon-500 mb-3">Total Fees</h4>
 
             <!-- No Fees Entered State -->
             <div v-if="!hasHoldings && totalFeePercent === 0" class="text-center py-4">
-              <p class="text-lg font-semibold text-blue-600 hover:underline">Add Fees</p>
-              <p class="text-xs text-gray-500 mt-1">Add fees to get fee optimisation strategies</p>
+              <p class="text-lg font-semibold text-violet-600 hover:underline">Add Fees</p>
+              <p class="text-xs text-neutral-500 mt-1">Add fees to get fee optimisation strategies</p>
             </div>
 
             <!-- Has Fees (from platform fee or holdings) -->
             <div v-else class="text-center p-3 rounded-lg" :class="getTotalFeeBgClass()">
-              <p class="text-xs text-gray-600 mb-1">Annual Fee Rate</p>
+              <p class="text-xs text-neutral-500 mb-1">Annual Fee Rate</p>
               <p class="text-2xl font-bold" :class="getTotalFeeClass()">
                 {{ formatPercentage(totalFeePercent) }}
               </p>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-neutral-500 mt-1">
                 {{ formatCurrency(totalAnnualFees) }} / year
               </p>
             </div>
@@ -149,9 +149,9 @@
         <!-- Chart Area (Right) -->
         <div class="chart-container">
           <!-- Projected Value Card -->
-          <div class="bg-blue-50 rounded-lg p-4 mb-4">
+          <div class="bg-violet-50 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-1">
-              <p class="text-xs text-blue-600 uppercase tracking-wide">Projected Value (80%)</p>
+              <p class="text-xs text-violet-600 uppercase tracking-wide">Projected Value (80%)</p>
               <!-- Show fixed "To Retirement" text for retirement-included accounts -->
               <span
                 v-if="isIncludedInRetirement && yearsToRetirement"
@@ -164,7 +164,7 @@
                 v-else
                 v-model="selectedProjectionYears"
                 @change="updateProjectionData"
-                class="px-2 py-1 text-xs border border-blue-200 rounded bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="px-2 py-1 text-xs border border-violet-200 rounded bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option
                   v-for="option in projectionYearOptions"
@@ -175,8 +175,8 @@
                 </option>
               </select>
             </div>
-            <p class="text-2xl font-bold text-blue-900">{{ formatProjectedValue80 }}</p>
-            <p class="text-sm text-blue-600 mt-1">
+            <p class="text-2xl font-bold text-violet-900">{{ formatProjectedValue80 }}</p>
+            <p class="text-sm text-violet-600 mt-1">
               <template v-if="isIncludedInRetirement && yearsToRetirement">
                 at retirement in {{ yearsToRetirement }} years
               </template>
@@ -196,11 +196,11 @@
               height="400"
             />
           </div>
-          <div v-else class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div v-else class="bg-eggshell-500 border-2 border-dashed border-horizon-300 rounded-lg p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-horizon-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <p class="text-sm text-gray-600">{{ error || 'No projection data available' }}</p>
+            <p class="text-sm text-neutral-500">{{ error || 'No projection data available' }}</p>
           </div>
 
           <!-- Asset Allocation Summary Card -->
@@ -209,7 +209,7 @@
             class="asset-allocation-card mt-4 cursor-pointer hover:shadow-md transition-shadow"
             @click="goToHoldingsTab"
           >
-            <h4 class="text-sm font-semibold text-gray-900 mb-3">Asset Allocation</h4>
+            <h4 class="text-sm font-semibold text-horizon-500 mb-3">Asset Allocation</h4>
             <div class="allocation-bars">
               <!-- Stacked bar -->
               <div class="stacked-bar">
@@ -256,8 +256,8 @@
         @click="goToTaxStatusTab"
       >
         <div class="mb-4">
-          <h4 class="text-sm font-semibold text-gray-900">Tax Treatment</h4>
-          <p class="text-xs text-gray-500">{{ taxInfo.product_type_label }}</p>
+          <h4 class="text-sm font-semibold text-horizon-500">Tax Treatment</h4>
+          <p class="text-xs text-neutral-500">{{ taxInfo.product_type_label }}</p>
         </div>
 
         <!-- Tax Items Grid -->
@@ -282,7 +282,7 @@
         <!-- Status Legend -->
         <div class="tax-legend">
           <div class="tax-legend-item">
-            <span class="tax-legend-dot bg-green-500"></span>
+            <span class="tax-legend-dot bg-spring-500"></span>
             <span>Tax-Free</span>
           </div>
           <div class="tax-legend-item">
@@ -290,11 +290,11 @@
             <span>Taxable</span>
           </div>
           <div class="tax-legend-item">
-            <span class="tax-legend-dot bg-blue-500"></span>
+            <span class="tax-legend-dot bg-violet-500"></span>
             <span>Deferred</span>
           </div>
           <div class="tax-legend-item">
-            <span class="tax-legend-dot bg-purple-500"></span>
+            <span class="tax-legend-dot bg-violet-500"></span>
             <span>Relief</span>
           </div>
         </div>
@@ -433,7 +433,7 @@ export default {
         chart: {
           type: 'area',
           stacked: false,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: true,
             tools: {
@@ -754,10 +754,10 @@ export default {
 
     getRecommendationClass(type) {
       switch (type) {
-        case 'success': return 'text-green-600 bg-green-50 border-green-200';
+        case 'success': return 'text-spring-600 bg-spring-50 border-spring-200';
         case 'warning': return 'text-violet-600 bg-violet-50 border-violet-200';
-        case 'info': return 'text-blue-600 bg-blue-50 border-blue-200';
-        default: return 'text-gray-600 bg-gray-50 border-gray-200';
+        case 'info': return 'text-violet-600 bg-violet-50 border-violet-200';
+        default: return 'text-neutral-500 bg-eggshell-500 border-light-gray';
       }
     },
 
@@ -780,18 +780,18 @@ export default {
     },
 
     getDriftStatusClass() {
-      if (!this.rebalancingData?.drift_analysis) return 'text-gray-600';
+      if (!this.rebalancingData?.drift_analysis) return 'text-neutral-500';
       const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'text-green-600';
-      if (score < 10) return 'text-blue-600';
+      if (score < 5) return 'text-spring-600';
+      if (score < 10) return 'text-violet-600';
       return 'text-violet-600';
     },
 
     getDriftBgClass() {
-      if (!this.rebalancingData?.drift_analysis) return 'bg-gray-50';
+      if (!this.rebalancingData?.drift_analysis) return 'bg-eggshell-500';
       const score = this.rebalancingData.drift_analysis.drift_score;
-      if (score < 5) return 'bg-green-50';
-      if (score < 10) return 'bg-blue-50';
+      if (score < 5) return 'bg-spring-50';
+      if (score < 10) return 'bg-violet-50';
       return 'bg-violet-50';
     },
 
@@ -815,15 +815,15 @@ export default {
 
     getTotalFeeClass() {
       const fee = this.totalFeePercent;
-      if (fee < 0.8) return 'text-green-600';
-      if (fee < 1.5) return 'text-blue-600';
+      if (fee < 0.8) return 'text-spring-600';
+      if (fee < 1.5) return 'text-violet-600';
       return 'text-violet-600';
     },
 
     getTotalFeeBgClass() {
       const fee = this.totalFeePercent;
-      if (fee < 0.8) return 'bg-green-50';
-      if (fee < 1.5) return 'bg-blue-50';
+      if (fee < 0.8) return 'bg-spring-50';
+      if (fee < 1.5) return 'bg-violet-50';
       return 'bg-violet-50';
     },
 
@@ -889,24 +889,24 @@ export default {
 
     getTaxStatusBgClass(status) {
       const classes = {
-        exempt: 'bg-green-500 border-green-500 text-white',
+        exempt: 'bg-spring-500 border-spring-500 text-white',
         taxable: 'bg-slate-500 border-slate-500 text-white',
-        deferred: 'bg-blue-500 border-blue-500 text-white',
-        relief: 'bg-purple-500 border-purple-500 text-white',
-        limit: 'bg-gray-500 border-gray-500 text-white',
+        deferred: 'bg-violet-500 border-violet-500 text-white',
+        relief: 'bg-violet-500 border-violet-500 text-white',
+        limit: 'bg-eggshell-500 border-horizon-400 text-white',
       };
-      return classes[status] || 'bg-gray-500 border-gray-500 text-white';
+      return classes[status] || 'bg-eggshell-500 border-horizon-400 text-white';
     },
 
     getTaxStatusIconClass(status) {
       const classes = {
-        exempt: 'bg-green-600 text-white',
+        exempt: 'bg-spring-600 text-white',
         taxable: 'bg-slate-600 text-white',
-        deferred: 'bg-primary-600 text-white',
-        relief: 'bg-purple-600 text-white',
-        limit: 'bg-gray-600 text-white',
+        deferred: 'bg-raspberry-500 text-white',
+        relief: 'bg-violet-600 text-white',
+        limit: 'bg-horizon-400 text-white',
       };
-      return classes[status] || 'bg-gray-600 text-white';
+      return classes[status] || 'bg-horizon-400 text-white';
     },
 
     getTaxStatusIcon(status) {
@@ -931,7 +931,7 @@ export default {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
@@ -949,10 +949,7 @@ export default {
 }
 
 .insight-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
+  @apply bg-white border border-light-gray rounded-xl p-4;
 }
 
 .chart-container {
@@ -973,10 +970,7 @@ export default {
 }
 
 .asset-allocation-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
+  @apply bg-white border border-light-gray rounded-xl p-4;
 }
 
 .stacked-bar {
@@ -985,7 +979,7 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
-  background-color: #e5e7eb;
+  @apply bg-savannah-200;
 }
 
 .bar-segment {
@@ -1027,22 +1021,18 @@ export default {
 
 .legend-text {
   font-size: 12px;
-  color: #374151;
+  @apply text-neutral-500;
 }
 
 .legend-value {
   font-size: 12px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 /* Tax Status Card Styles */
 .tax-status-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 24px;
+  @apply bg-white border border-light-gray rounded-xl p-5 mt-6;
 }
 
 .tax-items-grid {
@@ -1097,7 +1087,7 @@ export default {
   flex-wrap: wrap;
   gap: 16px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-light-gray;
 }
 
 .tax-legend-item {
@@ -1105,7 +1095,7 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .tax-legend-dot {

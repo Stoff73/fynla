@@ -8,38 +8,38 @@
     <!-- Full Mode -->
     <template v-else>
       <div v-if="isOverdue" class="text-center">
-        <div class="text-3xl font-bold text-red-600 mb-1">Overdue</div>
-        <div class="text-sm text-red-500">{{ Math.abs(daysRemaining) }} days past target</div>
+        <div class="text-3xl font-bold text-raspberry-600 mb-1">Overdue</div>
+        <div class="text-sm text-raspberry-500">{{ Math.abs(daysRemaining) }} days past target</div>
       </div>
 
       <div v-else-if="daysRemaining === 0" class="text-center">
-        <div class="text-3xl font-bold text-blue-600 mb-1">Today!</div>
-        <div class="text-sm text-blue-500">Target date is today</div>
+        <div class="text-3xl font-bold text-violet-600 mb-1">Today!</div>
+        <div class="text-sm text-violet-500">Target date is today</div>
       </div>
 
       <div v-else-if="showDetailed" class="flex justify-center gap-4">
         <!-- Years -->
         <div v-if="years > 0" class="text-center">
           <div class="text-2xl font-bold" :class="numberClass">{{ years }}</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wider">{{ years === 1 ? 'Year' : 'Years' }}</div>
+          <div class="text-xs text-neutral-500 uppercase tracking-wider">{{ years === 1 ? 'Year' : 'Years' }}</div>
         </div>
 
         <!-- Months -->
         <div v-if="years > 0 || months > 0" class="text-center">
           <div class="text-2xl font-bold" :class="numberClass">{{ months }}</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wider">{{ months === 1 ? 'Month' : 'Months' }}</div>
+          <div class="text-xs text-neutral-500 uppercase tracking-wider">{{ months === 1 ? 'Month' : 'Months' }}</div>
         </div>
 
         <!-- Days -->
         <div v-if="years === 0" class="text-center">
           <div class="text-2xl font-bold" :class="numberClass">{{ days }}</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wider">{{ days === 1 ? 'Day' : 'Days' }}</div>
+          <div class="text-xs text-neutral-500 uppercase tracking-wider">{{ days === 1 ? 'Day' : 'Days' }}</div>
         </div>
       </div>
 
       <div v-else class="text-center">
         <div class="text-3xl font-bold" :class="numberClass">{{ displayText }}</div>
-        <div class="text-sm text-gray-500">remaining</div>
+        <div class="text-sm text-neutral-500">remaining</div>
       </div>
 
       <!-- Urgency Indicator -->
@@ -152,39 +152,39 @@ export default {
     },
 
     backgroundClass() {
-      if (this.variant === 'neutral') return 'bg-gray-50';
-      if (this.isOverdue) return 'bg-red-50';
-      if (this.urgencyLevel === 'critical') return 'bg-red-50';
-      if (this.urgencyLevel === 'urgent') return 'bg-blue-50';
-      if (this.urgencyLevel === 'approaching') return 'bg-blue-50';
-      return 'bg-gray-50';
+      if (this.variant === 'neutral') return 'bg-savannah-100';
+      if (this.isOverdue) return 'bg-raspberry-50';
+      if (this.urgencyLevel === 'critical') return 'bg-raspberry-50';
+      if (this.urgencyLevel === 'urgent') return 'bg-violet-50';
+      if (this.urgencyLevel === 'approaching') return 'bg-violet-50';
+      return 'bg-savannah-100';
     },
 
     textClass() {
-      if (this.variant === 'neutral') return 'text-gray-700';
-      if (this.isOverdue) return 'text-red-600';
-      if (this.urgencyLevel === 'critical') return 'text-red-600';
-      if (this.urgencyLevel === 'urgent') return 'text-blue-600';
-      if (this.urgencyLevel === 'approaching') return 'text-blue-600';
-      return 'text-gray-700';
+      if (this.variant === 'neutral') return 'text-neutral-500';
+      if (this.isOverdue) return 'text-raspberry-600';
+      if (this.urgencyLevel === 'critical') return 'text-raspberry-600';
+      if (this.urgencyLevel === 'urgent') return 'text-violet-600';
+      if (this.urgencyLevel === 'approaching') return 'text-violet-600';
+      return 'text-neutral-500';
     },
 
     numberClass() {
-      if (this.variant === 'neutral') return 'text-gray-900';
-      if (this.isOverdue) return 'text-red-600';
-      if (this.urgencyLevel === 'critical') return 'text-red-600';
-      if (this.urgencyLevel === 'urgent') return 'text-blue-600';
-      if (this.urgencyLevel === 'approaching') return 'text-blue-600';
-      return 'text-gray-900';
+      if (this.variant === 'neutral') return 'text-horizon-500';
+      if (this.isOverdue) return 'text-raspberry-600';
+      if (this.urgencyLevel === 'critical') return 'text-raspberry-600';
+      if (this.urgencyLevel === 'urgent') return 'text-violet-600';
+      if (this.urgencyLevel === 'approaching') return 'text-violet-600';
+      return 'text-horizon-500';
     },
 
     urgencyBadgeClass() {
       const classes = {
-        overdue: 'bg-red-100 text-red-700',
-        critical: 'bg-red-100 text-red-700',
-        urgent: 'bg-blue-100 text-blue-700',
-        approaching: 'bg-blue-100 text-blue-700',
-        normal: 'bg-gray-100 text-gray-700',
+        overdue: 'bg-raspberry-100 text-raspberry-700',
+        critical: 'bg-raspberry-100 text-raspberry-700',
+        urgent: 'bg-violet-100 text-violet-700',
+        approaching: 'bg-violet-100 text-violet-700',
+        normal: 'bg-savannah-100 text-neutral-500',
       };
       return classes[this.urgencyLevel];
     },

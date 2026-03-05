@@ -1,7 +1,7 @@
 <template>
   <div
     class="bg-white rounded-lg border p-4 transition-all duration-200"
-    :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-75'"
+    :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-light-gray opacity-75'"
   >
     <div class="flex items-start justify-between">
       <div class="flex-1 min-w-0 mr-4">
@@ -12,21 +12,21 @@
           >
             {{ priorityLabel }}
           </span>
-          <span class="text-xs text-gray-500">{{ action.category }}</span>
+          <span class="text-xs text-neutral-500">{{ action.category }}</span>
         </div>
-        <h4 class="text-sm font-semibold text-gray-900">{{ action.title }}</h4>
-        <p class="text-sm text-gray-600 mt-1">{{ action.description }}</p>
+        <h4 class="text-sm font-semibold text-horizon-500">{{ action.title }}</h4>
+        <p class="text-sm text-neutral-500 mt-1">{{ action.description }}</p>
         <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
           Estimated impact: {{ formatCurrency(action.estimated_impact) }} (this is not a real figure until we connect to a quote engine)
         </p>
 
         <!-- Funding source -->
-        <div v-if="hasFundingSource" class="mt-3 pt-3 border-t border-gray-100">
+        <div v-if="hasFundingSource" class="mt-3 pt-3 border-t border-savannah-100">
           <div class="flex items-center gap-2 flex-wrap">
-            <label class="text-xs font-medium text-gray-500 whitespace-nowrap">Fund from</label>
+            <label class="text-xs font-medium text-neutral-500 whitespace-nowrap">Fund from</label>
             <template v-if="eligibleAccounts.length > 1">
               <select
-                class="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                class="text-xs border border-horizon-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 :value="selectedAccountKey"
                 @change="onFundingSourceChange($event)"
               >
@@ -39,10 +39,10 @@
                 </option>
               </select>
             </template>
-            <span v-else-if="eligibleAccounts.length === 1" class="text-xs text-gray-700">
+            <span v-else-if="eligibleAccounts.length === 1" class="text-xs text-horizon-500">
               {{ eligibleAccounts[0].name }} ({{ formatCurrency(eligibleAccounts[0].balance) }})
             </span>
-            <span v-else class="text-xs text-gray-500 italic">No eligible accounts</span>
+            <span v-else class="text-xs text-neutral-500 italic">No eligible accounts</span>
           </div>
           <p v-if="selectedWarning" class="text-xs text-red-600 mt-1">
             {{ selectedWarning }}
@@ -51,8 +51,8 @@
       </div>
       <div class="flex-shrink-0">
         <button
-          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          :class="action.enabled ? 'bg-[#1257A0]' : 'bg-gray-300'"
+          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+          :class="action.enabled ? 'bg-raspberry-500' : 'bg-horizon-300'"
           role="switch"
           :aria-checked="action.enabled"
           @click="$emit('toggle', action.id)"

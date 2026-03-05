@@ -2,8 +2,8 @@
   <div v-if="hasEvents" class="estate-life-events-impact">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-h5 font-semibold text-gray-900">Life Events Impact on Estate</h3>
-      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+      <h3 class="text-h5 font-semibold text-horizon-500">Life Events Impact on Estate</h3>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-700">
         {{ events.length }} {{ events.length === 1 ? 'event' : 'events' }}
       </span>
     </div>
@@ -24,7 +24,7 @@
           ? 'bg-success-50 border-success-200'
           : 'bg-error-50 border-error-200'
       ]">
-        <p class="text-xs text-gray-600 font-medium mb-1">Net Estate Impact</p>
+        <p class="text-xs text-neutral-500 font-medium mb-1">Net Estate Impact</p>
         <p :class="[
           'text-lg font-bold',
           summary.net_estate_impact >= 0 ? 'text-success-700' : 'text-error-700'
@@ -41,17 +41,17 @@
         :key="'trigger-' + index"
         :class="[
           'rounded-lg p-4 border-l-4',
-          trigger.priority === 'high' ? 'bg-error-50 border-error-500' : 'bg-blue-50 border-blue-500'
+          trigger.priority === 'high' ? 'bg-error-50 border-error-500' : 'bg-violet-50 border-violet-500'
         ]"
       >
         <div class="flex items-start">
-          <svg class="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-neutral-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
           <div class="ml-3">
-            <p class="text-sm font-medium text-gray-900">{{ trigger.event_name }}</p>
-            <p class="text-sm text-gray-700 mt-1">{{ trigger.reason }}</p>
-            <p class="text-sm text-primary-700 mt-1 font-medium">{{ trigger.recommendation }}</p>
+            <p class="text-sm font-medium text-horizon-500">{{ trigger.event_name }}</p>
+            <p class="text-sm text-neutral-500 mt-1">{{ trigger.reason }}</p>
+            <p class="text-sm text-raspberry-700 mt-1 font-medium">{{ trigger.recommendation }}</p>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@
         class="relative flex items-start pb-6 last:pb-0"
       >
         <!-- Timeline line -->
-        <div v-if="index < sortedEvents.length - 1" class="absolute top-6 left-4 w-0.5 h-full bg-gray-200"></div>
+        <div v-if="index < sortedEvents.length - 1" class="absolute top-6 left-4 w-0.5 h-full bg-savannah-200"></div>
 
         <!-- Timeline dot -->
         <div :class="[
@@ -82,7 +82,7 @@
         <div class="ml-4 flex-1 min-w-0">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
             <div class="flex items-center gap-2">
-              <p class="text-sm font-medium text-gray-900">{{ event.event_name }}</p>
+              <p class="text-sm font-medium text-horizon-500">{{ event.event_name }}</p>
               <span :class="[
                 'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
                 certaintyClass(event.certainty)
@@ -90,11 +90,11 @@
                 {{ event.certainty }}
               </span>
             </div>
-            <p class="text-sm text-gray-500">{{ formatDate(event.expected_date) }}</p>
+            <p class="text-sm text-neutral-500">{{ formatDate(event.expected_date) }}</p>
           </div>
 
           <!-- Module context -->
-          <p v-if="event.module_context" class="text-xs text-gray-500 mt-0.5">{{ event.module_context }}</p>
+          <p v-if="event.module_context" class="text-xs text-neutral-500 mt-0.5">{{ event.module_context }}</p>
 
           <!-- Financial impact row -->
           <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -115,7 +115,7 @@
               Inheritance Tax {{ event.projected_iht_change > 0 ? '+' : '' }}{{ formatCurrency(event.projected_iht_change) }}
             </span>
 
-            <span v-if="event.projected_iht_after_event !== undefined" class="text-xs text-gray-500">
+            <span v-if="event.projected_iht_after_event !== undefined" class="text-xs text-neutral-500">
               (Projected liability: {{ formatCurrency(event.projected_iht_after_event) }})
             </span>
           </div>
@@ -124,8 +124,8 @@
     </div>
 
     <!-- View all link -->
-    <div class="mt-4 pt-4 border-t border-gray-200">
-      <router-link to="/goals?tab=events" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+    <div class="mt-4 pt-4 border-t border-light-gray">
+      <router-link to="/goals?tab=events" class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium">
         View all life events &rarr;
       </router-link>
     </div>
@@ -185,13 +185,13 @@ export default {
         case 'confirmed':
           return 'bg-success-100 text-success-700';
         case 'likely':
-          return 'bg-blue-100 text-blue-700';
+          return 'bg-violet-100 text-violet-700';
         case 'possible':
-          return 'bg-gray-100 text-gray-700';
+          return 'bg-savannah-100 text-neutral-500';
         case 'speculative':
-          return 'bg-gray-100 text-gray-500';
+          return 'bg-savannah-100 text-neutral-500';
         default:
-          return 'bg-gray-100 text-gray-700';
+          return 'bg-savannah-100 text-neutral-500';
       }
     },
   },

@@ -25,11 +25,11 @@
 
     <form @submit.prevent="handleSubmit">
       <!-- VIEW MODE -->
-      <div v-if="!isEditing" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div v-if="!isEditing" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Personal Information</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Personal Information</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               Your personal details, contact information, occupation, and domicile status
             </p>
           </div>
@@ -46,62 +46,62 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
           <!-- Personal Details Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Personal Details</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Personal Details</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Full Name:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.name || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Full Name:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.name || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Email:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.email || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Email:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.email || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Date of Birth:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatDisplayDate(form.date_of_birth) }}</span>
+                <span class="text-body-sm text-neutral-500">Date of Birth:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatDisplayDate(form.date_of_birth) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Gender:</span>
-                <span class="text-body-sm text-gray-900 text-right capitalize">{{ form.gender || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Gender:</span>
+                <span class="text-body-sm text-horizon-500 text-right capitalize">{{ form.gender || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Marital Status:</span>
-                <span class="text-body-sm text-gray-900 text-right capitalize">{{ form.marital_status || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Marital Status:</span>
+                <span class="text-body-sm text-horizon-500 text-right capitalize">{{ form.marital_status || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">NI Number:</span>
-                <span class="text-body-sm text-gray-900 text-right uppercase">{{ form.national_insurance_number || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">NI Number:</span>
+                <span class="text-body-sm text-horizon-500 text-right uppercase">{{ form.national_insurance_number || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Phone:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.phone || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Phone:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.phone || '—' }}</span>
               </div>
             </div>
           </div>
 
           <!-- Address Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Address</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Address</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Address Line 1:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.address_line_1 || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Address Line 1:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.address_line_1 || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Address Line 2:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.address_line_2 || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Address Line 2:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.address_line_2 || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">City:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.city || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">City:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.city || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">County:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.county || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">County:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.county || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Postcode:</span>
-                <span class="text-body-sm text-gray-900 text-right uppercase">{{ form.postcode || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Postcode:</span>
+                <span class="text-body-sm text-horizon-500 text-right uppercase">{{ form.postcode || '—' }}</span>
               </div>
             </div>
           </div>
@@ -111,50 +111,50 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8 mt-8">
           <!-- Occupation Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Occupation</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Occupation</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Job Title:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.occupation || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Job Title:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.occupation || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Employer:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.employer || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Employer:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.employer || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Industry:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.industry || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Industry:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.industry || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Status:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatEmploymentStatus(form.employment_status) }}</span>
+                <span class="text-body-sm text-neutral-500">Status:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatEmploymentStatus(form.employment_status) }}</span>
               </div>
               <div v-if="form.employment_status && form.employment_status !== 'retired'" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Retirement Age:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.target_retirement_age || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Retirement Age:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.target_retirement_age || '—' }}</span>
               </div>
             </div>
           </div>
 
           <!-- Domicile Section -->
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900 mb-4">Domicile Status</h3>
+            <h3 class="text-body-base font-semibold text-horizon-500 mb-4">Domicile Status</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Country of Birth:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ form.country_of_birth || '—' }}</span>
+                <span class="text-body-sm text-neutral-500">Country of Birth:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ form.country_of_birth || '—' }}</span>
               </div>
               <div v-if="shouldShowUKArrivalDate" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Date Moved to UK:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatDisplayDate(form.uk_arrival_date) }}</span>
+                <span class="text-body-sm text-neutral-500">Date Moved to UK:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatDisplayDate(form.uk_arrival_date) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Domicile Status:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ domicileStatusLabel }}</span>
+                <span class="text-body-sm text-neutral-500">Domicile Status:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ domicileStatusLabel }}</span>
               </div>
               <div v-if="yearsResident !== null" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Years UK Resident:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ yearsResident }} years</span>
+                <span class="text-body-sm text-neutral-500">Years UK Resident:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ yearsResident }} years</span>
               </div>
             </div>
             <!-- Domicile Info Box -->
@@ -173,15 +173,15 @@
     </div>
 
       <!-- EDIT MODE - Form inputs -->
-      <div v-else class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-h4 font-semibold text-gray-900 mb-6">Edit Personal Information</h3>
+      <div v-else class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-h4 font-semibold text-horizon-500 mb-6">Edit Personal Information</h3>
 
         <div class="space-y-6">
         <!-- Basic Details Section -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Name -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Full Name
             </label>
             <input
@@ -194,7 +194,7 @@
 
           <!-- Email -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Email Address
             </label>
             <input
@@ -207,7 +207,7 @@
 
           <!-- Date of Birth -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Date of Birth
             </label>
             <input
@@ -222,7 +222,7 @@
 
           <!-- Gender -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Gender
             </label>
             <select
@@ -239,7 +239,7 @@
 
           <!-- Marital Status -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Marital Status
             </label>
             <select
@@ -257,7 +257,7 @@
 
           <!-- National Insurance Number -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               National Insurance Number
             </label>
             <input
@@ -272,7 +272,7 @@
 
           <!-- Phone -->
           <div>
-            <label class="block text-body-sm font-medium text-gray-700 mb-1">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Phone Number
             </label>
             <input
@@ -286,13 +286,13 @@
         </div>
 
         <!-- Address Section -->
-        <div class="border-t border-gray-200 pt-6">
-          <h3 class="text-h5 font-semibold text-gray-900 mb-4">Address</h3>
+        <div class="border-t border-light-gray pt-6">
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Address</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <!-- Address Line 1 -->
             <div class="sm:col-span-2">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Address Line 1
               </label>
               <input
@@ -305,7 +305,7 @@
 
             <!-- Address Line 2 -->
             <div class="sm:col-span-2">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Address Line 2
               </label>
               <input
@@ -318,7 +318,7 @@
 
             <!-- City -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 City
               </label>
               <input
@@ -331,7 +331,7 @@
 
             <!-- County -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 County
               </label>
               <input
@@ -344,7 +344,7 @@
 
             <!-- Postcode -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Postcode
               </label>
               <input
@@ -359,13 +359,13 @@
         </div>
 
         <!-- Occupation Section -->
-        <div class="border-t border-gray-200 pt-6">
-          <h3 class="text-h5 font-semibold text-gray-900 mb-4">Occupation</h3>
+        <div class="border-t border-light-gray pt-6">
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Occupation</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <!-- Occupation -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Job Title
               </label>
               <OccupationAutocomplete
@@ -377,7 +377,7 @@
 
             <!-- Employer -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Employer
               </label>
               <input
@@ -391,7 +391,7 @@
 
             <!-- Industry -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Industry
               </label>
               <input
@@ -405,7 +405,7 @@
 
             <!-- Employment Status -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Employment Status
               </label>
               <select
@@ -425,7 +425,7 @@
 
             <!-- Retirement Age (for non-retired) -->
             <div v-if="form.employment_status && form.employment_status !== 'retired'">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Retirement Age
               </label>
               <input
@@ -437,7 +437,7 @@
                 class="input-field"
                 placeholder="65"
               />
-              <p class="mt-1 text-body-sm text-gray-500">
+              <p class="mt-1 text-body-sm text-neutral-500">
                 Planned retirement age, used for all pension forecast calculations.
               </p>
             </div>
@@ -445,16 +445,16 @@
         </div>
 
         <!-- Domicile Section -->
-        <div class="border-t border-gray-200 pt-6">
-          <h3 class="text-h5 font-semibold text-gray-900 mb-4">Domicile Status</h3>
-          <p class="text-body-sm text-gray-600 mb-4">
+        <div class="border-t border-light-gray pt-6">
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Domicile Status</h3>
+          <p class="text-body-sm text-neutral-500 mb-4">
             Your domicile status affects UK inheritance tax on your worldwide assets
           </p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <!-- Country of Birth -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Country of Birth
               </label>
               <CountrySelector
@@ -467,7 +467,7 @@
 
             <!-- UK Arrival Date (conditional - shown only for non-UK born) -->
             <div v-if="shouldShowUKArrivalDate">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Date Moved to UK
               </label>
               <input
@@ -482,11 +482,11 @@
 
             <!-- Domicile Status Display -->
             <div class="sm:col-span-2" v-if="form.country_of_birth">
-              <div class="bg-gray-50 rounded-lg p-4">
-                <p class="text-body-sm text-gray-700">
+              <div class="bg-eggshell-500 rounded-lg p-4">
+                <p class="text-body-sm text-neutral-500">
                   <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
                 </p>
-                <p v-if="yearsResident !== null" class="text-body-sm text-gray-600 mt-1">
+                <p v-if="yearsResident !== null" class="text-body-sm text-neutral-500 mt-1">
                   <strong>Years UK Resident:</strong> {{ yearsResident }} years
                 </p>
                 <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-blue-700">
@@ -501,7 +501,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+        <div class="flex justify-end space-x-4 pt-6 border-t border-light-gray">
             <button
               type="button"
               @click="handleCancel"

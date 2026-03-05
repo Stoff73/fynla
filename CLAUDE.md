@@ -132,8 +132,8 @@ Joint assets use a SINGLE record with `joint_owner_id` and `ownership_percentage
 ### 8. PreviewWriteInterceptor Middleware
 When adding new auth-related POST routes, add them to `EXCLUDED_ROUTES` in `app/Http/Middleware/PreviewWriteInterceptor.php`. This middleware intercepts all write operations from preview users - any route that must work regardless of preview mode state (login, register, password reset) must be excluded.
 
-### 9. No Amber or Orange Color
-The amber (`amber-*`) and orange (`orange-*`) colors are banned from the application. Use blue (`blue-*`) instead for warnings and caution states. See `designStyle.md` for the full color system.
+### 9. No Amber, Orange, or Non-Palette Colors
+The amber (`amber-*`) and orange (`orange-*`) colors are banned from the application. Use violet (`violet-*`) for warnings and caution states, raspberry (`raspberry-*`) for errors/danger, spring (`spring-*`) for success. All colors must come from the palette defined in `fynlaDesignGuide.md` v1.2.0. Use Tailwind tokens (`raspberry-*`, `horizon-*`, `spring-*`, `violet-*`, `savannah-*`, `eggshell-*`) — never hardcode hex.
 
 ### 10. No Acronyms in User-Facing Text
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
@@ -142,14 +142,21 @@ All acronyms must be spelled out in user-facing text. Write "Annual Allowance" n
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
 ### 11. Design System Compliance
-**CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `designStyle.md`. This includes:
-- Colors (especially risk level colors, semantic colors, and forbidden colors)
-- Typography and spacing
+**CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `fynlaDesignGuide.md` (v1.2.0). This includes:
+- Colors: Raspberry (CTAs), Horizon (text/nav), Spring (success), Violet (warnings/focus), Savannah (hover/subtle), Eggshell (page bg)
+- Typography: Segoe UI (primary), Inter (fallback), font weights 900 (display/h1), 700 (h2-h5)
 - Component patterns (buttons, cards, forms, modals)
 - Badges and status indicators
-- Charts and data visualisation
+- Charts and data visualisation (use `designSystem.js` constants)
 
-The design system is the single source of truth for all visual decisions. Never introduce new colors, spacing values, or component patterns without checking `designStyle.md` first.
+The design system is the single source of truth for all visual decisions. Never introduce new colors, spacing values, or component patterns without checking `fynlaDesignGuide.md` first.
+
+### 12. CSS Governance
+- **No duplicated CSS patterns** — check `app.css` before adding scrollbar, animation, spinner, range slider, accordion, badge, or back-button styles to `<style scoped>`. Use the global classes instead.
+- **No hardcoded hex in style blocks** — use Tailwind `@apply` directives (e.g. `@apply text-horizon-500` not `color: #1F2A44`). For dynamic chart colours, import from `designSystem.js`.
+- **All colors from palette** — use only tokens from `fynlaDesignGuide.md` v1.2.0: `raspberry-*`, `horizon-*`, `spring-*`, `violet-*`, `savannah-*`, `eggshell-*`, `neutral-*`, `light-gray`, `light-blue-*`, `light-pink-*`. Never use old tokens (`primary-*`, `secondary-*`, `gray-*` for general UI).
+- **Use global classes** for: `.scrollbar-hide`, `.scrollbar-thin`, `.animate-fade-in`, `.animate-fade-in-slide`, `.detail-inline-back`, `.expand-*` transitions, `animate-spin`, badge classes (`.badge-isa`, `.badge-active`, etc.), card variants (`.card`, `.card-lg`, `.card-sm`).
+- **Spinners**: Use `<div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>` — never define custom `@keyframes spin`.
 
 ## Deployment
 

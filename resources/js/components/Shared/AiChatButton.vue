@@ -6,7 +6,7 @@
       class="fixed bottom-6 right-24 z-40 w-14 h-14 rounded-full
              text-white shadow-lg hover:shadow-xl
              transition-all duration-200 flex items-center justify-center
-             focus:outline-none focus:ring-4 focus:ring-blue-300"
+             focus:outline-none focus:ring-4 focus:ring-violet-300"
       :class="buttonClass"
       :title="isOpen ? 'Close chat' : 'Chat with Fynla'"
     >
@@ -76,8 +76,8 @@ export default {
 
         buttonClass() {
             return this.isOpen
-                ? 'bg-gray-600 hover:bg-gray-700 ring-4 ring-gray-200'
-                : 'bg-primary-600 hover:bg-primary-700';
+                ? 'bg-neutral-600 hover:bg-neutral-700 ring-4 ring-savannah-200'
+                : 'bg-raspberry-600 hover:bg-raspberry-700';
         },
     },
 

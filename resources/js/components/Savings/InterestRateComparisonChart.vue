@@ -46,7 +46,7 @@ export default {
           toolbar: {
             show: false,
           },
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
         },
         plotOptions: {
           bar: {

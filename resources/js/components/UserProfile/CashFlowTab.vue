@@ -9,15 +9,15 @@
 
     <div class="opacity-50">
       <div class="mb-6">
-        <h2 class="text-h4 font-semibold text-gray-900">Cash Flow Statement</h2>
-        <p class="mt-1 text-body-sm text-gray-600">
+        <h2 class="text-h4 font-semibold text-horizon-500">Cash Flow Statement</h2>
+        <p class="mt-1 text-body-sm text-neutral-500">
           Track your cash inflows and outflows
         </p>
       </div>
 
       <!-- Placeholder content -->
       <div class="card p-8 text-center">
-        <p class="text-body-base text-gray-500">
+        <p class="text-body-base text-neutral-500">
           Cash Flow statement functionality will be available soon.
         </p>
       </div>

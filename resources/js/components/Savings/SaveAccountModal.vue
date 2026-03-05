@@ -2,7 +2,7 @@
   <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <!-- Background overlay -->
     <div
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
     ></div>
 
     <!-- Modal container -->
@@ -16,12 +16,12 @@
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold text-gray-900">
+            <h3 class="text-xl font-semibold text-horizon-500">
               {{ isEditing ? 'Edit Account' : 'Add Account' }}
             </h3>
             <button
               @click="handleClose"
-              class="text-gray-400 hover:text-gray-500 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -40,25 +40,25 @@
           <div class="space-y-4 pr-2">
             <!-- Institution -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Institution
               </label>
               <input
                 v-model="formData.institution"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., Halifax, Barclays, Marcus"
               />
             </div>
 
             <!-- Account Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Product Type
               </label>
               <select
                 v-model="formData.account_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select product type...</option>
                 <optgroup label="Bank Accounts">
@@ -82,17 +82,17 @@
 
             <!-- Current Balance -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Current Balance
               </label>
               <div class="relative">
-                <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                 <input
                   v-model.number="formData.current_balance"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -100,7 +100,7 @@
 
             <!-- Interest Rate -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Interest Rate
               </label>
               <div class="relative">
@@ -110,24 +110,24 @@
                   step="0.01"
                   min="0"
                   max="20"
-                  class="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full pr-8 pl-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="0.00"
                 />
-                <span class="absolute right-3 top-2.5 text-gray-500">%</span>
+                <span class="absolute right-3 top-2.5 text-neutral-500">%</span>
               </div>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-neutral-500 mt-1">
                 Enter as percentage (e.g., 5.0 for 5%). Maximum 20%.
               </p>
             </div>
 
             <!-- Access Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Access Type
               </label>
               <select
                 v-model="formData.access_type"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="immediate">Immediate</option>
                 <option value="notice">Notice Required</option>
@@ -137,27 +137,27 @@
 
             <!-- Notice Period (if access_type is notice) -->
             <div v-if="formData.access_type === 'notice'">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Notice Period (days)
               </label>
               <input
                 v-model.number="formData.notice_period_days"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., 30, 60, 90"
               />
             </div>
 
             <!-- Maturity Date (if access_type is fixed) -->
             <div v-if="formData.access_type === 'fixed'">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Maturity Date
               </label>
               <input
                 v-model="formData.maturity_date"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>
 
@@ -167,9 +167,9 @@
                 v-model="formData.is_emergency_fund"
                 type="checkbox"
                 id="is_emergency_fund"
-                class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
+                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
               />
-              <label for="is_emergency_fund" class="ml-2 block text-sm text-gray-700">
+              <label for="is_emergency_fund" class="ml-2 block text-sm text-neutral-500">
                 This forms part of my emergency fund
               </label>
             </div>
@@ -180,16 +180,16 @@
                 v-model="formData.is_isa"
                 type="checkbox"
                 id="is_isa"
-                class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
+                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
               />
-              <label for="is_isa" class="ml-2 block text-sm text-gray-700">
+              <label for="is_isa" class="ml-2 block text-sm text-neutral-500">
                 This is a tax-free savings account (ISA)
               </label>
             </div>
 
             <!-- Country Selector (hidden for ISAs and NS&I - UK only) -->
             <div v-if="!formData.is_isa && !isISAProductType && !isNSIProductType">
-              <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="country" class="block text-sm font-medium text-neutral-500 mb-1">
                 Account Country
               </label>
               <CountrySelector
@@ -197,19 +197,19 @@
                 placeholder="Select country where account is held"
                 id="country"
               />
-              <p class="text-sm text-gray-500 mt-1">Country where the savings account is held</p>
+              <p class="text-sm text-neutral-500 mt-1">Country where the savings account is held</p>
             </div>
 
             <!-- ISA Details (if is_isa is true or ISA product type selected) -->
-            <div v-if="formData.is_isa || isISAProductType" class="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div v-if="formData.is_isa || isISAProductType" class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
               <!-- ISA Header -->
               <div class="flex items-start gap-2 mb-2">
-                <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p class="text-sm font-medium text-blue-900">ISA Subscription</p>
-                  <p class="text-xs text-blue-700 mt-1">
+                  <p class="text-sm font-medium text-violet-900">ISA Subscription</p>
+                  <p class="text-xs text-violet-700 mt-1">
                     All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £{{ isJuniorISA ? '9,000' : '20,000' }} annual allowance (2025/26)
                   </p>
                 </div>
@@ -217,12 +217,12 @@
 
               <!-- Junior ISA Beneficiary (only for Junior ISA) -->
               <div v-if="isJuniorISA">
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Beneficiary (Child)
                 </label>
                 <select
                   v-model="formData.beneficiary_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   @change="handleBeneficiaryChange"
                 >
                   <option value="">Select beneficiary...</option>
@@ -235,11 +235,11 @@
                   </option>
                   <option value="other">Other (enter name)</option>
                 </select>
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-neutral-500 mt-1">
                   Junior ISAs are for children under 18. The child owns the account but cannot access it until age 18.
                 </p>
                 <!-- Age 16-17 guidance -->
-                <div v-if="isBeneficiary16Or17" class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                <div v-if="isBeneficiary16Or17" class="mt-2 p-2 bg-violet-50 border border-violet-200 rounded text-xs text-violet-800">
                   <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
                 </div>
               </div>
@@ -247,42 +247,42 @@
               <!-- Custom Beneficiary Details (if "Other" selected) -->
               <div v-if="isJuniorISA && formData.beneficiary_id === 'other'" class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">
                     Beneficiary Name
                   </label>
                   <input
                     v-model="formData.beneficiary_name"
                     type="text"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                     placeholder="Enter child's full name"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">
                     Date of Birth
                   </label>
                   <input
                     v-model="formData.beneficiary_dob"
                     type="date"
                     :max="maxBeneficiaryDob"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
-                  <p class="text-xs text-gray-500 mt-1">Required to show correct ISA guidance</p>
+                  <p class="text-xs text-neutral-500 mt-1">Required to show correct ISA guidance</p>
                 </div>
                 <!-- Age 16-17 guidance for "Other" beneficiary -->
-                <div v-if="isOtherBeneficiary16Or17" class="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                <div v-if="isOtherBeneficiary16Or17" class="p-2 bg-violet-50 border border-violet-200 rounded text-xs text-violet-800">
                   <strong>Note:</strong> At 16-17, they can also open their own adult Cash ISA and Stocks & Shares ISA (£20,000 total) which they can access anytime. Combined with the Junior ISA (£9,000), they could save up to £29,000 per year.
                 </div>
               </div>
 
               <!-- ISA Subscription Year -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Tax Year
                 </label>
                 <select
                   v-model="formData.isa_subscription_year"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select tax year...</option>
                   <option value="2025/26">2025/26</option>
@@ -293,48 +293,48 @@
 
               <!-- ISA Subscription Amount -->
               <div>
-                <label class="block text-sm font-medium text-blue-900 mb-1">
+                <label class="block text-sm font-medium text-violet-900 mb-1">
                   Already Subscribed This Tax Year (£)
                 </label>
                 <div class="relative">
-                  <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                  <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                   <input
                     v-model.number="formData.isa_subscription_amount"
                     type="number"
                     step="0.01"
                     min="0"
                     :max="isJuniorISA ? JUNIOR_ISA_ALLOWANCE : ISA_ALLOWANCE"
-                    class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                    class="w-full pl-8 pr-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
                     placeholder="0.00"
                   />
                 </div>
-                <p class="text-xs text-blue-700 mt-1">
+                <p class="text-xs text-violet-700 mt-1">
                   Amount already contributed to this account for {{ currentTaxYear }} tax year, including {{ paymentsMadeThisTaxYear }} regular payments.
                 </p>
               </div>
 
               <!-- Regular Contribution (for non-Junior ISAs) -->
               <div v-if="!isJuniorISA">
-                <label class="block text-sm font-medium text-blue-900 mb-1">
+                <label class="block text-sm font-medium text-violet-900 mb-1">
                   Regular Contribution Amount (£)
                 </label>
                 <div class="flex gap-2">
                   <div class="flex-1 relative">
-                    <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                    <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                     <input
                       v-model.number="formData.regular_contribution_amount"
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                      :class="{ 'border-red-500': isaAllowanceError }"
+                      class="w-full pl-8 pr-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+                      :class="{ 'border-raspberry-500': isaAllowanceError }"
                       placeholder="0.00"
                     />
                   </div>
                   <div class="w-32">
                     <select
                       v-model="formData.contribution_frequency"
-                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                      class="w-full px-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
                     >
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly</option>
@@ -342,30 +342,30 @@
                     </select>
                   </div>
                 </div>
-                <p class="text-xs text-blue-700 mt-1">
+                <p class="text-xs text-violet-700 mt-1">
                   As of {{ todaysDate }}, you have {{ paymentsRemainingThisTaxYear }} contributions remaining for the {{ currentTaxYear }} tax year.
                 </p>
                 <!-- Projected ISA subscription advisory -->
-                <div v-if="projectedSubscription > 0" class="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800">
+                <div v-if="projectedSubscription > 0" class="mt-2 p-2 bg-violet-50 border border-violet-100 rounded text-xs text-violet-800">
                   Based on your regular contributions, your projected ISA subscription this year is <strong>{{ formatCurrency(projectedSubscription) }}</strong>.
                 </div>
               </div>
 
               <!-- Planned Lump Sum (for non-Junior ISAs) -->
               <div v-if="!isJuniorISA">
-                <label class="block text-sm font-medium text-blue-900 mb-1">
+                <label class="block text-sm font-medium text-violet-900 mb-1">
                   Planned Lump Sum (£)
                 </label>
                 <div class="flex gap-2">
                   <div class="flex-1 relative">
-                    <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                    <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                     <input
                       v-model.number="formData.planned_lump_sum_amount"
                       type="number"
                       step="0.01"
                       min="0"
-                      class="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                      :class="{ 'border-red-500': isaAllowanceError }"
+                      class="w-full pl-8 pr-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
+                      :class="{ 'border-raspberry-500': isaAllowanceError }"
                       placeholder="0.00"
                     />
                   </div>
@@ -373,36 +373,36 @@
                     <input
                       v-model="formData.planned_lump_sum_date"
                       type="date"
-                      class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                      class="w-full px-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
                     />
                   </div>
                 </div>
-                <p class="text-xs text-blue-700 mt-1">
+                <p class="text-xs text-violet-700 mt-1">
                   One-off contribution planned for this ISA (counts towards allowance)
                 </p>
               </div>
 
               <!-- ISA Allowance Warning -->
-              <div v-if="isaAllowanceError" class="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p class="text-sm text-red-800">
+              <div v-if="isaAllowanceError" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-md">
+                <p class="text-sm text-raspberry-800">
                   <strong>Warning:</strong> {{ isaAllowanceError }}
                 </p>
               </div>
 
               <!-- ISA Allowance Summary (for non-Junior ISAs) -->
-              <div v-if="!isJuniorISA" class="bg-white border border-blue-200 rounded-md p-3">
+              <div v-if="!isJuniorISA" class="bg-white border border-violet-200 rounded-md p-3">
                 <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm font-medium text-gray-700">ISA Allowance Usage:</span>
+                  <span class="text-sm font-medium text-neutral-500">ISA Allowance Usage:</span>
                   <span class="text-lg font-bold" :class="totalRemainingAllowanceClass">
                     {{ formatCurrency(totalRemainingAllowance) }} remaining
                   </span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div class="w-full bg-savannah-200 rounded-full h-3 mb-2">
                   <div class="h-full flex rounded-full overflow-hidden">
                     <!-- Cash ISA portion (other accounts) -->
                     <div
                       v-if="otherCashISAUsed > 0"
-                      class="bg-blue-500 h-full"
+                      class="bg-violet-500 h-full"
                       :style="{ width: (otherCashISAUsed / ISA_ALLOWANCE * 100) + '%' }"
                       :title="`Other Cash ISAs: ${formatCurrency(otherCashISAUsed)}`"
                     ></div>
@@ -416,14 +416,14 @@
                     <!-- This account's subscription -->
                     <div
                       v-if="thisAccountSubscription > 0"
-                      class="bg-green-500 h-full"
+                      class="bg-spring-500 h-full"
                       :style="{ width: (thisAccountSubscription / ISA_ALLOWANCE * 100) + '%' }"
                       :title="`This account: ${formatCurrency(thisAccountSubscription)}`"
                     ></div>
                     <!-- Planned contributions (lighter shade) -->
                     <div
                       v-if="plannedAnnualContribution > 0"
-                      class="bg-blue-400 h-full"
+                      class="bg-violet-400 h-full"
                       :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
                       :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
                     ></div>
@@ -431,37 +431,37 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-xs">
                   <div class="flex items-center gap-1">
-                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                    <span class="text-gray-600">Other Cash ISAs: {{ formatCurrency(otherCashISAUsed) }}</span>
+                    <div class="w-2 h-2 rounded-full bg-violet-500"></div>
+                    <span class="text-neutral-500">Other Cash ISAs: {{ formatCurrency(otherCashISAUsed) }}</span>
                   </div>
                   <div class="flex items-center gap-1">
                     <div class="w-2 h-2 rounded-full bg-purple-500"></div>
-                    <span class="text-gray-600">Stocks ISAs: {{ formatCurrency(stocksISAUsed) }}</span>
+                    <span class="text-neutral-500">Stocks ISAs: {{ formatCurrency(stocksISAUsed) }}</span>
                   </div>
                   <div class="flex items-center gap-1">
-                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span class="text-gray-600">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
+                    <div class="w-2 h-2 rounded-full bg-spring-500"></div>
+                    <span class="text-neutral-500">This account: {{ formatCurrency(thisAccountSubscription) }}</span>
                   </div>
                   <div v-if="plannedAnnualContribution > 0" class="flex items-center gap-1">
-                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
-                    <span class="text-gray-600">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
+                    <div class="w-2 h-2 rounded-full bg-violet-400"></div>
+                    <span class="text-neutral-500">Planned: {{ formatCurrency(plannedAnnualContribution) }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Joint Ownership Section (hidden for NS&I and ISA - always individual) -->
-            <div v-if="!isNSIProductType && !isISAProductType" class="space-y-4 pt-4 border-t border-gray-200">
-              <h4 class="text-sm font-semibold text-gray-900">Ownership</h4>
+            <div v-if="!isNSIProductType && !isISAProductType" class="space-y-4 pt-4 border-t border-light-gray">
+              <h4 class="text-sm font-semibold text-horizon-500">Ownership</h4>
 
               <!-- Ownership Type -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Ownership Type
                 </label>
                 <select
                   v-model="formData.ownership_type"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="individual">Individual Owner</option>
                   <option value="joint">Joint Owner</option>
@@ -470,18 +470,18 @@
 
               <!-- Joint Owner (if ownership_type is joint) -->
               <div v-if="formData.ownership_type === 'joint'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Joint Owner
                 </label>
                 <select
                   v-model="formData.joint_owner_id"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>
                   <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
                   <option v-if="!spouse" value="" disabled>No spouse linked - add spouse in Family Members</option>
                 </select>
-                <p class="text-sm text-gray-500 mt-1">
+                <p class="text-sm text-neutral-500 mt-1">
                   Joint accounts will appear in both your and your spouse's accounts.
                 </p>
               </div>
@@ -489,14 +489,14 @@
 
             <!-- Account Number (optional) -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Account Number (last 4 digits)
               </label>
               <input
                 v-model="formData.account_number"
                 type="text"
                 maxlength="4"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="Optional - for reference only"
               />
             </div>
@@ -507,14 +507,14 @@
             <button
               type="button"
               @click="handleClose"
-              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Account' : 'Add Account') }}
             </button>
@@ -801,9 +801,9 @@ export default {
 
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
-      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-raspberry-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-violet-600';
+      return 'text-spring-600';
     },
   },
 
@@ -982,7 +982,7 @@ export default {
 /* Custom scrollbar for form content */
 .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.300') theme('colors.gray.50');
+  scrollbar-color: theme('colors.horizon.300') theme('colors.savannah.100');
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -990,16 +990,16 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  @apply bg-gray-300;
+  @apply bg-savannah-300;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-savannah-400;
 }
 </style>

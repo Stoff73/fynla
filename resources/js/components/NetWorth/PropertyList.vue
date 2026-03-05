@@ -293,7 +293,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -302,7 +302,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -313,7 +313,7 @@ export default {
 }
 
 .add-property-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .button-icon {
@@ -336,38 +336,38 @@ export default {
 
 .loading-state p,
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -386,12 +386,12 @@ export default {
 }
 
 .notification.success {
-  @apply bg-green-500;
+  @apply bg-spring-500;
   color: white;
 }
 
 .notification.error {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 

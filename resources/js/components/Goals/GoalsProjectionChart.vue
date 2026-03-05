@@ -2,12 +2,12 @@
   <div class="goals-projection-chart">
     <!-- Header with controls -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <h3 class="text-lg font-semibold text-gray-900">Financial Projection</h3>
+      <h3 class="text-lg font-semibold text-horizon-500">Financial Projection</h3>
       <div class="flex flex-wrap items-center gap-3">
         <!-- View selector dropdown -->
         <select
           v-model="chartView"
-          class="px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+          class="px-3 py-2 text-sm border border-horizon-300 rounded-md shadow-sm focus:ring-violet-500 focus:border-raspberry-500"
         >
           <option value="net_worth">Net Worth</option>
           <option value="cash_flow">Cash Flow</option>
@@ -26,7 +26,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-16">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Content -->
@@ -46,7 +46,7 @@
       />
 
       <!-- Chart container -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+      <div class="bg-white border border-light-gray rounded-lg p-4 sm:p-6">
         <div class="chart-wrapper relative" ref="chartWrapper">
           <!-- ApexChart -->
           <apexchart
@@ -86,21 +86,21 @@
       <!-- Event tooltip -->
       <div
         v-if="activeTooltip"
-        class="fixed z-50 bg-gray-900 text-white text-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+        class="fixed z-50 bg-horizon-600 text-white text-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
         :style="{
           left: `${tooltipPosition.x}px`,
           top: `${tooltipPosition.y}px`,
           transform: 'translate(-50%, -100%) translateY(-8px)',
         }"
       >
-        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">
+        <div class="text-xs text-horizon-400 uppercase tracking-wide mb-1">
           {{ activeTooltip.type === 'goal' ? 'Goal' : 'Life Event' }}
         </div>
         <div class="font-semibold">{{ activeTooltip.name }}</div>
-        <div class="text-gray-300">
+        <div class="text-horizon-300">
           Age {{ activeTooltip.age }} · {{ formatCurrency(activeTooltip.amount) }}
         </div>
-        <div class="text-xs text-gray-400 capitalize">
+        <div class="text-xs text-horizon-400 capitalize">
           {{ activeTooltip.impact === 'income' ? 'Income' : 'Expense' }} · {{ activeTooltip.certainty || 'Planned' }}
         </div>
       </div>
@@ -113,7 +113,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="text-center py-12 text-gray-500">
+    <div v-else class="text-center py-12 text-neutral-500">
       <p>No projection data available.</p>
       <p class="text-sm mt-2">Add a date of birth in your profile to generate projections.</p>
     </div>
@@ -299,7 +299,7 @@ export default {
           zoom: {
             enabled: false,
           },
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           animations: {
             enabled: true,
             easing: 'easeinout',
@@ -367,7 +367,7 @@ export default {
           position: 'top',
           horizontalAlign: 'left',
           fontSize: '13px',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           markers: {
             radius: 3,
           },
@@ -462,7 +462,7 @@ export default {
       if (!this.projection?.retirement_age) return {};
 
       // Use blue per design system (amber/orange are FORBIDDEN)
-      const annotationColor = PRIMARY_COLORS[600]; // #1257A0 Trust Blue
+      const annotationColor = PRIMARY_COLORS[500]; // Raspberry 500
 
       return {
         xaxis: [
@@ -652,7 +652,7 @@ export default {
 
       let tooltipHtml = `
         <div class="apexcharts-tooltip-custom" style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
-          <div style="font-weight: 600; margin-bottom: 8px; color: #111827; font-size: 14px;">Age ${age}</div>
+          <div style="font-weight: 600; margin-bottom: 8px; @apply text-horizon-500; font-size: 14px;">Age ${age}</div>
       `;
 
       // Add series values based on chart view
@@ -661,7 +661,7 @@ export default {
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${PRIMARY_COLORS[600]}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Net Worth:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.net_worth)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.net_worth)}</span>
           </div>
         `;
       } else if (this.chartView === 'cash_flow' && yearData) {
@@ -669,12 +669,12 @@ export default {
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${SUCCESS_COLORS[500]}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Income:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.income)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.income)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ERROR_COLORS[500]}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Expenditure:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.expenditure)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.expenditure)}</span>
           </div>
         `;
       } else if (this.chartView === 'asset_breakdown' && yearData) {
@@ -690,26 +690,26 @@ export default {
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.pensions}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Pensions:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(pensions)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(pensions)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.property}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Property:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(property)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(property)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.investments}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Investments:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(investments)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(investments)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.cash}; margin-right: 8px;"></span>
             <span style="color: #6B7280;">Cash:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(cash)}</span>
+            <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(cash)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #E5E7EB;">
-            <span style="color: #374151; font-weight: 600;">Total Assets:</span>
-            <span style="font-weight: 700; margin-left: auto; color: #111827;">${this.formatCurrency(total)}</span>
+            <span style="@apply text-neutral-500; font-weight: 600;">Total Assets:</span>
+            <span style="font-weight: 700; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(total)}</span>
           </div>
         `;
       }
@@ -731,7 +731,7 @@ export default {
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="@apply text-neutral-500; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;
@@ -747,7 +747,7 @@ export default {
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="@apply text-neutral-500; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;

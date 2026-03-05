@@ -14,7 +14,7 @@
       <!-- Assets Section Header -->
       <div class="summary-row section-header-row">
         <div class="row-label section-label">
-          <svg class="section-icon text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="section-icon text-spring-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
           </svg>
           <span>Assets</span>
@@ -100,7 +100,7 @@
       <!-- Liabilities Section Header -->
       <div class="summary-row section-header-row liabilities-header">
         <div class="row-label section-label">
-          <svg class="section-icon text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="section-icon text-raspberry-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
           </svg>
           <span>Liabilities</span>
@@ -382,13 +382,13 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -421,20 +421,20 @@ export default {
 .header-row {
   margin-bottom: 10px;
   padding-bottom: 8px;
-  @apply border-b-2 border-gray-200;
+  @apply border-b-2 border-light-gray;
 }
 
 .column-header {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   text-align: right;
 }
 
 /* Row labels */
 .row-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -449,15 +449,15 @@ export default {
 }
 
 .clickable-row:hover {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
 }
 
 .clickable-row:hover .row-label {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .clickable-row:hover .column-value {
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
 }
 
 /* Section header rows */
@@ -472,7 +472,7 @@ export default {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -499,10 +499,10 @@ export default {
 .breakdown-row .column-value {
   text-align: right;
   padding: 8px 16px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 6px;
   font-size: 14px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
   transition: background-color 0.15s ease;
 }
@@ -515,7 +515,7 @@ export default {
 .total-row .row-label.total-label {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .total-row .column-value.total-value {
@@ -524,26 +524,26 @@ export default {
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 /* Assets total row styling */
 .assets-total-row .column-value.total-value {
-  @apply bg-green-100;
-  @apply border border-green-500;
+  @apply bg-spring-100;
+  @apply border border-spring-500;
 }
 
 /* Liabilities total row styling */
 .liabilities-total-row .column-value.total-value {
-  @apply bg-red-100;
-  @apply border border-red-500;
+  @apply bg-raspberry-100;
+  @apply border border-raspberry-500;
 }
 
 /* Net worth row styling */
 .net-worth-row {
   margin-top: 12px;
   padding-top: 12px;
-  @apply border-t-2 border-gray-200;
+  @apply border-t-2 border-light-gray;
 }
 
 .net-worth-row .row-label.net-worth-label {
@@ -552,15 +552,15 @@ export default {
 
 .net-worth-row .column-value.net-worth-value {
   background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
-  @apply border-2 border-primary-500;
+  @apply border-2 border-raspberry-500;
 }
 
 .net-worth-value.positive {
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 .net-worth-value.negative {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 /* DB pension note - inline within value cell */
@@ -568,7 +568,7 @@ export default {
   display: block;
   font-size: 9px;
   font-weight: 400;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   line-height: 1.2;
   margin-top: 1px;
 }
@@ -577,13 +577,13 @@ export default {
   font-size: 11px;
   font-weight: 500;
   font-style: italic;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .no-data {
   text-align: center;
   padding: 60px 20px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .no-data p {
@@ -597,7 +597,7 @@ export default {
 }
 
 .column-value.total-column {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 /* Mobile responsive */

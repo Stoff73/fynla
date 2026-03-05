@@ -4,45 +4,45 @@
     <SpouseDataSharing />
 
     <!-- Account Settings Section -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-h4 font-semibold text-gray-900">Account Settings</h3>
-        <p class="mt-1 text-body-sm text-gray-600">
+    <div class="bg-white rounded-lg border border-light-gray overflow-hidden">
+      <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-h4 font-semibold text-horizon-500">Account Settings</h3>
+        <p class="mt-1 text-body-sm text-neutral-500">
           Manage your account preferences and security
         </p>
       </div>
 
       <div class="px-6 py-4 space-y-4">
         <!-- User Information Display -->
-        <div class="flex items-center space-x-4 pb-4 border-b border-gray-200">
+        <div class="flex items-center space-x-4 pb-4 border-b border-light-gray">
           <div class="flex-shrink-0">
-            <div class="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-              <span class="text-h4 font-semibold text-primary-700">
+            <div class="h-12 w-12 rounded-full bg-raspberry-100 flex items-center justify-center">
+              <span class="text-h4 font-semibold text-raspberry-700">
                 {{ userInitials }}
               </span>
             </div>
           </div>
           <div>
-            <h4 class="text-body-base font-semibold text-gray-900">{{ currentUser?.name }}</h4>
-            <p class="text-body-sm text-gray-600">{{ currentUser?.email }}</p>
+            <h4 class="text-body-base font-semibold text-horizon-500">{{ currentUser?.name }}</h4>
+            <p class="text-body-sm text-neutral-500">{{ currentUser?.email }}</p>
           </div>
         </div>
 
         <!-- Session Information -->
         <div class="pt-4">
-          <h4 class="text-body-sm font-semibold text-gray-900 mb-3">Session Information</h4>
-          <div class="bg-gray-50 rounded-md px-4 py-3">
+          <h4 class="text-body-sm font-semibold text-horizon-500 mb-3">Session Information</h4>
+          <div class="bg-savannah-100 rounded-md px-4 py-3">
             <div class="grid grid-cols-1 gap-2 text-body-sm">
               <div class="flex justify-between">
-                <span class="text-gray-600">Account Type:</span>
-                <span class="font-medium text-gray-900">{{ accountType }}</span>
+                <span class="text-neutral-500">Account Type:</span>
+                <span class="font-medium text-horizon-500">{{ accountType }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">Member Since:</span>
-                <span class="font-medium text-gray-900">{{ formatDate(currentUser?.created_at) }}</span>
+                <span class="text-neutral-500">Member Since:</span>
+                <span class="font-medium text-horizon-500">{{ formatDate(currentUser?.created_at) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">Status:</span>
+                <span class="text-neutral-500">Status:</span>
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
                   Active
                 </span>
@@ -54,10 +54,10 @@
     </div>
 
     <!-- Security Section -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-h4 font-semibold text-gray-900">Security</h3>
-        <p class="mt-1 text-body-sm text-gray-600">
+    <div class="bg-white rounded-lg border border-light-gray overflow-hidden">
+      <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-h4 font-semibold text-horizon-500">Security</h3>
+        <p class="mt-1 text-body-sm text-neutral-500">
           Manage your session and account access
         </p>
       </div>
@@ -66,8 +66,8 @@
         <!-- Logout Button -->
         <div class="flex items-center justify-between py-3">
           <div>
-            <h4 class="text-body-base font-medium text-gray-900">Sign out of your account</h4>
-            <p class="text-body-sm text-gray-600 mt-1">
+            <h4 class="text-body-base font-medium text-horizon-500">Sign out of your account</h4>
+            <p class="text-body-sm text-neutral-500 mt-1">
               This will end your current session and return you to the login page
             </p>
           </div>
@@ -96,8 +96,8 @@
       <div class="px-6 py-4">
         <div class="flex items-center justify-between py-3">
           <div>
-            <h4 class="text-body-base font-medium text-gray-900">Clear all data</h4>
-            <p class="text-body-sm text-gray-600 mt-1">
+            <h4 class="text-body-base font-medium text-horizon-500">Clear all data</h4>
+            <p class="text-body-sm text-neutral-500 mt-1">
               This will remove all your financial data but keep your account active
             </p>
           </div>

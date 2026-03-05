@@ -1,7 +1,7 @@
 <template>
   <div v-if="visible" class="data-retention-overlay">
     <!-- Semi-transparent backdrop that fades the content behind it -->
-    <div class="fixed inset-0 bg-gray-900/60 z-40"></div>
+    <div class="fixed inset-0 bg-horizon-600/60 z-40"></div>
 
     <!-- Non-dismissable modal -->
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -13,32 +13,32 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 class="text-xl font-bold text-gray-900">Your Subscription Has Expired</h2>
-          <p class="mt-2 text-body-sm text-gray-600">
+          <h2 class="text-xl font-bold text-horizon-500">Your Subscription Has Expired</h2>
+          <p class="mt-2 text-body-sm text-neutral-500">
             Your data will be permanently deleted in:
           </p>
         </div>
 
         <!-- Countdown display -->
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4 mb-6">
           <div class="flex justify-center gap-6">
             <div class="text-center">
-              <span class="block text-3xl font-bold text-gray-900">{{ countdown.days }}</span>
-              <span class="text-caption text-gray-500">{{ countdown.days === 1 ? 'day' : 'days' }}</span>
+              <span class="block text-3xl font-bold text-horizon-500">{{ countdown.days }}</span>
+              <span class="text-caption text-neutral-500">{{ countdown.days === 1 ? 'day' : 'days' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-3xl font-bold text-gray-900">{{ countdown.hours }}</span>
-              <span class="text-caption text-gray-500">{{ countdown.hours === 1 ? 'hour' : 'hours' }}</span>
+              <span class="block text-3xl font-bold text-horizon-500">{{ countdown.hours }}</span>
+              <span class="text-caption text-neutral-500">{{ countdown.hours === 1 ? 'hour' : 'hours' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-3xl font-bold text-gray-900">{{ countdown.minutes }}</span>
-              <span class="text-caption text-gray-500">{{ countdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
+              <span class="block text-3xl font-bold text-horizon-500">{{ countdown.minutes }}</span>
+              <span class="text-caption text-neutral-500">{{ countdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
             </div>
           </div>
         </div>
 
         <!-- Info text -->
-        <p class="text-body-sm text-gray-600 text-center mb-6">
+        <p class="text-body-sm text-neutral-500 text-center mb-6">
           Subscribe now to regain full access to your financial plans. Or choose to delete all your data and start fresh.
         </p>
 
@@ -54,7 +54,7 @@
           <button
             v-if="!showDeleteConfirmation"
             @click="showDeleteConfirmation = true"
-            class="w-full py-3 px-4 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+            class="w-full py-3 px-4 text-sm font-medium text-neutral-500 hover:text-neutral-500 border border-horizon-300 rounded-lg hover:border-horizon-400 transition-colors"
           >
             Delete All Data &amp; Start Again
           </button>
@@ -64,7 +64,7 @@
             <p class="text-body-sm font-medium text-error-600 mb-3">
               This action is permanent and cannot be undone. All your financial plans, policies, pensions, investments, savings, goals, and documents will be deleted.
             </p>
-            <label for="delete-password" class="block text-body-sm text-gray-700 mb-1.5">
+            <label for="delete-password" class="block text-body-sm text-neutral-500 mb-1.5">
               Enter your password:
             </label>
             <input
@@ -72,11 +72,11 @@
               v-model="currentPassword"
               type="password"
               autocomplete="current-password"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
                      focus:outline-none focus:ring-2 focus:ring-error-500 focus:border-error-500 mb-3"
               placeholder="Your account password"
             />
-            <label for="delete-confirm" class="block text-body-sm text-gray-700 mb-1.5">
+            <label for="delete-confirm" class="block text-body-sm text-neutral-500 mb-1.5">
               Type <strong>DELETE</strong> to confirm:
             </label>
             <input
@@ -84,7 +84,7 @@
               v-model="deleteConfirmText"
               type="text"
               autocomplete="off"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
                      focus:outline-none focus:ring-2 focus:ring-error-500 focus:border-error-500 mb-3"
               placeholder="Type DELETE here"
             />
@@ -107,7 +107,7 @@
                 class="flex-1 py-2 px-4 text-sm font-medium text-white rounded-lg transition-colors"
                 :class="deleteConfirmText === 'DELETE' && currentPassword.length > 0
                   ? 'bg-error-600 hover:bg-error-700'
-                  : 'bg-gray-300 cursor-not-allowed'"
+                  : 'bg-horizon-300 cursor-not-allowed'"
                 :disabled="deleteConfirmText !== 'DELETE' || !currentPassword || deleting"
               >
                 <span v-if="deleting">Deleting...</span>

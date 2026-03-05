@@ -173,7 +173,7 @@ export default {
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 12px 0;
 }
 
@@ -187,13 +187,13 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .flow-row.net-row {
   padding-top: 8px;
   margin-top: 4px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .font-bold {

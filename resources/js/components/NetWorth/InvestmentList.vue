@@ -41,12 +41,12 @@
         </div>
       </div>
 
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-5">
         <div class="flex items-start">
-          <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
           </svg>
-          <p class="ml-3 text-sm text-blue-800">
+          <p class="ml-3 text-sm text-violet-800">
             We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
           </p>
         </div>
@@ -67,7 +67,7 @@
       </div>
 
       <div v-if="loading" class="loading-state">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
         <p class="mt-3">Loading investments...</p>
       </div>
 
@@ -140,7 +140,7 @@
                   <div v-if="account.account_type === 'isa'" class="isa-info">
                     <div class="detail-row">
                       <span class="detail-label">ISA Used (YTD)</span>
-                      <span class="detail-value text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</span>
+                      <span class="detail-value text-spring-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</span>
                     </div>
                   </div>
 
@@ -171,20 +171,20 @@
         @keydown.enter="goToStrategy"
       >
         <div class="mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">{{ recommendationCount === 1 ? 'Strategy' : 'Strategies' }}</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">{{ recommendationCount === 1 ? 'Strategy' : 'Strategies' }}</h3>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
             v-for="(rec, index) in topRecommendations"
             :key="index"
-            class="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg"
+            class="flex flex-col gap-2 p-3 bg-savannah-100 rounded-lg"
           >
             <span :class="getPriorityBadgeClass(rec.priority)" class="px-2 py-0.5 rounded text-xs font-medium w-fit">
               {{ getPriorityLabel(rec.priority) }}
             </span>
-            <p class="font-medium text-gray-900 text-sm">{{ rec.title }}</p>
-            <p class="text-xs text-gray-600 line-clamp-2">{{ rec.description }}</p>
+            <p class="font-medium text-horizon-500 text-sm">{{ rec.title }}</p>
+            <p class="text-xs text-neutral-500 line-clamp-2">{{ rec.description }}</p>
           </div>
         </div>
       </div>
@@ -213,7 +213,7 @@
 
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
-              <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
+              <p class="text-2xl font-bold text-violet-700">Coming Soon</p>
             </div>
             <div class="opacity-50">
               <PortfolioOptimization />
@@ -438,9 +438,9 @@ export default {
     },
 
     getPriorityBadgeClass(priority) {
-      if (priority <= 2) return 'bg-red-500 text-white';
-      if (priority <= 3) return 'bg-blue-500 text-white';
-      return 'bg-blue-500 text-white';
+      if (priority <= 2) return 'bg-raspberry-500 text-white';
+      if (priority <= 3) return 'bg-violet-500 text-white';
+      return 'bg-violet-500 text-white';
     },
 
     handleStrategyNavigate(tab) {
@@ -615,8 +615,8 @@ export default {
     },
 
     getReturnColorClass(value) {
-      if (!value && value !== 0) return 'text-gray-600';
-      return value >= 0 ? 'text-green-600' : 'text-red-600';
+      if (!value && value !== 0) return 'text-neutral-500';
+      return value >= 0 ? 'text-spring-600' : 'text-raspberry-600';
     },
 
     getValueLabel(account) {
@@ -838,7 +838,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -847,8 +847,8 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -857,7 +857,7 @@ export default {
 }
 
 .risk-profile-link:hover {
-  @apply bg-blue-100;
+  @apply bg-violet-100;
 }
 
 .risk-icon {
@@ -875,7 +875,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -886,7 +886,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .upload-button {
@@ -895,8 +895,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  @apply text-primary-500;
-  @apply border-2 border-primary-500;
+  @apply text-raspberry-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -905,7 +905,7 @@ export default {
 }
 
 .upload-button:hover {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .button-icon {
@@ -930,7 +930,7 @@ export default {
 .compact-account-card {
   background: white;
   border-radius: 8px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -959,7 +959,7 @@ export default {
 
 .compact-account-card:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .performance-section {
@@ -969,7 +969,7 @@ export default {
 .investment-card {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -978,7 +978,7 @@ export default {
 .investment-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -1008,8 +1008,8 @@ export default {
 }
 
 .badge-individual {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .badge-joint {
@@ -1018,18 +1018,18 @@ export default {
 }
 
 .badge-trust {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-isa {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .badge-gia {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-sipp {
@@ -1043,8 +1043,8 @@ export default {
 }
 
 .badge-bond {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-vct {
@@ -1053,8 +1053,8 @@ export default {
 }
 
 .badge-other {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .badge-alternative {
@@ -1080,7 +1080,7 @@ export default {
 .account-provider {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -1091,7 +1091,7 @@ export default {
 
 .account-name-text {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1107,7 +1107,7 @@ export default {
   gap: 8px;
   margin-top: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .compact-account-card .account-details {
@@ -1124,12 +1124,12 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
   font-size: 16px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 700;
 }
 
@@ -1143,7 +1143,7 @@ export default {
 }
 
 .isa-info {
-  @apply bg-green-50;
+  @apply bg-spring-50;
   border-radius: 6px;
   padding: 8px;
   margin: 4px 0;
@@ -1163,38 +1163,38 @@ export default {
 
 .loading-state p,
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -1205,14 +1205,14 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 
 .summary-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 20px 0;
 }
 
@@ -1228,7 +1228,7 @@ export default {
 }
 
 .summary-item.portfolio {
-  @apply border-l-primary-500;
+  @apply border-l-raspberry-500;
 }
 
 .summary-item.returns.positive {
@@ -1245,20 +1245,20 @@ export default {
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
 }
 
 .summary-value {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .summary-count {
   font-size: 13px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 4px 0 0 0;
 }
 
@@ -1276,7 +1276,7 @@ export default {
 
 .return-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .return-value {
@@ -1290,13 +1290,13 @@ export default {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .features-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -1306,28 +1306,28 @@ export default {
   flex-wrap: wrap;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .feature-tab {
   padding: 8px 16px;
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .feature-tab:hover {
-  @apply bg-gray-200;
-  @apply text-gray-700;
+  @apply bg-savannah-200;
+  @apply text-neutral-500;
 }
 
 .feature-tab.active {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
@@ -1344,8 +1344,8 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-12deg);
-  @apply bg-blue-100;
-  @apply border-2 border-blue-500;
+  @apply bg-violet-100;
+  @apply border-2 border-violet-500;
   border-radius: 8px;
   padding: 16px 32px;
   z-index: 10;
@@ -1366,11 +1366,11 @@ export default {
 }
 
 .notification.success {
-  @apply bg-green-500 text-white;
+  @apply bg-spring-500 text-white;
 }
 
 .notification.error {
-  @apply bg-red-500 text-white;
+  @apply bg-raspberry-500 text-white;
 }
 
 @keyframes slideIn {

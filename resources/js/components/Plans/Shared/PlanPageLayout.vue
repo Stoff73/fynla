@@ -9,7 +9,7 @@
         <div class="flex items-center justify-between mb-6">
           <div>
             <button
-              class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              class="inline-flex items-center text-sm text-neutral-500 hover:text-horizon-500 transition-colors"
               @click="$router.push('/plans')"
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,14 +18,14 @@
               Back to Plans
             </button>
             <div class="mt-2">
-              <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-              <p v-if="subtitle" class="text-sm text-gray-500 mt-0.5">{{ subtitle }}</p>
+              <h1 class="text-2xl font-bold text-horizon-500">{{ title }}</h1>
+              <p v-if="subtitle" class="text-sm text-neutral-500 mt-0.5">{{ subtitle }}</p>
             </div>
           </div>
           <div class="flex items-center space-x-3">
             <button
               v-if="!loading && !error"
-              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#1257A0] rounded-lg hover:bg-[#0E3A66] transition-colors"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600 transition-colors"
               @click="handlePrint"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

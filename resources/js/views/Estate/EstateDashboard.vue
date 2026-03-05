@@ -4,26 +4,26 @@
       <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Estate Planning</h1>
-        <p class="text-gray-600">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Estate Planning</h1>
+        <p class="text-neutral-500">
           Plan your estate with Inheritance Tax calculations, gifting strategies, and trust planning
         </p>
       </div>
 
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
       </div>
 
       <!-- Error State -->
       <div
         v-else-if="error"
-        class="bg-red-50 border-l-4 border-red-500 p-4 mb-6"
+        class="bg-raspberry-50 border-l-4 border-raspberry-500 p-4 mb-6"
       >
         <div class="flex">
           <div class="flex-shrink-0">
             <svg
-              class="h-5 w-5 text-red-400"
+              class="h-5 w-5 text-raspberry-400"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -36,7 +36,7 @@
             </svg>
           </div>
           <div class="ml-3">
-            <p class="text-sm text-red-700">{{ error }}</p>
+            <p class="text-sm text-raspberry-700">{{ error }}</p>
           </div>
         </div>
       </div>

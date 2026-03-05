@@ -3,15 +3,15 @@
     <!-- Header with Add Button -->
     <div class="mb-6 flex justify-between items-center">
       <div>
-        <h3 class="text-lg font-semibold text-gray-900">Your Accounts</h3>
-        <p class="text-sm text-gray-600 mt-1">
+        <h3 class="text-lg font-semibold text-horizon-500">Your Accounts</h3>
+        <p class="text-sm text-neutral-500 mt-1">
           {{ accounts.length }} {{ accounts.length === 1 ? 'account' : 'accounts' }}
         </p>
       </div>
       <button
         v-preview-disabled="'add'"
         @click="handleAddAccount"
-        class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 transition-colors flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -36,41 +36,41 @@
       <div
         v-for="account in accounts"
         :key="account.id"
-        class="bg-white rounded-lg border border-gray-200 p-6"
+        class="bg-white rounded-lg border border-light-gray p-6"
       >
         <div class="flex justify-between items-start mb-4">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <h4 class="text-lg font-semibold text-gray-900">{{ account.institution }}</h4>
+              <h4 class="text-lg font-semibold text-horizon-500">{{ account.institution }}</h4>
               <span
                 v-if="account.is_isa"
-                class="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold"
+                class="px-2 py-1 text-xs bg-violet-500 text-white rounded font-semibold"
               >
                 ISA
               </span>
             </div>
-            <p class="text-sm text-gray-600">{{ formatAccountType(account.account_type) }}</p>
+            <p class="text-sm text-neutral-500">{{ formatAccountType(account.account_type) }}</p>
           </div>
           <div class="text-right">
-            <p class="text-2xl font-bold text-gray-900">
+            <p class="text-2xl font-bold text-horizon-500">
               {{ formatCurrency(account.current_balance) }}
             </p>
-            <p class="text-sm text-gray-600">{{ formatInterestRate(account.interest_rate) }}% APY</p>
+            <p class="text-sm text-neutral-500">{{ formatInterestRate(account.interest_rate) }}% APY</p>
           </div>
         </div>
 
         <!-- Account Details -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 text-sm">
           <div>
-            <p class="text-gray-600">Access Type</p>
+            <p class="text-neutral-500">Access Type</p>
             <p class="font-semibold">{{ formatAccessType(account.access_type) }}</p>
           </div>
           <div v-if="account.notice_period_days">
-            <p class="text-gray-600">Notice Period</p>
+            <p class="text-neutral-500">Notice Period</p>
             <p class="font-semibold">{{ account.notice_period_days }} days</p>
           </div>
           <div v-if="account.maturity_date">
-            <p class="text-gray-600">Maturity Date</p>
+            <p class="text-neutral-500">Maturity Date</p>
             <p class="font-semibold">{{ formatDate(account.maturity_date) }}</p>
           </div>
         </div>
@@ -79,7 +79,7 @@
         <div class="flex gap-3">
           <button
             disabled
-            class="px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+            class="px-4 py-2 bg-savannah-300 text-neutral-500 text-sm font-medium rounded-lg cursor-not-allowed"
             title="This functionality is not available for this demo"
           >
             Edit
@@ -87,7 +87,7 @@
           <button
             v-preview-disabled="'delete'"
             @click="handleDeleteAccount(account.id)"
-            class="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100"
+            class="px-4 py-2 bg-raspberry-50 text-raspberry-600 text-sm font-medium rounded-lg hover:bg-raspberry-100"
           >
             Delete
           </button>
@@ -96,9 +96,9 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-white rounded-lg border border-gray-200">
+    <div v-else class="text-center py-12 bg-white rounded-lg border border-light-gray">
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-horizon-400"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -110,14 +110,14 @@
           d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No accounts yet</h3>
-      <p class="mt-1 text-sm text-gray-500">
+      <h3 class="mt-2 text-sm font-medium text-horizon-500">No accounts yet</h3>
+      <p class="mt-1 text-sm text-neutral-500">
         Get started by adding your first savings account.
       </p>
       <button
         v-preview-disabled="'add'"
         @click="handleAddAccount"
-        class="mt-4 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
+        class="mt-4 px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 transition-colors inline-flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

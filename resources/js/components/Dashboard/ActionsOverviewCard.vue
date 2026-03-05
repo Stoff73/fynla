@@ -1,14 +1,14 @@
 <template>
   <div>
       <!-- Header -->
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Items for Review</h3>
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Items for Review</h3>
 
       <!-- Actions List -->
       <div v-if="displayedActions.length > 0" class="space-y-2">
         <div
           v-for="(action, index) in displayedActions"
           :key="index"
-          class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
+          class="flex items-center justify-between py-2 cursor-pointer hover:bg-savannah-100 -mx-2 px-2 rounded transition-colors"
           @click="navigateToModule(action.module)"
         >
           <div class="flex items-center gap-2 min-w-0">
@@ -16,7 +16,7 @@
               class="priority-dot flex-shrink-0"
               :class="getPriorityDotClass(action.priority)"
             ></span>
-            <span class="text-sm text-gray-700 truncate">{{ action.title }}</span>
+            <span class="text-sm text-neutral-500 truncate">{{ action.title }}</span>
           </div>
           <span class="module-badge flex-shrink-0 ml-2" :class="getModuleClass(action.module)">
             {{ formatModule(action.module) }}
@@ -26,16 +26,16 @@
 
       <!-- Empty State -->
       <div v-else-if="!loading && displayedActions.length === 0" class="text-center py-8">
-        <svg class="w-12 h-12 mx-auto text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-12 h-12 mx-auto text-spring-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="text-sm text-gray-600">All caught up!</p>
-        <p class="text-xs text-gray-400">No pending actions</p>
+        <p class="text-sm text-neutral-500">All caught up!</p>
+        <p class="text-xs text-horizon-400">No pending actions</p>
       </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500 mx-auto"></div>
     </div>
   </div>
 </template>
@@ -277,11 +277,11 @@ export default {
 }
 
 .dot-critical {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .dot-high {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .dot-medium {
@@ -289,7 +289,7 @@ export default {
 }
 
 .dot-low {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .module-badge {
@@ -300,8 +300,8 @@ export default {
 }
 
 .module-investment {
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
 }
 
 .module-estate {
@@ -310,7 +310,7 @@ export default {
 }
 
 .module-protection {
-  @apply bg-green-50;
-  @apply text-green-600;
+  @apply bg-spring-50;
+  @apply text-spring-600;
 }
 </style>

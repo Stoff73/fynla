@@ -1,17 +1,17 @@
 <template>
   <div>
     <div class="mb-6">
-      <h2 class="text-h4 font-semibold text-gray-900">Assets Overview</h2>
-      <p class="mt-1 text-body-sm text-gray-600">
+      <h2 class="text-h4 font-semibold text-horizon-500">Assets Overview</h2>
+      <p class="mt-1 text-body-sm text-neutral-500">
         Summary of all your assets across different categories
       </p>
     </div>
 
     <!-- Total Assets Card -->
-    <div class="card p-6 mb-6 bg-gradient-to-r from-primary-50 to-primary-100">
+    <div class="card p-6 mb-6 bg-gradient-to-r from-raspberry-50 to-raspberry-100">
       <div class="text-center">
-        <p class="text-body-sm font-medium text-primary-700">Total Assets</p>
-        <p class="text-h2 font-display font-bold text-primary-900 mt-2">
+        <p class="text-body-sm font-medium text-raspberry-700">Total Assets</p>
+        <p class="text-h2 font-display font-bold text-horizon-600 mt-2">
           {{ formatCurrency(assetsSummary?.total || 0) }}
         </p>
       </div>
@@ -26,19 +26,19 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Properties</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Properties</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.properties?.count || 0 }} {{ assetsSummary?.properties?.count === 1 ? 'property' : 'properties' }}
             </p>
           </div>
-          <div class="text-primary-600">
+          <div class="text-raspberry-500">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.properties?.total || 0) }}
           </p>
         </div>
@@ -51,8 +51,8 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Investments</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Investments</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.investments?.count || 0 }} {{ assetsSummary?.investments?.count === 1 ? 'account' : 'accounts' }}
             </p>
           </div>
@@ -63,7 +63,7 @@
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.investments?.total || 0) }}
           </p>
         </div>
@@ -76,8 +76,8 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Cash</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Cash</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.cash?.count || 0 }} {{ assetsSummary?.cash?.count === 1 ? 'account' : 'accounts' }}
             </p>
           </div>
@@ -88,7 +88,7 @@
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.cash?.total || 0) }}
           </p>
         </div>
@@ -101,8 +101,8 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Business Interests</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Business Interests</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.business?.count || 0 }} {{ assetsSummary?.business?.count === 1 ? 'business' : 'businesses' }}
             </p>
           </div>
@@ -113,7 +113,7 @@
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.business?.total || 0) }}
           </p>
         </div>
@@ -126,8 +126,8 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Personal Valuables</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Personal Valuables</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.chattels?.count || 0 }} {{ assetsSummary?.chattels?.count === 1 ? 'item' : 'items' }}
             </p>
           </div>
@@ -138,7 +138,7 @@
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.chattels?.total || 0) }}
           </p>
         </div>
@@ -151,8 +151,8 @@
       >
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-body-base font-semibold text-gray-900">Pensions</h3>
-            <p class="text-body-xs text-gray-500 mt-1">
+            <h3 class="text-body-base font-semibold text-horizon-500">Pensions</h3>
+            <p class="text-body-xs text-neutral-500 mt-1">
               {{ assetsSummary?.pensions?.count || 0 }} {{ assetsSummary?.pensions?.count === 1 ? 'pension' : 'pensions' }}
             </p>
           </div>
@@ -163,7 +163,7 @@
           </div>
         </div>
         <div class="mt-4">
-          <p class="text-h5 font-semibold text-gray-900">
+          <p class="text-h5 font-semibold text-horizon-500">
             {{ formatCurrency(assetsSummary?.pensions?.total || 0) }}
           </p>
         </div>

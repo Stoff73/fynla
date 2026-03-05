@@ -20,20 +20,20 @@
             >
               {{ recommendation.priority?.toUpperCase() }}
             </span>
-            <span class="text-sm text-gray-600">
+            <span class="text-sm text-neutral-500">
               {{ recommendation.category }}
             </span>
           </div>
-          <h4 class="text-lg font-semibold text-gray-900 mb-2">
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2">
             {{ recommendation.action }}
           </h4>
-          <p v-if="!isExpanded" class="text-sm text-gray-600 line-clamp-2">
+          <p v-if="!isExpanded" class="text-sm text-neutral-500 line-clamp-2">
             {{ recommendation.rationale }}
           </p>
         </div>
 
         <button
-          class="ml-4 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+          class="ml-4 text-horizon-400 hover:text-neutral-500 transition-colors flex-shrink-0"
           @click.stop="isExpanded = !isExpanded"
         >
           <svg
@@ -57,37 +57,37 @@
     <!-- Expanded Content -->
     <div
       v-if="isExpanded"
-      class="px-4 pb-4 border-t border-gray-100"
+      class="px-4 pb-4 border-t border-light-gray"
     >
       <!-- Rationale -->
       <div class="mt-4 mb-4">
-        <h5 class="text-sm font-semibold text-gray-700 mb-2">Rationale</h5>
-        <p class="text-sm text-gray-600">
+        <h5 class="text-sm font-semibold text-neutral-500 mb-2">Rationale</h5>
+        <p class="text-sm text-neutral-500">
           {{ recommendation.rationale }}
         </p>
       </div>
 
       <!-- Impact -->
       <div v-if="recommendation.impact" class="mb-4">
-        <h5 class="text-sm font-semibold text-gray-700 mb-2">Expected Impact</h5>
-        <p class="text-sm text-gray-600">
+        <h5 class="text-sm font-semibold text-neutral-500 mb-2">Expected Impact</h5>
+        <p class="text-sm text-neutral-500">
           {{ recommendation.impact }}
         </p>
       </div>
 
       <!-- Estimated Cost -->
       <div v-if="recommendation.estimated_cost" class="mb-4">
-        <h5 class="text-sm font-semibold text-gray-700 mb-2">Estimated Cost</h5>
-        <p class="text-lg font-bold text-gray-900">
+        <h5 class="text-sm font-semibold text-neutral-500 mb-2">Estimated Cost</h5>
+        <p class="text-lg font-bold text-horizon-500">
           {{ formatCurrencyWithPence(recommendation.estimated_cost) }}
-          <span class="text-sm font-normal text-gray-600">per month</span>
+          <span class="text-sm font-normal text-neutral-500">per month</span>
         </p>
       </div>
 
       <!-- Additional Details -->
       <div v-if="recommendation.details" class="mb-4">
-        <h5 class="text-sm font-semibold text-gray-700 mb-2">Additional Details</h5>
-        <p class="text-sm text-gray-600">
+        <h5 class="text-sm font-semibold text-neutral-500 mb-2">Additional Details</h5>
+        <p class="text-sm text-neutral-500">
           {{ recommendation.details }}
         </p>
       </div>
@@ -96,12 +96,12 @@
       <div class="flex gap-3 mt-4">
         <button
           @click="handleMarkDone"
-          class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
+          class="flex-1 px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
         >
           Mark as Done
         </button>
         <button
-          class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          class="px-4 py-2 bg-savannah-100 text-neutral-500 text-sm font-medium rounded-lg hover:bg-savannah-200 transition-colors"
         >
           Learn More
         </button>
@@ -139,20 +139,20 @@ export default {
   computed: {
     priorityBadgeClass() {
       const classes = {
-        high: 'bg-red-500 text-white',
-        medium: 'bg-blue-500 text-white',
-        low: 'bg-green-500 text-white',
+        high: 'bg-raspberry-500 text-white',
+        medium: 'bg-violet-500 text-white',
+        low: 'bg-spring-500 text-white',
       };
-      return classes[this.recommendation.priority] || 'bg-gray-500 text-white';
+      return classes[this.recommendation.priority] || 'bg-eggshell-5000 text-white';
     },
 
     borderColourClass() {
       const classes = {
-        high: 'border-red-300',
-        medium: 'border-blue-300',
-        low: 'border-green-300',
+        high: 'border-raspberry-300',
+        medium: 'border-violet-300',
+        low: 'border-spring-300',
       };
-      return classes[this.recommendation.priority] || 'border-gray-200';
+      return classes[this.recommendation.priority] || 'border-light-gray';
     },
   },
 
@@ -167,13 +167,6 @@ export default {
 <style scoped>
 .recommendation-card {
   transition: all 0.2s ease;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 @media (max-width: 640px) {

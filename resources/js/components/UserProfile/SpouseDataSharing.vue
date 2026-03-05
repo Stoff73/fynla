@@ -1,17 +1,17 @@
 <template>
   <div class="card p-6">
-    <h3 class="text-h5 font-semibold text-gray-900 mb-4">Spouse Data Sharing</h3>
+    <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Spouse Data Sharing</h3>
 
     <!-- No Spouse -->
-    <div v-if="!hasSpouse" class="text-body-base text-gray-600">
+    <div v-if="!hasSpouse" class="text-body-base text-neutral-500">
       <p>You do not have a linked spouse. Add your spouse in the Family Members section to enable data sharing.</p>
     </div>
 
     <!-- Spouse Without Account Link -->
     <div v-else-if="requiresAccountLink" class="space-y-4">
       <div class="mb-6">
-        <p class="text-body-sm text-gray-600 mb-2">Spouse: <span class="font-medium text-gray-900">{{ spouse?.name || 'N/A' }}</span></p>
-        <p class="text-body-sm text-gray-600">Status: <span class="font-medium text-blue-600">Not linked</span></p>
+        <p class="text-body-sm text-neutral-500 mb-2">Spouse: <span class="font-medium text-horizon-500">{{ spouse?.name || 'N/A' }}</span></p>
+        <p class="text-body-sm text-neutral-500">Status: <span class="font-medium text-blue-600">Not linked</span></p>
       </div>
 
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -35,8 +35,8 @@
     <div v-else>
       <!-- Spouse Info -->
       <div class="mb-6">
-        <p class="text-body-sm text-gray-600 mb-2">Spouse: <span class="font-medium text-gray-900">{{ spouse?.name || 'N/A' }}</span></p>
-        <p class="text-body-sm text-gray-600">Email: <span class="font-medium text-gray-900">{{ spouse?.email || 'N/A' }}</span></p>
+        <p class="text-body-sm text-neutral-500 mb-2">Spouse: <span class="font-medium text-horizon-500">{{ spouse?.name || 'N/A' }}</span></p>
+        <p class="text-body-sm text-neutral-500">Email: <span class="font-medium text-horizon-500">{{ spouse?.email || 'N/A' }}</span></p>
       </div>
 
       <!-- No Permission Request -->

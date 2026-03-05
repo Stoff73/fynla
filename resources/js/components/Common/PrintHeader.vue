@@ -6,8 +6,6 @@
 </template>
 
 <script>
-import logoImage from '@/assets/logoTransparent.png';
-
 export default {
   name: 'PrintHeader',
 
@@ -20,7 +18,7 @@ export default {
 
   data() {
     return {
-      logoUrl: logoImage,
+      logoUrl: '/images/logos/logoTransparent.png',
     };
   },
 };
@@ -38,7 +36,7 @@ export default {
     justify-content: space-between;
     padding-bottom: 1rem;
     margin-bottom: 1.5rem;
-    @apply border-b-2 border-gray-200;
+    @apply border-b-2 border-light-gray;
   }
 
   .print-logo {
@@ -49,7 +47,7 @@ export default {
   .print-title {
     font-size: 1.25rem;
     font-weight: 600;
-    @apply text-gray-700;
+    @apply text-horizon-500;
   }
 }
 </style>

@@ -12,7 +12,7 @@
   >
     <div class="space-y-6">
       <!-- Tabs for different asset types -->
-      <div class="border-b border-gray-200">
+      <div class="border-b border-light-gray">
         <nav class="-mb-px flex space-x-8" aria-label="Asset types">
           <button
             v-for="tab in assetTabs"
@@ -20,13 +20,13 @@
             @click="activeTab = tab.id"
             :class="[
               activeTab === tab.id
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                ? 'border-raspberry-500 text-raspberry-500'
+                : 'border-transparent text-neutral-500 hover:text-horizon-500 hover:border-horizon-300',
               'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
             ]"
           >
             {{ tab.name }}
-            <span v-if="tab.count > 0" class="ml-2 py-0.5 px-2 rounded-full text-xs bg-gray-100">
+            <span v-if="tab.count > 0" class="ml-2 py-0.5 px-2 rounded-full text-xs bg-savannah-100">
               {{ tab.count }}
             </span>
           </button>
@@ -36,13 +36,13 @@
       <!-- Retirement Tab -->
       <div v-show="activeTab === 'retirement'" class="space-y-4">
         <!-- Why Retirement Info Matters -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
           <div class="flex">
-            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
             <div>
-              <p class="text-body-sm text-blue-800">
+              <p class="text-body-sm text-violet-800">
                 <strong>Why this matters:</strong> Your pension information is essential for accurate financial planning. It directly impacts your net worth calculations and retirement readiness projections. We also provide future calculations, income projections and tax optimised drawdown plans for retirement.
               </p>
             </div>
@@ -110,7 +110,7 @@
                 <div class="value-rows">
                   <div class="detail-row">
                     <span class="detail-label">Annual Income</span>
-                    <span class="detail-value">{{ formatCurrency(pension.annual_income) }}<span class="text-xs text-gray-500">/yr</span></span>
+                    <span class="detail-value">{{ formatCurrency(pension.annual_income) }}<span class="text-xs text-neutral-500">/yr</span></span>
                   </div>
 
                   <div class="detail-row">
@@ -147,7 +147,7 @@
                 <div class="value-rows">
                   <div class="detail-row">
                     <span class="detail-label">Forecast</span>
-                    <span class="detail-value">{{ formatCurrency(pensions.state.state_pension_forecast_annual) }}<span class="text-xs text-gray-500">/yr</span></span>
+                    <span class="detail-value">{{ formatCurrency(pensions.state.state_pension_forecast_annual) }}<span class="text-xs text-neutral-500">/yr</span></span>
                   </div>
 
                   <div class="detail-row">
@@ -191,7 +191,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-button hover:bg-blue-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,20 +201,20 @@
           </button>
         </div>
 
-        <p v-if="pensions.dc.length === 0 && pensions.db.length === 0 && !pensions.state" class="text-body-sm text-gray-500 italic">
+        <p v-if="pensions.dc.length === 0 && pensions.db.length === 0 && !pensions.state" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add pensions later from your dashboard.
         </p>
       </div>
 
       <!-- Properties Tab -->
       <div v-show="activeTab === 'properties'" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
           <div class="flex">
-            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
             <div>
-              <p class="text-body-sm text-blue-800">
+              <p class="text-body-sm text-violet-800">
                 <strong>Why this matters:</strong> Properties are usually the largest component of an estate. Adding property details helps us calculate your potential Inheritance Tax liability. Rental income can also be used for retirement planning, and releasing capital from properties may form part of your financial strategy.
               </p>
             </div>
@@ -223,7 +223,7 @@
 
         <!-- Added Properties List -->
         <div v-if="properties.length > 0" class="space-y-3">
-          <h4 class="text-body font-medium text-gray-900">
+          <h4 class="text-body font-medium text-horizon-500">
             Properties ({{ properties.length }})
           </h4>
 
@@ -246,7 +246,7 @@
           + Add Property
         </button>
 
-        <p v-if="properties.length === 0" class="text-body-sm text-gray-500 italic">
+        <p v-if="properties.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add properties later from your dashboard.
         </p>
       </div>
@@ -254,13 +254,13 @@
       <!-- Investments Tab -->
       <div v-show="activeTab === 'investments'" class="space-y-4">
         <!-- Why Investment Info Matters -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
           <div class="flex">
-            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
             <div>
-              <p class="text-body-sm text-blue-800">
+              <p class="text-body-sm text-violet-800">
                 <strong>Why this matters:</strong> Your investment information feeds into our comprehensive analysis including future value calculations, risk assessment, fee comparisons, and tax optimisation strategies. This data also informs your net worth calculations and estate planning.
               </p>
             </div>
@@ -334,7 +334,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-button hover:bg-blue-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,20 +344,20 @@
           </button>
         </div>
 
-        <p v-if="investments.length === 0" class="text-body-sm text-gray-500 italic">
+        <p v-if="investments.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add investments later from your dashboard.
         </p>
       </div>
 
       <!-- Cash Tab -->
       <div v-show="activeTab === 'cash'" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
           <div class="flex">
-            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
             <div>
-              <p class="text-body-sm text-blue-800">
+              <p class="text-body-sm text-violet-800">
                 <strong>Why this matters:</strong> We use your cash and savings information to inform affordability calculations, provide budget tracking and assess emergency cash needs. Include all cash and bank accounts, including current accounts, Cash ISAs, easy access savings, and fixed-term deposits.
               </p>
             </div>
@@ -425,7 +425,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-button hover:bg-blue-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,7 +435,7 @@
           </button>
         </div>
 
-        <p v-if="savingsAccounts.length === 0" class="text-body-sm text-gray-500 italic">
+        <p v-if="savingsAccounts.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add accounts later from your dashboard.
         </p>
       </div>
@@ -940,18 +940,18 @@ export default {
 
     const getInvestmentTypeBadgeClass = (type) => {
       const classes = {
-        isa: 'bg-green-100 text-green-800',
-        gia: 'bg-blue-100 text-blue-800',
+        isa: 'bg-spring-100 text-spring-800',
+        gia: 'bg-violet-100 text-violet-800',
         sipp: 'bg-purple-100 text-purple-800',
         pension: 'bg-purple-100 text-purple-800',
-        nsi: 'bg-indigo-100 text-indigo-800',
-        onshore_bond: 'bg-green-100 text-green-800',
-        offshore_bond: 'bg-green-100 text-green-800',
+        nsi: 'bg-violet-100 text-violet-800',
+        onshore_bond: 'bg-spring-100 text-spring-800',
+        offshore_bond: 'bg-spring-100 text-spring-800',
         vct: 'bg-pink-100 text-pink-800',
         eis: 'bg-pink-100 text-pink-800',
-        other: 'bg-gray-100 text-gray-800',
+        other: 'bg-savannah-100 text-horizon-500',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-savannah-100 text-horizon-500';
     };
 
     // Savings account helper functions
@@ -1003,11 +1003,11 @@ export default {
 
     const getOwnershipBadgeClass = (type) => {
       const classes = {
-        individual: 'bg-gray-100 text-gray-800',
+        individual: 'bg-savannah-100 text-horizon-500',
         joint: 'bg-purple-100 text-purple-800',
-        trust: 'bg-indigo-100 text-indigo-800',
+        trust: 'bg-violet-100 text-violet-800',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-savannah-100 text-horizon-500';
     };
 
     return {
@@ -1088,7 +1088,7 @@ export default {
 .pension-card {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1097,7 +1097,7 @@ export default {
 .pension-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  @apply border-primary-500;
+  @apply border-violet-500;
 }
 
 .card-header {
@@ -1118,8 +1118,8 @@ export default {
 }
 
 .badge-dc {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-db {
@@ -1128,8 +1128,8 @@ export default {
 }
 
 .badge-state {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .card-content {
@@ -1141,14 +1141,14 @@ export default {
 .pension-scheme {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
   line-height: 1.3;
 }
 
 .pension-provider-text {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1158,7 +1158,7 @@ export default {
   flex-direction: column;
   margin-top: 4px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .value-rows {
@@ -1175,13 +1175,13 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 16px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 700;
 }
 
@@ -1195,7 +1195,7 @@ export default {
 .account-card {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1204,7 +1204,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  @apply border-primary-500;
+  @apply border-violet-500;
 }
 
 .ownership-badge {
@@ -1222,25 +1222,25 @@ export default {
 }
 
 .badge-emergency {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .badge-isa {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .account-institution {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .account-type {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
   min-height: 20px;
 }
@@ -1251,11 +1251,11 @@ export default {
   gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-value.interest {
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 @media (max-width: 768px) {

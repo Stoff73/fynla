@@ -1,15 +1,15 @@
 <template>
   <div class="space-y-6">
     <!-- Budget Type Tabs (only shown when showBudgetTabs is true) -->
-    <div v-if="showBudgetTabs" class="border-b border-gray-200">
+    <div v-if="showBudgetTabs" class="border-b border-light-gray">
       <nav class="-mb-px flex space-x-8" aria-label="Budget tabs">
         <button
           type="button"
           @click="activeBudgetTab = 'current'"
           :class="[
             activeBudgetTab === 'current'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-500'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
@@ -20,8 +20,8 @@
           @click="activeBudgetTab = 'retired'"
           :class="[
             activeBudgetTab === 'retired'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-500'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
@@ -33,8 +33,8 @@
           @click="activeBudgetTab = 'widowed'"
           :class="[
             activeBudgetTab === 'widowed'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-raspberry-500 text-raspberry-500'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
           ]"
         >
@@ -57,8 +57,8 @@
         <!-- Header with Edit Button -->
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Monthly Expenditure Summary</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Monthly Expenditure Summary</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               Entry Mode: {{ useSimpleEntry ? 'Simple Total' : 'Detailed Breakdown' }}
               <span v-if="isMarried"> · {{ useSeparateExpenditure ? 'Separate' : 'Joint (50/50)' }} expenditure</span>
             </p>
@@ -73,18 +73,18 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6">
           <div class="space-y-3">
             <div class="flex justify-between">
-              <span class="text-body-sm text-gray-600">Monthly Expenditure:</span>
-              <span class="text-body-sm text-gray-900 text-right font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
+              <span class="text-body-sm text-neutral-500">Monthly Expenditure:</span>
+              <span class="text-body-sm text-horizon-500 text-right font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
             </div>
             <div v-if="isMarried && useSeparateExpenditure" class="flex justify-between">
-              <span class="text-body-sm text-gray-600">Spouse Monthly:</span>
-              <span class="text-body-sm text-gray-900 text-right font-medium">{{ formatCurrency(spouseSimpleMonthlyExpenditure) }}</span>
+              <span class="text-body-sm text-neutral-500">Spouse Monthly:</span>
+              <span class="text-body-sm text-horizon-500 text-right font-medium">{{ formatCurrency(spouseSimpleMonthlyExpenditure) }}</span>
             </div>
           </div>
           <div class="space-y-3">
             <div class="flex justify-between">
-              <span class="text-body-sm text-gray-600">Annual Expenditure:</span>
-              <span class="text-body-sm text-gray-900 text-right font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
+              <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
+              <span class="text-body-sm text-horizon-500 text-right font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
             </div>
           </div>
         </div>
@@ -95,10 +95,10 @@
         <!-- Three Column Layout for Married, Two for Single -->
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
           <!-- Column Headers -->
-          <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Category</div>
-          <div class="col-value font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
-          <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
+          <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
+          <div class="col-value font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
+          <div v-if="isMarried" class="col-value-mid font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ spouseName }}</div>
+          <div v-if="isMarried" class="col-total font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Household</div>
 
           <!-- Essential Living Expenses -->
           <ExpenditureSection
@@ -211,16 +211,16 @@
           </ExpenditureSection>
 
           <!-- Manual Expenditure Total -->
-          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
-          <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(totalMonthlyExpenditure) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(spouseTotalMonthlyExpenditure) }}</div>
-          <div v-if="isMarried" class="col-total text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</div>
+          <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-horizon-500 py-3">Manual Expenditure Total</div>
+          <div class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(totalMonthlyExpenditure) }}</div>
+          <div v-if="isMarried" class="col-value-mid text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(spouseTotalMonthlyExpenditure) }}</div>
+          <div v-if="isMarried" class="col-total text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</div>
         </div>
       </div>
 
       <!-- Financial Commitments (Auto-pulled) - View Mode -->
-      <div v-if="hasAnyCommitments" class="mt-6 border-t border-gray-200 pt-6">
+      <div v-if="hasAnyCommitments" class="mt-6 border-t border-light-gray pt-6">
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
           <!-- Financial Commitments Section Header -->
           <ExpenditureSection
@@ -321,17 +321,17 @@
       </div>
 
       <!-- Grand Total -->
-      <div class="mt-6 pt-4 border-t-2 border-gray-300">
+      <div class="mt-6 pt-4 border-t-2 border-horizon-300">
         <div :class="isMarried ? 'expenditure-grid-married' : 'expenditure-grid-single'">
-          <div class="col-label text-body font-semibold text-gray-900">Total Monthly Expenditure</div>
-          <div class="col-value text-body font-semibold text-gray-900">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body font-semibold text-gray-900">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
+          <div class="col-label text-body font-semibold text-horizon-500">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-horizon-500">{{ formatCurrency(totalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-value-mid text-body font-semibold text-horizon-500">{{ formatCurrency(spouseTotalMonthlyWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-raspberry-500">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600 mt-2">Annual Equivalent</div>
-          <div class="col-value text-body-sm text-gray-900 mt-2">{{ formatCurrency(totalAnnualWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-900 mt-2">{{ formatCurrency(spouseTotalAnnualWithCommitments) }}</div>
-          <div v-if="isMarried" class="col-total text-body-sm text-primary-600 mt-2 font-medium">{{ formatCurrency(householdTotalAnnualWithCommitments) }}</div>
+          <div class="col-label text-body-sm text-neutral-500 mt-2">Annual Equivalent</div>
+          <div class="col-value text-body-sm text-horizon-500 mt-2">{{ formatCurrency(totalAnnualWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-500 mt-2">{{ formatCurrency(spouseTotalAnnualWithCommitments) }}</div>
+          <div v-if="isMarried" class="col-total text-body-sm text-raspberry-500 mt-2 font-medium">{{ formatCurrency(householdTotalAnnualWithCommitments) }}</div>
         </div>
       </div>
     </div>
@@ -354,9 +354,9 @@
       <!-- Options Cards (inline) -->
       <div class="flex flex-col sm:flex-row gap-4 mt-4">
         <!-- Separate Expenditure Option (Married Users Only) -->
-        <div v-if="isMarried" class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
-          <span class="text-body font-medium text-gray-900 block mb-3">Spouse Expenditure</span>
-          <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
+        <div v-if="isMarried" class="bg-white border border-light-gray rounded-lg p-4 flex-1">
+          <span class="text-body font-medium text-horizon-500 block mb-3">Spouse Expenditure</span>
+          <div class="inline-flex rounded-lg border border-light-gray p-1 bg-white">
             <button
               type="button"
               @click="useSeparateExpenditure = false"
@@ -364,7 +364,7 @@
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 !useSeparateExpenditure
                   ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
               Joint
@@ -376,21 +376,21 @@
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 useSeparateExpenditure
                   ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
               Separate
             </button>
           </div>
-          <p class="text-body-sm text-gray-600 mt-2">
+          <p class="text-body-sm text-neutral-500 mt-2">
             {{ useSeparateExpenditure ? 'Enter expenditure for each spouse separately.' : 'Expenditure is assumed to be split 50/50.' }}
           </p>
         </div>
 
         <!-- Entry Mode Toggle -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4 flex-1">
-          <span class="text-body font-medium text-gray-900 block mb-3">Entry Method</span>
-          <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-white">
+        <div class="bg-white border border-light-gray rounded-lg p-4 flex-1">
+          <span class="text-body font-medium text-horizon-500 block mb-3">Entry Method</span>
+          <div class="inline-flex rounded-lg border border-light-gray p-1 bg-white">
             <button
               type="button"
               @click="useSimpleEntry = false"
@@ -398,7 +398,7 @@
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 !useSimpleEntry
                   ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
               Detailed
@@ -410,13 +410,13 @@
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 useSimpleEntry
                   ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
               Simple
             </button>
           </div>
-          <p class="text-body-sm text-gray-600 mt-2">
+          <p class="text-body-sm text-neutral-500 mt-2">
             {{ useSimpleEntry ? 'Enter a single monthly total.' : 'Break down by category.' }}
           </p>
         </div>
@@ -424,7 +424,7 @@
 
       <!-- Simple Entry Mode -->
       <div v-if="useSimpleEntry" class="card p-6 mt-6">
-        <h3 class="text-h5 font-semibold text-gray-900 mb-4">Total Monthly Expenditure</h3>
+        <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Total Monthly Expenditure</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label for="simple_monthly_expenditure" class="label">
@@ -454,15 +454,15 @@
       <!-- Detailed Entry Mode -->
       <div v-else class="space-y-6 mt-6">
         <!-- Person Tabs (only shown when separate expenditure is enabled for married users) -->
-        <div v-if="isMarried && useSeparateExpenditure" class="border-b border-gray-200">
+        <div v-if="isMarried && useSeparateExpenditure" class="border-b border-light-gray">
           <nav class="-mb-px flex space-x-8" aria-label="Person tabs">
             <button
               type="button"
               @click="activePersonTab = 'user'"
               :class="[
                 activePersonTab === 'user'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                  ? 'border-raspberry-500 text-raspberry-500'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
                 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
               ]"
             >
@@ -473,8 +473,8 @@
               @click="activePersonTab = 'spouse'"
               :class="[
                 activePersonTab === 'spouse'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                  ? 'border-raspberry-500 text-raspberry-500'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
                 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
               ]"
             >
@@ -539,19 +539,19 @@
         <div v-if="hasAnyCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h4 class="text-h5 font-semibold text-gray-900">
+              <h4 class="text-h5 font-semibold text-horizon-500">
                 Financial Commitments (Automated)
               </h4>
-              <p class="text-body-sm text-gray-600 mt-1">
+              <p class="text-body-sm text-neutral-500 mt-1">
                 These monthly commitments are automatically pulled from your entered data across all modules
               </p>
             </div>
-            <span v-if="loadingCommitments" class="text-body-sm text-gray-500">Loading...</span>
+            <span v-if="loadingCommitments" class="text-body-sm text-neutral-500">Loading...</span>
           </div>
 
           <!-- Retirement -->
           <div v-if="hasRetirementCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Pension Contributions</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Pension Contributions</h5>
             <div class="space-y-2">
               <div
                 v-for="pension in financialCommitments.commitments.retirement"
@@ -559,17 +559,17 @@
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
-                  <p class="text-body text-gray-900">{{ pension.name }}</p>
-                  <p v-if="pension.is_joint" class="text-body-sm text-primary-600">50% of joint contribution</p>
+                  <p class="text-body text-horizon-500">{{ pension.name }}</p>
+                  <p v-if="pension.is_joint" class="text-body-sm text-raspberry-500">50% of joint contribution</p>
                 </div>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(pension.monthly_amount) }}/month</p>
+                <p class="text-body font-medium text-horizon-500">{{ formatCurrency(pension.monthly_amount) }}/month</p>
               </div>
             </div>
           </div>
 
           <!-- Property -->
           <div v-if="hasPropertyCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Property Expenses</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Property Expenses</h5>
             <div class="space-y-2">
               <div
                 v-for="property in financialCommitments.commitments.properties"
@@ -577,10 +577,10 @@
                 class="p-3 bg-white rounded-lg"
               >
                 <div class="flex justify-between items-center mb-2">
-                  <p class="text-body font-medium text-gray-900">{{ property.name }}</p>
-                  <p class="text-body font-medium text-gray-900">{{ formatCurrency(property.monthly_amount) }}/month</p>
+                  <p class="text-body font-medium text-horizon-500">{{ property.name }}</p>
+                  <p class="text-body font-medium text-horizon-500">{{ formatCurrency(property.monthly_amount) }}/month</p>
                 </div>
-                <p v-if="property.is_joint" class="text-body-sm text-primary-600">
+                <p v-if="property.is_joint" class="text-body-sm text-raspberry-500">
                   Your {{ property.ownership_percentage || 50 }}% share
                 </p>
               </div>
@@ -589,7 +589,7 @@
 
           <!-- Investment -->
           <div v-if="hasInvestmentCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Investment Contributions</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Investment Contributions</h5>
             <div class="space-y-2">
               <div
                 v-for="investment in financialCommitments.commitments.investments"
@@ -597,12 +597,12 @@
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
-                  <p class="text-body text-gray-900">{{ investment.name }}</p>
-                  <p v-if="investment.is_joint" class="text-body-sm text-primary-600">Your {{ investment.ownership_percentage || 50 }}% share</p>
+                  <p class="text-body text-horizon-500">{{ investment.name }}</p>
+                  <p v-if="investment.is_joint" class="text-body-sm text-raspberry-500">Your {{ investment.ownership_percentage || 50 }}% share</p>
                 </div>
                 <div class="text-right">
-                  <p v-if="investment.monthly_amount > 0" class="text-body font-medium text-gray-900">{{ formatCurrency(investment.monthly_amount) }}/month</p>
-                  <p v-if="investment.lump_sum_amount > 0" class="text-body-sm text-gray-600">{{ formatCurrency(investment.lump_sum_amount) }} lump sum</p>
+                  <p v-if="investment.monthly_amount > 0" class="text-body font-medium text-horizon-500">{{ formatCurrency(investment.monthly_amount) }}/month</p>
+                  <p v-if="investment.lump_sum_amount > 0" class="text-body-sm text-neutral-500">{{ formatCurrency(investment.lump_sum_amount) }} lump sum</p>
                 </div>
               </div>
             </div>
@@ -610,7 +610,7 @@
 
           <!-- Savings -->
           <div v-if="hasSavingsCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Savings Contributions</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Savings Contributions</h5>
             <div class="space-y-2">
               <div
                 v-for="saving in financialCommitments.commitments.savings"
@@ -618,32 +618,32 @@
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
-                  <p class="text-body text-gray-900">{{ saving.name }}</p>
-                  <p v-if="saving.is_joint" class="text-body-sm text-primary-600">Your {{ saving.ownership_percentage || 50 }}% share</p>
+                  <p class="text-body text-horizon-500">{{ saving.name }}</p>
+                  <p v-if="saving.is_joint" class="text-body-sm text-raspberry-500">Your {{ saving.ownership_percentage || 50 }}% share</p>
                 </div>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(saving.monthly_amount) }}/month</p>
+                <p class="text-body font-medium text-horizon-500">{{ formatCurrency(saving.monthly_amount) }}/month</p>
               </div>
             </div>
           </div>
 
           <!-- Protection -->
           <div v-if="hasProtectionCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Protection Premiums</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Protection Premiums</h5>
             <div class="space-y-2">
               <div
                 v-for="policy in financialCommitments.commitments.protection"
                 :key="policy.id"
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
-                <p class="text-body text-gray-900">{{ policy.name }}</p>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(policy.monthly_amount) }}/month</p>
+                <p class="text-body text-horizon-500">{{ policy.name }}</p>
+                <p class="text-body font-medium text-horizon-500">{{ formatCurrency(policy.monthly_amount) }}/month</p>
               </div>
             </div>
           </div>
 
           <!-- Liabilities -->
           <div v-if="hasLiabilityCommitments" class="mb-4">
-            <h5 class="text-body font-medium text-gray-900 mb-2">Loan Repayments</h5>
+            <h5 class="text-body font-medium text-horizon-500 mb-2">Loan Repayments</h5>
             <div class="space-y-2">
               <div
                 v-for="liability in financialCommitments.commitments.liabilities"
@@ -651,11 +651,11 @@
                 class="flex justify-between items-center p-3 bg-white rounded-lg"
               >
                 <div>
-                  <p class="text-body text-gray-900">{{ liability.name }}</p>
-                  <p class="text-body-sm text-gray-600 capitalize">{{ liability.type?.replace('_', ' ') }}</p>
-                  <p v-if="liability.is_joint" class="text-body-sm text-primary-600">50% of joint liability</p>
+                  <p class="text-body text-horizon-500">{{ liability.name }}</p>
+                  <p class="text-body-sm text-neutral-500 capitalize">{{ liability.type?.replace('_', ' ') }}</p>
+                  <p v-if="liability.is_joint" class="text-body-sm text-raspberry-500">50% of joint liability</p>
                 </div>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(liability.monthly_amount) }}/month</p>
+                <p class="text-body font-medium text-horizon-500">{{ formatCurrency(liability.monthly_amount) }}/month</p>
               </div>
             </div>
           </div>
@@ -663,35 +663,35 @@
           <!-- Total Commitments -->
           <div class="pt-4 border-t border-blue-300">
             <div class="flex justify-between items-center">
-              <p class="text-body font-semibold text-gray-900">Total Monthly Commitments</p>
-              <p class="text-h4 font-display text-gray-900">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</p>
+              <p class="text-body font-semibold text-horizon-500">Total Monthly Commitments</p>
+              <p class="text-h4 font-display text-horizon-500">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Summary -->
-      <div class="bg-gray-50 rounded-lg p-6">
-        <h4 class="text-body font-medium text-gray-900 mb-4">Summary</h4>
+      <div class="bg-eggshell-500 rounded-lg p-6">
+        <h4 class="text-body font-medium text-horizon-500 mb-4">Summary</h4>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <p class="text-body-sm text-gray-600">Manual Monthly Expenditure</p>
-            <p class="text-h4 font-display text-gray-900">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</p>
+            <p class="text-body-sm text-neutral-500">Manual Monthly Expenditure</p>
+            <p class="text-h4 font-display text-horizon-500">{{ formatCurrency(householdTotalMonthlyExpenditure) }}</p>
           </div>
           <div v-if="hasAnyCommitments">
-            <p class="text-body-sm text-gray-600">Financial Commitments</p>
-            <p class="text-h4 font-display text-gray-900">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</p>
+            <p class="text-body-sm text-neutral-500">Financial Commitments</p>
+            <p class="text-h4 font-display text-horizon-500">{{ formatCurrency((financialCommitments?.totals?.total || 0) + (spouseFinancialCommitments?.totals?.total || 0)) }}</p>
           </div>
           <div>
-            <p class="text-body-sm text-gray-600">Total Monthly</p>
-            <p class="text-h3 font-display text-primary-600">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</p>
-            <p class="text-body-sm text-gray-500">{{ formatCurrency(householdTotalAnnualWithCommitments) }}/year</p>
+            <p class="text-body-sm text-neutral-500">Total Monthly</p>
+            <p class="text-h3 font-display text-raspberry-500">{{ formatCurrency(householdTotalMonthlyWithCommitments) }}</p>
+            <p class="text-body-sm text-neutral-500">{{ formatCurrency(householdTotalAnnualWithCommitments) }}/year</p>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons (hidden during onboarding - continue button handles save) -->
-      <div v-if="!isOnboarding" class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+      <div v-if="!isOnboarding" class="flex justify-end space-x-4 pt-4 border-t border-light-gray">
         <button
           type="button"
           @click="handleCancel"
@@ -724,8 +724,8 @@
         <!-- Header with Edit Button -->
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Retired Monthly Expenditure</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Retired Monthly Expenditure</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               Based on retirement at age {{ retirementInfo.userRetirementAge || 65 }}{{ isMarried ? `, spouse at ${retirementInfo.spouseRetirementAge || 65}` : '' }}
             </p>
           </div>
@@ -750,10 +750,10 @@
         <!-- Budget Grid -->
         <div :class="isMarried ? 'retired-grid-married' : 'retired-grid-single'">
           <!-- Column Headers -->
-          <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Category</div>
-          <div class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
-          <div v-if="isMarried" class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ spouseName }}</div>
-          <div v-if="isMarried" class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Household</div>
+          <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
+          <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
+          <div v-if="isMarried" class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ spouseName }}</div>
+          <div v-if="isMarried" class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Household</div>
 
           <!-- Retired Budget Sections -->
           <template v-for="(sectionConfig, sectionKey) in retiredSectionConfigs" :key="sectionKey">
@@ -767,18 +767,18 @@
               @toggle="toggleSection('retired', sectionKey)"
             >
               <template v-for="field in retiredBudgetFields[sectionKey]" :key="field.key">
-                <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                <div class="col-label text-body-sm text-neutral-500 py-1 pl-7">
                   {{ field.label }}
-                  <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                  <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700">Auto</span>
                   <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
                 </div>
-                <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
                 </div>
-                <div v-if="isMarried" class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                <div v-if="isMarried" class="col-value text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
                 </div>
-                <div v-if="isMarried" class="col-total text-body-sm text-gray-900 py-1 font-medium">
+                <div v-if="isMarried" class="col-total text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
                 </div>
               </template>
@@ -786,11 +786,11 @@
           </template>
 
           <!-- Manual Expenditure Total -->
-          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
-          <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredManualExpenditureTotal) }}</div>
-          <div v-if="isMarried" class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredSpouseManualExpenditureTotal) }}</div>
-          <div v-if="isMarried" class="col-total text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(retiredHouseholdManualExpenditureTotal) }}</div>
+          <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-horizon-500 py-3">Manual Expenditure Total</div>
+          <div class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(retiredManualExpenditureTotal) }}</div>
+          <div v-if="isMarried" class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(retiredSpouseManualExpenditureTotal) }}</div>
+          <div v-if="isMarried" class="col-total text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(retiredHouseholdManualExpenditureTotal) }}</div>
 
           <!-- Financial Commitments -->
           <ExpenditureSection
@@ -810,26 +810,26 @@
 
             <!-- Pension Contributions - removed in retirement -->
             <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
-              <div class="col-label text-body-sm text-gray-500 py-1 pl-7 line-through">Pension Contributions</div>
-              <div class="col-value text-body-sm text-gray-400 py-1">
+              <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Pension Contributions</div>
+              <div class="col-value text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-400 py-1">
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-400 py-1">{{ formatCurrency(0) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
 
             <!-- Property Expenses - removed in retirement (mortgage paid off) -->
             <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
-              <div class="col-label text-body-sm text-gray-500 py-1 pl-7 line-through">Property Expenses</div>
-              <div class="col-value text-body-sm text-gray-400 py-1">
+              <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Property Expenses</div>
+              <div class="col-value text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.properties || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-400 py-1">
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-400 py-1">{{ formatCurrency(0) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
 
             <!-- Investment Contributions - kept in retirement -->
@@ -876,28 +876,28 @@
 
             <!-- Loan Repayments - removed in retirement -->
             <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
-              <div class="col-label text-body-sm text-gray-500 py-1 pl-7 line-through">Loan Repayments</div>
-              <div class="col-value text-body-sm text-gray-400 py-1">
+              <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Loan Repayments</div>
+              <div class="col-value text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-value-mid text-body-sm text-gray-400 py-1">
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
                 {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
               </div>
-              <div v-if="isMarried" class="col-total text-body-sm text-gray-400 py-1">{{ formatCurrency(0) }}</div>
+              <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
           </ExpenditureSection>
 
           <!-- Total -->
-          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
-          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredSpouseTotalMonthly) }}</div>
-          <div v-if="isMarried" class="col-total text-body font-semibold text-primary-600 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
+          <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-horizon-500 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-raspberry-500 py-3">{{ formatCurrency(retiredTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-value text-body font-semibold text-raspberry-500 py-3">{{ formatCurrency(retiredSpouseTotalMonthly) }}</div>
+          <div v-if="isMarried" class="col-total text-body font-semibold text-raspberry-500 py-3">{{ formatCurrency(retiredHouseholdTotalMonthly) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
-          <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
-          <div v-if="isMarried" class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredSpouseTotalMonthly * 12) }}</div>
-          <div v-if="isMarried" class="col-total text-body-sm text-primary-600 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
+          <div class="col-label text-body-sm text-neutral-500">Annual Equivalent</div>
+          <div class="col-value text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(retiredTotalMonthly * 12) }}</div>
+          <div v-if="isMarried" class="col-value text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(retiredSpouseTotalMonthly * 12) }}</div>
+          <div v-if="isMarried" class="col-total text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
           <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Savings in Retirement</div>
@@ -915,34 +915,34 @@
       <div v-else class="space-y-6">
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Edit Retired Budget</h3>
-            <p class="mt-1 text-body-sm text-gray-600">Override auto-calculated values with your own estimates</p>
+            <h3 class="text-h4 font-semibold text-horizon-500">Edit Retired Budget</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">Override auto-calculated values with your own estimates</p>
           </div>
         </div>
 
         <!-- Retirement Age Info -->
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="label">Your Retirement Age</label>
-              <p class="text-body font-medium text-gray-900">{{ retirementInfo.userRetirementAge || 'Not set' }}</p>
+              <p class="text-body font-medium text-horizon-500">{{ retirementInfo.userRetirementAge || 'Not set' }}</p>
             </div>
             <div v-if="isMarried">
               <label class="label">Spouse's Retirement Age</label>
-              <p class="text-body font-medium text-gray-900">{{ retirementInfo.spouseRetirementAge || 'Not set' }}</p>
+              <p class="text-body font-medium text-horizon-500">{{ retirementInfo.spouseRetirementAge || 'Not set' }}</p>
             </div>
           </div>
         </div>
 
         <!-- Editable Fields -->
         <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Monthly Expenses in Retirement</h4>
+          <h4 class="text-h5 font-semibold text-horizon-500 mb-4">Monthly Expenses in Retirement</h4>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <template v-for="field in allRetiredFields" :key="field.key">
               <div>
                 <label :for="'retired_' + field.key" class="label">
                   {{ field.label }}
-                  <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="text-primary-600 text-xs ml-1">(Auto-adjusted)</span>
+                  <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="text-raspberry-500 text-xs ml-1">(Auto-adjusted)</span>
                 </label>
                 <div class="flex gap-2 items-center">
                   <CurrencyInputField
@@ -955,7 +955,7 @@
                     v-if="retiredBudgetData[field.key]?.userModified"
                     type="button"
                     @click="resetRetiredField(field.key)"
-                    class="text-gray-400 hover:text-gray-600"
+                    class="text-horizon-400 hover:text-neutral-500"
                     title="Reset to auto-calculated value"
                   >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -963,14 +963,14 @@
                     </svg>
                   </button>
                 </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
+                <p v-if="field.hint" class="mt-1 text-body-sm text-neutral-500">{{ field.hint }}</p>
               </div>
             </template>
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+        <div class="flex justify-end space-x-4 pt-4 border-t border-light-gray">
           <button type="button" @click="cancelRetiredEdit" class="btn-secondary">Cancel</button>
           <button type="button" @click="saveRetiredBudget" class="btn-primary">Save Retired Budget</button>
         </div>
@@ -991,8 +991,8 @@
         <!-- Header with Edit Button -->
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Widowed Monthly Expenditure</h3>
-            <p class="mt-1 text-body-sm text-gray-600">Estimated expenses for {{ userName }} as single-person household</p>
+            <h3 class="text-h4 font-semibold text-horizon-500">Widowed Monthly Expenditure</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">Estimated expenses for {{ userName }} as single-person household</p>
           </div>
           <button type="button" @click="isEditingWidowed = true" class="btn-secondary">
             Edit
@@ -1015,28 +1015,28 @@
         <!-- Budget Grid - Single column for widowed (user only) -->
         <div class="widowed-grid-single">
           <!-- Column Headers -->
-          <div class="col-label font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">Category</div>
-          <div class="col-header font-semibold text-body-sm text-gray-700 pb-2 border-b border-gray-200">{{ userName }}</div>
+          <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
+          <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
 
           <!-- Widowed Budget Sections -->
           <template v-for="(sectionConfig, sectionKey) in widowedSectionConfigs" :key="sectionKey">
             <div class="col-label pt-4 pb-2 cursor-pointer select-none" @click="toggleSection('widowed', sectionKey)">
               <div class="flex items-center gap-2">
-                <svg :class="['h-5 w-5 text-gray-400 transition-transform', isSectionExpanded('widowed', sectionKey) ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg :class="['h-5 w-5 text-horizon-400 transition-transform', isSectionExpanded('widowed', sectionKey) ? 'rotate-90' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-body-base font-semibold text-gray-900">{{ sectionConfig.title }}</span>
+                <span class="text-body-base font-semibold text-horizon-500">{{ sectionConfig.title }}</span>
               </div>
             </div>
-            <div class="col-value pt-4 pb-2 text-body-sm text-gray-900 font-semibold">{{ formatCurrency(getWidowedSectionTotal(sectionKey)) }}</div>
+            <div class="col-value pt-4 pb-2 text-body-sm text-horizon-500 font-semibold">{{ formatCurrency(getWidowedSectionTotal(sectionKey)) }}</div>
             <template v-if="isSectionExpanded('widowed', sectionKey)">
               <template v-for="field in widowedBudgetFields[sectionKey]" :key="field.key">
-                <div class="col-label text-body-sm text-gray-600 py-1 pl-7">
+                <div class="col-label text-body-sm text-neutral-500 py-1 pl-7">
                   {{ field.label }}
-                  <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">Auto</span>
+                  <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700">Auto</span>
                   <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
                 </div>
-                <div class="col-value text-body-sm text-gray-900 py-1 font-medium">
+                <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
                 </div>
               </template>
@@ -1044,9 +1044,9 @@
           </template>
 
           <!-- Manual Expenditure Total -->
-          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-semibold text-gray-900 py-3">Manual Expenditure Total</div>
-          <div class="col-value text-body text-gray-900 py-3 font-semibold">{{ formatCurrency(widowedManualExpenditureTotal) }}</div>
+          <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-horizon-500 py-3">Manual Expenditure Total</div>
+          <div class="col-value text-body text-horizon-500 py-3 font-semibold">{{ formatCurrency(widowedManualExpenditureTotal) }}</div>
 
           <!-- Financial Commitments -->
           <ExpenditureSection
@@ -1059,7 +1059,7 @@
             @toggle="toggleSection('widowed', 'commitments')"
           >
             <template #badge>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-savannah-100 text-neutral-500">
                 Single-person household
               </span>
             </template>
@@ -1136,12 +1136,12 @@
           </ExpenditureSection>
 
           <!-- Total -->
-          <div class="col-span-full border-t-2 border-gray-300 mt-4"></div>
-          <div class="col-label text-body font-semibold text-gray-900 py-3">Total Monthly Expenditure</div>
-          <div class="col-value text-body font-semibold text-primary-600 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
+          <div class="col-span-full border-t-2 border-horizon-300 mt-4"></div>
+          <div class="col-label text-body font-semibold text-horizon-500 py-3">Total Monthly Expenditure</div>
+          <div class="col-value text-body font-semibold text-raspberry-500 py-3">{{ formatCurrency(widowedTotalMonthly) }}</div>
 
-          <div class="col-label text-body-sm text-gray-600">Annual Equivalent</div>
-          <div class="col-value text-body-sm text-primary-600 font-medium">{{ formatCurrency(widowedTotalMonthly * 12) }}</div>
+          <div class="col-label text-body-sm text-neutral-500">Annual Equivalent</div>
+          <div class="col-value text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(widowedTotalMonthly * 12) }}</div>
 
           <!-- Monthly Reduction Row -->
           <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Reduction from Current</div>
@@ -1154,20 +1154,20 @@
       <div v-else class="space-y-6">
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Edit Widowed Budget</h3>
-            <p class="mt-1 text-body-sm text-gray-600">Override auto-calculated values with your own estimates</p>
+            <h3 class="text-h4 font-semibold text-horizon-500">Edit Widowed Budget</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">Override auto-calculated values with your own estimates</p>
           </div>
         </div>
 
         <!-- Editable Fields -->
         <div class="card p-6">
-          <h4 class="text-h5 font-semibold text-gray-900 mb-4">Monthly Expenses if Widowed</h4>
+          <h4 class="text-h5 font-semibold text-horizon-500 mb-4">Monthly Expenses if Widowed</h4>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <template v-for="field in allWidowedFields" :key="field.key">
               <div>
                 <label :for="'widowed_' + field.key" class="label">
                   {{ field.label }}
-                  <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="text-primary-600 text-xs ml-1">(Auto-adjusted)</span>
+                  <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="text-raspberry-500 text-xs ml-1">(Auto-adjusted)</span>
                 </label>
                 <div class="flex gap-2 items-center">
                   <CurrencyInputField
@@ -1180,7 +1180,7 @@
                     v-if="widowedBudgetData[field.key]?.userModified"
                     type="button"
                     @click="resetWidowedField(field.key)"
-                    class="text-gray-400 hover:text-gray-600"
+                    class="text-horizon-400 hover:text-neutral-500"
                     title="Reset to auto-calculated value"
                   >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1188,14 +1188,14 @@
                     </svg>
                   </button>
                 </div>
-                <p v-if="field.hint" class="mt-1 text-body-sm text-gray-500">{{ field.hint }}</p>
+                <p v-if="field.hint" class="mt-1 text-body-sm text-neutral-500">{{ field.hint }}</p>
               </div>
             </template>
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+        <div class="flex justify-end space-x-4 pt-4 border-t border-light-gray">
           <button type="button" @click="cancelWidowedEdit" class="btn-secondary">Cancel</button>
           <button type="button" @click="saveWidowedBudget" class="btn-primary">Save Widowed Budget</button>
         </div>

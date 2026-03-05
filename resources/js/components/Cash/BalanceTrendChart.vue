@@ -164,7 +164,7 @@ export default {
 .chart-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 

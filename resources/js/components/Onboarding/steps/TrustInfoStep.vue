@@ -21,18 +21,18 @@
               v-model="formData.has_trusts"
               type="radio"
               :value="true"
-              class="form-radio text-primary-600"
+              class="form-radio text-raspberry-500"
             >
-            <span class="ml-2 text-body text-gray-700">Yes</span>
+            <span class="ml-2 text-body text-horizon-500">Yes</span>
           </label>
           <label class="inline-flex items-center ml-6">
             <input
               v-model="formData.has_trusts"
               type="radio"
               :value="false"
-              class="form-radio text-primary-600"
+              class="form-radio text-raspberry-500"
             >
-            <span class="ml-2 text-body text-gray-700">No</span>
+            <span class="ml-2 text-body text-horizon-500">No</span>
           </label>
         </div>
       </div>
@@ -51,13 +51,13 @@
         >
       </div>
 
-      <div v-if="formData.has_trusts" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <p class="text-body-sm text-blue-800">
+      <div v-if="formData.has_trusts" class="bg-violet-50 p-4 rounded-lg border border-violet-200">
+        <p class="text-body-sm text-violet-800">
           Trusts can affect your Inheritance Tax calculation due to Potentially Exempt Transfers and Chargeable Lifetime Transfers.
         </p>
       </div>
 
-      <p class="text-body-sm text-gray-500 italic">
+      <p class="text-body-sm text-neutral-500 italic">
         You can add detailed trust information later in your profile.
       </p>
     </div>

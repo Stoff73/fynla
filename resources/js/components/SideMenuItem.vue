@@ -12,7 +12,7 @@
   >
     <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" />
     <span v-if="!collapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ label }}</span>
-    <svg v-if="!collapsed" class="w-3 h-3 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg v-if="!collapsed" class="w-3 h-3 ml-auto text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
     </svg>
   </a>
@@ -36,14 +36,14 @@
     class="group flex items-center mx-2 rounded-md transition-colors"
     :class="[
       active
-        ? 'bg-primary-50 text-primary-700'
-        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700',
+        ? 'bg-raspberry-50 text-raspberry-700'
+        : 'text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500',
       collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
     ]"
     :title="collapsed ? label : ''"
     @click="$emit('navigate')"
   >
-    <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" :class="active ? 'text-primary-600' : ''" />
+    <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" :class="active ? 'text-raspberry-500' : ''" />
     <span v-if="!collapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ label }}</span>
   </router-link>
 </template>
@@ -93,7 +93,7 @@ export default {
 
   computed: {
     itemClasses() {
-      return 'text-gray-500 hover:bg-gray-50 hover:text-gray-700';
+      return 'text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500';
     },
   },
 };

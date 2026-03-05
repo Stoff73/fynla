@@ -5,13 +5,13 @@
       <div class="mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 class="font-display text-2xl sm:text-h1 text-gray-900">Admin Panel</h1>
-            <p class="text-body text-gray-600 mt-2">
+            <h1 class="font-display text-2xl sm:text-h1 text-horizon-500">Admin Panel</h1>
+            <p class="text-body text-neutral-500 mt-2">
               System administration and management
             </p>
           </div>
           <div class="flex items-center space-x-2 flex-shrink-0">
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-raspberry-100 text-raspberry-800">
               <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
@@ -22,7 +22,7 @@
       </div>
 
       <!-- Tabs -->
-      <div class="border-b border-gray-200 mb-6">
+      <div class="border-b border-light-gray mb-6">
         <nav class="flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch">
           <button
             v-for="tab in tabs"
@@ -31,8 +31,8 @@
             :class="[
               'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors flex items-center flex-shrink-0',
               activeTab === tab.id
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-raspberry-600 text-raspberry-600'
+                : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
             ]"
           >
             <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,15 +168,6 @@ export default {
 </script>
 
 <style scoped>
-/* Hide scrollbar for horizontal tab navigation */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
 /* Smooth scrolling on iOS */
 .-webkit-overflow-scrolling-touch {
   -webkit-overflow-scrolling: touch;

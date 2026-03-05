@@ -22,7 +22,7 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="w-10 h-10 border-[3px] border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
         <p>Loading your trusts...</p>
       </div>
 
@@ -148,7 +148,7 @@
                     <td class="font-medium">{{ charge.trust_name }}</td>
                     <td>
                       {{ formatDate(charge.charge_date) }}
-                      <span class="text-xs text-gray-500">({{ charge.months_until_charge }} months)</span>
+                      <span class="text-xs text-neutral-500">({{ charge.months_until_charge }} months)</span>
                     </td>
                     <td>{{ formatCurrency(charge.trust_value) }}</td>
                     <td class="font-semibold text-red-600">{{ formatCurrency(charge.estimated_charge) }}</td>
@@ -438,7 +438,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -453,7 +453,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -464,7 +464,7 @@ export default {
 }
 
 .add-trust-button:hover {
-  background: #2563eb;
+  @apply bg-raspberry-600;
 }
 
 .upload-button {
@@ -473,8 +473,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  @apply text-primary-500;
-  @apply border-2 border-primary-500;
+  @apply text-raspberry-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -498,32 +498,15 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  @apply text-neutral-500;
 }
 
 /* Error State */
 .error-state {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  @apply bg-red-50 border border-red-200;
   border-radius: 8px;
   padding: 16px;
-  color: #991b1b;
+  @apply text-red-800;
   margin-bottom: 24px;
 }
 
@@ -543,12 +526,9 @@ export default {
 
 /* Empty State */
 .empty-state {
-  background: white;
-  border-radius: 12px;
+  @apply bg-white rounded-xl shadow-sm border border-light-gray;
   padding: 48px 24px;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
   margin-bottom: 24px;
 }
 
@@ -556,7 +536,7 @@ export default {
   width: 48px;
   height: 48px;
   margin: 0 auto 16px;
-  color: #9ca3af;
+  @apply text-horizon-400;
 }
 
 .empty-icon svg {
@@ -567,13 +547,13 @@ export default {
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .empty-text {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0 0 24px 0;
 }
 
@@ -583,7 +563,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  @apply border border-light-gray;
   margin-bottom: 24px;
 }
 
@@ -596,18 +576,18 @@ export default {
 .guide-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .guide-toggle {
   font-size: 14px;
-  color: #7c3aed;
+  @apply text-violet-600;
   font-weight: 500;
 }
 
 .guide-toggle:hover {
-  color: #6d28d9;
+  @apply text-violet-700;
 }
 
 .guide-content {
@@ -616,7 +596,7 @@ export default {
 
 /* Tax Rates Summary */
 .tax-rates-summary {
-  background: #ede9fe;
+  @apply bg-violet-100;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
@@ -625,7 +605,7 @@ export default {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #7c3aed;
+  @apply text-violet-600;
   margin: 0 0 12px 0;
 }
 
@@ -648,19 +628,19 @@ export default {
 .rate-label {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .rate-value {
   font-size: 13px;
-  color: #4b5563;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .tax-note {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 12px 0 0 0;
 }
 
@@ -685,7 +665,7 @@ export default {
 }
 
 .trust-type-card {
-  background: #f9fafb;
+  @apply bg-eggshell-500;
   border-radius: 8px;
   padding: 16px;
 }
@@ -693,13 +673,13 @@ export default {
 .type-name {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .type-description {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0 0 12px 0;
   line-height: 1.4;
 }
@@ -710,7 +690,7 @@ export default {
 
 .type-details p {
   margin: 0 0 4px 0;
-  color: #4b5563;
+  @apply text-neutral-500;
 }
 
 .detail-label {
@@ -723,20 +703,19 @@ export default {
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 500;
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-blue-50 text-blue-700;
   border-radius: 9999px;
 }
 
 /* IHT Charges Info */
 .iht-charges-info {
-  background: #fef3c7;
+  @apply bg-blue-50;
   border-radius: 8px;
   padding: 16px;
 }
 
 .iht-charges-info .section-title {
-  color: #b45309;
+  @apply text-blue-700;
 }
 
 .charges-grid {
@@ -758,30 +737,27 @@ export default {
 .charge-label {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .charge-value {
   font-size: 13px;
-  color: #4b5563;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 /* Tax Events Card */
 .tax-events-card {
-  background: white;
-  border-radius: 12px;
+  @apply bg-white rounded-xl shadow-sm border border-light-gray;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
   margin-bottom: 24px;
 }
 
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -796,7 +772,7 @@ export default {
 .section-subtitle {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
@@ -813,18 +789,18 @@ export default {
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 500;
-  color: #6b7280;
+  @apply text-neutral-500;
   text-transform: uppercase;
   text-align: left;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  @apply bg-eggshell-500;
+  @apply border-b border-light-gray;
 }
 
 .events-table td {
   padding: 12px 16px;
   font-size: 14px;
-  color: #4b5563;
-  border-bottom: 1px solid #e5e7eb;
+  @apply text-neutral-500;
+  @apply border-b border-light-gray;
 }
 
 .events-table tr:last-child td {
@@ -843,8 +819,8 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  @apply bg-eggshell-500;
+  @apply border border-light-gray;
   border-radius: 8px;
 }
 
@@ -856,13 +832,13 @@ export default {
 .return-name {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .return-type {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -873,13 +849,13 @@ export default {
 .return-due p:first-child {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .return-days {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
 }
 

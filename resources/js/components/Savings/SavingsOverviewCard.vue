@@ -1,11 +1,11 @@
 <template>
   <div
-    class="savings-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
+    class="savings-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-light-gray hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200"
     @click="navigateToSavings"
   >
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">Savings</h3>
-      <div class="text-sm text-gray-500">
+      <h3 class="text-xl font-semibold text-horizon-500">Savings</h3>
+      <div class="text-sm text-neutral-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5"
@@ -32,29 +32,29 @@
         >
           {{ emergencyFundRunway.toFixed(1) }}
         </span>
-        <span class="ml-2 text-sm text-gray-600">months runway</span>
+        <span class="ml-2 text-sm text-neutral-500">months runway</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-2">
+      <div class="w-full bg-savannah-200 rounded-full h-2">
         <div
           class="h-2 rounded-full transition-all duration-300"
           :class="runwayBarColour"
           :style="{ width: Math.min(runwayPercentage, 100) + '%' }"
         ></div>
       </div>
-      <p class="text-xs text-gray-500 mt-1">Target: 6 months</p>
+      <p class="text-xs text-neutral-500 mt-1">Target: 6 months</p>
     </div>
 
     <!-- Total Savings and ISA -->
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
-        <p class="text-sm text-gray-600 mb-1">Total Savings</p>
-        <p class="text-lg font-semibold text-gray-800">
+        <p class="text-sm text-neutral-500 mb-1">Total Savings</p>
+        <p class="text-lg font-semibold text-horizon-500">
           {{ formatCurrency(totalSavings) }}
         </p>
       </div>
       <div>
-        <p class="text-sm text-gray-600 mb-1">ISA Used</p>
-        <p class="text-lg font-semibold text-gray-800">
+        <p class="text-sm text-neutral-500 mb-1">ISA Used</p>
+        <p class="text-lg font-semibold text-horizon-500">
           {{ isaUsagePercent }}%
         </p>
       </div>
@@ -123,57 +123,57 @@ export default {
 
     runwayColour() {
       if (this.emergencyFundRunway >= 6) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (this.emergencyFundRunway >= 3) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
 
     runwayBarColour() {
       if (this.emergencyFundRunway >= 6) {
-        return 'bg-green-600';
+        return 'bg-spring-600';
       } else if (this.emergencyFundRunway >= 3) {
-        return 'bg-primary-600';
+        return 'bg-raspberry-500';
       } else {
-        return 'bg-red-600';
+        return 'bg-raspberry-600';
       }
     },
 
     goalsStatusClass() {
       if (this.goalsStatus.total === 0) {
-        return 'bg-gray-50';
+        return 'bg-eggshell-500';
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
-        return 'bg-green-50';
+        return 'bg-spring-50';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'bg-blue-50';
+        return 'bg-violet-50';
       } else {
-        return 'bg-red-50';
+        return 'bg-raspberry-50';
       }
     },
 
     goalsIconClass() {
       if (this.goalsStatus.total === 0) {
-        return 'text-gray-600';
+        return 'text-neutral-500';
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
 
     goalsTextClass() {
       if (this.goalsStatus.total === 0) {
-        return 'text-gray-800';
+        return 'text-horizon-500';
       } else if (this.goalsStatus.onTrack === this.goalsStatus.total) {
-        return 'text-green-800';
+        return 'text-spring-800';
       } else if (this.goalsStatus.onTrack > 0) {
-        return 'text-blue-800';
+        return 'text-violet-800';
       } else {
-        return 'text-red-800';
+        return 'text-raspberry-800';
       }
     },
 

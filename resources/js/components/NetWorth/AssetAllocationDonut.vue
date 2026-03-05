@@ -82,7 +82,7 @@ export default {
       return {
         chart: {
           type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         labels: this.filteredLabels,
         colors: this.filteredColors,
@@ -157,7 +157,7 @@ export default {
 
 <style scoped>
 .asset-allocation-donut {
-  @apply bg-white rounded-card p-4 shadow-sm border border-gray-200 transition-all duration-200;
+  @apply bg-white rounded-card p-4 shadow-sm border border-light-gray transition-all duration-200;
   height: 340px;
   display: flex;
   flex-direction: column;
@@ -179,7 +179,7 @@ export default {
 }
 
 .chart-title {
-  @apply text-xs font-semibold text-gray-900 mb-2;
+  @apply text-xs font-semibold text-horizon-500 mb-2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,7 +187,7 @@ export default {
 
 
 .no-data {
-  @apply text-center py-12 px-5 text-gray-400;
+  @apply text-center py-12 px-5 text-horizon-400;
 }
 
 .no-data p {

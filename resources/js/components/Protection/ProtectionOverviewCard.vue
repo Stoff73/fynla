@@ -1,6 +1,6 @@
 <template>
   <div
-    class="protection-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 border border-gray-200"
+    class="protection-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 border border-light-gray"
     @click="navigateToProtection"
   >
     <!-- Policy Sections - only show sections with policies -->
@@ -498,13 +498,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Policy Sections Container */
@@ -530,7 +530,7 @@ export default {
 .section-breakdown + .section-breakdown {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .section-header-with-badge {
@@ -543,7 +543,7 @@ export default {
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 /* Policy Count Badges */
@@ -557,7 +557,7 @@ export default {
 }
 
 .policy-count-badge-blue {
-  @apply bg-white text-blue-800 border-2 border-blue-600;
+  @apply bg-white text-violet-800 border-2 border-violet-600;
 }
 
 .policy-count-badge-purple {
@@ -569,7 +569,7 @@ export default {
 }
 
 .policy-count-badge-blue {
-  @apply bg-white text-blue-800 border-2 border-blue-500;
+  @apply bg-white text-violet-800 border-2 border-violet-500;
 }
 
 /* Policy List */
@@ -601,7 +601,7 @@ export default {
 
 .provider-name {
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .joint-badge {
@@ -615,7 +615,7 @@ export default {
 }
 
 .joint-badge-blue {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .joint-badge-purple {
@@ -627,11 +627,11 @@ export default {
 }
 
 .joint-badge-blue-alt {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .policy-details {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 12px;
 }
 
@@ -642,7 +642,7 @@ export default {
 }
 
 .policy-premium-blue {
-  @apply text-blue-800;
+  @apply text-violet-800;
 }
 
 .policy-premium-purple {
@@ -654,18 +654,18 @@ export default {
 }
 
 .policy-premium-blue-alt {
-  @apply text-blue-800;
+  @apply text-violet-800;
 }
 
 /* Shortfalls Section */
 .shortfalls-section {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .shortfalls-header {
-  @apply text-red-600;
+  @apply text-raspberry-600;
   margin-bottom: 8px;
 }
 
@@ -696,10 +696,10 @@ export default {
   width: 18px;
   height: 18px;
   min-width: 18px;
-  @apply bg-red-50;
-  @apply border border-red-200;
+  @apply bg-raspberry-50;
+  @apply border border-raspberry-200;
   border-radius: 50%;
-  @apply text-red-600;
+  @apply text-raspberry-600;
   font-size: 11px;
   font-weight: 700;
   margin-top: 2px;
@@ -713,16 +713,16 @@ export default {
 
 .shortfall-label {
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .shortfall-text {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 12px;
 }
 
 .shortfall-amount {
-  @apply text-red-600;
+  @apply text-raspberry-600;
   font-size: 12px;
   font-weight: 500;
 }
@@ -731,7 +731,7 @@ export default {
 .status-banner {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
   display: flex;
   align-items: center;
   padding: 12px;
@@ -739,11 +739,11 @@ export default {
 }
 
 .status-banner-warning {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .status-banner-success {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .status-icon {

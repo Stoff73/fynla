@@ -9,7 +9,7 @@
       :options="chartOptions"
       :series="chartSeries"
     ></apexchart>
-    <div v-else class="text-center py-8 text-gray-500">
+    <div v-else class="text-center py-8 text-neutral-500">
       No data available for waterfall chart
     </div>
   </div>

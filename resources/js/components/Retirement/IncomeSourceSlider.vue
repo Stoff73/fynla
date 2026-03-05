@@ -89,12 +89,12 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .income-source-card:hover {
-  @apply border-gray-300;
+  @apply border-horizon-300;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -104,27 +104,27 @@ export default {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 .source-name {
   font-size: 15px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
 .fund-value-label {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
 }
 
 .fund-value {
   font-size: 22px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 </style>

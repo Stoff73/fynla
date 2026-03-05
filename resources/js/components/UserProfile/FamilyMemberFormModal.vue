@@ -2,7 +2,7 @@
   <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <div class="fixed inset-0 bg-neutral-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
 
       <!-- Centre modal -->
       <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
@@ -10,7 +10,7 @@
       <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6 max-h-[90vh] overflow-y-auto">
         <div>
           <div class="mb-4">
-            <h3 class="text-h4 font-semibold text-gray-900" id="modal-title">
+            <h3 class="text-h4 font-semibold text-horizon-500" id="modal-title">
               {{ isEditing ? 'Edit Family Member' : 'Add Family Member' }}
             </h3>
           </div>
@@ -18,7 +18,7 @@
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Relationship -->
             <div>
-              <label for="relationship" class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label for="relationship" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Relationship
               </label>
               <select
@@ -33,7 +33,7 @@
                 <option value="parent">Parent</option>
                 <option value="other_dependent">Other Dependent</option>
               </select>
-              <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-primary-600">
+              <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-raspberry-500">
                 A user account will be created for your spouse if they don't have one yet. If they already have an account, it will be linked.
               </p>
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-blue-600">
@@ -43,7 +43,7 @@
 
             <!-- Email (only for spouse) -->
             <div v-if="form.relationship === 'spouse'">
-              <label for="email" class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label for="email" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Email Address
               </label>
               <input
@@ -53,7 +53,7 @@
                 class="input-field"
                 placeholder="spouse@example.com"
               />
-              <p class="mt-1 text-body-xs text-gray-500">
+              <p class="mt-1 text-body-xs text-neutral-500">
                 Used to create or link their account
               </p>
             </div>
@@ -62,7 +62,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- First Name -->
               <div>
-                <label for="first_name" class="block text-body-sm font-medium text-gray-700 mb-1">
+                <label for="first_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   First Name
                 </label>
                 <input
@@ -75,7 +75,7 @@
 
               <!-- Middle Name -->
               <div>
-                <label for="middle_name" class="block text-body-sm font-medium text-gray-700 mb-1">
+                <label for="middle_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Middle Name
                 </label>
                 <input
@@ -88,7 +88,7 @@
 
               <!-- Last Name -->
               <div>
-                <label for="last_name" class="block text-body-sm font-medium text-gray-700 mb-1">
+                <label for="last_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Last Name
                 </label>
                 <input
@@ -103,7 +103,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Date of Birth -->
               <div>
-                <label for="date_of_birth" class="block text-body-sm font-medium text-gray-700 mb-1">
+                <label for="date_of_birth" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Date of Birth
                 </label>
                 <input
@@ -118,7 +118,7 @@
 
               <!-- Gender -->
               <div>
-                <label for="gender" class="block text-body-sm font-medium text-gray-700 mb-1">
+                <label for="gender" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Gender
                 </label>
                 <select
@@ -146,10 +146,10 @@
                 />
               </div>
               <div class="ml-3 text-sm">
-                <label for="is_dependent" class="font-medium text-gray-700">
+                <label for="is_dependent" class="font-medium text-neutral-500">
                   Is this person financially dependent on you?
                 </label>
-                <p class="text-gray-500">
+                <p class="text-neutral-500">
                   Check this if they rely on you for financial support
                 </p>
               </div>
@@ -157,7 +157,7 @@
 
             <!-- Education Status (if child or step_child) -->
             <div v-if="['child', 'step_child'].includes(form.relationship)">
-              <label for="education_status" class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label for="education_status" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Education Status
               </label>
               <select
@@ -187,10 +187,10 @@
                 />
               </div>
               <div class="ml-3 text-sm">
-                <label for="receives_child_benefit" class="font-medium text-gray-700">
+                <label for="receives_child_benefit" class="font-medium text-neutral-500">
                   Receives Child Benefit
                 </label>
-                <p class="text-gray-500">
+                <p class="text-neutral-500">
                   Check if you claim Child Benefit for this child
                 </p>
               </div>
@@ -198,7 +198,7 @@
 
             <!-- Notes -->
             <div>
-              <label for="notes" class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label for="notes" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Notes
               </label>
               <textarea

@@ -195,7 +195,7 @@ export default {
 }
 
 .subtitle {
-  color: #666;
+  @apply text-neutral-500; /* migrated */;
   font-size: 14px;
 }
 
@@ -210,7 +210,7 @@ export default {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  @apply border border-light-gray;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
@@ -227,15 +227,15 @@ export default {
 }
 
 .card.high .card-value {
-  color: #dc2626;
+  color: #B5255A;
 }
 
 .card.medium .card-value {
-  color: #f59e0b;
+  color: #7C5CFC;
 }
 
 .card.low .card-value {
-  color: #10b981;
+  color: #34A853;
 }
 
 .recommendations-list {
@@ -248,7 +248,7 @@ export default {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  @apply border border-light-gray;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
@@ -256,7 +256,7 @@ export default {
 .recommendation-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  border-color: #6366f1;
+  border-color: #7C5CFC;
 }
 
 .rec-header {
@@ -275,33 +275,32 @@ export default {
 }
 
 .priority-badge.high {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #FCEDF2;
+  color: #B5255A;
 }
 
 .priority-badge.medium {
-  background: #fef3c7;
-  color: #f59e0b;
+  background: #EDE8FE;
+  color: #7C5CFC;
 }
 
 .priority-badge.low {
-  background: #d1fae5;
-  color: #10b981;
+  background: #E6F5EC;
+  color: #34A853;
 }
 
 .module-badge {
-  background: #e0e7ff;
-  color: #4f46e5;
+  @apply bg-raspberry-100 text-raspberry-600;
 }
 
 .timeline-badge {
-  background: #e5e7eb;
-  color: #374151;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .rec-text {
   font-size: 16px;
-  color: #111827;
+  @apply text-horizon-500;
   margin-bottom: 12px;
 }
 
@@ -313,11 +312,11 @@ export default {
 }
 
 .cost {
-  color: #dc2626;
+  color: #B5255A;
 }
 
 .benefit {
-  color: #10b981;
+  color: #34A853;
 }
 
 .rec-actions {
@@ -337,18 +336,17 @@ export default {
 }
 
 .btn-primary {
-  background: #4f46e5;
-  color: white;
+  @apply bg-raspberry-600 text-white;
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .btn-text {
   background: transparent;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .loading,
@@ -359,21 +357,6 @@ export default {
 }
 
 .spinner {
-  border: 3px solid #f3f4f6;
-  border-top: 3px solid #4f46e5;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  @apply border-[3px] border-savannah-100 border-t-raspberry-600 rounded-full w-10 h-10 animate-spin mx-auto mb-4;
 }
 </style>

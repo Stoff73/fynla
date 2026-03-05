@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+  <div class="bg-white rounded-lg border border-light-gray p-6 mb-6">
     <!-- Header -->
     <div class="flex justify-between items-start mb-4">
       <div>
-        <h4 class="text-lg font-semibold text-gray-900">Fund Depletion Projection</h4>
-        <p class="text-sm text-gray-500">How your retirement funds will be drawn down over time</p>
+        <h4 class="text-lg font-semibold text-horizon-500">Fund Depletion Projection</h4>
+        <p class="text-sm text-neutral-500">How your retirement funds will be drawn down over time</p>
       </div>
-      <div v-if="hasDepletionWarning" class="flex items-center gap-1.5 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-xs font-semibold">
+      <div v-if="hasDepletionWarning" class="flex items-center gap-1.5 bg-violet-100 text-violet-800 px-3 py-1.5 rounded-full text-xs font-semibold">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
@@ -29,55 +29,55 @@
     <!-- Year-by-Year Table (Hidden from view - logic retained) -->
     <div v-if="false" class="mt-6">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <table class="min-w-full divide-y divide-light-gray text-sm">
           <thead>
-            <tr class="bg-gray-50">
-              <th class="px-3 py-2 text-left font-semibold text-gray-900">Age</th>
-              <th class="px-3 py-2 text-right font-semibold text-gray-900">Withdrawal</th>
-              <th v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right font-semibold text-gray-900">
+            <tr class="bg-savannah-100">
+              <th class="px-3 py-2 text-left font-semibold text-horizon-500">Age</th>
+              <th class="px-3 py-2 text-right font-semibold text-horizon-500">Withdrawal</th>
+              <th v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right font-semibold text-horizon-500">
                 {{ formatFundName(type) }}
               </th>
-              <th class="px-3 py-2 text-right font-semibold text-gray-900">Growth</th>
-              <th class="px-3 py-2 text-right font-semibold text-gray-900">
+              <th class="px-3 py-2 text-right font-semibold text-horizon-500">Growth</th>
+              <th class="px-3 py-2 text-right font-semibold text-horizon-500">
                 <div>Taxable</div>
-                <div class="text-xs font-normal text-gray-500">Drawdown</div>
+                <div class="text-xs font-normal text-neutral-500">Drawdown</div>
               </th>
-              <th class="px-3 py-2 text-right font-semibold text-gray-900">Tax Paid</th>
-              <th class="px-3 py-2 text-right font-semibold text-gray-900">Total Balance</th>
+              <th class="px-3 py-2 text-right font-semibold text-horizon-500">Tax Paid</th>
+              <th class="px-3 py-2 text-right font-semibold text-horizon-500">Total Balance</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-light-gray">
             <tr
               v-for="year in displayedYears"
               :key="year.age"
-              :class="{ 'bg-blue-50': year.total_funds <= 0 }"
+              :class="{ 'bg-violet-50': year.total_funds <= 0 }"
             >
-              <td class="px-3 py-2 text-gray-700 font-medium">{{ year.age }}</td>
-              <td class="px-3 py-2 text-right text-red-600">-{{ formatCurrency(year.total_income) }}</td>
-              <td v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right text-gray-600">
+              <td class="px-3 py-2 text-neutral-500 font-medium">{{ year.age }}</td>
+              <td class="px-3 py-2 text-right text-raspberry-600">-{{ formatCurrency(year.total_income) }}</td>
+              <td v-for="type in activeFundTypes" :key="type" class="px-3 py-2 text-right text-neutral-500">
                 <div>{{ formatCurrency(year[type] || 0) }}</div>
-                <div v-if="year.withdrawals && year.withdrawals[type] > 0" class="text-xs text-red-500">
+                <div v-if="year.withdrawals && year.withdrawals[type] > 0" class="text-xs text-raspberry-500">
                   -{{ formatCurrency(year.withdrawals[type]) }}
                 </div>
               </td>
-              <td class="px-3 py-2 text-right text-green-600">
+              <td class="px-3 py-2 text-right text-spring-600">
                 +{{ formatCurrency(totalGrowth(year)) }}
               </td>
               <!-- Taxable Drawdown (over PA) -->
               <td class="px-3 py-2 text-right">
-                <div v-if="year.taxable_drawdown > 0" class="text-red-600">
+                <div v-if="year.taxable_drawdown > 0" class="text-raspberry-600">
                   {{ formatCurrency(year.taxable_drawdown) }}
                 </div>
-                <div v-else class="text-green-600">£0</div>
-                <div v-if="year.pa_drawdown > 0" class="text-xs text-gray-500">
+                <div v-else class="text-spring-600">£0</div>
+                <div v-if="year.pa_drawdown > 0" class="text-xs text-neutral-500">
                   ({{ formatCurrency(year.pa_drawdown) }} in PA)
                 </div>
               </td>
               <!-- Tax Paid -->
-              <td class="px-3 py-2 text-right" :class="year.tax_paid > 0 ? 'text-red-600 font-medium' : 'text-green-600'">
+              <td class="px-3 py-2 text-right" :class="year.tax_paid > 0 ? 'text-raspberry-600 font-medium' : 'text-spring-600'">
                 {{ year.tax_paid > 0 ? '-' + formatCurrency(year.tax_paid) : '£0' }}
               </td>
-              <td class="px-3 py-2 text-right font-semibold" :class="year.total_funds <= 0 ? 'text-blue-700' : 'text-gray-900'">
+              <td class="px-3 py-2 text-right font-semibold" :class="year.total_funds <= 0 ? 'text-violet-700' : 'text-horizon-500'">
                 {{ formatCurrency(year.total_funds) }}
               </td>
             </tr>
@@ -87,11 +87,11 @@
     </div>
 
     <!-- Tax Impact Note -->
-    <div v-if="hasIsaDepletion" class="mt-4 flex gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5">
+    <div v-if="hasIsaDepletion" class="mt-4 flex gap-3 bg-violet-50 border border-violet-200 rounded-lg p-4">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
       </svg>
-      <div class="text-sm text-blue-800">
+      <div class="text-sm text-violet-800">
         <strong>Tax Impact:</strong> When your ISA funds are depleted at age {{ depletionAges.isa }},
         you'll need to draw more from taxable sources, increasing your tax liability.
       </div>

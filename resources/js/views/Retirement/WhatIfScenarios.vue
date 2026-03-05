@@ -1,18 +1,18 @@
 <template>
   <div class="what-if-scenarios">
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900">What-If Scenarios</h2>
-      <p class="text-gray-600 mt-1">Explore different retirement scenarios and their impact</p>
+      <h2 class="text-2xl font-bold text-horizon-500">What-If Scenarios</h2>
+      <p class="text-neutral-500 mt-1">Explore different retirement scenarios and their impact</p>
     </div>
 
     <!-- Scenario Builder -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-6">Scenario Builder</h3>
+      <h3 class="text-lg font-semibold text-horizon-500 mb-6">Scenario Builder</h3>
 
       <div class="space-y-6">
         <!-- Retirement Age Adjustment -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-500 mb-2">
             Retirement Age: {{ scenarioData.retirementAge }}
           </label>
           <input
@@ -21,10 +21,10 @@
             min="55"
             max="75"
             step="1"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
             @input="calculateScenario"
           />
-          <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+          <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
             <span>55</span>
             <span>75</span>
           </div>
@@ -32,7 +32,7 @@
 
         <!-- Additional Contributions -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-500 mb-2">
             Extra Monthly Contributions: {{ formatCurrency(scenarioData.extraContributions) }}
           </label>
           <input
@@ -41,10 +41,10 @@
             min="0"
             max="2000"
             step="50"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
             @input="calculateScenario"
           />
-          <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+          <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
             <span>£0</span>
             <span>£2,000</span>
           </div>
@@ -52,7 +52,7 @@
 
         <!-- Investment Return Rate -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-500 mb-2">
             Expected Return Rate: {{ scenarioData.returnRate }}% p.a.
           </label>
           <input
@@ -61,10 +61,10 @@
             min="0"
             max="10"
             step="0.5"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
             @input="calculateScenario"
           />
-          <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+          <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
             <span>0%</span>
             <span>10%</span>
           </div>
@@ -73,7 +73,7 @@
         <!-- Calculate Button -->
         <button
           @click="calculateScenario"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+          class="w-full bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
         >
           Calculate Scenario
         </button>
@@ -85,22 +85,22 @@
       <!-- Current Plan -->
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-4">
-          <h4 class="text-lg font-semibold text-gray-900">Current Plan</h4>
-          <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Baseline</span>
+          <h4 class="text-lg font-semibold text-horizon-500">Current Plan</h4>
+          <span class="px-3 py-1 bg-savannah-100 text-neutral-500 rounded-full text-sm font-medium">Baseline</span>
         </div>
 
         <div class="space-y-4">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Retirement Age</span>
-            <span class="font-semibold text-gray-900">{{ baseline.retirementAge }}</span>
+          <div class="flex items-center justify-between p-3 bg-savannah-100 rounded-lg">
+            <span class="text-sm text-neutral-500">Retirement Age</span>
+            <span class="font-semibold text-horizon-500">{{ baseline.retirementAge }}</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Projected Income</span>
-            <span class="font-semibold text-gray-900">{{ formatCurrency(baseline.income) }}/year</span>
+          <div class="flex items-center justify-between p-3 bg-savannah-100 rounded-lg">
+            <span class="text-sm text-neutral-500">Projected Income</span>
+            <span class="font-semibold text-horizon-500">{{ formatCurrency(baseline.income) }}/year</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span class="text-sm text-gray-600">Pension Pot</span>
-            <span class="font-semibold text-gray-900">{{ formatCurrency(baseline.pot) }}</span>
+          <div class="flex items-center justify-between p-3 bg-savannah-100 rounded-lg">
+            <span class="text-sm text-neutral-500">Pension Pot</span>
+            <span class="font-semibold text-horizon-500">{{ formatCurrency(baseline.pot) }}</span>
           </div>
         </div>
       </div>
@@ -108,42 +108,42 @@
       <!-- Scenario Results -->
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-4">
-          <h4 class="text-lg font-semibold text-gray-900">Scenario Result</h4>
-          <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">Modified</span>
+          <h4 class="text-lg font-semibold text-horizon-500">Scenario Result</h4>
+          <span class="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm font-medium">Modified</span>
         </div>
 
         <div class="space-y-4">
-          <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-            <span class="text-sm text-gray-600">Retirement Age</span>
+          <div class="flex items-center justify-between p-3 bg-violet-50 rounded-lg">
+            <span class="text-sm text-neutral-500">Retirement Age</span>
             <div class="text-right">
-              <span class="font-semibold text-gray-900">{{ scenarioResults.retirementAge }}</span>
+              <span class="font-semibold text-horizon-500">{{ scenarioResults.retirementAge }}</span>
               <span
                 v-if="scenarioResults.retirementAge !== baseline.retirementAge"
-                :class="['text-xs ml-2', scenarioResults.retirementAge > baseline.retirementAge ? 'text-red-600' : 'text-green-600']"
+                :class="['text-xs ml-2', scenarioResults.retirementAge > baseline.retirementAge ? 'text-raspberry-600' : 'text-spring-600']"
               >
                 {{ scenarioResults.retirementAge > baseline.retirementAge ? '+' : '' }}{{ scenarioResults.retirementAge - baseline.retirementAge }}
               </span>
             </div>
           </div>
-          <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-            <span class="text-sm text-gray-600">Projected Income</span>
+          <div class="flex items-center justify-between p-3 bg-violet-50 rounded-lg">
+            <span class="text-sm text-neutral-500">Projected Income</span>
             <div class="text-right">
-              <span class="font-semibold text-gray-900">{{ formatCurrency(scenarioResults.income) }}/year</span>
+              <span class="font-semibold text-horizon-500">{{ formatCurrency(scenarioResults.income) }}/year</span>
               <span
                 v-if="scenarioResults.income !== baseline.income"
-                :class="['text-xs ml-2', scenarioResults.income > baseline.income ? 'text-green-600' : 'text-red-600']"
+                :class="['text-xs ml-2', scenarioResults.income > baseline.income ? 'text-spring-600' : 'text-raspberry-600']"
               >
                 {{ scenarioResults.income > baseline.income ? '+' : '' }}{{ formatCurrency(scenarioResults.income - baseline.income) }}
               </span>
             </div>
           </div>
-          <div class="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-            <span class="text-sm text-gray-600">Pension Pot</span>
+          <div class="flex items-center justify-between p-3 bg-violet-50 rounded-lg">
+            <span class="text-sm text-neutral-500">Pension Pot</span>
             <div class="text-right">
-              <span class="font-semibold text-gray-900">{{ formatCurrency(scenarioResults.pot) }}</span>
+              <span class="font-semibold text-horizon-500">{{ formatCurrency(scenarioResults.pot) }}</span>
               <span
                 v-if="scenarioResults.pot !== baseline.pot"
-                :class="['text-xs ml-2', scenarioResults.pot > baseline.pot ? 'text-green-600' : 'text-red-600']"
+                :class="['text-xs ml-2', scenarioResults.pot > baseline.pot ? 'text-spring-600' : 'text-raspberry-600']"
               >
                 {{ scenarioResults.pot > baseline.pot ? '+' : '' }}{{ formatCurrency(scenarioResults.pot - baseline.pot) }}
               </span>
@@ -227,20 +227,10 @@ export default {
 <style scoped>
 /* Slider styling */
 input[type="range"]::-webkit-slider-thumb {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  background: #4f46e5;
-  cursor: pointer;
-  border-radius: 50%;
+  @apply appearance-none w-5 h-5 bg-raspberry-500 rounded-full cursor-pointer;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: #4f46e5;
-  cursor: pointer;
-  border-radius: 50%;
-  border: none;
+  @apply w-5 h-5 bg-raspberry-500 rounded-full border-none cursor-pointer;
 }
 </style>

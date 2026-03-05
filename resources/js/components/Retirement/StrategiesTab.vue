@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="back-button"
+      class="detail-inline-back"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -13,7 +13,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Analysing your retirement position...</p>
     </div>
 
@@ -370,45 +370,7 @@ export default {
 
 <style scoped>
 .strategies-tab {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Back Button */
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-gray-700;
-  background: white;
-  @apply border border-gray-300;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.back-button:hover {
-  @apply bg-gray-50;
-  @apply border-gray-400;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 /* Loading State */
@@ -421,19 +383,8 @@ export default {
   text-align: center;
 }
 
-.spinner {
-  @apply w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full mb-4;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -444,24 +395,24 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  @apply text-red-500;
+  @apply text-raspberry-500;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -473,7 +424,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* On Track Banner */
@@ -482,13 +433,13 @@ export default {
   padding: 60px 40px;
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
   border-radius: 16px;
-  @apply border-2 border-green-200;
+  @apply border-2 border-spring-200;
 }
 
 .on-track-icon {
   width: 72px;
   height: 72px;
-  @apply bg-green-500;
+  @apply bg-spring-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -505,20 +456,20 @@ export default {
 .on-track-banner h3 {
   font-size: 28px;
   font-weight: 700;
-  @apply text-green-800;
+  @apply text-spring-800;
   margin: 0 0 12px 0;
 }
 
 .on-track-banner .probability {
   font-size: 20px;
   font-weight: 600;
-  @apply text-green-500;
+  @apply text-spring-500;
   margin: 0 0 16px 0;
 }
 
 .on-track-banner .subtitle {
   font-size: 16px;
-  @apply text-green-700;
+  @apply text-spring-700;
   margin: 0;
   max-width: 500px;
   margin-left: auto;
@@ -536,7 +487,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .capital-summary-grid {
@@ -549,21 +500,21 @@ export default {
   text-align: center;
   padding: 16px;
   border-radius: 8px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
 }
 
 .capital-summary-item.surplus {
-  @apply bg-green-50;
+  @apply bg-spring-50;
 }
 
 .capital-summary-item.income {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .capital-summary-label {
   display: block;
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 8px;
   font-weight: 500;
 }
@@ -572,15 +523,15 @@ export default {
   display: block;
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .capital-summary-item.surplus .capital-summary-value {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .capital-summary-item.income .capital-summary-value {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 /* DOB Required */
@@ -589,13 +540,13 @@ export default {
   padding: 60px 40px;
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
   border-radius: 16px;
-  @apply border-2 border-blue-200;
+  @apply border-2 border-violet-200;
 }
 
 .dob-icon {
   width: 72px;
   height: 72px;
-  @apply bg-blue-500;
+  @apply bg-violet-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -612,20 +563,20 @@ export default {
 .dob-required h3 {
   font-size: 22px;
   font-weight: 700;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0 0 12px 0;
 }
 
 .dob-message {
   font-size: 16px;
-  @apply text-blue-700;
+  @apply text-violet-700;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
 
 .dob-subtitle {
   font-size: 14px;
-  @apply text-blue-500;
+  @apply text-violet-500;
   margin: 0;
   max-width: 400px;
   margin-left: auto;
@@ -638,8 +589,8 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  @apply bg-green-50;
-  @apply border border-green-200;
+  @apply bg-spring-50;
+  @apply border border-spring-200;
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -651,7 +602,7 @@ export default {
 .context-icon svg {
   width: 20px;
   height: 20px;
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 .context-text {
@@ -663,15 +614,15 @@ export default {
 
 .context-label {
   font-weight: 600;
-  @apply text-green-800;
+  @apply text-spring-800;
 }
 
 .context-separator {
-  @apply text-green-200;
+  @apply text-spring-200;
 }
 
 .context-detail {
-  @apply text-green-700;
+  @apply text-spring-700;
 }
 
 /* Summary Cards */
@@ -693,32 +644,32 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .summary-card.blue {
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border-blue-200;
+  @apply border-violet-200;
 }
 
 .summary-card.green {
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border-green-200;
+  @apply border-spring-200;
 }
 
 .summary-card.blue {
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border-blue-200;
+  @apply border-violet-200;
 }
 
 .summary-card.red {
   background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
-  @apply border-red-200;
+  @apply border-raspberry-200;
 }
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -726,13 +677,13 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 8px 0 0 0;
 }
 
@@ -740,13 +691,13 @@ export default {
 .no-strategies {
   text-align: center;
   padding: 40px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .no-strategies p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -759,20 +710,20 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 24px 0;
 }
 
 /* Combined Impact */
 .combined-impact {
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-blue-200;
+  @apply border border-violet-200;
   border-radius: 12px;
   padding: 24px;
   margin-top: 24px;
@@ -786,13 +737,13 @@ export default {
 .impact-header h4 {
   font-size: 16px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0 0 4px 0;
 }
 
 .impact-header p {
   font-size: 14px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   margin: 0;
 }
 
@@ -810,7 +761,7 @@ export default {
 .prob-label {
   display: block;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
@@ -820,21 +771,21 @@ export default {
 }
 
 .prob-value.green {
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 .prob-value.blue {
-  @apply text-blue-500;
+  @apply text-violet-500;
 }
 
 .prob-value.red {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .prob-arrow svg {
   width: 32px;
   height: 32px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 /* Capital Position Section */
@@ -842,7 +793,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 24px;
 }
 
@@ -853,13 +804,13 @@ export default {
 .capital-position-header h3 {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .capital-position-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -878,7 +829,7 @@ export default {
 
 .progress-current {
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .progress-status {
@@ -888,25 +839,25 @@ export default {
 }
 
 .progress-status.gap {
-  @apply bg-red-100 text-red-700;
+  @apply bg-raspberry-100 text-raspberry-700;
 }
 
 .progress-status.on-track {
-  @apply bg-blue-100 text-blue-700;
+  @apply bg-violet-100 text-violet-700;
 }
 
 .progress-status.surplus {
-  @apply bg-green-100 text-green-700;
+  @apply bg-spring-100 text-spring-700;
 }
 
 .progress-target {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .capital-progress-bar {
   height: 16px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -919,15 +870,15 @@ export default {
 }
 
 .capital-progress-fill.green {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .capital-progress-fill.blue {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .capital-progress-fill.red {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .capital-progress-percent {
@@ -942,20 +893,20 @@ export default {
 }
 
 .percent-value.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .percent-value.blue {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .percent-value.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .percent-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 /* Capital Grid */
@@ -982,27 +933,27 @@ export default {
 }
 
 .capital-card.assets {
-  @apply bg-indigo-50 border-indigo-200;
+  @apply bg-violet-50 border-violet-200;
 }
 
 .capital-card.assets .capital-card-icon {
-  @apply bg-indigo-100 text-indigo-600;
+  @apply bg-violet-100 text-violet-600;
 }
 
 .capital-card.income {
-  @apply bg-blue-50 border-blue-200;
+  @apply bg-violet-50 border-violet-200;
 }
 
 .capital-card.income .capital-card-icon {
-  @apply bg-blue-100 text-blue-600;
+  @apply bg-violet-100 text-violet-600;
 }
 
 .capital-card.income.meets-target {
-  @apply bg-green-50 border-green-200;
+  @apply bg-spring-50 border-spring-200;
 }
 
 .capital-card.income.meets-target .capital-card-icon {
-  @apply bg-green-100 text-green-600;
+  @apply bg-spring-100 text-spring-600;
 }
 
 .capital-card-icon {
@@ -1027,7 +978,7 @@ export default {
 
 .capital-card-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
   font-weight: 500;
 }
@@ -1035,19 +986,19 @@ export default {
 .capital-card-value {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .capital-card-value .per-year {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .capital-card-note {
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0;
 }
 
@@ -1055,7 +1006,7 @@ export default {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 4px;
-  @apply bg-green-100 text-green-700;
+  @apply bg-spring-100 text-spring-700;
   font-weight: 500;
 }
 

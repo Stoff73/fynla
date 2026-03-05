@@ -8,7 +8,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-savannah-1000 bg-opacity-75 transition-opacity"
     ></div>
 
     <!-- Modal Dialog -->
@@ -20,12 +20,12 @@
           <!-- Header -->
           <div class="bg-white px-6 pt-6">
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-gray-900">
+              <h3 class="text-lg font-semibold text-horizon-500">
                 {{ isEditMode ? 'Edit User' : 'Create New User' }}
               </h3>
               <button
                 type="button"
-                class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                class="text-horizon-400 hover:text-neutral-500 focus:outline-none"
                 @click="handleClose"
               >
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,23 +40,23 @@
             <!-- Error Message -->
             <div
               v-if="error"
-              class="rounded-md bg-red-50 border border-red-200 p-4"
+              class="rounded-md bg-raspberry-50 border border-raspberry-200 p-4"
             >
               <div class="flex">
                 <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-5 w-5 text-raspberry-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm text-red-800">{{ error }}</p>
+                  <p class="text-sm text-raspberry-800">{{ error }}</p>
                 </div>
               </div>
             </div>
 
             <!-- First Name Field -->
             <div>
-              <label for="first_name" class="block text-sm font-medium text-gray-700">
+              <label for="first_name" class="block text-sm font-medium text-neutral-500">
                 First Name
               </label>
               <input
@@ -64,16 +64,16 @@
                 v-model="formData.first_name"
                 type="text"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.first_name }"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+                :class="{ 'border-raspberry-300': errors.first_name }"
                 placeholder="John"
               />
-              <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">{{ errors.first_name }}</p>
+              <p v-if="errors.first_name" class="mt-1 text-sm text-raspberry-600">{{ errors.first_name }}</p>
             </div>
 
             <!-- Surname Field -->
             <div>
-              <label for="surname" class="block text-sm font-medium text-gray-700">
+              <label for="surname" class="block text-sm font-medium text-neutral-500">
                 Surname
               </label>
               <input
@@ -81,16 +81,16 @@
                 v-model="formData.surname"
                 type="text"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.surname }"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+                :class="{ 'border-raspberry-300': errors.surname }"
                 placeholder="Doe"
               />
-              <p v-if="errors.surname" class="mt-1 text-sm text-red-600">{{ errors.surname }}</p>
+              <p v-if="errors.surname" class="mt-1 text-sm text-raspberry-600">{{ errors.surname }}</p>
             </div>
 
             <!-- Email Field -->
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700">
+              <label for="email" class="block text-sm font-medium text-neutral-500">
                 Email
               </label>
               <input
@@ -98,16 +98,16 @@
                 v-model="formData.email"
                 type="email"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.email }"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+                :class="{ 'border-raspberry-300': errors.email }"
                 placeholder="john@example.com"
               />
-              <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
+              <p v-if="errors.email" class="mt-1 text-sm text-raspberry-600">{{ errors.email }}</p>
             </div>
 
             <!-- Password Field (Create Mode Only) -->
             <div v-if="!isEditMode">
-              <label for="password" class="block text-sm font-medium text-gray-700">
+              <label for="password" class="block text-sm font-medium text-neutral-500">
                 Password
               </label>
               <input
@@ -115,17 +115,17 @@
                 v-model="formData.password"
                 type="password"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.password }"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+                :class="{ 'border-raspberry-300': errors.password }"
                 placeholder="Minimum 8 characters"
               />
-              <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
-              <p class="mt-1 text-xs text-gray-500">Must be at least 8 characters long</p>
+              <p v-if="errors.password" class="mt-1 text-sm text-raspberry-600">{{ errors.password }}</p>
+              <p class="mt-1 text-xs text-neutral-500">Must be at least 8 characters long</p>
             </div>
 
             <!-- Password Confirmation (Create Mode Only) -->
             <div v-if="!isEditMode">
-              <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
+              <label for="password_confirmation" class="block text-sm font-medium text-neutral-500">
                 Confirm Password
               </label>
               <input
@@ -133,48 +133,48 @@
                 v-model="formData.password_confirmation"
                 type="password"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                :class="{ 'border-red-300': errors.password_confirmation }"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
+                :class="{ 'border-raspberry-300': errors.password_confirmation }"
                 placeholder="Re-enter password"
               />
-              <p v-if="errors.password_confirmation" class="mt-1 text-sm text-red-600">{{ errors.password_confirmation }}</p>
+              <p v-if="errors.password_confirmation" class="mt-1 text-sm text-raspberry-600">{{ errors.password_confirmation }}</p>
             </div>
 
             <!-- Role Dropdown -->
             <div>
-              <label for="role_id" class="block text-sm font-medium text-gray-700">
+              <label for="role_id" class="block text-sm font-medium text-neutral-500">
                 Role
               </label>
               <select
                 id="role_id"
                 v-model="formData.role_id"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500 sm:text-sm"
               >
                 <option v-for="role in availableRoles" :key="role.id" :value="role.id">
                   {{ role.display_name || role.name }}
                 </option>
               </select>
-              <p class="mt-1 text-xs text-gray-500">
+              <p class="mt-1 text-xs text-neutral-500">
                 Determines access level and permissions for this user
               </p>
             </div>
 
             <!-- Edit Mode: Password Reset Option -->
-            <div v-if="isEditMode" class="border-t border-gray-200 pt-4">
+            <div v-if="isEditMode" class="border-t border-light-gray pt-4">
               <div class="flex items-start">
                 <div class="flex items-center h-5">
                   <input
                     id="reset_password"
                     v-model="formData.reset_password"
                     type="checkbox"
-                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    class="h-4 w-4 rounded border-horizon-300 text-raspberry-600 focus:ring-violet-500"
                   />
                 </div>
                 <div class="ml-3">
-                  <label for="reset_password" class="font-medium text-gray-700">
+                  <label for="reset_password" class="font-medium text-neutral-500">
                     Reset Password
                   </label>
-                  <p class="text-sm text-gray-500">
+                  <p class="text-sm text-neutral-500">
                     Generate a new random password and require user to change it on next login
                   </p>
                 </div>
@@ -183,7 +183,7 @@
           </div>
 
           <!-- Footer -->
-          <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+          <div class="bg-savannah-100 px-6 py-4 flex justify-end space-x-3">
             <button
               type="button"
               class="btn-secondary"

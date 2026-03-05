@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="mb-6">
-      <h2 class="text-h4 font-semibold text-gray-900">Income and Cash Flow Summary</h2>
-      <p class="mt-1 text-body-sm text-gray-600">
+      <h2 class="text-h4 font-semibold text-horizon-500">Income and Cash Flow Summary</h2>
+      <p class="mt-1 text-body-sm text-neutral-500">
         Cash based Income Statement using all cash movements including capital, mortgage and loan repayments
       </p>
     </div>
@@ -14,8 +14,8 @@
         :class="[
           'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
           activeView === 'current'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-raspberry-500 text-white'
+            : 'bg-savannah-100 text-neutral-500 hover:bg-horizon-200'
         ]"
       >
         Current
@@ -25,8 +25,8 @@
         :class="[
           'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
           activeView === 'forecast'
-            ? 'bg-primary-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-raspberry-500 text-white'
+            : 'bg-savannah-100 text-neutral-500 hover:bg-horizon-200'
         ]"
       >
         Forecast
@@ -38,8 +38,8 @@
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p class="mt-4 text-body-base text-gray-600">Loading income statement...</p>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500 mx-auto"></div>
+          <p class="mt-4 text-body-base text-neutral-500">Loading income statement...</p>
         </div>
       </div>
 
@@ -47,21 +47,21 @@
         <!-- Income Section -->
         <div class="card p-6 overflow-x-auto">
           <h3 class="text-h5 font-semibold text-success-700 mb-4">Income</h3>
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
-                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">Forecast Annual</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-light-gray">
               <tr v-for="(item, index) in incomeItems" :key="'income-' + index">
-                <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                <td class="px-3 py-2 text-body-base text-neutral-500 w-1/2">{{ item.line_item }}</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                   {{ formatCurrency(item.monthlyAmount) }}
                 </td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                   {{ formatCurrency(item.annualAmount) }}
                 </td>
               </tr>
@@ -83,21 +83,21 @@
         <!-- Outflows Section -->
         <div class="card p-6 overflow-x-auto">
           <h3 class="text-h5 font-semibold text-error-700 mb-4">Outflows</h3>
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
-                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">Forecast Annual</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-light-gray">
               <tr v-for="(item, index) in outflowItems" :key="'outflow-' + index">
-                <td class="px-3 py-2 text-body-base text-gray-700 w-1/2">{{ item.line_item }}</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                <td class="px-3 py-2 text-body-base text-neutral-500 w-1/2">{{ item.line_item }}</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                   {{ formatCurrency(item.monthlyAmount) }}
                 </td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                   {{ formatCurrency(item.annualAmount) }}
                 </td>
               </tr>
@@ -117,19 +117,19 @@
         </div>
 
         <!-- Cash Flow Section -->
-        <div class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 overflow-x-auto">
+        <div class="card p-6 bg-gradient-to-r from-raspberry-50 to-raspberry-100 overflow-x-auto">
           <table class="min-w-full">
             <thead>
               <tr>
-                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900 w-1/2"></th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900 w-1/4">Forecast Annual</th>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500 w-1/2"></th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">{{ currentMonthName }} {{ currentYear }}</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500 w-1/4">Forecast Annual</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-light-gray">
               <!-- Cash Flow before Tax -->
               <tr>
-                <td class="px-3 py-3 text-body-base font-semibold text-gray-900 w-1/2">Cash Flow before Tax for the period</td>
+                <td class="px-3 py-3 text-body-base font-semibold text-horizon-500 w-1/2">Cash Flow before Tax for the period</td>
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
@@ -149,23 +149,23 @@
               </tr>
               <!-- Estimated Income Tax -->
               <tr>
-                <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Income Tax</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
+                <td class="px-3 py-2 text-body-base text-neutral-500 pl-4 w-1/2">Estimated Income Tax</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-400">-</td>
                 <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
                   {{ formatCurrencyNegative(estimatedIncomeTax) }}
                 </td>
               </tr>
               <!-- Estimated Capital Gains Tax -->
               <tr>
-                <td class="px-3 py-2 text-body-base text-gray-700 pl-4 w-1/2">Estimated Capital Gains Tax</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-gray-400">-</td>
+                <td class="px-3 py-2 text-body-base text-neutral-500 pl-4 w-1/2">Estimated Capital Gains Tax</td>
+                <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-400">-</td>
                 <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
                   {{ formatCurrencyNegative(estimatedCapitalGainsTax) }}
                 </td>
               </tr>
               <!-- Cash Flow after Tax -->
-              <tr class="border-t-2 border-primary-300">
-                <td class="px-3 py-3 text-body-base font-bold text-gray-900 w-1/2">Cash Flow after Tax for the period</td>
+              <tr class="border-t-2 border-raspberry-300">
+                <td class="px-3 py-3 text-body-base font-bold text-horizon-500 w-1/2">Cash Flow after Tax for the period</td>
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
@@ -190,7 +190,7 @@
 
       <!-- Empty State -->
       <div v-else class="card p-8 text-center">
-        <p class="text-body-base text-gray-500">
+        <p class="text-body-base text-neutral-500">
           No data available. Please add income and expense information to your profile.
         </p>
       </div>
@@ -206,8 +206,8 @@
             :class="[
               'px-3 py-1.5 text-xs font-medium rounded transition-colors',
               forecastGranularity === 'monthly'
-                ? 'bg-primary-100 text-primary-700'
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                ? 'bg-raspberry-100 text-raspberry-700'
+                : 'bg-eggshell-500 text-neutral-500 hover:bg-savannah-100'
             ]"
           >
             Monthly (12 months)
@@ -217,14 +217,14 @@
             :class="[
               'px-3 py-1.5 text-xs font-medium rounded transition-colors',
               forecastGranularity === 'annual'
-                ? 'bg-primary-100 text-primary-700'
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                ? 'bg-raspberry-100 text-raspberry-700'
+                : 'bg-eggshell-500 text-neutral-500 hover:bg-savannah-100'
             ]"
           >
             Annual (5 years)
           </button>
         </div>
-        <p v-if="forecastSummary" class="text-xs text-gray-500">
+        <p v-if="forecastSummary" class="text-xs text-neutral-500">
           <span v-if="forecastSummary.deficit_months > 0 || forecastSummary.deficit_years > 0" class="text-error-600 font-medium">
             {{ forecastSummary.deficit_months || forecastSummary.deficit_years }} deficit {{ forecastGranularity === 'monthly' ? 'months' : 'years' }}
           </span>
@@ -235,8 +235,8 @@
       <!-- Forecast Loading -->
       <div v-if="forecastLoading" class="flex justify-center items-center py-12">
         <div class="text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p class="mt-4 text-body-base text-gray-600">Loading forecast...</p>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500 mx-auto"></div>
+          <p class="mt-4 text-body-base text-neutral-500">Loading forecast...</p>
         </div>
       </div>
 
@@ -244,30 +244,30 @@
       <div v-else-if="forecastPeriods.length > 0" class="space-y-6">
         <!-- Summary Card -->
         <div v-if="forecastSummary" class="card p-6">
-          <h3 class="text-h5 font-semibold text-gray-900 mb-4">Forecast Summary</h3>
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Forecast Summary</h3>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <p class="text-xs text-gray-500 mb-1">Regular Income</p>
+              <p class="text-xs text-neutral-500 mb-1">Regular Income</p>
               <p class="text-sm font-semibold text-success-700">
                 {{ formatCurrency(forecastSummary.monthly_regular_income || forecastSummary.annual_regular_income) }}
-                <span class="text-xs text-gray-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
+                <span class="text-xs text-neutral-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
               </p>
             </div>
             <div>
-              <p class="text-xs text-gray-500 mb-1">Regular Expenditure</p>
+              <p class="text-xs text-neutral-500 mb-1">Regular Expenditure</p>
               <p class="text-sm font-semibold text-error-700">
                 {{ formatCurrency(forecastSummary.monthly_regular_expenditure || forecastSummary.annual_regular_expenditure) }}
-                <span class="text-xs text-gray-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
+                <span class="text-xs text-neutral-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
               </p>
             </div>
             <div>
-              <p class="text-xs text-gray-500 mb-1">Life Event Income</p>
+              <p class="text-xs text-neutral-500 mb-1">Life Event Income</p>
               <p class="text-sm font-semibold text-success-700">
                 {{ formatCurrency(forecastSummary.total_event_income || 0) }}
               </p>
             </div>
             <div>
-              <p class="text-xs text-gray-500 mb-1">Life Event Expenses</p>
+              <p class="text-xs text-neutral-500 mb-1">Life Event Expenses</p>
               <p class="text-sm font-semibold text-error-700">
                 {{ formatCurrency(forecastSummary.total_event_expense || 0) }}
               </p>
@@ -277,28 +277,28 @@
 
         <!-- Forecast Table -->
         <div class="card p-6 overflow-x-auto">
-          <h3 class="text-h5 font-semibold text-gray-900 mb-4">
+          <h3 class="text-h5 font-semibold text-horizon-500 mb-4">
             {{ forecastGranularity === 'monthly' ? 'Monthly' : 'Annual' }} Cash Flow Forecast
           </h3>
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
-                <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Period</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Income</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Expenditure</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Net Cash Flow</th>
-                <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Cumulative</th>
+                <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500">Period</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Income</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Expenditure</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Net Cash Flow</th>
+                <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Cumulative</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-light-gray">
               <template v-for="(period, index) in forecastPeriods" :key="'period-' + index">
                 <!-- Period row -->
                 <tr :class="period.is_deficit ? 'bg-error-50' : ''">
-                  <td class="px-3 py-2 text-body-base text-gray-900 font-medium">
+                  <td class="px-3 py-2 text-body-base text-horizon-500 font-medium">
                     <div class="flex items-center gap-1.5">
                       {{ period.month_label || period.year }}
-                      <span v-if="period.has_events" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary-100">
-                        <svg class="w-3 h-3 text-primary-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <span v-if="period.has_events" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-raspberry-100">
+                        <svg class="w-3 h-3 text-raspberry-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                           <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                         </svg>
                       </span>
@@ -313,26 +313,26 @@
                   <td class="px-3 py-2 text-right text-body-base font-semibold" :class="period.net_cash_flow >= 0 ? 'text-success-700' : 'text-error-700'">
                     {{ formatCurrency(period.net_cash_flow) }}
                   </td>
-                  <td class="px-3 py-2 text-right text-body-base font-medium" :class="period.cumulative_surplus >= 0 ? 'text-gray-900' : 'text-error-700'">
+                  <td class="px-3 py-2 text-right text-body-base font-medium" :class="period.cumulative_surplus >= 0 ? 'text-horizon-500' : 'text-error-700'">
                     {{ formatCurrency(period.cumulative_surplus) }}
                   </td>
                 </tr>
 
                 <!-- Event detail rows (if period has events) -->
-                <tr v-for="(event, eIdx) in period.events" :key="'event-' + index + '-' + eIdx" class="bg-primary-50">
-                  <td class="px-3 py-1.5 pl-8 text-xs text-primary-700" colspan="2">
+                <tr v-for="(event, eIdx) in period.events" :key="'event-' + index + '-' + eIdx" class="bg-raspberry-50">
+                  <td class="px-3 py-1.5 pl-8 text-xs text-raspberry-700" colspan="2">
                     <div class="flex items-center gap-1.5">
-                      <svg class="w-3 h-3 text-primary-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <svg class="w-3 h-3 text-raspberry-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                       </svg>
                       <span class="font-medium">{{ event.event_name }}</span>
-                      <span class="text-gray-500">({{ event.certainty }})</span>
+                      <span class="text-neutral-500">({{ event.certainty }})</span>
                     </div>
                   </td>
                   <td class="px-3 py-1.5 text-right text-xs" :class="event.impact_type === 'income' ? 'text-success-600' : 'text-error-600'">
                     {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
                   </td>
-                  <td class="px-3 py-1.5 text-right text-xs text-gray-500" colspan="2">
+                  <td class="px-3 py-1.5 text-right text-xs text-neutral-500" colspan="2">
                     <span v-if="event.weighted_amount !== event.amount">
                       Weighted: {{ formatCurrency(event.weighted_amount) }}
                     </span>
@@ -346,7 +346,7 @@
 
       <!-- Forecast Empty State -->
       <div v-else class="card p-8 text-center">
-        <p class="text-body-base text-gray-500">
+        <p class="text-body-base text-neutral-500">
           No forecast data available. Please add income and expense information to your profile.
         </p>
       </div>

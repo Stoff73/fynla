@@ -2,7 +2,7 @@
   <div class="goals-projection-chart-dashboard">
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Chart -->
@@ -42,28 +42,28 @@
       <!-- Event tooltip -->
       <div
         v-if="activeTooltip"
-        class="fixed z-50 bg-gray-900 text-white text-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+        class="fixed z-50 bg-horizon-500 text-white text-sm rounded-lg shadow-lg px-3 py-2 pointer-events-none"
         :style="{
           left: `${tooltipPosition.x}px`,
           top: `${tooltipPosition.y}px`,
           transform: 'translate(-50%, -100%) translateY(-8px)',
         }"
       >
-        <div class="text-xs text-gray-400 uppercase tracking-wide mb-1">
+        <div class="text-xs text-horizon-400 uppercase tracking-wide mb-1">
           {{ activeTooltip.type === 'goal' ? 'Goal' : 'Life Event' }}
         </div>
         <div class="font-semibold">{{ activeTooltip.name }}</div>
-        <div class="text-gray-300">
+        <div class="text-horizon-300">
           Age {{ activeTooltip.age }} · {{ formatCurrency(activeTooltip.amount) }}
         </div>
-        <div class="text-xs text-gray-400 capitalize">
+        <div class="text-xs text-horizon-400 capitalize">
           {{ activeTooltip.impact === 'income' ? 'Income' : 'Expense' }} · {{ activeTooltip.certainty || 'Planned' }}
         </div>
       </div>
     </div>
 
     <!-- Empty state -->
-    <div v-else class="text-center py-8 text-gray-500">
+    <div v-else class="text-center py-8 text-neutral-500">
       <p class="text-sm">Add a date of birth in your profile to see projections</p>
     </div>
   </div>
@@ -148,7 +148,7 @@ export default {
           type: 'bar',
           toolbar: { show: false },
           zoom: { enabled: false },
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           animations: {
             enabled: true,
             easing: 'easeinout',

@@ -160,7 +160,7 @@ export default {
 .group-title {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 12px 0;
 }
 
@@ -175,7 +175,7 @@ export default {
   align-items: center;
   padding: 8px 0;
   cursor: pointer;
-  @apply border-b border-gray-100;
+  @apply border-b border-savannah-100;
   transition: all 0.2s;
 }
 
@@ -208,7 +208,7 @@ export default {
 .account-name {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -227,7 +227,7 @@ export default {
 
 .account-provider {
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .account-balance-col {
@@ -246,7 +246,7 @@ export default {
 
 .full-balance {
   font-size: 11px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .empty-state {
@@ -259,7 +259,7 @@ export default {
 
 .empty-message {
   font-size: 13px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   text-align: center;
   margin: 0;
 }

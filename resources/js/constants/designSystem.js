@@ -4,7 +4,7 @@
  * This file is the single source of truth for all design tokens used in the application.
  * All components should import from here instead of using hardcoded values.
  *
- * Based on designStyle.md v1.0.0
+ * Based on fynlaDesignGuide.md v1.2.0
  */
 
 // =============================================================================
@@ -12,68 +12,70 @@
 // =============================================================================
 
 /**
- * Primary Brand Colors (Trust Blue & Deep Navy)
+ * Primary Brand Colors (Raspberry)
  */
 export const PRIMARY_COLORS = {
-  50: '#FFFFFF',
+  50: '#FDF2F8',
+  100: '#FCE7F3',
+  200: '#F9A8D4',
+  300: '#F472B6',
+  400: '#EC4899',
+  500: '#E83E6D',     // Accent color - CTAs, links
+  600: '#DB2777',     // Hover states
+  700: '#BE185D',     // Active/pressed states
+  800: '#9D174D',
+  900: '#831843',
+};
+
+/**
+ * Secondary/Navigation Colors (Horizon Blue)
+ */
+export const SECONDARY_COLORS = {
+  50: '#F8FAFC',
   100: '#F1F5F9',
   200: '#E2E8F0',
   300: '#CBD5E1',
   400: '#94A3B8',
-  500: '#3B82F6',     // Accent blue, links
-  600: '#1257A0',     // Main Brand Color - buttons, active states
-  700: '#0E3A66',     // Hover states
-  800: '#0B2C4F',     // Active/pressed states
-  900: '#051B33',
-};
-
-/**
- * Secondary/Neutral Colors (Slate)
- */
-export const SECONDARY_COLORS = {
-  50: '#FFFFFF',
-  100: '#F1F5F9',
-  200: '#E2E8F0',
-  500: '#64748B',
-  600: '#475569',     // Body text
-  700: '#334155',     // Headings
-  800: '#1E293B',
-  900: '#0F172A',
+  500: '#1F2A44',     // Main brand dark - text, navigation
+  600: '#0F172A',     // Hover dark
+  700: '#020617',     // Active dark
+  800: '#0A0E1A',
+  900: '#03060D',
 };
 
 /**
  * Semantic Colors
  */
 export const SUCCESS_COLORS = {
-  50: '#FFFFFF',
-  100: '#F0FDF4',
-  500: '#15803D',     // Solid Green - success text, icons
-  600: '#166534',     // Success borders, buttons
-  700: '#14532D',
+  50: '#F0FDF9',
+  100: '#D1FAE5',
+  500: '#20B486',     // Success text, icons
+  600: '#059669',     // Success borders, buttons
+  700: '#047857',
 };
 
 export const ERROR_COLORS = {
-  50: '#FFFFFF',
-  100: '#FEF2F2',
-  500: '#EF4444',     // Error icons
-  600: '#B91C1C',     // Error text, borders
-  700: '#991B1B',
+  50: '#FDF2F8',
+  100: '#FCE7F3',
+  500: '#E83E6D',     // Error icons
+  600: '#DB2777',     // Error text, borders
+  700: '#BE185D',
 };
 
 export const WARNING_COLORS = {
-  50: '#EFF6FF',      // blue-50
-  100: '#DBEAFE',     // blue-100
-  500: '#3B82F6',     // blue-500 - Warning icons, text
-  600: '#2563EB',     // blue-600 - Warning borders
-  700: '#1D4ED8',     // blue-700
+  50: '#F5F3FF',
+  100: '#EDE9FE',
+  500: '#5854E6',     // Warning icons, text
+  600: '#7C3AED',     // Warning borders
+  700: '#6D28D9',
 };
 
 export const INFO_COLORS = {
-  50: '#FFFFFF',
-  100: '#F0F9FF',
-  500: '#0EA5E9',
-  600: '#0284C7',
-  700: '#0369A1',
+  50: '#F8FAFC',
+  100: '#DDE2EF',
+  500: '#6C83BC',
+  600: '#5A6FA3',
+  700: '#4C5D8A',
 };
 
 /**
@@ -81,14 +83,14 @@ export const INFO_COLORS = {
  * ORDER MATTERS: This sequence is used for multi-series charts
  */
 export const CHART_COLORS = [
-  '#1257A0',  // Chart 1: Trust Blue - Primary data series
-  '#475569',  // Chart 2: Slate - Secondary series
-  '#15803D',  // Chart 3: Green - Positive values
-  '#60A5FA',  // Chart 4: Blue - Neutral/caution
-  '#B91C1C',  // Chart 5: Red - Negative values
-  '#7C3AED',  // Chart 6: Purple - Alternative
-  '#3B82F6',  // Chart 7: Blue - Tertiary
-  '#0F172A',  // Chart 8: Navy - Dark accent
+  '#1F2A44',  // Chart 1: Horizon 500 - Primary data series
+  '#20B486',  // Chart 2: Spring 500 - Positive values
+  '#5854E6',  // Chart 3: Violet 500 - Alternative series
+  '#E83E6D',  // Chart 4: Raspberry 500 - Negative/accent
+  '#E6C9A8',  // Chart 5: Savannah 500 - Neutral
+  '#6C83BC',  // Chart 6: Light Blue 500 - Secondary
+  '#717171',  // Chart 7: Neutral 500 - Tertiary
+  '#0F172A',  // Chart 8: Horizon 600 - Dark accent
 ];
 
 /**
@@ -96,12 +98,12 @@ export const CHART_COLORS = [
  * Maps to specific asset types for consistency across all charts
  */
 export const ASSET_COLORS = {
-  pensions: '#1257A0',      // Trust Blue - largest category typically
-  property: '#15803D',      // Green - real assets
-  investments: '#475569',   // Slate - investment accounts
-  cash: '#60A5FA',          // Blue - liquid assets
-  business: '#7C3AED',      // Purple - business interests
-  chattels: '#93C5FD',      // Blue light - personal valuables
+  pensions: '#1F2A44',      // Horizon 500 - largest category
+  property: '#20B486',      // Spring 500 - real assets
+  investments: '#5854E6',   // Violet 500 - investment accounts
+  cash: '#6C83BC',          // Light Blue 500 - liquid assets
+  business: '#E83E6D',      // Raspberry 500 - business interests
+  chattels: '#E6C9A8',      // Savannah 500 - personal valuables
 };
 
 /**
@@ -109,22 +111,22 @@ export const ASSET_COLORS = {
  * Extended palette for detailed spending breakdown (16 categories)
  */
 export const SPENDING_COLORS = [
-  '#7c3aed', // Purple - Mortgage Payments
-  '#2563eb', // Blue - Loan Payments
-  '#0891b2', // Cyan - Pension Contributions
-  '#dc2626', // Red - Protection Premiums
-  '#16a34a', // Green - Food & Groceries
-  '#0284c7', // Sky - Transport
-  '#ec4899', // Pink - Healthcare
-  '#6366f1', // Indigo - Insurance
-  '#8b5cf6', // Violet - Clothing & Personal
-  '#0ea5e9', // Sky light - Entertainment
-  '#14b8a6', // Teal - Childcare
-  '#84cc16', // Lime - School Fees
-  '#06b6d4', // Cyan - Holidays
-  '#64748b', // Slate - Other
-  '#059669', // Emerald - Savings Deposits
-  '#be123c', // Rose - Credit Card Spending
+  '#5854E6', // Violet 500 - Mortgage Payments
+  '#1F2A44', // Horizon 500 - Loan Payments
+  '#6C83BC', // Light Blue 500 - Pension Contributions
+  '#E83E6D', // Raspberry 500 - Protection Premiums
+  '#20B486', // Spring 500 - Food & Groceries
+  '#4C5D8A', // Info 700 - Transport
+  '#DB2777', // Raspberry 600 - Healthcare
+  '#7C3AED', // Violet 600 - Insurance
+  '#A78BFA', // Violet 400 - Clothing & Personal
+  '#34D399', // Spring 400 - Entertainment
+  '#059669', // Spring 600 - Childcare
+  '#047857', // Spring 700 - School Fees
+  '#5A6FA3', // Info 600 - Holidays
+  '#717171', // Neutral 500 - Other
+  '#D1B08C', // Savannah 600 - Savings Deposits
+  '#BE185D', // Raspberry 700 - Credit Card Spending
 ];
 
 /**
@@ -259,10 +261,10 @@ export const RISK_LEGACY_MAP = {
 export function getRiskClasses(level) {
   const normalizedLevel = RISK_LEGACY_MAP[level] || level;
   return RISK_TAILWIND_CLASSES[normalizedLevel] || {
-    bg: 'bg-gray-100',
-    text: 'text-gray-800',
-    border: 'border-gray-200',
-    combined: 'bg-gray-100 text-gray-800',
+    bg: 'bg-savannah-100',
+    text: 'text-horizon-500',
+    border: 'border-light-gray',
+    combined: 'bg-savannah-100 text-horizon-500',
   };
 }
 
@@ -288,33 +290,33 @@ export function normalizeRiskLevel(level) {
  * Text Colors
  */
 export const TEXT_COLORS = {
-  primary: '#111827',       // Headings - gray-900
-  secondary: '#374151',     // Body - gray-700
-  tertiary: '#4B5563',      // Subtle - gray-600
-  muted: '#6B7280',         // Captions - gray-500
-  placeholder: '#9CA3AF',   // Placeholder - gray-400
-  disabled: '#D1D5DB',      // Disabled - gray-300
+  primary: '#1F2A44',       // Headings - horizon-500
+  secondary: '#717171',     // Body - neutral-500
+  tertiary: '#717171',      // Subtle - neutral-500
+  muted: '#717171',         // Captions - neutral-500
+  placeholder: '#94A3B8',   // Placeholder - horizon-400
+  disabled: '#CBD5E1',      // Disabled - horizon-300
 };
 
 /**
  * Background Colors
  */
 export const BG_COLORS = {
-  page: '#F9FAFB',          // Page background - gray-50
+  page: '#F7F6F4',          // Page background - eggshell-500
   card: '#FFFFFF',          // Card/component background
-  subtle: '#F3F4F6',        // Subtle highlight - gray-100
-  overlay: 'rgba(107, 114, 128, 0.75)',  // Modal overlay
+  subtle: '#FDFAF7',        // Subtle highlight - savannah-100
+  overlay: 'rgba(31, 42, 68, 0.75)',  // Modal overlay - horizon-500/75
 };
 
 /**
  * Border Colors
  */
 export const BORDER_COLORS = {
-  default: '#E5E7EB',       // gray-200
-  hover: '#D1D5DB',         // gray-300
-  focus: PRIMARY_COLORS[600],
-  error: ERROR_COLORS[500],
-  success: SUCCESS_COLORS[500],
+  default: '#EEEEEE',       // light-gray
+  hover: '#CBD5E1',         // horizon-300
+  focus: '#5854E6',         // violet-500
+  error: '#E83E6D',         // raspberry-500
+  success: '#20B486',       // spring-500
 };
 
 // =============================================================================
@@ -327,7 +329,7 @@ export const BORDER_COLORS = {
  */
 export const CHART_DEFAULTS = {
   chart: {
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
     toolbar: { show: false },
     zoom: { enabled: false },
   },
@@ -340,12 +342,12 @@ export const CHART_DEFAULTS = {
   },
   legend: {
     fontSize: '14px',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
   },
   tooltip: {
     style: {
       fontSize: '14px',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
     },
   },
   grid: {

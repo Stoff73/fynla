@@ -3,96 +3,96 @@
     <!-- Allowance List -->
     <div class="space-y-4">
       <!-- ISA Allowance -->
-      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
+      <div class="allowance-item cursor-pointer hover:bg-savannah-100 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">ISA</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(isaUsed) }} / {{ formatCurrency(isaLimit) }}</span>
+          <span class="text-sm font-medium text-horizon-500">ISA</span>
+          <span class="text-xs text-neutral-500">{{ formatCurrency(isaUsed) }} / {{ formatCurrency(isaLimit) }}</span>
         </div>
-        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+        <div class="h-2 rounded-full overflow-hidden bg-savannah-200">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="getProgressBarClass(isaPercent)"
             :style="{ width: Math.min(isaPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</div>
+        <div class="text-xs text-neutral-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</div>
       </div>
 
       <!-- Pension Annual Allowance -->
-      <div class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
+      <div class="allowance-item cursor-pointer hover:bg-savannah-100 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">Pension ({{ currentTaxYear }})</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(pensionStandardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
+          <span class="text-sm font-medium text-horizon-500">Pension ({{ currentTaxYear }})</span>
+          <span class="text-xs text-neutral-500">{{ formatCurrency(pensionStandardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
         </div>
-        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+        <div class="h-2 rounded-full overflow-hidden bg-savannah-200">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="getProgressBarClass(pensionStandardPercent)"
             :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(pensionStandardRemaining) }} remaining</div>
+        <div class="text-xs text-neutral-500 mt-1">{{ formatCurrency(pensionStandardRemaining) }} remaining</div>
       </div>
 
       <!-- Pension Carry Forward (only when exceeding standard allowance) -->
-      <div v-if="pensionExceedsStandard && pensionCarryForwardUsed > 0" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
+      <div v-if="pensionExceedsStandard && pensionCarryForwardUsed > 0" class="allowance-item cursor-pointer hover:bg-savannah-100 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/net-worth/retirement')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">Carry Forward ({{ carryForwardTaxYear }})</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(pensionCarryForwardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
+          <span class="text-sm font-medium text-horizon-500">Carry Forward ({{ carryForwardTaxYear }})</span>
+          <span class="text-xs text-neutral-500">{{ formatCurrency(pensionCarryForwardUsed) }} / {{ formatCurrency(pensionLimit) }}</span>
         </div>
-        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+        <div class="h-2 rounded-full overflow-hidden bg-savannah-200">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="getProgressBarClass(carryForwardPercent)"
             :style="{ width: Math.min(carryForwardPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(carryForwardRemaining) }} remaining</div>
+        <div class="text-xs text-neutral-500 mt-1">{{ formatCurrency(carryForwardRemaining) }} remaining</div>
       </div>
 
       <!-- CGT Allowance (only if user has non-ISA investments) -->
-      <div v-if="hasNonIsaInvestments" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
+      <div v-if="hasNonIsaInvestments" class="allowance-item cursor-pointer hover:bg-savannah-100 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">Capital Gains Tax</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(cgtUsed) }} / {{ formatCurrency(cgtLimit) }}</span>
+          <span class="text-sm font-medium text-horizon-500">Capital Gains Tax</span>
+          <span class="text-xs text-neutral-500">{{ formatCurrency(cgtUsed) }} / {{ formatCurrency(cgtLimit) }}</span>
         </div>
-        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+        <div class="h-2 rounded-full overflow-hidden bg-savannah-200">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="getProgressBarClass(cgtPercent)"
             :style="{ width: Math.min(cgtPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(cgtRemaining) }} remaining</div>
+        <div class="text-xs text-neutral-500 mt-1">{{ formatCurrency(cgtRemaining) }} remaining</div>
       </div>
 
       <!-- Dividend Allowance (only if user receives dividend income) -->
-      <div v-if="hasDividendIncome" class="allowance-item cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
+      <div v-if="hasDividendIncome" class="allowance-item cursor-pointer hover:bg-savannah-100 rounded-lg p-2 -m-2 transition-colors" @click="navigateTo('/investment')">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-700">Dividend</span>
-          <span class="text-xs text-gray-500">{{ formatCurrency(dividendUsed) }} / {{ formatCurrency(dividendLimit) }}</span>
+          <span class="text-sm font-medium text-horizon-500">Dividend</span>
+          <span class="text-xs text-neutral-500">{{ formatCurrency(dividendUsed) }} / {{ formatCurrency(dividendLimit) }}</span>
         </div>
-        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+        <div class="h-2 rounded-full overflow-hidden bg-savannah-200">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="getProgressBarClass(dividendPercent)"
             :style="{ width: Math.min(dividendPercent, 100) + '%' }"
           ></div>
         </div>
-        <div class="text-xs text-gray-500 mt-1">{{ formatCurrency(dividendRemaining) }} remaining</div>
+        <div class="text-xs text-neutral-500 mt-1">{{ formatCurrency(dividendRemaining) }} remaining</div>
       </div>
     </div>
 
     <!-- Expiring Warning -->
     <div
       v-if="hasExpiringAllowances"
-      class="mt-4 p-3 bg-white border-2 border-blue-500 rounded-lg"
+      class="mt-4 p-3 bg-white border-2 border-violet-500 rounded-lg"
     >
       <div class="flex items-center gap-2">
-        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span class="text-sm font-medium text-blue-700">
+        <span class="text-sm font-medium text-violet-700">
           {{ expiringMessage }}
         </span>
       </div>
@@ -329,10 +329,10 @@ export default {
     },
 
     getProgressBarClass(percent) {
-      if (percent >= 90) return 'bg-green-600';
-      if (percent >= 50) return 'bg-primary-600';
-      if (percent >= 25) return 'bg-blue-500';
-      return 'bg-gray-400';
+      if (percent >= 90) return 'bg-spring-600';
+      if (percent >= 50) return 'bg-raspberry-500';
+      if (percent >= 25) return 'bg-violet-500';
+      return 'bg-horizon-400';
     },
   },
 };

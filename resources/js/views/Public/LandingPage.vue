@@ -1,315 +1,234 @@
 <template>
   <PublicLayout>
-    <!-- Hero Section -->
-    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
-      <!-- Background Elements -->
-      <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
-        <!-- Animated gradient orbs -->
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
-      </div>
+    <!-- Hero Section - Horizon-to-Raspberry Gradient with Meet Fyn -->
+    <div class="relative overflow-hidden hero-gradient">
+      <!-- Decorative orbs for depth -->
+      <div class="absolute top-20 right-20 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 left-10 w-96 h-96 bg-horizon-500/10 rounded-full blur-3xl"></div>
 
-      <!-- Grid Pattern Overlay -->
-      <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNjB2NjBIMHoiLz48cGF0aCBkPSJNMzAgMzBtLTEgMGExIDEgMCAxIDAgMiAwYTEgMSAwIDEgMCAtMiAwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] opacity-30"></div>
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:gap-8">
+          <!-- Left: Springbok placeholder area (empty for now) -->
+          <div class="hidden lg:block lg:w-64 lg:flex-shrink-0">
+            <!-- Springbok image will go here when available -->
+          </div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div class="flex flex-col lg:flex-row lg:items-start lg:gap-12">
-          <!-- Left: Hero Content -->
-          <div class="lg:flex-1 text-center lg:text-left">
-            <p class="text-xl md:text-2xl text-slate-300 font-medium mb-3">Democratising financial planning for everyone</p>
-            <h1 class="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
-              Map Your Path to<br />
-              <span class="text-emerald-400">Financial Freedom</span>
+          <!-- Centre: Meet Fyn Text -->
+          <div class="flex-1 text-left pl-24">
+            <h1 class="hero-title text-white leading-none">
+              Meet<br />Fyn
             </h1>
+          </div>
 
-            <p class="text-xl md:text-2xl text-slate-300 mb-6 max-w-2xl leading-relaxed">
+          <!-- Right: Chat Card -->
+          <div class="mt-10 lg:mt-0 lg:w-80 xl:w-96 lg:flex-shrink-0">
+            <div class="bg-white rounded-2xl p-5 shadow-2xl">
+              <p class="text-horizon-500 font-medium text-sm mb-3 leading-relaxed">
+                Tell Fyn about your financial goals or simply get started for free!
+              </p>
+              <input
+                v-model="chatInput"
+                type="text"
+                placeholder="Enter your text here"
+                class="w-full px-4 py-2.5 border border-light-gray rounded-lg text-sm text-horizon-500 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent mb-3"
+                @keyup.enter="handleAskFyn"
+              />
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  @click="handleAskFyn"
+                  class="min-w-[120px] px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors text-center"
+                >
+                  Ask Fyn
+                </button>
+                <button
+                  type="button"
+                  @click="enterPreviewMode"
+                  :disabled="enteringPreview"
+                  class="min-w-[120px] px-5 py-2.5 bg-savannah-500 text-white text-sm font-semibold rounded-lg hover:bg-savannah-600 transition-colors disabled:opacity-50 text-center"
+                >
+                  Get started
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtitle spanning full width below -->
+        <p class="hero-subtitle text-white/90 mt-6 text-center whitespace-nowrap">
+          Your financial companion for life
+        </p>
+      </div>
+    </div>
+
+    <!-- Map Your Path to Financial Freedom Section -->
+    <div class="bg-white py-10 lg:py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-16">
+          <!-- Left: Text Content -->
+          <div class="lg:flex-1">
+            <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-horizon-500 leading-tight">
+              Map your path to<br />
+              <span class="text-raspberry-500">financial freedom</span>
+            </h2>
+            <p class="text-lg text-neutral-500 mt-6 mb-8 max-w-lg leading-relaxed">
               Comprehensive tools designed for UK individuals and families to plan protection, savings, investments, retirement, and estate with confidence.
             </p>
-
-            <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-6">
+            <div class="flex flex-wrap gap-4">
               <button
                 type="button"
                 @click="enterPreviewMode"
                 :disabled="enteringPreview"
-                class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+                class="min-w-[120px] px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors disabled:opacity-50 text-center"
               >
-                {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
+                Try the demo
               </button>
               <router-link
                 to="/login"
-                class="inline-flex items-center justify-center px-8 py-4 bg-success-600 text-white rounded-xl font-semibold text-lg hover:bg-success-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                class="inline-flex items-center justify-center min-w-[120px] px-5 py-2.5 bg-savannah-500 text-white text-sm font-semibold rounded-lg hover:bg-savannah-600 transition-colors"
               >
-                Sign In
+                Sign in
               </router-link>
-            </div>
-
-            <!-- Wishlist Link -->
-            <div class="mt-12 mb-8 text-center lg:text-left">
-              <a
-                href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-blue-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
-              >
-                Join waitlist for priority access on release
-              </a>
             </div>
           </div>
 
           <!-- Right: Financial Freedom Wheel -->
-          <div class="lg:w-[32rem] lg:my-auto lg:ml-auto flex items-center justify-center">
+          <div class="mt-10 lg:mt-0 lg:w-[28rem] flex items-center justify-center">
             <img
               :src="'/images/financial-freedom-wheel.png'"
               alt="Financial Freedom - Optimise your Tax, Invest Wisely, Plan for Retirement, Establish Passive Income, Reduce Debt, Build Savings"
-              class="w-full max-w-lg"
+              class="w-full max-w-md"
             />
           </div>
-        </div>
-
-        <!-- Scroll Indicator -->
-        <div class="flex justify-center mt-8 animate-bounce">
-          <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
         </div>
       </div>
     </div>
 
-    <!-- Dashboard Preview GIF -->
-    <div class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-16 overflow-hidden">
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-          <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">
-            Your Financial Dashboard
-          </h2>
-          <p class="text-lg text-slate-400 max-w-2xl mx-auto">
-            Navigate seamlessly between modules to manage your complete financial picture
-          </p>
+    <!-- How Fyn Can Help You Section -->
+    <div id="features" class="bg-horizon-500 py-16 lg:py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center mb-16">
+          How Fyn can help you
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Protection Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-spring-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-spring-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Protection</h3>
+            <p class="text-sm text-white/70 mb-4">Analyse life insurance, critical illness, and income protection coverage gaps.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Life Cover</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Income Protection</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Adequacy Scoring</span>
+            </div>
+          </div>
+
+          <!-- Savings Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-light-blue-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-light-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Savings</h3>
+            <p class="text-sm text-white/70 mb-4">Track emergency funds, ISA allowances, and savings goals across all accounts.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Emergency Fund</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">ISA Tracking</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Goal Planning</span>
+            </div>
+          </div>
+
+          <!-- Investment Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Investment</h3>
+            <p class="text-sm text-white/70 mb-4">Portfolio analysis, risk profiling, and Monte Carlo retirement projections.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Risk Profile</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Portfolio View</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Monte Carlo</span>
+            </div>
+          </div>
+
+          <!-- Retirement Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-raspberry-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-raspberry-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Retirement</h3>
+            <p class="text-sm text-white/70 mb-4">Defined Contribution, Defined Benefit, and State Pension tracking with retirement income projections.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Defined Contribution Pensions</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Defined Benefit Pensions</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">State Pension</span>
+            </div>
+          </div>
+
+          <!-- Estate Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-raspberry-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-raspberry-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Estate</h3>
+            <p class="text-sm text-white/70 mb-4">Inheritance Tax calculations, gifting strategies, and estate value projections.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Inheritance Tax Calculator</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Gifting</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Nil Rate Band / Residence Nil Rate Band</span>
+            </div>
+          </div>
+
+          <!-- Net Worth Module -->
+          <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-colors">
+            <div class="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Net Worth</h3>
+            <p class="text-sm text-white/70 mb-4">Complete balance sheet with properties, assets, and liabilities tracking.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Properties</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Liabilities</span>
+              <span class="px-3 py-1 bg-white/10 text-white/80 text-xs font-medium rounded-full">Balance Sheet</span>
+            </div>
+          </div>
         </div>
-        <div class="rounded-2xl overflow-hidden border border-white/15 shadow-2xl shadow-black/40 bg-slate-900/50 backdrop-blur-md">
-          <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border-b border-white/10">
-            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
-            <span class="ml-3 text-xs text-slate-400 font-mono">fynla.org</span>
+      </div>
+    </div>
+
+    <!-- Your Fynla Dashboard Section -->
+    <div class="bg-savannah-500 py-16 lg:py-20">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center mb-12">
+          Your Fynla dashboard
+        </h2>
+        <div class="rounded-2xl overflow-hidden border border-neutral-200 shadow-xl bg-white">
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 border-b border-neutral-200">
+            <span class="w-3 h-3 rounded-full bg-raspberry-500"></span>
+            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
+            <span class="w-3 h-3 rounded-full bg-spring-500"></span>
+            <span class="ml-3 text-xs text-neutral-500 font-mono">fynla.org</span>
           </div>
           <img
             :src="dashboardGifUrl"
             alt="Fynla dashboard walkthrough showing net worth, pensions, investments, protection, and estate planning modules"
             class="w-full h-auto block"
           />
-        </div>
-      </div>
-    </div>
-
-    <!-- Planning Modules Section -->
-    <div id="planning-modules" class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-24 overflow-hidden">
-      <!-- Background blur elements -->
-      <div class="absolute top-0 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
-
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-primary-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Five Integrated Modules</span>
-          <h2 class="text-4xl md:text-5xl font-bold text-white mt-3 mb-4">
-            Complete Financial Planning
-          </h2>
-          <p class="text-xl text-slate-400 max-w-3xl mx-auto">
-            All your financial planning needs in one integrated platform
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Protection Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Protection</h3>
-            <p class="text-slate-400 mb-4">Analyse life insurance, critical illness, and income protection coverage gaps.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Life Cover</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Income Protection</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Adequacy Scoring</span>
-            </div>
-          </div>
-
-          <!-- Savings Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-emerald-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Savings</h3>
-            <p class="text-slate-400 mb-4">Track emergency funds, ISA allowances, and savings goals across all accounts.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Emergency Fund</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">ISA Tracking</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Goal Planning</span>
-            </div>
-          </div>
-
-          <!-- Investment Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Investment</h3>
-            <p class="text-slate-400 mb-4">Portfolio analysis, risk profiling, and Monte Carlo retirement projections.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Risk Profile</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Portfolio View</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Monte Carlo</span>
-            </div>
-          </div>
-
-          <!-- Retirement Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-purple-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Retirement</h3>
-            <p class="text-slate-400 mb-4">Defined Contribution, Defined Benefit, and State Pension tracking with retirement income projections.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Defined Contribution Pensions</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Defined Benefit Pensions</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">State Pension</span>
-            </div>
-          </div>
-
-          <!-- Estate Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-rose-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-rose-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Estate</h3>
-            <p class="text-slate-400 mb-4">Inheritance Tax calculations, gifting strategies, and estate value projections.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Inheritance Tax Calculator</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Gifting</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Nil Rate Band / Residence Nil Rate Band</span>
-            </div>
-          </div>
-
-          <!-- Net Worth Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-cyan-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Net Worth</h3>
-            <p class="text-slate-400 mb-4">Complete balance sheet with properties, assets, and liabilities tracking.</p>
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Properties</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Liabilities</span>
-              <span class="px-3 py-1 bg-white/10 text-slate-300 text-xs font-medium rounded-full">Balance Sheet</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Key Features Section -->
-    <div id="key-features" class="relative bg-slate-800 py-24 overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900"></div>
-
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-primary-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Key Features</span>
-          <h2 class="text-4xl md:text-5xl font-bold text-white mt-3 mb-4">
-            Built for UK Families
-          </h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">Spouse Linking</h3>
-            <p class="text-slate-400">Joint assets and liabilities tracked together with automatic reciprocal records.</p>
-          </div>
-
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">UK Tax Optimised</h3>
-            <p class="text-slate-400">2025/26 tax rates, ISA allowances, pension limits, and Inheritance Tax thresholds built-in.</p>
-          </div>
-
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">Letter to Spouse</h3>
-            <p class="text-slate-400">Essential information document with auto-populated financial data for loved ones.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CTA Section -->
-    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-24 overflow-hidden">
-      <!-- Background Elements -->
-      <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/50 to-slate-900/80"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl"></div>
-      </div>
-
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="bg-white/5 backdrop-blur-md rounded-3xl p-12 border border-white/10">
-          <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Plan Your Financial Future?
-          </h2>
-          <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
-            Get started with Fynla today. Create your free account or try the interactive demo.
-          </p>
-          <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <button
-              type="button"
-              @click="enterPreviewMode"
-              :disabled="enteringPreview"
-              class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-            >
-              <span class="flex items-center justify-center">
-                Try the Demo
-                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-            </button>
-            <button
-              type="button"
-              @click="enterPreviewMode"
-              :disabled="enteringPreview"
-              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-wait"
-            >
-              <span class="flex items-center justify-center">
-                Get Started Free
-                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -344,13 +263,13 @@ export default {
       enteringPreview: false,
       showSelectionModal: false,
       previewError: '',
+      chatInput: '',
       dashboardGifUrl: '/images/fynla-dashboard-walkthrough.gif',
     };
   },
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
-
   },
 
   mounted() {
@@ -373,7 +292,6 @@ export default {
     checkDemoParam() {
       if (this.$route.query.demo === 'true') {
         this.showSelectionModal = true;
-        // Clear the query parameter from URL
         this.$router.replace({ path: '/', query: {} });
       }
     },
@@ -383,6 +301,11 @@ export default {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
+    },
+
+    handleAskFyn() {
+      // For now, trigger demo mode - future: AI chatbot integration
+      this.enterPreviewMode();
     },
 
     enterPreviewMode() {
@@ -414,3 +337,44 @@ export default {
 };
 </script>
 
+<style scoped>
+/* Hero gradient: dark horizon blue on left to raspberry pink on right */
+.hero-gradient {
+  background: linear-gradient(to right, #1F2A44 0%, #1F2A44 25%, #E83E6D 100%);
+}
+
+/* Large decorative display font for "Meet Fyn" */
+.hero-title {
+  font-family: 'Segoe UI', 'Inter', sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font-size: 7rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: 8rem;
+  }
+}
+
+/* Flowing italic subtitle */
+.hero-subtitle {
+  font-family: 'Segoe UI', 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 300;
+}
+
+@media (min-width: 768px) {
+  .hero-subtitle {
+    font-size: 1.875rem;
+  }
+}
+</style>

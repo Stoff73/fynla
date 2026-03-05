@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Dashboard Content -->
@@ -13,15 +13,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-blue-100 rounded-lg">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-violet-100 rounded-lg">
+                <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Total Users</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.total_users || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Total Users</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ stats.total_users || 0 }}</p>
             </div>
           </div>
         </div>
@@ -30,15 +30,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-red-100 rounded-lg">
-                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-raspberry-100 rounded-lg">
+                <svg class="w-6 h-6 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Administrators</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.admin_users || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Administrators</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ stats.admin_users || 0 }}</p>
             </div>
           </div>
         </div>
@@ -47,15 +47,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-green-100 rounded-lg">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-spring-100 rounded-lg">
+                <svg class="w-6 h-6 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Linked Spouses</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.linked_spouses || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Linked Spouses</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ stats.linked_spouses || 0 }}</p>
             </div>
           </div>
         </div>
@@ -71,8 +71,8 @@
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Database Size</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats.database_size || 'N/A' }}</p>
+              <p class="text-sm font-medium text-neutral-500">Database Size</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ stats.database_size || 'N/A' }}</p>
             </div>
           </div>
         </div>
@@ -83,15 +83,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-blue-100 rounded-lg">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-violet-100 rounded-lg">
+                <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Trialing</p>
-              <p class="text-2xl font-bold text-gray-900">{{ subStats.trialing || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Trialing</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ subStats.trialing || 0 }}</p>
             </div>
           </div>
         </div>
@@ -99,15 +99,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-green-100 rounded-lg">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-spring-100 rounded-lg">
+                <svg class="w-6 h-6 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Active</p>
-              <p class="text-2xl font-bold text-gray-900">{{ subStats.active || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Active</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ subStats.active || 0 }}</p>
             </div>
           </div>
         </div>
@@ -115,15 +115,15 @@
         <div class="card">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="p-3 bg-red-100 rounded-lg">
-                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="p-3 bg-raspberry-100 rounded-lg">
+                <svg class="w-6 h-6 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Expired</p>
-              <p class="text-2xl font-bold text-gray-900">{{ subStats.expired || 0 }}</p>
+              <p class="text-sm font-medium text-neutral-500">Expired</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ subStats.expired || 0 }}</p>
             </div>
           </div>
         </div>
@@ -138,8 +138,8 @@
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p class="text-2xl font-bold text-gray-900">£{{ ((subStats.total_revenue || 0) / 100).toFixed(2) }}</p>
+              <p class="text-sm font-medium text-neutral-500">Total Revenue</p>
+              <p class="text-2xl font-bold text-horizon-500">£{{ ((subStats.total_revenue || 0) / 100).toFixed(2) }}</p>
             </div>
           </div>
         </div>
@@ -147,28 +147,28 @@
 
       <!-- Recent Users -->
       <div class="card">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Users</h3>
+        <div class="px-6 py-4 border-b border-light-gray">
+          <h3 class="text-lg font-semibold text-horizon-500">Recent Users</h3>
         </div>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-light-gray">
+            <thead class="bg-savannah-100">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Created At</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-light-gray">
               <tr v-for="user in stats.recent_users" :key="user.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ user.email }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(user.created_at) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-horizon-500">{{ user.id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-horizon-500">{{ user.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ user.email }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ formatDate(user.created_at) }}</td>
               </tr>
               <tr v-if="!stats.recent_users || stats.recent_users.length === 0">
-                <td colspan="4" class="px-6 py-8 text-center text-gray-500">No users found</td>
+                <td colspan="4" class="px-6 py-8 text-center text-neutral-500">No users found</td>
               </tr>
             </tbody>
           </table>
@@ -176,16 +176,16 @@
       </div>
 
       <!-- Backup Info -->
-      <div class="card bg-blue-50 border-blue-200">
+      <div class="card bg-violet-50 border-violet-200">
         <div class="flex items-start">
           <div class="flex-shrink-0">
-            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div class="ml-3 flex-1">
-            <h3 class="text-sm font-medium text-blue-900">Database Backup Status</h3>
-            <div class="mt-2 text-sm text-blue-800">
+            <h3 class="text-sm font-medium text-violet-900">Database Backup Status</h3>
+            <div class="mt-2 text-sm text-violet-800">
               <p v-if="stats.last_backup">
                 Last backup: <strong>{{ stats.last_backup }}</strong>
               </p>
@@ -210,16 +210,16 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="card bg-red-50 border-red-200">
+    <div v-if="error" class="card bg-raspberry-50 border-raspberry-200">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-900">Error Loading Dashboard</h3>
-          <p class="mt-2 text-sm text-red-800">{{ error }}</p>
+          <h3 class="text-sm font-medium text-raspberry-900">Error Loading Dashboard</h3>
+          <p class="mt-2 text-sm text-raspberry-800">{{ error }}</p>
         </div>
       </div>
     </div>

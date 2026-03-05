@@ -6,102 +6,151 @@ export default {
     "./resources/**/*.vue",
   ],
   safelist: [
-    // Risk level colors - ensure these are always included
+    // Risk level colors - must always be included (used dynamically)
     'bg-green-50', 'bg-green-100', 'bg-green-600', 'text-green-700', 'text-green-800', 'border-green-200', 'ring-green-400',
     'bg-teal-50', 'bg-teal-100', 'bg-teal-600', 'text-teal-700', 'text-teal-800', 'border-teal-200', 'ring-teal-400',
     'bg-blue-50', 'bg-blue-100', 'bg-blue-600', 'text-blue-700', 'text-blue-800', 'border-blue-200', 'ring-blue-400',
-    // Orange removed - use blue for warnings per design system
     'bg-red-50', 'bg-red-100', 'bg-red-600', 'text-red-700', 'text-red-800', 'border-red-200', 'ring-red-400',
+    // New palette dynamic classes
+    'bg-raspberry-50', 'bg-raspberry-100', 'bg-raspberry-500', 'text-raspberry-500', 'text-raspberry-700', 'border-raspberry-300',
+    'bg-spring-50', 'bg-spring-100', 'bg-spring-500', 'text-spring-500', 'text-spring-700', 'border-spring-300',
+    'bg-violet-50', 'bg-violet-100', 'bg-violet-500', 'text-violet-500', 'text-violet-700', 'border-violet-300',
+    'bg-horizon-50', 'bg-horizon-100', 'text-horizon-500', 'border-horizon-200',
+    'bg-savannah-100', 'bg-eggshell-500',
   ],
   theme: {
     extend: {
       colors: {
-        // Professional Palette (Deep Navy & Slate)
-        primary: {
-          50: '#FFFFFF',      // Was Pastel Blue
-          100: '#F1F5F9',     // Slate 100
-          200: '#E2E8F0',     // Slate 200
-          300: '#CBD5E1',     // Slate 300
-          400: '#94A3B8',     // Slate 400
-          500: '#3B82F6',     // Default Blue (keeping as bright accent)
-          600: '#1257A0',     // Trust Blue (Main Brand Color)
-          700: '#0E3A66',     // Deep Navy
-          800: '#0B2C4F',     // Darker Navy
-          900: '#051B33',     // Darkest Navy
-          950: '#020617',
+        // === FYNLA DESIGN SYSTEM v1.2.0 ===
+        raspberry: {
+          50: '#FDF2F8',
+          100: '#FCE7F3',
+          200: '#F9A8D4',
+          300: '#F472B6',
+          400: '#EC4899',
+          500: '#E83E6D',
+          600: '#DB2777',
+          700: '#BE185D',
+          800: '#9D174D',
+          900: '#831843',
         },
-        // Secondary (Neutrals/Slate instead of Teal)
-        secondary: {
-          50: '#FFFFFF',
+        horizon: {
+          50: '#F8FAFC',
           100: '#F1F5F9',
           200: '#E2E8F0',
-          500: '#64748B',     // Slate 500
-          600: '#475569',     // Slate 600
-          700: '#334155',     // Slate 700
-          800: '#1E293B',     // Slate 800
-          900: '#0F172A',     // Slate 900
+          300: '#CBD5E1',
+          400: '#94A3B8',
+          500: '#1F2A44',
+          600: '#0F172A',
+          700: '#020617',
+          800: '#0A0E1A',
+          900: '#03060D',
         },
-        // Action/Status Colors (Solid, not Pastel)
-        success: {
+        spring: {
+          50: '#F0FDF9',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#20B486',
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
+        },
+        violet: {
+          50: '#F5F3FF',
+          100: '#EDE9FE',
+          200: '#DDD6FE',
+          300: '#C4B5FD',
+          400: '#A78BFA',
+          500: '#5854E6',
+          600: '#7C3AED',
+          700: '#6D28D9',
+          800: '#581C87',
+          900: '#4C1D5F',
+        },
+        savannah: {
+          50: '#FEFCFB',
+          100: '#FDFAF7',
+          200: '#FAF5F0',
+          300: '#F5EDE5',
+          400: '#EFDCD1',
+          500: '#E6C9A8',
+          600: '#D1B08C',
+          700: '#A88E6E',
+          800: '#8A7359',
+          900: '#6B5845',
+        },
+        eggshell: {
           50: '#FFFFFF',
-          100: '#F0FDF4',     // Very subtle
-          500: '#15803D',     // Solid Green
-          600: '#166534',
-          700: '#14532D',
-          800: '#14532D',
-          900: '#14532D',
+          100: '#FEFEFE',
+          500: '#F7F6F4',
+          900: '#E7E5E2',
+        },
+        neutral: {
+          500: '#717171',
+        },
+        'light-gray': '#EEEEEE',
+        'light-blue': {
+          100: '#DDE2EF',
+          500: '#6C83BC',
+        },
+        'light-pink': {
+          100: '#FAD6E0',
+          400: '#EF7598',
+        },
+
+        // === SEMANTIC COLORS (updated to new palette) ===
+        success: {
+          100: '#D1FAE5',
+          500: '#20B486',
+          600: '#059669',
+          700: '#047857',
         },
         error: {
-          50: '#FFFFFF',
-          100: '#FEF2F2',     // Very subtle
-          500: '#EF4444',     // Solid Red
-          600: '#B91C1C',     // Darker Red
-          700: '#991B1B',
-          800: '#7F1D1D',
-          900: '#450A0A',
+          100: '#FCE7F3',
+          500: '#E83E6D',
+          600: '#DB2777',
+          700: '#BE185D',
         },
         warning: {
-          50: '#EFF6FF',      // blue-50
-          100: '#DBEAFE',     // blue-100
-          500: '#3B82F6',     // blue-500
-          600: '#2563EB',     // blue-600
-          700: '#1D4ED8',     // blue-700
-          800: '#1E40AF',     // blue-800
-          900: '#1E3A8A',     // blue-900
+          100: '#EDE9FE',
+          500: '#5854E6',
+          600: '#7C3AED',
+          700: '#6D28D9',
         },
         info: {
-          50: '#FFFFFF',
-          100: '#F0F9FF',
-          500: '#0EA5E9',
-          600: '#0284C7',
-          700: '#0369A1',
-          800: '#075985',
-          900: '#0C4A6E',
+          100: '#DDE2EF',
+          500: '#6C83BC',
+          600: '#5A6FA3',
+          700: '#4C5D8A',
         },
-        // Chart Colors (Keep diverse but professional)
+
+        // === CHART COLORS (updated to new palette) ===
         chart: {
-          1: '#1257A0', // Trust Blue
-          2: '#475569', // Slate
-          3: '#15803D', // Green
-          4: '#60A5FA', // Blue - Neutral/caution
-          5: '#B91C1C', // Red
-          6: '#7C3AED', // Purple (kept only for charts)
-          7: '#3B82F6', // Blue - Tertiary
-          8: '#0F172A', // Navy
+          1: '#1F2A44',     // Horizon 500
+          2: '#20B486',     // Spring 500
+          3: '#5854E6',     // Violet 500
+          4: '#E83E6D',     // Raspberry 500
+          5: '#E6C9A8',     // Savannah 500
+          6: '#6C83BC',     // Light Blue 500
+          7: '#717171',     // Neutral 500
+          8: '#0F172A',     // Horizon 600
         },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        sans: ['Segoe UI', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Roboto', 'sans-serif'],
+        display: ['Segoe UI', 'Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'Courier New', 'monospace'],
       },
       fontSize: {
-        'display': ['3.75rem', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '700' }],
-        'h1': ['2.25rem', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '700' }],
-        'h2': ['1.875rem', { lineHeight: '1.3', fontWeight: '600' }],
-        'h3': ['1.5rem', { lineHeight: '1.4', fontWeight: '600' }],
-        'h4': ['1.25rem', { lineHeight: '1.5', fontWeight: '600' }],
-        'h5': ['1rem', { lineHeight: '1.5', fontWeight: '600' }],
+        'display': ['3.75rem', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '900' }],
+        'h1': ['2.25rem', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '900' }],
+        'h2': ['1.875rem', { lineHeight: '1.3', fontWeight: '700' }],
+        'h3': ['1.5rem', { lineHeight: '1.4', fontWeight: '700' }],
+        'h4': ['1.25rem', { lineHeight: '1.5', fontWeight: '700' }],
+        'h5': ['1rem', { lineHeight: '1.5', fontWeight: '700' }],
         'body-lg': ['1.125rem', { lineHeight: '1.7', fontWeight: '400' }],
         'body': ['1rem', { lineHeight: '1.6', fontWeight: '400' }],
         'body-sm': ['0.875rem', { lineHeight: '1.5', fontWeight: '400' }],

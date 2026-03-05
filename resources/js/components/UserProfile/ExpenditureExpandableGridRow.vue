@@ -8,7 +8,7 @@
     <div class="flex items-center gap-1">
       <svg
         v-if="hasItems"
-        :class="['h-4 w-4 text-gray-400 transition-transform', isExpanded ? 'rotate-90' : '']"
+        :class="['h-4 w-4 text-horizon-400 transition-transform', isExpanded ? 'rotate-90' : '']"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -16,16 +16,16 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
       </svg>
       <span v-else class="w-4"></span>
-      <span class="text-gray-600">{{ label }}</span>
+      <span class="text-neutral-500">{{ label }}</span>
     </div>
   </div>
-  <div :class="['col-value text-body-sm py-1 text-gray-900', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
+  <div :class="['col-value text-body-sm py-1 text-horizon-500', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
     {{ formatCurrency(value) }}
   </div>
-  <div v-if="isMarried" :class="['col-value-mid text-body-sm py-1 text-gray-900', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
+  <div v-if="isMarried" :class="['col-value-mid text-body-sm py-1 text-horizon-500', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
     {{ formatCurrency(spouseValue) }}
   </div>
-  <div v-if="isMarried" :class="['col-total text-body-sm py-1 font-medium text-gray-900', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
+  <div v-if="isMarried" :class="['col-total text-body-sm py-1 font-medium text-horizon-500', hasItems ? 'cursor-pointer' : '']" @click="toggleExpanded">
     {{ formatCurrency(householdValue) }}
   </div>
 
@@ -34,13 +34,13 @@
     <template v-for="item in mergedItems" :key="item.id">
       <!-- Item row - expandable if has breakdown -->
       <div
-        :class="['col-label text-body-sm py-1 pl-14 text-gray-500', item.hasBreakdown ? 'cursor-pointer' : '']"
+        :class="['col-label text-body-sm py-1 pl-14 text-neutral-500', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
         <div class="flex items-center gap-1">
           <svg
             v-if="item.hasBreakdown"
-            :class="['h-3 w-3 text-gray-400 transition-transform', expandedItems[item.id] ? 'rotate-90' : '']"
+            :class="['h-3 w-3 text-horizon-400 transition-transform', expandedItems[item.id] ? 'rotate-90' : '']"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -49,46 +49,46 @@
           </svg>
           <span v-else class="w-3"></span>
           <span>{{ item.name }}</span>
-          <span v-if="item.is_joint" class="text-xs text-primary-600">({{ item.ownership_percentage || 50 }}%)</span>
+          <span v-if="item.is_joint" class="text-xs text-raspberry-500">({{ item.ownership_percentage || 50 }}%)</span>
         </div>
       </div>
       <div
-        :class="['col-value text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        :class="['col-value text-body-sm py-1 text-neutral-500', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
         <div>{{ formatCurrency(item.userAmount) }}</div>
-        <div v-if="item.userLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.userLumpSum) }} lump sum</div>
+        <div v-if="item.userLumpSum > 0" class="text-xs text-horizon-400">+ {{ formatCurrency(item.userLumpSum) }} lump sum</div>
       </div>
       <div
         v-if="isMarried"
-        :class="['col-value-mid text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        :class="['col-value-mid text-body-sm py-1 text-neutral-500', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
         <div>{{ formatCurrency(item.spouseAmount) }}</div>
-        <div v-if="item.spouseLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.spouseLumpSum) }} lump sum</div>
+        <div v-if="item.spouseLumpSum > 0" class="text-xs text-horizon-400">+ {{ formatCurrency(item.spouseLumpSum) }} lump sum</div>
       </div>
       <div
         v-if="isMarried"
-        :class="['col-total text-body-sm py-1 text-gray-600', item.hasBreakdown ? 'cursor-pointer' : '']"
+        :class="['col-total text-body-sm py-1 text-neutral-500', item.hasBreakdown ? 'cursor-pointer' : '']"
         @click="item.hasBreakdown && toggleItemExpanded(item.id)"
       >
         <div>{{ formatCurrency(item.userAmount + item.spouseAmount) }}</div>
-        <div v-if="item.userLumpSum + item.spouseLumpSum > 0" class="text-xs text-gray-400">+ {{ formatCurrency(item.userLumpSum + item.spouseLumpSum) }} lump sum</div>
+        <div v-if="item.userLumpSum + item.spouseLumpSum > 0" class="text-xs text-horizon-400">+ {{ formatCurrency(item.userLumpSum + item.spouseLumpSum) }} lump sum</div>
       </div>
 
       <!-- Breakdown rows (third level) -->
       <template v-if="expandedItems[item.id] && item.hasBreakdown">
         <template v-for="(expense, expenseKey) in item.breakdown" :key="`${item.id}-${expenseKey}`">
-          <div class="col-label text-body-sm py-0.5 pl-20 text-gray-400">
+          <div class="col-label text-body-sm py-0.5 pl-20 text-horizon-400">
             {{ formatExpenseLabel(expenseKey) }}
           </div>
-          <div class="col-value text-body-sm py-0.5 text-gray-500">
+          <div class="col-value text-body-sm py-0.5 text-neutral-500">
             {{ formatCurrency(expense) }}
           </div>
-          <div v-if="isMarried" class="col-value-mid text-body-sm py-0.5 text-gray-500">
+          <div v-if="isMarried" class="col-value-mid text-body-sm py-0.5 text-neutral-500">
             {{ formatCurrency(getSpouseBreakdownAmount(item, expenseKey)) }}
           </div>
-          <div v-if="isMarried" class="col-total text-body-sm py-0.5 text-gray-500">
+          <div v-if="isMarried" class="col-total text-body-sm py-0.5 text-neutral-500">
             {{ formatCurrency(expense + getSpouseBreakdownAmount(item, expenseKey)) }}
           </div>
         </template>

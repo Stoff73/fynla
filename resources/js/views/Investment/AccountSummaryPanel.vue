@@ -46,7 +46,7 @@
         <div class="detail-item">
           <span class="detail-label">YTD Return</span>
           <span v-if="hasHoldings && account.ytd_return !== null && account.ytd_return !== undefined" class="detail-value" :class="returnColorClass">{{ formatReturn(account.ytd_return) }}</span>
-          <span v-else class="detail-value text-blue-600 cursor-pointer hover:underline" @click="$emit('add-holding')">Enter Holdings</span>
+          <span v-else class="detail-value text-violet-600 cursor-pointer hover:underline" @click="$emit('add-holding')">Enter Holdings</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Valuation Date</span>
@@ -187,9 +187,9 @@ export default {
     },
 
     isaRemainingClass() {
-      if (this.isaRemaining <= 0) return 'text-red-600';
-      if (this.isaRemaining < 5000) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.isaRemaining <= 0) return 'text-raspberry-600';
+      if (this.isaRemaining < 5000) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     currentTaxYear() {
@@ -269,8 +269,8 @@ export default {
     },
 
     returnColorClass() {
-      if (this.account.ytd_return >= 0) return 'text-green-600';
-      return 'text-red-600';
+      if (this.account.ytd_return >= 0) return 'text-spring-600';
+      return 'text-raspberry-600';
     },
   },
 
@@ -346,34 +346,20 @@ export default {
 <style scoped>
 .account-details-panel {
   animation: fadeIn 0.3s ease-out;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  @apply flex flex-col gap-6;
 }
 
 .details-section {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  padding: 24px;
+  @apply bg-white rounded-xl border border-light-gray p-6;
 }
 
 .section-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-light-gray;
 }
 
 .details-grid {
@@ -391,29 +377,27 @@ export default {
 .detail-label {
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .detail-value {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .detail-value.highlight {
   font-size: 20px;
-  color: #059669;
+  @apply text-spring-600;
 }
 
 .no-holdings {
-  text-align: center;
-  padding: 24px;
-  color: #6b7280;
+  @apply text-center p-6 text-neutral-500;
 }
 
 .notes-text {
   font-size: 14px;
-  color: #4b5563;
+  @apply text-neutral-500;
   line-height: 1.6;
   white-space: pre-wrap;
 }

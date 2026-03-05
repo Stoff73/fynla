@@ -4,7 +4,7 @@
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden py-20">
       <!-- Background Elements -->
       <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
         <div class="absolute top-1/3 right-1/4 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
@@ -61,10 +61,10 @@
               <img
                 :src="csjImageUrl"
                 alt="Chris Slater-Jones"
-                class="w-32 h-32 rounded-full object-cover border-4 border-blue-500/30 mb-4"
+                class="w-32 h-32 rounded-full object-cover border-4 border-violet-500/30 mb-4"
               />
               <h3 class="text-2xl font-bold text-white">Chris Slater-Jones</h3>
-              <p class="text-blue-400 font-medium">Co-Founder</p>
+              <p class="text-violet-400 font-medium">Co-Founder</p>
             </div>
             <div class="space-y-4 text-slate-300 leading-relaxed">
               <p>

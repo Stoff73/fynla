@@ -2,111 +2,111 @@
   <!-- Liability Breakdown for One Person (User or Spouse) -->
   <template v-if="ownerData && ownerData.liabilities">
     <!-- Owner Liabilities Header -->
-    <tr class="bg-white border-l-4 border-gray-400 cursor-pointer hover:bg-gray-50 select-none" @click="$emit('toggle-liability', ownerKey + '-all')">
-      <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+    <tr class="bg-white border-l-4 border-horizon-400 cursor-pointer hover:bg-eggshell-500 select-none" @click="$emit('toggle-liability', ownerKey + '-all')">
+      <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
         <span class="inline-flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
           {{ ownerData.name }}'s Liabilities
         </span>
       </td>
-      <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(ownerData.total) }}</td>
-      <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(ownerData.total) }}</td>
-      <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(projectedTotal) }}</td>
-      <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-gray-900">{{ formatLiability(projectedTotal) }}</td>
+      <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>
+      <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>
+      <td class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(projectedTotal) }}</td>
+      <td v-if="showPlus5Years" class="px-4 py-3 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(projectedTotal) }}</td>
     </tr>
 
     <template v-if="isExpanded(ownerKey + '-all')">
       <!-- Mortgages -->
       <template v-if="ownerData.liabilities.mortgages?.length > 1">
-        <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="$emit('toggle-liability', ownerKey + '-mortgages')">
-          <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+        <tr class="cursor-pointer hover:bg-savannah-100 select-none" @click="$emit('toggle-liability', ownerKey + '-mortgages')">
+          <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
             <span class="inline-flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-              <span class="text-sm text-gray-600">Mortgages</span>
-              <span class="ml-1 text-xs text-gray-400">({{ ownerData.liabilities.mortgages.length }})</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-mortgages') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              <span class="text-sm text-neutral-500">Mortgages</span>
+              <span class="ml-1 text-xs text-horizon-400">({{ ownerData.liabilities.mortgages.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.mortgages, 'outstanding_balance')) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.mortgages, 'outstanding_balance')) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.mortgages, 'outstanding_balance')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.mortgages, 'outstanding_balance')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.mortgages, 'outstanding_balance', 'projected_balance')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-mortgages')">
           <tr v-for="(mortgage, index) in ownerData.liabilities.mortgages" :key="ownerKey + '-mortgage-' + index">
-            <td class="px-4 py-2 text-sm text-gray-700 pl-12">
+            <td class="px-4 py-2 text-sm text-neutral-500 pl-12">
               {{ mortgage.property_address }}
-              <span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span>
-              <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(mortgage) }}</span>
+              <span class="text-sm text-neutral-500 ml-2">{{ mortgage.mortgage_type }}</span>
+              <span v-if="mortgage.is_joint" class="ml-2 text-xs text-neutral-500 font-medium">{{ formatJointLabel(mortgage) }}</span>
             </td>
-            <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-            <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(mortgage.outstanding_balance) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(mortgage.outstanding_balance) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
           </tr>
         </template>
       </template>
       <template v-else>
         <tr v-for="(mortgage, index) in ownerData.liabilities.mortgages" :key="ownerKey + '-mortgage-' + index">
-          <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-            <span class="text-sm text-gray-600">Mortgage:</span> {{ mortgage.property_address }}
-            <span class="text-sm text-gray-500 ml-2">{{ mortgage.mortgage_type }}</span>
-            <span v-if="mortgage.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(mortgage) }}</span>
+          <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
+            <span class="text-sm text-neutral-500">Mortgage:</span> {{ mortgage.property_address }}
+            <span class="text-sm text-neutral-500 ml-2">{{ mortgage.mortgage_type }}</span>
+            <span v-if="mortgage.is_joint" class="ml-2 text-xs text-neutral-500 font-medium">{{ formatJointLabel(mortgage) }}</span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(mortgage.outstanding_balance) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(mortgage.outstanding_balance) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(mortgage.outstanding_balance) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getMortgageProjectedBalance(mortgage)) }}</td>
         </tr>
       </template>
 
       <!-- Other Liabilities -->
       <template v-if="ownerData.liabilities.other_liabilities?.length > 1">
-        <tr class="cursor-pointer hover:bg-gray-100 select-none" @click="$emit('toggle-liability', ownerKey + '-other')">
-          <td class="px-4 py-2 text-sm text-gray-700 pl-8">
+        <tr class="cursor-pointer hover:bg-savannah-100 select-none" @click="$emit('toggle-liability', ownerKey + '-other')">
+          <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
             <span class="inline-flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-gray-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-              <span class="text-sm text-gray-600">Other Liabilities</span>
-              <span class="ml-1 text-xs text-gray-400">({{ ownerData.liabilities.other_liabilities.length }})</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-other') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              <span class="text-sm text-neutral-500">Other Liabilities</span>
+              <span class="ml-1 text-xs text-horizon-400">({{ ownerData.liabilities.other_liabilities.length }})</span>
             </span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.other_liabilities, 'current_balance')) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.other_liabilities, 'current_balance')) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.other_liabilities, 'current_balance')) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupTotal(ownerData.liabilities.other_liabilities, 'current_balance')) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liabilityGroupProjectedTotal(ownerData.liabilities.other_liabilities, 'current_balance', 'projected_balance')) }}</td>
         </tr>
         <template v-if="isExpanded(ownerKey + '-other')">
           <tr v-for="(liability, index) in ownerData.liabilities.other_liabilities" :key="ownerKey + '-liability-' + index">
-            <td class="px-4 py-2 text-sm text-gray-700 pl-12">
-              <span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}
-              <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(liability) }}</span>
+            <td class="px-4 py-2 text-sm text-neutral-500 pl-12">
+              <span class="text-sm text-neutral-500">{{ liability.type }}:</span> {{ liability.institution }}
+              <span v-if="liability.is_joint" class="ml-2 text-xs text-neutral-500 font-medium">{{ formatJointLabel(liability) }}</span>
             </td>
-            <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-            <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
-            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liability.current_balance) }}</td>
+            <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liability.current_balance) }}</td>
+            <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
+            <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
           </tr>
         </template>
       </template>
       <template v-else>
         <tr v-for="(liability, index) in ownerData.liabilities.other_liabilities" :key="ownerKey + '-liability-' + index">
-          <td class="px-4 py-2 text-sm text-gray-700 pl-8">
-            <span class="text-sm text-gray-600">{{ liability.type }}:</span> {{ liability.institution }}
-            <span v-if="liability.is_joint" class="ml-2 text-xs text-gray-600 font-medium">{{ formatJointLabel(liability) }}</span>
+          <td class="px-4 py-2 text-sm text-neutral-500 pl-8">
+            <span class="text-sm text-neutral-500">{{ liability.type }}:</span> {{ liability.institution }}
+            <span v-if="liability.is_joint" class="ml-2 text-xs text-neutral-500 font-medium">{{ formatJointLabel(liability) }}</span>
           </td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(liability.current_balance) }}</td>
-          <td class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
-          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-gray-600">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liability.current_balance) }}</td>
+          <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(liability.current_balance) }}</td>
+          <td class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
+          <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">{{ formatLiability(getLiabilityProjectedBalance(liability)) }}</td>
         </tr>
       </template>
 
       <!-- Liabilities Subtotal (only if > 0) -->
-      <tr v-if="ownerData.total > 0" class="bg-white border-l-4 border-gray-400">
-        <td class="px-4 py-2 text-sm font-semibold text-gray-900 pl-8">{{ subtotalLabel }}</td>
-        <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(ownerData.total) }}</td>
-        <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(ownerData.total) }}</td>
-        <td class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(projectedTotal) }}</td>
-        <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-gray-900">{{ formatLiability(projectedTotal) }}</td>
+      <tr v-if="ownerData.total > 0" class="bg-white border-l-4 border-horizon-400">
+        <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">{{ subtotalLabel }}</td>
+        <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>
+        <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>
+        <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(projectedTotal) }}</td>
+        <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(projectedTotal) }}</td>
       </tr>
     </template>
   </template>

@@ -181,14 +181,14 @@ export default {
 .last-updated {
   text-align: center;
   padding: 12px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
 }
 
 .last-updated p {
   margin: 0;
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 /* Tablet responsive - stack layout */

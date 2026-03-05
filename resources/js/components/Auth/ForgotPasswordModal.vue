@@ -12,7 +12,7 @@
         <!-- Close button -->
         <button
           @click="handleClose"
-          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          class="absolute top-4 right-4 text-horizon-400 hover:text-neutral-500 transition-colors"
           title="Close"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,20 +23,20 @@
         <!-- Step 1: Email Entry -->
         <div v-if="step === 'email'">
           <div class="text-center mb-6">
-            <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 bg-raspberry-100 rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900">Reset Your Password</h3>
-            <p class="mt-2 text-sm text-gray-600">
+            <h3 class="text-xl font-semibold text-horizon-500">Reset Your Password</h3>
+            <p class="mt-2 text-sm text-neutral-500">
               Enter your email address and we'll send you a verification code.
             </p>
           </div>
 
           <form @submit.prevent="requestReset">
             <div class="mb-4">
-              <label for="reset-email" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="reset-email" class="block text-sm font-medium text-horizon-500 mb-1">
                 Email address
               </label>
               <input
@@ -44,21 +44,21 @@
                 v-model="email"
                 type="email"
                 required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                class="w-full px-4 py-3 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-all"
                 placeholder="you@example.com"
                 :disabled="loading"
                 ref="emailInput"
               >
             </div>
 
-            <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p class="text-sm text-red-600 text-center">{{ error }}</p>
+            <div v-if="error" class="mb-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+              <p class="text-sm text-raspberry-500 text-center">{{ error }}</p>
             </div>
 
             <button
               type="submit"
               :disabled="!email || loading"
-              class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              class="w-full py-3 px-4 bg-raspberry-500 text-white font-medium rounded-lg hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <span v-if="loading">Sending...</span>
               <span v-else>Send Verification Code</span>
@@ -69,13 +69,13 @@
         <!-- Step 2: Email Code Verification -->
         <div v-else-if="step === 'verify-email'">
           <div class="text-center mb-6">
-            <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 bg-raspberry-100 rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900">Enter Verification Code</h3>
-            <p class="mt-2 text-sm text-gray-600">
+            <h3 class="text-xl font-semibold text-horizon-500">Enter Verification Code</h3>
+            <p class="mt-2 text-sm text-neutral-500">
               We sent a code to <span class="font-medium">{{ email }}</span>
             </p>
           </div>
@@ -90,10 +90,10 @@
               maxlength="1"
               inputmode="numeric"
               pattern="[0-9]*"
-              class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+              class="w-12 h-14 text-center text-2xl font-bold border-2 border-horizon-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-200 outline-none transition-all"
               :class="{
-                'border-red-500 bg-red-50': error,
-                'border-indigo-500': codeDigits[index] && !error
+                'border-raspberry-500 bg-raspberry-50': error,
+                'border-violet-500': codeDigits[index] && !error
               }"
               :value="codeDigits[index]"
               @input="handleCodeInput($event, index)"
@@ -103,8 +103,8 @@
             />
           </div>
 
-          <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-600 text-center">{{ error }}</p>
+          <div v-if="error" class="mb-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+            <p class="text-sm text-raspberry-500 text-center">{{ error }}</p>
           </div>
 
           <!-- Resend Section -->
@@ -112,7 +112,7 @@
             <button
               @click="handleResendCode"
               :disabled="resending || remainingResends === 0"
-              class="text-sm text-indigo-600 hover:text-indigo-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium disabled:text-horizon-400 disabled:cursor-not-allowed transition-colors"
             >
               <span v-if="resending">Sending...</span>
               <span v-else-if="remainingResends === 0">No resends remaining</span>
@@ -123,7 +123,7 @@
           <div class="text-center">
             <button
               @click="goToStep('email')"
-              class="text-sm text-gray-500 hover:text-gray-700"
+              class="text-sm text-neutral-500 hover:text-horizon-500"
             >
               Use a different email
             </button>
@@ -133,13 +133,13 @@
         <!-- Step 3: MFA Verification (if required) -->
         <div v-else-if="step === 'verify-mfa'">
           <div class="text-center mb-6">
-            <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 bg-raspberry-100 rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900">Two-Factor Authentication</h3>
-            <p class="mt-2 text-sm text-gray-600">
+            <h3 class="text-xl font-semibold text-horizon-500">Two-Factor Authentication</h3>
+            <p class="mt-2 text-sm text-neutral-500">
               Enter the 6-digit code from your authenticator app.
             </p>
           </div>
@@ -155,10 +155,10 @@
                 maxlength="1"
                 inputmode="numeric"
                 pattern="[0-9]*"
-                class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                class="w-12 h-14 text-center text-2xl font-bold border-2 border-horizon-300 rounded-lg focus:border-violet-500 focus:ring-2 focus:ring-violet-200 outline-none transition-all"
                 :class="{
-                  'border-red-500 bg-red-50': error,
-                  'border-indigo-500': mfaDigits[index] && !error
+                  'border-raspberry-500 bg-raspberry-50': error,
+                  'border-violet-500': mfaDigits[index] && !error
                 }"
                 :value="mfaDigits[index]"
                 @input="handleMfaInput($event, index)"
@@ -171,7 +171,7 @@
             <div class="text-center mt-4">
               <button
                 @click="showRecoveryInput = true"
-                class="text-sm text-indigo-600 hover:text-indigo-800"
+                class="text-sm text-raspberry-500 hover:text-raspberry-700"
               >
                 Lost access to authenticator? Use a recovery code
               </button>
@@ -184,7 +184,7 @@
               <input
                 v-model="recoveryCode"
                 type="text"
-                class="w-full px-4 py-3 font-mono text-center text-lg tracking-wider border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                class="w-full px-4 py-3 font-mono text-center text-lg tracking-wider border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none"
                 placeholder="XXXX-XXXX-XXXX"
                 :disabled="loading"
                 @keyup.enter="verifyRecoveryCode"
@@ -194,7 +194,7 @@
             <button
               @click="verifyRecoveryCode"
               :disabled="!recoveryCode.trim() || loading"
-              class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              class="w-full py-3 px-4 bg-raspberry-500 text-white font-medium rounded-lg hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <span v-if="loading">Verifying...</span>
               <span v-else>Use Recovery Code</span>
@@ -203,35 +203,35 @@
             <div class="text-center mt-4">
               <button
                 @click="showRecoveryInput = false"
-                class="text-sm text-gray-500 hover:text-gray-700"
+                class="text-sm text-neutral-500 hover:text-horizon-500"
               >
                 Back to authenticator code
               </button>
             </div>
           </div>
 
-          <div v-if="error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p class="text-sm text-red-600 text-center">{{ error }}</p>
+          <div v-if="error" class="mt-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+            <p class="text-sm text-raspberry-500 text-center">{{ error }}</p>
           </div>
         </div>
 
         <!-- Step 4: New Password Entry -->
         <div v-else-if="step === 'new-password'">
           <div class="text-center mb-6">
-            <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 bg-spring-100 rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900">Create New Password</h3>
-            <p class="mt-2 text-sm text-gray-600">
+            <h3 class="text-xl font-semibold text-horizon-500">Create New Password</h3>
+            <p class="mt-2 text-sm text-neutral-500">
               Choose a strong password for your account.
             </p>
           </div>
 
           <form @submit.prevent="resetPassword">
             <div class="mb-4">
-              <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="new-password" class="block text-sm font-medium text-horizon-500 mb-1">
                 New Password
               </label>
               <input
@@ -240,7 +240,7 @@
                 type="password"
                 required
                 minlength="8"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                class="w-full px-4 py-3 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-all"
                 placeholder="Enter new password"
                 :disabled="loading"
                 ref="passwordInput"
@@ -248,7 +248,7 @@
             </div>
 
             <div class="mb-4">
-              <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="confirm-password" class="block text-sm font-medium text-horizon-500 mb-1">
                 Confirm Password
               </label>
               <input
@@ -257,31 +257,31 @@
                 type="password"
                 required
                 minlength="8"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                class="w-full px-4 py-3 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-all"
                 placeholder="Confirm new password"
                 :disabled="loading"
               >
             </div>
 
-            <div v-if="passwordError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p class="text-sm text-red-600 text-center">{{ passwordError }}</p>
+            <div v-if="passwordError" class="mb-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+              <p class="text-sm text-raspberry-500 text-center">{{ passwordError }}</p>
             </div>
 
-            <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p class="text-sm text-red-600 text-center">{{ error }}</p>
+            <div v-if="error" class="mb-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+              <p class="text-sm text-raspberry-500 text-center">{{ error }}</p>
             </div>
 
             <button
               type="submit"
               :disabled="!canSubmitPassword || loading"
-              class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              class="w-full py-3 px-4 bg-raspberry-500 text-white font-medium rounded-lg hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <span v-if="loading">Resetting...</span>
               <span v-else>Reset Password</span>
             </button>
           </form>
 
-          <p class="mt-4 text-xs text-gray-500 text-center">
+          <p class="mt-4 text-xs text-neutral-500 text-center">
             Password must be at least 8 characters long.
           </p>
         </div>
@@ -289,19 +289,19 @@
         <!-- Step 5: Success -->
         <div v-else-if="step === 'success'">
           <div class="text-center">
-            <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 bg-spring-100 rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900">Password Reset Complete</h3>
-            <p class="mt-2 text-sm text-gray-600">
+            <h3 class="text-xl font-semibold text-horizon-500">Password Reset Complete</h3>
+            <p class="mt-2 text-sm text-neutral-500">
               Your password has been successfully reset. You can now sign in with your new password.
             </p>
 
             <button
               @click="handleClose"
-              class="mt-6 w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all"
+              class="mt-6 w-full py-3 px-4 bg-raspberry-500 text-white font-medium rounded-lg hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition-all"
             >
               Sign In
             </button>
@@ -311,8 +311,8 @@
         <!-- Loading Overlay -->
         <div v-if="loading && step !== 'success'" class="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
           <div class="flex flex-col items-center">
-            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p class="mt-3 text-sm text-gray-600">{{ loadingMessage }}</p>
+            <div class="w-10 h-10 border-4 border-violet-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+            <p class="mt-3 text-sm text-neutral-500">{{ loadingMessage }}</p>
           </div>
         </div>
       </div>

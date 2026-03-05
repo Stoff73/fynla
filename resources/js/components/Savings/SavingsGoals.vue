@@ -1,15 +1,15 @@
 <template>
   <div class="savings-goals">
     <!-- Goals Module Migration Banner -->
-    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-      <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="mb-4 p-4 bg-violet-50 border border-violet-200 rounded-lg flex items-start gap-3">
+      <svg class="h-5 w-5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <div>
-        <p class="text-sm font-medium text-blue-900">Goals are now managed in the Goals module</p>
-        <p class="text-xs text-blue-700 mt-1">
+        <p class="text-sm font-medium text-violet-900">Goals are now managed in the Goals module</p>
+        <p class="text-xs text-violet-700 mt-1">
           For a more comprehensive view of your financial goals, including investment and retirement targets, visit the
-          <router-link to="/goals" class="text-blue-600 underline hover:text-blue-800 font-medium">Goals &amp; Life Events</router-link>
+          <router-link to="/goals" class="text-violet-600 underline hover:text-violet-800 font-medium">Goals &amp; Life Events</router-link>
           section. These legacy savings goals remain available for reference.
         </p>
       </div>
@@ -18,14 +18,14 @@
     <!-- Header with Add Button -->
     <div class="mb-6 flex justify-between items-center">
       <div>
-        <h3 class="text-lg font-semibold text-gray-900">Your Savings Goals</h3>
-        <p class="text-sm text-gray-600 mt-1">
+        <h3 class="text-lg font-semibold text-horizon-500">Your Savings Goals</h3>
+        <p class="text-sm text-neutral-500 mt-1">
           {{ goalsOnTrack.length }} of {{ goals.length }} goals on track
         </p>
       </div>
       <button
         @click="showAddGoalModal = true"
-        class="px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 transition-colors flex items-center gap-2"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -50,12 +50,12 @@
       <div
         v-for="goal in goals"
         :key="goal.id"
-        class="bg-white rounded-lg border border-gray-200 p-6"
+        class="bg-white rounded-lg border border-light-gray p-6"
       >
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h4 class="text-lg font-semibold text-gray-900">{{ goal.goal_name }}</h4>
-            <p class="text-sm text-gray-600">Target: {{ formatDate(goal.target_date) }}</p>
+            <h4 class="text-lg font-semibold text-horizon-500">{{ goal.goal_name }}</h4>
+            <p class="text-sm text-neutral-500">Target: {{ formatDate(goal.target_date) }}</p>
           </div>
           <span
             class="px-3 py-1 text-xs font-semibold rounded-full"
@@ -68,10 +68,10 @@
         <!-- Progress Bar -->
         <div class="mb-4">
           <div class="flex justify-between text-sm mb-1">
-            <span class="text-gray-600">Progress</span>
+            <span class="text-neutral-500">Progress</span>
             <span class="font-semibold">{{ getProgressPercent(goal) }}%</span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
+          <div class="w-full bg-savannah-200 rounded-full h-3">
             <div
               class="h-3 rounded-full transition-all"
               :class="getProgressBarColour(goal)"
@@ -83,22 +83,22 @@
         <!-- Amount Info -->
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <p class="text-sm text-gray-600">Saved</p>
-            <p class="text-lg font-bold text-gray-900">
+            <p class="text-sm text-neutral-500">Saved</p>
+            <p class="text-lg font-bold text-horizon-500">
               {{ formatCurrency(goal.current_saved) }}
             </p>
           </div>
           <div>
-            <p class="text-sm text-gray-600">Target</p>
-            <p class="text-lg font-bold text-gray-900">
+            <p class="text-sm text-neutral-500">Target</p>
+            <p class="text-lg font-bold text-horizon-500">
               {{ formatCurrency(goal.target_amount) }}
             </p>
           </div>
         </div>
 
         <!-- Required Monthly Savings -->
-        <div class="p-3 bg-gray-50 rounded-lg mb-4">
-          <p class="text-sm text-gray-700">
+        <div class="p-3 bg-eggshell-500 rounded-lg mb-4">
+          <p class="text-sm text-neutral-500">
             <span class="font-medium">Required monthly savings:</span>
             {{ formatCurrency(getRequiredMonthlySavings(goal)) }}
           </p>
@@ -108,19 +108,19 @@
         <div class="flex gap-3">
           <button
             @click="handleUpdateProgress(goal.id)"
-            class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700"
+            class="flex-1 px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600"
           >
             Update Progress
           </button>
           <button
             @click="handleEditGoal(goal)"
-            class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+            class="px-4 py-2 bg-savannah-100 text-neutral-500 text-sm font-medium rounded-lg hover:bg-savannah-200"
           >
             Edit
           </button>
           <button
             @click="handleDeleteGoal(goal.id)"
-            class="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100"
+            class="px-4 py-2 bg-raspberry-50 text-raspberry-600 text-sm font-medium rounded-lg hover:bg-raspberry-100"
           >
             Delete
           </button>
@@ -129,9 +129,9 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-white rounded-lg border border-gray-200">
+    <div v-else class="text-center py-12 bg-white rounded-lg border border-light-gray">
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-horizon-400"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -143,13 +143,13 @@
           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No savings goals yet</h3>
-      <p class="mt-1 text-sm text-gray-500">
+      <h3 class="mt-2 text-sm font-medium text-horizon-500">No savings goals yet</h3>
+      <p class="mt-1 text-sm text-neutral-500">
         Get started by creating your first savings goal.
       </p>
       <button
         @click="showAddGoalModal = true"
-        class="mt-4 px-4 py-2 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700"
+        class="mt-4 px-4 py-2 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600"
       >
         Create Goal
       </button>
@@ -216,18 +216,18 @@ export default {
 
     getStatusBadge(goal) {
       const status = this.getStatusLabel(goal);
-      if (status === 'Completed') return 'bg-green-500 text-white';
-      if (status === 'On Track') return 'bg-blue-500 text-white';
-      if (status === 'Off Track') return 'bg-red-500 text-white';
-      if (status === 'Overdue') return 'bg-red-500 text-white';
-      return 'bg-gray-500 text-white';
+      if (status === 'Completed') return 'bg-spring-500 text-white';
+      if (status === 'On Track') return 'bg-violet-500 text-white';
+      if (status === 'Off Track') return 'bg-raspberry-500 text-white';
+      if (status === 'Overdue') return 'bg-raspberry-500 text-white';
+      return 'bg-eggshell-5000 text-white';
     },
 
     getProgressBarColour(goal) {
       const status = this.getStatusLabel(goal);
-      if (status === 'Completed') return 'bg-green-600';
-      if (status === 'On Track') return 'bg-primary-600';
-      return 'bg-red-600';
+      if (status === 'Completed') return 'bg-spring-600';
+      if (status === 'On Track') return 'bg-raspberry-500';
+      return 'bg-raspberry-600';
     },
 
     getRequiredMonthlySavings(goal) {

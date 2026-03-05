@@ -11,75 +11,75 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <p class="text-body-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+      <p class="text-body-sm text-neutral-500 bg-eggshell-500 p-3 rounded-lg">
         This information helps us understand your family structure for estate planning and protection needs analysis.
       </p>
 
       <!-- Success Message -->
-      <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div v-if="successMessage" class="bg-spring-50 border border-spring-200 rounded-lg p-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <svg class="h-5 w-5 text-spring-400" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
           </div>
           <div class="ml-3">
-            <p class="text-sm text-green-700">{{ successMessage }}</p>
+            <p class="text-sm text-spring-700">{{ successMessage }}</p>
           </div>
         </div>
       </div>
 
       <!-- Family Members List -->
       <div v-if="familyMembers.length > 0" class="space-y-3">
-        <h4 class="text-body font-medium text-gray-900">
+        <h4 class="text-body font-medium text-horizon-500">
           Family Members ({{ familyMembers.length }})
         </h4>
 
         <div
           v-for="member in familyMembers"
           :key="member.id"
-          class="border border-gray-200 rounded-lg p-4 bg-gray-50"
+          class="border border-light-gray rounded-lg p-4 bg-eggshell-500"
         >
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <h5 class="text-body font-medium text-gray-900">{{ member.name }}</h5>
-                <span class="text-body-sm px-2 py-0.5 bg-blue-100 text-blue-700 rounded capitalize">
+                <h5 class="text-body font-medium text-horizon-500">{{ member.name }}</h5>
+                <span class="text-body-sm px-2 py-0.5 bg-violet-100 text-violet-700 rounded capitalize">
                   {{ formatRelationship(member.relationship) }}
                 </span>
                 <!-- Linked Account Indicator for Spouse -->
-                <span v-if="member.relationship === 'spouse' && member.email" class="inline-flex items-center gap-1 text-body-sm px-2 py-0.5 bg-green-100 text-green-700 rounded" title="Account Linked">
+                <span v-if="member.relationship === 'spouse' && member.email" class="inline-flex items-center gap-1 text-body-sm px-2 py-0.5 bg-spring-100 text-spring-700 rounded" title="Account Linked">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                   Linked
                 </span>
               </div>
-              <p v-if="member.date_of_birth" class="text-body-sm text-gray-600">
+              <p v-if="member.date_of_birth" class="text-body-sm text-neutral-500">
                 Age: {{ calculateAge(member.date_of_birth) }} years
               </p>
-              <p v-if="member.is_dependent" class="text-body-sm text-gray-600">
-                <span class="text-blue-600">● Financially dependent</span>
+              <p v-if="member.is_dependent" class="text-body-sm text-neutral-500">
+                <span class="text-violet-600">● Financially dependent</span>
               </p>
             </div>
             <div v-if="member.relationship !== 'spouse'" class="flex gap-2 ml-4">
               <button
                 type="button"
-                class="text-primary-600 hover:text-primary-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="editMember(member)"
               >
                 Edit
               </button>
               <button
                 type="button"
-                class="text-red-600 hover:text-red-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="deleteMember(member.id)"
               >
                 Delete
               </button>
             </div>
             <div v-else class="ml-4">
-              <p class="text-body-xs text-gray-500 italic max-w-[180px] text-right">
+              <p class="text-body-xs text-neutral-500 italic max-w-[180px] text-right">
                 Linked account — edit or delete by logging into the spouse's account
               </p>
             </div>

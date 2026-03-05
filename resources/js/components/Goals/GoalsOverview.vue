@@ -4,7 +4,7 @@
     <div class="flex flex-wrap gap-3 mb-6">
       <button
         @click="$emit('create-goal')"
-        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
+        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-raspberry-600 rounded-button hover:bg-raspberry-700 transition-colors"
       >
         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -13,7 +13,7 @@
       </button>
       <button
         @click="$emit('create-event')"
-        class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+        class="inline-flex items-center px-4 py-2 text-sm font-medium text-raspberry-600 bg-raspberry-50 border border-raspberry-200 rounded-lg hover:bg-raspberry-100 transition-colors"
       >
         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -28,19 +28,19 @@
     </div>
 
     <!-- Empty State Prompt - shown below chart when no goals -->
-    <div v-if="!hasGoals" class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
-      <div class="mx-auto w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-        <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div v-if="!hasGoals" class="mb-8 p-6 bg-violet-50 border border-violet-200 rounded-lg text-center">
+      <div class="mx-auto w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center mb-3">
+        <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
       </div>
-      <h3 class="text-base font-semibold text-gray-900 mb-1">Add Your First Goal or Life Event</h3>
-      <p class="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+      <h3 class="text-base font-semibold text-horizon-500 mb-1">Add Your First Goal or Life Event</h3>
+      <p class="text-sm text-neutral-500 mb-4 max-w-md mx-auto">
         The chart above shows your projected net worth. Add goals and life events to see how they impact your future finances.
       </p>
       <button
         @click="$emit('create-goal')"
-        class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 text-sm font-medium text-white bg-raspberry-600 rounded-button hover:bg-raspberry-700 transition-colors"
       >
         Create Your First Goal
       </button>
@@ -52,24 +52,24 @@
       <!-- Streak Banner -->
       <div
         v-if="bestStreak >= 3"
-        class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3"
+        class="mb-8 p-4 bg-violet-50 border border-violet-200 rounded-lg flex items-center gap-3"
       >
         <span class="text-2xl">🔥</span>
         <div>
-          <p class="text-base font-semibold text-blue-700">
+          <p class="text-base font-semibold text-violet-700">
             {{ bestStreak }} month contribution streak!
           </p>
-          <p class="text-sm text-blue-600">Keep up the great work!</p>
+          <p class="text-sm text-violet-600">Keep up the great work!</p>
         </div>
       </div>
 
       <!-- Top Goals -->
       <div class="mb-8">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Top Goals</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Top Goals</h3>
           <button
             @click="$emit('create-goal')"
-            class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-button hover:bg-primary-700 transition-colors flex items-center gap-2"
+            class="px-4 py-2 text-sm font-medium text-white bg-raspberry-600 rounded-button hover:bg-raspberry-700 transition-colors flex items-center gap-2"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -83,11 +83,11 @@
             v-for="goal in topGoals"
             :key="goal.id"
             @click="$emit('view-goal', goal)"
-            class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-primary-300 cursor-pointer transition-all"
+            class="bg-white border border-light-gray rounded-lg p-4 hover:shadow-md hover:border-raspberry-300 cursor-pointer transition-all"
           >
             <div class="flex items-center gap-2 mb-2">
               <span class="text-lg">{{ getGoalIcon(goal.goal_type) }}</span>
-              <h4 class="font-medium text-gray-900 truncate">{{ goal.name }}</h4>
+              <h4 class="font-medium text-horizon-500 truncate">{{ goal.name }}</h4>
             </div>
 
             <div class="flex items-center gap-2 mb-3">
@@ -98,13 +98,13 @@
                 class="w-2 h-2 rounded-full"
                 :class="getGoalStatusDotClass(goal)"
               ></span>
-              <span class="text-xs text-gray-500">
+              <span class="text-xs text-neutral-500">
                 {{ getGoalStatusLabel(goal) }}
               </span>
             </div>
 
             <div class="mb-2">
-              <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="w-full bg-horizon-200 rounded-full h-2">
                 <div
                   class="h-2 rounded-full"
                   :class="getGoalProgressBarClass(goal)"
@@ -114,8 +114,8 @@
             </div>
 
             <div class="flex justify-between text-sm">
-              <span class="text-gray-600">{{ Math.round(goal.progress_percentage) }}% complete</span>
-              <span class="font-medium text-gray-900">{{ formatCurrency(goal.target_amount) }}</span>
+              <span class="text-neutral-500">{{ Math.round(goal.progress_percentage) }}% complete</span>
+              <span class="font-medium text-horizon-500">{{ formatCurrency(goal.target_amount) }}</span>
             </div>
           </div>
         </div>
@@ -126,15 +126,15 @@
         <!-- On Track Status -->
         <div
           v-if="summary.on_track_count === summary.total_goals"
-          class="p-4 bg-white border-2 border-green-600 rounded-lg"
+          class="p-4 bg-white border-2 border-spring-600 rounded-lg"
         >
           <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p class="font-semibold text-green-700">All goals on track!</p>
-              <p class="text-sm text-green-600">Keep up the great progress</p>
+              <p class="font-semibold text-spring-700">All goals on track!</p>
+              <p class="text-sm text-spring-600">Keep up the great progress</p>
             </div>
           </div>
         </div>
@@ -142,18 +142,18 @@
         <!-- Needs Attention Status -->
         <div
           v-else-if="summary.on_track_count < summary.total_goals"
-          class="p-4 bg-white border-2 border-blue-500 rounded-lg"
+          class="p-4 bg-white border-2 border-violet-500 rounded-lg"
         >
           <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p class="font-semibold text-blue-700">
+              <p class="font-semibold text-violet-700">
                 {{ summary.total_goals - summary.on_track_count }}
                 {{ (summary.total_goals - summary.on_track_count) === 1 ? 'goal needs' : 'goals need' }} attention
               </p>
-              <p class="text-sm text-blue-600">Consider increasing contributions</p>
+              <p class="text-sm text-violet-600">Consider increasing contributions</p>
             </div>
           </div>
         </div>
@@ -220,11 +220,11 @@ export default {
     getModuleTagClass(module) {
       const classes = {
         savings: 'bg-emerald-100 text-emerald-700',
-        investment: 'bg-blue-100 text-blue-700',
+        investment: 'bg-violet-100 text-violet-700',
         property: 'bg-purple-100 text-purple-700',
-        retirement: 'bg-blue-100 text-blue-700',
+        retirement: 'bg-violet-100 text-violet-700',
       };
-      return classes[module] || 'bg-gray-100 text-gray-700';
+      return classes[module] || 'bg-savannah-100 text-neutral-500';
     },
 
     isNotStarted(goal) {
@@ -232,9 +232,9 @@ export default {
     },
 
     getGoalStatusDotClass(goal) {
-      if (this.isNotStarted(goal)) return 'bg-gray-400';
-      if (goal.is_on_track) return 'bg-green-500';
-      return 'bg-blue-500';
+      if (this.isNotStarted(goal)) return 'bg-horizon-400';
+      if (goal.is_on_track) return 'bg-spring-500';
+      return 'bg-violet-500';
     },
 
     getGoalStatusLabel(goal) {
@@ -244,9 +244,9 @@ export default {
     },
 
     getGoalProgressBarClass(goal) {
-      if (this.isNotStarted(goal)) return 'bg-gray-300';
-      if (goal.is_on_track) return 'bg-blue-500';
-      return 'bg-blue-500';
+      if (this.isNotStarted(goal)) return 'bg-horizon-300';
+      if (goal.is_on_track) return 'bg-violet-500';
+      return 'bg-violet-500';
     },
   },
 };

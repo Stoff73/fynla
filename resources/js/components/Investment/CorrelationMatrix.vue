@@ -2,15 +2,15 @@
   <div class="correlation-matrix">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h3 class="text-lg font-semibold text-gray-900">Correlation Matrix</h3>
-        <p class="text-sm text-gray-600 mt-1">
+        <h3 class="text-lg font-semibold text-horizon-500">Correlation Matrix</h3>
+        <p class="text-sm text-neutral-500 mt-1">
           Understand how your assets move together
         </p>
       </div>
       <button
         @click="loadCorrelationData"
         :disabled="loading"
-        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-eggshell-500 disabled:opacity-50"
       >
         {{ loading ? 'Refreshing...' : 'Refresh' }}
       </button>
@@ -19,81 +19,81 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-sm text-gray-600">Calculating correlations...</p>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
+        <p class="mt-2 text-sm text-neutral-500">Calculating correlations...</p>
       </div>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4">
+    <div v-else-if="error" class="bg-eggshell-500 rounded-lg p-4">
       <div class="flex">
-        <svg class="h-5 w-5 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="h-5 w-5 text-raspberry-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <h4 class="text-sm font-medium text-red-800">Failed to Load Correlation Data</h4>
-          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
+          <h4 class="text-sm font-medium text-raspberry-800">Failed to Load Correlation Data</h4>
+          <p class="text-sm text-raspberry-700 mt-1">{{ error }}</p>
         </div>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!correlationData || !correlationData.matrix" class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div v-else-if="!correlationData || !correlationData.matrix" class="bg-eggshell-500 border border-light-gray rounded-lg p-8 text-center">
+      <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No Correlation Data</h3>
-      <p class="mt-1 text-sm text-gray-500">Add investment holdings to see correlation analysis</p>
+      <h3 class="mt-2 text-sm font-medium text-horizon-500">No Correlation Data</h3>
+      <p class="mt-1 text-sm text-neutral-500">Add investment holdings to see correlation analysis</p>
     </div>
 
     <!-- Correlation Matrix Display -->
     <div v-else class="space-y-6">
       <!-- Summary Statistics -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Average Correlation</p>
-          <p class="text-2xl font-bold text-gray-900">
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Average Correlation</p>
+          <p class="text-2xl font-bold text-horizon-500">
             {{ formatCorrelation(correlationData.statistics?.average_correlation) }}
           </p>
-          <p class="text-xs text-gray-600 mt-1">
+          <p class="text-xs text-neutral-500 mt-1">
             {{ getCorrelationLabel(correlationData.statistics?.average_correlation) }}
           </p>
         </div>
 
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Highest Correlation</p>
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Highest Correlation</p>
           <p class="text-2xl font-bold" :class="getCorrelationColour(correlationData.statistics?.max_correlation)">
             {{ formatCorrelation(correlationData.statistics?.max_correlation) }}
           </p>
-          <p class="text-xs text-gray-600 mt-1" v-if="correlationData.statistics?.max_pair">
+          <p class="text-xs text-neutral-500 mt-1" v-if="correlationData.statistics?.max_pair">
             {{ correlationData.statistics.max_pair.join(' & ') }}
           </p>
         </div>
 
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Lowest Correlation</p>
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Lowest Correlation</p>
           <p class="text-2xl font-bold" :class="getCorrelationColour(correlationData.statistics?.min_correlation)">
             {{ formatCorrelation(correlationData.statistics?.min_correlation) }}
           </p>
-          <p class="text-xs text-gray-600 mt-1" v-if="correlationData.statistics?.min_pair">
+          <p class="text-xs text-neutral-500 mt-1" v-if="correlationData.statistics?.min_pair">
             {{ correlationData.statistics.min_pair.join(' & ') }}
           </p>
         </div>
 
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Diversification Score</p>
-          <p class="text-2xl font-bold text-blue-600">
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Diversification Score</p>
+          <p class="text-2xl font-bold text-violet-600">
             {{ diversificationScore }}/100
           </p>
-          <p class="text-xs text-gray-600 mt-1">
+          <p class="text-xs text-neutral-500 mt-1">
             {{ diversificationLabel }}
           </p>
         </div>
       </div>
 
       <!-- Heatmap Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Correlation Heatmap</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-4">Correlation Heatmap</h4>
         <apexchart
           v-if="heatmapReady"
           type="heatmap"
@@ -104,23 +104,23 @@
       </div>
 
       <!-- Correlation Insights -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Correlation Insights</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-4">Correlation Insights</h4>
 
         <!-- High Correlations (Redundancy) -->
         <div v-if="highCorrelations.length > 0" class="mb-4">
           <div class="flex items-center mb-2">
-            <svg class="h-5 w-5 text-red-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-5 w-5 text-raspberry-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <h5 class="text-sm font-medium text-gray-900">Highly Correlated Pairs (>0.90)</h5>
+            <h5 class="text-sm font-medium text-horizon-500">Highly Correlated Pairs (>0.90)</h5>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-red-800 mb-2">
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-raspberry-800 mb-2">
               These assets move very similarly, reducing diversification benefits.
             </p>
             <ul class="space-y-1">
-              <li v-for="pair in highCorrelations" :key="pair.key" class="text-sm text-red-900">
+              <li v-for="pair in highCorrelations" :key="pair.key" class="text-sm text-raspberry-900">
                 <span class="font-medium">{{ pair.asset1 }}</span> &
                 <span class="font-medium">{{ pair.asset2 }}</span>:
                 <span class="font-bold">{{ formatCorrelation(pair.correlation) }}</span>
@@ -132,17 +132,17 @@
         <!-- Low Correlations (Diversification) -->
         <div v-if="lowCorrelations.length > 0" class="mb-4">
           <div class="flex items-center mb-2">
-            <svg class="h-5 w-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-5 w-5 text-spring-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h5 class="text-sm font-medium text-gray-900">Well Diversified Pairs (<0.30)</h5>
+            <h5 class="text-sm font-medium text-horizon-500">Well Diversified Pairs (<0.30)</h5>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-green-800 mb-2">
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-spring-800 mb-2">
               These assets move independently, providing good diversification.
             </p>
             <ul class="space-y-1">
-              <li v-for="pair in lowCorrelations" :key="pair.key" class="text-sm text-green-900">
+              <li v-for="pair in lowCorrelations" :key="pair.key" class="text-sm text-spring-900">
                 <span class="font-medium">{{ pair.asset1 }}</span> &
                 <span class="font-medium">{{ pair.asset2 }}</span>:
                 <span class="font-bold">{{ formatCorrelation(pair.correlation) }}</span>
@@ -152,34 +152,34 @@
         </div>
 
         <!-- No Issues -->
-        <div v-if="highCorrelations.length === 0 && lowCorrelations.length === 0" class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-          <p class="text-sm text-gray-600">
+        <div v-if="highCorrelations.length === 0 && lowCorrelations.length === 0" class="bg-eggshell-500 border border-light-gray rounded-lg p-4 text-center">
+          <p class="text-sm text-neutral-500">
             Your portfolio has moderate correlations across all holdings. Consider adding more diversified assets.
           </p>
         </div>
       </div>
 
       <!-- Correlation Matrix Table -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Correlation Matrix Table</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-4">Correlation Matrix Table</h4>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Asset</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-neutral-500 uppercase">Asset</th>
                 <th
                   v-for="(label, index) in labels"
                   :key="index"
-                  class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase"
+                  class="px-3 py-2 text-center text-xs font-medium text-neutral-500 uppercase"
                   :title="label"
                 >
                   {{ truncateLabel(label, 10) }}
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-light-gray">
               <tr v-for="(row, rowIndex) in correlationData.matrix" :key="rowIndex">
-                <td class="px-3 py-2 text-sm font-medium text-gray-900" :title="labels[rowIndex]">
+                <td class="px-3 py-2 text-sm font-medium text-horizon-500" :title="labels[rowIndex]">
                   {{ truncateLabel(labels[rowIndex], 15) }}
                 </td>
                 <td
@@ -198,20 +198,20 @@
       </div>
 
       <!-- Legend -->
-      <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-        <h4 class="text-sm font-semibold text-gray-900 mb-3">Understanding Correlations</h4>
+      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-4">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-3">Understanding Correlations</h4>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <p class="font-medium text-gray-900 mb-1">High (0.70 to 1.00)</p>
-            <p class="text-gray-600">Assets move together closely. May indicate redundancy.</p>
+            <p class="font-medium text-horizon-500 mb-1">High (0.70 to 1.00)</p>
+            <p class="text-neutral-500">Assets move together closely. May indicate redundancy.</p>
           </div>
           <div>
-            <p class="font-medium text-gray-900 mb-1">Moderate (0.30 to 0.70)</p>
-            <p class="text-gray-600">Some relationship but still provide diversification.</p>
+            <p class="font-medium text-horizon-500 mb-1">Moderate (0.30 to 0.70)</p>
+            <p class="text-neutral-500">Some relationship but still provide diversification.</p>
           </div>
           <div>
-            <p class="font-medium text-gray-900 mb-1">Low (-1.00 to 0.30)</p>
-            <p class="text-gray-600">Assets move independently or inversely. Good for diversification.</p>
+            <p class="font-medium text-horizon-500 mb-1">Low (-1.00 to 0.30)</p>
+            <p class="text-neutral-500">Assets move independently or inversely. Good for diversification.</p>
           </div>
         </div>
       </div>
@@ -421,24 +421,24 @@ export default {
     },
 
     getCorrelationColour(value) {
-      if (value === null || value === undefined) return 'text-gray-900';
-      if (value >= 0.90) return 'text-red-600';
-      if (value >= 0.70) return 'text-blue-600';
+      if (value === null || value === undefined) return 'text-horizon-500';
+      if (value >= 0.90) return 'text-raspberry-600';
+      if (value >= 0.70) return 'text-violet-600';
       if (value >= 0.30) return 'text-yellow-600';
-      if (value >= 0) return 'text-green-600';
-      return 'text-blue-600';
+      if (value >= 0) return 'text-spring-600';
+      return 'text-violet-600';
     },
 
     getCellColourClass(value, rowIndex, colIndex) {
       if (rowIndex === colIndex) {
-        return 'bg-gray-100 text-gray-500';
+        return 'bg-savannah-100 text-neutral-500';
       }
 
-      if (value >= 0.90) return 'bg-red-500 text-white';
-      if (value >= 0.70) return 'bg-blue-500 text-white';
+      if (value >= 0.90) return 'bg-raspberry-500 text-white';
+      if (value >= 0.70) return 'bg-violet-500 text-white';
       if (value >= 0.30) return 'bg-yellow-500 text-white';
-      if (value >= 0) return 'bg-green-500 text-white';
-      return 'bg-blue-500 text-white';
+      if (value >= 0) return 'bg-spring-500 text-white';
+      return 'bg-violet-500 text-white';
     },
 
     truncateLabel(label, maxLength) {

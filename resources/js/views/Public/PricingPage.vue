@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <div class="relative min-h-[35vh] flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
       <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div class="absolute top-1/4 left-1/4 w-72 h-72 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
         <div class="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
@@ -66,7 +66,7 @@
               <p v-if="isYearly" class="text-sm text-emerald-400 mt-1">£2.50/mo — save 37%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-300 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -109,9 +109,9 @@
           </div>
 
           <!-- Standard Plan (Featured) -->
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl border-2 border-blue-500/50 p-8 flex flex-col relative">
+          <div class="bg-white/5 backdrop-blur-md rounded-2xl border-2 border-violet-500/50 p-8 flex flex-col relative">
             <div class="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span class="px-4 py-1.5 bg-blue-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
+              <span class="px-4 py-1.5 bg-violet-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
             </div>
 
             <div class="mb-6">
@@ -127,7 +127,7 @@
               <p v-if="isYearly" class="text-sm text-emerald-400 mt-1">£8.33/mo — save 24%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-300 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -175,7 +175,7 @@
 
             <button
               @click="startTrial('standard')"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-blue-500 text-white hover:bg-blue-400 transition-all shadow-lg"
+              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-violet-500 text-white hover:bg-violet-400 transition-all shadow-lg"
             >
               Start Free Trial
             </button>
@@ -196,7 +196,7 @@
               <p v-if="isYearly" class="text-sm text-emerald-400 mt-1">£16.67/mo — save 17%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-300 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -249,8 +249,8 @@
             <p class="text-sm text-slate-600">Try any plan risk-free. No credit card required to start.</p>
           </div>
           <div class="flex flex-col items-center">
-            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
-              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
@@ -307,14 +307,14 @@
     <!-- CTA Section -->
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
       <div class="absolute inset-0">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-3xl"></div>
       </div>
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-3xl font-bold text-white mb-4">Ready to Take Control of Your Finances?</h2>
         <p class="text-slate-300 mb-8">Start your 7-day free trial today. No credit card required.</p>
         <router-link
           to="/register"
-          class="inline-flex items-center px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+          class="inline-flex items-center px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-50 transition-all shadow-lg hover:shadow-xl"
         >
           Get Started Free
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

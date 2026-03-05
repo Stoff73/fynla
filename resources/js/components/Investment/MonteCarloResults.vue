@@ -2,20 +2,20 @@
   <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto" @click.self="closeModal">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
-      <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="closeModal"></div>
+      <div class="fixed inset-0 transition-opacity bg-horizon-500 bg-opacity-75" @click="closeModal"></div>
 
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-gray-200">
+        <div class="bg-white px-6 py-4 border-b border-light-gray">
           <div class="flex justify-between items-center">
             <div>
-              <h3 class="text-xl font-semibold text-gray-900">Monte Carlo Simulation Results</h3>
-              <p v-if="goalName" class="text-sm text-gray-600 mt-1">{{ goalName }}</p>
+              <h3 class="text-xl font-semibold text-horizon-500">Monte Carlo Simulation Results</h3>
+              <p v-if="goalName" class="text-sm text-neutral-500 mt-1">{{ goalName }}</p>
             </div>
             <button
               @click="closeModal"
-              class="text-gray-400 hover:text-gray-600 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -28,38 +28,38 @@
         <div class="bg-white px-6 py-4">
           <!-- Loading State -->
           <div v-if="loading" class="flex flex-col items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mb-4"></div>
-            <p class="text-gray-600 mb-2">Running Monte Carlo simulation...</p>
-            <p class="text-sm text-gray-500">This may take a few moments (1,000 iterations)</p>
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-violet-600 mb-4"></div>
+            <p class="text-neutral-500 mb-2">Running Monte Carlo simulation...</p>
+            <p class="text-sm text-neutral-500">This may take a few moments (1,000 iterations)</p>
           </div>
 
           <!-- Results -->
           <div v-else-if="results">
             <!-- Key Metrics Summary -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="text-xs font-medium text-blue-900 mb-1">Success Probability</h4>
+              <div class="bg-eggshell-500 rounded-lg p-4">
+                <h4 class="text-xs font-medium text-violet-900 mb-1">Success Probability</h4>
                 <p class="text-2xl font-bold" :class="getProbabilityColour(results.success_probability)">
                   {{ results.success_probability }}%
                 </p>
               </div>
-              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 class="text-xs font-medium text-gray-700 mb-1">Median Outcome</h4>
-                <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(results.median_outcome) }}</p>
+              <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
+                <h4 class="text-xs font-medium text-neutral-500 mb-1">Median Outcome</h4>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(results.median_outcome) }}</p>
               </div>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="text-xs font-medium text-green-900 mb-1">90th Percentile</h4>
-                <p class="text-2xl font-bold text-green-600">{{ formatCurrency(results.percentile_90) }}</p>
+              <div class="bg-eggshell-500 rounded-lg p-4">
+                <h4 class="text-xs font-medium text-spring-900 mb-1">90th Percentile</h4>
+                <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(results.percentile_90) }}</p>
               </div>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <h4 class="text-xs font-medium text-red-900 mb-1">10th Percentile</h4>
-                <p class="text-2xl font-bold text-red-600">{{ formatCurrency(results.percentile_10) }}</p>
+              <div class="bg-eggshell-500 rounded-lg p-4">
+                <h4 class="text-xs font-medium text-raspberry-900 mb-1">10th Percentile</h4>
+                <p class="text-2xl font-bold text-raspberry-600">{{ formatCurrency(results.percentile_10) }}</p>
               </div>
             </div>
 
             <!-- Projection Chart -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4">Portfolio Value Projections</h4>
+            <div class="bg-white border border-light-gray rounded-lg p-6 mb-6">
+              <h4 class="text-lg font-semibold text-horizon-500 mb-4">Portfolio Value Projections</h4>
               <apexchart
                 v-if="series && series.length > 0"
                 :key="chartKey"
@@ -73,40 +73,40 @@
             <!-- Additional Metrics -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <!-- Statistical Summary -->
-              <div class="bg-white border border-gray-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-3">Statistical Summary</h4>
+              <div class="bg-white border border-light-gray rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-3">Statistical Summary</h4>
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-600">Mean Outcome:</span>
-                    <span class="font-medium text-gray-900">{{ formatCurrency(results.mean_outcome) }}</span>
+                    <span class="text-neutral-500">Mean Outcome:</span>
+                    <span class="font-medium text-horizon-500">{{ formatCurrency(results.mean_outcome) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">Standard Deviation:</span>
-                    <span class="font-medium text-gray-900">{{ formatCurrency(results.standard_deviation) }}</span>
+                    <span class="text-neutral-500">Standard Deviation:</span>
+                    <span class="font-medium text-horizon-500">{{ formatCurrency(results.standard_deviation) }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">Required Return:</span>
-                    <span class="font-medium text-gray-900">{{ results.required_return?.toFixed(2) }}%</span>
+                    <span class="text-neutral-500">Required Return:</span>
+                    <span class="font-medium text-horizon-500">{{ results.required_return?.toFixed(2) }}%</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-600">Expected Return:</span>
-                    <span class="font-medium text-gray-900">{{ results.expected_return?.toFixed(2) }}%</span>
+                    <span class="text-neutral-500">Expected Return:</span>
+                    <span class="font-medium text-horizon-500">{{ results.expected_return?.toFixed(2) }}%</span>
                   </div>
                 </div>
               </div>
 
               <!-- Scenario Breakdown -->
-              <div class="bg-white border border-gray-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-3">Scenario Breakdown</h4>
+              <div class="bg-white border border-light-gray rounded-lg p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-3">Scenario Breakdown</h4>
                 <div class="space-y-3">
                   <div>
                     <div class="flex justify-between text-sm mb-1">
-                      <span class="text-green-700 font-medium">Exceeds Target</span>
-                      <span class="text-green-700 font-semibold">{{ results.success_probability }}%</span>
+                      <span class="text-spring-700 font-medium">Exceeds Target</span>
+                      <span class="text-spring-700 font-semibold">{{ results.success_probability }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-savannah-200 rounded-full h-2">
                       <div
-                        class="bg-green-600 h-2 rounded-full"
+                        class="bg-spring-600 h-2 rounded-full"
                         :style="{ width: results.success_probability + '%' }"
                       ></div>
                     </div>
@@ -116,7 +116,7 @@
                       <span class="text-yellow-700 font-medium">Within 10% of Target</span>
                       <span class="text-yellow-700 font-semibold">{{ nearTargetPercent }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-savannah-200 rounded-full h-2">
                       <div
                         class="bg-yellow-500 h-2 rounded-full"
                         :style="{ width: nearTargetPercent + '%' }"
@@ -125,12 +125,12 @@
                   </div>
                   <div>
                     <div class="flex justify-between text-sm mb-1">
-                      <span class="text-red-700 font-medium">Below Target</span>
-                      <span class="text-red-700 font-semibold">{{ belowTargetPercent }}%</span>
+                      <span class="text-raspberry-700 font-medium">Below Target</span>
+                      <span class="text-raspberry-700 font-semibold">{{ belowTargetPercent }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-savannah-200 rounded-full h-2">
                       <div
-                        class="bg-red-600 h-2 rounded-full"
+                        class="bg-raspberry-600 h-2 rounded-full"
                         :style="{ width: belowTargetPercent + '%' }"
                       ></div>
                     </div>
@@ -140,27 +140,27 @@
             </div>
 
             <!-- Interpretation -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="text-sm font-semibold text-blue-900 mb-2">Interpretation</h4>
-              <p class="text-sm text-blue-800">{{ interpretation }}</p>
+            <div class="bg-eggshell-500 rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-violet-900 mb-2">Interpretation</h4>
+              <p class="text-sm text-violet-800">{{ interpretation }}</p>
             </div>
           </div>
 
           <!-- Error State -->
           <div v-else-if="error" class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="mx-auto h-12 w-12 text-raspberry-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-gray-900 font-medium mb-2">Failed to load simulation results</p>
-            <p class="text-sm text-gray-600">{{ error }}</p>
+            <p class="text-horizon-500 font-medium mb-2">Failed to load simulation results</p>
+            <p class="text-sm text-neutral-500">{{ error }}</p>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+        <div class="bg-eggshell-500 px-6 py-4 flex justify-end gap-3">
           <button
             @click="closeModal"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
           >
             Close
           </button>
@@ -289,7 +289,7 @@ export default {
       return {
         chart: {
           type: 'area',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: true,
             tools: {
@@ -414,10 +414,10 @@ export default {
     },
 
     getProbabilityColour(probability) {
-      if (probability >= 80) return 'text-green-600';
-      if (probability >= 60) return 'text-blue-600';
+      if (probability >= 80) return 'text-spring-600';
+      if (probability >= 60) return 'text-violet-600';
       if (probability >= 40) return 'text-yellow-600';
-      return 'text-red-600';
+      return 'text-raspberry-600';
     },
   },
 };

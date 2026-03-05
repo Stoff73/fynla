@@ -2,31 +2,31 @@
   <div class="space-y-6">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-card p-4">
-      <p class="text-sm text-red-700">{{ error }}</p>
-      <button @click="loadAllocations" class="mt-2 text-sm text-red-600 underline">Try again</button>
+    <div v-else-if="error" class="bg-raspberry-50 border border-raspberry-200 rounded-card p-4">
+      <p class="text-sm text-raspberry-700">{{ error }}</p>
+      <button @click="loadAllocations" class="mt-2 text-sm text-raspberry-600 underline">Try again</button>
     </div>
 
     <!-- Content -->
     <template v-else-if="allocations.length > 0">
       <!-- Summary Bar -->
-      <div class="bg-gray-50 rounded-lg p-4">
+      <div class="bg-savannah-100 rounded-lg p-4">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
           <div>
-            <p class="text-xs text-gray-500">{{ isIncomeEvent ? 'Total to Allocate' : 'Total to Fund' }}</p>
-            <p class="text-lg font-bold text-gray-900">{{ formatCurrency(eventAmount) }}</p>
+            <p class="text-xs text-neutral-500">{{ isIncomeEvent ? 'Total to Allocate' : 'Total to Fund' }}</p>
+            <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(eventAmount) }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">Allocated</p>
-            <p class="text-lg font-bold text-primary-600">{{ formatCurrency(totalAllocated) }}</p>
+            <p class="text-xs text-neutral-500">Allocated</p>
+            <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(totalAllocated) }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-500">{{ unallocated > 0 ? 'Remaining' : 'Fully Allocated' }}</p>
-            <p class="text-lg font-bold" :class="unallocated > 0 ? 'text-blue-600' : 'text-green-600'">
+            <p class="text-xs text-neutral-500">{{ unallocated > 0 ? 'Remaining' : 'Fully Allocated' }}</p>
+            <p class="text-lg font-bold" :class="unallocated > 0 ? 'text-violet-600' : 'text-spring-600'">
               {{ formatCurrency(Math.abs(unallocated)) }}
             </p>
           </div>
@@ -38,7 +38,7 @@
         <div
           v-for="allocation in allocations"
           :key="allocation.id"
-          class="bg-white rounded-card border border-gray-200 shadow-sm p-4 transition-opacity"
+          class="bg-white rounded-card border border-light-gray shadow-sm p-4 transition-opacity"
           :class="{ 'opacity-50': !allocation.enabled }"
         >
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -47,7 +47,7 @@
               v-preview-disabled="'edit'"
               @click="handleToggle(allocation)"
               class="flex-shrink-0 w-10 h-6 rounded-full transition-colors relative"
-              :class="allocation.enabled ? 'bg-primary-600' : 'bg-gray-300'"
+              :class="allocation.enabled ? 'bg-raspberry-600' : 'bg-horizon-300'"
               :title="allocation.enabled ? 'Disable allocation' : 'Enable allocation'"
             >
               <span
@@ -65,9 +65,9 @@
                 >
                   {{ stepLabel(allocation.allocation_step) }}
                 </span>
-                <span class="text-sm font-medium text-gray-900 truncate">{{ allocation.account_label }}</span>
+                <span class="text-sm font-medium text-horizon-500 truncate">{{ allocation.account_label }}</span>
               </div>
-              <p v-if="allocation.rationale" class="text-xs text-gray-500 line-clamp-2">{{ allocation.rationale }}</p>
+              <p v-if="allocation.rationale" class="text-xs text-neutral-500 line-clamp-2">{{ allocation.rationale }}</p>
             </div>
 
             <!-- Amount -->
@@ -84,17 +84,17 @@
                     @keyup.enter="saveEdit(allocation)"
                     @keyup.escape="cancelEdit"
                   />
-                  <button @click="saveEdit(allocation)" class="text-xs text-primary-600 font-medium hover:underline">Save</button>
-                  <button @click="cancelEdit" class="text-xs text-gray-500 hover:underline">Cancel</button>
+                  <button @click="saveEdit(allocation)" class="text-xs text-raspberry-600 font-medium hover:underline">Save</button>
+                  <button @click="cancelEdit" class="text-xs text-neutral-500 hover:underline">Cancel</button>
                 </div>
               </template>
               <template v-else>
-                <span class="text-base font-semibold text-gray-900">{{ formatCurrency(allocation.amount) }}</span>
+                <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(allocation.amount) }}</span>
                 <button
                   v-if="allocation.enabled"
                   v-preview-disabled="'edit'"
                   @click="startEdit(allocation)"
-                  class="text-xs text-primary-600 hover:underline"
+                  class="text-xs text-raspberry-600 hover:underline"
                 >
                   Edit
                 </button>
@@ -120,7 +120,7 @@
 
     <!-- Empty State -->
     <div v-else class="text-center py-8">
-      <p class="text-sm text-gray-500">No allocation suggestions available for this event.</p>
+      <p class="text-sm text-neutral-500">No allocation suggestions available for this event.</p>
       <button
         v-preview-disabled="'edit'"
         @click="handleRegenerate"
@@ -285,13 +285,13 @@ export default {
 
     stepBadgeClass(step) {
       const classes = {
-        goals: 'bg-blue-100 text-blue-800',
-        isa: 'bg-green-100 text-green-800',
+        goals: 'bg-violet-100 text-violet-800',
+        isa: 'bg-spring-100 text-spring-800',
         pension: 'bg-indigo-100 text-indigo-800',
         bond: 'bg-purple-100 text-purple-800',
-        cash: 'bg-gray-100 text-gray-800',
+        cash: 'bg-savannah-100 text-horizon-500',
       };
-      return classes[step] || 'bg-gray-100 text-gray-800';
+      return classes[step] || 'bg-savannah-100 text-horizon-500';
     },
   },
 };

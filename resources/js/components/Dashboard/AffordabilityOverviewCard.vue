@@ -1,21 +1,21 @@
 <template>
   <div
-    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
+    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200"
     @click="navigateToCash"
   >
     <!-- Primary Value Section -->
-    <div class="border-b border-gray-200 pb-4 mb-4">
-      <span class="text-sm text-gray-500">{{ currentMonth }} Cash Flow</span>
+    <div class="border-b border-light-gray pb-4 mb-4">
+      <span class="text-sm text-neutral-500">{{ currentMonth }} Cash Flow</span>
       <div class="flex items-baseline gap-2 mt-1">
         <span
           class="text-3xl font-bold"
-          :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+          :class="monthlySurplus >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
         >
           {{ formatCurrency(Math.abs(monthlySurplus)) }}
         </span>
         <span
           class="text-sm font-medium"
-          :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+          :class="monthlySurplus >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
         >
           {{ monthlySurplus >= 0 ? 'surplus' : 'deficit' }}
         </span>
@@ -25,22 +25,22 @@
     <!-- Breakdown -->
     <div class="space-y-3">
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">Money In</span>
-        <span class="text-sm font-semibold text-green-600">{{ formatCurrency(monthlyIncome) }}</span>
+        <span class="text-sm text-neutral-500">Money In</span>
+        <span class="text-sm font-semibold text-spring-600">{{ formatCurrency(monthlyIncome) }}</span>
       </div>
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">Money Out</span>
-        <span class="text-sm font-semibold text-red-600">{{ formatCurrency(monthlyExpenditure) }}</span>
+        <span class="text-sm text-neutral-500">Money Out</span>
+        <span class="text-sm font-semibold text-raspberry-600">{{ formatCurrency(monthlyExpenditure) }}</span>
       </div>
     </div>
 
     <!-- Spouse Section (if linked) -->
-    <div v-if="hasSpouse" class="mt-4 pt-4 border-t border-gray-200">
+    <div v-if="hasSpouse" class="mt-4 pt-4 border-t border-light-gray">
       <div class="flex justify-between items-center">
-        <span class="text-sm text-gray-600">Combined Household</span>
+        <span class="text-sm text-neutral-500">Combined Household</span>
         <span
           class="text-sm font-semibold"
-          :class="combinedSurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+          :class="combinedSurplus >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
         >
           {{ formatCurrency(Math.abs(combinedSurplus)) }}/mo
           {{ combinedSurplus >= 0 ? 'surplus' : 'deficit' }}
@@ -51,13 +51,13 @@
     <!-- Status Banner -->
     <div
       v-if="monthlySurplus < 0"
-      class="mt-4 p-3 bg-white border-2 border-red-600 rounded-lg"
+      class="mt-4 p-3 bg-white border-2 border-raspberry-600 rounded-lg"
     >
       <div class="flex items-center gap-2">
-        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
-        <span class="text-sm font-medium text-red-700">Spending exceeds income</span>
+        <span class="text-sm font-medium text-raspberry-700">Spending exceeds income</span>
       </div>
     </div>
   </div>

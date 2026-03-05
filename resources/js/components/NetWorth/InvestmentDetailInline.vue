@@ -1,7 +1,7 @@
 <template>
   <div class="investment-detail-inline w-full max-w-full overflow-hidden">
     <!-- Back Button - contextual based on current tab -->
-    <button @click="handleBackClick" class="back-button mb-4">
+    <button @click="handleBackClick" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -10,8 +10,8 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Loading account details...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Loading account details...</p>
     </div>
 
     <!-- Account Content -->
@@ -28,8 +28,8 @@
                 {{ formatAccountType(account.account_type) }}
               </span>
             </div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ account.provider }}</h1>
-            <p class="text-base sm:text-lg text-gray-600 mt-1">{{ account.account_name }}</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ account.provider }}</h1>
+            <p class="text-base sm:text-lg text-neutral-500 mt-1">{{ account.account_name }}</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
             <button
@@ -52,63 +52,63 @@
         <!-- Key Metrics - Only show for standard accounts -->
         <template v-if="detailComponentType === 'standard'">
           <div v-if="activeTab === 'fees'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p class="text-sm text-gray-600">Platform Fee</p>
-              <p class="text-2xl font-bold text-blue-600">{{ platformFeeDisplay }}</p>
+            <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
+              <p class="text-sm text-neutral-500">Platform Fee</p>
+              <p class="text-2xl font-bold text-violet-600">{{ platformFeeDisplay }}</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p class="text-sm text-gray-600">Average Fund Fee (OCF)</p>
-              <p class="text-2xl font-bold text-blue-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
+            <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
+              <p class="text-sm text-neutral-500">Average Fund Fee (OCF)</p>
+              <p class="text-2xl font-bold text-violet-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
             </div>
             <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <p class="text-sm text-gray-600">Advisor Fee</p>
+              <p class="text-sm text-neutral-500">Advisor Fee</p>
               <p class="text-2xl font-bold text-purple-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
             </div>
-            <div class="bg-red-50 rounded-lg p-4 border border-red-200">
-              <p class="text-sm text-gray-600">Total Annual Cost</p>
-              <p class="text-2xl font-bold text-red-600">{{ totalFeePercent.toFixed(2) }}%</p>
-              <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(totalAnnualFeeCost) }}/year</p>
+            <div class="bg-raspberry-50 rounded-lg p-4 border border-raspberry-200">
+              <p class="text-sm text-neutral-500">Total Annual Cost</p>
+              <p class="text-2xl font-bold text-raspberry-600">{{ totalFeePercent.toFixed(2) }}%</p>
+              <p class="text-xs text-neutral-500 mt-1">{{ formatCurrency(totalAnnualFeeCost) }}/year</p>
             </div>
           </div>
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
-            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p class="text-sm text-gray-600">Current Value</p>
-              <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(account.current_value) }}</p>
+            <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
+              <p class="text-sm text-neutral-500">Current Value</p>
+              <p class="text-2xl font-bold text-violet-600">{{ formatCurrency(account.current_value) }}</p>
               <p v-if="account.ownership_type === 'joint'" class="text-xs text-violet-600 mt-1">
                 Your {{ account.ownership_percentage ?? 50 }}%: {{ formatCurrency(userShareValue) }}
               </p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Annualised Return</p>
+            <div class="bg-savannah-100 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Annualised Return</p>
               <p class="text-2xl font-bold" :class="getReturnColorClass(grossReturnPercent)">
                 {{ formatReturnPercent(grossReturnPercent) }}
               </p>
-              <p v-if="grossReturnPercent !== null" class="text-xs text-gray-500 mt-1">
+              <p v-if="grossReturnPercent !== null" class="text-xs text-neutral-500 mt-1">
                 {{ formatReturnPercent(netReturnPercent) }} net of fees
               </p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Monthly Contribution</p>
-              <p class="text-2xl font-bold" :class="estimatedMonthlyContribution > 0 ? 'text-green-600' : 'text-gray-900'">
+            <div class="bg-savannah-100 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Monthly Contribution</p>
+              <p class="text-2xl font-bold" :class="estimatedMonthlyContribution > 0 ? 'text-spring-600' : 'text-horizon-500'">
                 {{ estimatedMonthlyContribution > 0 ? formatCurrency(estimatedMonthlyContribution) : '—' }}
               </p>
             </div>
             <!-- ISA Allowance Card (for ISA accounts) -->
-            <div v-if="account.account_type === 'isa'" class="bg-green-50 rounded-lg p-4 border border-green-200">
-              <p class="text-sm text-gray-600">ISA Allowance Used</p>
-              <p class="text-2xl font-bold text-green-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
+            <div v-if="account.account_type === 'isa'" class="bg-spring-50 rounded-lg p-4 border border-spring-200">
+              <p class="text-sm text-neutral-500">ISA Allowance Used</p>
+              <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(account.isa_subscription_current_year || 0) }}</p>
+              <p class="text-xs text-neutral-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
             </div>
             <!-- Joint Owner Card (for joint non-ISA accounts) -->
             <div v-else-if="account.ownership_type === 'joint' && account.joint_owner_name" class="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <p class="text-sm text-gray-600">Joint Owner</p>
+              <p class="text-sm text-neutral-500">Joint Owner</p>
               <p class="text-xl font-bold text-purple-700">{{ account.joint_owner_name }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
+              <p class="text-xs text-neutral-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
             </div>
             <!-- Holdings Card (for non-ISA, non-joint accounts) -->
-            <div v-else class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-gray-600">Holdings</p>
-              <p class="text-2xl font-bold text-gray-900">{{ holdingsCount }}</p>
+            <div v-else class="bg-savannah-100 rounded-lg p-4">
+              <p class="text-sm text-neutral-500">Holdings</p>
+              <p class="text-2xl font-bold text-horizon-500">{{ holdingsCount }}</p>
             </div>
           </div>
         </template>
@@ -179,8 +179,8 @@
           />
 
           <!-- Documents Tab -->
-          <div v-else-if="activeTab === 'documents'" class="text-center py-12 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-gray-400">
+          <div v-else-if="activeTab === 'documents'" class="text-center py-12 text-neutral-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto mb-4 text-horizon-400">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
             <p class="text-lg font-medium">Documents Coming Soon</p>
@@ -604,14 +604,14 @@ export default {
     },
 
     getReturnColorClass(value) {
-      if (!value && value !== 0) return 'text-gray-600';
-      return value >= 0 ? 'text-green-600' : 'text-gray-600';
+      if (!value && value !== 0) return 'text-neutral-500';
+      return value >= 0 ? 'text-spring-600' : 'text-neutral-500';
     },
 
     getIsaRemainingClass() {
-      if (this.isaRemaining <= 0) return 'text-gray-600';
-      if (this.isaRemaining < 5000) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.isaRemaining <= 0) return 'text-neutral-500';
+      if (this.isaRemaining < 5000) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     confirmDelete() {
@@ -689,35 +689,6 @@ export default {
   animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  @apply border border-gray-200;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  @apply bg-gray-100;
-  @apply border-gray-300;
-}
-
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -727,8 +698,8 @@ export default {
 }
 
 .badge-individual {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .badge-joint {
@@ -737,18 +708,18 @@ export default {
 }
 
 .badge-trust {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-isa {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .badge-gia {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-sipp {
@@ -762,8 +733,8 @@ export default {
 }
 
 .badge-bond {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-vct {
@@ -772,8 +743,8 @@ export default {
 }
 
 .badge-other {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .badge-employee-scheme {

@@ -2,15 +2,15 @@
   <div class="portfolio-optimiser">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h3 class="text-lg font-semibold text-gray-900">Portfolio Optimiser</h3>
-        <p class="text-sm text-gray-600 mt-1">
+        <h3 class="text-lg font-semibold text-horizon-500">Portfolio Optimiser</h3>
+        <p class="text-sm text-neutral-500 mt-1">
           Find optimal asset allocation based on your preferences
         </p>
       </div>
       <button
         v-if="optimizationResult"
         @click="resetOptimiser"
-        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-eggshell-500"
       >
         New Optimization
       </button>
@@ -19,8 +19,8 @@
     <!-- Optimization Form -->
     <div v-if="!optimizationResult" class="space-y-6">
       <!-- Strategy Selection -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <label class="block text-sm font-medium text-gray-900 mb-3">
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <label class="block text-sm font-medium text-horizon-500 mb-3">
           Optimization Strategy
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -31,8 +31,8 @@
             :class="[
               'text-left p-4 rounded-lg border-2 transition-all',
               selectedStrategy === strategy.value
-                ? 'border-blue-600 bg-blue-500 text-white'
-                : 'border-gray-200 bg-white hover:border-gray-300'
+                ? 'border-violet-600 bg-violet-500 text-white'
+                : 'border-light-gray bg-white hover:border-horizon-300'
             ]"
           >
             <div class="flex items-start">
@@ -40,15 +40,15 @@
                 <div :class="[
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center',
                   selectedStrategy === strategy.value
-                    ? 'border-blue-600 bg-primary-600'
-                    : 'border-gray-300'
+                    ? 'border-violet-600 bg-raspberry-500'
+                    : 'border-horizon-300'
                 ]">
                   <div v-if="selectedStrategy === strategy.value" class="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               </div>
               <div class="ml-3 flex-1">
-                <p :class="['text-sm font-medium', selectedStrategy === strategy.value ? 'text-white' : 'text-gray-900']">{{ strategy.name }}</p>
-                <p :class="['text-xs mt-1', selectedStrategy === strategy.value ? 'text-blue-100' : 'text-gray-600']">{{ strategy.description }}</p>
+                <p :class="['text-sm font-medium', selectedStrategy === strategy.value ? 'text-white' : 'text-horizon-500']">{{ strategy.name }}</p>
+                <p :class="['text-xs mt-1', selectedStrategy === strategy.value ? 'text-violet-100' : 'text-neutral-500']">{{ strategy.description }}</p>
               </div>
             </div>
           </button>
@@ -56,8 +56,8 @@
       </div>
 
       <!-- Target Return Input (only for target_return strategy) -->
-      <div v-if="selectedStrategy === 'target_return'" class="bg-white rounded-lg border border-gray-200 p-6">
-        <label class="block text-sm font-medium text-gray-900 mb-2">
+      <div v-if="selectedStrategy === 'target_return'" class="bg-white rounded-lg border border-light-gray p-6">
+        <label class="block text-sm font-medium text-horizon-500 mb-2">
           Target Return
         </label>
         <div class="flex items-center gap-4">
@@ -67,26 +67,26 @@
             step="0.01"
             min="0"
             max="1"
-            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="w-32 px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             placeholder="0.08"
           />
-          <span class="text-sm text-gray-600">
+          <span class="text-sm text-neutral-500">
             ({{ (targetReturn * 100).toFixed(1) }}% annual return)
           </span>
         </div>
-        <p class="text-xs text-gray-500 mt-2">
+        <p class="text-xs text-neutral-500 mt-2">
           Enter desired return as decimal (e.g., 0.08 for 8%)
         </p>
       </div>
 
       <!-- Constraints -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-medium text-gray-900 mb-4">Portfolio Constraints (Optional)</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-medium text-horizon-500 mb-4">Portfolio Constraints (Optional)</h4>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Minimum Weight -->
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">
+            <label class="block text-xs font-medium text-neutral-500 mb-2">
               Minimum Weight per Asset
             </label>
             <div class="flex items-center gap-2">
@@ -96,10 +96,10 @@
                 step="0.01"
                 min="0"
                 max="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="0.00"
               />
-              <span class="text-sm text-gray-600 whitespace-nowrap">
+              <span class="text-sm text-neutral-500 whitespace-nowrap">
                 ({{ (constraints.minWeight * 100).toFixed(0) }}%)
               </span>
             </div>
@@ -107,7 +107,7 @@
 
           <!-- Maximum Weight -->
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-2">
+            <label class="block text-xs font-medium text-neutral-500 mb-2">
               Maximum Weight per Asset
             </label>
             <div class="flex items-center gap-2">
@@ -117,17 +117,17 @@
                 step="0.01"
                 min="0"
                 max="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="1.00"
               />
-              <span class="text-sm text-gray-600 whitespace-nowrap">
+              <span class="text-sm text-neutral-500 whitespace-nowrap">
                 ({{ (constraints.maxWeight * 100).toFixed(0) }}%)
               </span>
             </div>
           </div>
         </div>
 
-        <p class="text-xs text-gray-500 mt-3">
+        <p class="text-xs text-neutral-500 mt-3">
           Set constraints to prevent over-concentration. Leave at defaults (0% - 100%) for no restrictions.
         </p>
       </div>
@@ -137,21 +137,21 @@
         <button
           @click="runOptimization"
           :disabled="loading || !isFormValid"
-          class="px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ loading ? 'Optimising...' : 'Run Optimization' }}
         </button>
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="bg-gray-50 rounded-lg p-4">
+      <div v-if="error" class="bg-eggshell-500 rounded-lg p-4">
         <div class="flex">
-          <svg class="h-5 w-5 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-5 w-5 text-raspberry-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h4 class="text-sm font-medium text-red-800 mb-1">Optimization Failed</h4>
-            <p class="text-sm text-red-700">{{ error }}</p>
+            <h4 class="text-sm font-medium text-raspberry-800 mb-1">Optimization Failed</h4>
+            <p class="text-sm text-raspberry-700">{{ error }}</p>
           </div>
         </div>
       </div>
@@ -161,28 +161,28 @@
     <div v-else class="space-y-6">
       <!-- Results Summary -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Expected Return</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formatPercentage(optimizationResult.expected_return) }}</p>
-          <p class="text-xs text-gray-600 mt-1">Annual</p>
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Expected Return</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ formatPercentage(optimizationResult.expected_return) }}</p>
+          <p class="text-xs text-neutral-500 mt-1">Annual</p>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Expected Risk</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formatPercentage(optimizationResult.expected_risk) }}</p>
-          <p class="text-xs text-gray-600 mt-1">Standard Deviation</p>
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Expected Risk</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ formatPercentage(optimizationResult.expected_risk) }}</p>
+          <p class="text-xs text-neutral-500 mt-1">Standard Deviation</p>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-600 mb-1">Sharpe Ratio</p>
-          <p class="text-2xl font-bold text-blue-600">
+        <div class="bg-white rounded-lg border border-light-gray p-4">
+          <p class="text-xs text-neutral-500 mb-1">Sharpe Ratio</p>
+          <p class="text-2xl font-bold text-violet-600">
             {{ optimizationResult.sharpe_ratio?.toFixed(2) || 'N/A' }}
           </p>
-          <p class="text-xs text-gray-600 mt-1">Risk-adjusted return</p>
+          <p class="text-xs text-neutral-500 mt-1">Risk-adjusted return</p>
         </div>
       </div>
 
       <!-- Allocation Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Optimal Allocation</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-4">Optimal Allocation</h4>
         <apexchart
           v-if="allocationChartReady"
           type="donut"
@@ -193,26 +193,26 @@
       </div>
 
       <!-- Allocation Table -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Asset Weights</h4>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-4">Asset Weights</h4>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Asset</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Weight</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Percentage</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-light-gray">
               <tr v-for="(weight, index) in optimizationResult.weights" :key="index">
-                <td class="px-4 py-3 text-sm text-gray-900">
+                <td class="px-4 py-3 text-sm text-horizon-500">
                   Asset {{ index + 1 }}
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-900 text-right font-medium">
+                <td class="px-4 py-3 text-sm text-horizon-500 text-right font-medium">
                   {{ weight.toFixed(4) }}
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-900 text-right">
+                <td class="px-4 py-3 text-sm text-horizon-500 text-right">
                   {{ (weight * 100).toFixed(2) }}%
                 </td>
               </tr>
@@ -222,26 +222,26 @@
       </div>
 
       <!-- Optimization Details -->
-      <div class="bg-gray-50 rounded-lg border border-gray-200 p-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-3">Optimization Details</h4>
+      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-6">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-3">Optimization Details</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <span class="text-gray-600">Strategy:</span>
-            <span class="ml-2 font-medium text-gray-900">
+            <span class="text-neutral-500">Strategy:</span>
+            <span class="ml-2 font-medium text-horizon-500">
               {{ strategies.find(s => s.value === selectedStrategy)?.name }}
             </span>
           </div>
           <div>
-            <span class="text-gray-600">Optimization Type:</span>
-            <span class="ml-2 font-medium text-gray-900">{{ optimizationResult.optimization_type }}</span>
+            <span class="text-neutral-500">Optimization Type:</span>
+            <span class="ml-2 font-medium text-horizon-500">{{ optimizationResult.optimization_type }}</span>
           </div>
           <div v-if="optimizationResult.risk_free_rate">
-            <span class="text-gray-600">Risk-free Rate:</span>
-            <span class="ml-2 font-medium text-gray-900">{{ formatPercentage(optimizationResult.risk_free_rate) }}</span>
+            <span class="text-neutral-500">Risk-free Rate:</span>
+            <span class="ml-2 font-medium text-horizon-500">{{ formatPercentage(optimizationResult.risk_free_rate) }}</span>
           </div>
           <div v-if="optimizationResult.target_return">
-            <span class="text-gray-600">Target Return:</span>
-            <span class="ml-2 font-medium text-gray-900">{{ formatPercentage(optimizationResult.target_return) }}</span>
+            <span class="text-neutral-500">Target Return:</span>
+            <span class="ml-2 font-medium text-horizon-500">{{ formatPercentage(optimizationResult.target_return) }}</span>
           </div>
         </div>
       </div>
@@ -250,13 +250,13 @@
       <div class="flex justify-between items-center">
         <button
           @click="$emit('view-frontier')"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-eggshell-500"
         >
           View on Efficient Frontier
         </button>
         <button
           @click="applyAllocation"
-          class="px-6 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+          class="px-6 py-2 text-sm font-medium text-white bg-spring-600 rounded-lg hover:bg-spring-700"
         >
           Apply This Allocation
         </button>
