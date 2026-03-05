@@ -3,7 +3,7 @@
     <PlanSectionHeader
       title="Priority Area"
       subtitle="All actions ranked and allocated against your shared monthly disposable income"
-      color="purple"
+      color="violet"
     />
 
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
@@ -15,7 +15,7 @@
         </div>
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium text-horizon-500">Total Allocated (enabled actions)</span>
-          <span class="text-sm font-bold" :class="totalAllocated > monthlyDisposableIncome ? 'text-red-700' : 'text-green-700'">
+          <span class="text-sm font-bold" :class="totalAllocated > monthlyDisposableIncome ? 'text-raspberry-700' : 'text-spring-700'">
             {{ formatCurrency(totalAllocated) }}
           </span>
         </div>
@@ -29,8 +29,8 @@
         </div>
         <div class="flex justify-between mt-1">
           <span class="text-xs text-neutral-500">{{ formatPercentage(allocationPercentage) }} allocated</span>
-          <span v-if="remainingBudget >= 0" class="text-xs text-green-600">{{ formatCurrency(remainingBudget) }} remaining</span>
-          <span v-else class="text-xs text-red-600">{{ formatCurrency(Math.abs(remainingBudget)) }} over budget</span>
+          <span v-if="remainingBudget >= 0" class="text-xs text-spring-600">{{ formatCurrency(remainingBudget) }} remaining</span>
+          <span v-else class="text-xs text-raspberry-600">{{ formatCurrency(Math.abs(remainingBudget)) }} over budget</span>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
             <p class="text-sm font-semibold" :class="action.enabled ? 'text-horizon-500' : 'text-horizon-400'">
               {{ formatCurrency(action.monthlyCost) }}<span class="text-xs font-normal text-neutral-500">/mo</span>
             </p>
-            <p v-if="exceedsBudget(index) && action.enabled" class="text-xs text-red-600 mt-0.5">
+            <p v-if="exceedsBudget(index) && action.enabled" class="text-xs text-raspberry-600 mt-0.5">
               Exceeds available income
             </p>
           </div>
@@ -131,9 +131,9 @@ export default {
     },
 
     allocationBarColor() {
-      if (this.allocationPercentage >= 100) return 'bg-red-500';
-      if (this.allocationPercentage >= 80) return 'bg-blue-500';
-      return 'bg-green-500';
+      if (this.allocationPercentage >= 100) return 'bg-raspberry-500';
+      if (this.allocationPercentage >= 80) return 'bg-violet-500';
+      return 'bg-spring-500';
     },
 
     remainingBudget() {
@@ -154,7 +154,7 @@ export default {
 
     actionRowClasses(action, index) {
       if (!action.enabled) return 'border-savannah-100 bg-eggshell-500 opacity-60';
-      if (this.exceedsBudget(index)) return 'border-red-200 bg-red-50/30';
+      if (this.exceedsBudget(index)) return 'border-raspberry-200 bg-raspberry-50/30';
       return 'border-light-gray';
     },
 
@@ -165,19 +165,19 @@ export default {
 
     priorityClasses(priority) {
       const map = {
-        critical: 'bg-red-100 text-red-800',
-        high: 'bg-blue-100 text-blue-800',
+        critical: 'bg-raspberry-100 text-raspberry-800',
+        high: 'bg-violet-100 text-violet-800',
         medium: 'bg-savannah-100 text-horizon-500',
-        low: 'bg-green-100 text-green-800',
+        low: 'bg-spring-100 text-spring-800',
       };
       return map[priority] || map.medium;
     },
 
     moduleBadgeClasses(module) {
       const map = {
-        protection: 'bg-purple-100 text-purple-800',
-        investment: 'bg-blue-100 text-blue-800',
-        retirement: 'bg-green-100 text-green-800',
+        protection: 'bg-violet-100 text-violet-800',
+        investment: 'bg-horizon-100 text-horizon-500',
+        retirement: 'bg-spring-100 text-spring-800',
         estate: 'bg-savannah-100 text-horizon-500',
       };
       return map[module] || 'bg-savannah-100 text-horizon-500';

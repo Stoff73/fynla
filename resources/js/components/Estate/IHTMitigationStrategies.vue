@@ -6,7 +6,7 @@
     </h3>
 
     <!-- No Inheritance Tax liability message -->
-    <div v-if="ihtLiability === 0" class="bg-spring-50 border-l-4 border-spring-500 p-4">
+    <div v-if="ihtLiability === 0" class="bg-spring-50 border border-spring-200 p-4">
       <p class="text-sm text-spring-700">
         ✓ No Inheritance Tax liability projected - no mitigation strategies needed
       </p>
@@ -60,7 +60,7 @@
                 <div v-if="strategy.total_gifted" class="text-violet-600 font-medium">
                   Total Gifted: {{ formatCurrency(strategy.total_gifted) }}
                 </div>
-                <div v-if="strategy.reduction_percentage" class="text-purple-600 font-medium">
+                <div v-if="strategy.reduction_percentage" class="text-violet-500 font-medium">
                   {{ strategy.reduction_percentage }}% Reduction
                 </div>
                 <div v-if="strategy.implementation_complexity" class="text-neutral-500">
@@ -159,11 +159,11 @@
           </div>
 
           <!-- Charitable giving details -->
-          <div v-if="strategy.charitable_amount_required" class="mt-3 bg-purple-50 rounded p-3">
-            <p class="text-sm text-purple-700">
+          <div v-if="strategy.charitable_amount_required" class="mt-3 bg-violet-50 rounded p-3">
+            <p class="text-sm text-violet-500">
               <strong>Required charitable bequest:</strong> {{ formatCurrency(strategy.charitable_amount_required) }} (10% of estate)
             </p>
-            <p class="text-xs text-purple-600 mt-1">
+            <p class="text-xs text-violet-500 mt-1">
               This reduces Inheritance Tax rate from 40% to 36%, saving {{ formatCurrency(strategy.iht_saved) }}
             </p>
           </div>

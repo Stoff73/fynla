@@ -25,41 +25,41 @@ export default {
     },
     color: {
       type: String,
-      default: 'blue',
-      validator: (v) => ['blue', 'green', 'purple', 'gray', 'teal'].includes(v),
+      default: 'violet',
+      validator: (v) => ['violet', 'spring', 'raspberry', 'gray', 'horizon'].includes(v),
     },
   },
 
   computed: {
     headerClasses() {
       const map = {
-        blue: 'bg-blue-50 border border-blue-200',
-        green: 'bg-green-50 border border-green-200',
-        purple: 'bg-purple-50 border border-purple-200',
+        violet: 'bg-violet-50 border border-violet-200',
+        spring: 'bg-spring-50 border border-spring-200',
+        raspberry: 'bg-raspberry-50 border border-raspberry-200',
         gray: 'bg-eggshell-500 border border-light-gray',
-        teal: 'bg-teal-50 border border-teal-200',
+        horizon: 'bg-horizon-50 border border-horizon-200',
       };
-      return map[this.color] || map.blue;
+      return map[this.color] || map.violet;
     },
     textClass() {
       const map = {
-        blue: 'text-blue-900',
-        green: 'text-green-900',
-        purple: 'text-purple-900',
+        violet: 'text-violet-900',
+        spring: 'text-spring-900',
+        raspberry: 'text-raspberry-900',
         gray: 'text-horizon-500',
-        teal: 'text-teal-900',
+        horizon: 'text-horizon-500',
       };
-      return map[this.color] || map.blue;
+      return map[this.color] || map.violet;
     },
     subtitleClass() {
       const map = {
-        blue: 'text-blue-700',
-        green: 'text-green-700',
-        purple: 'text-purple-700',
+        violet: 'text-violet-700',
+        spring: 'text-spring-700',
+        raspberry: 'text-raspberry-700',
         gray: 'text-neutral-500',
-        teal: 'text-teal-700',
+        horizon: 'text-horizon-400',
       };
-      return map[this.color] || map.blue;
+      return map[this.color] || map.violet;
     },
   },
 };

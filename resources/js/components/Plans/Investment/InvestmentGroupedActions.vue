@@ -3,7 +3,7 @@
     <PlanSectionHeader
       title="Recommended Actions"
       :subtitle="enabledCountLabel"
-      color="green"
+      color="spring"
     />
 
     <template v-if="hasActions">

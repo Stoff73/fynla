@@ -1,7 +1,7 @@
 <template>
   <div
     class="bg-white rounded-lg shadow-md border border-light-gray p-6 transition-all duration-200"
-    :class="clickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-500' : 'opacity-70'"
+    :class="clickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-violet-500' : 'opacity-70'"
     @click="clickable ? $emit('click') : null"
   >
     <div class="flex items-center mb-4">
@@ -37,13 +37,13 @@
       <div class="w-full bg-horizon-200 rounded-full h-1.5">
         <div
           class="h-1.5 rounded-full transition-all duration-300"
-          :class="completeness >= 80 ? 'bg-green-500' : completeness >= 50 ? 'bg-blue-500' : 'bg-horizon-400'"
+          :class="completeness >= 80 ? 'bg-spring-500' : completeness >= 50 ? 'bg-violet-500' : 'bg-horizon-400'"
           :style="{ width: `${completeness}%` }"
         />
       </div>
     </div>
 
-    <div v-if="clickable" class="flex items-center text-blue-600 font-medium text-sm">
+    <div v-if="clickable" class="flex items-center text-violet-600 font-medium text-sm">
       <span>View Plan</span>
       <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -60,7 +60,7 @@ export default {
     title: { type: String, required: true },
     description: { type: String, required: true },
     iconPath: { type: String, default: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-    color: { type: String, default: 'blue' },
+    color: { type: String, default: 'violet' },
     completeness: { type: Number, default: null },
     clickable: { type: Boolean, default: true },
     status: { type: String, default: null },
@@ -71,24 +71,22 @@ export default {
   computed: {
     iconBgClass() {
       const map = {
-        blue: 'bg-blue-100',
-        green: 'bg-green-100',
-        purple: 'bg-purple-100',
-        teal: 'bg-teal-100',
-        red: 'bg-red-100',
+        violet: 'bg-violet-100',
+        spring: 'bg-spring-100',
+        raspberry: 'bg-raspberry-100',
+        horizon: 'bg-horizon-100',
       };
-      return map[this.color] || map.blue;
+      return map[this.color] || map.violet;
     },
 
     iconColorClass() {
       const map = {
-        blue: 'text-blue-600',
-        green: 'text-green-600',
-        purple: 'text-purple-600',
-        teal: 'text-teal-600',
-        red: 'text-red-600',
+        violet: 'text-violet-600',
+        spring: 'text-spring-600',
+        raspberry: 'text-raspberry-600',
+        horizon: 'text-horizon-500',
       };
-      return map[this.color] || map.blue;
+      return map[this.color] || map.violet;
     },
 
     statusLabel() {
@@ -100,8 +98,8 @@ export default {
     },
 
     statusClasses() {
-      if (this.completeness >= 80) return 'bg-green-100 text-green-800';
-      if (this.completeness >= 50) return 'bg-blue-100 text-blue-800';
+      if (this.completeness >= 80) return 'bg-spring-100 text-spring-800';
+      if (this.completeness >= 50) return 'bg-violet-100 text-violet-800';
       return 'bg-savannah-100 text-neutral-500';
     },
   },

@@ -181,7 +181,7 @@
         <div class="border-t border-horizon-400 mt-8 pt-8 text-center">
           <p class="text-sm text-horizon-400">
             &copy; 2026 Fynla - Financial Freedom Mapping.
-            <router-link to="/version" class="ml-2 text-raspberry-400 hover:text-raspberry-300">v0.7.0</router-link>
+            <router-link to="/version" class="ml-2 text-raspberry-400 hover:text-raspberry-300">v0.8.3</router-link>
             <span class="mx-2">|</span>
             <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="text-raspberry-400 hover:text-raspberry-300">fynla.org</a>
           </p>

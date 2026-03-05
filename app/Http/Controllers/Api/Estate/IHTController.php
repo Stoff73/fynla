@@ -84,10 +84,8 @@ class IHTController extends Controller
             // (Service assumes liabilities stay constant, but mortgages are paid off by age 70)
             $calculation['projected_net_estate'] = $calculation['projected_gross_assets'] - $projectedLiabilities;
 
-            // Recalculate projected taxable estate and IHT with corrected net estate
-            $totalAllowances = $calculation['nrb_available'] + $calculation['rnrb_available'];
-            $calculation['projected_taxable_estate'] = max(0, $calculation['projected_net_estate'] - $totalAllowances);
-            $calculation['projected_iht_liability'] = $calculation['projected_taxable_estate'] * 0.40;
+            // Let the service's projected_taxable_estate and projected_iht_liability stand
+            // (they account for RNRB taper and charitable rate correctly)
 
             // Format response for frontend compatibility
             $response = [

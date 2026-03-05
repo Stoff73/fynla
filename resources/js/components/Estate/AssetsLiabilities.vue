@@ -1,7 +1,7 @@
 <template>
   <div class="assets-liabilities-tab">
     <!-- Success Message -->
-    <div v-if="successMessage" class="mb-6 bg-spring-50 border-l-4 border-spring-500 p-4">
+    <div v-if="successMessage" class="mb-6 bg-spring-50 border border-spring-200 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-spring-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -15,7 +15,7 @@
     </div>
 
     <!-- Error Message -->
-    <div v-if="errorMessage" class="mb-6 bg-raspberry-50 border-l-4 border-raspberry-500 p-4">
+    <div v-if="errorMessage" class="mb-6 bg-raspberry-50 border border-raspberry-200 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-raspberry-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -78,7 +78,7 @@
         No assets recorded yet
       </div>
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-light-gray">
           <thead class="bg-eggshell-500">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -98,7 +98,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr v-for="asset in assets" :key="asset.id" :class="{'bg-violet-50': asset.source === 'investment_module'}">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-horizon-500">
                 <div class="flex items-center">
@@ -157,7 +157,7 @@
         <h3 class="text-lg font-semibold text-horizon-500">Liabilities</h3>
         <button
           @click="showLiabilityForm = true"
-          class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-error-600 hover:bg-error-700"
+          class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-raspberry-500 hover:bg-raspberry-600"
         >
           <svg
             class="-ml-1 mr-2 h-4 w-4"
@@ -178,7 +178,7 @@
         No liabilities recorded yet
       </div>
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-light-gray">
           <thead class="bg-eggshell-500">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -198,7 +198,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr v-for="liability in liabilities" :key="liability.id">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-horizon-500">
                 {{ liability.liability_type }}

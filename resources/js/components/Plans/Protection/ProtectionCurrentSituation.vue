@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Current Situation" subtitle="Your protection coverage overview" color="green" />
+    <PlanSectionHeader title="Current Situation" subtitle="Your protection coverage overview" color="spring" />
 
     <div class="space-y-4">
       <!-- Coverage Analysis: Need vs Have vs Gap -->
@@ -64,11 +64,11 @@
                 </div>
                 <div v-if="coverageAnalysis.life_insurance?.coverage > 0" class="flex justify-between text-xs">
                   <span class="text-neutral-500">Less: existing life cover</span>
-                  <span class="text-green-700 font-medium">-{{ formatCurrency(coverageAnalysis.life_insurance.coverage) }}</span>
+                  <span class="text-spring-700 font-medium">-{{ formatCurrency(coverageAnalysis.life_insurance.coverage) }}</span>
                 </div>
                 <div v-if="coverageAnalysis.life_insurance?.gap > 0" class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-semibold">
-                  <span class="text-red-700">Shortfall</span>
-                  <span class="text-red-700">{{ formatCurrency(coverageAnalysis.life_insurance.gap) }}</span>
+                  <span class="text-raspberry-700">Shortfall</span>
+                  <span class="text-raspberry-700">{{ formatCurrency(coverageAnalysis.life_insurance.gap) }}</span>
                 </div>
               </div>
             </div>
@@ -119,11 +119,11 @@
                 </div>
                 <div v-if="coverageAnalysis.critical_illness?.coverage > 0" class="flex justify-between text-xs">
                   <span class="text-neutral-500">Less: existing critical illness cover</span>
-                  <span class="text-green-700 font-medium">-{{ formatCurrency(coverageAnalysis.critical_illness.coverage) }}</span>
+                  <span class="text-spring-700 font-medium">-{{ formatCurrency(coverageAnalysis.critical_illness.coverage) }}</span>
                 </div>
                 <div v-if="coverageAnalysis.critical_illness?.gap > 0" class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-semibold">
-                  <span class="text-red-700">Shortfall</span>
-                  <span class="text-red-700">{{ formatCurrency(coverageAnalysis.critical_illness.gap) }}</span>
+                  <span class="text-raspberry-700">Shortfall</span>
+                  <span class="text-raspberry-700">{{ formatCurrency(coverageAnalysis.critical_illness.gap) }}</span>
                 </div>
               </div>
               <p class="text-xs text-horizon-400 mt-2">A lump sum to cover living costs and treatment if diagnosed with a serious illness.</p>
@@ -175,11 +175,11 @@
                 </div>
                 <div v-if="coverageAnalysis.income_protection?.coverage > 0" class="flex justify-between text-xs">
                   <span class="text-neutral-500">Less: existing income protection</span>
-                  <span class="text-green-700 font-medium">-{{ formatCurrency(coverageAnalysis.income_protection.coverage) }}/month</span>
+                  <span class="text-spring-700 font-medium">-{{ formatCurrency(coverageAnalysis.income_protection.coverage) }}/month</span>
                 </div>
                 <div v-if="coverageAnalysis.income_protection?.gap > 0" class="flex justify-between text-xs pt-1 border-t border-savannah-100 font-semibold">
-                  <span class="text-red-700">Monthly shortfall</span>
-                  <span class="text-red-700">{{ formatCurrency(coverageAnalysis.income_protection.gap) }}/month</span>
+                  <span class="text-raspberry-700">Monthly shortfall</span>
+                  <span class="text-raspberry-700">{{ formatCurrency(coverageAnalysis.income_protection.gap) }}/month</span>
                 </div>
               </div>
               <p class="text-xs text-horizon-400 mt-2">Replaces your income if you are unable to work due to illness or injury.</p>
@@ -278,21 +278,21 @@ export default {
   },
   methods: {
     gapColor(gap) {
-      if (!gap || gap <= 0) return 'text-green-700';
-      return 'text-red-700';
+      if (!gap || gap <= 0) return 'text-spring-700';
+      return 'text-raspberry-700';
     },
     statusBadge(status) {
       const s = (status || '').toLowerCase();
-      if (s === 'excellent') return 'bg-green-100 text-green-800';
-      if (s === 'good') return 'bg-blue-100 text-blue-800';
-      if (s === 'fair') return 'bg-blue-100 text-blue-800';
-      return 'bg-red-100 text-red-800';
+      if (s === 'excellent') return 'bg-spring-100 text-spring-800';
+      if (s === 'good') return 'bg-violet-100 text-violet-800';
+      if (s === 'fair') return 'bg-violet-100 text-violet-800';
+      return 'bg-raspberry-100 text-raspberry-800';
     },
     progressBarColor(percentage) {
-      if (percentage >= 80) return 'bg-green-500';
-      if (percentage >= 60) return 'bg-blue-500';
-      if (percentage >= 40) return 'bg-blue-500';
-      return 'bg-red-500';
+      if (percentage >= 80) return 'bg-spring-500';
+      if (percentage >= 60) return 'bg-violet-500';
+      if (percentage >= 40) return 'bg-violet-500';
+      return 'bg-raspberry-500';
     },
   },
 };

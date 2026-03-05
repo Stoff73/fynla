@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\Role;
@@ -35,5 +37,17 @@ class AdminUserSeeder extends Seeder
         // Sync is_admin flag with role assignment
         $user->is_admin = true;
         $user->save();
+
+        // Promote any existing users listed in ADMIN_EMAILS to admin role
+        $adminEmails = config('auth.admin_emails', []);
+        foreach ($adminEmails as $email) {
+            $existingUser = User::where('email', $email)->first();
+            if ($existingUser && ! $existingUser->is_admin) {
+                $existingUser->role_id = $adminRole?->id;
+                $existingUser->is_admin = true;
+                $existingUser->save();
+                $this->command?->info("Promoted {$email} to admin.");
+            }
+        }
     }
 }

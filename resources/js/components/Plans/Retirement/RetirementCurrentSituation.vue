@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Your Pension Plans" subtitle="Your pension and retirement overview" color="teal" />
+    <PlanSectionHeader title="Your Pension Plans" subtitle="Your pension and retirement overview" color="horizon" />
 
     <div class="space-y-4">
       <!-- Pensions -->

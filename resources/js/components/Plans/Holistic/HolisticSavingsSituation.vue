@@ -63,9 +63,9 @@ export default {
 
     emergencyFundColor() {
       const months = this.emergencyFundMonths;
-      if (months >= 6) return 'text-green-700';
-      if (months >= 3) return 'text-blue-700';
-      return 'text-red-700';
+      if (months >= 6) return 'text-spring-700';
+      if (months >= 3) return 'text-violet-700';
+      return 'text-raspberry-700';
     },
   },
 };

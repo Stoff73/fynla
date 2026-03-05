@@ -447,7 +447,7 @@ export default {
 }
 
 .relief-note {
-  @apply text-sm text-neutral-500 bg-spring-50 border-l-4 border-spring-600 p-3 mb-4 rounded leading-relaxed;
+  @apply text-sm text-neutral-500 bg-spring-50 border border-spring-200 p-3 mb-4 rounded leading-relaxed;
 }
 
 .relief-note strong {

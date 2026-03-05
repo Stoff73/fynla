@@ -1,7 +1,7 @@
 <template>
   <div class="will-planning-tab">
     <!-- Preview Mode Notice -->
-    <div v-if="isPreviewMode" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-violet-200 rounded-xl p-5 mb-6 shadow-sm">
+    <div v-if="isPreviewMode" class="bg-savannah-100 border border-violet-200 rounded-xl p-5 mb-6 shadow-sm">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-violet-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

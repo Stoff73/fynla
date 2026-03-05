@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-spring-50 border-l-4 border-spring-500 p-4">
+  <div class="bg-spring-50 border border-spring-200 p-4">
     <div class="flex">
       <div class="flex-shrink-0">
         <svg

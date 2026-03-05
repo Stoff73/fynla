@@ -52,20 +52,6 @@
         </div>
       </div>
 
-      <!-- Life Events & Goal Strategies -->
-      <div class="space-y-3 mb-5">
-        <ModuleLifeEvents
-          module="investment"
-          :events="lifeEvents"
-          :impact-summary="lifeEventImpact"
-        />
-        <ModuleGoalStrategies
-          module="investment"
-          :strategies="goalStrategies"
-          :summary="goalsSummary"
-        />
-      </div>
-
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
         <p class="mt-3">Loading investments...</p>
@@ -161,34 +147,6 @@
         </div>
       </div>
 
-      <!-- Strategy Card (full width) -->
-      <div
-        v-if="hasRecommendations"
-        class="bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all hover:shadow-lg mb-6"
-        @click="goToStrategy"
-        role="button"
-        tabindex="0"
-        @keydown.enter="goToStrategy"
-      >
-        <div class="mb-4">
-          <h3 class="text-lg font-semibold text-horizon-500">{{ recommendationCount === 1 ? 'Strategy' : 'Strategies' }}</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div
-            v-for="(rec, index) in topRecommendations"
-            :key="index"
-            class="flex flex-col gap-2 p-3 bg-savannah-100 rounded-lg"
-          >
-            <span :class="getPriorityBadgeClass(rec.priority)" class="px-2 py-0.5 rounded text-xs font-medium w-fit">
-              {{ getPriorityLabel(rec.priority) }}
-            </span>
-            <p class="font-medium text-horizon-500 text-sm">{{ rec.title }}</p>
-            <p class="text-xs text-neutral-500 line-clamp-2">{{ rec.description }}</p>
-          </div>
-        </div>
-      </div>
-
       <!-- Portfolio Features Tabs - Hidden from dashboard, components still available for detail views -->
       <!-- <div v-if="accounts.length > 0" class="portfolio-features">
         <h3 class="features-title">Portfolio Analysis</h3>
@@ -272,9 +230,6 @@ import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimiz
 import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
-import PortfolioStrategyPanel from '@/views/Investment/PortfolioStrategyPanel.vue';
-import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
-import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -293,9 +248,6 @@ export default {
     WrapperOptimizer,
     FeeBreakdown,
     TaxEfficiencyPanel,
-    PortfolioStrategyPanel,
-    ModuleLifeEvents,
-    ModuleGoalStrategies,
   },
 
   data() {
@@ -315,31 +267,17 @@ export default {
         { id: 'optimization', label: 'Optimisation' },
         { id: 'taxefficiency', label: 'Tax Efficiency' },
         { id: 'fees', label: 'Fees' },
-        { id: 'strategy', label: 'Strategy' },
       ],
     };
   },
 
   computed: {
-    ...mapState('investment', ['loading', 'error', 'recommendations', 'lifeEvents', 'lifeEventImpact', 'goalStrategies', 'goalsSummary']),
+    ...mapState('investment', ['loading', 'error']),
     ...mapGetters('investment', [
       'accounts',
       'totalPortfolioValue',
       'holdingsCount',
     ]),
-
-    hasRecommendations() {
-      return this.recommendations?.recommendations?.length > 0;
-    },
-
-    recommendationCount() {
-      return this.recommendations?.recommendation_count || 0;
-    },
-
-    topRecommendations() {
-      if (!this.recommendations?.recommendations) return [];
-      return this.recommendations.recommendations.slice(0, 3);
-    },
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {
@@ -424,35 +362,6 @@ export default {
     selectAccount(account) {
       this.selectedAccount = account;
       this.setDetailView(true);
-    },
-
-    goToStrategy() {
-      const base = this.$route.path.startsWith('/preview') ? '/preview' : '';
-      this.$router.push(`${base}/net-worth/strategy-detail`);
-    },
-
-    getPriorityLabel(priority) {
-      if (priority <= 2) return 'High';
-      if (priority <= 3) return 'Medium';
-      return 'Low';
-    },
-
-    getPriorityBadgeClass(priority) {
-      if (priority <= 2) return 'bg-raspberry-500 text-white';
-      if (priority <= 3) return 'bg-violet-500 text-white';
-      return 'bg-violet-500 text-white';
-    },
-
-    handleStrategyNavigate(tab) {
-      // Navigate to another tab from strategy panel
-      const tabMap = {
-        fees: 'fees',
-        rebalancing: 'holdings', // Rebalancing is shown in holdings/account detail
-        taxefficiency: 'taxefficiency',
-      };
-      if (tabMap[tab]) {
-        this.activePortfolioTab = tabMap[tab];
-      }
     },
 
     clearSelection() {

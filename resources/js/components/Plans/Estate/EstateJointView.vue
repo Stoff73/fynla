@@ -3,7 +3,7 @@
     <PlanSectionHeader
       title="Joint Estate Overview"
       subtitle="Side-by-side estate positions for both partners"
-      color="purple"
+      color="violet"
     />
 
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-5">
@@ -27,7 +27,7 @@
             </div>
             <div v-if="jointView.primary.cover_in_trust > 0" class="flex justify-between">
               <span class="text-xs text-neutral-500">Life Cover in Trust</span>
-              <span class="text-sm font-medium text-green-700">{{ formatCurrency(jointView.primary.cover_in_trust) }}</span>
+              <span class="text-sm font-medium text-spring-700">{{ formatCurrency(jointView.primary.cover_in_trust) }}</span>
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@
             </div>
             <div v-if="jointView.spouse.cover_in_trust > 0" class="flex justify-between">
               <span class="text-xs text-neutral-500">Life Cover in Trust</span>
-              <span class="text-sm font-medium text-green-700">{{ formatCurrency(jointView.spouse.cover_in_trust) }}</span>
+              <span class="text-sm font-medium text-spring-700">{{ formatCurrency(jointView.spouse.cover_in_trust) }}</span>
             </div>
           </div>
         </div>
@@ -80,8 +80,8 @@
       </div>
 
       <!-- Spouse exemption note -->
-      <div v-if="jointView.spouse_exemption_note" class="mt-4 p-3 bg-blue-50 rounded-lg">
-        <p class="text-xs text-blue-700">{{ jointView.spouse_exemption_note }}</p>
+      <div v-if="jointView.spouse_exemption_note" class="mt-4 p-3 bg-violet-50 rounded-lg">
+        <p class="text-xs text-violet-700">{{ jointView.spouse_exemption_note }}</p>
       </div>
     </div>
   </div>

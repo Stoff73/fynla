@@ -3,7 +3,7 @@
     <PlanSectionHeader
       title="Recommended Actions"
       :subtitle="enabledCountLabel"
-      color="green"
+      color="spring"
     />
 
     <div v-if="actions && actions.length" class="space-y-3">
@@ -12,6 +12,7 @@
         :key="action.id"
         :action="action"
         @toggle="$emit('toggle', $event)"
+        @update-funding-source="$emit('update-funding-source', $event)"
       />
     </div>
 
@@ -40,7 +41,7 @@ export default {
     },
   },
 
-  emits: ['toggle'],
+  emits: ['toggle', 'update-funding-source'],
 
   computed: {
     enabledCount() {

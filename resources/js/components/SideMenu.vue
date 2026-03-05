@@ -52,35 +52,44 @@
           <SideMenuItem icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" @navigate="closeMobile" />
         </SideMenuSection>
 
-        <!-- Planning -->
-        <SideMenuSection label="Planning" :collapsed="effectiveCollapsed">
-          <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" @navigate="closeMobile" />
-          <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" @navigate="closeMobile" />
+        <!-- Current -->
+        <SideMenuSection label="Current" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="banknotes" label="Cash" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" @navigate="closeMobile" />
           <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" @navigate="closeMobile" />
+          <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" @navigate="closeMobile" />
+          <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" @navigate="closeMobile" />
           <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
-          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" @navigate="closeMobile" />
-        </SideMenuSection>
-
-        <!-- Advanced -->
-        <SideMenuSection label="Advanced" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" @navigate="closeMobile" />
           <SideMenuItem icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" @navigate="closeMobile" />
-          <SideMenuItem icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isActive('/goals')" @navigate="closeMobile" />
+          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" @navigate="closeMobile" />
+          <SideMenuItem icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" @navigate="closeMobile" />
+          <SideMenuItem icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" @navigate="closeMobile" />
           <SideMenuItem icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" @navigate="closeMobile" />
+          <!-- Family items shown here for single users -->
+          <template v-if="!hasSpouse">
+            <SideMenuItem icon="document-check" label="Will" :to="{ path: '/valuable-info', query: { section: 'will' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('will')" @navigate="closeMobile" />
+            <SideMenuItem icon="envelope" label="Expression of Wishes" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
+          </template>
         </SideMenuSection>
 
-        <!-- Plans & Actions -->
-        <SideMenuSection label="Plans & Actions" :collapsed="effectiveCollapsed">
+        <!-- Planning -->
+        <SideMenuSection label="Planning" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" @navigate="closeMobile" />
           <SideMenuItem icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" @navigate="closeMobile" />
+          <SideMenuItem icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" @navigate="closeMobile" />
+          <SideMenuItem icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" @navigate="closeMobile" />
           <SideMenuItem icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" @navigate="closeMobile" />
+        </SideMenuSection>
+
+        <!-- Family (shown only when user has a spouse/partner) -->
+        <SideMenuSection v-if="hasSpouse" label="Family" :collapsed="effectiveCollapsed">
+          <SideMenuItem icon="document-check" label="Will" :to="{ path: '/valuable-info', query: { section: 'will' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('will')" @navigate="closeMobile" />
+          <SideMenuItem icon="envelope" label="Letter to Spouse" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Account -->
         <SideMenuSection label="Account" :collapsed="effectiveCollapsed">
           <SideMenuItem icon="user" label="User Profile" to="/profile" :collapsed="effectiveCollapsed" :active="isActive('/profile')" @navigate="closeMobile" />
-          <SideMenuItem icon="document-search" label="Valuable Info" to="/valuable-info" :collapsed="effectiveCollapsed" :active="isActive('/valuable-info')" @navigate="closeMobile" />
           <SideMenuItem icon="cog" label="Settings" to="/settings" :collapsed="effectiveCollapsed" :active="isActive('/settings')" @navigate="closeMobile" />
         </SideMenuSection>
 
@@ -168,6 +177,13 @@ export default {
     const showBugReportModal = ref(false);
 
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
+    const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
+    const hasSpouse = computed(() => {
+      if (isPreviewMode.value) {
+        return store.getters['preview/hasSpouse'];
+      }
+      return store.getters['spousePermission/hasSpouse'];
+    });
 
     // On mobile overlay, always show expanded (not collapsed)
     const effectiveCollapsed = computed(() => {
@@ -186,6 +202,10 @@ export default {
     const isExactActive = (path) => currentPath.value === path;
 
     const isActive = (prefix) => currentPath.value.startsWith(prefix);
+
+    const isValuableInfoSection = (section) => {
+      return currentPath.value.startsWith('/valuable-info') && route.query.section === section;
+    };
 
     // Net Worth active when on /net-worth but NOT on retirement/investments/business sub-paths
     const isNetWorthActive = computed(() => {
@@ -216,6 +236,16 @@ export default {
     // Estate active for /estate routes
     const isEstateActive = computed(() => {
       return currentPath.value.startsWith('/estate');
+    });
+
+    // Goals overview active (on /goals without tab=events)
+    const isGoalsOverviewActive = computed(() => {
+      return currentPath.value.startsWith('/goals') && route.query.tab !== 'events';
+    });
+
+    // Goals events tab active
+    const isGoalsEventsActive = computed(() => {
+      return currentPath.value.startsWith('/goals') && route.query.tab === 'events';
     });
 
     const toggleCollapsed = () => {
@@ -264,6 +294,7 @@ export default {
       logoUrl,
       faviconUrl,
       isAdmin,
+      hasSpouse,
       effectiveCollapsed,
       menuWidthClass,
       showBugReportModal,
@@ -273,6 +304,9 @@ export default {
       isNetWorthActive,
       isInvestmentsActive,
       isEstateActive,
+      isGoalsOverviewActive,
+      isGoalsEventsActive,
+      isValuableInfoSection,
       toggleCollapsed,
       closeMobile,
       openBugReport,

@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="What-If Comparison" subtitle="See how your plan changes with recommended actions" color="purple" />
+    <PlanSectionHeader title="What-If Comparison" subtitle="See how your plan changes with recommended actions" color="violet" />
 
     <div class="bg-white rounded-lg shadow-sm border border-light-gray overflow-hidden">
       <!-- Chart comparison -->
@@ -21,8 +21,8 @@
         </div>
 
         <!-- Projected Scenario -->
-        <div class="p-5 bg-green-50/30">
-          <h3 class="text-sm font-semibold text-green-700 uppercase tracking-wider mb-4">With Actions</h3>
+        <div class="p-5 bg-spring-50/30">
+          <h3 class="text-sm font-semibold text-spring-700 uppercase tracking-wider mb-4">With Actions</h3>
           <slot name="projected" />
         </div>
       </div>

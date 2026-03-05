@@ -11,18 +11,18 @@
       Back to Estate Dashboard
     </button>
     <!-- Personalized Asset-Based Gifting Strategy Section -->
-    <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border-2 border-emerald-500">
+    <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border border-light-gray">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
         <h2 class="text-xl sm:text-2xl font-bold text-horizon-500">Your Personalized Gifting Strategy</h2>
         <button
           @click="refreshPersonalizedStrategy"
-          class="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
+          class="text-sm text-spring-500 hover:text-spring-700 flex items-center"
           :disabled="loadingPersonalizedStrategy"
         >
           <svg v-if="!loadingPersonalizedStrategy" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          <div v-else class="animate-spin h-4 w-4 mr-1 border-2 border-emerald-600 border-t-transparent rounded-full"></div>
+          <div v-else class="animate-spin h-4 w-4 mr-1 border border-light-gray border-t-transparent rounded-full"></div>
           Refresh
         </button>
       </div>
@@ -33,22 +33,22 @@
 
       <!-- Strategy Summary -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg p-4 border-2 border-raspberry-500">
+        <div class="bg-white rounded-lg p-4 border border-light-gray">
           <p class="text-sm text-raspberry-700 mb-1 font-medium">Current Inheritance Tax Liability</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-raspberry-900">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
           <p class="text-xs text-raspberry-600">At projected death</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-violet-500">
+        <div class="bg-white rounded-lg p-4 border border-light-gray">
           <p class="text-sm text-violet-700 mb-1 font-medium">Annual Exemption</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£3,000/year</p>
           <p class="text-xs text-violet-600">Immediately exempt gifts</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-purple-500">
-          <p class="text-sm text-purple-700 mb-1 font-medium">Total to Gift</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
-          <p class="text-xs text-purple-600">Via recommended strategies</p>
+        <div class="bg-white rounded-lg p-4 border border-light-gray">
+          <p class="text-sm text-violet-500 mb-1 font-medium">Total to Gift</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-500">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
+          <p class="text-xs text-violet-500">Via recommended strategies</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-spring-500">
+        <div class="bg-white rounded-lg p-4 border border-light-gray">
           <p class="text-sm text-spring-700 mb-1 font-medium">Inheritance Tax Saved</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-900">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
           <p class="text-xs text-spring-600">{{ personalizedStrategy.summary.reduction_percentage }}% reduction</p>
@@ -79,7 +79,7 @@
                 </span>
                 <span
                   v-if="strategy.category"
-                  class="px-2 py-1 rounded text-xs font-medium bg-indigo-500 text-white"
+                  class="px-2 py-1 rounded text-xs font-medium bg-violet-500 text-white"
                 >
                   {{ formatCategory(strategy.category) }}
                 </span>
@@ -110,13 +110,13 @@
           </div>
 
           <!-- Available Assets -->
-          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-white rounded border-2 border-violet-500">
+          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-white rounded border border-light-gray">
             <p class="text-xs font-medium text-violet-600 mb-1">Available Assets:</p>
             <p class="text-sm text-horizon-500">{{ strategy.available_assets }}</p>
           </div>
 
           <!-- Main Residence Info -->
-          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-violet-500">
+          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border border-light-gray">
             <p class="text-xs font-medium text-violet-600 mb-1">Main Residence:</p>
             <p class="text-sm text-horizon-500 font-medium">{{ strategy.main_residence }}</p>
             <p class="text-sm text-neutral-500 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
@@ -130,18 +130,18 @@
               <div
                 v-for="(gift, idx) in strategy.gift_schedule"
                 :key="idx"
-                class="p-2 bg-white rounded border-2 border-indigo-500"
+                class="p-2 bg-white rounded border border-light-gray"
               >
-                <p class="text-xs text-indigo-600">Year {{ gift.year }}</p>
+                <p class="text-xs text-violet-500">Year {{ gift.year }}</p>
                 <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(gift.amount) }}</p>
-                <p class="text-xs text-indigo-600">Exempt: Year {{ gift.becomes_exempt }}</p>
+                <p class="text-xs text-violet-500">Exempt: Year {{ gift.becomes_exempt }}</p>
               </div>
             </div>
           </div>
 
           <!-- Tax Considerations -->
-          <div v-if="strategy.tax_considerations" class="mb-3 p-3 bg-white rounded border-2 border-purple-500">
-            <p class="text-xs font-medium text-purple-600 mb-2">Tax Considerations:</p>
+          <div v-if="strategy.tax_considerations" class="mb-3 p-3 bg-white rounded border border-light-gray">
+            <p class="text-xs font-medium text-violet-500 mb-2">Tax Considerations:</p>
             <div class="text-xs text-neutral-500 space-y-1">
               <p v-if="strategy.tax_considerations.cgt_rate">
                 <span class="font-medium">Capital Gains Tax:</span> {{ strategy.tax_considerations.cgt_rate }}
@@ -233,7 +233,7 @@
       </div>
 
       <!-- Overall Summary -->
-      <div class="mt-6 bg-white rounded-lg p-4 border-2 border-spring-500">
+      <div class="mt-6 bg-white rounded-lg p-4 border border-light-gray">
         <h3 class="text-lg font-semibold text-horizon-500 mb-3">Overall Strategy Impact</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -250,14 +250,14 @@
           </div>
           <div>
             <p class="text-xs sm:text-sm text-neutral-500">Inheritance Tax Reduction</p>
-            <p class="text-base sm:text-lg font-bold text-emerald-600">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
+            <p class="text-base sm:text-lg font-bold text-spring-500">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Error/Info Messages for Personalized Strategy -->
-    <div v-if="personalizedStrategyError && !personalizedStrategy" class="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+    <div v-if="personalizedStrategyError && !personalizedStrategy" class="mb-6 bg-violet-50 border border-violet-200 text-violet-800 px-4 py-3 rounded-lg">
       <div class="flex items-start">
         <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -283,15 +283,15 @@
 
     <!-- Gifting Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white rounded-lg p-6 border-2 border-violet-500">
+      <div class="bg-white rounded-lg p-6 border border-light-gray">
         <p class="text-sm text-violet-600 font-medium mb-2">Gifts Within 7 Years</p>
         <p class="text-3xl font-bold text-horizon-500">{{ giftsWithin7YearsCount }}</p>
       </div>
-      <div class="bg-white rounded-lg p-6 border-2 border-purple-500">
-        <p class="text-sm text-purple-600 font-medium mb-2">Total Value</p>
+      <div class="bg-white rounded-lg p-6 border border-light-gray">
+        <p class="text-sm text-violet-500 font-medium mb-2">Total Value</p>
         <p class="text-3xl font-bold text-horizon-500">{{ formattedGiftsValue }}</p>
       </div>
-      <div class="bg-white rounded-lg p-6 border-2 border-spring-500">
+      <div class="bg-white rounded-lg p-6 border border-light-gray">
         <p class="text-sm text-spring-600 font-medium mb-2">Annual Exemption Available</p>
         <p class="text-3xl font-bold text-horizon-500">{{ formattedAnnualExemption }}</p>
       </div>
@@ -306,7 +306,7 @@
     </div>
 
     <!-- HMRC 7-Year Rule & Taper Relief Info -->
-    <div class="bg-white border-2 border-violet-500 rounded-lg p-4 mb-6">
+    <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-violet-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -364,7 +364,7 @@
       <div v-if="gifts.length === 0" class="px-6 py-8 text-center text-neutral-500">
         No gifts recorded yet
       </div>
-      <div v-else class="divide-y divide-gray-200">
+      <div v-else class="divide-y divide-light-gray">
         <div
           v-for="gift in sortedGifts"
           :key="gift.id"

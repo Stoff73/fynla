@@ -254,7 +254,7 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   overflow: hidden;
-  @apply border-l-4 border-l-gray-300;
+  @apply border border-light-gray;
 }
 
 .gift-card:hover {
@@ -263,15 +263,15 @@ export default {
 }
 
 .gift-card.status-exempt {
-  @apply border-l-green-500;
+  @apply border-spring-500;
 }
 
 .gift-card.status-taper {
-  @apply border-l-blue-500;
+  @apply border-violet-500;
 }
 
 .gift-card.status-taxable {
-  @apply border-l-red-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -402,15 +402,15 @@ export default {
 }
 
 .progress-early {
-  @apply bg-gradient-to-r from-red-500 to-red-600;
+  @apply bg-gradient-to-r from-raspberry-500 to-raspberry-600;
 }
 
 .progress-partial {
-  @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  @apply bg-gradient-to-r from-violet-500 to-horizon-500;
 }
 
 .progress-complete {
-  @apply bg-gradient-to-r from-green-500 to-green-600;
+  @apply bg-gradient-to-r from-spring-500 to-spring-600;
 }
 
 .taper-relief {
