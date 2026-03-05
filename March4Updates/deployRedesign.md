@@ -261,3 +261,25 @@ resources/js/components/SideMenuItem.vue    (to prop accepts String|Object)
 resources/js/views/ValuableInfo.vue         (watcher for route query → active tab sync)
 resources/js/views/Goals/GoalsDashboard.vue (tab query param support + watcher)
 ```
+
+### Actions Dashboard Rebuild (uiUpdates branch)
+
+Rebuilt the Actions page to properly load and display recommendations from all modules.
+
+**Problems fixed:**
+1. **`ActionsDashboard.vue`** — Missing `AppLayout` wrapper so page rendered without nav/sidebar. Raw CSS with hardcoded hex instead of Tailwind/design system. Imported `RecommendationFilters` component unnecessarily.
+2. **`recommendations.js` store** — API calls used `/api/recommendations` but axios `baseURL` is already `/api`, causing double prefix `/api/api/recommendations` → 404.
+3. **`RecommendationsAggregatorService.php`** — Passed raw agent response arrays (containing `[success, message, data, timestamp]`) to `formatRecommendations()` instead of unwrapping the `data` payload. Each module's recommendations lived in different structures that the aggregator never read.
+
+**Aggregator fixes per module:**
+- **Protection** — reads `$analysis['data']['recommendations']` + extracts coverage gaps
+- **Savings** — extracts emergency fund recommendation (skips "Excellent" status) and ISA remaining allowance
+- **Retirement** — unwraps agent response, generates recommendation from income shortfall
+- **Estate** — reads `implementation_timeline` actions with IHT savings/costs (was looking for non-existent `recommendations` key)
+
+**Files changed:**
+```
+resources/js/views/Actions/ActionsDashboard.vue                 (full rewrite — AppLayout, Tailwind, currencyMixin, inline filters)
+resources/js/store/modules/recommendations.js                   (fixed /api/ double prefix on all endpoints)
+app/Services/Coordination/RecommendationsAggregatorService.php  (proper data extraction from each module)
+```
