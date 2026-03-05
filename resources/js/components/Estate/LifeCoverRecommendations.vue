@@ -3,7 +3,7 @@
     <h3 class="text-lg font-semibold text-horizon-500 mb-4">Life Cover Recommendations</h3>
 
     <!-- Recommendation Summary -->
-    <div v-if="recommendations.recommendation" class="bg-violet-50 border-l-4 border-violet-500 p-4 mb-6">
+    <div v-if="recommendations.recommendation" class="bg-violet-50 border border-violet-200 p-4 mb-6">
       <div class="flex items-start">
         <svg class="h-5 w-5 text-violet-400 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -63,9 +63,9 @@
 
       <!-- Scenario Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-purple-50 rounded-lg p-4">
-          <p class="text-xs text-purple-600 font-medium">Cover Amount</p>
-          <p class="text-2xl font-bold text-purple-900 mt-1">
+        <div class="bg-violet-50 rounded-lg p-4">
+          <p class="text-xs text-violet-500 font-medium">Cover Amount</p>
+          <p class="text-2xl font-bold text-violet-500 mt-1">
             {{ formatCurrency(currentScenario.cover_amount || currentScenario.target_amount) }}
           </p>
         </div>
@@ -185,7 +185,7 @@
       <h4 class="text-base font-semibold text-horizon-500 mb-4">Scenario Comparison</h4>
 
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-light-gray">
           <thead class="bg-eggshell-500">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Scenario</th>
@@ -195,7 +195,7 @@
               <th class="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Cost-Benefit</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-light-gray">
             <tr v-for="(scenario, key) in scenarios" :key="key">
               <td class="px-4 py-3 text-sm font-medium text-horizon-500">
                 {{ scenario.scenario_name }}

@@ -14,7 +14,7 @@
         {{ allExpanded ? 'Collapse All' : 'Expand All' }}
       </button>
     </div>
-    <table class="min-w-full divide-y divide-gray-200">
+    <table class="min-w-full divide-y divide-light-gray">
       <thead class="bg-eggshell-500">
         <tr>
           <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">{{ firstColumnHeader }}</th>
@@ -33,7 +33,7 @@
           </th>
         </tr>
       </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
+      <tbody class="bg-white divide-y divide-light-gray">
         <!-- User Assets Section -->
         <IHTAssetBreakdown
           v-if="assetsBreakdown.user"
@@ -63,7 +63,7 @@
         />
 
         <!-- Total Gross Assets -->
-        <tr :class="showSpouse ? 'bg-white border-l-4 border-horizon-400' : 'bg-white border-l-4 border-horizon-400 border-t-2 border-horizon-300'">
+        <tr :class="showSpouse ? 'bg-white ' : 'bg-white  border-t-2 border-horizon-300'">
           <td class="px-4 py-3 text-sm font-bold text-horizon-500">Total Gross Assets</td>
           <td class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(totals.grossAssets.now) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(totals.grossAssets.minus5) }}</td>
@@ -96,7 +96,7 @@
         />
 
         <!-- Total Liabilities -->
-        <tr :class="showSpouse ? 'bg-white border-l-4 border-horizon-400' : 'bg-white border-l-4 border-horizon-400 border-t-2 border-horizon-300'">
+        <tr :class="showSpouse ? 'bg-white ' : 'bg-white  border-t-2 border-horizon-300'">
           <td class="px-4 py-3 text-sm font-bold text-horizon-500">{{ showSpouse ? 'Less: Total Liabilities' : 'Total Liabilities' }}</td>
           <td class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatLiability(totals.liabilities.now) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatLiability(totals.liabilities.minus5) }}</td>
@@ -105,7 +105,7 @@
         </tr>
 
         <!-- Net Estate -->
-        <tr class="bg-white border-l-4 border-horizon-400">
+        <tr class="bg-white ">
           <td class="px-4 py-3 text-sm font-semibold text-horizon-500">Net Estate</td>
           <td class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(totals.netEstate.now) }}</td>
           <td v-if="showMinus5Years" class="px-4 py-3 text-sm text-right font-bold text-horizon-500">{{ formatCurrency(totals.netEstate.minus5) }}</td>
@@ -118,7 +118,7 @@
         <!-- ============================================== -->
         <template v-if="!charitableBequest">
           <!-- Allowances Section Header (Collapsible) -->
-          <tr class="bg-white border-l-4 border-horizon-400 cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleAllowances">
+          <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleAllowances">
             <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
               <span class="inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedAllowances }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -282,7 +282,7 @@
             </tr>
 
             <!-- Allowances Subtotal -->
-            <tr class="bg-white border-l-4 border-horizon-400">
+            <tr class="bg-white ">
               <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">Subtotal</td>
               <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
               <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">-{{ formatCurrency(totalAllowances) }}</td>
@@ -298,7 +298,7 @@
         <!-- ============================================== -->
         <template v-else>
           <!-- NRB Section Header (Collapsible) -->
-          <tr class="bg-white border-l-4 border-horizon-400 cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleNRB">
+          <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleNRB">
             <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
               <span class="inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -351,7 +351,7 @@
           </template>
 
           <!-- Estate after NRB (charitable bequest baseline) -->
-          <tr class="bg-violet-50 border-l-4 border-violet-400">
+          <tr class="bg-violet-50 ">
             <td class="px-4 py-3 text-sm font-semibold text-violet-800">
               Estate after Tax-Free Allowance{{ showSpouse ? 's' : '' }}
               <span class="block text-xs font-normal text-violet-600 mt-0.5">Charitable bequest baseline (10% calculated from this)</span>
@@ -363,7 +363,7 @@
           </tr>
 
           <!-- Charitable Bequest (deducted from estate) -->
-          <tr class="bg-spring-50 border-l-4 border-spring-400">
+          <tr class="bg-spring-50 ">
             <td class="px-4 py-3 text-sm font-semibold text-spring-800">
               Less: Charitable Bequest (10% minimum)
               <span class="block text-xs font-normal text-spring-600 mt-0.5">Deducted from estate, qualifies for 36% rate</span>
@@ -376,7 +376,7 @@
 
           <!-- RNRB Section Header (Collapsible) - only if eligible -->
           <template v-if="allowances.rnrbEligible && allowances.totalRnrb > 0">
-            <tr class="bg-white border-l-4 border-horizon-400 cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleRNRB">
+            <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="toggleRNRB">
               <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
                 <span class="inline-flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': expandedRNRB }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -465,7 +465,7 @@
         </tr>
 
         <!-- Inheritance Tax Liability -->
-        <tr class="bg-white border-l-4 border-horizon-400">
+        <tr class="bg-white ">
           <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
             Inheritance Tax Liability ({{ effectiveIHTRateLabel }})
             <span v-if="charitableBequest" class="ml-2 text-xs font-normal text-spring-600">(Reduced rate)</span>

@@ -17,7 +17,7 @@
     </div>
 
     <!-- No Inheritance Tax Liability State -->
-    <div v-else-if="noIHTLiability" class="bg-white border-2 border-spring-500 rounded-lg p-6">
+    <div v-else-if="noIHTLiability" class="bg-white border border-light-gray rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-spring-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -33,35 +33,35 @@
     <!-- Strategy Comparison -->
     <div v-else-if="strategy" class="space-y-6">
       <!-- Whole of Life Insurance Details -->
-      <div class="bg-white rounded-lg border-2 border-indigo-300 shadow-lg">
-        <div class="bg-white border-b-2 border-indigo-500 px-6 py-4 border-b border-indigo-200">
+      <div class="bg-white rounded-lg border border-light-gray shadow-lg">
+        <div class="bg-savannah-100 px-6 py-4 border-b border-light-gray">
           <div>
-            <h3 class="text-xl font-bold text-indigo-900">{{ policy.policy_type }}</h3>
-            <p class="text-sm text-indigo-700 mt-1">{{ policy.description }}</p>
+            <h3 class="text-xl font-bold text-horizon-500">{{ policy.policy_type }}</h3>
+            <p class="text-sm text-neutral-500 mt-1">{{ policy.description }}</p>
           </div>
         </div>
 
         <div class="p-4 sm:p-6">
           <!-- Key Metrics -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-indigo-500">
-              <p class="text-xs sm:text-sm text-indigo-700 font-medium mb-1">Cover Amount</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-900">{{ formatCurrency(policy.cover_amount) }}</p>
-              <p class="text-xs text-indigo-600 mt-1">Guaranteed payout</p>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
+              <p class="text-xs sm:text-sm text-horizon-500 font-medium mb-1">Cover Amount</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(policy.cover_amount) }}</p>
+              <p class="text-xs text-neutral-500 mt-1">Guaranteed payout</p>
             </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-spring-500">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
               <p class="text-xs sm:text-sm text-spring-700 font-medium mb-1">Monthly Premium</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-900">{{ formatCurrency(policy.monthly_premium) }}</p>
             </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-violet-500">
+            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
               <p class="text-xs sm:text-sm text-violet-700 font-medium mb-1">Annual Premium</p>
               <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">{{ formatCurrency(policy.annual_premium) }}</p>
               <p class="text-xs text-violet-600 mt-1">Per year</p>
             </div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-purple-500">
-              <p class="text-xs sm:text-sm text-purple-700 font-medium mb-1">Total Premiums</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(policy.total_premiums_paid) }}</p>
-              <p class="text-xs text-purple-600 mt-1">Over {{ policy.term_years }} years</p>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border border-light-gray">
+              <p class="text-xs sm:text-sm text-raspberry-700 font-medium mb-1">Total Premiums</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-raspberry-700">{{ formatCurrency(policy.total_premiums_paid) }}</p>
+              <p class="text-xs text-neutral-500 mt-1">Over {{ policy.term_years }} years</p>
             </div>
           </div>
 
@@ -83,7 +83,7 @@
             <h4 class="text-md font-semibold text-horizon-500 mb-3">Implementation Steps</h4>
             <ol class="space-y-2">
               <li v-for="(step, index) in policy.implementation_steps" :key="index" class="flex items-start">
-                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-indigo-500 text-indigo-700 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                <span class="flex-shrink-0 w-6 h-6 bg-white border-b-2 border-horizon-400 text-horizon-500 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
                   {{ index + 1 }}
                 </span>
                 <span class="text-neutral-500 pt-0.5">{{ step }}</span>
@@ -103,16 +103,16 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div v-for="(items, decision) in strategy.comparison.decision_framework" :key="decision">
               <h4 class="text-md font-semibold mb-3" :class="{
-                'text-indigo-900': decision.includes('Insurance'),
-                'text-violet-900': decision.includes('Self-Insurance'),
-                'text-purple-900': decision.includes('Hybrid')
+                'text-horizon-500': decision.includes('Insurance'),
+                'text-violet-500': decision.includes('Self-Insurance'),
+                'text-raspberry-700': decision.includes('Hybrid')
               }">{{ decision }}</h4>
               <ul class="space-y-2">
                 <li v-for="(item, index) in items" :key="index" class="flex items-start text-sm">
                   <span class="mr-2" :class="{
-                    'text-indigo-600': decision.includes('Insurance'),
-                    'text-violet-600': decision.includes('Self-Insurance'),
-                    'text-purple-600': decision.includes('Hybrid')
+                    'text-horizon-500': decision.includes('Insurance'),
+                    'text-violet-500': decision.includes('Self-Insurance'),
+                    'text-raspberry-500': decision.includes('Hybrid')
                   }">•</span>
                   <span class="text-neutral-500">{{ item }}</span>
                 </li>
@@ -125,7 +125,7 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-white border-2 border-raspberry-500 rounded-lg p-6">
+    <div v-else-if="error" class="bg-white border border-light-gray rounded-lg p-6">
       <div class="flex items-start">
         <svg class="h-6 w-6 text-raspberry-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

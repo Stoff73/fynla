@@ -111,10 +111,10 @@
           <p class="text-lg font-bold text-violet-900">{{ formatCurrency(userTimeline.total_gifts) }}</p>
           <p class="text-xs text-violet-500">{{ userTimeline.gift_count }} gifts within 7 years</p>
         </div>
-        <div v-if="!spouseTimeline.show_empty_timeline" class="bg-purple-50 rounded p-3">
-          <p class="text-xs text-purple-600 font-medium">Total Gifts ({{ spouseTimeline.name || 'Spouse' }})</p>
-          <p class="text-lg font-bold text-purple-900">{{ formatCurrency(spouseTimeline.total_gifts) }}</p>
-          <p class="text-xs text-purple-500">{{ spouseTimeline.gift_count }} gifts within 7 years</p>
+        <div v-if="!spouseTimeline.show_empty_timeline" class="bg-violet-50 rounded p-3">
+          <p class="text-xs text-violet-500 font-medium">Total Gifts ({{ spouseTimeline.name || 'Spouse' }})</p>
+          <p class="text-lg font-bold text-violet-500">{{ formatCurrency(spouseTimeline.total_gifts) }}</p>
+          <p class="text-xs text-violet-500">{{ spouseTimeline.gift_count }} gifts within 7 years</p>
         </div>
       </div>
     </div>

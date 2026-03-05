@@ -2,7 +2,7 @@
   <!-- Liability Breakdown for One Person (User or Spouse) -->
   <template v-if="ownerData && ownerData.liabilities">
     <!-- Owner Liabilities Header -->
-    <tr class="bg-white border-l-4 border-horizon-400 cursor-pointer hover:bg-eggshell-500 select-none" @click="$emit('toggle-liability', ownerKey + '-all')">
+    <tr class="bg-white  cursor-pointer hover:bg-eggshell-500 select-none" @click="$emit('toggle-liability', ownerKey + '-all')">
       <td class="px-4 py-3 text-sm font-semibold text-horizon-500">
         <span class="inline-flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-horizon-400 transition-transform mr-1" :class="{ 'rotate-90': isExpanded(ownerKey + '-all') }"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -101,7 +101,7 @@
       </template>
 
       <!-- Liabilities Subtotal (only if > 0) -->
-      <tr v-if="ownerData.total > 0" class="bg-white border-l-4 border-horizon-400">
+      <tr v-if="ownerData.total > 0" class="bg-white ">
         <td class="px-4 py-2 text-sm font-semibold text-horizon-500 pl-8">{{ subtotalLabel }}</td>
         <td class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>
         <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right font-semibold text-horizon-500">{{ formatLiability(ownerData.total) }}</td>

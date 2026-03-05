@@ -174,8 +174,8 @@
         </div>
 
         <!-- Life Insurance Trust Fields -->
-        <div v-if="form.trust_type === 'life_insurance'" class="border border-purple-200 rounded-md p-4 bg-purple-50">
-          <h4 class="text-sm font-semibold text-purple-900 mb-3">Life Insurance Trust Details</h4>
+        <div v-if="form.trust_type === 'life_insurance'" class="border border-violet-200 rounded-md p-4 bg-violet-50">
+          <h4 class="text-sm font-semibold text-violet-500 mb-3">Life Insurance Trust Details</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="sum_assured" class="block text-sm font-medium text-neutral-500">Sum Assured (£)</label>

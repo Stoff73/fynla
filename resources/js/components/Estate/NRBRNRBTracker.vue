@@ -354,15 +354,15 @@ export default {
 }
 
 .progress-good {
-  @apply bg-gradient-to-r from-green-500 to-green-600;
+  @apply bg-gradient-to-r from-spring-500 to-spring-600;
 }
 
 .progress-warning {
-  @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  @apply bg-gradient-to-r from-violet-500 to-horizon-500;
 }
 
 .progress-critical {
-  @apply bg-gradient-to-r from-red-500 to-red-600;
+  @apply bg-gradient-to-r from-raspberry-500 to-raspberry-600;
 }
 
 .progress-disabled {
@@ -456,7 +456,7 @@ export default {
 }
 
 .eligibility-notes {
-  @apply mt-5 p-4 bg-violet-50 border-l-4 border-violet-500 rounded;
+  @apply mt-5 p-4 bg-violet-50 border border-violet-200 rounded;
 }
 
 .note-header {
