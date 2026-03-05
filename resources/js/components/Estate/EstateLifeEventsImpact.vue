@@ -10,24 +10,24 @@
 
     <!-- Impact Summary -->
     <div v-if="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-success-50 rounded-lg p-4 border border-success-200">
-        <p class="text-xs text-success-600 font-medium mb-1">Incoming to Estate</p>
-        <p class="text-lg font-bold text-success-700">{{ formatCurrency(summary.total_incoming) }}</p>
+      <div class="bg-spring-50 rounded-lg p-4 border border-spring-200">
+        <p class="text-xs text-spring-600 font-medium mb-1">Incoming to Estate</p>
+        <p class="text-lg font-bold text-spring-700">{{ formatCurrency(summary.total_incoming) }}</p>
       </div>
-      <div class="bg-error-50 rounded-lg p-4 border border-error-200">
-        <p class="text-xs text-error-600 font-medium mb-1">Outgoing from Estate</p>
-        <p class="text-lg font-bold text-error-700">{{ formatCurrency(summary.total_outgoing) }}</p>
+      <div class="bg-raspberry-50 rounded-lg p-4 border border-raspberry-200">
+        <p class="text-xs text-raspberry-600 font-medium mb-1">Outgoing from Estate</p>
+        <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(summary.total_outgoing) }}</p>
       </div>
       <div :class="[
         'rounded-lg p-4 border',
         summary.net_estate_impact >= 0
-          ? 'bg-success-50 border-success-200'
-          : 'bg-error-50 border-error-200'
+          ? 'bg-spring-50 border-spring-200'
+          : 'bg-raspberry-50 border-raspberry-200'
       ]">
         <p class="text-xs text-neutral-500 font-medium mb-1">Net Estate Impact</p>
         <p :class="[
           'text-lg font-bold',
-          summary.net_estate_impact >= 0 ? 'text-success-700' : 'text-error-700'
+          summary.net_estate_impact >= 0 ? 'text-spring-700' : 'text-raspberry-700'
         ]">
           {{ summary.net_estate_impact >= 0 ? '+' : '' }}{{ formatCurrency(summary.net_estate_impact) }}
         </p>
@@ -40,8 +40,8 @@
         v-for="(trigger, index) in reviewTriggers"
         :key="'trigger-' + index"
         :class="[
-          'rounded-lg p-4 border-l-4',
-          trigger.priority === 'high' ? 'bg-error-50 border-error-500' : 'bg-violet-50 border-violet-500'
+          'rounded-lg p-4 border',
+          trigger.priority === 'high' ? 'bg-raspberry-50 border-raspberry-200' : 'bg-violet-50 border-violet-200'
         ]"
       >
         <div class="flex items-start">
@@ -70,11 +70,11 @@
         <!-- Timeline dot -->
         <div :class="[
           'relative z-10 flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0',
-          event.impact_type === 'income' ? 'bg-success-100' : 'bg-error-100'
+          event.impact_type === 'income' ? 'bg-spring-100' : 'bg-raspberry-100'
         ]">
           <div :class="[
             'w-3 h-3 rounded-full',
-            event.impact_type === 'income' ? 'bg-success-500' : 'bg-error-500'
+            event.impact_type === 'income' ? 'bg-spring-500' : 'bg-raspberry-500'
           ]"></div>
         </div>
 
@@ -100,7 +100,7 @@
           <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <span :class="[
               'text-sm font-semibold',
-              event.impact_type === 'income' ? 'text-success-700' : 'text-error-700'
+              event.impact_type === 'income' ? 'text-spring-700' : 'text-raspberry-700'
             ]">
               {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
             </span>
@@ -109,8 +109,8 @@
             <span v-if="event.projected_iht_change !== undefined && event.projected_iht_change !== 0" :class="[
               'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded',
               event.projected_iht_change > 0
-                ? 'bg-error-50 text-error-700'
-                : 'bg-success-50 text-success-700'
+                ? 'bg-raspberry-50 text-raspberry-700'
+                : 'bg-spring-50 text-spring-700'
             ]">
               Inheritance Tax {{ event.projected_iht_change > 0 ? '+' : '' }}{{ formatCurrency(event.projected_iht_change) }}
             </span>
@@ -183,7 +183,7 @@ export default {
     certaintyClass(certainty) {
       switch (certainty) {
         case 'confirmed':
-          return 'bg-success-100 text-success-700';
+          return 'bg-spring-100 text-spring-700';
         case 'likely':
           return 'bg-violet-100 text-violet-700';
         case 'possible':
