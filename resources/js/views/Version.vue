@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.8.1</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.8.3</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">22 February 2026</p>
+              <p class="text-body-base text-horizon-500">5 March 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
@@ -38,7 +38,189 @@
             </div>
           </div>
 
-          <!-- Security Hardening -->
+          <!-- Financial Plans System -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Financial Plans System (Complete Rebuild)</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Comprehensive rebuild of the entire financial planning system across 6 phases with 263 implementation tasks and a full code audit fixing 25 issues.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Unified Plan Framework:</strong> 5 plan types (Investment, Protection, Retirement, Estate, Goal) with consistent 6-section structure: executive summary, current situation, toggleable actions, what-if scenarios, dynamic conclusion, and PDF export.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Structured Executive Summaries:</strong> Personalised greeting, key metrics tables, and prioritised actions tables for all plan types.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Per-Account Recommendations:</strong> Investment and retirement plans generate per-account fee and contribution recommendations with reactive line charts.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Admin-Configurable Values:</strong> PlanConfigService replaces 16+ hardcoded values (growth rates, fee benchmarks, thresholds) with database-driven admin configuration.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Goal Integration:</strong> Goals linked to savings, investment, or retirement accounts appear in the corresponding plan with progress tracking and priority-ordered recommendations.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Holistic Plan -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Holistic Plan Rewrite</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Frontend-Orchestrated Aggregation:</strong> Fetches individual module plans and displays them together in a unified page with no recalculation or duplication.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Priority Area:</strong> Aggregates all actions across plans and shows priority allocation against the user's monthly disposable income from a single shared pool.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- AI Chat Assistant -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">AI Chat Assistant</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Fynla Assistant:</strong> AI-powered chat assistant accessible from a floating button on all authenticated pages with 17 tools for navigation, analysis, and data creation.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Simulated AI for Demos:</strong> Preview users get a realistic AI-like experience with pattern-based intent matching and real financial data — zero API cost.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Side Navigation & Student Persona -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Navigation and Preview Personas</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-horizon-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Side Navigation Menu:</strong> Collapsible left-side navigation with expanded (224px) and collapsed (64px) modes, mobile overlay, and persisted state.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-horizon-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Student Preview Persona:</strong> 7th persona — Janice Taylor, 21-year-old university student with optimised student dashboard, Cash ISA, Lifetime ISA, and student loan.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Design System Overhaul -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Design System Overhaul (v1.2.0)</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Complete Visual Rebrand:</strong> Raspberry call-to-actions, Horizon text and navigation, Spring success states, Violet warnings and focus rings, Eggshell page backgrounds, Savannah hover states.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Typography Update:</strong> Segoe UI as primary font with Inter as fallback. Font weights: 900 (display/h1), 700 (h2-h5).</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>CSS Centralisation:</strong> Eliminated 1,110 lines of duplicated CSS across 65 components, established CSS governance rules, standardised back buttons across 18 files.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Code Audit & Bug Fixes -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Code Audit and Bug Fixes</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>3 Critical Bugs Fixed:</strong> Stale retirement age calculation, recommendation overwrite on cached plans, and hardcoded dummy chart data replaced with real user data.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>6 Estate Agent Bug Fixes:</strong> Corrected method names, fixed 17M% effective rate display, proper error handling for TypeErrors.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>12 Code Simplifications:</strong> Consolidated duplicate projection formulas, extracted shared helpers, removed unused variables across all plan services.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Print/Save PDF:</strong> Multi-plan print support with type-specific builders, cascading line charts, and SVG rendering for all plan types.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Stats -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">380+</div>
+                <div class="text-body-sm text-neutral-500">Files Changed</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">73</div>
+                <div class="text-body-sm text-neutral-500">New Files</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">1,603</div>
+                <div class="text-body-sm text-neutral-500">Tests Passing</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">25</div>
+                <div class="text-body-sm text-neutral-500">Bugs Fixed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-light-gray my-8"></div>
+
+        <!-- Previous Version: v0.8.1 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-horizon-500 mb-4">Previous Release: v0.8.1</h2>
+          <p class="text-body-sm text-neutral-500 mb-4">Released: 22 February 2026</p>
+
           <div class="mb-6">
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Security Hardening (4 Phases)</h3>
             <p class="text-body-sm text-neutral-500 mb-4">Comprehensive security review addressing 46 findings across authentication, API controllers, models, and frontend configuration.</p>
@@ -47,118 +229,19 @@
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Data Encryption at Rest:</strong> Account numbers, sort codes, mortgage account numbers, and National Insurance numbers now encrypted using Laravel's Crypt facade with graceful plaintext fallback.</span>
+                <span class="text-body-base text-neutral-500"><strong>Data Encryption at Rest:</strong> Account numbers, sort codes, mortgage account numbers, and National Insurance numbers now encrypted.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Brute Force Protection:</strong> MFA verification, login email codes, and registration codes now track failed attempts and lock after 5 failures.</span>
+                <span class="text-body-base text-neutral-500"><strong>Brute Force Protection:</strong> MFA verification, login email codes, and registration codes track failed attempts and lock after 5 failures.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Account Enumeration Prevention:</strong> Registration endpoint returns identical responses for existing and new email addresses.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Challenge Token Authentication:</strong> Login email verification uses cache-backed challenge tokens instead of exposing raw user IDs.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Security Headers & Config -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Security Headers and Configuration</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Content Security Policy:</strong> Removed <code>unsafe-eval</code> from CSP headers across both deployment targets.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Permissions Policy:</strong> Disabled camera, microphone, geolocation, payment, USB, and Bluetooth browser APIs.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Session Security:</strong> Secure-only cookies enabled by default, sessions expire on browser close, HSTS headers added.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Source Maps Disabled:</strong> Production builds no longer include JavaScript source maps.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Model & API Hardening -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Model and API Hardening</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Hidden Attributes:</strong> Sensitive fields on LetterToSpouse, Payment, PasswordResetSession, and LoginAttempt models hidden from API serialisation.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Mass Assignment Protection:</strong> Subscription model switched from <code>$guarded</code> to explicit <code>$fillable</code>, ActuarialLifeTable guarded.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Generic Error Messages:</strong> Role and permission middleware no longer reveal internal authorisation details in error responses.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Audit Trail Improvements:</strong> MFA secrets excluded from audit logging, email addresses masked in registration logs, bug report log size reduced.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Other Changes -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Other Changes</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Token Storage:</strong> Removed legacy <code>localStorage</code> auth token fallback, now uses <code>sessionStorage</code> exclusively.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Webhook Rate Limiting:</strong> Payment webhook endpoint now rate-limited to 30 requests per minute.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Preview Mode Hardening:</strong> Fixed route matching in PreviewWriteInterceptor to prevent prefix bypass attacks.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Debug Cleanup:</strong> Removed development <code>console.log</code> statements from RetirementIncomeTab and BalanceSheetTab components.</span>
+                <span class="text-body-base text-neutral-500"><strong>Account Enumeration Prevention, Challenge Token Authentication, Content Security Policy, Session Security, Source Maps Disabled.</strong></span>
               </li>
             </ul>
           </div>

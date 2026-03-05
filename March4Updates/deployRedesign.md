@@ -301,3 +301,31 @@ Replaced text labels on life event annotations in retirement and investment Mont
 resources/js/components/Retirement/PensionPotProjectionChart.vue   (icon annotations, tooltip, getEventIcon, handleChartMouseMove)
 resources/js/components/Investment/InvestmentProjectionChart.vue    (same changes as retirement chart)
 ```
+
+### Version Documentation Update to v0.8.3 (uiUpdates branch)
+
+Updated all version references from v0.8.1 to v0.8.3 across documentation, footer, and version page.
+
+**Files changed:**
+```
+CLAUDE.md                                    (version v0.8.1 → v0.8.3)
+README.md                                    (version, test counts, recent updates, description, personas, documentation refs)
+resources/js/components/Footer.vue           (footer version link v0.8.1 → v0.8.3)
+resources/js/views/Version.vue               (current version card → v0.8.3 with full changelog, v0.8.1 moved to previous release)
+```
+
+**Version.vue v0.8.3 changelog sections:**
+- Financial Plans System (Complete Rebuild) — 5 plan types, structured exec summaries, per-account recommendations, PlanConfigService, goal integration
+- Holistic Plan Rewrite — frontend-orchestrated aggregation, priority area
+- AI Chat Assistant — 17 tools, SSE streaming, simulated AI for demos
+- Navigation and Preview Personas — side menu, student persona (Janice Taylor)
+- Design System Overhaul (v1.2.0) — complete visual rebrand, typography, CSS centralisation
+- Code Audit and Bug Fixes — 3 critical bugs, 6 estate agent fixes, 12 simplifications, PDF export
+- Release Statistics — 380+ files changed, 73 new files, 1,603 tests, 25 bugs fixed
+
+**README.md updates:**
+- Description updated from 5 to 7 modules
+- Test badge: 1,075 → 1,603
+- Preview personas: 6 → 7 (added Janice Taylor)
+- Recent Updates section: added v0.8.3, condensed v0.8.1 and older entries
+- Documentation table updated
