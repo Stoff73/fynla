@@ -60,8 +60,8 @@ export default {
   methods: {
     priorityClass(priority) {
       const classes = {
-        critical: 'bg-red-100 text-red-700',
-        high: 'bg-blue-100 text-blue-800',
+        critical: 'bg-raspberry-100 text-raspberry-700',
+        high: 'bg-violet-100 text-violet-800',
         medium: 'bg-savannah-100 text-horizon-500',
         low: 'bg-savannah-100 text-neutral-500',
       };

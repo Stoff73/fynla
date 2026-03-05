@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Current Situation" subtitle="Your goal progress and details" color="purple" />
+    <PlanSectionHeader title="Current Situation" subtitle="Your goal progress and details" color="violet" />
 
     <div class="space-y-4">
       <!-- Goal Details -->
@@ -64,7 +64,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div class="bg-eggshell-500 rounded-lg p-3">
             <p class="text-xs text-neutral-500">On Track</p>
-            <p class="text-sm font-bold" :class="isOnTrack ? 'text-green-700' : 'text-red-700'">
+            <p class="text-sm font-bold" :class="isOnTrack ? 'text-spring-700' : 'text-raspberry-700'">
               {{ isOnTrack ? 'Yes' : 'No' }}
             </p>
           </div>
@@ -101,13 +101,13 @@
         <h3 class="text-sm font-semibold text-horizon-500 mb-3">Linked Accounts</h3>
         <div class="space-y-2">
           <div v-if="situation.linked_accounts.savings" class="flex items-center text-sm text-horizon-500">
-            <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-spring-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             Savings account linked
           </div>
           <div v-if="situation.linked_accounts.investment" class="flex items-center text-sm text-horizon-500">
-            <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-spring-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             Investment account linked
@@ -148,22 +148,22 @@ export default {
       return this.situation.progress?.is_on_track || false;
     },
     progressBarColor() {
-      if (this.progressPercent >= 75) return 'bg-green-500';
-      if (this.progressPercent >= 50) return 'bg-blue-500';
-      if (this.progressPercent >= 25) return 'bg-blue-400';
+      if (this.progressPercent >= 75) return 'bg-spring-500';
+      if (this.progressPercent >= 50) return 'bg-violet-500';
+      if (this.progressPercent >= 25) return 'bg-violet-400';
       return 'bg-horizon-400';
     },
     priorityClasses() {
       const p = (this.details.priority || '').toLowerCase();
-      if (p === 'high' || p === 'critical') return 'bg-red-100 text-red-800';
-      if (p === 'medium') return 'bg-blue-100 text-blue-800';
+      if (p === 'high' || p === 'critical') return 'bg-raspberry-100 text-raspberry-800';
+      if (p === 'medium') return 'bg-violet-100 text-violet-800';
       return 'bg-savannah-100 text-neutral-500';
     },
     affordabilityCategoryColor() {
       const cat = (this.situation.affordability?.category || '').toLowerCase();
-      if (cat === 'comfortable') return 'text-green-700';
-      if (cat === 'moderate') return 'text-blue-700';
-      return 'text-red-700';
+      if (cat === 'comfortable') return 'text-spring-700';
+      if (cat === 'moderate') return 'text-violet-700';
+      return 'text-raspberry-700';
     },
     hasLinkedAccounts() {
       return this.situation.linked_accounts?.savings || this.situation.linked_accounts?.investment;

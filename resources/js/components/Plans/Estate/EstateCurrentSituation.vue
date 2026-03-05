@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Current Situation" subtitle="Your estate and Inheritance Tax overview" color="purple" />
+    <PlanSectionHeader title="Current Situation" subtitle="Your estate and Inheritance Tax overview" color="violet" />
 
     <div class="space-y-4">
       <!-- IHT Calculation Table (same as estate module) -->
@@ -47,7 +47,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div class="bg-eggshell-500 rounded-lg p-3">
             <p class="text-xs text-neutral-500">Cover in Trust</p>
-            <p class="text-sm font-bold text-green-700">{{ formatCurrency(situation.life_cover.cover_in_trust) }}</p>
+            <p class="text-sm font-bold text-spring-700">{{ formatCurrency(situation.life_cover.cover_in_trust) }}</p>
           </div>
           <div class="bg-eggshell-500 rounded-lg p-3">
             <p class="text-xs text-neutral-500">Cover Not in Trust</p>
@@ -78,7 +78,7 @@
           </div>
           <div v-if="situation.charitable_giving.potential_saving > 0" class="bg-eggshell-500 rounded-lg p-3">
             <p class="text-xs text-neutral-500">Potential Saving</p>
-            <p class="text-sm font-bold text-green-700">{{ formatCurrency(situation.charitable_giving.potential_saving) }}</p>
+            <p class="text-sm font-bold text-spring-700">{{ formatCurrency(situation.charitable_giving.potential_saving) }}</p>
           </div>
         </div>
       </div>

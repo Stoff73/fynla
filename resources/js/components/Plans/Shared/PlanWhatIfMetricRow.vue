@@ -60,8 +60,8 @@ export default {
     deltaClasses() {
       if (!this.delta) return '';
       return this.isPositive
-        ? 'bg-green-100 text-green-700'
-        : 'bg-red-100 text-red-700';
+        ? 'bg-spring-100 text-spring-700'
+        : 'bg-raspberry-100 text-raspberry-700';
     },
   },
 };

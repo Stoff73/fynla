@@ -3,7 +3,7 @@
     <PlanSectionHeader
       title="Recommended Actions"
       :subtitle="enabledCountLabel"
-      color="purple"
+      color="violet"
     />
 
     <template v-if="hasActions">
@@ -13,7 +13,7 @@
             v-for="action in sortByPriority(actions)"
             :key="action.id"
             class="bg-white rounded-lg border p-4 transition-all duration-200"
-            :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-light-gray opacity-75'"
+            :class="action.enabled ? 'border-violet-200 bg-violet-50/30' : 'border-light-gray opacity-75'"
           >
             <!-- Action header with toggle -->
             <div class="flex items-start justify-between">
@@ -31,7 +31,7 @@
                 <p class="text-sm text-neutral-500 mt-1">{{ action.description }}</p>
 
                 <!-- Estimated impact -->
-                <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
+                <p v-if="action.estimated_impact" class="text-xs text-spring-700 mt-1 font-medium">
                   Estimated impact: {{ formatCurrency(action.estimated_impact) }}
                 </p>
 
@@ -40,8 +40,8 @@
                   <div
                     class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium"
                     :class="action.affordability.is_affordable
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'"
+                      ? 'bg-spring-50 text-spring-700 border border-spring-200'
+                      : 'bg-raspberry-50 text-raspberry-700 border border-raspberry-200'"
                   >
                     <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path v-if="action.affordability.is_affordable" fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -52,7 +52,7 @@
                       ({{ formatCurrency(action.affordability.monthly_premium_estimate) }}/month)
                     </span>
                   </div>
-                  <p v-if="action.affordability_warning" class="text-xs text-red-600 mt-1">
+                  <p v-if="action.affordability_warning" class="text-xs text-raspberry-600 mt-1">
                     {{ action.affordability_warning }}
                   </p>
                 </div>
@@ -99,7 +99,7 @@
                           <tr v-for="(entry, idx) in action.gift_schedule" :key="idx">
                             <td class="px-3 py-2 text-xs text-horizon-500">Year {{ entry.year + 1 }}</td>
                             <td class="px-3 py-2 text-xs text-horizon-500 text-right">{{ formatCurrency(entry.amount) }}</td>
-                            <td class="px-3 py-2 text-xs text-green-700 text-right">{{ formatCurrency(entry.iht_reduction) }}</td>
+                            <td class="px-3 py-2 text-xs text-spring-700 text-right">{{ formatCurrency(entry.iht_reduction) }}</td>
                             <td class="px-3 py-2 text-xs text-neutral-500 text-right">Year {{ entry.becomes_exempt }}</td>
                           </tr>
                         </tbody>
@@ -128,7 +128,7 @@
                     </div>
                     <div class="bg-eggshell-500 rounded p-2">
                       <p class="text-xs text-neutral-500">Inheritance Tax Saved</p>
-                      <p class="text-xs font-semibold text-green-700">{{ formatCurrency(action.annual_gifting_detail.iht_saved) }}</p>
+                      <p class="text-xs font-semibold text-spring-700">{{ formatCurrency(action.annual_gifting_detail.iht_saved) }}</p>
                     </div>
                   </div>
                 </div>
@@ -310,10 +310,10 @@ export default {
 
     priorityClasses(priority) {
       const map = {
-        critical: 'bg-red-100 text-red-800',
-        high: 'bg-blue-100 text-blue-800',
+        critical: 'bg-raspberry-100 text-raspberry-800',
+        high: 'bg-violet-100 text-violet-800',
         medium: 'bg-savannah-100 text-horizon-500',
-        low: 'bg-green-100 text-green-800',
+        low: 'bg-spring-100 text-spring-800',
       };
       return map[priority] || map.medium;
     },

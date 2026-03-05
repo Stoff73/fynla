@@ -32,7 +32,7 @@
               <td class="px-4 py-2.5">
                 <span
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  :class="item.status === 'Adequate' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                  :class="item.status === 'Adequate' ? 'bg-spring-100 text-spring-800' : 'bg-raspberry-100 text-raspberry-800'"
                 >
                   {{ item.status }}
                 </span>
@@ -94,8 +94,8 @@ export default {
   methods: {
     priorityClass(priority) {
       const classes = {
-        critical: 'bg-red-100 text-red-800',
-        high: 'bg-blue-100 text-blue-800',
+        critical: 'bg-raspberry-100 text-raspberry-800',
+        high: 'bg-violet-100 text-violet-800',
         medium: 'bg-savannah-100 text-horizon-500',
         low: 'bg-savannah-100 text-neutral-500',
       };

@@ -28,7 +28,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 import { LIFE_EVENT_ICONS } from '@/constants/eventIcons';
 import { EVENT_ICON_SVGS } from '@/constants/eventIconSvgs';
 
@@ -137,7 +137,7 @@ export default {
         const isIncome = e.impact_type === 'income';
         return {
           x: eventYear,
-          borderColor: isIncome ? SUCCESS_COLORS[500] : '#EF4444',
+          borderColor: isIncome ? SUCCESS_COLORS[500] : ERROR_COLORS[500],
           strokeDashArray: 4,
         };
       });
@@ -151,7 +151,7 @@ export default {
       return this.filteredLifeEvents.map(e => {
         const eventYear = new Date(e.expected_date).getFullYear();
         const isIncome = e.impact_type === 'income';
-        const color = isIncome ? SUCCESS_COLORS[500] : '#EF4444';
+        const color = isIncome ? SUCCESS_COLORS[500] : ERROR_COLORS[500];
         const svgPath = this.getEventSvgPath(e);
         const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${svgPath}"/></svg>`;
 

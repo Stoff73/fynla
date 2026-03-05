@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Executive Summary" subtitle="Your holistic financial plan overview" color="blue" />
+    <PlanSectionHeader title="Executive Summary" subtitle="Your holistic financial plan overview" color="violet" />
 
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
       <p v-if="personalInfo" class="text-horizon-500 mb-4">
@@ -19,7 +19,7 @@
           <span
             v-for="plan in availablePlans"
             :key="plan"
-            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-800"
           >
             {{ formatPlanName(plan) }}
           </span>

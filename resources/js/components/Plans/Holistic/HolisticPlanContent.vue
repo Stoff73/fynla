@@ -19,7 +19,7 @@
         v-if="protectionPlan"
         title="Protection — Current Situation"
         subtitle="Your insurance coverage overview"
-        color="purple"
+        color="violet"
       >
         <ProtectionCurrentSituation :situation="protectionPlan.current_situation" />
       </HolisticModuleSection>
@@ -29,7 +29,7 @@
         v-if="investmentPlan && hasInvestmentData"
         title="Investment — Current Situation"
         subtitle="Your investment portfolio overview"
-        color="blue"
+        color="violet"
       >
         <HolisticInvestmentSituation :situation="investmentPlan.current_situation" />
       </HolisticModuleSection>
@@ -39,7 +39,7 @@
         v-if="investmentPlan && hasSavingsData"
         title="Savings — Current Situation"
         subtitle="Your savings and emergency fund overview"
-        color="green"
+        color="spring"
       >
         <HolisticSavingsSituation :situation="investmentPlan.current_situation" />
       </HolisticModuleSection>
@@ -49,7 +49,7 @@
         v-if="retirementPlan"
         title="Retirement — Current Situation"
         subtitle="Your pension and retirement overview"
-        color="green"
+        color="spring"
       >
         <RetirementCurrentSituation :situation="retirementPlan.current_situation" />
       </HolisticModuleSection>
@@ -71,7 +71,7 @@
       <HolisticModuleSection
         v-if="protectionPlan && protectionPlan.actions && protectionPlan.actions.length"
         title="Protection — Recommended Actions"
-        color="purple"
+        color="violet"
       >
         <PlanActionsList
           :actions="protectionPlan.actions"
@@ -96,7 +96,7 @@
       <HolisticModuleSection
         v-if="investmentPlan && investmentPlan.actions && investmentPlan.actions.length"
         title="Investment & Savings — Recommended Actions"
-        color="blue"
+        color="violet"
       >
         <InvestmentGroupedActions
           :actions="investmentPlan.actions"
@@ -110,7 +110,7 @@
       <HolisticModuleSection
         v-if="retirementPlan && retirementPlan.actions && retirementPlan.actions.length"
         title="Retirement — Recommended Actions"
-        color="green"
+        color="spring"
       >
         <RetirementGroupedActions
           :actions="retirementPlan.actions"

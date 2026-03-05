@@ -1,7 +1,7 @@
 <template>
   <div class="financial-health-score bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-horizon-500">Financial Health Score</h3>
+      <h3 class="text-xl font-semibold text-horizon-500">Financial Health Overview</h3>
       <button
         @click="showDetails = !showDetails"
         class="text-sm text-violet-600 hover:text-violet-700"
@@ -10,46 +10,19 @@
       </button>
     </div>
 
-    <!-- Radial Gauge -->
-    <div class="flex justify-center mb-6">
-      <div class="relative w-48 h-48">
-        <!-- SVG Radial Gauge -->
-        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-          <!-- Background circle -->
-          <circle
-            cx="100"
-            cy="100"
-            r="85"
-            fill="none"
-            class="stroke-gray-200"
-            stroke-width="20"
-          />
-          <!-- Progress circle -->
-          <circle
-            cx="100"
-            cy="100"
-            r="85"
-            fill="none"
-            :stroke="gaugeColour"
-            stroke-width="20"
-            stroke-linecap="round"
-            :stroke-dasharray="circumference"
-            :stroke-dashoffset="dashOffset"
-            class="transition-all duration-1000 ease-out"
-          />
-        </svg>
-        <!-- Score text -->
-        <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-4xl font-bold" :class="scoreTextClass">
-            {{ Math.round(compositeScore) }}
-          </span>
-          <span class="text-sm text-neutral-500">out of 100</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Score Label -->
+    <!-- Overall Status Badge -->
     <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-3" :class="overallBgClass">
+        <svg v-if="compositeScore >= 80" class="w-10 h-10 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <svg v-else-if="compositeScore >= 60" class="w-10 h-10 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <svg v-else class="w-10 h-10 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
       <span
         class="inline-block px-4 py-2 rounded-full text-sm font-semibold"
         :class="scoreBadgeClass"
@@ -60,20 +33,15 @@
 
     <!-- Breakdown Details (Expandable) -->
     <div v-if="showDetails" class="mt-6 space-y-3 border-t pt-4">
-      <h4 class="text-sm font-semibold text-horizon-500 mb-3">Score Breakdown</h4>
+      <h4 class="text-sm font-semibold text-horizon-500 mb-3">Area Breakdown</h4>
 
       <!-- Protection -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">Protection Coverage</span>
           <span class="font-semibold" :class="getScoreClass(protectionScore)">
-            {{ Math.round(protectionScore) }}/100
+            {{ getStatusLabel(protectionScore) }}
           </span>
-        </div>
-        <div class="flex items-center text-xs text-neutral-500">
-          <span>Weight: 20%</span>
-          <span class="mx-2">•</span>
-          <span>Contribution: {{ Math.round(protectionContribution) }} pts</span>
         </div>
         <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
@@ -89,13 +57,8 @@
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">Emergency Fund</span>
           <span class="font-semibold" :class="getScoreClass(emergencyFundScore)">
-            {{ Math.round(emergencyFundScore) }}/100
+            {{ getStatusLabel(emergencyFundScore) }}
           </span>
-        </div>
-        <div class="flex items-center text-xs text-neutral-500">
-          <span>Weight: 15%</span>
-          <span class="mx-2">•</span>
-          <span>Contribution: {{ Math.round(emergencyFundContribution) }} pts</span>
         </div>
         <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
@@ -111,13 +74,8 @@
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">Retirement Readiness</span>
           <span class="font-semibold" :class="getScoreClass(retirementScore)">
-            {{ Math.round(retirementScore) }}/100
+            {{ getStatusLabel(retirementScore) }}
           </span>
-        </div>
-        <div class="flex items-center text-xs text-neutral-500">
-          <span>Weight: 25%</span>
-          <span class="mx-2">•</span>
-          <span>Contribution: {{ Math.round(retirementContribution) }} pts</span>
         </div>
         <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
@@ -133,13 +91,8 @@
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">Investment Diversification</span>
           <span class="font-semibold" :class="getScoreClass(investmentScore)">
-            {{ Math.round(investmentScore) }}/100
+            {{ getStatusLabel(investmentScore) }}
           </span>
-        </div>
-        <div class="flex items-center text-xs text-neutral-500">
-          <span>Weight: 20%</span>
-          <span class="mx-2">•</span>
-          <span>Contribution: {{ Math.round(investmentContribution) }} pts</span>
         </div>
         <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
@@ -155,13 +108,8 @@
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">Estate Planning</span>
           <span class="font-semibold" :class="getScoreClass(estateScore)">
-            {{ Math.round(estateScore) }}/100
+            {{ getStatusLabel(estateScore) }}
           </span>
-        </div>
-        <div class="flex items-center text-xs text-neutral-500">
-          <span>Weight: 20%</span>
-          <span class="mx-2">•</span>
-          <span>Contribution: {{ Math.round(estateContribution) }} pts</span>
         </div>
         <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
@@ -182,7 +130,6 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, getColorByThreshold } from '@/constants/designSystem';
 
 export default {
   name: 'FinancialHealthScore',
@@ -190,7 +137,6 @@ export default {
   data() {
     return {
       showDetails: false,
-      circumference: 2 * Math.PI * 85, // 2πr where r=85
     };
   },
 
@@ -211,14 +157,11 @@ export default {
       estateProbateReadiness: 'probateReadiness',
     }),
 
-    // Individual module scores (0-100)
     protectionScore() {
       return this.protectionAdequacyScore || 0;
     },
 
     emergencyFundScore() {
-      // Convert runway (months) to score (0-100)
-      // Target: 6 months = 100%
       const runway = this.emergencyFundRunway || 0;
       return Math.min(100, (runway / 6) * 100);
     },
@@ -235,53 +178,20 @@ export default {
       return this.estateProbateReadiness || 0;
     },
 
-    // Weighted contributions
-    protectionContribution() {
-      return this.protectionScore * 0.20;
-    },
-
-    emergencyFundContribution() {
-      return this.emergencyFundScore * 0.15;
-    },
-
-    retirementContribution() {
-      return this.retirementScore * 0.25;
-    },
-
-    investmentContribution() {
-      return this.investmentScore * 0.20;
-    },
-
-    estateContribution() {
-      return this.estateScore * 0.20;
-    },
-
-    // Composite score
     compositeScore() {
       return (
-        this.protectionContribution +
-        this.emergencyFundContribution +
-        this.retirementContribution +
-        this.investmentContribution +
-        this.estateContribution
+        this.protectionScore * 0.20 +
+        this.emergencyFundScore * 0.15 +
+        this.retirementScore * 0.25 +
+        this.investmentScore * 0.20 +
+        this.estateScore * 0.20
       );
     },
 
-    // Gauge visualization
-    dashOffset() {
-      const progress = this.compositeScore / 100;
-      return this.circumference * (1 - progress);
-    },
-
-    gaugeColour() {
-      // Use design system color helper for threshold-based coloring
-      return getColorByThreshold(this.compositeScore, { success: 80, warning: 60 });
-    },
-
-    scoreTextClass() {
-      if (this.compositeScore >= 80) return 'text-spring-600';
-      if (this.compositeScore >= 60) return 'text-violet-600';
-      return 'text-raspberry-600';
+    overallBgClass() {
+      if (this.compositeScore >= 80) return 'bg-spring-100';
+      if (this.compositeScore >= 60) return 'bg-violet-100';
+      return 'bg-raspberry-100';
     },
 
     scoreBadgeClass() {
@@ -309,6 +219,13 @@ export default {
   },
 
   methods: {
+    getStatusLabel(score) {
+      if (score >= 80) return 'Good';
+      if (score >= 60) return 'Fair';
+      if (score >= 30) return 'Needs attention';
+      return 'Needs attention';
+    },
+
     getScoreClass(score) {
       if (score >= 80) return 'text-spring-600';
       if (score >= 60) return 'text-violet-600';

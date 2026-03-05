@@ -19,7 +19,7 @@
           >
             <span
               class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mr-2 mt-0.5"
-              :class="action.priority === 'critical' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'"
+              :class="action.priority === 'critical' ? 'bg-raspberry-100 text-raspberry-700' : 'bg-violet-100 text-violet-700'"
             >
               {{ idx + 1 }}
             </span>

@@ -68,7 +68,7 @@ class RecommendationsAggregatorService
             $remaining = $isa['remaining'] ?? 0;
             if ($remaining > 0) {
                 $savingsRecs[] = [
-                    'recommendation_text' => "You have £" . number_format($remaining) . " of ISA allowance remaining this tax year. Consider maximising your tax-free savings.",
+                    'recommendation_text' => 'You have £'.number_format($remaining).' of ISA allowance remaining this tax year. Consider maximising your tax-free savings.',
                     'priority_score' => 55,
                     'category' => 'isa_allowance',
                 ];
@@ -87,7 +87,7 @@ class RecommendationsAggregatorService
             $summary = $retirementData['summary'] ?? [];
             if (isset($summary['shortfall']) && $summary['shortfall'] > 0) {
                 $retirementRecs[] = [
-                    'recommendation_text' => "Your projected retirement income has a shortfall of £" . number_format($summary['shortfall']) . " per year. Consider increasing pension contributions.",
+                    'recommendation_text' => 'Your projected retirement income has a shortfall of £'.number_format($summary['shortfall']).' per year. Consider increasing pension contributions.',
                     'priority_score' => 80,
                     'category' => 'income_shortfall',
                 ];
@@ -107,11 +107,11 @@ class RecommendationsAggregatorService
                 if (is_array($item) && isset($item['action'])) {
                     $priority = ($item['priority'] ?? 2) === 1 ? 85 : 60;
                     $estateRecs[] = [
-                        'recommendation_text' => $item['action'] . (! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
+                        'recommendation_text' => $item['action'].(! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
                         'priority_score' => $priority,
                         'category' => $item['category'] ?? 'estate_planning',
                         'estimated_cost' => $item['cost'] ?? null,
-                        'potential_benefit' => $item['iht_saving'] ?? null,
+                        'potential_benefit' => is_numeric($item['iht_saving'] ?? null) ? $item['iht_saving'] : null,
                     ];
                 }
             }
@@ -299,10 +299,10 @@ class RecommendationsAggregatorService
             $summary['by_timeline'][$timeline] = ($summary['by_timeline'][$timeline] ?? 0) + 1;
 
             // Sum potential benefits and costs
-            if (isset($rec['potential_benefit'])) {
+            if (isset($rec['potential_benefit']) && is_numeric($rec['potential_benefit'])) {
                 $summary['total_potential_benefit'] += $rec['potential_benefit'];
             }
-            if (isset($rec['estimated_cost'])) {
+            if (isset($rec['estimated_cost']) && is_numeric($rec['estimated_cost'])) {
                 $summary['total_estimated_cost'] += $rec['estimated_cost'];
             }
         }
