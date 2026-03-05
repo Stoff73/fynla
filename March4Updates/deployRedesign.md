@@ -283,3 +283,21 @@ resources/js/views/Actions/ActionsDashboard.vue                 (full rewrite â€
 resources/js/store/modules/recommendations.js                   (fixed /api/ double prefix on all endpoints)
 app/Services/Coordination/RecommendationsAggregatorService.php  (proper data extraction from each module)
 ```
+
+### Life Event Icons on Monte Carlo Charts (uiUpdates branch)
+
+Replaced text labels on life event annotations in retirement and investment Monte Carlo projection charts with emoji icons. Added hover tooltips showing event name and amount.
+
+**Changes:**
+- Annotation labels now show SVG icons (Heroicons from `eventIconSvgs.js`) via ApexCharts point annotations with `image` property
+- Icons rendered as data URI SVGs via point annotations, positioned at 93% of max chart value (spaced from top)
+- xaxis annotations provide the dotted vertical lines (no labels), point annotations provide the icons
+- Hover tooltip appears when mouse is near an icon, showing event name and formatted amount
+- Icon colour: spring green (income events) or red (expense events)
+- Uses `LIFE_EVENT_ICONS` for icon selection and `EVENT_ICON_SVGS` for SVG path data
+
+**Files changed:**
+```
+resources/js/components/Retirement/PensionPotProjectionChart.vue   (icon annotations, tooltip, getEventIcon, handleChartMouseMove)
+resources/js/components/Investment/InvestmentProjectionChart.vue    (same changes as retirement chart)
+```
