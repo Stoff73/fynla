@@ -342,7 +342,7 @@ export default {
       handleRegister,
       handleVerified,
       handleVerificationClose,
-      logoImage: '/images/logos/logoTransparent.png',
+      logoImage: '/images/logos/LogoHiResFynlaDark.png',
     };
   },
 };

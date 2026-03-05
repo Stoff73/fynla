@@ -362,7 +362,7 @@ export default {
       pendingUserId,
       pendingMfaToken,
       pendingEmail,
-      logoUrl: '/images/logos/logoTransparent.png',
+      logoUrl: '/images/logos/LogoHiResFynlaDark.png',
       handleLogin,
       handleVerified,
       handleVerificationClose,

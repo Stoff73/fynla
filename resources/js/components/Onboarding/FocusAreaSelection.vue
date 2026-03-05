@@ -224,7 +224,7 @@ export default {
       userName,
       selectFocusArea,
       skipOnboarding,
-      logoImage: '/images/logos/logoTransparent.png',
+      logoImage: '/images/logos/LogoHiResFynlaDark.png',
     };
   },
 };
