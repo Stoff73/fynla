@@ -55,7 +55,7 @@
           <div class="hidden md:flex items-center">
             <router-link
               to="/login"
-              class="px-6 py-2 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
+              class="min-w-[120px] px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors text-center"
             >
               Sign in
             </router-link>

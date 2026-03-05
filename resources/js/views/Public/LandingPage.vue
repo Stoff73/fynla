@@ -7,20 +7,17 @@
       <div class="absolute bottom-10 left-10 w-96 h-96 bg-horizon-500/10 rounded-full blur-3xl"></div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:gap-8">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:gap-8">
           <!-- Left: Springbok placeholder area (empty for now) -->
           <div class="hidden lg:block lg:w-64 lg:flex-shrink-0">
             <!-- Springbok image will go here when available -->
           </div>
 
           <!-- Centre: Meet Fyn Text -->
-          <div class="flex-1 text-center">
-            <h1 class="hero-title text-white leading-none mb-4">
+          <div class="flex-1 text-left pl-24">
+            <h1 class="hero-title text-white leading-none">
               Meet<br />Fyn
             </h1>
-            <p class="hero-subtitle text-white/90 mt-4">
-              Your financial companion for life
-            </p>
           </div>
 
           <!-- Right: Chat Card -->
@@ -40,7 +37,7 @@
                 <button
                   type="button"
                   @click="handleAskFyn"
-                  class="flex-1 px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
+                  class="min-w-[120px] px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors text-center"
                 >
                   Ask Fyn
                 </button>
@@ -48,7 +45,7 @@
                   type="button"
                   @click="enterPreviewMode"
                   :disabled="enteringPreview"
-                  class="flex-1 px-5 py-2.5 bg-savannah-500 text-white text-sm font-semibold rounded-lg hover:bg-savannah-600 transition-colors disabled:opacity-50"
+                  class="min-w-[120px] px-5 py-2.5 bg-savannah-500 text-white text-sm font-semibold rounded-lg hover:bg-savannah-600 transition-colors disabled:opacity-50 text-center"
                 >
                   Get started
                 </button>
@@ -56,11 +53,16 @@
             </div>
           </div>
         </div>
+
+        <!-- Subtitle spanning full width below -->
+        <p class="hero-subtitle text-white/90 mt-6 text-center whitespace-nowrap">
+          Your financial companion for life
+        </p>
       </div>
     </div>
 
     <!-- Map Your Path to Financial Freedom Section -->
-    <div class="bg-white py-16 lg:py-20">
+    <div class="bg-white py-10 lg:py-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-16">
           <!-- Left: Text Content -->
@@ -77,13 +79,13 @@
                 type="button"
                 @click="enterPreviewMode"
                 :disabled="enteringPreview"
-                class="px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors disabled:opacity-50"
+                class="min-w-[120px] px-5 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors disabled:opacity-50 text-center"
               >
                 Try the demo
               </button>
               <router-link
                 to="/login"
-                class="inline-flex items-center px-8 py-3 bg-savannah-500 text-white font-semibold rounded-lg hover:bg-savannah-600 transition-colors"
+                class="inline-flex items-center justify-center min-w-[120px] px-5 py-2.5 bg-savannah-500 text-white text-sm font-semibold rounded-lg hover:bg-savannah-600 transition-colors"
               >
                 Sign in
               </router-link>
