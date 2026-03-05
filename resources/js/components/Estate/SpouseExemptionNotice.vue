@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-green-50 border-l-4 border-green-500 p-4">
+  <div class="bg-spring-50 border-l-4 border-spring-500 p-4">
     <div class="flex">
       <div class="flex-shrink-0">
         <svg
-          class="h-5 w-5 text-green-400"
+          class="h-5 w-5 text-spring-400"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -16,14 +16,14 @@
         </svg>
       </div>
       <div class="ml-3 flex-1">
-        <h3 class="text-sm font-medium text-green-800">Spouse Exemption</h3>
-        <p class="mt-2 text-sm text-green-700">{{ message }}</p>
+        <h3 class="text-sm font-medium text-spring-800">Spouse Exemption</h3>
+        <p class="mt-2 text-sm text-spring-700">{{ message }}</p>
 
         <!-- Call to action if no spouse linked -->
         <div v-if="!hasSpouse" class="mt-3">
           <router-link
             to="/profile"
-            class="text-sm font-medium text-green-800 underline hover:text-green-900"
+            class="text-sm font-medium text-spring-800 underline hover:text-spring-900"
           >
             Link your spouse account →
           </router-link>
@@ -31,12 +31,12 @@
 
         <!-- Data sharing status -->
         <div v-else-if="!dataSharingEnabled" class="mt-3">
-          <p class="text-xs text-green-600">
+          <p class="text-xs text-spring-600">
             Enable data sharing to unlock comprehensive joint Inheritance Tax planning features.
           </p>
           <router-link
             to="/settings"
-            class="text-sm font-medium text-green-800 underline hover:text-green-900 inline-block mt-1"
+            class="text-sm font-medium text-spring-800 underline hover:text-spring-900 inline-block mt-1"
           >
             Manage data sharing →
           </router-link>

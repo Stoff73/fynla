@@ -64,7 +64,7 @@
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                  <span class="detail-value text-purple-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
+                  <span class="detail-value text-violet-600">{{ formatCurrency(account.current_value * ((account.ownership_percentage || 50) / 100)) }}</span>
                 </div>
               </div>
 
@@ -78,7 +78,7 @@
               <div v-if="account.account_type === 'isa'" class="isa-allowance-info">
                 <div class="detail-row">
                   <span class="detail-label">ISA Contributions (YTD)</span>
-                  <span class="detail-value text-green-600">{{ formatCurrency(getIsaContributions(account)) }}</span>
+                  <span class="detail-value text-spring-600">{{ formatCurrency(getIsaContributions(account)) }}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Allowance Remaining</span>
@@ -104,75 +104,75 @@
 
       <!-- Loading State -->
       <div v-else class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span class="ml-3 text-gray-600">Loading accounts...</span>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
+        <span class="ml-3 text-neutral-500">Loading accounts...</span>
       </div>
     </div>
 
     <!-- Risk Metrics Placeholder -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Risk Profile</h2>
+      <div class="bg-white border border-light-gray rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-horizon-500 mb-4">Risk Profile</h2>
         <div v-if="riskMetrics" class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Risk Level:</span>
-            <span class="text-sm font-medium text-gray-900 capitalize">{{ riskMetrics.risk_level }}</span>
+            <span class="text-sm text-neutral-500">Risk Level:</span>
+            <span class="text-sm font-medium text-horizon-500 capitalize">{{ riskMetrics.risk_level }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Equity %:</span>
-            <span class="text-sm font-medium text-gray-900">{{ riskMetrics.equity_percentage }}%</span>
+            <span class="text-sm text-neutral-500">Equity %:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ riskMetrics.equity_percentage }}%</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Est. Volatility:</span>
-            <span class="text-sm font-medium text-gray-900">{{ riskMetrics.estimated_volatility }}%</span>
+            <span class="text-sm text-neutral-500">Est. Volatility:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ riskMetrics.estimated_volatility }}%</span>
           </div>
         </div>
-        <p v-else class="text-gray-500 text-center py-4">No risk metrics available</p>
+        <p v-else class="text-neutral-500 text-center py-4">No risk metrics available</p>
       </div>
 
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Tax Efficiency</h2>
+      <div class="bg-white border border-light-gray rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-horizon-500 mb-4">Tax Efficiency</h2>
         <div v-if="taxEfficiency" class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Efficiency Score:</span>
-            <span class="text-sm font-medium text-gray-900">{{ taxEfficiencyScore }}/100</span>
+            <span class="text-sm text-neutral-500">Efficiency Score:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ taxEfficiencyScore }}/100</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Unrealised Gains:</span>
-            <span class="text-sm font-medium text-gray-900">{{ formatCurrency(unrealisedGains) }}</span>
+            <span class="text-sm text-neutral-500">Unrealised Gains:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ formatCurrency(unrealisedGains) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Tax-Free Allowance Used:</span>
-            <span class="text-sm font-medium text-gray-900">{{ isaAllowancePercentage.toFixed(1) }}%</span>
+            <span class="text-sm text-neutral-500">Tax-Free Allowance Used:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ isaAllowancePercentage.toFixed(1) }}%</span>
           </div>
         </div>
-        <p v-else class="text-gray-500 text-center py-4">No tax efficiency data available</p>
+        <p v-else class="text-neutral-500 text-center py-4">No tax efficiency data available</p>
       </div>
     </div>
 
     <!-- Portfolio Summary -->
     <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-6">Portfolio Summary</h3>
+      <h3 class="text-lg font-semibold text-horizon-500 mb-6">Portfolio Summary</h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Total Portfolio Value -->
-        <div class="border-l-4 border-blue-500 pl-4">
-          <p class="text-sm text-gray-600 mb-1">Total Portfolio Value</p>
-          <p class="text-2xl font-bold text-gray-900">{{ formattedTotalValue }}</p>
-          <p class="text-sm text-gray-500 mt-1">{{ accountsCount }} account{{ accountsCount !== 1 ? 's' : '' }}</p>
+        <div class="border-l-4 border-violet-500 pl-4">
+          <p class="text-sm text-neutral-500 mb-1">Total Portfolio Value</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ formattedTotalValue }}</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ accountsCount }} account{{ accountsCount !== 1 ? 's' : '' }}</p>
         </div>
 
         <!-- YTD Return -->
-        <div class="border-l-4 pl-4" :class="ytdReturn >= 0 ? 'border-green-500' : 'border-red-500'">
-          <p class="text-sm text-gray-600 mb-1">Return (This Year)</p>
-          <p class="text-2xl font-bold" :class="ytdReturn >= 0 ? 'text-green-600' : 'text-red-600'">{{ formattedYtdReturn }}</p>
-          <p class="text-sm text-gray-500 mt-1">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
+        <div class="border-l-4 pl-4" :class="ytdReturn >= 0 ? 'border-spring-500' : 'border-raspberry-500'">
+          <p class="text-sm text-neutral-500 mb-1">Return (This Year)</p>
+          <p class="text-2xl font-bold" :class="ytdReturn >= 0 ? 'text-spring-600' : 'text-raspberry-600'">{{ formattedYtdReturn }}</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
         </div>
 
         <!-- Diversification Score -->
-        <div class="border-l-4 border-purple-500 pl-4">
-          <p class="text-sm text-gray-600 mb-1">Diversification Score</p>
-          <p class="text-2xl font-bold text-gray-900">{{ diversificationScore }}/100</p>
-          <p class="text-sm text-gray-500 mt-1">{{ diversificationLabel }}</p>
+        <div class="border-l-4 border-violet-500 pl-4">
+          <p class="text-sm text-neutral-500 mb-1">Diversification Score</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ diversificationScore }}/100</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ diversificationLabel }}</p>
         </div>
       </div>
     </div>
@@ -314,32 +314,32 @@ export default {
 
     getOwnershipBadgeClass(type) {
       const classes = {
-        individual: 'bg-gray-100 text-gray-800',
-        joint: 'bg-purple-500 text-white',
-        trust: 'bg-blue-500 text-white',
+        individual: 'bg-savannah-100 text-horizon-500',
+        joint: 'bg-violet-500 text-white',
+        trust: 'bg-violet-500 text-white',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-savannah-100 text-horizon-500';
     },
 
     accountTypeBadgeClass(type) {
       const classes = {
-        isa: 'bg-green-500 text-white',
-        gia: 'bg-blue-500 text-white',
-        sipp: 'bg-purple-500 text-white',
-        pension: 'bg-purple-500 text-white',
-        nsi: 'bg-indigo-500 text-white',
-        onshore_bond: 'bg-blue-500 text-white',
-        offshore_bond: 'bg-blue-500 text-white',
+        isa: 'bg-spring-500 text-white',
+        gia: 'bg-violet-500 text-white',
+        sipp: 'bg-violet-500 text-white',
+        pension: 'bg-violet-500 text-white',
+        nsi: 'bg-violet-500 text-white',
+        onshore_bond: 'bg-violet-500 text-white',
+        offshore_bond: 'bg-violet-500 text-white',
         vct: 'bg-pink-500 text-white',
         eis: 'bg-pink-500 text-white',
-        other: 'bg-gray-100 text-gray-800',
+        other: 'bg-savannah-100 text-horizon-500',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-savannah-100 text-horizon-500';
     },
 
     getReturnColorClass(value) {
-      if (!value && value !== 0) return 'text-gray-600';
-      return value >= 0 ? 'text-green-600' : 'text-red-600';
+      if (!value && value !== 0) return 'text-neutral-500';
+      return value >= 0 ? 'text-spring-600' : 'text-raspberry-600';
     },
 
     getPrimaryAssetClass(account) {
@@ -432,9 +432,9 @@ export default {
 
     getIsaRemainingClass(account) {
       const remaining = this.getIsaRemaining(account);
-      if (remaining <= 0) return 'text-red-600';
-      if (remaining < 5000) return 'text-blue-600';
-      return 'text-green-600';
+      if (remaining <= 0) return 'text-raspberry-600';
+      if (remaining < 5000) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     closeUploadModal() {
@@ -467,7 +467,7 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -476,7 +476,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -487,7 +487,7 @@ export default {
 }
 
 .add-account-btn:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .upload-btn {
@@ -496,8 +496,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  @apply text-primary-500;
-  @apply border-2 border-primary-500;
+  @apply text-raspberry-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -506,7 +506,7 @@ export default {
 }
 
 .upload-btn:hover {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .btn-icon {
@@ -523,7 +523,7 @@ export default {
 .account-card {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -532,7 +532,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -569,13 +569,13 @@ export default {
 .account-institution {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .account-type {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -585,7 +585,7 @@ export default {
   gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -596,18 +596,18 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 16px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 700;
 }
 
 .isa-allowance-info {
-  @apply bg-green-50;
+  @apply bg-spring-50;
   border-radius: 6px;
   padding: 8px;
   margin: 4px 0;
@@ -618,18 +618,18 @@ export default {
   padding: 60px 20px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-message {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin-bottom: 20px;
 }
 
 .add-account-button {
   padding: 12px 24px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -640,7 +640,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 @media (max-width: 768px) {

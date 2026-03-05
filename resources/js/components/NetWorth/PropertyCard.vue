@@ -175,7 +175,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -183,7 +183,7 @@ export default {
 .property-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -203,18 +203,18 @@ export default {
 }
 
 .type-main_residence {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-secondary_residence {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-buy_to_let {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .ownership-badge {
@@ -230,8 +230,8 @@ export default {
 }
 
 .tic-badge {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .card-content {
@@ -243,19 +243,19 @@ export default {
 .property-address {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .property-address-2 {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .property-location {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -263,7 +263,7 @@ export default {
   display: flex;
   flex-direction: column;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .value-rows {
@@ -284,26 +284,26 @@ export default {
 .detail-row.equity {
   margin-top: auto;
   padding-top: 8px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
   font-weight: 600;
 }
 
 .detail-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .detail-value.full-value {
-  @apply text-blue-600;
+  @apply text-violet-600;
   font-weight: 700;
 }
 
 .detail-value.mortgage {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 @media (max-width: 768px) {

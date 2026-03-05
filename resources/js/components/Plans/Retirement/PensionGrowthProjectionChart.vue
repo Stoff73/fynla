@@ -1,15 +1,15 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-4 mt-3">
+  <div class="bg-white rounded-lg border border-light-gray p-4 mt-3">
     <div class="flex items-center justify-between mb-1">
-      <h4 class="text-sm font-semibold text-gray-900">{{ projection.pension_name }}</h4>
+      <h4 class="text-sm font-semibold text-horizon-500">{{ projection.pension_name }}</h4>
       <span
         v-if="projectionDifference > 0"
-        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-spring-100 text-spring-800"
       >
         +{{ formatCurrency(projectionDifference) }} at retirement
       </span>
     </div>
-    <p class="text-xs text-gray-500 mb-3">
+    <p class="text-xs text-neutral-500 mb-3">
       {{ years }}-year projection ({{ projection.projection_label || 'to retirement' }}) &middot;
       {{ formatPercentage(projection.growth_rate * 100) }} net growth &middot;
       {{ formatCurrency(projection.annual_contribution) }}/year contributions
@@ -105,7 +105,7 @@ export default {
           type: 'line',
           toolbar: { show: false },
           zoom: { enabled: false },
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         colors: [CHART_COLORS[1], CHART_COLORS[2]],
         stroke: {

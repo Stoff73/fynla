@@ -8,39 +8,39 @@
     <!-- Scenario Results -->
     <div v-if="scenarioResults" class="space-y-6">
       <!-- Comparison Summary -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Scenario Impact</h3>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Scenario Impact</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Current Situation -->
-          <div class="text-center p-4 bg-gray-50 rounded-lg">
-            <p class="text-sm text-gray-600 mb-2">Current Coverage</p>
-            <p class="text-2xl font-bold text-gray-900">
+          <div class="text-center p-4 bg-eggshell-500 rounded-lg">
+            <p class="text-sm text-neutral-500 mb-2">Current Coverage</p>
+            <p class="text-2xl font-bold text-horizon-500">
               {{ formatCurrency(scenarioResults.current.coverage) }}
             </p>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-neutral-500 mt-1">
               {{ formatCurrency(scenarioResults.current.premium) }}/month
             </p>
           </div>
 
           <!-- Scenario Impact -->
-          <div class="text-center p-4 bg-blue-50 rounded-lg">
-            <p class="text-sm text-gray-600 mb-2">Scenario Coverage</p>
-            <p class="text-2xl font-bold text-blue-900">
+          <div class="text-center p-4 bg-violet-50 rounded-lg">
+            <p class="text-sm text-neutral-500 mb-2">Scenario Coverage</p>
+            <p class="text-2xl font-bold text-violet-900">
               {{ formatCurrency(scenarioResults.scenario.coverage) }}
             </p>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-neutral-500 mt-1">
               {{ formatCurrency(scenarioResults.scenario.premium) }}/month
             </p>
           </div>
 
           <!-- Difference -->
-          <div class="text-center p-4 bg-green-50 rounded-lg">
-            <p class="text-sm text-gray-600 mb-2">Improvement</p>
-            <p class="text-2xl font-bold text-green-900">
+          <div class="text-center p-4 bg-spring-50 rounded-lg">
+            <p class="text-sm text-neutral-500 mb-2">Improvement</p>
+            <p class="text-2xl font-bold text-spring-900">
               {{ formatCurrency(scenarioResults.difference.coverage) }}
             </p>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-neutral-500 mt-1">
               +{{ formatCurrency(scenarioResults.difference.premium) }}/month
             </p>
           </div>
@@ -50,8 +50,8 @@
       <!-- Before/After Charts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Coverage Comparison -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Coverage Comparison</h3>
+        <div class="bg-white rounded-lg border border-light-gray p-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Coverage Comparison</h3>
           <apexchart
             type="bar"
             :options="coverageComparisonOptions"
@@ -61,8 +61,8 @@
         </div>
 
         <!-- Premium Comparison -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Premium Comparison</h3>
+        <div class="bg-white rounded-lg border border-light-gray p-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Premium Comparison</h3>
           <apexchart
             type="bar"
             :options="premiumComparisonOptions"
@@ -73,8 +73,8 @@
       </div>
 
       <!-- Financial Impact Visualization -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Financial Impact Over Time</h3>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Financial Impact Over Time</h3>
         <apexchart
           type="area"
           :options="financialImpactOptions"
@@ -85,9 +85,9 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-12 bg-white rounded-lg border border-gray-200">
+    <div v-else class="text-center py-12 bg-white rounded-lg border border-light-gray">
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-horizon-400"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -99,8 +99,8 @@
           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No scenario selected</h3>
-      <p class="mt-1 text-sm text-gray-500">
+      <h3 class="mt-2 text-sm font-medium text-horizon-500">No scenario selected</h3>
+      <p class="mt-1 text-sm text-neutral-500">
         Build and run a scenario above to see the impact analysis
       </p>
     </div>
@@ -145,7 +145,7 @@ export default {
       return {
         chart: {
           type: 'bar',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           toolbar: { show: false },
         },
         plotOptions: {
@@ -189,7 +189,7 @@ export default {
       return {
         chart: {
           type: 'bar',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           toolbar: { show: false },
         },
         plotOptions: {
@@ -245,7 +245,7 @@ export default {
       return {
         chart: {
           type: 'area',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           toolbar: { show: false },
         },
         colours: [WARNING_COLORS[500], SUCCESS_COLORS[500]],

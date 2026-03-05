@@ -19,14 +19,14 @@
     />
 
     <div v-else class="py-12 text-center">
-      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
       </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-900">No Plans Available</h3>
-      <p class="mt-2 text-sm text-gray-500">Generate individual plans first to see your holistic view.</p>
+      <h3 class="mt-4 text-lg font-medium text-horizon-500">No Plans Available</h3>
+      <p class="mt-2 text-sm text-neutral-500">Generate individual plans first to see your holistic view.</p>
       <button
         @click="$router.push('/plans')"
-        class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#1257A0] hover:bg-[#0E3A66]"
+        class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600"
       >
         Go to Plans
       </button>

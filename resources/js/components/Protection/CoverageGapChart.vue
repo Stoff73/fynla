@@ -60,7 +60,7 @@ export default {
       return {
         chart: {
           type: 'heatmap',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           toolbar: {
             show: false,
           },

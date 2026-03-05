@@ -11,8 +11,8 @@
         index === options.length - 1 ? 'rounded-r-md' : '',
         index > 0 ? '-ml-px' : '',
         modelValue === option
-          ? 'bg-primary-600 text-white border-primary-600 z-10'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+          ? 'bg-raspberry-600 text-white border-raspberry-600 z-10'
+          : 'bg-white text-neutral-500 border-horizon-300 hover:bg-savannah-100'
       ]"
     >
       {{ option }}

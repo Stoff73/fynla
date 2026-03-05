@@ -1,15 +1,15 @@
 <template>
-  <div class="scenario-builder bg-white rounded-lg border border-gray-200 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Build a What-If Scenario</h3>
+  <div class="scenario-builder bg-white rounded-lg border border-light-gray p-6">
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Build a What-If Scenario</h3>
 
     <!-- Scenario Type Selection -->
     <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+      <label class="block text-sm font-medium text-neutral-500 mb-2">
         Scenario Type
       </label>
       <select
         v-model="selectedScenario"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         @change="loadScenarioTemplate"
       >
         <option value="">Select a scenario...</option>
@@ -23,35 +23,35 @@
     <!-- Scenario Configuration -->
     <div v-if="selectedScenario" class="space-y-6">
       <!-- Scenario Description -->
-      <div class="p-4 bg-blue-50 rounded-lg">
-        <p class="text-sm text-blue-900">
+      <div class="p-4 bg-violet-50 rounded-lg">
+        <p class="text-sm text-violet-900">
           {{ scenarioDescription }}
         </p>
       </div>
 
       <!-- Additional Coverage Amount -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Additional Coverage Amount
         </label>
         <div class="relative">
-          <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+          <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
           <input
             v-model.number="additionalCoverage"
             type="number"
             step="1000"
-            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="w-full pl-8 pr-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             placeholder="0"
           />
         </div>
         <div class="mt-2">
-          <label class="text-xs text-gray-600">Quick amounts:</label>
+          <label class="text-xs text-neutral-500">Quick amounts:</label>
           <div class="flex gap-2 mt-1">
             <button
               v-for="amount in quickAmounts"
               :key="amount"
               @click="additionalCoverage = amount"
-              class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              class="px-3 py-1 text-xs bg-savannah-100 hover:bg-savannah-200 rounded-md transition-colors"
             >
               £{{ formatNumber(amount) }}
             </button>
@@ -61,7 +61,7 @@
 
       <!-- Term Length (for death and critical illness scenarios) -->
       <div v-if="selectedScenario === 'death' || selectedScenario === 'critical_illness'">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Policy Term (years)
         </label>
         <input
@@ -72,21 +72,21 @@
           step="5"
           class="w-full"
         />
-        <div class="flex justify-between text-sm text-gray-600 mt-1">
+        <div class="flex justify-between text-sm text-neutral-500 mt-1">
           <span>5 years</span>
-          <span class="font-semibold text-gray-900">{{ termYears }} years</span>
+          <span class="font-semibold text-horizon-500">{{ termYears }} years</span>
           <span>40 years</span>
         </div>
       </div>
 
       <!-- Benefit Period (for disability scenarios) -->
       <div v-if="selectedScenario === 'disability'">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Benefit Period (months)
         </label>
         <select
           v-model.number="benefitPeriod"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         >
           <option :value="12">12 months</option>
           <option :value="24">24 months</option>
@@ -97,14 +97,14 @@
       </div>
 
       <!-- Estimated Premium -->
-      <div class="p-4 bg-gray-50 rounded-lg">
+      <div class="p-4 bg-eggshell-500 rounded-lg">
         <div class="flex justify-between items-center">
-          <span class="text-sm font-medium text-gray-700">Estimated Additional Premium:</span>
-          <span class="text-lg font-bold text-gray-900">
+          <span class="text-sm font-medium text-neutral-500">Estimated Additional Premium:</span>
+          <span class="text-lg font-bold text-horizon-500">
             £{{ estimatedPremium.toFixed(2)}} <span class="text-sm font-normal">/month</span>
           </span>
         </div>
-        <p class="text-xs text-gray-500 mt-1">
+        <p class="text-xs text-neutral-500 mt-1">
           This is a rough estimate. Actual premiums depend on age, health, and underwriting.
         </p>
       </div>
@@ -114,13 +114,13 @@
         <button
           @click="runScenario"
           :disabled="!canRunScenario"
-          class="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          class="flex-1 px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 disabled:bg-savannah-300 disabled:cursor-not-allowed transition-colors"
         >
           Run Scenario
         </button>
         <button
           @click="resetScenario"
-          class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          class="px-6 py-3 bg-savannah-100 text-neutral-500 font-medium rounded-lg hover:bg-savannah-200 transition-colors"
         >
           Reset
         </button>
@@ -228,35 +228,6 @@ export default {
 </script>
 
 <style scoped>
-/* Range slider styling */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 3px;
-  @apply bg-gray-200;
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  @apply bg-blue-500;
-  cursor: pointer;
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  @apply bg-blue-500;
-  cursor: pointer;
-  border: none;
-}
-
 /* Mobile responsive */
 @media (max-width: 640px) {
   .scenario-builder .flex.gap-3 {

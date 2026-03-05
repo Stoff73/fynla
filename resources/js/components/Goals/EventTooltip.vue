@@ -6,7 +6,7 @@
         class="fixed z-50 pointer-events-none"
         :style="tooltipStyle"
       >
-        <div class="bg-gray-900 text-white rounded-lg shadow-lg p-3 max-w-xs">
+        <div class="bg-horizon-600 text-white rounded-lg shadow-lg p-3 max-w-xs">
           <!-- Header -->
           <div class="flex items-center gap-2 mb-2">
             <span
@@ -21,37 +21,37 @@
           <!-- Details -->
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
-              <span class="text-gray-400">Amount:</span>
+              <span class="text-horizon-400">Amount:</span>
               <span
                 class="font-medium"
-                :class="event.impact === 'income' ? 'text-green-400' : 'text-red-400'"
+                :class="event.impact === 'income' ? 'text-spring-400' : 'text-raspberry-400'"
               >
                 {{ event.impact === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-400">Age:</span>
+              <span class="text-horizon-400">Age:</span>
               <span>{{ event.age }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-400">Year:</span>
+              <span class="text-horizon-400">Year:</span>
               <span>{{ event.year }}</span>
             </div>
             <div v-if="event.certainty" class="flex justify-between">
-              <span class="text-gray-400">Certainty:</span>
+              <span class="text-horizon-400">Certainty:</span>
               <span class="capitalize">{{ event.certainty }}</span>
             </div>
           </div>
 
           <!-- Type badge -->
-          <div class="mt-2 pt-2 border-t border-gray-700">
+          <div class="mt-2 pt-2 border-t border-horizon-500">
             <span
               class="inline-block px-2 py-0.5 rounded text-xs"
-              :class="event.type === 'goal' ? 'bg-primary-600' : 'bg-purple-600'"
+              :class="event.type === 'goal' ? 'bg-raspberry-600' : 'bg-purple-600'"
             >
               {{ event.type === 'goal' ? 'Goal' : 'Life Event' }}
             </span>
-            <span class="text-xs text-gray-400 ml-2 capitalize">
+            <span class="text-xs text-horizon-400 ml-2 capitalize">
               {{ formatCategory(event.category) }}
             </span>
           </div>

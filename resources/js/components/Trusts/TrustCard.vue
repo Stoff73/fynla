@@ -115,7 +115,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -132,7 +132,7 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .card-icon {
@@ -163,7 +163,7 @@ export default {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,14 +173,14 @@ export default {
 .card-total {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .card-arrow {
   width: 24px;
   height: 24px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   flex-shrink: 0;
 }
 
@@ -198,7 +198,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding: 8px 0;
-  @apply border-b border-gray-100;
+  @apply border-b border-savannah-100;
   gap: 12px;
 }
 
@@ -208,7 +208,7 @@ export default {
 
 .item-name {
   font-size: 14px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -218,7 +218,7 @@ export default {
 .item-value {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   text-align: right;
   word-break: break-word;
 }
@@ -242,8 +242,8 @@ export default {
 }
 
 .badge.inactive {
-  @apply bg-gray-100;
-  @apply text-gray-500;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 @media (max-width: 768px) {

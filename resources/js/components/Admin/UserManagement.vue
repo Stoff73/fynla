@@ -8,10 +8,10 @@
             v-model="searchQuery"
             type="text"
             placeholder="Search users by name or email..."
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="w-full pl-10 pr-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             @input="debouncedSearch"
           />
-          <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="absolute left-3 top-2.5 w-5 h-5 text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -20,7 +20,7 @@
         <select
           v-model="statusFilter"
           @change="currentPage = 1; loadUsers()"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          class="border border-horizon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         >
           <option value="">All Statuses</option>
           <option value="trialing">Trialing</option>
@@ -39,59 +39,59 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600"></div>
     </div>
 
     <!-- Users Table -->
     <div v-else class="card overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-light-gray">
+          <thead class="bg-savannah-100">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spouse</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trial</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Spouse</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Plan</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Trial</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Payment</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Created</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.id }}</td>
+          <tbody class="bg-white divide-y divide-light-gray">
+            <tr v-for="user in users" :key="user.id" class="hover:bg-savannah-100">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-horizon-500">{{ user.id }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
+                <div class="text-sm font-medium text-horizon-500">{{ user.name }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ user.email }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ user.email }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span v-if="user.role?.name === 'admin'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <span v-if="user.role?.name === 'admin'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-800">
                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
                   Admin
                 </span>
-                <span v-else-if="user.role?.name === 'support'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span v-else-if="user.role?.name === 'support'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
                   Support
                 </span>
-                <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-savannah-100 text-horizon-500">
                   User
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 <span v-if="user.spouse">
-                  <span class="inline-flex items-center text-green-600">
+                  <span class="inline-flex items-center text-spring-600">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                     {{ user.spouse.name }}
                   </span>
                 </span>
-                <span v-else class="text-gray-400">-</span>
+                <span v-else class="text-horizon-400">-</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="planBadgeClass(user.plan)">
@@ -102,9 +102,9 @@
                 <span v-if="user.subscription" :class="statusBadgeClass(user.subscription.status)">
                   {{ user.subscription.status }}
                 </span>
-                <span v-else class="text-gray-400 text-sm">-</span>
+                <span v-else class="text-horizon-400 text-sm">-</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 <template v-if="user.subscription && user.subscription.status === 'trialing'">
                   Day {{ trialDay(user.subscription) }}/7
                 </template>
@@ -113,19 +113,19 @@
                 </template>
                 <template v-else>-</template>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 <template v-if="lastPayment(user)">
                   {{ formatDate(lastPayment(user).created_at) }} &middot; £{{ (lastPayment(user).amount / 100).toFixed(2) }}
                 </template>
                 <template v-else>-</template>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                 {{ formatDate(user.created_at) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   @click="editUser(user)"
-                  class="text-primary-600 hover:text-primary-900 mr-3"
+                  class="text-raspberry-600 hover:text-raspberry-900 mr-3"
                   title="Edit user"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +134,7 @@
                 </button>
                 <button
                   @click="confirmDeleteUser(user)"
-                  class="text-red-600 hover:text-red-900"
+                  class="text-raspberry-600 hover:text-raspberry-900"
                   title="Delete user"
                   :disabled="user.role?.name === 'admin' && totalAdmins === 1"
                 >
@@ -145,7 +145,7 @@
               </td>
             </tr>
             <tr v-if="users.length === 0">
-              <td colspan="11" class="px-6 py-8 text-center text-gray-500">
+              <td colspan="11" class="px-6 py-8 text-center text-neutral-500">
                 No users found
               </td>
             </tr>
@@ -154,12 +154,12 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+      <div v-if="totalPages > 1" class="bg-savannah-100 px-6 py-4 flex items-center justify-between border-t border-light-gray">
         <div class="flex-1 flex justify-between sm:hidden">
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            class="relative inline-flex items-center px-4 py-2 border border-horizon-300 text-sm font-medium rounded-md text-neutral-500 bg-white hover:bg-savannah-100"
             :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
           >
             Previous
@@ -167,7 +167,7 @@
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            class="ml-3 relative inline-flex items-center px-4 py-2 border border-horizon-300 text-sm font-medium rounded-md text-neutral-500 bg-white hover:bg-savannah-100"
             :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
           >
             Next
@@ -175,7 +175,7 @@
         </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm text-gray-700">
+            <p class="text-sm text-neutral-500">
               Showing
               <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span>
               to
@@ -190,7 +190,7 @@
               <button
                 @click="previousPage"
                 :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-horizon-300 bg-white text-sm font-medium text-neutral-500 hover:bg-savannah-100"
                 :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
               >
                 <span class="sr-only">Previous</span>
@@ -198,13 +198,13 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+              <span class="relative inline-flex items-center px-4 py-2 border border-horizon-300 bg-white text-sm font-medium text-neutral-500">
                 Page {{ currentPage }} of {{ totalPages }}
               </span>
               <button
                 @click="nextPage"
                 :disabled="currentPage === totalPages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-horizon-300 bg-white text-sm font-medium text-neutral-500 hover:bg-savannah-100"
                 :class="{ 'opacity-50 cursor-not-allowed': currentPage === totalPages }"
               >
                 <span class="sr-only">Next</span>
@@ -219,30 +219,30 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="card bg-red-50 border-red-200">
+    <div v-if="error" class="card bg-raspberry-50 border-raspberry-200">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-900">Error</h3>
-          <p class="mt-2 text-sm text-red-800">{{ error }}</p>
+          <h3 class="text-sm font-medium text-raspberry-900">Error</h3>
+          <p class="mt-2 text-sm text-raspberry-800">{{ error }}</p>
         </div>
       </div>
     </div>
 
     <!-- Success Message -->
-    <div v-if="successMessage" class="card bg-green-50 border-green-200">
+    <div v-if="successMessage" class="card bg-spring-50 border-spring-200">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-6 w-6 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-sm text-green-800">{{ successMessage }}</p>
+          <p class="text-sm text-spring-800">{{ successMessage }}</p>
         </div>
       </div>
     </div>
@@ -465,9 +465,9 @@ export default {
     planBadgeClass(plan) {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
       const colors = {
-        free: 'bg-gray-100 text-gray-800',
-        student: 'bg-blue-100 text-blue-800',
-        standard: 'bg-blue-200 text-blue-900',
+        free: 'bg-savannah-100 text-horizon-500',
+        student: 'bg-violet-100 text-violet-800',
+        standard: 'bg-violet-200 text-violet-900',
         pro: 'bg-emerald-100 text-emerald-800',
       };
       return `${base} ${colors[plan] || colors.free}`;
@@ -476,13 +476,13 @@ export default {
     statusBadgeClass(status) {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize';
       const colors = {
-        trialing: 'bg-blue-100 text-blue-800',
-        active: 'bg-green-100 text-green-800',
-        expired: 'bg-red-100 text-red-800',
-        cancelled: 'bg-gray-100 text-gray-800',
-        past_due: 'bg-red-100 text-red-800',
+        trialing: 'bg-violet-100 text-violet-800',
+        active: 'bg-spring-100 text-spring-800',
+        expired: 'bg-raspberry-100 text-raspberry-800',
+        cancelled: 'bg-savannah-100 text-horizon-500',
+        past_due: 'bg-raspberry-100 text-raspberry-800',
       };
-      return `${base} ${colors[status] || 'bg-gray-100 text-gray-800'}`;
+      return `${base} ${colors[status] || 'bg-savannah-100 text-horizon-500'}`;
     },
 
     trialDay(subscription) {

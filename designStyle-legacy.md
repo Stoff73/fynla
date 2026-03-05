@@ -1,4 +1,6 @@
-# Fynla Design System
+> **ARCHIVED**: This is the v1.1.0 design system (January 2026). The current design system is in [fynlaDesignGuide.md](fynlaDesignGuide.md).
+
+# Fynla Design System (Legacy)
 
 **Version:** 1.1.0
 **Last Updated:** 28 January 2026

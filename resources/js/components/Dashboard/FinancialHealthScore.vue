@@ -1,10 +1,10 @@
 <template>
   <div class="financial-health-score bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">Financial Health Score</h3>
+      <h3 class="text-xl font-semibold text-horizon-500">Financial Health Score</h3>
       <button
         @click="showDetails = !showDetails"
-        class="text-sm text-blue-600 hover:text-blue-700"
+        class="text-sm text-violet-600 hover:text-violet-700"
       >
         {{ showDetails ? 'Hide' : 'View' }} Details
       </button>
@@ -43,7 +43,7 @@
           <span class="text-4xl font-bold" :class="scoreTextClass">
             {{ Math.round(compositeScore) }}
           </span>
-          <span class="text-sm text-gray-600">out of 100</span>
+          <span class="text-sm text-neutral-500">out of 100</span>
         </div>
       </div>
     </div>
@@ -60,22 +60,22 @@
 
     <!-- Breakdown Details (Expandable) -->
     <div v-if="showDetails" class="mt-6 space-y-3 border-t pt-4">
-      <h4 class="text-sm font-semibold text-gray-700 mb-3">Score Breakdown</h4>
+      <h4 class="text-sm font-semibold text-horizon-500 mb-3">Score Breakdown</h4>
 
       <!-- Protection -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-700">Protection Coverage</span>
+          <span class="text-neutral-500">Protection Coverage</span>
           <span class="font-semibold" :class="getScoreClass(protectionScore)">
             {{ Math.round(protectionScore) }}/100
           </span>
         </div>
-        <div class="flex items-center text-xs text-gray-500">
+        <div class="flex items-center text-xs text-neutral-500">
           <span>Weight: 20%</span>
           <span class="mx-2">•</span>
           <span>Contribution: {{ Math.round(protectionContribution) }} pts</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
             class="h-2 rounded-full"
             :class="getBarClass(protectionScore)"
@@ -87,17 +87,17 @@
       <!-- Emergency Fund -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-700">Emergency Fund</span>
+          <span class="text-neutral-500">Emergency Fund</span>
           <span class="font-semibold" :class="getScoreClass(emergencyFundScore)">
             {{ Math.round(emergencyFundScore) }}/100
           </span>
         </div>
-        <div class="flex items-center text-xs text-gray-500">
+        <div class="flex items-center text-xs text-neutral-500">
           <span>Weight: 15%</span>
           <span class="mx-2">•</span>
           <span>Contribution: {{ Math.round(emergencyFundContribution) }} pts</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
             class="h-2 rounded-full"
             :class="getBarClass(emergencyFundScore)"
@@ -109,17 +109,17 @@
       <!-- Retirement Readiness -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-700">Retirement Readiness</span>
+          <span class="text-neutral-500">Retirement Readiness</span>
           <span class="font-semibold" :class="getScoreClass(retirementScore)">
             {{ Math.round(retirementScore) }}/100
           </span>
         </div>
-        <div class="flex items-center text-xs text-gray-500">
+        <div class="flex items-center text-xs text-neutral-500">
           <span>Weight: 25%</span>
           <span class="mx-2">•</span>
           <span>Contribution: {{ Math.round(retirementContribution) }} pts</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
             class="h-2 rounded-full"
             :class="getBarClass(retirementScore)"
@@ -131,17 +131,17 @@
       <!-- Investment Diversification -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-700">Investment Diversification</span>
+          <span class="text-neutral-500">Investment Diversification</span>
           <span class="font-semibold" :class="getScoreClass(investmentScore)">
             {{ Math.round(investmentScore) }}/100
           </span>
         </div>
-        <div class="flex items-center text-xs text-gray-500">
+        <div class="flex items-center text-xs text-neutral-500">
           <span>Weight: 20%</span>
           <span class="mx-2">•</span>
           <span>Contribution: {{ Math.round(investmentContribution) }} pts</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
             class="h-2 rounded-full"
             :class="getBarClass(investmentScore)"
@@ -153,17 +153,17 @@
       <!-- Estate Planning -->
       <div class="space-y-1">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-700">Estate Planning</span>
+          <span class="text-neutral-500">Estate Planning</span>
           <span class="font-semibold" :class="getScoreClass(estateScore)">
             {{ Math.round(estateScore) }}/100
           </span>
         </div>
-        <div class="flex items-center text-xs text-gray-500">
+        <div class="flex items-center text-xs text-neutral-500">
           <span>Weight: 20%</span>
           <span class="mx-2">•</span>
           <span>Contribution: {{ Math.round(estateContribution) }} pts</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="w-full bg-savannah-200 rounded-full h-2">
           <div
             class="h-2 rounded-full"
             :class="getBarClass(estateScore)"
@@ -174,7 +174,7 @@
     </div>
 
     <!-- Recommendation Summary -->
-    <div v-if="!showDetails" class="mt-4 text-sm text-gray-600 text-center">
+    <div v-if="!showDetails" class="mt-4 text-sm text-neutral-500 text-center">
       {{ recommendation }}
     </div>
   </div>
@@ -279,15 +279,15 @@ export default {
     },
 
     scoreTextClass() {
-      if (this.compositeScore >= 80) return 'text-green-600';
-      if (this.compositeScore >= 60) return 'text-blue-600';
-      return 'text-red-600';
+      if (this.compositeScore >= 80) return 'text-spring-600';
+      if (this.compositeScore >= 60) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     scoreBadgeClass() {
-      if (this.compositeScore >= 80) return 'bg-green-100 text-green-800';
-      if (this.compositeScore >= 60) return 'bg-blue-100 text-blue-800';
-      return 'bg-red-100 text-red-800';
+      if (this.compositeScore >= 80) return 'bg-spring-100 text-spring-800';
+      if (this.compositeScore >= 60) return 'bg-violet-100 text-violet-800';
+      return 'bg-raspberry-100 text-raspberry-800';
     },
 
     scoreLabel() {
@@ -310,15 +310,15 @@ export default {
 
   methods: {
     getScoreClass(score) {
-      if (score >= 80) return 'text-green-600';
-      if (score >= 60) return 'text-blue-600';
-      return 'text-red-600';
+      if (score >= 80) return 'text-spring-600';
+      if (score >= 60) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     getBarClass(score) {
-      if (score >= 80) return 'bg-green-600';
-      if (score >= 60) return 'bg-blue-500';
-      return 'bg-red-600';
+      if (score >= 80) return 'bg-spring-600';
+      if (score >= 60) return 'bg-violet-500';
+      return 'bg-raspberry-600';
     },
   },
 };

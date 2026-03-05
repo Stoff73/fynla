@@ -1,6 +1,6 @@
 <template>
   <div
-    class="estate-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200 border border-gray-200"
+    class="estate-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 border border-light-gray"
     @click="navigateToEstate"
   >
     <!-- Taxable Estate Now (Primary Value with border) -->
@@ -40,28 +40,28 @@
     <!-- Status Banner -->
     <div
       v-if="ihtLiability > 0"
-      class="mt-4 pt-4 border-t border-gray-200"
+      class="mt-4 pt-4 border-t border-light-gray"
     >
-      <div class="p-3 bg-white border-2 border-blue-500 rounded-lg">
+      <div class="p-3 bg-white border-2 border-violet-500 rounded-lg">
         <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-violet-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span class="text-sm font-medium text-blue-700">Inheritance Tax planning recommended</span>
+          <span class="text-sm font-medium text-violet-700">Inheritance Tax planning recommended</span>
         </div>
       </div>
     </div>
 
     <div
       v-else
-      class="mt-4 pt-4 border-t border-gray-200"
+      class="mt-4 pt-4 border-t border-light-gray"
     >
-      <div class="p-3 bg-white border-2 border-green-500 rounded-lg">
+      <div class="p-3 bg-white border-2 border-spring-500 rounded-lg">
         <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-spring-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="text-sm font-medium text-green-700">No Inheritance Tax liability forecast</span>
+          <span class="text-sm font-medium text-spring-700">No Inheritance Tax liability forecast</span>
         </div>
       </div>
     </div>
@@ -133,21 +133,21 @@ export default {
 
     ihtLiabilityColour() {
       if (this.ihtLiability === 0) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (this.ihtLiability < 100000) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
 
     probateReadinessColour() {
       if (this.probateReadiness >= 80) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (this.probateReadiness >= 50) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
 
@@ -187,11 +187,11 @@ export default {
       }
 
       if (ihtValue === null || ihtValue === 0) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (ihtValue < 100000) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
   },
@@ -224,13 +224,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Primary Value Section (with border) */
@@ -239,23 +239,23 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .value-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .value-amount {
   font-size: 32px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .value-amount-primary {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 /* Section Breakdown (with grey dividers) */
@@ -269,13 +269,13 @@ export default {
 /* Subsequent sections - padding AND border */
 .section-breakdown + .section-breakdown {
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
@@ -287,24 +287,24 @@ export default {
 }
 
 .breakdown-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .breakdown-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .breakdown-value-asset {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 /* Status Banner */
 .status-banner {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
   display: flex;
   align-items: center;
   padding: 12px;
@@ -312,11 +312,11 @@ export default {
 }
 
 .status-banner-warning {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .status-banner-success {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .status-icon {

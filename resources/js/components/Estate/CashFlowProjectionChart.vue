@@ -371,13 +371,13 @@ export default {
 .chart-header h3 {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -387,7 +387,7 @@ export default {
   gap: 32px;
   margin-bottom: 24px;
   padding: 16px;
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 6px;
 }
 
@@ -400,14 +400,14 @@ export default {
 .control-group label {
   font-size: 13px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   white-space: nowrap;
 }
 
 .form-control-sm {
   padding: 6px 10px;
   font-size: 13px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 4px;
   background-color: white;
   cursor: pointer;
@@ -415,7 +415,7 @@ export default {
 
 .form-control-sm:focus {
   outline: none;
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -426,18 +426,18 @@ export default {
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .empty-state i {
-  @apply text-gray-300;
+  @apply text-savannah-300;
   margin-bottom: 16px;
 }
 
 .empty-state p {
   margin: 8px 0;
   font-size: 16px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .summary-cards {
@@ -452,9 +452,9 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 8px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .card-icon {
@@ -468,13 +468,13 @@ export default {
 }
 
 .card-icon.positive {
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
 }
 
 .card-icon.negative {
-  @apply bg-red-100;
-  @apply text-red-600;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-600;
 }
 
 .card-content {
@@ -486,7 +486,7 @@ export default {
 
 .card-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -496,11 +496,11 @@ export default {
 }
 
 .card-value.positive {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .card-value.negative {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 @media (max-width: 768px) {

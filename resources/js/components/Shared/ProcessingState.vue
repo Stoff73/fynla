@@ -3,7 +3,7 @@
     <!-- Animated Spinner -->
     <div class="mx-auto w-16 h-16 mb-6">
       <svg
-        class="animate-spin text-blue-600"
+        class="animate-spin text-violet-600"
         fill="none"
         viewBox="0 0 24 24"
       >
@@ -24,23 +24,23 @@
     </div>
 
     <!-- Status Message -->
-    <h3 class="text-lg font-medium text-gray-900 mb-2">
+    <h3 class="text-lg font-medium text-horizon-500 mb-2">
       {{ currentMessage }}
     </h3>
 
     <!-- Progress Bar -->
     <div
       v-if="showProgress"
-      class="max-w-xs mx-auto bg-gray-200 rounded-full h-2 mb-4"
+      class="max-w-xs mx-auto bg-savannah-200 rounded-full h-2 mb-4"
     >
       <div
-        class="bg-primary-600 h-2 rounded-full transition-all duration-500"
+        class="bg-raspberry-600 h-2 rounded-full transition-all duration-500"
         :style="{ width: progressWidth }"
       />
     </div>
 
     <!-- Step Indicator -->
-    <p class="text-sm text-gray-500">
+    <p class="text-sm text-neutral-500">
       {{ stepDescription }}
     </p>
   </div>

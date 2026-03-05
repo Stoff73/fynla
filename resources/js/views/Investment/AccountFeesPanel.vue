@@ -68,11 +68,11 @@
       <div class="impact-grid">
         <div class="impact-card">
           <span class="impact-label">Total Fees Over 10 Years</span>
-          <span class="impact-value text-red-600">{{ formatCurrency(tenYearTotalFees) }}</span>
+          <span class="impact-value text-raspberry-600">{{ formatCurrency(tenYearTotalFees) }}</span>
         </div>
         <div class="impact-card">
           <span class="impact-label">Projected Portfolio (Without Fees)</span>
-          <span class="impact-value text-green-600">{{ formatCurrency(tenYearValueWithoutFees) }}</span>
+          <span class="impact-value text-spring-600">{{ formatCurrency(tenYearValueWithoutFees) }}</span>
         </div>
         <div class="impact-card">
           <span class="impact-label">Projected Portfolio (With Fees)</span>
@@ -80,7 +80,7 @@
         </div>
         <div class="impact-card highlight">
           <span class="impact-label">Fee Drag (Lost Growth)</span>
-          <span class="impact-value text-blue-600">{{ formatCurrency(tenYearFeeDrag) }}</span>
+          <span class="impact-value text-violet-600">{{ formatCurrency(tenYearFeeDrag) }}</span>
         </div>
       </div>
     </div>
@@ -261,24 +261,20 @@ export default {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .section-subtitle {
   font-size: 13px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0 0 16px 0;
 }
 
 .cost-section,
 .funds-section,
 .impact-section {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
+  @apply bg-white border border-light-gray rounded-xl p-5 mb-6;
 }
 
 .cost-breakdown {
@@ -292,34 +288,32 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+  @apply bg-eggshell-500 rounded-lg;
 }
 
 .cost-row.total {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  @apply bg-violet-50 border border-violet-200;
   margin-top: 8px;
 }
 
 .cost-label {
   font-size: 14px;
-  color: #374151;
+  @apply text-neutral-500;
 }
 
 .cost-row.total .cost-label {
   font-weight: 600;
-  color: #1e40af;
+  @apply text-violet-800;
 }
 
 .cost-value {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .cost-row.total .cost-value {
-  color: #1e40af;
+  @apply text-violet-800;
 }
 
 /* Holdings Table */
@@ -335,45 +329,39 @@ export default {
 .holdings-table th,
 .holdings-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  @apply border-b border-light-gray;
 }
 
 .holdings-table th {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  @apply text-neutral-500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: #f9fafb;
+  @apply bg-eggshell-500;
 }
 
 .holdings-table td {
   font-size: 14px;
-  color: #374151;
+  @apply text-neutral-500;
 }
 
 .holding-name {
   font-weight: 500;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 .totals-row {
-  background: #f0f9ff;
+  @apply bg-violet-50;
 }
 
 .totals-row td {
   border-bottom: none;
-  color: #1e40af;
+  @apply text-violet-800;
 }
 
 .no-holdings-message {
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 40px;
-  text-align: center;
-  color: #6b7280;
-  margin-bottom: 24px;
+  @apply bg-eggshell-500 border border-dashed border-horizon-300 rounded-lg p-10 text-center text-neutral-500 mb-6;
 }
 
 /* Impact Grid */
@@ -389,24 +377,22 @@ export default {
   flex-direction: column;
   gap: 4px;
   padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+  @apply bg-eggshell-500 rounded-lg;
 }
 
 .impact-card.highlight {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
+  @apply bg-violet-50 border border-violet-300;
 }
 
 .impact-label {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .impact-value {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 @media (max-width: 768px) {

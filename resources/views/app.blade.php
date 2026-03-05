@@ -8,14 +8,14 @@
     <title>{{ config('app.name', 'Fynla') }} - Financial Planning</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/images/logos/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico">
 
     <!-- Vite CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 </head>
-<body class="antialiased bg-gray-50" style="background-color: #F9FAFB;">
+<body class="antialiased" style="background-color: #F7F6F4;">
     <div id="app"></div>
 </body>
 </html>

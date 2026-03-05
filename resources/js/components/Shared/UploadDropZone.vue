@@ -19,7 +19,7 @@
     <!-- No file selected -->
     <div v-if="!selectedFile" class="space-y-4">
       <!-- Upload Icon -->
-      <div class="mx-auto w-16 h-16 text-gray-400">
+      <div class="mx-auto w-16 h-16 text-horizon-400">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -32,14 +32,14 @@
 
       <!-- Instructions -->
       <div>
-        <p class="text-gray-700 font-medium">
+        <p class="text-neutral-500 font-medium">
           Drag and drop your document here
         </p>
-        <p class="text-gray-500 text-sm mt-1">
+        <p class="text-neutral-500 text-sm mt-1">
           or
           <button
             type="button"
-            class="text-blue-600 hover:text-blue-700 font-medium"
+            class="text-violet-600 hover:text-violet-700 font-medium"
             @click="openFileDialog"
           >
             click to browse
@@ -48,10 +48,10 @@
       </div>
 
       <!-- Supported formats -->
-      <p class="text-gray-400 text-xs">
+      <p class="text-horizon-400 text-xs">
         Supported: PDF, PNG, JPG, WebP (max {{ maxSizeMB }}MB)
       </p>
-      <p class="text-gray-400 text-xs mt-1">
+      <p class="text-horizon-400 text-xs mt-1">
         Large images will be automatically compressed for processing
       </p>
     </div>
@@ -72,10 +72,10 @@
 
       <!-- File Info -->
       <div>
-        <p class="text-gray-800 font-medium truncate max-w-xs mx-auto">
+        <p class="text-horizon-500 font-medium truncate max-w-xs mx-auto">
           {{ selectedFile.name }}
         </p>
-        <p class="text-gray-500 text-sm">
+        <p class="text-neutral-500 text-sm">
           {{ formatFileSize(selectedFile.size) }}
         </p>
       </div>
@@ -83,7 +83,7 @@
       <!-- Remove button -->
       <button
         type="button"
-        class="text-red-600 hover:text-red-700 text-sm font-medium"
+        class="text-raspberry-600 hover:text-raspberry-700 text-sm font-medium"
         @click="removeFile"
       >
         Remove
@@ -91,7 +91,7 @@
     </div>
 
     <!-- Error message -->
-    <div v-if="error" class="mt-4 text-red-600 text-sm">
+    <div v-if="error" class="mt-4 text-raspberry-600 text-sm">
       {{ error }}
     </div>
   </div>
@@ -129,15 +129,15 @@ export default {
 
     dropZoneClass() {
       if (this.isDragging) {
-        return 'border-blue-500 bg-blue-50';
+        return 'border-violet-500 bg-violet-50';
       }
       if (this.selectedFile) {
-        return 'border-green-500 bg-green-50';
+        return 'border-spring-500 bg-spring-50';
       }
       if (this.error) {
-        return 'border-red-300 bg-red-50';
+        return 'border-raspberry-300 bg-raspberry-50';
       }
-      return 'border-gray-300 bg-gray-50 hover:border-gray-400';
+      return 'border-horizon-300 bg-savannah-100 hover:border-horizon-400';
     },
 
     isPdf() {
@@ -145,8 +145,8 @@ export default {
     },
 
     fileIconClass() {
-      if (this.isPdf) return 'text-red-500';
-      return 'text-blue-500';
+      if (this.isPdf) return 'text-raspberry-500';
+      return 'text-violet-500';
     },
   },
 

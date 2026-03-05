@@ -13,7 +13,7 @@
         :key="group.account_id"
         class="mb-5"
       >
-        <h3 class="text-sm font-semibold text-gray-700 mb-2 px-1">{{ group.account_name }}</h3>
+        <h3 class="text-sm font-semibold text-neutral-500 mb-2 px-1">{{ group.account_name }}</h3>
         <div
           v-for="action in sortByPriority(group.actions)"
           :key="action.id"
@@ -36,7 +36,7 @@
 
       <!-- Portfolio Actions (non-account-scoped) -->
       <div v-if="portfolioActions.length" class="mb-5">
-        <h3 class="text-sm font-semibold text-gray-700 mb-2 px-1">Portfolio Actions</h3>
+        <h3 class="text-sm font-semibold text-neutral-500 mb-2 px-1">Portfolio Actions</h3>
         <div
           v-for="action in sortByPriority(portfolioActions)"
           :key="action.id"
@@ -58,22 +58,22 @@
       </div>
 
       <!-- What-if metrics -->
-      <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-gray-200 p-4 mt-3 mb-5">
-        <div class="grid grid-cols-2 divide-x divide-gray-200">
+      <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-light-gray p-4 mt-3 mb-5">
+        <div class="grid grid-cols-2 divide-x divide-light-gray">
           <div class="pr-4">
-            <h5 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Current Position</h5>
+            <h5 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Current Position</h5>
             <InvestmentWhatIfControls :scenario="whatIf.current_scenario" label="current" />
           </div>
           <div class="pl-4">
-            <h5 class="text-xs font-semibold text-green-700 uppercase tracking-wider mb-3">With Actions</h5>
+            <h5 class="text-xs font-semibold text-spring-700 uppercase tracking-wider mb-3">With Actions</h5>
             <InvestmentWhatIfControls :scenario="whatIf.projected_scenario" label="projected" />
           </div>
         </div>
       </div>
     </template>
 
-    <div v-else class="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-      <p class="text-gray-500 text-sm">No recommendations available for this plan.</p>
+    <div v-else class="bg-eggshell-500 rounded-lg border border-light-gray p-6 text-center">
+      <p class="text-neutral-500 text-sm">No recommendations available for this plan.</p>
     </div>
   </div>
 </template>

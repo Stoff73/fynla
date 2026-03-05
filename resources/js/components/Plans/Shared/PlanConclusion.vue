@@ -2,12 +2,12 @@
   <div class="mb-6">
     <PlanSectionHeader title="Conclusion" color="gray" />
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <p class="text-gray-700 leading-relaxed mb-4">{{ conclusion.summary_text }}</p>
+    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
+      <p class="text-horizon-500 leading-relaxed mb-4">{{ conclusion.summary_text }}</p>
 
       <!-- Essential actions -->
       <div v-if="essentialActions.length" class="mb-4">
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Priority Actions</h4>
+        <h4 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Priority Actions</h4>
         <ul class="space-y-1.5">
           <li
             v-for="(action, idx) in essentialActions"
@@ -19,28 +19,28 @@
             >
               {{ idx + 1 }}
             </span>
-            <span class="text-gray-800">{{ action.title }}</span>
+            <span class="text-horizon-500">{{ action.title }}</span>
           </li>
         </ul>
       </div>
 
       <!-- Optional actions -->
       <div v-if="optionalActions.length" class="mb-4">
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Optional Improvements</h4>
+        <h4 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Optional Improvements</h4>
         <ul class="space-y-1.5">
           <li
             v-for="(action, idx) in optionalActions"
             :key="'optional-' + idx"
-            class="flex items-start text-sm text-gray-600"
+            class="flex items-start text-sm text-neutral-500"
           >
-            <span class="flex-shrink-0 text-gray-400 mr-2 mt-0.5">&mdash;</span>
+            <span class="flex-shrink-0 text-horizon-400 mr-2 mt-0.5">&mdash;</span>
             <span>{{ action.title }}</span>
           </li>
         </ul>
       </div>
 
       <!-- No actions state -->
-      <div v-if="conclusion.total_actions === 0" class="text-sm text-gray-500 italic">
+      <div v-if="conclusion.total_actions === 0" class="text-sm text-neutral-500 italic">
         Enable actions above to see your personalised priority list here.
       </div>
     </div>

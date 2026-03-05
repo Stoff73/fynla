@@ -9,7 +9,7 @@
     >
       <!-- Background overlay -->
       <div
-        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
       ></div>
 
       <!-- Modal container -->
@@ -20,9 +20,9 @@
         >
           <div class="bg-white px-6 pt-8 pb-6">
             <!-- Success Icon -->
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-spring-100 mb-6">
               <svg
-                class="h-10 w-10 text-green-600"
+                class="h-10 w-10 text-spring-600"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -38,10 +38,10 @@
             </div>
 
             <!-- Content -->
-            <h3 class="text-xl font-semibold text-gray-900 mb-2" id="modal-title">
+            <h3 class="text-xl font-semibold text-horizon-500 mb-2" id="modal-title">
               Logged Out Successfully
             </h3>
-            <p class="text-sm text-gray-600 mb-6">
+            <p class="text-sm text-neutral-500 mb-6">
               Your session has been securely terminated and all local data has been cleared.
             </p>
 

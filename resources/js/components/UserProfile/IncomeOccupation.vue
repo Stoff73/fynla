@@ -56,11 +56,11 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Income Information Card -->
       <form @submit.prevent="handleSubmit">
-        <div class="bg-white rounded-lg border border-gray-200 p-6 h-full">
+        <div class="bg-white rounded-lg border border-light-gray p-6 h-full">
           <div class="flex justify-between items-start mb-6">
             <div>
-              <h3 class="text-h4 font-semibold text-gray-900">Income</h3>
-              <p class="mt-1 text-body-sm text-gray-600">
+              <h3 class="text-h4 font-semibold text-horizon-500">Income</h3>
+              <p class="mt-1 text-body-sm text-neutral-500">
                 Your annual income from all sources
               </p>
             </div>
@@ -78,37 +78,37 @@
           <div v-if="!isEditing">
             <div class="space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Employment Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_employment_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Employment Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_employment_income) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Self-Employment Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_self_employment_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Self-Employment Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_self_employment_income) }}</span>
               </div>
               <div v-if="form.annual_rental_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Rental Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_rental_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Rental Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_rental_income) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Dividend Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Dividend Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Interest Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Interest Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
               </div>
               <div v-if="form.annual_pension_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Pension Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_pension_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Pension Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_pension_income) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Trust Income:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
+                <span class="text-body-sm text-neutral-500">Trust Income:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
               </div>
               <!-- Child Benefit -->
               <div v-if="childBenefitAmount > 0" class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Child Benefit:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
+                <span class="text-body-sm text-neutral-500">Child Benefit:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
               </div>
             </div>
 
@@ -132,24 +132,24 @@
             </div>
 
             <!-- Total Annual Income -->
-            <div class="mt-6 pt-4 border-t border-gray-200">
+            <div class="mt-6 pt-4 border-t border-light-gray">
               <div class="flex justify-between items-center">
-                <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
-                <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+                <span class="text-body-sm font-semibold text-horizon-500">Total Annual Income:</span>
+                <span class="text-h4 font-semibold text-horizon-500">{{ formatCurrency(totalIncomeValue) }}</span>
               </div>
             </div>
 
             <!-- Disposable Income Section -->
-            <div v-if="incomeOccupation?.net_income" class="mt-4 pt-4 border-t border-gray-200 space-y-3">
+            <div v-if="incomeOccupation?.net_income" class="mt-4 pt-4 border-t border-light-gray space-y-3">
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">{{ netIncomeLabel }}</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
+                <span class="text-body-sm text-neutral-500">{{ netIncomeLabel }}</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-gray-600">Annual Expenditure:</span>
-                <span class="text-body-sm text-gray-900 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
+                <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
               </div>
-              <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+              <div class="flex justify-between items-center pt-2 border-t border-savannah-100">
                 <span class="text-body-sm font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">Disposable Income:</span>
                 <span class="text-body font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">{{ formatCurrency(disposableIncome) }}</span>
               </div>
@@ -160,12 +160,12 @@
           <div v-else class="space-y-4">
             <!-- Annual Employment Income -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Employment Income
               </label>
               <div class="relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">£</span>
+                  <span class="text-neutral-500 sm:text-sm">£</span>
                 </div>
                 <input
                   id="annual_employment_income"
@@ -181,12 +181,12 @@
 
             <!-- Annual Self-Employment Income -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Self-Employment Income
               </label>
               <div class="relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">£</span>
+                  <span class="text-neutral-500 sm:text-sm">£</span>
                 </div>
                 <input
                   id="annual_self_employment_income"
@@ -202,21 +202,21 @@
 
             <!-- Annual Rental Income (Auto-calculated from Properties) -->
             <div v-if="form.annual_rental_income > 0">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Rental Income
               </label>
-              <p class="text-body-base text-gray-900 py-2">{{ formatCurrency(form.annual_rental_income) }}</p>
-              <p class="text-body-xs text-gray-500">Automatically calculated from your properties</p>
+              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_rental_income) }}</p>
+              <p class="text-body-xs text-neutral-500">Automatically calculated from your properties</p>
             </div>
 
             <!-- Annual Dividend Income -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Dividend Income
               </label>
               <div class="relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">£</span>
+                  <span class="text-neutral-500 sm:text-sm">£</span>
                 </div>
                 <input
                   id="annual_dividend_income"
@@ -232,12 +232,12 @@
 
             <!-- Annual Interest Income -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Interest Income
               </label>
               <div class="relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">£</span>
+                  <span class="text-neutral-500 sm:text-sm">£</span>
                 </div>
                 <input
                   id="annual_interest_income"
@@ -253,21 +253,21 @@
 
             <!-- Annual Pension Income (Auto-calculated from Retirement module) -->
             <div v-if="form.annual_pension_income > 0">
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Pension Income
               </label>
-              <p class="text-body-base text-gray-900 py-2">{{ formatCurrency(form.annual_pension_income) }}</p>
-              <p class="text-body-xs text-gray-500">Calculated from DB pensions and state pension in payment</p>
+              <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_pension_income) }}</p>
+              <p class="text-body-xs text-neutral-500">Calculated from DB pensions and state pension in payment</p>
             </div>
 
             <!-- Annual Trust Income -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Trust Income
               </label>
               <div class="relative rounded-md shadow-sm">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 sm:text-sm">£</span>
+                  <span class="text-neutral-500 sm:text-sm">£</span>
                 </div>
                 <input
                   id="annual_trust_income"
@@ -279,19 +279,19 @@
                   placeholder="0.00"
                 />
               </div>
-              <p class="text-body-xs text-gray-500">Income received from trusts (taxable)</p>
+              <p class="text-body-xs text-neutral-500">Income received from trusts (taxable)</p>
             </div>
 
             <!-- Total Annual Income -->
-            <div class="pt-4 border-t border-gray-200">
+            <div class="pt-4 border-t border-light-gray">
               <div class="flex justify-between items-center">
-                <span class="text-body-sm font-semibold text-gray-900">Total Annual Income:</span>
-                <span class="text-h4 font-semibold text-gray-900">{{ formatCurrency(totalIncomeValue) }}</span>
+                <span class="text-body-sm font-semibold text-horizon-500">Total Annual Income:</span>
+                <span class="text-h4 font-semibold text-horizon-500">{{ formatCurrency(totalIncomeValue) }}</span>
               </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+            <div class="flex justify-end space-x-4 pt-4 border-t border-light-gray">
               <button
                 type="button"
                 @click="handleCancel"
@@ -314,8 +314,8 @@
       </form>
 
       <!-- Tax Calculations Card -->
-      <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-gray-200 p-6 h-full">
-        <h3 class="text-h4 font-semibold text-gray-900 mb-4">Estimated Tax and NI</h3>
+      <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-light-gray p-6 h-full">
+        <h3 class="text-h4 font-semibold text-horizon-500 mb-4">Estimated Tax and NI</h3>
 
         <!-- Income Type Cards -->
         <div

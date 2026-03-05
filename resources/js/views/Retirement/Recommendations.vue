@@ -2,20 +2,20 @@
   <div class="recommendations relative">
     <!-- Coming Soon Watermark -->
     <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-      <div class="bg-blue-100 border-2 border-blue-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
-        <p class="text-2xl font-bold text-blue-700">Coming Soon</p>
+      <div class="bg-violet-100 border-2 border-violet-400 rounded-lg px-8 py-4 transform -rotate-12 shadow-lg">
+        <p class="text-2xl font-bold text-violet-700">Coming Soon</p>
       </div>
     </div>
 
     <div class="mb-6 opacity-50">
-      <h2 class="text-2xl font-bold text-gray-900">Retirement Strategies</h2>
-      <p class="text-gray-600 mt-1">Personalised strategies to improve your retirement readiness</p>
+      <h2 class="text-2xl font-bold text-horizon-500">Retirement Strategies</h2>
+      <p class="text-neutral-500 mt-1">Personalised strategies to improve your retirement readiness</p>
     </div>
 
     <!-- Priority Filter -->
     <div class="bg-white rounded-lg shadow p-4 mb-6 opacity-50">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-medium text-gray-700">Filter by Priority:</span>
+        <span class="text-sm font-medium text-neutral-500">Filter by Priority:</span>
         <div class="flex items-center space-x-2">
           <button
             v-for="priority in priorities"
@@ -25,7 +25,7 @@
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
               selectedPriority === priority.value
                 ? priority.activeClass
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-savannah-100 text-neutral-500 hover:bg-savannah-200'
             ]"
           >
             {{ priority.label }}
@@ -56,7 +56,7 @@
               </div>
               <div class="flex-1">
                 <div class="flex items-center mb-2">
-                  <h3 class="text-lg font-semibold text-gray-900 mr-3">{{ recommendation.title }}</h3>
+                  <h3 class="text-lg font-semibold text-horizon-500 mr-3">{{ recommendation.title }}</h3>
                   <span
                     :class="[
                       'px-2 py-1 rounded text-xs font-medium',
@@ -66,18 +66,18 @@
                     {{ recommendation.priority }} Priority
                   </span>
                 </div>
-                <p class="text-gray-600 mb-4">{{ recommendation.description }}</p>
+                <p class="text-neutral-500 mb-4">{{ recommendation.description }}</p>
 
                 <!-- Impact Section -->
-                <div v-if="recommendation.impact" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                  <p class="text-sm font-semibold text-green-900 mb-1">Potential Impact</p>
-                  <p class="text-sm text-green-800">{{ recommendation.impact }}</p>
+                <div v-if="recommendation.impact" class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-4">
+                  <p class="text-sm font-semibold text-spring-900 mb-1">Potential Impact</p>
+                  <p class="text-sm text-spring-800">{{ recommendation.impact }}</p>
                 </div>
 
                 <!-- Action Steps -->
                 <div v-if="recommendation.steps && recommendation.steps.length > 0">
-                  <p class="text-sm font-semibold text-gray-900 mb-2">Action Steps:</p>
-                  <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                  <p class="text-sm font-semibold text-horizon-500 mb-2">Action Steps:</p>
+                  <ol class="list-decimal list-inside space-y-1 text-sm text-neutral-500">
                     <li v-for="(step, stepIndex) in recommendation.steps" :key="stepIndex">
                       {{ step }}
                     </li>
@@ -92,13 +92,13 @@
 
     <!-- Empty State -->
     <div v-else class="bg-white rounded-lg shadow p-12 text-center opacity-50">
-      <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-16 h-16 text-horizon-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+      <h3 class="text-lg font-semibold text-horizon-500 mb-2">
         {{ selectedPriority === 'all' ? 'No Recommendations Available' : 'No ' + selectedPriority + ' Priority Recommendations' }}
       </h3>
-      <p class="text-gray-600">
+      <p class="text-neutral-500">
         {{ selectedPriority === 'all' ? 'Your retirement planning looks good!' : 'Try selecting a different priority level.' }}
       </p>
     </div>
@@ -115,10 +115,10 @@ export default {
     return {
       selectedPriority: 'all',
       priorities: [
-        { value: 'all', label: 'All', activeClass: 'bg-indigo-600 text-white' },
+        { value: 'all', label: 'All', activeClass: 'bg-violet-600 text-white' },
         { value: 'High', label: 'High', activeClass: 'bg-error-600 text-white' },
-        { value: 'Medium', label: 'Medium', activeClass: 'bg-primary-600 text-white' },
-        { value: 'Low', label: 'Low', activeClass: 'bg-green-600 text-white' },
+        { value: 'Medium', label: 'Medium', activeClass: 'bg-raspberry-500 text-white' },
+        { value: 'Low', label: 'Low', activeClass: 'bg-spring-600 text-white' },
       ],
     };
   },
@@ -137,20 +137,20 @@ export default {
   methods: {
     getPriorityBgClass(priority) {
       const classes = {
-        High: 'bg-red-600',
-        Medium: 'bg-primary-600',
-        Low: 'bg-green-600',
+        High: 'bg-raspberry-600',
+        Medium: 'bg-raspberry-500',
+        Low: 'bg-spring-600',
       };
-      return classes[priority] || 'bg-gray-600';
+      return classes[priority] || 'bg-horizon-500';
     },
 
     getPriorityBadgeClass(priority) {
       const classes = {
-        High: 'bg-red-100 text-red-800',
-        Medium: 'bg-blue-100 text-blue-800',
-        Low: 'bg-green-100 text-green-800',
+        High: 'bg-raspberry-100 text-raspberry-800',
+        Medium: 'bg-violet-100 text-violet-800',
+        Low: 'bg-spring-100 text-spring-800',
       };
-      return classes[priority] || 'bg-gray-100 text-gray-800';
+      return classes[priority] || 'bg-savannah-100 text-horizon-500';
     },
   },
 
@@ -165,19 +165,7 @@ export default {
 </script>
 
 <style scoped>
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .recommendations > div {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeInSlideUp 0.5s ease-out;
 }
 </style>

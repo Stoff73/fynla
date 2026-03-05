@@ -3,12 +3,12 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex flex-col items-center justify-center py-12">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      <p class="mt-4 text-gray-600">Loading tax information...</p>
+      <p class="mt-4 text-neutral-500">Loading tax information...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error" class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-6 text-center">
+      <p class="text-raspberry-600">{{ error }}</p>
       <button
         @click="loadTaxInfo"
         class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
@@ -20,10 +20,10 @@
     <!-- Tax Information -->
     <div v-else-if="taxInfo" class="space-y-6">
       <!-- Header with Tax Year -->
-      <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+      <div class="flex items-center justify-between border-b border-light-gray pb-4">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Tax Treatment</h3>
-          <p class="text-sm text-gray-600">{{ taxInfo.product_type_label }}</p>
+          <h3 class="text-lg font-semibold text-horizon-500">Tax Treatment</h3>
+          <p class="text-sm text-neutral-500">{{ taxInfo.product_type_label }}</p>
         </div>
         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
           Tax Year {{ taxInfo.tax_year }}
@@ -46,8 +46,8 @@
               {{ getStatusIcon(item.status) }}
             </span>
             <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-semibold text-gray-900">{{ item.title }}</h4>
-              <p class="mt-1 text-sm text-gray-600">{{ item.summary }}</p>
+              <h4 class="text-sm font-semibold text-horizon-500">{{ item.title }}</h4>
+              <p class="mt-1 text-sm text-neutral-500">{{ item.summary }}</p>
             </div>
           </div>
         </div>
@@ -56,26 +56,26 @@
       <!-- Status Legend -->
       <div class="flex flex-wrap gap-4 text-xs">
         <div class="flex items-center gap-1">
-          <span class="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs font-bold">&#10003;</span>
-          <span class="text-gray-600">Tax-Free</span>
+          <span class="w-4 h-4 rounded-full bg-spring-100 flex items-center justify-center text-spring-600 text-xs font-bold">&#10003;</span>
+          <span class="text-neutral-500">Tax-Free</span>
         </div>
         <div class="flex items-center gap-1">
-          <span class="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold">!</span>
-          <span class="text-gray-600">Taxable</span>
+          <span class="w-4 h-4 rounded-full bg-raspberry-100 flex items-center justify-center text-raspberry-600 text-xs font-bold">!</span>
+          <span class="text-neutral-500">Taxable</span>
         </div>
         <div class="flex items-center gap-1">
-          <span class="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">&#8987;</span>
-          <span class="text-gray-600">Tax-Deferred</span>
+          <span class="w-4 h-4 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-xs font-bold">&#8987;</span>
+          <span class="text-neutral-500">Tax-Deferred</span>
         </div>
         <div class="flex items-center gap-1">
           <span class="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-xs font-bold">&#8595;</span>
-          <span class="text-gray-600">Relief Available</span>
+          <span class="text-neutral-500">Relief Available</span>
         </div>
       </div>
 
       <!-- Disclaimer -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-xs text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-xs text-violet-800">
           <strong>Important:</strong> Tax treatment depends on individual circumstances and may change.
           This is general information only and should not be considered tax advice.
           Please consult a qualified tax adviser for advice specific to your situation.
@@ -85,7 +85,7 @@
 
     <!-- Empty State -->
     <div v-else class="text-center py-12">
-      <p class="text-gray-600">No tax information available for this product type.</p>
+      <p class="text-neutral-500">No tax information available for this product type.</p>
     </div>
   </div>
 </template>
@@ -169,24 +169,24 @@ export default {
 
     getStatusBorderClass(status) {
       const classes = {
-        exempt: 'border-green-200 bg-green-50',
-        taxable: 'border-blue-200 bg-blue-50',
-        deferred: 'border-blue-200 bg-blue-50',
+        exempt: 'border-spring-200 bg-spring-50',
+        taxable: 'border-violet-200 bg-violet-50',
+        deferred: 'border-violet-200 bg-violet-50',
         relief: 'border-purple-200 bg-purple-50',
-        limit: 'border-gray-200 bg-gray-50',
+        limit: 'border-light-gray bg-savannah-100',
       };
-      return classes[status] || 'border-gray-200 bg-gray-50';
+      return classes[status] || 'border-light-gray bg-savannah-100';
     },
 
     getStatusIconClass(status) {
       const classes = {
-        exempt: 'bg-green-100 text-green-600',
-        taxable: 'bg-blue-100 text-blue-600',
-        deferred: 'bg-blue-100 text-blue-600',
+        exempt: 'bg-spring-100 text-spring-600',
+        taxable: 'bg-violet-100 text-violet-600',
+        deferred: 'bg-violet-100 text-violet-600',
         relief: 'bg-purple-100 text-purple-600',
-        limit: 'bg-gray-100 text-gray-600',
+        limit: 'bg-savannah-100 text-neutral-500',
       };
-      return classes[status] || 'bg-gray-100 text-gray-600';
+      return classes[status] || 'bg-savannah-100 text-neutral-500';
     },
 
     getStatusIcon(status) {
@@ -206,15 +206,6 @@ export default {
 <style scoped>
 .tax-status-panel {
   animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .tax-item {

@@ -1,7 +1,7 @@
 <template>
   <div class="net-worth-overview">
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-10 h-10 border-[3px] border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Loading your assets...</p>
     </div>
 
@@ -370,23 +370,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  @apply text-gray-500;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  @apply border-[3px] border-gray-200;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  @apply text-neutral-500;
 }
 
 .overview-cards {
@@ -401,7 +385,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -409,7 +393,7 @@ export default {
 .asset-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .asset-card.business-card:hover {
@@ -426,7 +410,7 @@ export default {
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .card-icon {
@@ -445,18 +429,18 @@ export default {
 }
 
 .card-icon.retirement {
-  @apply bg-blue-100;
-  @apply text-blue-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .card-icon.property {
-  @apply bg-blue-100;
-  @apply text-blue-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .card-icon.investments {
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
 }
 
 .card-icon.cash {
@@ -481,21 +465,21 @@ export default {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 4px 0;
 }
 
 .card-total {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .card-arrow {
   width: 24px;
   height: 24px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   flex-shrink: 0;
 }
 
@@ -509,7 +493,7 @@ export default {
 }
 
 .empty-state {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   text-align: center;
   padding: 16px 0;
@@ -524,7 +508,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  @apply border-b border-gray-100;
+  @apply border-b border-light-gray;
 }
 
 .item-row:last-child {
@@ -533,7 +517,7 @@ export default {
 
 .item-name {
   font-size: 14px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -553,13 +537,13 @@ export default {
 }
 
 .badge.isa {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .badge.emergency {
-  @apply bg-blue-100;
-  @apply text-blue-700;
+  @apply bg-violet-100;
+  @apply text-violet-700;
 }
 
 .badge.business-type {
@@ -575,14 +559,14 @@ export default {
 .item-value {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   flex-shrink: 0;
   margin-left: 12px;
 }
 
 .view-all {
   font-size: 13px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   text-align: center;
   padding: 8px 0 0 0;
   font-weight: 500;

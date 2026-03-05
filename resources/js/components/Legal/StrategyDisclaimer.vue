@@ -168,7 +168,7 @@ export default {
 }
 
 .strategy-disclaimer.info .disclaimer-icon {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .strategy-disclaimer.warning .disclaimer-icon {
@@ -234,7 +234,7 @@ export default {
 }
 
 .strategy-disclaimer.info .dismiss-button {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .strategy-disclaimer.warning .dismiss-button {

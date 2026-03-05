@@ -126,23 +126,23 @@
 
     <!-- Preview Mode Only: Total Savings Summary -->
     <div v-if="isPreviewMode" class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-      <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <h3 class="text-sm font-medium text-gray-600 mb-2">Total Savings</h3>
-        <p class="text-3xl font-bold text-gray-900">
+      <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
+        <h3 class="text-sm font-medium text-neutral-500 mb-2">Total Savings</h3>
+        <p class="text-3xl font-bold text-horizon-500">
           {{ formatCurrency(totalSavings) }}
         </p>
       </div>
 
-      <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <h3 class="text-sm font-medium text-gray-600 mb-2">Emergency Fund Runway</h3>
+      <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
+        <h3 class="text-sm font-medium text-neutral-500 mb-2">Emergency Fund Runway</h3>
         <p class="text-3xl font-bold" :class="runwayColour">
           {{ emergencyFundRunway.toFixed(1) }} months
         </p>
       </div>
 
-      <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <h3 class="text-sm font-medium text-gray-600 mb-2">Number of Accounts</h3>
-        <p class="text-3xl font-bold text-gray-900">
+      <div class="bg-eggshell-500 rounded-lg p-6 border border-light-gray">
+        <h3 class="text-sm font-medium text-neutral-500 mb-2">Number of Accounts</h3>
+        <p class="text-3xl font-bold text-horizon-500">
           {{ accounts.length }}
         </p>
       </div>
@@ -206,9 +206,9 @@ export default {
     },
 
     runwayColour() {
-      if (this.emergencyFundRunway >= 6) return 'text-green-600';
-      if (this.emergencyFundRunway >= 3) return 'text-blue-600';
-      return 'text-red-600';
+      if (this.emergencyFundRunway >= 6) return 'text-spring-600';
+      if (this.emergencyFundRunway >= 3) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
   },
 
@@ -274,11 +274,11 @@ export default {
 
     getOwnershipBadgeClass(type) {
       const classes = {
-        individual: 'bg-gray-500 text-white',
+        individual: 'bg-eggshell-5000 text-white',
         joint: 'bg-purple-500 text-white',
         trust: 'bg-indigo-500 text-white',
       };
-      return classes[type] || 'bg-gray-500 text-white';
+      return classes[type] || 'bg-eggshell-5000 text-white';
     },
 
     formatInterestRate(rate) {
@@ -354,7 +354,7 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -363,7 +363,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -374,7 +374,7 @@ export default {
 }
 
 .add-account-btn:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .upload-btn {
@@ -383,8 +383,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  @apply text-primary-500;
-  @apply border-2 border-primary-500;
+  @apply text-raspberry-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -393,7 +393,7 @@ export default {
 }
 
 .upload-btn:hover {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .btn-icon {
@@ -410,7 +410,7 @@ export default {
 .account-card {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -419,7 +419,7 @@ export default {
 .account-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -454,12 +454,12 @@ export default {
 }
 
 .badge-emergency {
-  @apply bg-green-500;
+  @apply bg-spring-500;
   color: white;
 }
 
 .badge-isa {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
@@ -472,13 +472,13 @@ export default {
 .account-institution {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .account-type {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -488,7 +488,7 @@ export default {
   gap: 10px;
   margin-top: 4px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -499,18 +499,18 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 16px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 700;
 }
 
 .detail-value.interest {
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 .empty-state {
@@ -518,18 +518,18 @@ export default {
   padding: 60px 20px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-message {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin-bottom: 20px;
 }
 
 .add-account-button {
   padding: 12px 24px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -540,7 +540,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Open Banking Promo Card */

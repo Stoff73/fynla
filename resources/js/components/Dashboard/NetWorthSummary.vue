@@ -1,8 +1,8 @@
 <template>
   <div class="net-worth-summary bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">Total Net Worth</h3>
-      <div class="text-sm text-gray-500">
+      <h3 class="text-xl font-semibold text-horizon-500">Total Net Worth</h3>
+      <div class="text-sm text-neutral-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5"
@@ -23,14 +23,14 @@
     <!-- Total Net Worth -->
     <div class="mb-6">
       <div class="flex items-baseline mb-2">
-        <span class="text-4xl font-bold text-gray-800">
+        <span class="text-4xl font-bold text-horizon-500">
           {{ formattedNetWorth }}
         </span>
         <div v-if="trend" class="ml-3 flex items-center">
           <svg
             v-if="trend > 0"
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-green-600"
+            class="h-5 w-5 text-spring-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -43,7 +43,7 @@
           <svg
             v-else-if="trend < 0"
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-red-600"
+            class="h-5 w-5 text-raspberry-600"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -58,52 +58,52 @@
           </span>
         </div>
       </div>
-      <p class="text-sm text-gray-600">Assets minus Liabilities</p>
+      <p class="text-sm text-neutral-500">Assets minus Liabilities</p>
     </div>
 
     <!-- Assets Breakdown -->
     <div class="mb-6">
-      <h4 class="text-sm font-semibold text-gray-700 mb-3">Assets</h4>
+      <h4 class="text-sm font-semibold text-horizon-500 mb-3">Assets</h4>
       <div class="space-y-2">
         <div class="flex justify-between items-center">
           <div class="flex items-center">
-            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-            <span class="text-sm text-gray-700">Savings</span>
+            <div class="w-3 h-3 rounded-full bg-violet-500 mr-2"></div>
+            <span class="text-sm text-neutral-500">Savings</span>
           </div>
-          <span class="text-sm font-semibold text-gray-800">
+          <span class="text-sm font-semibold text-horizon-500">
             {{ formattedSavings }}
           </span>
         </div>
         <div class="flex justify-between items-center">
           <div class="flex items-center">
-            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            <span class="text-sm text-gray-700">Investments</span>
+            <div class="w-3 h-3 rounded-full bg-spring-500 mr-2"></div>
+            <span class="text-sm text-neutral-500">Investments</span>
           </div>
-          <span class="text-sm font-semibold text-gray-800">
+          <span class="text-sm font-semibold text-horizon-500">
             {{ formattedInvestments }}
           </span>
         </div>
         <div class="flex justify-between items-center">
           <div class="flex items-center">
             <div class="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
-            <span class="text-sm text-gray-700">Pensions</span>
+            <span class="text-sm text-neutral-500">Pensions</span>
           </div>
-          <span class="text-sm font-semibold text-gray-800">
+          <span class="text-sm font-semibold text-horizon-500">
             {{ formattedPensions }}
           </span>
         </div>
         <div class="flex justify-between items-center">
           <div class="flex items-center">
-            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-            <span class="text-sm text-gray-700">Other Assets</span>
+            <div class="w-3 h-3 rounded-full bg-violet-500 mr-2"></div>
+            <span class="text-sm text-neutral-500">Other Assets</span>
           </div>
-          <span class="text-sm font-semibold text-gray-800">
+          <span class="text-sm font-semibold text-horizon-500">
             {{ formattedOtherAssets }}
           </span>
         </div>
         <div class="border-t pt-2 flex justify-between items-center">
-          <span class="text-sm font-semibold text-gray-700">Total Assets</span>
-          <span class="text-sm font-bold text-gray-800">
+          <span class="text-sm font-semibold text-horizon-500">Total Assets</span>
+          <span class="text-sm font-bold text-horizon-500">
             {{ formattedTotalAssets }}
           </span>
         </div>
@@ -112,11 +112,11 @@
 
     <!-- Liabilities -->
     <div class="mb-6">
-      <h4 class="text-sm font-semibold text-gray-700 mb-3">Liabilities</h4>
+      <h4 class="text-sm font-semibold text-horizon-500 mb-3">Liabilities</h4>
       <div class="space-y-2">
         <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-700">Total Liabilities</span>
-          <span class="text-sm font-semibold text-red-600">
+          <span class="text-sm text-neutral-500">Total Liabilities</span>
+          <span class="text-sm font-semibold text-raspberry-600">
             {{ formattedLiabilities }}
           </span>
         </div>
@@ -126,7 +126,7 @@
     <!-- View Details Button -->
     <button
       @click="navigateToEstate"
-      class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-button hover:bg-gray-200 transition-colors"
+      class="w-full px-4 py-2 text-sm font-medium text-horizon-500 bg-savannah-100 rounded-button hover:bg-savannah-200 transition-colors"
     >
       View Detailed Breakdown
     </button>
@@ -237,9 +237,9 @@ export default {
     },
 
     trendClass() {
-      if (this.trend > 0) return 'text-green-600';
-      if (this.trend < 0) return 'text-red-600';
-      return 'text-gray-600';
+      if (this.trend > 0) return 'text-spring-600';
+      if (this.trend < 0) return 'text-raspberry-600';
+      return 'text-neutral-500';
     },
   },
 

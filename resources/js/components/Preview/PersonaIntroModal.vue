@@ -44,30 +44,30 @@
                             <!-- Content -->
                             <div class="p-6">
                                 <!-- Description -->
-                                <p class="text-gray-600 mb-6">{{ persona.description }}</p>
+                                <p class="text-neutral-500 mb-6">{{ persona.description }}</p>
 
                                 <!-- Key stats -->
                                 <div class="grid grid-cols-2 gap-4 mb-6">
-                                    <div class="bg-gray-50 rounded-lg p-3">
-                                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Net Worth</div>
-                                        <div class="font-semibold text-gray-900">{{ persona.netWorthRange }}</div>
+                                    <div class="bg-savannah-100 rounded-lg p-3">
+                                        <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Net Worth</div>
+                                        <div class="font-semibold text-horizon-500">{{ persona.netWorthRange }}</div>
                                     </div>
-                                    <div class="bg-gray-50 rounded-lg p-3">
-                                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Key Focus</div>
-                                        <div class="font-semibold text-gray-900">{{ persona.focus }}</div>
+                                    <div class="bg-savannah-100 rounded-lg p-3">
+                                        <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Key Focus</div>
+                                        <div class="font-semibold text-horizon-500">{{ persona.focus }}</div>
                                     </div>
                                 </div>
 
                                 <!-- Key concerns / highlights -->
                                 <div v-if="keyConcerns.length > 0" class="mb-6">
-                                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Key Financial Questions</h3>
+                                    <h3 class="text-sm font-semibold text-horizon-500 mb-3">Key Financial Questions</h3>
                                     <ul class="space-y-2">
                                         <li
                                             v-for="(concern, index) in keyConcerns"
                                             :key="index"
-                                            class="flex items-start gap-2 text-sm text-gray-600"
+                                            class="flex items-start gap-2 text-sm text-neutral-500"
                                         >
-                                            <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-5 h-5 text-raspberry-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             <span>{{ concern }}</span>
@@ -79,7 +79,7 @@
                                 <div class="flex gap-3">
                                     <button
                                         @click="$emit('explore')"
-                                        class="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+                                        class="flex-1 bg-raspberry-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-raspberry-700 transition-colors flex items-center justify-center gap-2"
                                     >
                                         <span>Explore Dashboard</span>
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +88,7 @@
                                     </button>
                                     <button
                                         @click="$emit('close')"
-                                        class="px-4 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                                        class="px-4 py-3 rounded-lg font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -135,7 +135,7 @@ export default {
         },
 
         headerClasses() {
-            if (!this.persona) return 'bg-gradient-to-br from-primary-500 to-primary-700';
+            if (!this.persona) return 'bg-gradient-to-br from-raspberry-500 to-raspberry-700';
 
             const gradients = {
                 young_family: 'bg-gradient-to-br from-blue-500 to-blue-700',
@@ -145,7 +145,7 @@ export default {
                 young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
                 retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
             };
-            return gradients[this.persona.id] || 'bg-gradient-to-br from-primary-500 to-primary-700';
+            return gradients[this.persona.id] || 'bg-gradient-to-br from-raspberry-500 to-raspberry-700';
         },
 
         keyConcerns() {

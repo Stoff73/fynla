@@ -17,13 +17,13 @@ export const GOAL_ICONS = {
   },
   property_purchase: {
     icon: 'HomeIcon',
-    color: '#1257A0',
+    color: '#1F2A44',
     category: 'property',
     label: 'Property Purchase',
   },
   home_deposit: {
     icon: 'HomeIcon',
-    color: '#1257A0',
+    color: '#1F2A44',
     category: 'property',
     label: 'Home Deposit',
   },
@@ -53,7 +53,7 @@ export const GOAL_ICONS = {
   },
   retirement: {
     icon: 'SunIcon',
-    color: '#F59E0B',
+    color: '#5854E6',
     category: 'retirement',
     label: 'Retirement',
   },
@@ -105,14 +105,14 @@ export const LIFE_EVENT_ICONS = {
   },
   redundancy_payment: {
     icon: 'DocumentTextIcon',
-    color: '#F59E0B',
+    color: '#5854E6',
     impactType: 'income',
     category: 'income',
     label: 'Redundancy Payment',
   },
   property_sale: {
     icon: 'BuildingOfficeIcon',
-    color: '#1257A0',
+    color: '#1F2A44',
     impactType: 'income',
     category: 'income',
     label: 'Property Sale',
@@ -126,7 +126,7 @@ export const LIFE_EVENT_ICONS = {
   },
   pension_lump_sum: {
     icon: 'CurrencyPoundIcon',
-    color: '#F59E0B',
+    color: '#5854E6',
     impactType: 'income',
     category: 'income',
     label: 'Pension Lump Sum',
@@ -268,11 +268,11 @@ export function getEventColor(event) {
  */
 export const PHASE_COLORS = {
   accumulation: {
-    bg: 'rgba(18, 87, 160, 0.1)', // Trust blue with opacity
-    border: '#1257A0',
+    bg: 'rgba(31, 42, 68, 0.1)', // Horizon 500 with opacity
+    border: '#1F2A44',
   },
   retirement: {
-    bg: 'rgba(245, 158, 11, 0.1)', // Amber (charts only) with opacity
-    border: '#F59E0B',
+    bg: 'rgba(88, 84, 230, 0.1)', // Violet 500 with opacity
+    border: '#5854E6',
   },
 };

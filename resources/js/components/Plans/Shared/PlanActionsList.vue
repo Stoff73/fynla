@@ -15,8 +15,8 @@
       />
     </div>
 
-    <div v-else class="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-      <p class="text-gray-500 text-sm">No recommendations available for this plan.</p>
+    <div v-else class="bg-eggshell-500 rounded-lg border border-light-gray p-6 text-center">
+      <p class="text-neutral-500 text-sm">No recommendations available for this plan.</p>
     </div>
   </div>
 </template>

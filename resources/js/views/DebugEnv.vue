@@ -2,22 +2,22 @@
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-4">Environment Debug Info</h1>
 
-    <div class="bg-gray-100 p-4 rounded mb-4">
+    <div class="bg-savannah-100 p-4 rounded mb-4">
       <h2 class="font-bold mb-2">Vite Environment Variables:</h2>
       <pre class="text-sm">{{ envInfo }}</pre>
     </div>
 
-    <div class="bg-gray-100 p-4 rounded mb-4">
+    <div class="bg-savannah-100 p-4 rounded mb-4">
       <h2 class="font-bold mb-2">Axios Config (bootstrap.js):</h2>
       <pre class="text-sm">{{ axiosConfig }}</pre>
     </div>
 
-    <div class="bg-gray-100 p-4 rounded mb-4">
+    <div class="bg-savannah-100 p-4 rounded mb-4">
       <h2 class="font-bold mb-2">API Instance Config (api.js):</h2>
       <pre class="text-sm">{{ apiConfig }}</pre>
     </div>
 
-    <div class="bg-gray-100 p-4 rounded mb-4">
+    <div class="bg-savannah-100 p-4 rounded mb-4">
       <h2 class="font-bold mb-2">Window Location:</h2>
       <pre class="text-sm">{{ locationInfo }}</pre>
     </div>

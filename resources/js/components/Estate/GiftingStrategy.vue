@@ -3,7 +3,7 @@
     <!-- Back to Dashboard Link -->
     <button
       @click="$emit('switch-tab', 'iht')"
-      class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+      class="inline-flex items-center text-sm text-violet-600 hover:text-violet-800 mb-4"
     >
       <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -13,7 +13,7 @@
     <!-- Personalized Asset-Based Gifting Strategy Section -->
     <div v-if="personalizedStrategy" class="mb-8 bg-white rounded-lg p-6 border-2 border-emerald-500">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
-        <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Your Personalized Gifting Strategy</h2>
+        <h2 class="text-xl sm:text-2xl font-bold text-horizon-500">Your Personalized Gifting Strategy</h2>
         <button
           @click="refreshPersonalizedStrategy"
           class="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
@@ -27,48 +27,48 @@
         </button>
       </div>
 
-      <p class="text-gray-700 mb-6">
+      <p class="text-neutral-500 mb-6">
         Based on your specific assets and their liquidity, here's a tailored gifting strategy to reduce your Inheritance Tax liability.
       </p>
 
       <!-- Strategy Summary -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg p-4 border-2 border-red-500">
-          <p class="text-sm text-red-700 mb-1 font-medium">Current Inheritance Tax Liability</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-red-900">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
-          <p class="text-xs text-red-600">At projected death</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-raspberry-500">
+          <p class="text-sm text-raspberry-700 mb-1 font-medium">Current Inheritance Tax Liability</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-raspberry-900">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
+          <p class="text-xs text-raspberry-600">At projected death</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-blue-500">
-          <p class="text-sm text-blue-700 mb-1 font-medium">Annual Exemption</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">£3,000/year</p>
-          <p class="text-xs text-blue-600">Immediately exempt gifts</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-violet-500">
+          <p class="text-sm text-violet-700 mb-1 font-medium">Annual Exemption</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£3,000/year</p>
+          <p class="text-xs text-violet-600">Immediately exempt gifts</p>
         </div>
         <div class="bg-white rounded-lg p-4 border-2 border-purple-500">
           <p class="text-sm text-purple-700 mb-1 font-medium">Total to Gift</p>
           <p class="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
           <p class="text-xs text-purple-600">Via recommended strategies</p>
         </div>
-        <div class="bg-white rounded-lg p-4 border-2 border-green-500">
-          <p class="text-sm text-green-700 mb-1 font-medium">Inheritance Tax Saved</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
-          <p class="text-xs text-green-600">{{ personalizedStrategy.summary.reduction_percentage }}% reduction</p>
+        <div class="bg-white rounded-lg p-4 border-2 border-spring-500">
+          <p class="text-sm text-spring-700 mb-1 font-medium">Inheritance Tax Saved</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-900">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
+          <p class="text-xs text-spring-600">{{ personalizedStrategy.summary.reduction_percentage }}% reduction</p>
         </div>
       </div>
 
       <!-- Asset-Based Strategies -->
       <div class="space-y-4">
-        <h3 class="text-lg font-semibold text-gray-900 mb-3">Your Asset-Based Strategies</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-3">Your Asset-Based Strategies</h3>
 
         <div
           v-for="(strategy, index) in personalizedStrategy.strategies"
           :key="index"
-          class="bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition-shadow"
+          class="bg-white rounded-lg p-5 border border-light-gray hover:shadow-md transition-shadow"
         >
           <!-- Strategy Header -->
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-1">
-                <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                <span class="px-2 py-1 rounded text-xs font-medium bg-savannah-100 text-neutral-500">
                   Priority {{ strategy.priority }}
                 </span>
                 <span
@@ -84,48 +84,48 @@
                   {{ formatCategory(strategy.category) }}
                 </span>
               </div>
-              <h4 class="text-lg font-semibold text-gray-900">{{ strategy.strategy_name }}</h4>
-              <p class="text-sm text-gray-600 mt-1">{{ strategy.description }}</p>
+              <h4 class="text-lg font-semibold text-horizon-500">{{ strategy.strategy_name }}</h4>
+              <p class="text-sm text-neutral-500 mt-1">{{ strategy.description }}</p>
             </div>
             <div v-if="strategy.iht_saved > 0" class="text-right ml-4">
-              <p class="text-sm text-gray-600">Inheritance Tax Saved</p>
-              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{{ formatCurrency(strategy.iht_saved) }}</p>
+              <p class="text-sm text-neutral-500">Inheritance Tax Saved</p>
+              <p class="text-lg sm:text-xl lg:text-2xl font-bold text-spring-600">{{ formatCurrency(strategy.iht_saved) }}</p>
             </div>
           </div>
 
           <!-- Strategy Details -->
-          <div v-if="strategy.total_gifted > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 bg-gray-50 rounded p-3">
+          <div v-if="strategy.total_gifted > 0" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 bg-eggshell-500 rounded p-3">
             <div v-if="strategy.annual_amount">
-              <p class="text-xs text-gray-600">Annual Amount</p>
-              <p class="text-lg font-bold text-gray-900">{{ formatCurrency(strategy.annual_amount) }}</p>
+              <p class="text-xs text-neutral-500">Annual Amount</p>
+              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(strategy.annual_amount) }}</p>
             </div>
             <div v-if="strategy.total_gifted">
-              <p class="text-xs text-gray-600">Total to Gift</p>
-              <p class="text-lg font-bold text-gray-900">{{ formatCurrency(strategy.total_gifted) }}</p>
+              <p class="text-xs text-neutral-500">Total to Gift</p>
+              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(strategy.total_gifted) }}</p>
             </div>
             <div v-if="strategy.years">
-              <p class="text-xs text-gray-600">Timeframe</p>
-              <p class="text-lg font-bold text-gray-900">{{ strategy.years }} years</p>
+              <p class="text-xs text-neutral-500">Timeframe</p>
+              <p class="text-lg font-bold text-horizon-500">{{ strategy.years }} years</p>
             </div>
           </div>
 
           <!-- Available Assets -->
-          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-white rounded border-2 border-blue-500">
-            <p class="text-xs font-medium text-blue-600 mb-1">Available Assets:</p>
-            <p class="text-sm text-gray-900">{{ strategy.available_assets }}</p>
+          <div v-if="strategy.available_assets" class="mb-3 p-3 bg-white rounded border-2 border-violet-500">
+            <p class="text-xs font-medium text-violet-600 mb-1">Available Assets:</p>
+            <p class="text-sm text-horizon-500">{{ strategy.available_assets }}</p>
           </div>
 
           <!-- Main Residence Info -->
-          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-blue-500">
-            <p class="text-xs font-medium text-blue-600 mb-1">Main Residence:</p>
-            <p class="text-sm text-gray-900 font-medium">{{ strategy.main_residence }}</p>
-            <p class="text-sm text-gray-700 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
-            <p class="text-xs text-blue-600 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
+          <div v-if="strategy.main_residence" class="mb-3 p-3 bg-white rounded border-2 border-violet-500">
+            <p class="text-xs font-medium text-violet-600 mb-1">Main Residence:</p>
+            <p class="text-sm text-horizon-500 font-medium">{{ strategy.main_residence }}</p>
+            <p class="text-sm text-neutral-500 mt-1">Value: {{ formatCurrency(strategy.current_value) }}</p>
+            <p class="text-xs text-violet-600 mt-2 italic">{{ strategy.not_giftable_reason }}</p>
           </div>
 
           <!-- Gift Schedule (for PET strategies) -->
           <div v-if="strategy.gift_schedule && strategy.gift_schedule.length > 0" class="mb-3">
-            <p class="text-sm font-medium text-gray-900 mb-2">Gift Schedule:</p>
+            <p class="text-sm font-medium text-horizon-500 mb-2">Gift Schedule:</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <div
                 v-for="(gift, idx) in strategy.gift_schedule"
@@ -133,7 +133,7 @@
                 class="p-2 bg-white rounded border-2 border-indigo-500"
               >
                 <p class="text-xs text-indigo-600">Year {{ gift.year }}</p>
-                <p class="text-sm font-bold text-gray-900">{{ formatCurrency(gift.amount) }}</p>
+                <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(gift.amount) }}</p>
                 <p class="text-xs text-indigo-600">Exempt: Year {{ gift.becomes_exempt }}</p>
               </div>
             </div>
@@ -142,7 +142,7 @@
           <!-- Tax Considerations -->
           <div v-if="strategy.tax_considerations" class="mb-3 p-3 bg-white rounded border-2 border-purple-500">
             <p class="text-xs font-medium text-purple-600 mb-2">Tax Considerations:</p>
-            <div class="text-xs text-gray-700 space-y-1">
+            <div class="text-xs text-neutral-500 space-y-1">
               <p v-if="strategy.tax_considerations.cgt_rate">
                 <span class="font-medium">Capital Gains Tax:</span> {{ strategy.tax_considerations.cgt_rate }}
               </p>
@@ -156,15 +156,15 @@
           </div>
 
           <!-- Implementation Steps -->
-          <div class="border-t border-gray-200 pt-3 mt-3">
-            <p class="text-sm font-medium text-gray-900 mb-2">Implementation Steps:</p>
+          <div class="border-t border-light-gray pt-3 mt-3">
+            <p class="text-sm font-medium text-horizon-500 mb-2">Implementation Steps:</p>
             <ul class="space-y-1">
               <li
                 v-for="(step, stepIdx) in strategy.implementation_steps"
                 :key="stepIdx"
-                class="flex items-start text-sm text-gray-700"
+                class="flex items-start text-sm text-neutral-500"
               >
-                <svg class="w-4 h-4 mr-2 mt-0.5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-spring-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span>{{ step }}</span>
@@ -173,15 +173,15 @@
           </div>
 
           <!-- Alternative Strategies (for main residence) -->
-          <div v-if="strategy.alternative_strategies" class="border-t border-gray-200 pt-3 mt-3">
-            <p class="text-sm font-medium text-gray-900 mb-2">Alternative Strategies:</p>
+          <div v-if="strategy.alternative_strategies" class="border-t border-light-gray pt-3 mt-3">
+            <p class="text-sm font-medium text-horizon-500 mb-2">Alternative Strategies:</p>
             <ul class="space-y-1">
               <li
                 v-for="(alt, altIdx) in strategy.alternative_strategies"
                 :key="altIdx"
-                class="flex items-start text-sm text-gray-700"
+                class="flex items-start text-sm text-neutral-500"
               >
-                <svg class="w-4 h-4 mr-2 mt-0.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-violet-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
                 <span>{{ alt }}</span>
@@ -190,10 +190,10 @@
           </div>
 
           <!-- Asset Details (expandable) -->
-          <div v-if="strategy.asset_details && strategy.asset_details.length > 0" class="border-t border-gray-200 pt-3 mt-3">
+          <div v-if="strategy.asset_details && strategy.asset_details.length > 0" class="border-t border-light-gray pt-3 mt-3">
             <button
               @click="toggleAssetDetails(index)"
-              class="w-full flex items-center justify-between text-sm font-medium text-gray-900 hover:text-gray-700"
+              class="w-full flex items-center justify-between text-sm font-medium text-horizon-500 hover:text-neutral-500"
             >
               <span>View Asset Details ({{ strategy.asset_details.length }} assets)</span>
               <svg
@@ -211,14 +211,14 @@
               <div
                 v-for="(asset, assetIdx) in strategy.asset_details"
                 :key="assetIdx"
-                class="p-3 bg-gray-50 rounded border border-gray-200"
+                class="p-3 bg-eggshell-500 rounded border border-light-gray"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <p class="font-medium text-gray-900">{{ asset.name }}</p>
-                  <p class="text-sm font-bold text-gray-900">{{ formatCurrency(asset.value) }}</p>
+                  <p class="font-medium text-horizon-500">{{ asset.name }}</p>
+                  <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(asset.value) }}</p>
                 </div>
-                <p class="text-xs text-gray-600 mb-2">Type: {{ formatAssetType(asset.type) }}</p>
-                <div v-if="asset.gifting_considerations" class="text-xs text-gray-700">
+                <p class="text-xs text-neutral-500 mb-2">Type: {{ formatAssetType(asset.type) }}</p>
+                <div v-if="asset.gifting_considerations" class="text-xs text-neutral-500">
                   <p class="font-medium mb-1">Gifting Considerations:</p>
                   <ul class="list-disc list-inside space-y-0.5 pl-2">
                     <li v-for="(consideration, cIdx) in asset.gifting_considerations.slice(0, 3)" :key="cIdx">
@@ -233,23 +233,23 @@
       </div>
 
       <!-- Overall Summary -->
-      <div class="mt-6 bg-white rounded-lg p-4 border-2 border-green-500">
-        <h3 class="text-lg font-semibold text-gray-900 mb-3">Overall Strategy Impact</h3>
+      <div class="mt-6 bg-white rounded-lg p-4 border-2 border-spring-500">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-3">Overall Strategy Impact</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Original Inheritance Tax Liability</p>
-            <p class="text-base sm:text-lg font-bold text-red-600">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
+            <p class="text-xs sm:text-sm text-neutral-500">Original Inheritance Tax Liability</p>
+            <p class="text-base sm:text-lg font-bold text-raspberry-600">{{ formatCurrency(personalizedStrategy.summary.original_iht_liability) }}</p>
           </div>
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Total to Gift</p>
-            <p class="text-base sm:text-lg font-bold text-blue-600">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
+            <p class="text-xs sm:text-sm text-neutral-500">Total to Gift</p>
+            <p class="text-base sm:text-lg font-bold text-violet-600">{{ formatCurrency(personalizedStrategy.summary.total_gifted) }}</p>
           </div>
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Total Inheritance Tax Saved</p>
-            <p class="text-base sm:text-lg font-bold text-green-600">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
+            <p class="text-xs sm:text-sm text-neutral-500">Total Inheritance Tax Saved</p>
+            <p class="text-base sm:text-lg font-bold text-spring-600">{{ formatCurrency(personalizedStrategy.summary.total_iht_saved) }}</p>
           </div>
           <div>
-            <p class="text-xs sm:text-sm text-gray-600">Inheritance Tax Reduction</p>
+            <p class="text-xs sm:text-sm text-neutral-500">Inheritance Tax Reduction</p>
             <p class="text-base sm:text-lg font-bold text-emerald-600">{{ personalizedStrategy.summary.reduction_percentage }}%</p>
           </div>
         </div>
@@ -273,49 +273,49 @@
     </div>
 
     <!-- Divider -->
-    <div class="border-t-2 border-gray-200 my-8"></div>
+    <div class="border-t-2 border-light-gray my-8"></div>
 
     <!-- Actual Gifts Section Header -->
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Gifts Made (Actual)</h2>
-      <p class="text-gray-600">Track gifts you've actually made and monitor their Potentially Exempt Transfer status</p>
+      <h2 class="text-2xl font-bold text-horizon-500 mb-2">Gifts Made (Actual)</h2>
+      <p class="text-neutral-500">Track gifts you've actually made and monitor their Potentially Exempt Transfer status</p>
     </div>
 
     <!-- Gifting Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white rounded-lg p-6 border-2 border-blue-500">
-        <p class="text-sm text-blue-600 font-medium mb-2">Gifts Within 7 Years</p>
-        <p class="text-3xl font-bold text-gray-900">{{ giftsWithin7YearsCount }}</p>
+      <div class="bg-white rounded-lg p-6 border-2 border-violet-500">
+        <p class="text-sm text-violet-600 font-medium mb-2">Gifts Within 7 Years</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ giftsWithin7YearsCount }}</p>
       </div>
       <div class="bg-white rounded-lg p-6 border-2 border-purple-500">
         <p class="text-sm text-purple-600 font-medium mb-2">Total Value</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formattedGiftsValue }}</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ formattedGiftsValue }}</p>
       </div>
-      <div class="bg-white rounded-lg p-6 border-2 border-green-500">
-        <p class="text-sm text-green-600 font-medium mb-2">Annual Exemption Available</p>
-        <p class="text-3xl font-bold text-gray-900">{{ formattedAnnualExemption }}</p>
+      <div class="bg-white rounded-lg p-6 border-2 border-spring-500">
+        <p class="text-sm text-spring-600 font-medium mb-2">Annual Exemption Available</p>
+        <p class="text-3xl font-bold text-horizon-500">{{ formattedAnnualExemption }}</p>
       </div>
     </div>
 
     <!-- Success/Error Messages -->
-    <div v-if="successMessage" class="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+    <div v-if="successMessage" class="mb-4 bg-spring-50 border border-spring-200 text-spring-800 px-4 py-3 rounded-lg">
       {{ successMessage }}
     </div>
-    <div v-if="errorMessage" class="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+    <div v-if="errorMessage" class="mb-4 bg-raspberry-50 border border-raspberry-200 text-raspberry-800 px-4 py-3 rounded-lg">
       {{ errorMessage }}
     </div>
 
     <!-- HMRC 7-Year Rule & Taper Relief Info -->
-    <div class="bg-white border-2 border-blue-500 rounded-lg p-4 mb-6">
+    <div class="bg-white border-2 border-violet-500 rounded-lg p-4 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-violet-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-sm font-semibold text-blue-900">HM Revenue & Customs 7-Year Rule & Taper Relief</h3>
-          <div class="mt-2 text-sm text-blue-800">
+          <h3 class="text-sm font-semibold text-violet-900">HM Revenue & Customs 7-Year Rule & Taper Relief</h3>
+          <div class="mt-2 text-sm text-violet-800">
             <p class="mb-2">
               Potentially Exempt Transfers become completely exempt from Inheritance Tax if you survive for 7 years after making the gift.
             </p>
@@ -338,7 +338,7 @@
       <button
         v-preview-disabled="'add'"
         @click="openCreateGiftForm"
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-raspberry-500 hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
       >
         <svg
           class="-ml-1 mr-2 h-5 w-5"
@@ -357,23 +357,23 @@
     </div>
 
     <!-- Gifts List -->
-    <div class="bg-white rounded-lg border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">Gifts Made</h3>
+    <div class="bg-white rounded-lg border border-light-gray">
+      <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-lg font-semibold text-horizon-500">Gifts Made</h3>
       </div>
-      <div v-if="gifts.length === 0" class="px-6 py-8 text-center text-gray-500">
+      <div v-if="gifts.length === 0" class="px-6 py-8 text-center text-neutral-500">
         No gifts recorded yet
       </div>
       <div v-else class="divide-y divide-gray-200">
         <div
           v-for="gift in sortedGifts"
           :key="gift.id"
-          class="px-6 py-4 hover:bg-gray-50"
+          class="px-6 py-4 hover:bg-eggshell-500"
         >
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <div class="flex items-center">
-                <p class="text-sm font-medium text-gray-900">{{ gift.recipient }}</p>
+                <p class="text-sm font-medium text-horizon-500">{{ gift.recipient }}</p>
                 <span
                   :class="[
                     'ml-3 px-2 py-1 text-xs font-medium rounded-full',
@@ -383,7 +383,7 @@
                   {{ getGiftStatus(gift) }}
                 </span>
               </div>
-              <div class="mt-1 flex items-center text-sm text-gray-500">
+              <div class="mt-1 flex items-center text-sm text-neutral-500">
                 <span>{{ formatDate(gift.gift_date) }}</span>
                 <span class="mx-2">•</span>
                 <span>{{ formatCurrency(gift.gift_value) }}</span>
@@ -393,27 +393,27 @@
 
               <!-- Taper Relief Timeline (only for PETs within 7 years) -->
               <div v-if="shouldShowTaperRelief(gift)" class="mt-3">
-                <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                <div class="flex items-center justify-between text-xs text-neutral-500 mb-1">
                   <span>Taper Relief Timeline</span>
                   <span class="font-medium">{{ getTaperReliefPercentage(gift) }}% Inheritance Tax if death occurs now</span>
                 </div>
-                <div class="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
+                <div class="relative h-8 bg-savannah-100 rounded-lg overflow-hidden">
                   <!-- Progress bar showing years elapsed -->
                   <div
                     class="absolute inset-y-0 left-0 transition-all duration-300"
-                    :style="{ width: getTimelineProgress(gift) + '%', backgroundColour: getTimelineColour(gift) }"
+                    :style="{ width: getTimelineProgress(gift) + '%', backgroundColor: getTimelineColour(gift) }"
                   ></div>
 
                   <!-- Taper relief markers -->
                   <div class="absolute inset-0 flex">
-                    <div v-for="year in 7" :key="year" class="flex-1 border-r border-gray-300 last:border-r-0 flex items-center justify-center">
+                    <div v-for="year in 7" :key="year" class="flex-1 border-r border-horizon-300 last:border-r-0 flex items-center justify-center">
                       <span class="text-xs font-medium" :class="getYearLabelClass(gift, year)">
                         {{ getTaperReliefAtYear(year) }}%
                       </span>
                     </div>
                   </div>
                 </div>
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>Gift date: {{ formatDate(gift.gift_date) }}</span>
                   <span>Inheritance Tax-free: {{ formatDate(getSevenYearDate(gift)) }}</span>
                 </div>
@@ -423,14 +423,14 @@
               <button
                 v-preview-disabled="'edit'"
                 @click="editGift(gift)"
-                class="text-blue-600 hover:text-blue-900 mr-3"
+                class="text-violet-600 hover:text-violet-900 mr-3"
               >
                 Edit
               </button>
               <button
                 v-preview-disabled="'delete'"
                 @click="handleDeleteGift(gift.id)"
-                class="text-red-600 hover:text-red-900"
+                class="text-raspberry-600 hover:text-raspberry-900"
               >
                 Delete
               </button>
@@ -441,7 +441,7 @@
     </div>
 
     <!-- Gift Form Modal -->
-    <div v-if="showGiftForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div v-if="showGiftForm" class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <GiftForm
           :gift="currentGift"
@@ -624,10 +624,10 @@ export default {
 
     getRiskLevelClass(riskLevel) {
       const riskLower = (riskLevel || '').toLowerCase();
-      if (riskLower === 'low') return 'bg-green-500 text-white';
-      if (riskLower === 'medium') return 'bg-blue-500 text-white';
-      if (riskLower === 'high') return 'bg-red-500 text-white';
-      return 'bg-gray-500 text-white';
+      if (riskLower === 'low') return 'bg-spring-500 text-white';
+      if (riskLower === 'medium') return 'bg-violet-500 text-white';
+      if (riskLower === 'high') return 'bg-raspberry-500 text-white';
+      return 'bg-eggshell-5000 text-white';
     },
 
     formatCategory(category) {
@@ -703,9 +703,9 @@ export default {
       const now = new Date();
 
       if (now >= sevenYearsLater) {
-        return 'bg-green-500 text-white';
+        return 'bg-spring-500 text-white';
       } else {
-        return 'bg-blue-500 text-white';
+        return 'bg-violet-500 text-white';
       }
     },
 
@@ -785,9 +785,9 @@ export default {
 
       // Green for years that have passed, red for years remaining
       if (yearsElapsed >= year) {
-        return 'text-green-600 font-bold'; // Passed - good
+        return 'text-spring-600 font-bold'; // Passed - good
       }
-      return 'text-red-600 font-bold'; // Remaining - still at risk
+      return 'text-raspberry-600 font-bold'; // Remaining - still at risk
     },
 
     getSevenYearDate(gift) {

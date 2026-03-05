@@ -1,10 +1,10 @@
 <template>
   <div class="asset-allocation-chart">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold text-gray-900">Asset Allocation</h3>
+      <h3 class="text-lg font-semibold text-horizon-500">Asset Allocation</h3>
       <button
         v-if="showViewDetails"
-        class="text-sm text-blue-600 hover:text-blue-800"
+        class="text-sm text-violet-600 hover:text-violet-800"
         @click="$emit('view-details')"
       >
         View Details
@@ -12,7 +12,7 @@
     </div>
 
     <div v-if="loading" class="flex items-center justify-center h-64">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <div v-else-if="hasData && !loading && chartReady" class="chart-container">
@@ -25,25 +25,25 @@
       />
     </div>
 
-    <div v-else class="flex items-center justify-center h-64 text-gray-500">
+    <div v-else class="flex items-center justify-center h-64 text-neutral-500">
       <div class="text-center max-w-md p-6">
-        <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-16 w-16 text-horizon-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
         </svg>
-        <h4 class="text-lg font-semibold text-gray-900 mb-2">No Asset Allocation Data</h4>
-        <p class="text-sm text-gray-600 mb-4">
+        <h4 class="text-lg font-semibold text-horizon-500 mb-2">No Asset Allocation Data</h4>
+        <p class="text-sm text-neutral-500 mb-4">
           Add your investment holdings to see a breakdown of your asset allocation across different asset classes.
         </p>
         <button
           @click="$emit('add-holding')"
-          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-button hover:bg-primary-700 transition-colors"
+          class="px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
         >
           Add Your First Holding
         </button>
-        <div class="mt-6 text-left bg-gray-50 rounded-lg p-4">
-          <p class="text-xs font-medium text-gray-700 mb-2">Typical Asset Classes:</p>
-          <ul class="text-xs text-gray-600 space-y-1">
+        <div class="mt-6 text-left bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs font-medium text-neutral-500 mb-2">Typical Asset Classes:</p>
+          <ul class="text-xs text-neutral-500 space-y-1">
             <li>• UK Equities (Stocks)</li>
             <li>• International Equities</li>
             <li>• Bonds (Fixed Income)</li>
@@ -121,7 +121,7 @@ export default {
       return {
         chart: {
           type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: false,
           },

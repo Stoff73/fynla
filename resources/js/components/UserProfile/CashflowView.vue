@@ -9,8 +9,8 @@
 
     <div v-if="data" class="space-y-6 opacity-50">
       <!-- Period Info -->
-      <div class="card p-4 bg-gray-50">
-        <p class="text-body-sm text-gray-600">
+      <div class="card p-4 bg-eggshell-500">
+        <p class="text-body-sm text-neutral-500">
           Period: {{ formatDate(data.period?.start_date) }} to {{ formatDate(data.period?.end_date) }}
         </p>
       </div>
@@ -22,16 +22,16 @@
           <div
             v-for="(item, index) in data.inflows"
             :key="index"
-            class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0"
+            class="flex justify-between items-center py-2 border-b border-light-gray last:border-0"
           >
-            <span class="text-body-base text-gray-700">{{ item.line_item }}</span>
-            <span class="text-body-base font-medium text-gray-900">
+            <span class="text-body-base text-neutral-500">{{ item.line_item }}</span>
+            <span class="text-body-base font-medium text-horizon-500">
               {{ formatCurrency(item.amount) }}
             </span>
           </div>
         </div>
-        <div class="mt-4 pt-4 border-t-2 border-gray-300 flex justify-between items-center">
-          <span class="text-body-base font-semibold text-gray-900">Total Inflows</span>
+        <div class="mt-4 pt-4 border-t-2 border-horizon-300 flex justify-between items-center">
+          <span class="text-body-base font-semibold text-horizon-500">Total Inflows</span>
           <span class="text-h5 font-bold text-success-700">
             {{ formatCurrency(data.total_inflows) }}
           </span>
@@ -45,16 +45,16 @@
           <div
             v-for="(item, index) in data.outflows"
             :key="index"
-            class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0"
+            class="flex justify-between items-center py-2 border-b border-light-gray last:border-0"
           >
-            <span class="text-body-base text-gray-700">{{ item.line_item }}</span>
-            <span class="text-body-base font-medium text-gray-900">
+            <span class="text-body-base text-neutral-500">{{ item.line_item }}</span>
+            <span class="text-body-base font-medium text-horizon-500">
               {{ formatCurrency(item.amount) }}
             </span>
           </div>
         </div>
-        <div class="mt-4 pt-4 border-t-2 border-gray-300 flex justify-between items-center">
-          <span class="text-body-base font-semibold text-gray-900">Total Outflows</span>
+        <div class="mt-4 pt-4 border-t-2 border-horizon-300 flex justify-between items-center">
+          <span class="text-body-base font-semibold text-horizon-500">Total Outflows</span>
           <span class="text-h5 font-bold text-error-700">
             {{ formatCurrency(data.total_outflows) }}
           </span>
@@ -62,11 +62,11 @@
       </div>
 
       <!-- Net Cashflow -->
-      <div class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100">
+      <div class="card p-6 bg-gradient-to-r from-raspberry-50 to-raspberry-100">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-h5 font-semibold text-gray-900">Net Cashflow</h3>
-            <p class="text-body-sm text-gray-600 mt-1">Total Inflows minus Total Outflows</p>
+            <h3 class="text-h5 font-semibold text-horizon-500">Net Cashflow</h3>
+            <p class="text-body-sm text-neutral-500 mt-1">Total Inflows minus Total Outflows</p>
           </div>
           <div>
             <p
@@ -82,7 +82,7 @@
 
     <!-- Empty State -->
     <div v-else class="card p-8 text-center opacity-50">
-      <p class="text-body-base text-gray-500">
+      <p class="text-body-base text-neutral-500">
         No data available. Click "Calculate" to generate your Cashflow statement.
       </p>
     </div>

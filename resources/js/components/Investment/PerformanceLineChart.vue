@@ -1,14 +1,14 @@
 <template>
   <div class="performance-line-chart">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-      <h3 class="text-lg font-semibold text-gray-900">Portfolio Performance</h3>
+      <h3 class="text-lg font-semibold text-horizon-500">Portfolio Performance</h3>
 
       <div class="flex items-center gap-2">
-        <label for="time-period" class="text-sm font-medium text-gray-700">Period:</label>
+        <label for="time-period" class="text-sm font-medium text-neutral-500">Period:</label>
         <select
           id="time-period"
           v-model="selectedPeriod"
-          class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          class="border border-horizon-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="1m">1 Month</option>
           <option value="3m">3 Months</option>
@@ -23,7 +23,7 @@
     </div>
 
     <div v-if="loading" class="flex items-center justify-center h-96">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <div v-else-if="hasData && !loading" class="chart-container">
@@ -37,9 +37,9 @@
       />
     </div>
 
-    <div v-else class="flex items-center justify-center h-96 text-gray-500 border border-gray-200 rounded-lg">
+    <div v-else class="flex items-center justify-center h-96 text-neutral-500 border border-light-gray rounded-lg">
       <div class="text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-12 w-12 text-horizon-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
         </svg>
         <p>No performance data available</p>
@@ -165,7 +165,7 @@ export default {
       return {
         chart: {
           type: 'line',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           zoom: {
             enabled: true,
             type: 'x',

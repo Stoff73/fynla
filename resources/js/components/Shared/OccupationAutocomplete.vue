@@ -20,19 +20,19 @@
     <!-- Dropdown -->
     <div
       v-if="showDropdown && suggestions.length > 0"
-      class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+      class="absolute z-50 w-full mt-1 bg-white border border-light-gray rounded-lg shadow-lg max-h-60 overflow-y-auto"
     >
       <button
         v-for="(suggestion, index) in suggestions"
         :key="suggestion.id"
         type="button"
-        class="w-full px-4 py-2 text-left text-body-sm hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-        :class="{ 'bg-gray-100': index === highlightedIndex }"
+        class="w-full px-4 py-2 text-left text-body-sm hover:bg-savannah-100 focus:bg-savannah-100 focus:outline-none"
+        :class="{ 'bg-savannah-100': index === highlightedIndex }"
         @mousedown.prevent="selectSuggestion(suggestion)"
         @mouseover="highlightedIndex = index"
       >
-        <span class="font-medium text-gray-900">{{ suggestion.title }}</span>
-        <span v-if="suggestion.soc_code" class="ml-2 text-gray-500 text-body-xs">
+        <span class="font-medium text-horizon-500">{{ suggestion.title }}</span>
+        <span v-if="suggestion.soc_code" class="ml-2 text-neutral-500 text-body-xs">
           ({{ suggestion.soc_code }})
         </span>
       </button>
@@ -43,14 +43,14 @@
       v-if="loading"
       class="absolute right-3 top-1/2 transform -translate-y-1/2"
     >
-      <svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin h-4 w-4 text-horizon-400" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
     </div>
 
     <!-- Hint text -->
-    <p v-if="showHint && !showDropdown" class="mt-1 text-body-xs text-gray-500">
+    <p v-if="showHint && !showDropdown" class="mt-1 text-body-xs text-neutral-500">
       Type at least 3 characters to search
     </p>
   </div>

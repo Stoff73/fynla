@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+    class="bg-white rounded-lg border border-light-gray p-4 hover:shadow-md transition-shadow cursor-pointer"
     @click="$emit('click', event)"
   >
     <!-- Header with type badge and certainty -->
@@ -20,45 +20,45 @@
     </div>
 
     <!-- Event Name -->
-    <h4 class="text-base font-semibold text-gray-900 mb-2">{{ event.event_name }}</h4>
+    <h4 class="text-base font-semibold text-horizon-500 mb-2">{{ event.event_name }}</h4>
 
     <!-- Details -->
     <div class="space-y-1">
       <div class="flex justify-between">
-        <span class="text-sm text-gray-500">Amount</span>
+        <span class="text-sm text-neutral-500">Amount</span>
         <span
           class="text-sm font-semibold"
-          :class="event.impact_type === 'income' ? 'text-green-600' : 'text-red-600'"
+          :class="event.impact_type === 'income' ? 'text-spring-600' : 'text-raspberry-600'"
         >
           {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
         </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-sm text-gray-500">Expected</span>
-        <span class="text-sm font-medium text-gray-900">{{ formatDate(event.expected_date) }}</span>
+        <span class="text-sm text-neutral-500">Expected</span>
+        <span class="text-sm font-medium text-horizon-500">{{ formatDate(event.expected_date) }}</span>
       </div>
       <div v-if="yearsUntil !== null" class="flex justify-between">
-        <span class="text-sm text-gray-500">In</span>
-        <span class="text-sm font-medium text-gray-900">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</span>
+        <span class="text-sm text-neutral-500">In</span>
+        <span class="text-sm font-medium text-horizon-500">{{ yearsUntil }} {{ yearsUntil === 1 ? 'year' : 'years' }}</span>
       </div>
     </div>
 
     <!-- Description preview -->
-    <p v-if="event.description" class="mt-2 text-xs text-gray-500 line-clamp-2">
+    <p v-if="event.description" class="mt-2 text-xs text-neutral-500 line-clamp-2">
       {{ event.description }}
     </p>
 
     <!-- Actions -->
-    <div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+    <div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-savannah-100">
       <button
         @click.stop="$emit('edit', event)"
-        class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+        class="text-xs text-raspberry-600 hover:text-raspberry-700 font-medium"
       >
         Edit
       </button>
       <button
         @click.stop="$emit('delete', event)"
-        class="text-xs text-red-600 hover:text-red-700 font-medium"
+        class="text-xs text-raspberry-600 hover:text-raspberry-700 font-medium"
       >
         Delete
       </button>
@@ -92,8 +92,8 @@ export default {
 
     impactBadgeClass() {
       return this.event.impact_type === 'income'
-        ? 'bg-green-100 text-green-800'
-        : 'bg-red-100 text-red-800';
+        ? 'bg-spring-100 text-spring-800'
+        : 'bg-raspberry-100 text-raspberry-800';
     },
 
     certaintyLabel() {
@@ -108,12 +108,12 @@ export default {
 
     certaintyClass() {
       const classes = {
-        confirmed: 'text-green-600',
-        likely: 'text-blue-600',
-        possible: 'text-blue-500',
-        speculative: 'text-gray-500',
+        confirmed: 'text-spring-600',
+        likely: 'text-violet-600',
+        possible: 'text-violet-500',
+        speculative: 'text-neutral-500',
       };
-      return classes[this.event.certainty] || 'text-gray-500';
+      return classes[this.event.certainty] || 'text-neutral-500';
     },
 
     yearsUntil() {

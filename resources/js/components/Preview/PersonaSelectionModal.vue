@@ -49,11 +49,11 @@
                             <!-- Persona Grid -->
                             <div class="p-6">
                                 <!-- Error Banner -->
-                                <div v-if="error" class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3">
-                                    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div v-if="error" class="mb-4 rounded-lg bg-raspberry-50 border border-raspberry-200 px-4 py-3 flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-raspberry-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                     </svg>
-                                    <p class="text-sm text-red-700">{{ error }}</p>
+                                    <p class="text-sm text-raspberry-700">{{ error }}</p>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -62,11 +62,11 @@
                                         :key="persona.id"
                                         @click="selectPersona(persona)"
                                         :disabled="loadingPersonaId !== null"
-                                        class="group relative text-left rounded-xl border-2 overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                        class="group relative text-left rounded-xl border-2 overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
                                         :class="[
                                             loadingPersonaId === persona.id
-                                                ? 'border-primary-500 ring-2 ring-primary-500'
-                                                : 'border-gray-200 hover:border-gray-300 hover:shadow-lg hover:-translate-y-0.5',
+                                                ? 'border-raspberry-500 ring-2 ring-raspberry-500'
+                                                : 'border-light-gray hover:border-horizon-300 hover:shadow-lg hover:-translate-y-0.5',
                                             loadingPersonaId !== null && loadingPersonaId !== persona.id
                                                 ? 'opacity-50 cursor-not-allowed'
                                                 : ''
@@ -96,11 +96,11 @@
                                         <!-- Card Content -->
                                         <div class="px-4 py-3 bg-white">
                                             <!-- Description -->
-                                            <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{ persona.description }}</p>
+                                            <p class="text-neutral-500 text-sm mb-3 line-clamp-2">{{ persona.description }}</p>
 
                                             <!-- Stats -->
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-700">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-savannah-100 text-xs font-medium text-neutral-500">
                                                     {{ persona.netWorthRange }}
                                                 </span>
                                                 <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium" :class="getFocusBadgeClasses(persona.id)">
@@ -119,19 +119,19 @@
                                 </div>
 
                                 <!-- Footer hint -->
-                                <p class="text-center text-gray-500 text-sm mt-5">
+                                <p class="text-center text-neutral-500 text-sm mt-5">
                                     Click a scenario to explore the demo dashboard
                                 </p>
 
                                 <!-- Register Section -->
-                                <div class="mt-6 pt-5 border-t border-gray-200">
-                                    <p class="text-center text-gray-600 text-sm mb-3">
+                                <div class="mt-6 pt-5 border-t border-light-gray">
+                                    <p class="text-center text-neutral-500 text-sm mb-3">
                                         We strongly recommend looking through a persona to see the full power of the platform.
                                     </p>
                                     <div class="flex justify-center">
                                         <router-link
                                             to="/register"
-                                            class="inline-flex items-center px-5 py-2.5 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                            class="inline-flex items-center px-5 py-2.5 bg-raspberry-600 text-white font-medium rounded-button hover:bg-raspberry-700 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
                                             @click="$emit('close')"
                                         >
                                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,19 +220,19 @@ export default {
                 young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
                 retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
             };
-            return gradients[personaId] || 'bg-gradient-to-br from-primary-500 to-primary-700';
+            return gradients[personaId] || 'bg-gradient-to-br from-raspberry-500 to-raspberry-700';
         },
 
         getFocusBadgeClasses(personaId) {
             const classes = {
-                young_family: 'bg-blue-100 text-blue-700',
-                peak_earners: 'bg-green-100 text-green-700',
+                young_family: 'bg-violet-100 text-violet-700',
+                peak_earners: 'bg-spring-100 text-spring-700',
                 widow: 'bg-purple-100 text-purple-700',
                 entrepreneur: 'bg-fuchsia-100 text-fuchsia-700',
                 young_saver: 'bg-cyan-100 text-cyan-700',
                 retired_couple: 'bg-rose-100 text-rose-700',
             };
-            return classes[personaId] || 'bg-gray-100 text-gray-700';
+            return classes[personaId] || 'bg-savannah-100 text-neutral-500';
         },
     },
 
@@ -255,11 +255,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-</style>

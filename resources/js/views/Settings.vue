@@ -2,17 +2,17 @@
   <AppLayout>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="mb-8">
-        <h1 class="text-h2 font-display text-gray-900">Settings</h1>
-        <p class="mt-2 text-body-base text-gray-600">
+        <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
+        <p class="mt-2 text-body-base text-neutral-500">
           Manage your account settings and preferences
         </p>
       </div>
 
       <!-- Your Information Card -->
       <div class="card mb-6">
-        <div class="border-b border-gray-200 pb-4 mb-6">
-          <h2 class="text-h4 font-semibold text-gray-900">Your Information</h2>
-          <p class="mt-1 text-body-sm text-gray-600">
+        <div class="border-b border-light-gray pb-4 mb-6">
+          <h2 class="text-h4 font-semibold text-horizon-500">Your Information</h2>
+          <p class="mt-1 text-body-sm text-neutral-500">
             Personal details associated with your account
           </p>
         </div>
@@ -20,98 +20,98 @@
         <div v-if="user" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Full Name
               </label>
-              <p class="text-body-base text-gray-900">{{ user.name }}</p>
+              <p class="text-body-base text-horizon-500">{{ user.name }}</p>
             </div>
 
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Email Address
               </label>
-              <p class="text-body-base text-gray-900">{{ user.email }}</p>
+              <p class="text-body-base text-horizon-500">{{ user.email }}</p>
             </div>
 
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Date of Birth
               </label>
-              <p class="text-body-base text-gray-900">{{ formatDateOfBirth(user.date_of_birth) }}</p>
+              <p class="text-body-base text-horizon-500">{{ formatDateOfBirth(user.date_of_birth) }}</p>
             </div>
 
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Gender
               </label>
-              <p class="text-body-base text-gray-900 capitalize">{{ formatGender(user.gender) }}</p>
+              <p class="text-body-base text-horizon-500 capitalize">{{ formatGender(user.gender) }}</p>
             </div>
 
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Marital Status
               </label>
-              <p class="text-body-base text-gray-900 capitalize">{{ formatMaritalStatus(user.marital_status) }}</p>
+              <p class="text-body-base text-horizon-500 capitalize">{{ formatMaritalStatus(user.marital_status) }}</p>
             </div>
 
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-1">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Account Created
               </label>
-              <p class="text-body-base text-gray-900">{{ formatDate(user.created_at) }}</p>
+              <p class="text-body-base text-horizon-500">{{ formatDate(user.created_at) }}</p>
             </div>
           </div>
         </div>
 
         <div v-else class="text-center py-8">
-          <p class="text-body-base text-gray-500">Loading your information...</p>
+          <p class="text-body-base text-neutral-500">Loading your information...</p>
         </div>
       </div>
 
       <!-- Account Actions Card -->
       <div class="card">
-        <div class="border-b border-gray-200 pb-4 mb-6">
-          <h2 class="text-h4 font-semibold text-gray-900">Account Actions</h2>
-          <p class="mt-1 text-body-sm text-gray-600">
+        <div class="border-b border-light-gray pb-4 mb-6">
+          <h2 class="text-h4 font-semibold text-horizon-500">Account Actions</h2>
+          <p class="mt-1 text-body-sm text-neutral-500">
             Manage your account security and preferences
           </p>
         </div>
 
         <div class="space-y-4">
-          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between py-4 border-b border-light-gray">
             <div>
-              <h3 class="text-body-base font-medium text-gray-900">Security Settings</h3>
-              <p class="text-body-sm text-gray-600">Manage two-factor authentication, active sessions, and password</p>
+              <h3 class="text-body-base font-medium text-horizon-500">Security Settings</h3>
+              <p class="text-body-sm text-neutral-500">Manage two-factor authentication, active sessions, and password</p>
             </div>
             <router-link to="/settings/security" class="btn-primary">
               Manage Security
             </router-link>
           </div>
 
-          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between py-4 border-b border-light-gray">
             <div>
-              <h3 class="text-body-base font-medium text-gray-900">Privacy & Data</h3>
-              <p class="text-body-sm text-gray-600">Manage consent preferences and data export requests</p>
+              <h3 class="text-body-base font-medium text-horizon-500">Privacy & Data</h3>
+              <p class="text-body-sm text-neutral-500">Manage consent preferences and data export requests</p>
             </div>
             <router-link to="/settings/privacy" class="btn-secondary">
               Manage Privacy
             </router-link>
           </div>
 
-          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between py-4 border-b border-light-gray">
             <div>
-              <h3 class="text-body-base font-medium text-gray-900">Planning Assumptions</h3>
-              <p class="text-body-sm text-gray-600">Configure assumptions for pension and investment projections</p>
+              <h3 class="text-body-base font-medium text-horizon-500">Planning Assumptions</h3>
+              <p class="text-body-sm text-neutral-500">Configure assumptions for pension and investment projections</p>
             </div>
             <router-link to="/settings/assumptions" class="btn-secondary">
               Manage Assumptions
             </router-link>
           </div>
 
-          <div class="flex items-center justify-between py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between py-4 border-b border-light-gray">
             <div>
-              <h3 class="text-body-base font-medium text-gray-900">Email Notifications</h3>
-              <p class="text-body-sm text-gray-600">Manage your email notification preferences</p>
+              <h3 class="text-body-base font-medium text-horizon-500">Email Notifications</h3>
+              <p class="text-body-sm text-neutral-500">Manage your email notification preferences</p>
             </div>
             <button class="btn-secondary" disabled>
               Coming Soon
@@ -121,7 +121,7 @@
           <div class="flex items-center justify-between py-4">
             <div>
               <h3 class="text-body-base font-medium text-error-700">Sign Out</h3>
-              <p class="text-body-sm text-gray-600">Sign out of your account on this device</p>
+              <p class="text-body-sm text-neutral-500">Sign out of your account on this device</p>
             </div>
             <button
               @click="handleSignOut"

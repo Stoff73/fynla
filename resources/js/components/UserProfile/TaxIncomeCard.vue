@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-4">
+  <div class="bg-white rounded-lg border border-light-gray p-4">
     <!-- Income Type Header -->
     <div class="flex justify-between items-start mb-3">
       <div>
-        <h4 class="text-sm font-semibold text-gray-900">{{ breakdown.income_type_label }}</h4>
-        <p class="text-lg font-bold text-gray-900">{{ formatCurrency(breakdown.gross_amount) }}</p>
+        <h4 class="text-sm font-semibold text-horizon-500">{{ breakdown.income_type_label }}</h4>
+        <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(breakdown.gross_amount) }}</p>
       </div>
       <div class="flex flex-col items-end gap-1">
         <span
@@ -15,7 +15,7 @@
         </span>
         <span
           v-else
-          class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600"
+          class="px-2 py-1 text-xs font-medium rounded bg-savannah-100 text-neutral-500"
         >
           No NI
         </span>
@@ -27,9 +27,9 @@
       <!-- Income Components (employment, rental, pension, etc.) -->
       <template v-for="(component, index) in breakdown.income_components" :key="index">
         <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-600">{{ component.label }}</span>
+          <span class="text-neutral-500">{{ component.label }}</span>
           <span
-            :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-gray-900'"
+            :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-horizon-500'"
           >
             {{ formatCurrency(component.amount) }}
           </span>
@@ -41,16 +41,16 @@
             :key="'prop-' + pIndex"
             class="flex justify-between items-center text-xs pl-4"
           >
-            <span class="text-gray-400">{{ property.name }}</span>
-            <span class="text-gray-500">{{ formatCurrency(property.annual_taxable) }}</span>
+            <span class="text-horizon-400">{{ property.name }}</span>
+            <span class="text-neutral-500">{{ formatCurrency(property.annual_taxable) }}</span>
           </div>
         </template>
       </template>
 
       <!-- Taxable Income Total (after deductions) -->
-      <div class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
-        <span class="text-gray-700 font-medium">Taxable Income</span>
-        <span class="text-gray-900 font-medium">{{ formatCurrency(breakdown.taxable_income) }}</span>
+      <div class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
+        <span class="text-neutral-500 font-medium">Taxable Income</span>
+        <span class="text-horizon-500 font-medium">{{ formatCurrency(breakdown.taxable_income) }}</span>
       </div>
     </div>
 
@@ -68,7 +68,7 @@
         v-if="breakdown.tax_breakdown.tax_paid_by_trust > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">
+        <span class="text-neutral-500">
           {{ breakdown.tax_breakdown.tax_description || 'Tax paid by trust' }}
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.tax_paid_by_trust) }}</span>
@@ -79,7 +79,7 @@
         v-if="breakdown.tax_breakdown.net_to_beneficiary"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">Net received from trust</span>
+        <span class="text-neutral-500">Net received from trust</span>
         <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.net_to_beneficiary) }}</span>
       </div>
 
@@ -90,7 +90,7 @@
         :class="{
           'bg-green-50 border border-green-200': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
           'bg-blue-50 border border-blue-200': breakdown.tax_breakdown.reclaim_info.type === 'owe',
-          'bg-gray-50 border border-gray-200': breakdown.tax_breakdown.reclaim_info.type === 'none'
+          'bg-eggshell-500 border border-light-gray': breakdown.tax_breakdown.reclaim_info.type === 'none'
         }"
       >
         <p
@@ -98,7 +98,7 @@
           :class="{
             'text-green-800': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
             'text-blue-800': breakdown.tax_breakdown.reclaim_info.type === 'owe',
-            'text-gray-700': breakdown.tax_breakdown.reclaim_info.type === 'none'
+            'text-neutral-500': breakdown.tax_breakdown.reclaim_info.type === 'none'
           }"
         >
           {{ breakdown.tax_breakdown.reclaim_info.message }}
@@ -119,7 +119,7 @@
         v-if="breakdown.tax_breakdown.personal_savings_allowance > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">Personal Savings Allowance</span>
+        <span class="text-neutral-500">Personal Savings Allowance</span>
         <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.personal_savings_allowance) }}</span>
       </div>
 
@@ -128,22 +128,22 @@
         v-if="breakdown.tax_breakdown.dividend_allowance > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">Dividend Allowance</span>
+        <span class="text-neutral-500">Dividend Allowance</span>
         <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.dividend_allowance) }}</span>
       </div>
     </div>
 
     <!-- Tax Bands Section -->
-    <div class="space-y-2 mb-3 pt-2 border-t border-gray-100">
-      <div class="text-xs font-medium text-gray-500 uppercase">Income Tax</div>
+    <div class="space-y-2 mb-3 pt-2 border-t border-savannah-100">
+      <div class="text-xs font-medium text-neutral-500 uppercase">Income Tax</div>
 
       <!-- Personal Allowance -->
       <div
         v-if="breakdown.tax_breakdown.personal_allowance_used > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">Personal Allowance: {{ formatCurrency(breakdown.tax_breakdown.personal_allowance_used) }} @ 0%</span>
-        <span class="text-gray-400 font-medium">£0</span>
+        <span class="text-neutral-500">Personal Allowance: {{ formatCurrency(breakdown.tax_breakdown.personal_allowance_used) }} @ 0%</span>
+        <span class="text-horizon-400 font-medium">£0</span>
       </div>
 
       <!-- Basic Rate -->
@@ -151,7 +151,7 @@
         v-if="breakdown.tax_breakdown.basic_rate?.taxable > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">
+        <span class="text-neutral-500">
           Basic: {{ formatCurrency(breakdown.tax_breakdown.basic_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.basic_rate.rate) }}
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.basic_rate.tax) }}</span>
@@ -162,7 +162,7 @@
         v-if="breakdown.tax_breakdown.higher_rate?.taxable > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">
+        <span class="text-neutral-500">
           Higher: {{ formatCurrency(breakdown.tax_breakdown.higher_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.higher_rate.rate) }}
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.higher_rate.tax) }}</span>
@@ -173,43 +173,43 @@
         v-if="breakdown.tax_breakdown.additional_rate?.taxable > 0"
         class="flex justify-between items-center text-sm"
       >
-        <span class="text-gray-600">
+        <span class="text-neutral-500">
           Additional: {{ formatCurrency(breakdown.tax_breakdown.additional_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.additional_rate.rate) }}
         </span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
       </div>
 
       <!-- Tax Payable Subtotal -->
-      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
-        <span class="text-gray-700 font-medium">Tax Payable</span>
+      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
+        <span class="text-neutral-500 font-medium">Tax Payable</span>
         <span class="text-red-600 font-medium">-{{ formatCurrency(totalIncomeTax) }}</span>
       </div>
 
       <!-- Section 24 Tax Credit -->
       <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm">
-        <span class="text-gray-600">Section 24 Tax Credit</span>
+        <span class="text-neutral-500">Section 24 Tax Credit</span>
         <span class="text-green-600 font-medium">+{{ formatCurrency(section24.applied_credit) }}</span>
       </div>
 
       <!-- Tax Payable After Credit -->
-      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-gray-200 pt-2 mt-2">
-        <span class="text-gray-700 font-medium">Tax Payable After Credit</span>
+      <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
+        <span class="text-neutral-500 font-medium">Tax Payable After Credit</span>
         <span class="text-red-600 font-bold">-{{ formatCurrency(totalIncomeTax - section24.applied_credit) }}</span>
       </div>
     </div>
 
     <!-- NI Breakdown (if applicable) -->
-    <div v-if="hasNI" class="space-y-2 mb-3 pt-2 border-t border-gray-100">
-      <div class="text-xs font-medium text-gray-500 uppercase">National Insurance</div>
+    <div v-if="hasNI" class="space-y-2 mb-3 pt-2 border-t border-savannah-100">
+      <div class="text-xs font-medium text-neutral-500 uppercase">National Insurance</div>
 
       <!-- Class 1 NI (Employment) -->
       <template v-if="breakdown.ni_breakdown?.class_1">
-        <div class="text-xs text-gray-500 mb-1">Class 1 (Employment)</div>
+        <div class="text-xs text-neutral-500 mb-1">Class 1 (Employment)</div>
         <div
           v-if="breakdown.ni_breakdown.class_1.main_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_1.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.contribution) }}</span>
@@ -218,7 +218,7 @@
           v-if="breakdown.ni_breakdown.class_1.additional_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_1.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.contribution) }}</span>
@@ -227,12 +227,12 @@
 
       <!-- Class 4 NI (Self-Employment) -->
       <template v-if="breakdown.ni_breakdown?.class_4">
-        <div class="text-xs text-gray-500 mb-1 mt-2">Class 4 (Self-Employment)</div>
+        <div class="text-xs text-neutral-500 mb-1 mt-2">Class 4 (Self-Employment)</div>
         <div
           v-if="breakdown.ni_breakdown.class_4.main_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_4.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.contribution) }}</span>
@@ -241,7 +241,7 @@
           v-if="breakdown.ni_breakdown.class_4.additional_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_4.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.contribution) }}</span>
@@ -254,7 +254,7 @@
           v-if="breakdown.ni_breakdown.main_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.main_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.main_rate.contribution) }}</span>
@@ -263,7 +263,7 @@
           v-if="breakdown.ni_breakdown.additional_rate?.contribution > 0"
           class="flex justify-between items-center text-sm"
         >
-          <span class="text-gray-600">
+          <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.additional_rate.earnings) }}
           </span>
           <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.additional_rate.contribution) }}</span>
@@ -272,9 +272,9 @@
     </div>
 
     <!-- Net Income -->
-    <div class="pt-2 border-t border-gray-200">
+    <div class="pt-2 border-t border-light-gray">
       <div class="flex justify-between items-center">
-        <span class="text-sm font-medium text-gray-700">Net Income</span>
+        <span class="text-sm font-medium text-neutral-500">Net Income</span>
         <span class="text-lg font-bold text-green-700">{{ formatCurrency(adjustedNetIncome) }}</span>
       </div>
     </div>

@@ -2,19 +2,19 @@
   <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
-      <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+      <div class="fixed inset-0 transition-opacity bg-horizon-500 bg-opacity-75"></div>
 
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-gray-200">
+        <div class="bg-white px-6 py-4 border-b border-light-gray">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">
+            <h3 class="text-lg font-semibold text-horizon-500">
               {{ isEditMode ? 'Edit Investment Account' : 'Add New Investment Account' }}
             </h3>
             <button
               @click="closeModal"
-              class="text-gray-400 hover:text-gray-600 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -28,14 +28,14 @@
           <div class="bg-white px-6 py-4 space-y-4">
             <!-- Account Type -->
             <div>
-              <label for="account_type" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="account_type" class="block text-sm font-medium text-neutral-500 mb-1">
                 Account Type
               </label>
               <select
                 id="account_type"
                 v-model="formData.account_type"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                :class="{ 'border-red-500': errors.account_type }"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.account_type }"
               >
                 <option value="">Select account type</option>
                 <option value="isa">ISA (Stocks & Shares)</option>
@@ -53,24 +53,24 @@
                 <option value="rsu">RSUs (Restricted Stock Units)</option>
                 <option value="other">Other</option>
               </select>
-              <p v-if="errors.account_type" class="mt-1 text-sm text-red-600">{{ errors.account_type }}</p>
+              <p v-if="errors.account_type" class="mt-1 text-sm text-raspberry-600">{{ errors.account_type }}</p>
             </div>
 
             <!-- Custom Account Type (if 'other' selected) -->
             <div v-if="formData.account_type === 'other'">
-              <label for="account_type_other" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="account_type_other" class="block text-sm font-medium text-neutral-500 mb-1">
                 Specify Account Type
               </label>
               <input
                 id="account_type_other"
                 v-model="formData.account_type_other"
                 type="text"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                :class="{ 'border-red-500': errors.account_type_other }"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.account_type_other }"
                 placeholder="e.g., Gold, Cryptocurrency, Classic Cars, Art Collection"
               />
-              <p v-if="errors.account_type_other" class="mt-1 text-sm text-red-600">{{ errors.account_type_other }}</p>
-              <p class="mt-1 text-xs text-gray-500">Enter the custom asset class for this investment</p>
+              <p v-if="errors.account_type_other" class="mt-1 text-sm text-raspberry-600">{{ errors.account_type_other }}</p>
+              <p class="mt-1 text-xs text-neutral-500">Enter the custom asset class for this investment</p>
             </div>
 
             <!-- Private Company / Crowdfunding Fields -->
@@ -109,18 +109,18 @@
           </div>
 
           <!-- Footer -->
-          <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+          <div class="bg-eggshell-500 px-6 py-4 flex justify-end gap-3">
             <button
               type="button"
               @click="closeModal"
-              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditMode ? 'Update Account' : 'Add Account') }}
             </button>
@@ -552,9 +552,9 @@ export default {
 
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
-      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-red-600';
-      if (this.totalRemainingAllowance < 2000) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-raspberry-600';
+      if (this.totalRemainingAllowance < 2000) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     // Legacy computed for backward compatibility
@@ -569,16 +569,16 @@ export default {
     },
 
     remainingAllowanceClass() {
-      if (this.remainingAllowance === 0) return 'text-red-600';
-      if (this.remainingAllowance < 2000) return 'text-blue-600';
-      return 'text-green-600';
+      if (this.remainingAllowance === 0) return 'text-raspberry-600';
+      if (this.remainingAllowance < 2000) return 'text-violet-600';
+      return 'text-spring-600';
     },
 
     allowanceBarClass() {
-      if (this.allowanceUsedPercent >= 100) return 'bg-red-600';
-      if (this.allowanceUsedPercent >= 75) return 'bg-blue-500';
+      if (this.allowanceUsedPercent >= 100) return 'bg-raspberry-600';
+      if (this.allowanceUsedPercent >= 75) return 'bg-violet-500';
       if (this.allowanceUsedPercent >= 50) return 'bg-yellow-500';
-      return 'bg-green-600';
+      return 'bg-spring-600';
     },
 
     platformFeeValue: {

@@ -3,8 +3,8 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p class="mt-4 text-body-base text-gray-600">Loading subscription details...</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600 mx-auto"></div>
+        <p class="mt-4 text-body-base text-neutral-500">Loading subscription details...</p>
       </div>
     </div>
 
@@ -26,47 +26,47 @@
     <!-- Content -->
     <template v-else>
       <!-- FREE TRIAL State -->
-      <div v-if="subscriptionState === 'trialing'" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div v-if="subscriptionState === 'trialing'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Free Trial</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Free Trial</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               You have full access to all {{ planDisplayName }} features during your trial
             </p>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800">
             Trial
           </span>
         </div>
 
         <!-- Live Countdown -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-3 mb-3">
-            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-body-sm font-medium text-blue-800">Trial ends in</span>
+            <span class="text-body-sm font-medium text-violet-800">Trial ends in</span>
           </div>
           <div class="flex gap-4">
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ trialCountdown.days }}</span>
-              <span class="text-caption text-blue-600">{{ trialCountdown.days === 1 ? 'day' : 'days' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.days }}</span>
+              <span class="text-caption text-violet-600">{{ trialCountdown.days === 1 ? 'day' : 'days' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ trialCountdown.hours }}</span>
-              <span class="text-caption text-blue-600">{{ trialCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.hours }}</span>
+              <span class="text-caption text-violet-600">{{ trialCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ trialCountdown.minutes }}</span>
-              <span class="text-caption text-blue-600">{{ trialCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ trialCountdown.minutes }}</span>
+              <span class="text-caption text-violet-600">{{ trialCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
             </div>
           </div>
 
           <!-- Progress bar -->
           <div class="mt-4">
-            <div class="bg-blue-200 rounded-full h-1.5">
+            <div class="bg-violet-200 rounded-full h-1.5">
               <div
-                class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                class="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
                 :style="{ width: subscriptionData.progress + '%' }"
               ></div>
             </div>
@@ -76,16 +76,16 @@
         <!-- Plan Details -->
         <div class="space-y-3 mb-6">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Plan:</span>
-            <span class="text-body-sm text-gray-900">{{ planDisplayName }}</span>
+            <span class="text-body-sm text-neutral-500">Plan:</span>
+            <span class="text-body-sm text-horizon-500">{{ planDisplayName }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Billing Cycle:</span>
-            <span class="text-body-sm text-gray-900 capitalize">{{ subscriptionData.billing_cycle }}</span>
+            <span class="text-body-sm text-neutral-500">Billing Cycle:</span>
+            <span class="text-body-sm text-horizon-500 capitalize">{{ subscriptionData.billing_cycle }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Price After Trial:</span>
-            <span class="text-body-sm text-gray-900">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
+            <span class="text-body-sm text-neutral-500">Price After Trial:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
           </div>
         </div>
 
@@ -95,35 +95,35 @@
       </div>
 
       <!-- ACTIVE (Subscribed) State -->
-      <div v-else-if="subscriptionState === 'active'" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div v-else-if="subscriptionState === 'active'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Your Subscription</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Your Subscription</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               Your {{ planDisplayName }} plan is active
             </p>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-spring-100 text-spring-800">
             Active
           </span>
         </div>
 
         <div class="space-y-3 mb-6">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Plan:</span>
-            <span class="text-body-sm text-gray-900">{{ planDisplayName }}</span>
+            <span class="text-body-sm text-neutral-500">Plan:</span>
+            <span class="text-body-sm text-horizon-500">{{ planDisplayName }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Billing Cycle:</span>
-            <span class="text-body-sm text-gray-900 capitalize">{{ subscriptionData.billing_cycle }}</span>
+            <span class="text-body-sm text-neutral-500">Billing Cycle:</span>
+            <span class="text-body-sm text-horizon-500 capitalize">{{ subscriptionData.billing_cycle }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Amount:</span>
-            <span class="text-body-sm text-gray-900">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
+            <span class="text-body-sm text-neutral-500">Amount:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Next Renewal:</span>
-            <span class="text-body-sm text-gray-900">{{ formatDate(subscriptionData.current_period_end) }}</span>
+            <span class="text-body-sm text-neutral-500">Next Renewal:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatDate(subscriptionData.current_period_end) }}</span>
           </div>
         </div>
 
@@ -136,55 +136,55 @@
       </div>
 
       <!-- CANCELLED State (access until period end) -->
-      <div v-else-if="subscriptionState === 'cancelled'" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div v-else-if="subscriptionState === 'cancelled'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Subscription Cancelled</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Subscription Cancelled</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               You still have access until the end of your current billing period
             </p>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-savannah-100 text-neutral-500">
             Cancelled
           </span>
         </div>
 
         <!-- Access Countdown -->
-        <div v-if="accessCountdown" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div v-if="accessCountdown" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-3 mb-3">
-            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-body-sm font-medium text-blue-800">Access ends in</span>
+            <span class="text-body-sm font-medium text-violet-800">Access ends in</span>
           </div>
           <div class="flex gap-4">
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ accessCountdown.days }}</span>
-              <span class="text-caption text-blue-600">{{ accessCountdown.days === 1 ? 'day' : 'days' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ accessCountdown.days }}</span>
+              <span class="text-caption text-violet-600">{{ accessCountdown.days === 1 ? 'day' : 'days' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ accessCountdown.hours }}</span>
-              <span class="text-caption text-blue-600">{{ accessCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ accessCountdown.hours }}</span>
+              <span class="text-caption text-violet-600">{{ accessCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ accessCountdown.minutes }}</span>
-              <span class="text-caption text-blue-600">{{ accessCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ accessCountdown.minutes }}</span>
+              <span class="text-caption text-violet-600">{{ accessCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
             </div>
           </div>
         </div>
 
         <div class="space-y-3 mb-6">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Plan:</span>
-            <span class="text-body-sm text-gray-900">{{ planDisplayName }}</span>
+            <span class="text-body-sm text-neutral-500">Plan:</span>
+            <span class="text-body-sm text-horizon-500">{{ planDisplayName }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Cancelled On:</span>
-            <span class="text-body-sm text-gray-900">{{ formatDate(subscriptionData.cancelled_at) }}</span>
+            <span class="text-body-sm text-neutral-500">Cancelled On:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatDate(subscriptionData.cancelled_at) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Access Until:</span>
-            <span class="text-body-sm text-gray-900">{{ formatDate(subscriptionData.current_period_end) }}</span>
+            <span class="text-body-sm text-neutral-500">Access Until:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatDate(subscriptionData.current_period_end) }}</span>
           </div>
         </div>
 
@@ -197,8 +197,8 @@
       <div v-else-if="subscriptionState === 'past_due'" class="bg-white rounded-lg border border-error-600/20 p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">Payment Issue</h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <h3 class="text-h4 font-semibold text-horizon-500">Payment Issue</h3>
+            <p class="mt-1 text-body-sm text-neutral-500">
               Your most recent payment was unsuccessful
             </p>
           </div>
@@ -225,16 +225,16 @@
 
         <div class="space-y-3 mb-6">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Plan:</span>
-            <span class="text-body-sm text-gray-900">{{ planDisplayName }}</span>
+            <span class="text-body-sm text-neutral-500">Plan:</span>
+            <span class="text-body-sm text-horizon-500">{{ planDisplayName }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Billing Cycle:</span>
-            <span class="text-body-sm text-gray-900 capitalize">{{ subscriptionData.billing_cycle }}</span>
+            <span class="text-body-sm text-neutral-500">Billing Cycle:</span>
+            <span class="text-body-sm text-horizon-500 capitalize">{{ subscriptionData.billing_cycle }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Amount:</span>
-            <span class="text-body-sm text-gray-900">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
+            <span class="text-body-sm text-neutral-500">Amount:</span>
+            <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
           </div>
         </div>
 
@@ -244,13 +244,13 @@
       </div>
 
       <!-- EXPIRED / NO SUBSCRIPTION State -->
-      <div v-else-if="subscriptionState === 'expired' || subscriptionState === 'none'" class="bg-white rounded-lg border border-gray-200 p-6">
+      <div v-else-if="subscriptionState === 'expired' || subscriptionState === 'none'" class="bg-white rounded-lg border border-light-gray p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h3 class="text-h4 font-semibold text-gray-900">
+            <h3 class="text-h4 font-semibold text-horizon-500">
               {{ subscriptionState === 'expired' ? 'Subscription Expired' : 'No Subscription' }}
             </h3>
-            <p class="mt-1 text-body-sm text-gray-600">
+            <p class="mt-1 text-body-sm text-neutral-500">
               {{ subscriptionState === 'expired'
                 ? 'Your subscription has expired. Subscribe to regain full access to all features.'
                 : 'Subscribe to access all Fynla financial planning features.'
@@ -259,35 +259,35 @@
           </div>
           <span
             v-if="subscriptionState === 'expired'"
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700"
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-savannah-100 text-neutral-500"
           >
             Expired
           </span>
         </div>
 
         <!-- Grace period countdown (simplified — full overlay in Task 8) -->
-        <div v-if="subscriptionState === 'expired' && isInGracePeriod && gracePeriodCountdown" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div v-if="subscriptionState === 'expired' && isInGracePeriod && gracePeriodCountdown" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-3 mb-3">
-            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-body-sm font-medium text-blue-800">Data retained for</span>
+            <span class="text-body-sm font-medium text-violet-800">Data retained for</span>
           </div>
           <div class="flex gap-4 mb-3">
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ gracePeriodCountdown.days }}</span>
-              <span class="text-caption text-blue-600">{{ gracePeriodCountdown.days === 1 ? 'day' : 'days' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ gracePeriodCountdown.days }}</span>
+              <span class="text-caption text-violet-600">{{ gracePeriodCountdown.days === 1 ? 'day' : 'days' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ gracePeriodCountdown.hours }}</span>
-              <span class="text-caption text-blue-600">{{ gracePeriodCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ gracePeriodCountdown.hours }}</span>
+              <span class="text-caption text-violet-600">{{ gracePeriodCountdown.hours === 1 ? 'hour' : 'hours' }}</span>
             </div>
             <div class="text-center">
-              <span class="block text-2xl font-bold text-blue-900">{{ gracePeriodCountdown.minutes }}</span>
-              <span class="text-caption text-blue-600">{{ gracePeriodCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
+              <span class="block text-2xl font-bold text-violet-900">{{ gracePeriodCountdown.minutes }}</span>
+              <span class="text-caption text-violet-600">{{ gracePeriodCountdown.minutes === 1 ? 'minute' : 'minutes' }}</span>
             </div>
           </div>
-          <p class="text-body-sm text-blue-700">
+          <p class="text-body-sm text-violet-700">
             Subscribe now to keep your financial plans and data.
           </p>
         </div>
@@ -299,29 +299,29 @@
       <!-- Billing History (visible for active, cancelled, past_due, expired states) -->
       <div
         v-if="billingHistory.length > 0"
-        class="bg-white rounded-lg border border-gray-200 p-6"
+        class="bg-white rounded-lg border border-light-gray p-6"
       >
-        <h3 class="text-h4 font-semibold text-gray-900 mb-4">Billing History</h3>
+        <h3 class="text-h4 font-semibold text-horizon-500 mb-4">Billing History</h3>
         <div class="overflow-x-auto">
           <table class="min-w-full">
             <thead>
-              <tr class="border-b border-gray-200">
-                <th class="text-left text-caption font-medium text-gray-500 pb-3">Date</th>
-                <th class="text-left text-caption font-medium text-gray-500 pb-3">Description</th>
-                <th class="text-left text-caption font-medium text-gray-500 pb-3">Reference</th>
-                <th class="text-right text-caption font-medium text-gray-500 pb-3">Amount</th>
+              <tr class="border-b border-light-gray">
+                <th class="text-left text-caption font-medium text-neutral-500 pb-3">Date</th>
+                <th class="text-left text-caption font-medium text-neutral-500 pb-3">Description</th>
+                <th class="text-left text-caption font-medium text-neutral-500 pb-3">Reference</th>
+                <th class="text-right text-caption font-medium text-neutral-500 pb-3">Amount</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="payment in billingHistory"
                 :key="payment.id"
-                class="border-b border-gray-100 last:border-0"
+                class="border-b border-light-gray last:border-0"
               >
-                <td class="py-3 text-body-sm text-gray-900">{{ formatDate(payment.date) }}</td>
-                <td class="py-3 text-body-sm text-gray-600">{{ payment.description }}</td>
-                <td class="py-3 text-body-sm text-gray-500 font-mono">{{ payment.reference }}</td>
-                <td class="py-3 text-body-sm text-gray-900 text-right">{{ formatCurrencyWithPence(payment.amount / 100) }}</td>
+                <td class="py-3 text-body-sm text-horizon-500">{{ formatDate(payment.date) }}</td>
+                <td class="py-3 text-body-sm text-neutral-500">{{ payment.description }}</td>
+                <td class="py-3 text-body-sm text-neutral-500 font-mono">{{ payment.reference }}</td>
+                <td class="py-3 text-body-sm text-horizon-500 text-right">{{ formatCurrencyWithPence(payment.amount / 100) }}</td>
               </tr>
             </tbody>
           </table>
@@ -345,27 +345,27 @@
       aria-modal="true"
     >
       <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-gray-500/75 transition-opacity" @click="showCancelModal = false"></div>
+        <div class="fixed inset-0 bg-savannah-1000/75 transition-opacity" @click="showCancelModal = false"></div>
 
         <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
-          <h3 id="cancel-modal-title" class="text-h4 font-semibold text-gray-900 mb-2">
+          <h3 id="cancel-modal-title" class="text-h4 font-semibold text-horizon-500 mb-2">
             Cancel Subscription
           </h3>
-          <p class="text-body-sm text-gray-600 mb-6">
+          <p class="text-body-sm text-neutral-500 mb-6">
             Are you sure you want to cancel your {{ planDisplayName }} plan? You will retain access until
             <strong>{{ formatDate(subscriptionData.current_period_end) }}</strong>.
           </p>
 
           <!-- Cancellation Reason -->
           <div class="mb-6">
-            <label for="cancel-reason" class="block text-body-sm font-medium text-gray-700 mb-1.5">
-              Why are you cancelling? <span class="text-gray-400">(optional)</span>
+            <label for="cancel-reason" class="block text-body-sm font-medium text-neutral-500 mb-1.5">
+              Why are you cancelling? <span class="text-horizon-400">(optional)</span>
             </label>
             <select
               id="cancel-reason"
               v-model="cancelReason"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
-                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
+                     focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
             >
               <option value="">Select a reason...</option>
               <option value="too_expensive">Too expensive</option>
@@ -379,7 +379,7 @@
           </div>
 
           <div v-if="cancelReason === 'other'" class="mb-6">
-            <label for="cancel-reason-text" class="block text-body-sm font-medium text-gray-700 mb-1.5">
+            <label for="cancel-reason-text" class="block text-body-sm font-medium text-neutral-500 mb-1.5">
               Please tell us more
             </label>
             <textarea
@@ -387,8 +387,8 @@
               v-model="cancelReasonText"
               rows="3"
               maxlength="500"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
-                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
+                     focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
               placeholder="Tell us what we could improve..."
             ></textarea>
           </div>

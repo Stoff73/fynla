@@ -2,7 +2,7 @@
   <div class="goals-projection-chart-mini">
     <!-- Loading state -->
     <div v-if="loading" class="flex justify-center items-center py-8">
-      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Chart -->
@@ -18,7 +18,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="text-center py-6 text-gray-500">
+    <div v-else class="text-center py-6 text-neutral-500">
       <p class="text-sm">Add a date of birth in your profile to see projections</p>
     </div>
   </div>

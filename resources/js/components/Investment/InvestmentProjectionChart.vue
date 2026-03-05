@@ -151,7 +151,7 @@ export default {
         chart: {
           type: 'area',
           stacked: false,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: !this.compact,
             tools: {
@@ -271,13 +271,13 @@ export default {
   align-items: center;
   justify-content: center;
   height: 350px;
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 8px;
-  @apply border border-dashed border-gray-300;
+  @apply border border-dashed border-horizon-300;
 }
 
 .chart-placeholder p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   margin: 0;
 }
@@ -285,7 +285,7 @@ export default {
 .chart-footer {
   text-align: center;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 8px 0 0 0;
   font-style: italic;
 }

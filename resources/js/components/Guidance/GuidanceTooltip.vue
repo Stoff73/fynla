@@ -11,12 +11,12 @@
             <div
                 v-if="isVisible && currentStep"
                 ref="tooltip"
-                class="fixed z-50 bg-white rounded-xl shadow-2xl border border-gray-200 max-w-xs"
+                class="fixed z-50 bg-white rounded-xl shadow-2xl border border-light-gray max-w-xs"
                 :style="tooltipStyle"
             >
                 <!-- Arrow -->
                 <div
-                    class="absolute w-3 h-3 bg-white border-gray-200"
+                    class="absolute w-3 h-3 bg-white border-light-gray"
                     :class="arrowClasses"
                     :style="arrowStyle"
                 />
@@ -25,7 +25,7 @@
                 <div class="p-4">
                     <!-- Progress indicator -->
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs font-medium text-primary-600">
+                        <span class="text-xs font-medium text-raspberry-500">
                             Step {{ progress.current }} of {{ progress.total }}
                         </span>
                         <div class="flex gap-1">
@@ -33,19 +33,19 @@
                                 v-for="i in progress.total"
                                 :key="i"
                                 class="w-1.5 h-1.5 rounded-full"
-                                :class="i <= progress.handled ? 'bg-primary-500' : 'bg-gray-200'"
+                                :class="i <= progress.handled ? 'bg-raspberry-500' : 'bg-horizon-200'"
                             />
                         </div>
                     </div>
 
                     <!-- Step icon and label -->
                     <div class="flex items-start gap-3 mb-3">
-                        <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <component :is="stepIcon" class="w-4 h-4 text-primary-600" />
+                        <div class="w-8 h-8 bg-raspberry-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <component :is="stepIcon" class="w-4 h-4 text-raspberry-500" />
                         </div>
                         <div>
-                            <h4 class="font-medium text-gray-900">{{ currentStep.label }}</h4>
-                            <p class="text-sm text-gray-500 mt-0.5">{{ currentStep.description }}</p>
+                            <h4 class="font-medium text-horizon-500">{{ currentStep.label }}</h4>
+                            <p class="text-sm text-neutral-500 mt-0.5">{{ currentStep.description }}</p>
                         </div>
                     </div>
 
@@ -53,19 +53,19 @@
                     <div class="flex gap-2">
                         <button
                             @click="handleComplete"
-                            class="flex-1 bg-primary-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+                            class="flex-1 bg-raspberry-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-raspberry-600 transition-colors"
                         >
                             Done
                         </button>
                         <button
                             @click="handleSkip"
-                            class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
+                            class="px-3 py-2 text-neutral-500 hover:text-neutral-500 text-sm font-medium transition-colors"
                         >
                             Skip
                         </button>
                         <button
                             @click="handleDismiss"
-                            class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                            class="p-2 text-horizon-400 hover:text-neutral-500 transition-colors"
                             title="Dismiss guide"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

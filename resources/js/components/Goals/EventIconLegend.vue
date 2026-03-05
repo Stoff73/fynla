@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-wrap items-center gap-4 text-sm">
-    <span class="text-gray-500 font-medium">Events:</span>
+    <span class="text-neutral-500 font-medium">Events:</span>
 
     <!-- Goals -->
     <div
@@ -12,7 +12,7 @@
         :event="{ category: category.type, color: category.color, icon: category.icon }"
         :size="18"
       />
-      <span class="text-gray-600">{{ category.label }}</span>
+      <span class="text-neutral-500">{{ category.label }}</span>
     </div>
 
     <!-- Life Events -->
@@ -25,23 +25,23 @@
         :event="{ category: category.type, color: category.color, icon: category.icon }"
         :size="18"
       />
-      <span class="text-gray-600">{{ category.label }}</span>
+      <span class="text-neutral-500">{{ category.label }}</span>
     </div>
 
     <!-- Summary indicators -->
     <div class="flex items-center gap-3 ml-auto text-xs">
       <!-- Completed indicator -->
       <span class="flex items-center gap-1">
-        <span class="w-3 h-3 rounded-full bg-gray-400 opacity-40"></span>
-        <span class="text-gray-500">Completed</span>
+        <span class="w-3 h-3 rounded-full bg-horizon-400 opacity-40"></span>
+        <span class="text-neutral-500">Completed</span>
       </span>
       <span class="flex items-center gap-1">
-        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-        <span class="text-gray-500">Income</span>
+        <span class="w-2 h-2 rounded-full bg-spring-500"></span>
+        <span class="text-neutral-500">Income</span>
       </span>
       <span class="flex items-center gap-1">
-        <span class="w-2 h-2 rounded-full bg-red-500"></span>
-        <span class="text-gray-500">Expense</span>
+        <span class="w-2 h-2 rounded-full bg-raspberry-500"></span>
+        <span class="text-neutral-500">Expense</span>
       </span>
     </div>
   </div>

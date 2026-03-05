@@ -2,8 +2,8 @@
   <div>
     <div v-if="data" class="space-y-6">
       <!-- As Of Date -->
-      <div class="card p-4 bg-gray-50">
-        <p class="text-body-sm text-gray-600">
+      <div class="card p-4 bg-eggshell-500">
+        <p class="text-body-sm text-neutral-500">
           As of: {{ formatDate(data.as_of_date) }}
         </p>
       </div>
@@ -11,28 +11,28 @@
       <!-- Assets Section -->
       <div class="card p-6 overflow-x-auto">
         <h3 class="text-h5 font-semibold text-success-700 mb-4">Assets</h3>
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-light-gray">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Line Item</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">You</th>
-              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Spouse</th>
+              <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500">Line Item</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">You</th>
+              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Spouse</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
+          <tbody class="divide-y divide-light-gray">
             <tr v-for="(item, index) in mergedAssets" :key="index">
-              <td class="px-3 py-2 text-body-base text-gray-700">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-body-base text-neutral-500">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                 {{ formatCurrency(item.amount) }}
               </td>
-              <td v-if="hasSpouseData" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td v-if="hasSpouseData" class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                 {{ formatCurrency(getSpouseAssetAmount(item.line_item)) }}
               </td>
             </tr>
           </tbody>
           <tfoot>
-            <tr class="bg-gray-50 border-t-2 border-gray-300">
-              <td class="px-3 py-3 text-body-base font-semibold text-gray-900">Total Assets</td>
+            <tr class="bg-eggshell-500 border-t-2 border-horizon-300">
+              <td class="px-3 py-3 text-body-base font-semibold text-horizon-500">Total Assets</td>
               <td class="px-3 py-3 text-right text-h5 font-bold text-success-700">
                 {{ formatCurrency(data.total_assets) }}
               </td>
@@ -47,28 +47,28 @@
       <!-- Liabilities Section -->
       <div class="card p-6 overflow-x-auto">
         <h3 class="text-h5 font-semibold text-error-700 mb-4">Liabilities</h3>
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-light-gray">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Line Item</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">You</th>
-              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Spouse</th>
+              <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500">Line Item</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">You</th>
+              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Spouse</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
+          <tbody class="divide-y divide-light-gray">
             <tr v-for="(item, index) in mergedLiabilities" :key="index">
-              <td class="px-3 py-2 text-body-base text-gray-700">{{ item.line_item }}</td>
-              <td class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td class="px-3 py-2 text-body-base text-neutral-500">{{ item.line_item }}</td>
+              <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                 {{ formatCurrency(item.amount) }}
               </td>
-              <td v-if="hasSpouseData" class="px-3 py-2 text-right text-body-base font-medium text-gray-900">
+              <td v-if="hasSpouseData" class="px-3 py-2 text-right text-body-base font-medium text-horizon-500">
                 {{ formatCurrency(getSpouseLiabilityAmount(item.line_item)) }}
               </td>
             </tr>
           </tbody>
           <tfoot>
-            <tr class="bg-gray-50 border-t-2 border-gray-300">
-              <td class="px-3 py-3 text-body-base font-semibold text-gray-900">Total Liabilities</td>
+            <tr class="bg-eggshell-500 border-t-2 border-horizon-300">
+              <td class="px-3 py-3 text-body-base font-semibold text-horizon-500">Total Liabilities</td>
               <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
                 {{ formatCurrency(data.total_liabilities) }}
               </td>
@@ -81,18 +81,18 @@
       </div>
 
       <!-- Equity (Net Worth) -->
-      <div class="card p-6 bg-gradient-to-r from-primary-50 to-primary-100 overflow-x-auto">
+      <div class="card p-6 bg-gradient-to-r from-raspberry-50 to-raspberry-100 overflow-x-auto">
         <table class="min-w-full">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-body-sm font-semibold text-gray-900">Net Worth</th>
-              <th class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">You</th>
-              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-gray-900">Spouse</th>
+              <th class="px-3 py-2 text-left text-body-sm font-semibold text-horizon-500">Net Worth</th>
+              <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">You</th>
+              <th v-if="hasSpouseData" class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500">Spouse</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="px-3 py-3 text-h5 font-semibold text-gray-900">Equity (Net Worth)</td>
+              <td class="px-3 py-3 text-h5 font-semibold text-horizon-500">Equity (Net Worth)</td>
               <td class="px-3 py-3 text-right">
                 <p
                   class="text-h2 font-display font-bold"
@@ -117,7 +117,7 @@
 
     <!-- Empty State -->
     <div v-else class="card p-8 text-center">
-      <p class="text-body-base text-gray-500">
+      <p class="text-body-base text-neutral-500">
         No data available. Click "Calculate" to generate your Balance Sheet.
       </p>
     </div>

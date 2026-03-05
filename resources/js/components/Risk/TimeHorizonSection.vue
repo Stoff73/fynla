@@ -1,8 +1,8 @@
 <template>
   <div class="time-horizon-section">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Time Horizon for Your Investments</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Time Horizon for Your Investments</h3>
 
-    <div class="space-y-4 text-sm text-gray-700 mb-6">
+    <div class="space-y-4 text-sm text-neutral-500 mb-6">
       <p>
         Your investment time horizon - how long until you need the money - is one of the most
         important factors in determining appropriate risk levels.
@@ -14,8 +14,8 @@
     </div>
 
     <!-- Interactive Time Horizon Selector -->
-    <div class="bg-gray-50 rounded-lg p-6 mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-3">
+    <div class="bg-eggshell-500 rounded-lg p-6 mb-6">
+      <label class="block text-sm font-medium text-neutral-500 mb-3">
         What is your investment time horizon?
       </label>
 
@@ -28,7 +28,7 @@
             'py-3 px-2 rounded-lg text-sm font-medium transition-all border-2',
             selectedHorizon === horizon.value
               ? 'border-blue-600 bg-blue-50 text-blue-800'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+              : 'border-light-gray bg-white text-neutral-500 hover:border-horizon-300 hover:bg-savannah-100'
           ]"
           @click="selectHorizon(horizon.value)"
         >
@@ -38,7 +38,7 @@
 
       <!-- Time Horizon Visualisation -->
       <div class="mt-6">
-        <div class="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div class="relative h-3 bg-horizon-200 rounded-full overflow-hidden">
           <!-- Progress indicator -->
           <div
             class="absolute inset-y-0 left-0 transition-all duration-300 rounded-full"
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Timeline markers -->
-        <div class="flex justify-between mt-2 text-xs text-gray-500">
+        <div class="flex justify-between mt-2 text-xs text-neutral-500">
           <span>Now</span>
           <span>5 yrs</span>
           <span>10 yrs</span>
@@ -74,21 +74,21 @@
     </div>
 
     <!-- Risk/Horizon Matrix -->
-    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div class="p-4 border-b border-gray-200 bg-gray-50">
-        <h4 class="text-sm font-semibold text-gray-900">How Time Horizon Affects Recommended Risk</h4>
+    <div class="bg-white border border-light-gray rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-light-gray bg-eggshell-500">
+        <h4 class="text-sm font-semibold text-horizon-500">How Time Horizon Affects Recommended Risk</h4>
       </div>
       <div class="p-4">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-left border-b border-gray-200">
-              <th class="pb-2 font-medium text-gray-700">Time Horizon</th>
-              <th class="pb-2 font-medium text-gray-700">Suggested Risk Adjustment</th>
+            <tr class="text-left border-b border-light-gray">
+              <th class="pb-2 font-medium text-neutral-500">Time Horizon</th>
+              <th class="pb-2 font-medium text-neutral-500">Suggested Risk Adjustment</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-savannah-100">
             <tr>
-              <td class="py-2 text-gray-600">0-3 years (Short)</td>
+              <td class="py-2 text-neutral-500">0-3 years (Short)</td>
               <td class="py-2">
                 <span class="inline-flex items-center gap-1 text-red-700">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +99,7 @@
               </td>
             </tr>
             <tr>
-              <td class="py-2 text-gray-600">3-7 years (Medium)</td>
+              <td class="py-2 text-neutral-500">3-7 years (Medium)</td>
               <td class="py-2">
                 <span class="inline-flex items-center gap-1 text-blue-700">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,7 +110,7 @@
               </td>
             </tr>
             <tr>
-              <td class="py-2 text-gray-600">7-15 years (Long)</td>
+              <td class="py-2 text-neutral-500">7-15 years (Long)</td>
               <td class="py-2">
                 <span class="inline-flex items-center gap-1 text-green-700">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,7 +121,7 @@
               </td>
             </tr>
             <tr>
-              <td class="py-2 text-gray-600">15+ years (Very Long)</td>
+              <td class="py-2 text-neutral-500">15+ years (Very Long)</td>
               <td class="py-2">
                 <span class="inline-flex items-center gap-1 text-teal-700">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,7 +198,7 @@ export default {
         very_long: 'bg-teal-400',
         indefinite: 'bg-purple-400',
       };
-      return colors[this.selectedHorizon] || 'bg-gray-400';
+      return colors[this.selectedHorizon] || 'bg-horizon-400';
     },
 
     interpretationClasses() {
@@ -220,7 +220,7 @@ export default {
         very_long: 'text-teal-600',
         indefinite: 'text-purple-600',
       };
-      return classes[this.selectedHorizon] || 'text-gray-600';
+      return classes[this.selectedHorizon] || 'text-neutral-500';
     },
 
     interpretationIcon() {

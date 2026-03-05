@@ -2,7 +2,7 @@
   <div class="investment-detail">
     <!-- Header -->
     <div class="page-header">
-      <button @click="goBack" class="back-button">
+      <button @click="goBack" class="detail-inline-back">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="back-icon">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
@@ -14,13 +14,13 @@
 
     <!-- Loading State -->
     <div v-if="projectionsLoading" class="loading-state">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Loading investment data...</p>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Loading investment data...</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="projectionsError" class="error-state">
-      <p class="text-red-600">{{ projectionsError }}</p>
+      <p class="text-raspberry-600">{{ projectionsError }}</p>
       <button @click="loadProjections" class="retry-button">Try Again</button>
     </div>
 
@@ -90,7 +90,7 @@
               </div>
               <div class="analysis-row">
                 <span class="row-label">Unrealised Gains</span>
-                <span class="row-value" :class="unrealisedGains >= 0 ? 'text-green-600' : 'text-red-600'">
+                <span class="row-value" :class="unrealisedGains >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
                   {{ formatCurrency(unrealisedGains) }}
                 </span>
               </div>
@@ -104,7 +104,7 @@
             </div>
             <div class="holdings-content">
               <div v-if="analysisLoading" class="allocation-loading">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-600 mx-auto"></div>
               </div>
               <div v-else-if="hasAllocationData" class="donut-container">
                 <apexchart
@@ -129,7 +129,7 @@
             <div class="analysis-content">
               <div class="analysis-row">
                 <span class="row-label">Annual Fees</span>
-                <span class="row-value text-blue-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
+                <span class="row-value text-violet-600">{{ formatCurrency(totalAnnualFees) }}/yr</span>
               </div>
               <div class="analysis-row">
                 <span class="row-label">Fee Drag (10yr)</span>
@@ -249,9 +249,9 @@ export default {
 
     diversificationScoreClass() {
       const score = this.diversificationScore;
-      if (score >= 70) return 'text-green-600';
-      if (score >= 50) return 'text-blue-600';
-      return 'text-red-600';
+      if (score >= 70) return 'text-spring-600';
+      if (score >= 50) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     topAssetTypes() {
@@ -294,7 +294,7 @@ export default {
       return {
         chart: {
           type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: { show: false },
         },
         labels: labels,
@@ -460,27 +460,6 @@ export default {
   margin-bottom: 32px;
 }
 
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  @apply bg-gray-100;
-  border: none;
-  border-radius: 8px;
-  @apply text-gray-700;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 16px;
-}
-
-.back-button:hover {
-  @apply bg-gray-200;
-  @apply text-gray-900;
-}
-
 .back-icon {
   width: 16px;
   height: 16px;
@@ -489,13 +468,13 @@ export default {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 16px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -514,7 +493,7 @@ export default {
 .retry-button {
   margin-top: 16px;
   padding: 10px 20px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -523,26 +502,26 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin-bottom: 16px;
 }
 
 .empty-text {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
 }
 
 .empty-subtext {
   font-size: 14px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0;
 }
 
@@ -564,7 +543,7 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -577,8 +556,8 @@ export default {
 .risk-badge-corner {
   display: inline-block;
   padding: 4px 10px;
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -586,17 +565,17 @@ export default {
 
 .period-selector {
   padding: 6px 12px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 6px;
   font-size: 13px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   background: white;
   cursor: pointer;
 }
 
 .period-selector:focus {
   outline: none;
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 /* Summary Row - matching pension chart style exactly */
@@ -613,7 +592,7 @@ export default {
 }
 
 .summary-item.blue {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .summary-item.purple {
@@ -623,14 +602,14 @@ export default {
 .summary-item-label {
   display: block;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 .summary-item-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 /* Analysis Panels */
@@ -645,7 +624,7 @@ export default {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .clickable-card {
@@ -655,7 +634,7 @@ export default {
 
 .clickable-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 .analysis-header {
@@ -668,7 +647,7 @@ export default {
 .analysis-title {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -680,23 +659,23 @@ export default {
 }
 
 .score-excellent {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .score-good {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .score-fair {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .score-poor {
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 
 .count-badge {
@@ -704,8 +683,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .fee-badge {
@@ -713,8 +692,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .analysis-content {
@@ -731,13 +710,13 @@ export default {
 
 .row-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .row-value {
   font-size: 13px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .score-text {
@@ -768,7 +747,7 @@ export default {
 .no-allocation {
   text-align: center;
   padding: 16px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 12px;
 }
 

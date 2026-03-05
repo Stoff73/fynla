@@ -1,6 +1,4 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
-import logoImage from '@/assets/images/logoTransparent.png';
-
 /**
  * Mixin for printing/PDF export of plans.
  * Follows the Letter to Spouse pattern for print window generation.
@@ -17,7 +15,7 @@ export const planPrintMixin = {
 
   computed: {
     logoUrl() {
-      return logoImage;
+      return '/images/logos/logoTransparent.png';
     },
   },
 

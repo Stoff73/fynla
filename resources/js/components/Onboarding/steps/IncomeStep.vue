@@ -10,15 +10,15 @@
     @back="handleBack"
   >
     <div class="space-y-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> Income information is essential for calculating your estate's Inheritance Tax liability and understanding your protection needs.
         </p>
       </div>
 
       <!-- Employment Details Section -->
       <div class="border-t pt-4">
-        <h4 class="text-body font-medium text-gray-900 mb-4">
+        <h4 class="text-body font-medium text-horizon-500 mb-4">
           Employment Details
         </h4>
 
@@ -95,7 +95,7 @@
                 class="input-field"
                 placeholder="65"
               >
-              <p class="mt-1 text-body-sm text-gray-500">
+              <p class="mt-1 text-body-sm text-neutral-500">
                 Planned retirement age, used for all pension forecast calculations.
               </p>
             </div>
@@ -105,13 +105,13 @@
         <!-- Early Retirement Warning -->
         <div
           v-if="showEarlyRetirementWarning"
-          class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4"
+          class="mt-4 bg-violet-50 border border-violet-200 rounded-lg p-4"
         >
           <div class="flex">
-            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
-            <p class="text-body-sm text-blue-800">
+            <p class="text-body-sm text-violet-800">
               <strong>Early Retirement:</strong> In most circumstances you are only able to access retirement benefits from the age of 55. You retired at age {{ retirementAge }}.
             </p>
           </div>
@@ -120,7 +120,7 @@
 
       <!-- Income Section -->
       <div v-if="formData.employment_status" class="border-t pt-4">
-        <h4 class="text-body font-medium text-gray-900 mb-4">
+        <h4 class="text-body font-medium text-horizon-500 mb-4">
           Income Sources
         </h4>
 
@@ -131,25 +131,25 @@
               Annual Rental Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_rental_income"
                 :value="annualRentalIncome"
                 type="number"
-                class="input-field pl-8 bg-gray-50"
+                class="input-field pl-8 bg-eggshell-500"
                 readonly
                 disabled
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               From properties entered in Assets & Wealth (read-only)
             </p>
           </div>
 
           <!-- Retired: Info message -->
           <div v-if="formData.employment_status === 'retired'" class="md:col-span-2">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p class="text-body-sm text-blue-800">
+            <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+              <p class="text-body-sm text-violet-800">
                 Income from retirement funds (pensions, annuities) is automatically calculated from the pensions you add in the Retirement module.
               </p>
             </div>
@@ -161,7 +161,7 @@
               Annual Employment Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_employment_income"
                 v-model.number="formData.annual_employment_income"
@@ -172,7 +172,7 @@
                 placeholder="50000"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Salary, bonuses, and other employment income (before tax)
             </p>
           </div>
@@ -183,7 +183,7 @@
               Annual Self-Employment Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_self_employment_income"
                 v-model.number="formData.annual_self_employment_income"
@@ -194,7 +194,7 @@
                 placeholder="0"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Income from business or freelancing
             </p>
           </div>
@@ -205,7 +205,7 @@
               Annual Benefit Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_benefit_income"
                 v-model.number="formData.annual_benefit_income"
@@ -216,7 +216,7 @@
                 placeholder="0"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Universal Credit, JSA, ESA, or other state benefits
             </p>
           </div>
@@ -227,7 +227,7 @@
               Annual Dividend Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_dividend_income"
                 v-model.number="formData.annual_dividend_income"
@@ -238,7 +238,7 @@
                 placeholder="0"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Income from shares and investments
             </p>
           </div>
@@ -249,7 +249,7 @@
               Annual Interest Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_interest_income"
                 v-model.number="formData.annual_interest_income"
@@ -260,7 +260,7 @@
                 placeholder="0"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Interest from savings accounts and bonds
             </p>
           </div>
@@ -271,7 +271,7 @@
               Annual Other Income
             </label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
               <input
                 id="annual_other_income"
                 v-model.number="formData.annual_other_income"
@@ -282,18 +282,18 @@
                 placeholder="0"
               >
             </div>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Any other income sources
             </p>
           </div>
 
           <!-- Total Income (calculated) -->
-          <div v-if="formData.employment_status" class="bg-gray-50 rounded-lg p-4">
-            <p class="text-body-sm text-gray-600">Total Annual Income</p>
-            <p class="text-h3 font-display text-gray-900">
+          <div v-if="formData.employment_status" class="bg-eggshell-500 rounded-lg p-4">
+            <p class="text-body-sm text-neutral-500">Total Annual Income</p>
+            <p class="text-h3 font-display text-horizon-500">
               {{ formatCurrency(totalIncome) }}
             </p>
-            <p v-if="hasRentalIncome" class="text-body-sm text-gray-500 mt-2">
+            <p v-if="hasRentalIncome" class="text-body-sm text-neutral-500 mt-2">
               Includes {{ formatCurrency(annualRentalIncome) }} rental income
             </p>
           </div>

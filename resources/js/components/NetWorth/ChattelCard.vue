@@ -28,7 +28,7 @@
         </div>
         <div v-if="isJoint" class="detail-row">
           <span class="detail-label">Full Value</span>
-          <span class="detail-value text-gray-500">{{ formatCurrency(chattel.current_value) }}</span>
+          <span class="detail-value text-neutral-500">{{ formatCurrency(chattel.current_value) }}</span>
         </div>
       </div>
     </div>
@@ -98,7 +98,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -136,13 +136,13 @@ export default {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .type-vehicle {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-art {
@@ -151,8 +151,8 @@ export default {
 }
 
 .type-antique {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-jewelry {
@@ -161,13 +161,13 @@ export default {
 }
 
 .type-collectible {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .type-other {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .ownership-badge {
@@ -188,18 +188,18 @@ export default {
 .chattel-name {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .vehicle-details {
   padding-bottom: 8px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .vehicle-info {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -208,7 +208,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -219,17 +219,17 @@ export default {
 }
 
 .detail-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 /* Font weight override for muted text */
 .chattel-muted-text {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 400;
 }
 

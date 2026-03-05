@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <div class="bg-gray-50 rounded-md p-4">
+    <div class="bg-savannah-100 rounded-md p-4">
       <p class="text-sm text-yellow-800">
         <strong>Disclaimer:</strong> These calculators are for informational purposes only and should not be considered financial or tax advice.
         Please consult with a qualified tax advisor for your specific situation.
@@ -8,7 +8,7 @@
     </div>
 
     <!-- Tax Calculator Tabs -->
-    <div class="border-b border-gray-200">
+    <div class="border-b border-light-gray">
       <nav class="flex -mb-px">
         <button
           v-for="tab in calculatorTabs"
@@ -17,8 +17,8 @@
           class="px-6 py-3 border-b-2 font-medium text-sm transition-colors"
           :class="
             activeCalculator === tab.id
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-violet-600 text-violet-600'
+              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
           "
         >
           {{ tab.label }}
@@ -28,12 +28,12 @@
 
     <!-- SDLT Calculator -->
     <div v-show="activeCalculator === 'sdlt'" class="space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Stamp Duty Land Tax Calculator</h3>
-      <p class="text-sm text-gray-600">Calculate Stamp Duty Land Tax based on 2025/26 rates</p>
+      <h3 class="text-lg font-semibold text-horizon-500">Stamp Duty Land Tax Calculator</h3>
+      <p class="text-sm text-neutral-500">Calculate Stamp Duty Land Tax based on 2025/26 rates</p>
 
       <form @submit.prevent="calculateSDLT" class="space-y-4">
         <div>
-          <label for="sdlt_purchase_price" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="sdlt_purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">
             Purchase Price (£)
           </label>
           <input
@@ -43,19 +43,19 @@
             step="0.01"
             min="0"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
           />
         </div>
 
         <div>
-          <label for="sdlt_property_type" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="sdlt_property_type" class="block text-sm font-medium text-horizon-500 mb-1">
             Property Type
           </label>
           <select
             id="sdlt_property_type"
             v-model="sdltForm.property_type"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
           >
             <option value="main_residence">Main Residence</option>
             <option value="secondary_residence">Secondary Residence / Additional Property</option>
@@ -71,9 +71,9 @@
               class="mr-2"
               :disabled="sdltForm.property_type !== 'main_residence'"
             />
-            <span class="text-sm text-gray-700">First-time buyer</span>
+            <span class="text-sm text-neutral-500">First-time buyer</span>
           </label>
-          <p class="text-xs text-gray-500 mt-1">
+          <p class="text-xs text-neutral-500 mt-1">
             First-time buyer relief applies to properties up to £625,000 (relief up to £425,000)
           </p>
         </div>
@@ -81,7 +81,7 @@
         <button
           type="submit"
           :disabled="calculatingSDLT"
-          class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
+          class="w-full px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors disabled:opacity-50"
         >
           {{ calculatingSDLT ? 'Calculating...' : 'Calculate Stamp Duty' }}
         </button>
@@ -89,34 +89,34 @@
 
       <!-- SDLT Results -->
       <div v-if="sdltResult" class="mt-6 space-y-4">
-        <div class="bg-gray-50 rounded-lg p-6">
-          <h4 class="text-xl font-semibold text-green-800 mb-2">Stamp Duty Calculation Result</h4>
+        <div class="bg-savannah-100 rounded-lg p-6">
+          <h4 class="text-xl font-semibold text-spring-800 mb-2">Stamp Duty Calculation Result</h4>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <p class="text-sm text-green-700">Total Stamp Duty</p>
-              <p class="text-3xl font-bold text-green-900">{{ formatCurrency(sdltResult.total_sdlt) }}</p>
+              <p class="text-sm text-spring-700">Total Stamp Duty</p>
+              <p class="text-3xl font-bold text-spring-900">{{ formatCurrency(sdltResult.total_sdlt) }}</p>
             </div>
             <div>
-              <p class="text-sm text-green-700">Effective Rate</p>
-              <p class="text-3xl font-bold text-green-900">{{ sdltResult.effective_rate }}%</p>
+              <p class="text-sm text-spring-700">Effective Rate</p>
+              <p class="text-3xl font-bold text-spring-900">{{ sdltResult.effective_rate }}%</p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div class="bg-white border border-light-gray rounded-lg overflow-hidden">
           <table class="w-full">
-            <thead class="bg-gray-50">
+            <thead class="bg-savannah-100">
               <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Band</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Rate</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Tax</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-horizon-500">Band</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Rate</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Tax</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr v-for="(band, index) in sdltResult.bands" :key="index">
-                <td class="px-4 py-3 text-sm text-gray-900">{{ band.description }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-700">{{ band.rate }}%</td>
-                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrency(band.tax) }}</td>
+                <td class="px-4 py-3 text-sm text-horizon-500">{{ band.description }}</td>
+                <td class="px-4 py-3 text-sm text-right text-neutral-500">{{ band.rate }}%</td>
+                <td class="px-4 py-3 text-sm text-right font-medium text-horizon-500">{{ formatCurrency(band.tax) }}</td>
               </tr>
             </tbody>
           </table>
@@ -126,10 +126,10 @@
 
     <!-- CGT Calculator -->
     <div v-show="activeCalculator === 'cgt'" class="space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Capital Gains Tax Calculator</h3>
+      <h3 class="text-lg font-semibold text-horizon-500">Capital Gains Tax Calculator</h3>
 
-      <div v-if="property.property_type === 'main_residence'" class="bg-gray-50 rounded-md p-4">
-        <p class="text-sm text-blue-800">
+      <div v-if="property.property_type === 'main_residence'" class="bg-savannah-100 rounded-md p-4">
+        <p class="text-sm text-violet-800">
           <strong>Note:</strong> As a main residence, this property may qualify for Private Residence Relief,
           which could reduce or eliminate Capital Gains Tax liability.
         </p>
@@ -137,7 +137,7 @@
 
       <form @submit.prevent="calculateCGT" class="space-y-4">
         <div>
-          <label for="cgt_disposal_price" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="cgt_disposal_price" class="block text-sm font-medium text-horizon-500 mb-1">
             Disposal Price (£)
           </label>
           <input
@@ -147,13 +147,13 @@
             step="0.01"
             min="0"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
           />
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="cgt_disposal_costs" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="cgt_disposal_costs" class="block text-sm font-medium text-horizon-500 mb-1">
               Disposal Costs (£)
             </label>
             <input
@@ -163,12 +163,12 @@
               step="0.01"
               min="0"
               placeholder="Legal fees, estate agent fees"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
             />
           </div>
 
           <div>
-            <label for="cgt_improvement_costs" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="cgt_improvement_costs" class="block text-sm font-medium text-horizon-500 mb-1">
               Improvement Costs (£)
             </label>
             <input
@@ -178,7 +178,7 @@
               step="0.01"
               min="0"
               placeholder="Extensions, renovations"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
             />
           </div>
         </div>
@@ -186,7 +186,7 @@
         <button
           type="submit"
           :disabled="calculatingCGT"
-          class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
+          class="w-full px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors disabled:opacity-50"
         >
           {{ calculatingCGT ? 'Calculating...' : 'Calculate Capital Gains Tax' }}
         </button>
@@ -194,42 +194,42 @@
 
       <!-- CGT Results -->
       <div v-if="cgtResult" class="mt-6 space-y-4">
-        <div class="bg-gray-50 rounded-lg p-6">
-          <h4 class="text-xl font-semibold text-green-800 mb-4">Capital Gains Tax Calculation Result</h4>
+        <div class="bg-savannah-100 rounded-lg p-6">
+          <h4 class="text-xl font-semibold text-spring-800 mb-4">Capital Gains Tax Calculation Result</h4>
           <dl class="space-y-2">
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Disposal Price:</dt>
-              <dd class="text-sm font-medium text-green-900">{{ formatCurrency(cgtForm.disposal_price) }}</dd>
+              <dt class="text-sm text-spring-700">Disposal Price:</dt>
+              <dd class="text-sm font-medium text-spring-900">{{ formatCurrency(cgtForm.disposal_price) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Less: Purchase Price:</dt>
-              <dd class="text-sm font-medium text-green-900">-{{ formatCurrency(property.purchase_price) }}</dd>
+              <dt class="text-sm text-spring-700">Less: Purchase Price:</dt>
+              <dd class="text-sm font-medium text-spring-900">-{{ formatCurrency(property.purchase_price) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Less: Costs:</dt>
-              <dd class="text-sm font-medium text-green-900">
+              <dt class="text-sm text-spring-700">Less: Costs:</dt>
+              <dd class="text-sm font-medium text-spring-900">
                 -{{ formatCurrency((cgtForm.disposal_costs || 0) + (cgtForm.improvement_costs || 0)) }}
               </dd>
             </div>
-            <div class="flex justify-between border-t border-green-300 pt-2">
-              <dt class="text-sm font-semibold text-green-700">Gain:</dt>
-              <dd class="text-sm font-bold text-green-900">{{ formatCurrency(cgtResult.gain) }}</dd>
+            <div class="flex justify-between border-t border-spring-300 pt-2">
+              <dt class="text-sm font-semibold text-spring-700">Gain:</dt>
+              <dd class="text-sm font-bold text-spring-900">{{ formatCurrency(cgtResult.gain) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Less: Annual Exempt Amount:</dt>
-              <dd class="text-sm font-medium text-green-900">-£3,000</dd>
+              <dt class="text-sm text-spring-700">Less: Annual Exempt Amount:</dt>
+              <dd class="text-sm font-medium text-spring-900">-£3,000</dd>
             </div>
-            <div class="flex justify-between border-t border-green-300 pt-2">
-              <dt class="text-sm font-semibold text-green-700">Taxable Gain:</dt>
-              <dd class="text-sm font-bold text-green-900">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
+            <div class="flex justify-between border-t border-spring-300 pt-2">
+              <dt class="text-sm font-semibold text-spring-700">Taxable Gain:</dt>
+              <dd class="text-sm font-bold text-spring-900">{{ formatCurrency(cgtResult.taxable_gain) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Capital Gains Tax Rate:</dt>
-              <dd class="text-sm font-medium text-green-900">{{ cgtResult.cgt_rate }}%</dd>
+              <dt class="text-sm text-spring-700">Capital Gains Tax Rate:</dt>
+              <dd class="text-sm font-medium text-spring-900">{{ cgtResult.cgt_rate }}%</dd>
             </div>
-            <div class="flex justify-between border-t border-green-300 pt-2 mt-2">
-              <dt class="text-lg font-bold text-green-700">Capital Gains Tax Liability:</dt>
-              <dd class="text-2xl font-bold text-green-900">{{ formatCurrency(cgtResult.cgt_liability) }}</dd>
+            <div class="flex justify-between border-t border-spring-300 pt-2 mt-2">
+              <dt class="text-lg font-bold text-spring-700">Capital Gains Tax Liability:</dt>
+              <dd class="text-2xl font-bold text-spring-900">{{ formatCurrency(cgtResult.cgt_liability) }}</dd>
             </div>
           </dl>
         </div>
@@ -238,9 +238,9 @@
 
     <!-- Rental Income Tax Calculator -->
     <div v-show="activeCalculator === 'rental'" class="space-y-4">
-      <h3 class="text-lg font-semibold text-gray-800">Rental Income Tax Calculator</h3>
+      <h3 class="text-lg font-semibold text-horizon-500">Rental Income Tax Calculator</h3>
 
-      <div v-if="property.property_type !== 'buy_to_let'" class="bg-gray-50 rounded-md p-4">
+      <div v-if="property.property_type !== 'buy_to_let'" class="bg-savannah-100 rounded-md p-4">
         <p class="text-sm text-yellow-800">
           This calculator is primarily for Buy to Let properties. Results may not be accurate for other property types.
         </p>
@@ -249,49 +249,49 @@
       <button
         @click="calculateRentalTax"
         :disabled="calculatingRental"
-        class="w-full px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50"
+        class="w-full px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors disabled:opacity-50"
       >
         {{ calculatingRental ? 'Calculating...' : 'Calculate Rental Income Tax' }}
       </button>
 
       <!-- Rental Tax Results -->
       <div v-if="rentalResult" class="mt-6 space-y-4">
-        <div class="bg-gray-50 rounded-lg p-6">
-          <h4 class="text-xl font-semibold text-green-800 mb-4">Rental Income Tax Result</h4>
+        <div class="bg-savannah-100 rounded-lg p-6">
+          <h4 class="text-xl font-semibold text-spring-800 mb-4">Rental Income Tax Result</h4>
           <dl class="space-y-2">
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Gross Rental Income:</dt>
-              <dd class="text-sm font-medium text-green-900">{{ formatCurrency(rentalResult.gross_income) }}</dd>
+              <dt class="text-sm text-spring-700">Gross Rental Income:</dt>
+              <dd class="text-sm font-medium text-spring-900">{{ formatCurrency(rentalResult.gross_income) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Less: Allowable Expenses:</dt>
-              <dd class="text-sm font-medium text-green-900">-{{ formatCurrency(rentalResult.allowable_expenses) }}</dd>
+              <dt class="text-sm text-spring-700">Less: Allowable Expenses:</dt>
+              <dd class="text-sm font-medium text-spring-900">-{{ formatCurrency(rentalResult.allowable_expenses) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Mortgage Interest:</dt>
-              <dd class="text-sm font-medium text-green-900">{{ formatCurrency(rentalResult.mortgage_interest || 0) }}</dd>
+              <dt class="text-sm text-spring-700">Mortgage Interest:</dt>
+              <dd class="text-sm font-medium text-spring-900">{{ formatCurrency(rentalResult.mortgage_interest || 0) }}</dd>
             </div>
-            <div class="flex justify-between border-t border-green-300 pt-2">
-              <dt class="text-sm font-semibold text-green-700">Taxable Profit:</dt>
-              <dd class="text-sm font-bold text-green-900">{{ formatCurrency(rentalResult.taxable_profit) }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Tax at Marginal Rate:</dt>
-              <dd class="text-sm font-medium text-green-900">{{ formatCurrency(rentalResult.tax_before_relief) }}</dd>
+            <div class="flex justify-between border-t border-spring-300 pt-2">
+              <dt class="text-sm font-semibold text-spring-700">Taxable Profit:</dt>
+              <dd class="text-sm font-bold text-spring-900">{{ formatCurrency(rentalResult.taxable_profit) }}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-green-700">Less: Mortgage Interest Tax Relief (20%):</dt>
-              <dd class="text-sm font-medium text-green-900">-{{ formatCurrency(rentalResult.mortgage_interest_relief || 0) }}</dd>
+              <dt class="text-sm text-spring-700">Tax at Marginal Rate:</dt>
+              <dd class="text-sm font-medium text-spring-900">{{ formatCurrency(rentalResult.tax_before_relief) }}</dd>
             </div>
-            <div class="flex justify-between border-t border-green-300 pt-2 mt-2">
-              <dt class="text-lg font-bold text-green-700">Tax Liability:</dt>
-              <dd class="text-2xl font-bold text-green-900">{{ formatCurrency(rentalResult.tax_liability) }}</dd>
+            <div class="flex justify-between">
+              <dt class="text-sm text-spring-700">Less: Mortgage Interest Tax Relief (20%):</dt>
+              <dd class="text-sm font-medium text-spring-900">-{{ formatCurrency(rentalResult.mortgage_interest_relief || 0) }}</dd>
+            </div>
+            <div class="flex justify-between border-t border-spring-300 pt-2 mt-2">
+              <dt class="text-lg font-bold text-spring-700">Tax Liability:</dt>
+              <dd class="text-2xl font-bold text-spring-900">{{ formatCurrency(rentalResult.tax_liability) }}</dd>
             </div>
           </dl>
         </div>
 
-        <div class="bg-gray-50 rounded-md p-4">
-          <p class="text-sm text-blue-800">
+        <div class="bg-savannah-100 rounded-md p-4">
+          <p class="text-sm text-violet-800">
             <strong>Note:</strong> Mortgage interest is no longer fully deductible. You receive a 20% tax credit instead.
             Higher rate taxpayers may face increased tax liability on rental income.
           </p>
@@ -300,8 +300,8 @@
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="p-3 bg-gray-50 rounded-md">
-      <p class="text-sm text-red-600">{{ error }}</p>
+    <div v-if="error" class="p-3 bg-savannah-100 rounded-md">
+      <p class="text-sm text-raspberry-600">{{ error }}</p>
     </div>
   </div>
 </template>

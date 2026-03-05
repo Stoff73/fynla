@@ -1,6 +1,6 @@
 <template>
   <div
-    class="trusts-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 border border-gray-200"
+    class="trusts-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 border border-light-gray"
     @click="navigateToTrusts"
   >
     <!-- Loading State -->
@@ -26,15 +26,15 @@
           <span class="trust-value">{{ formatCurrency(trust.current_value) }}</span>
         </div>
 
-        <p v-if="trusts.length > 3" class="text-sm text-gray-500 mt-2">
+        <p v-if="trusts.length > 3" class="text-sm text-neutral-500 mt-2">
           +{{ trusts.length - 3 }} more {{ trusts.length - 3 === 1 ? 'trust' : 'trusts' }}
         </p>
       </div>
 
       <!-- Empty State -->
       <div v-else class="empty-state">
-        <p class="text-sm text-gray-500">No trusts set up</p>
-        <p class="text-xs text-gray-400 mt-1">Click to explore trust planning options</p>
+        <p class="text-sm text-neutral-500">No trusts set up</p>
+        <p class="text-xs text-horizon-400 mt-1">Click to explore trust planning options</p>
       </div>
 
       <!-- Tax Info Banner -->
@@ -197,13 +197,13 @@ export default {
 .card-title {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
 }
 
 .card-icon {
   display: flex;
   align-items: center;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Primary Value Section */
@@ -212,12 +212,12 @@ export default {
   flex-direction: column;
   gap: 4px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .value-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -239,7 +239,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 12px;
-  @apply border-b border-gray-100;
+  @apply border-b border-savannah-100;
 }
 
 .trust-item:last-of-type {
@@ -263,7 +263,7 @@ export default {
 .trust-name {
   font-weight: 600;
   font-size: 14px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .rpt-badge {
@@ -280,7 +280,7 @@ export default {
 
 .trust-details {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .trust-value {

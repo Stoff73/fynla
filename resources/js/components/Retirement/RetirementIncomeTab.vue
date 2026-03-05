@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="back-button"
+      class="detail-inline-back"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -13,7 +13,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Calculating tax-optimised income...</p>
     </div>
 
@@ -37,7 +37,7 @@
 
     <!-- Initial Loading State (before first load completes) -->
     <div v-else-if="!dataLoaded" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Loading retirement income data...</p>
     </div>
 
@@ -972,45 +972,7 @@ export default {
 
 <style scoped>
 .retirement-income-tab {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Back Button */
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-gray-700;
-  background: white;
-  @apply border border-gray-300;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.back-button:hover {
-  @apply bg-gray-50;
-  @apply border-gray-400;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 /* Loading State */
@@ -1023,19 +985,8 @@ export default {
   text-align: center;
 }
 
-.spinner {
-  @apply w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full mb-4;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -1046,24 +997,24 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  @apply text-red-500;
+  @apply text-raspberry-500;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -1075,7 +1026,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Empty State */
@@ -1084,25 +1035,25 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -1124,13 +1075,13 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -1144,7 +1095,7 @@ export default {
 
 .toggle-label {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -1152,7 +1103,7 @@ export default {
   position: relative;
   width: 48px;
   height: 26px;
-  @apply bg-gray-300;
+  @apply bg-horizon-300;
   border: none;
   border-radius: 13px;
   cursor: pointer;
@@ -1161,7 +1112,7 @@ export default {
 }
 
 .toggle-switch.active {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
 }
 
 .toggle-slider {
@@ -1192,7 +1143,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .card-header-row {
@@ -1206,12 +1157,12 @@ export default {
   border: none;
   padding: 4px;
   cursor: pointer;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   transition: color 0.2s;
 }
 
 .edit-btn:hover {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .edit-btn svg {
@@ -1221,7 +1172,7 @@ export default {
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -1229,13 +1180,13 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 8px 0 0 0;
 }
 
@@ -1252,7 +1203,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 0;
 }
 
@@ -1263,7 +1214,7 @@ export default {
 .sources-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -1276,7 +1227,7 @@ export default {
 /* Account Card - matches Pension/Investment Dashboard styling */
 .account-card {
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 8px;
   padding: 16px;
   transition: box-shadow 0.2s ease;
@@ -1300,7 +1251,7 @@ export default {
 }
 
 .badge-green {
-  @apply bg-green-100 text-green-800;
+  @apply bg-spring-100 text-spring-800;
 }
 
 .badge-emerald {
@@ -1308,18 +1259,18 @@ export default {
 }
 
 .badge-blue {
-  @apply bg-blue-100 text-blue-800;
+  @apply bg-violet-100 text-violet-800;
 }
 
 .badge-gray {
-  @apply bg-gray-100 text-gray-700;
+  @apply bg-savannah-100 text-neutral-500;
 }
 
 /* Account Name */
 .account-name {
   font-size: 15px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
@@ -1337,13 +1288,13 @@ export default {
 .account-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .account-detail {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 2px 0 0 0;
 }
 
@@ -1360,27 +1311,27 @@ export default {
   font-size: 12px;
   font-weight: 500;
   background: transparent;
-  @apply text-gray-600;
+  @apply text-neutral-500;
   flex-shrink: 0;
 }
 
 .account-toggle:hover {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
 }
 
 .account-toggle.active {
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .account-toggle.active:hover {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
 }
 
 /* Toggle Switch - colored track with white slider */
 .toggle-switch {
   width: 28px;
   height: 16px;
-  @apply bg-blue-500;
+  @apply bg-violet-500;
   border-radius: 8px;
   position: relative;
   transition: all 0.15s ease;
@@ -1400,7 +1351,7 @@ export default {
 }
 
 .toggle-switch.on {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .toggle-switch.on::after {
@@ -1410,12 +1361,12 @@ export default {
 .no-allocations {
   text-align: center;
   padding: 40px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
 }
 
 .no-allocations p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   margin: 0;
 }
@@ -1446,21 +1397,21 @@ export default {
 .modal-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .modal-description {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 24px 0;
 }
 
 .input-group {
   display: flex;
   align-items: center;
-  @apply bg-gray-50;
-  @apply border border-gray-200;
+  @apply bg-savannah-100;
+  @apply border border-light-gray;
   border-radius: 8px;
   padding: 4px 12px;
   margin-bottom: 24px;
@@ -1469,7 +1420,7 @@ export default {
 .input-prefix {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .target-input {
@@ -1478,7 +1429,7 @@ export default {
   background: transparent;
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   padding: 12px;
   text-align: center;
 }
@@ -1489,7 +1440,7 @@ export default {
 
 .input-suffix {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .modal-actions {
@@ -1500,8 +1451,8 @@ export default {
 .btn-secondary {
   flex: 1;
   padding: 12px 20px;
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -1511,13 +1462,13 @@ export default {
 }
 
 .btn-secondary:hover {
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
 }
 
 .btn-primary {
   flex: 1;
   padding: 12px 20px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -1528,7 +1479,7 @@ export default {
 }
 
 .btn-primary:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 @media (max-width: 1024px) {
@@ -1543,27 +1494,27 @@ export default {
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  @apply bg-blue-50;
-  @apply border border-blue-200;
+  @apply bg-violet-50;
+  @apply border border-violet-200;
   border-radius: 12px;
   margin-bottom: 20px;
 }
 
 .info-banner.adjusted {
-  @apply bg-blue-50;
-  @apply border-blue-200;
+  @apply bg-violet-50;
+  @apply border-violet-200;
 }
 
 .info-icon {
   width: 20px;
   height: 20px;
-  @apply text-blue-600;
+  @apply text-violet-600;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .info-banner.adjusted .info-icon {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .info-content {
@@ -1572,7 +1523,7 @@ export default {
 
 .info-message {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   line-height: 1.5;
 }
@@ -1587,13 +1538,13 @@ export default {
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  @apply text-blue-600;
+  @apply text-violet-600;
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .info-link:hover {
-  @apply text-blue-700;
+  @apply text-violet-700;
   text-decoration: underline;
 }
 
@@ -1616,7 +1567,7 @@ export default {
   font-size: 14px;
   font-weight: 600;
   @apply text-white;
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
   padding: 6px 12px;
   border-radius: 6px;
   border: none;
@@ -1625,12 +1576,12 @@ export default {
 }
 
 .info-link-button:hover {
-  @apply bg-blue-700;
+  @apply bg-violet-700;
 }
 
 .info-separator {
   font-size: 13px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Extended Summary Grid (6 cards) */
@@ -1652,21 +1603,21 @@ export default {
 }
 
 .summary-card.indigo {
-  @apply border-indigo-200;
-  @apply bg-indigo-50;
+  @apply border-violet-200;
+  @apply bg-violet-50;
 }
 
 .summary-card.indigo .summary-value {
-  @apply text-indigo-700;
+  @apply text-violet-700;
 }
 
 .summary-card.green {
-  @apply border-green-200;
-  @apply bg-green-50;
+  @apply border-spring-200;
+  @apply bg-spring-50;
 }
 
 .summary-card.green .summary-value {
-  @apply text-green-700;
+  @apply text-spring-700;
 }
 
 .summary-card.yellow {
@@ -1679,12 +1630,12 @@ export default {
 }
 
 .summary-card.red {
-  @apply border-red-200;
-  @apply bg-red-50;
+  @apply border-raspberry-200;
+  @apply bg-raspberry-50;
 }
 
 .summary-card.red .summary-value {
-  @apply text-red-700;
+  @apply text-raspberry-700;
 }
 
 /* Other Assets Section */
@@ -1692,7 +1643,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 0;
 }
 
@@ -1712,13 +1663,13 @@ export default {
 .assets-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .assets-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -1733,7 +1684,7 @@ export default {
 .assets-group-label {
   font-size: 13px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0 0 12px 0;
@@ -1751,7 +1702,7 @@ export default {
   align-items: center;
   padding: 16px;
   border-radius: 8px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   background: white;
 }
 
@@ -1764,7 +1715,7 @@ export default {
 }
 
 .asset-card.excluded {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   opacity: 0.8;
 }
 
@@ -1777,18 +1728,18 @@ export default {
 .asset-name {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .asset-value {
   font-size: 16px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .asset-type {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .toggle-row {
@@ -1800,14 +1751,14 @@ export default {
 
 .toggle-text {
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .toggle-checkbox {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #1257A0;
+  accent-color: #E83E6D;
 }
 
 /* Progress and Assumptions Row */
@@ -1822,13 +1773,13 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .progress-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 20px 0;
 }
 
@@ -1849,7 +1800,7 @@ export default {
 
 .progress-type {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -1859,20 +1810,20 @@ export default {
 }
 
 .progress-percentage.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .progress-percentage.blue {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .progress-percentage.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .progress-bar-container {
   height: 8px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -1885,26 +1836,26 @@ export default {
 }
 
 .progress-bar.green {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .progress-bar.blue {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .progress-bar.red {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .progress-values {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .target-label {
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Assumptions Panel */
@@ -1912,7 +1863,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .assumptions-header-row {
@@ -1925,7 +1876,7 @@ export default {
 .assumptions-header-row h4 {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -1935,12 +1886,12 @@ export default {
   gap: 4px;
   font-size: 13px;
   font-weight: 500;
-  @apply text-primary-600;
+  @apply text-raspberry-500;
   text-decoration: none;
 }
 
 .edit-link:hover {
-  @apply text-primary-700;
+  @apply text-raspberry-600;
 }
 
 .link-icon {
@@ -1956,16 +1907,16 @@ export default {
 
 .assumption-item {
   font-size: 13px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .assumption-item .label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-right: 4px;
 }
 
 .assumption-item .note {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 12px;
 }
 
@@ -1974,14 +1925,14 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 24px;
 }
 
 .table-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -1998,7 +1949,7 @@ export default {
 .projection-table td {
   padding: 12px 16px;
   text-align: right;
-  @apply border-b border-gray-100;
+  @apply border-b border-light-gray;
 }
 
 .projection-table th:first-child,
@@ -2009,15 +1960,15 @@ export default {
 .projection-table th {
   font-size: 12px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
 }
 
 .projection-table td {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .projection-table tr.retirement-row {

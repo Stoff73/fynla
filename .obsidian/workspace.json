@@ -1,0 +1,214 @@
+{
+  "main": {
+    "id": "a6b8cbcf528a1334",
+    "type": "split",
+    "children": [
+      {
+        "id": "1f903f53f84b7334",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "702ac824512cbc16",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2541f47e857ccde3",
+    "type": "split",
+    "children": [
+      {
+        "id": "73333529532cb24f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d78c4866b5c2f68a",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "87246b2c2bb8c48e",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "158721c735a534a8",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "4a25fc1480424ff7",
+    "type": "split",
+    "children": [
+      {
+        "id": "33b3e3f9c0bb69b8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c0d60fcc38267698",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "66fd2aa4abf429aa",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "9c4b097302109ce3",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "399e614e16c56b65",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "fc2a58186ff61f57",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "702ac824512cbc16",
+  "lastOpenFiles": [
+    "storage/framework/sessions/upsLUt2V3YWtMPFqqdRrup1acZ79ytu8yYxLzbub",
+    "storage/framework/cache/data/f8/ef/f8efc90b51c85f635de84e8c302eca731c29037d",
+    "storage/framework/cache/data/f8/ef",
+    "storage/framework/cache/data/a0/06/a0063da9e1ffe13cd53c69d1ab7ed1356e59edee",
+    "storage/framework/cache/data/a0/06",
+    "storage/framework/sessions/ogMC9c1CL1hFvmCtbUycWw1ZNwHPuCmAuBTHt9sp",
+    "storage/framework/sessions/ErspqEMYfZbqhCvlON8foFEbVNPjqnU7x5gW1qSB",
+    "March3Updates/deployPDF.md",
+    "storage/framework/sessions/6T7tNo0erEbgcIMuU8DheUhZeSFNKMxPmkifGLI0",
+    "storage/framework/sessions/cnqNTAcjgxeRugz0FmyFytgWaGzakQISSPpKgtNz",
+    "storage/framework/sessions/2wfe0xQvuHme3F3ZKieugsYXwEQuU0WSSkIZw4g1",
+    "vite.config.js.timestamp-1772556879416-3470d0382216c.mjs",
+    "March3Updates/savePDFPlan.md",
+    "peak_earners_iht_table_expanded.png",
+    "vendor/mockery/mockery/CONTRIBUTING.md",
+    "peak_earners_iht_table.png",
+    "March3Updates/deployEstate.md",
+    "March3Updates/estateRewriteTask.md",
+    "March3Updates/estateRewritePlan.md",
+    "March3Updates/protectionRewritePlan.md",
+    "March3Updates/protectionPlanTasks.md",
+    "March3Updates/deployProtectionUpdate.md",
+    "protection-final-no-duplicates.png",
+    "protection-whatif-all-back-on.png",
+    "protection-whatif-all-off.png",
+    "protection-whatif-both-ci-off.png",
+    "protection-whatif-one-toggled-off.png",
+    "protection-whatif-all-enabled.png",
+    "protection-plan-before-toggle.png",
+    "March3Updates/chartConnectProtection.md",
+    "node_modules/es-define-property/CHANGELOG.md",
+    "vendor/spatie/laravel-ignition/LICENSE.md"
+  ]
+}

@@ -227,12 +227,12 @@ export default {
 }
 
 .step-description {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 1.5rem;
 }
 
 .step-description.success {
-  @apply text-green-600;
+  @apply text-spring-600;
   font-weight: 500;
 }
 
@@ -245,7 +245,7 @@ export default {
 .qr-image {
   width: 200px;
   height: 200px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 0.5rem;
 }
 
@@ -255,13 +255,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 0.5rem;
   margin: 0 auto 1.5rem;
 }
 
 .loading {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .manual-entry {
@@ -270,13 +270,13 @@ export default {
 
 .manual-entry p {
   font-size: 0.875rem;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 0.5rem;
 }
 
 .secret-code {
   display: block;
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   padding: 0.75rem;
   border-radius: 0.375rem;
   font-family: monospace;
@@ -300,8 +300,8 @@ export default {
 .success-icon {
   width: 60px;
   height: 60px;
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -312,15 +312,15 @@ export default {
 }
 
 .recovery-codes-section {
-  @apply bg-blue-100;
-  @apply border border-blue-300;
+  @apply bg-violet-100;
+  @apply border border-violet-300;
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .recovery-warning {
-  @apply text-blue-800;
+  @apply text-violet-800;
   font-size: 0.875rem;
   margin-bottom: 1rem;
 }

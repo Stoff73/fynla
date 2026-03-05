@@ -155,7 +155,7 @@
                 <p>Kindest regards,</p>
                 <p><strong>The Fynla Team (Chris & Brett)</strong></p>
                 <div class="logo">
-                    <img src="{{ config('app.url') }}/images/logoMain.png" alt="Fynla">
+                    <img src="{{ config('app.url') }}/images/logos/logoMain.png" alt="Fynla">
                 </div>
             </div>
         </div>

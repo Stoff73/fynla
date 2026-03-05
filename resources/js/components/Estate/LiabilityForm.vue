@@ -488,29 +488,29 @@ export default {
 .form-header {
   margin-bottom: 24px;
   padding-bottom: 16px;
-  @apply border-b-2 border-gray-200;
+  @apply border-b-2 border-light-gray;
 }
 
 .form-header h3 {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 24px 0 16px 0;
   padding-bottom: 8px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .form-group {
@@ -530,32 +530,32 @@ label {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 6px;
 }
 
 label.required::after {
   content: ' *';
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .form-control {
   width: 100%;
   padding: 10px 12px;
   font-size: 14px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 6px;
   transition: border-colour 0.2s;
 }
 
 .form-control:focus {
   outline: none;
-  @apply border-primary-500;
-  @apply ring-2 ring-primary-500/20;
+  @apply border-raspberry-500;
+  @apply ring-2 ring-violet-500/20;
 }
 
 .form-control.is-invalid {
-  @apply border-red-500;
+  @apply border-raspberry-500;
 }
 
 .form-control.is-invalid:focus {
@@ -571,7 +571,7 @@ label.required::after {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
   pointer-events: none;
 }
@@ -584,14 +584,14 @@ label.required::after {
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .form-text {
   display: block;
   margin-top: 6px;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   line-height: 1.4;
 }
 
@@ -618,7 +618,7 @@ textarea.form-control {
 
 .checkbox-label {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   cursor: pointer;
   margin: 0;
 }
@@ -626,16 +626,16 @@ textarea.form-control {
 .conditional-fields {
   margin-top: 24px;
   padding: 20px;
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 6px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .repayment-projection {
   margin: 20px 0;
   padding: 16px;
-  @apply bg-blue-50;
-  @apply border-l-4 border-primary-500;
+  @apply bg-violet-50;
+  @apply border-l-4 border-raspberry-500;
   border-radius: 4px;
 }
 
@@ -644,7 +644,7 @@ textarea.form-control {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin-bottom: 12px;
   font-size: 14px;
 }
@@ -661,19 +661,19 @@ textarea.form-control {
 }
 
 .projection-label {
-  @apply text-blue-900;
+  @apply text-violet-900;
   font-weight: 500;
 }
 
 .projection-value {
-  @apply text-blue-800;
+  @apply text-violet-800;
   font-weight: 600;
 }
 
 .projection-note {
   display: block;
   font-size: 11px;
-  @apply text-blue-900;
+  @apply text-violet-900;
   font-style: italic;
 }
 
@@ -683,7 +683,7 @@ textarea.form-control {
   gap: 12px;
   margin-top: 32px;
   padding-top: 20px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .btn {
@@ -710,21 +710,21 @@ textarea.form-control {
 }
 
 .btn-primary {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .btn-secondary {
-  @apply bg-gray-200;
-  @apply text-gray-700;
+  @apply bg-savannah-200;
+  @apply text-neutral-500;
 }
 
 .btn-secondary:hover {
-  @apply bg-gray-300;
+  @apply bg-savannah-300;
 }
 
 @media (max-width: 768px) {

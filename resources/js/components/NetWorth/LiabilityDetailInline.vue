@@ -1,7 +1,7 @@
 <template>
   <div class="liability-detail-inline">
     <!-- Back Button -->
-    <button @click="$emit('back')" class="back-button mb-4">
+    <button @click="$emit('back')" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
       </svg>
@@ -10,8 +10,8 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-      <p class="mt-4 text-gray-600">Loading details...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-600"></div>
+      <p class="mt-4 text-neutral-500">Loading details...</p>
     </div>
 
     <!-- Liability Content -->
@@ -28,13 +28,13 @@
                 Priority Debt
               </span>
             </div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ liability.liability_name || 'Unnamed Liability' }}</h1>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ liability.liability_name || 'Unnamed Liability' }}</h1>
           </div>
           <div class="flex space-x-2 w-full sm:w-auto">
             <button
               v-preview-disabled="'edit'"
               @click="$emit('edit', liability)"
-              class="px-4 py-2 bg-red-600 text-white rounded-button hover:bg-red-700 transition-colors"
+              class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
             >
               Edit
             </button>
@@ -50,19 +50,19 @@
 
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Balance Owed</p>
-            <p class="text-2xl font-bold text-red-600">{{ formatCurrency(liability.current_balance) }}</p>
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Balance Owed</p>
+            <p class="text-2xl font-bold text-raspberry-600">{{ formatCurrency(liability.current_balance) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Monthly Payment</p>
-            <p class="text-2xl font-bold text-gray-900">
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Monthly Payment</p>
+            <p class="text-2xl font-bold text-horizon-500">
               {{ liability.monthly_payment ? formatCurrency(liability.monthly_payment) : 'Not set' }}
             </p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <p class="text-sm text-gray-600">Interest Rate</p>
-            <p class="text-2xl font-bold text-gray-900">
+          <div class="bg-savannah-100 rounded-lg p-4">
+            <p class="text-sm text-neutral-500">Interest Rate</p>
+            <p class="text-2xl font-bold text-horizon-500">
               {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate / 100) : 'Not set' }}
             </p>
           </div>
@@ -71,7 +71,7 @@
 
       <!-- Tabs -->
       <div class="bg-white rounded-lg shadow-md">
-        <div class="border-b border-gray-200">
+        <div class="border-b border-light-gray">
           <nav class="flex -mb-px overflow-x-auto">
             <button
               v-for="tab in tabs"
@@ -80,8 +80,8 @@
               class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap"
               :class="
                 activeTab === tab.id
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-raspberry-600 text-raspberry-600'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
               "
             >
               {{ tab.label }}
@@ -94,45 +94,45 @@
           <div v-if="activeTab === 'overview'" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Liability Details</h3>
+                <h3 class="text-lg font-semibold text-horizon-500 mb-4">Liability Details</h3>
                 <dl class="space-y-3">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Type</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatLiabilityType(liability.liability_type) }}</dd>
+                    <dt class="text-sm text-neutral-500">Type</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatLiabilityType(liability.liability_type) }}</dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Balance Owed</dt>
-                    <dd class="text-sm font-medium text-red-600">{{ formatCurrency(liability.current_balance) }}</dd>
+                    <dt class="text-sm text-neutral-500">Balance Owed</dt>
+                    <dd class="text-sm font-medium text-raspberry-600">{{ formatCurrency(liability.current_balance) }}</dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Interest Rate</dt>
-                    <dd class="text-sm font-medium text-gray-900">
+                    <dt class="text-sm text-neutral-500">Interest Rate</dt>
+                    <dd class="text-sm font-medium text-horizon-500">
                       {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate / 100) : 'Not recorded' }}
                     </dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Priority Debt</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ liability.is_priority_debt ? 'Yes' : 'No' }}</dd>
+                    <dt class="text-sm text-neutral-500">Priority Debt</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ liability.is_priority_debt ? 'Yes' : 'No' }}</dd>
                   </div>
                 </dl>
               </div>
 
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Repayment</h3>
+                <h3 class="text-lg font-semibold text-horizon-500 mb-4">Repayment</h3>
                 <dl class="space-y-3">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Monthly Payment</dt>
-                    <dd class="text-sm font-medium text-gray-900">
+                    <dt class="text-sm text-neutral-500">Monthly Payment</dt>
+                    <dd class="text-sm font-medium text-horizon-500">
                       {{ liability.monthly_payment ? formatCurrency(liability.monthly_payment) : 'Not recorded' }}
                     </dd>
                   </div>
                   <div v-if="liability.maturity_date" class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Maturity Date</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatDate(liability.maturity_date) }}</dd>
+                    <dt class="text-sm text-neutral-500">Maturity Date</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatDate(liability.maturity_date) }}</dd>
                   </div>
                   <div v-if="liability.secured_against" class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Secured Against</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ liability.secured_against }}</dd>
+                    <dt class="text-sm text-neutral-500">Secured Against</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ liability.secured_against }}</dd>
                   </div>
                 </dl>
               </div>
@@ -140,23 +140,23 @@
 
             <!-- Repayment Projection -->
             <div v-if="showRepaymentProjection" class="mt-6">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Repayment Projection</h3>
-              <div class="bg-gray-50 rounded-lg p-4">
+              <h3 class="text-lg font-semibold text-horizon-500 mb-4">Repayment Projection</h3>
+              <div class="bg-savannah-100 rounded-lg p-4">
                 <dl class="space-y-3">
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-600">Estimated Time to Repay</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ estimatedMonthsToRepay }} months ({{ estimatedYearsToRepay }} years)</dd>
+                    <dt class="text-sm text-neutral-500">Estimated Time to Repay</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ estimatedMonthsToRepay }} months ({{ estimatedYearsToRepay }} years)</dd>
                   </div>
                   <div class="flex justify-between">
-                    <dt class="text-sm text-gray-600">Total Interest</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ formatCurrency(estimatedTotalInterest) }}</dd>
+                    <dt class="text-sm text-neutral-500">Total Interest</dt>
+                    <dd class="text-sm font-medium text-horizon-500">{{ formatCurrency(estimatedTotalInterest) }}</dd>
                   </div>
-                  <div class="flex justify-between pt-2 border-t border-gray-200">
-                    <dt class="text-sm font-semibold text-gray-800">Total Amount Payable</dt>
-                    <dd class="text-sm font-bold text-red-600">{{ formatCurrency(estimatedTotalPayable) }}</dd>
+                  <div class="flex justify-between pt-2 border-t border-light-gray">
+                    <dt class="text-sm font-semibold text-horizon-500">Total Amount Payable</dt>
+                    <dd class="text-sm font-bold text-raspberry-600">{{ formatCurrency(estimatedTotalPayable) }}</dd>
                   </div>
                 </dl>
-                <p class="text-xs text-gray-500 mt-3 italic">
+                <p class="text-xs text-neutral-500 mt-3 italic">
                   * Estimates assume fixed interest rate and regular monthly payments
                 </p>
               </div>
@@ -165,11 +165,11 @@
 
           <!-- Notes Tab -->
           <div v-if="activeTab === 'notes'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-gray-800">Notes</h3>
-            <div v-if="liability.notes" class="bg-gray-50 rounded-lg p-4">
-              <p class="text-gray-700 whitespace-pre-wrap">{{ liability.notes }}</p>
+            <h3 class="text-lg font-semibold text-horizon-500">Notes</h3>
+            <div v-if="liability.notes" class="bg-savannah-100 rounded-lg p-4">
+              <p class="text-neutral-500 whitespace-pre-wrap">{{ liability.notes }}</p>
             </div>
-            <div v-else class="text-center py-8 text-gray-500">
+            <div v-else class="text-center py-8 text-neutral-500">
               No notes recorded for this liability.
             </div>
           </div>
@@ -368,20 +368,6 @@ export default {
   padding: 24px;
 }
 
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  @apply text-gray-500;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.back-button:hover {
-  @apply text-red-500;
-}
-
 .badge {
   display: inline-block;
   padding: 4px 12px;
@@ -391,8 +377,8 @@ export default {
 }
 
 .badge-blue {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-indigo {
@@ -416,12 +402,12 @@ export default {
 }
 
 .badge-red {
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 
 .badge-gray {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 </style>

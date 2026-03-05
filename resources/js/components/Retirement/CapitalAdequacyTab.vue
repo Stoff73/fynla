@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="back-button"
+      class="detail-inline-back"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -13,7 +13,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
       <p>Loading capital adequacy data...</p>
     </div>
 
@@ -616,45 +616,7 @@ export default {
 
 <style scoped>
 .capital-adequacy-tab {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Back Button */
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-gray-700;
-  background: white;
-  @apply border border-gray-300;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.back-button:hover {
-  @apply bg-gray-50;
-  @apply border-gray-400;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 /* Loading State */
@@ -667,19 +629,8 @@ export default {
   text-align: center;
 }
 
-.spinner {
-  @apply w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full mb-4;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -690,24 +641,24 @@ export default {
   padding: 60px 40px;
   background: white;
   border-radius: 12px;
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .error-icon {
   width: 48px;
   height: 48px;
-  @apply text-red-500;
+  @apply text-raspberry-500;
   margin: 0 auto 16px;
 }
 
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0 0 16px 0;
 }
 
 .retry-button {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -719,7 +670,7 @@ export default {
 }
 
 .retry-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Empty State */
@@ -728,25 +679,25 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -768,13 +719,13 @@ export default {
 .section-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .section-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -790,12 +741,12 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -803,13 +754,13 @@ export default {
 .summary-value {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 8px 0 0 0;
 }
 
@@ -824,39 +775,39 @@ export default {
 }
 
 .summary-card.green {
-  @apply border-green-200;
-  @apply bg-green-50;
+  @apply border-spring-200;
+  @apply bg-spring-50;
 }
 
 .summary-card.green .summary-value {
-  @apply text-green-700;
+  @apply text-spring-700;
 }
 
 .summary-card.red {
-  @apply border-red-200;
-  @apply bg-red-50;
+  @apply border-raspberry-200;
+  @apply bg-raspberry-50;
 }
 
 .summary-card.red .summary-value {
-  @apply text-red-700;
+  @apply text-raspberry-700;
 }
 
 .summary-card.blue {
-  @apply border-blue-200;
-  @apply bg-blue-50;
+  @apply border-violet-200;
+  @apply bg-violet-50;
 }
 
 .summary-card.blue .summary-value {
-  @apply text-blue-700;
+  @apply text-violet-700;
 }
 
 .summary-card.indigo {
-  @apply border-indigo-200;
-  @apply bg-indigo-50;
+  @apply border-violet-200;
+  @apply bg-violet-50;
 }
 
 .summary-card.indigo .summary-value {
-  @apply text-indigo-700;
+  @apply text-violet-700;
 }
 
 /* Carry Forward Card with Year Breakdown */
@@ -880,19 +831,19 @@ export default {
 }
 
 .cf-year-label {
-  @apply text-indigo-600;
+  @apply text-violet-600;
   font-weight: 500;
 }
 
 .cf-year-value {
-  @apply text-indigo-700;
+  @apply text-violet-700;
   font-weight: 600;
 }
 
 .cf-year-row.cf-total {
   margin-top: 6px;
   padding-top: 8px;
-  @apply border-t border-indigo-300;
+  @apply border-t border-violet-300;
 }
 
 .cf-year-row.cf-total .cf-year-label,
@@ -908,7 +859,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 24px;
 }
 
@@ -922,20 +873,20 @@ export default {
 .section-heading {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .section-description {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 4px 0 0 0;
 }
 
 .tax-year-badge {
   display: inline-block;
   padding: 4px 12px;
-  @apply bg-blue-50 text-blue-700;
+  @apply bg-violet-50 text-violet-700;
   border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
@@ -955,23 +906,23 @@ export default {
 .progress-used {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .progress-remaining {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .allowance-hint {
   font-weight: 400;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .progress-bar-container {
   height: 12px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -990,19 +941,19 @@ export default {
 }
 
 .progress-bar.green {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .progress-bar.blue {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .progress-bar.red {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 .progress-bar.surplus {
-  @apply bg-green-400;
+  @apply bg-spring-400;
   position: absolute;
   top: 0;
 }
@@ -1012,7 +963,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .breakdown-item {
@@ -1022,17 +973,17 @@ export default {
 }
 
 .breakdown-label {
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .breakdown-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .breakdown-item.total {
   padding-top: 8px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .breakdown-item.total .breakdown-label,
@@ -1044,7 +995,7 @@ export default {
 .monthly-equivalent {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .monthly-equivalent .breakdown-item {
@@ -1056,17 +1007,17 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  @apply bg-blue-50 border border-blue-200;
+  @apply bg-violet-50 border border-violet-200;
   border-radius: 8px;
   font-size: 13px;
-  @apply text-blue-700;
+  @apply text-violet-700;
 }
 
 .affordability-note svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  @apply text-blue-500;
+  @apply text-violet-500;
 }
 
 /* Slider Section */
@@ -1089,13 +1040,13 @@ export default {
 
 .current-contribution {
   font-size: 14px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .additional-contribution {
   font-size: 14px;
   font-weight: 600;
-  @apply text-primary-600;
+  @apply text-raspberry-500;
 }
 
 .slider-container {
@@ -1107,7 +1058,7 @@ export default {
   height: 8px;
   -webkit-appearance: none;
   appearance: none;
-  background: linear-gradient(to right, theme('colors.primary.500') 0%, theme('colors.gray.200') 0%);
+  background: linear-gradient(to right, theme('colors.raspberry.500') 0%, theme('colors.horizon.200') 0%);
   border-radius: 4px;
   outline: none;
   cursor: pointer;
@@ -1119,7 +1070,7 @@ export default {
   width: 24px;
   height: 24px;
   background: white;
-  @apply border-2 border-primary-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1134,7 +1085,7 @@ export default {
   width: 24px;
   height: 24px;
   background: white;
-  border: 2px solid theme('colors.primary.500');
+  border: 2px solid theme('colors.raspberry.500');
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1144,13 +1095,13 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin-top: 8px;
 }
 
 .slider-limit-note {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 12px 0 0 0;
   font-style: italic;
 }
@@ -1167,14 +1118,14 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  @apply bg-blue-50 border border-blue-200;
+  @apply bg-violet-50 border border-violet-200;
   border-radius: 8px;
   font-size: 13px;
-  @apply text-blue-700;
+  @apply text-violet-700;
 }
 
 .warning-banner.affordability {
-  @apply bg-blue-50 border-blue-200 text-blue-700;
+  @apply bg-violet-50 border-violet-200 text-violet-700;
 }
 
 .warning-banner svg {
@@ -1185,7 +1136,7 @@ export default {
 
 /* Impact Panel */
 .impact-panel {
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 12px;
   padding: 20px;
 }
@@ -1193,7 +1144,7 @@ export default {
 .impact-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -1211,30 +1162,30 @@ export default {
 
 .impact-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .impact-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .impact-value.highlight {
-  @apply text-primary-600;
+  @apply text-raspberry-500;
 }
 
 .impact-value.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .impact-value.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .slider-note {
   font-size: 13px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 20px 0 0 0;
   font-style: italic;
 }
@@ -1254,7 +1205,7 @@ export default {
 
 .progress-type {
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -1264,26 +1215,26 @@ export default {
 }
 
 .progress-percentage.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .progress-percentage.blue {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .progress-percentage.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .progress-values {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .target-label {
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Status Banner */
@@ -1297,27 +1248,27 @@ export default {
 }
 
 .status-banner.surplus {
-  @apply bg-green-50 border border-green-200;
+  @apply bg-spring-50 border border-spring-200;
 }
 
 .status-banner.surplus svg {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .status-banner.on-track {
-  @apply bg-blue-50 border border-blue-200;
+  @apply bg-violet-50 border border-violet-200;
 }
 
 .status-banner.on-track svg {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .status-banner.shortfall {
-  @apply bg-red-50 border border-red-200;
+  @apply bg-raspberry-50 border border-raspberry-200;
 }
 
 .status-banner.shortfall svg {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .status-banner svg {
@@ -1333,15 +1284,15 @@ export default {
 }
 
 .status-banner.surplus .status-text h5 {
-  @apply text-green-800;
+  @apply text-spring-800;
 }
 
 .status-banner.on-track .status-text h5 {
-  @apply text-blue-800;
+  @apply text-violet-800;
 }
 
 .status-banner.shortfall .status-text h5 {
-  @apply text-red-800;
+  @apply text-raspberry-800;
 }
 
 .status-text p {
@@ -1350,15 +1301,15 @@ export default {
 }
 
 .status-banner.surplus .status-text p {
-  @apply text-green-700;
+  @apply text-spring-700;
 }
 
 .status-banner.on-track .status-text p {
-  @apply text-blue-700;
+  @apply text-violet-700;
 }
 
 .status-banner.shortfall .status-text p {
-  @apply text-red-700;
+  @apply text-raspberry-700;
 }
 
 /* Responsive */

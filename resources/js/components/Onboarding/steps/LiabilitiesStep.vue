@@ -11,47 +11,47 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> Liabilities reduce your taxable estate for Inheritance Tax purposes. We've already captured mortgages with your properties - here you can add other debts like personal loans, car finance, or credit cards.
         </p>
       </div>
 
       <!-- Added Liabilities List -->
       <div v-if="liabilities.length > 0" class="space-y-3">
-        <h4 class="text-body font-medium text-gray-900">
+        <h4 class="text-body font-medium text-horizon-500">
           Liabilities ({{ liabilities.length }})
         </h4>
 
         <div
           v-for="liability in liabilities"
           :key="liability.id"
-          class="border border-gray-200 rounded-lg p-4 bg-gray-50"
+          class="border border-light-gray rounded-lg p-4 bg-eggshell-500"
         >
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <h5 class="text-body font-medium text-gray-900 capitalize">
+                <h5 class="text-body font-medium text-horizon-500 capitalize">
                   {{ liability.liability_type?.replace(/_/g, ' ') }}
                 </h5>
               </div>
-              <p class="text-body-sm text-gray-600">{{ liability.liability_name }}</p>
+              <p class="text-body-sm text-neutral-500">{{ liability.liability_name }}</p>
               <div class="mt-2">
-                <p class="text-body-sm text-gray-500">Balance</p>
-                <p class="text-body font-medium text-gray-900">{{ formatCurrency(liability.current_balance) }}</p>
+                <p class="text-body-sm text-neutral-500">Balance</p>
+                <p class="text-body font-medium text-horizon-500">{{ formatCurrency(liability.current_balance) }}</p>
               </div>
             </div>
             <div class="flex gap-2 ml-4">
               <button
                 type="button"
-                class="text-primary-600 hover:text-primary-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="editLiability(liability)"
               >
                 Edit
               </button>
               <button
                 type="button"
-                class="text-red-600 hover:text-red-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="deleteLiability(liability.id)"
               >
                 Delete
@@ -72,13 +72,13 @@
         </button>
       </div>
 
-      <p v-if="liabilities.length === 0" class="text-body-sm text-gray-500 italic">
+      <p v-if="liabilities.length === 0" class="text-body-sm text-neutral-500 italic">
         You can skip this step if you don't have any loans or credit card debt.
       </p>
     </div>
 
     <!-- Liability Form Modal -->
-    <div v-if="showForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div v-if="showForm" class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
         <LiabilityForm
           :liability="editingLiability"

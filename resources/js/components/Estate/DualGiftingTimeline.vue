@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Gifting Timelines (7-Year Rule)</h3>
+  <div class="bg-white rounded-lg border border-light-gray p-6">
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Gifting Timelines (7-Year Rule)</h3>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- User Timeline -->
       <div>
-        <h4 class="text-sm font-medium text-gray-700 mb-3">{{ userTimeline.name }}'s Gifts</h4>
+        <h4 class="text-sm font-medium text-neutral-500 mb-3">{{ userTimeline.name }}'s Gifts</h4>
 
         <div v-if="userTimeline.gift_count > 0">
           <apexchart
@@ -20,35 +20,35 @@
             <div
               v-for="gift in userTimeline.gifts_within_7_years"
               :key="gift.gift_id"
-              class="text-xs p-2 bg-gray-50 rounded"
+              class="text-xs p-2 bg-eggshell-500 rounded"
             >
               <div class="flex justify-between">
                 <span class="font-medium">{{ gift.recipient }}</span>
-                <span class="text-gray-600">{{ formatCurrency(gift.value) }}</span>
+                <span class="text-neutral-500">{{ formatCurrency(gift.value) }}</span>
               </div>
-              <div class="text-gray-500 mt-1">
+              <div class="text-neutral-500 mt-1">
                 {{ formatDate(gift.date) }} • {{ gift.years_remaining_until_exempt }} years until exempt
               </div>
             </div>
           </div>
         </div>
 
-        <div v-else class="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-300 rounded">
+        <div v-else class="text-sm text-neutral-500 text-center py-8 border-2 border-dashed border-horizon-300 rounded">
           No gifts recorded within last 7 years
         </div>
       </div>
 
       <!-- Spouse Timeline -->
       <div>
-        <h4 class="text-sm font-medium text-gray-700 mb-3">
+        <h4 class="text-sm font-medium text-neutral-500 mb-3">
           {{ spouseTimeline.name || 'Spouse' }}'s Gifts
         </h4>
 
         <div v-if="spouseTimeline.show_empty_timeline">
           <!-- Empty state with data sharing message -->
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+          <div class="border-2 border-dashed border-horizon-300 rounded-lg p-8 text-center">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-horizon-400"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -61,10 +61,10 @@
                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
               />
             </svg>
-            <p class="mt-2 text-sm text-gray-600">{{ spouseTimeline.message }}</p>
+            <p class="mt-2 text-sm text-neutral-500">{{ spouseTimeline.message }}</p>
             <router-link
               to="/settings"
-              class="mt-3 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+              class="mt-3 inline-block text-sm font-medium text-violet-600 hover:text-violet-700"
             >
               Enable data sharing →
             </router-link>
@@ -84,32 +84,32 @@
             <div
               v-for="gift in spouseTimeline.gifts_within_7_years"
               :key="gift.gift_id"
-              class="text-xs p-2 bg-gray-50 rounded"
+              class="text-xs p-2 bg-eggshell-500 rounded"
             >
               <div class="flex justify-between">
                 <span class="font-medium">{{ gift.recipient }}</span>
-                <span class="text-gray-600">{{ formatCurrency(gift.value) }}</span>
+                <span class="text-neutral-500">{{ formatCurrency(gift.value) }}</span>
               </div>
-              <div class="text-gray-500 mt-1">
+              <div class="text-neutral-500 mt-1">
                 {{ formatDate(gift.date) }} • {{ gift.years_remaining_until_exempt }} years until exempt
               </div>
             </div>
           </div>
         </div>
 
-        <div v-else class="text-sm text-gray-500 text-center py-8 border-2 border-dashed border-gray-300 rounded">
+        <div v-else class="text-sm text-neutral-500 text-center py-8 border-2 border-dashed border-horizon-300 rounded">
           No gifts recorded within last 7 years
         </div>
       </div>
     </div>
 
     <!-- Summary -->
-    <div class="mt-6 pt-6 border-t border-gray-200">
+    <div class="mt-6 pt-6 border-t border-light-gray">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-blue-50 rounded p-3">
-          <p class="text-xs text-blue-600 font-medium">Total Gifts ({{ userTimeline.name }})</p>
-          <p class="text-lg font-bold text-blue-900">{{ formatCurrency(userTimeline.total_gifts) }}</p>
-          <p class="text-xs text-blue-500">{{ userTimeline.gift_count }} gifts within 7 years</p>
+        <div class="bg-violet-50 rounded p-3">
+          <p class="text-xs text-violet-600 font-medium">Total Gifts ({{ userTimeline.name }})</p>
+          <p class="text-lg font-bold text-violet-900">{{ formatCurrency(userTimeline.total_gifts) }}</p>
+          <p class="text-xs text-violet-500">{{ userTimeline.gift_count }} gifts within 7 years</p>
         </div>
         <div v-if="!spouseTimeline.show_empty_timeline" class="bg-purple-50 rounded p-3">
           <p class="text-xs text-purple-600 font-medium">Total Gifts ({{ spouseTimeline.name || 'Spouse' }})</p>

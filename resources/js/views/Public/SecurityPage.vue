@@ -48,8 +48,8 @@
             </div>
 
             <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -160,8 +160,8 @@
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -171,8 +171,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -182,8 +182,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -193,8 +193,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -218,15 +218,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">Access Control</h2>
-                  <p class="text-blue-100 text-sm">Role-based permissions and least privilege access</p>
+                  <p class="text-violet-100 text-sm">Role-based permissions and least privilege access</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -236,8 +236,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -247,8 +247,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -272,15 +272,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">Auditability & Monitoring</h2>
-                  <p class="text-blue-100 text-sm">Comprehensive logging and alerting</p>
+                  <p class="text-violet-100 text-sm">Comprehensive logging and alerting</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -290,8 +290,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -301,8 +301,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -391,15 +391,15 @@
                 </div>
                 <div>
                   <h2 class="text-xl font-bold text-white">API & Application Security</h2>
-                  <p class="text-blue-200 text-sm">Protecting the technical infrastructure</p>
+                  <p class="text-violet-200 text-sm">Protecting the technical infrastructure</p>
                 </div>
               </div>
             </div>
             <div class="p-8">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -409,8 +409,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -420,8 +420,8 @@
                   </div>
                 </div>
                 <div class="flex items-start">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>

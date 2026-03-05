@@ -8,7 +8,7 @@
       :series="series"
       height="300"
     />
-    <div v-if="!hasData" class="flex items-center justify-center h-64 text-gray-400">
+    <div v-if="!hasData" class="flex items-center justify-center h-64 text-horizon-400">
       <p>No premium data available</p>
     </div>
   </div>
@@ -79,7 +79,7 @@ export default {
       return {
         chart: {
           type: 'pie',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
         },
         labels: [
           'Life Insurance',

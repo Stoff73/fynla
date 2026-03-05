@@ -1,12 +1,12 @@
 <template>
   <div class="drawdown-simulator bg-white rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-6">Drawdown Simulator</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-6">Drawdown Simulator</h3>
 
     <!-- Simulator Controls -->
     <div class="space-y-6 mb-8">
       <!-- Initial Pot Size -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Initial Pension Pot: £{{ formatNumber(simulatorData.initialPot) }}
         </label>
         <input
@@ -15,10 +15,10 @@
           :min="50000"
           :max="1000000"
           :step="10000"
-          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
           @input="runSimulation"
         />
-        <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+        <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
           <span>£50k</span>
           <span>£1m</span>
         </div>
@@ -26,7 +26,7 @@
 
       <!-- Withdrawal Rate -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Annual Withdrawal Rate: {{ simulatorData.withdrawalRate }}%
         </label>
         <input
@@ -35,24 +35,24 @@
           :min="2"
           :max="6"
           :step="0.5"
-          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
           @input="runSimulation"
         />
-        <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+        <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
           <span>2%</span>
           <span>3%</span>
           <span>4%</span>
           <span>5%</span>
           <span>6%</span>
         </div>
-        <p class="text-xs text-gray-500 mt-2">
+        <p class="text-xs text-neutral-500 mt-2">
           Annual withdrawal: £{{ formatNumber(annualWithdrawal) }}
         </p>
       </div>
 
       <!-- Growth Rate -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Investment Growth Rate: {{ simulatorData.growthRate }}% p.a.
         </label>
         <input
@@ -61,10 +61,10 @@
           :min="0"
           :max="8"
           :step="0.5"
-          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
           @input="runSimulation"
         />
-        <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+        <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
           <span>0%</span>
           <span>8%</span>
         </div>
@@ -72,7 +72,7 @@
 
       <!-- Inflation Rate -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-neutral-500 mb-2">
           Inflation Rate: {{ simulatorData.inflationRate }}% p.a.
         </label>
         <input
@@ -81,10 +81,10 @@
           :min="0"
           :max="5"
           :step="0.5"
-          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
           @input="runSimulation"
         />
-        <div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+        <div class="flex items-center justify-between text-xs text-neutral-500 mt-1">
           <span>0%</span>
           <span>5%</span>
         </div>
@@ -95,33 +95,33 @@
     <div v-if="simulationResults" class="space-y-6">
       <!-- Result Summary -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600 mb-1">Portfolio Depletion</p>
+        <div class="p-4 bg-savannah-100 rounded-lg">
+          <p class="text-sm text-neutral-500 mb-1">Portfolio Depletion</p>
           <p
             class="text-2xl font-bold"
-            :class="simulationResults.depletes ? 'text-red-600' : 'text-green-600'"
+            :class="simulationResults.depletes ? 'text-raspberry-600' : 'text-spring-600'"
           >
             {{ simulationResults.depletes ? `Age ${simulationResults.depletionAge}` : 'No' }}
           </p>
-          <p class="text-xs text-gray-500 mt-1">
+          <p class="text-xs text-neutral-500 mt-1">
             {{ simulationResults.depletes ? 'Portfolio runs out' : 'Sustainable' }}
           </p>
         </div>
 
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600 mb-1">Final Balance at 95</p>
-          <p class="text-2xl font-bold text-gray-900">
+        <div class="p-4 bg-savannah-100 rounded-lg">
+          <p class="text-sm text-neutral-500 mb-1">Final Balance at 95</p>
+          <p class="text-2xl font-bold text-horizon-500">
             £{{ formatNumber(simulationResults.finalBalance) }}
           </p>
-          <p class="text-xs text-gray-500 mt-1">Remaining pot value</p>
+          <p class="text-xs text-neutral-500 mt-1">Remaining pot value</p>
         </div>
 
-        <div class="p-4 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600 mb-1">Real Value Lost (Inflation)</p>
-          <p class="text-2xl font-bold text-blue-600">
+        <div class="p-4 bg-savannah-100 rounded-lg">
+          <p class="text-sm text-neutral-500 mb-1">Real Value Lost (Inflation)</p>
+          <p class="text-2xl font-bold text-violet-600">
             {{ simulationResults.realValueLoss }}%
           </p>
-          <p class="text-xs text-gray-500 mt-1">Purchasing power erosion</p>
+          <p class="text-xs text-neutral-500 mt-1">Purchasing power erosion</p>
         </div>
       </div>
 
@@ -139,14 +139,14 @@
       <!-- Warning/Success Message -->
       <div
         v-if="simulationResults.depletes"
-        class="bg-gray-50 rounded-lg p-4 flex items-start"
+        class="bg-savannah-100 rounded-lg p-4 flex items-start"
       >
-        <svg class="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-raspberry-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
         <div>
-          <p class="text-sm font-bold text-red-900">Warning: Portfolio Depletion</p>
-          <p class="text-sm text-red-800 mt-1">
+          <p class="text-sm font-bold text-raspberry-900">Warning: Portfolio Depletion</p>
+          <p class="text-sm text-raspberry-800 mt-1">
             At this withdrawal rate, your pension pot would run out at age {{ simulationResults.depletionAge }}.
             Consider reducing your withdrawal rate or increasing investment growth.
           </p>
@@ -155,14 +155,14 @@
 
       <div
         v-else
-        class="bg-gray-50 rounded-lg p-4 flex items-start"
+        class="bg-savannah-100 rounded-lg p-4 flex items-start"
       >
-        <svg class="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-spring-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <div>
-          <p class="text-sm font-bold text-green-900">Sustainable Drawdown</p>
-          <p class="text-sm text-green-800 mt-1">
+          <p class="text-sm font-bold text-spring-900">Sustainable Drawdown</p>
+          <p class="text-sm text-spring-800 mt-1">
             Your pension pot should sustain this withdrawal rate throughout retirement.
             You would have approximately £{{ formatNumber(simulationResults.finalBalance) }} remaining at age 95.
           </p>
@@ -231,7 +231,7 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
         },
@@ -241,7 +241,7 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
@@ -323,13 +323,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Slider styling - using primary brand color */
-input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-5 h-5 bg-primary-600 cursor-pointer rounded-full;
-}
-
-input[type="range"]::-moz-range-thumb {
-  @apply w-5 h-5 bg-primary-600 cursor-pointer rounded-full border-none;
-}
-</style>

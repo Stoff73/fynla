@@ -1,11 +1,11 @@
 <template>
   <div
-    class="investment-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary-500 transition-all duration-200"
+    class="investment-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-light-gray hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200"
     @click="navigateToInvestment"
   >
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">Investment</h3>
-      <div class="text-sm text-gray-500">
+      <h3 class="text-xl font-semibold text-horizon-500">Investment</h3>
+      <div class="text-sm text-neutral-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5"
@@ -26,24 +26,24 @@
     <!-- Portfolio Value -->
     <div class="mb-6">
       <div class="flex items-baseline mb-2">
-        <span class="text-4xl font-bold text-gray-800">
+        <span class="text-4xl font-bold text-horizon-500">
           {{ formattedPortfolioValue }}
         </span>
       </div>
-      <p class="text-sm text-gray-600">Total Portfolio Value</p>
+      <p class="text-sm text-neutral-500">Total Portfolio Value</p>
     </div>
 
     <!-- YTD Return and Holdings -->
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
-        <p class="text-sm text-gray-600 mb-1">YTD Return</p>
+        <p class="text-sm text-neutral-500 mb-1">YTD Return</p>
         <p class="text-lg font-semibold" :class="returnColour">
           {{ formattedYtdReturn }}
         </p>
       </div>
       <div>
-        <p class="text-sm text-gray-600 mb-1">Holdings</p>
-        <p class="text-lg font-semibold text-gray-800">
+        <p class="text-sm text-neutral-500 mb-1">Holdings</p>
+        <p class="text-lg font-semibold text-horizon-500">
           {{ holdingsCount }}
         </p>
       </div>
@@ -52,11 +52,11 @@
     <!-- Rebalancing Alert / All Good -->
     <div
       v-if="needsRebalancing"
-      class="flex items-center p-3 bg-gray-50 rounded-md"
+      class="flex items-center p-3 bg-eggshell-500 rounded-md"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 text-blue-600 mr-2"
+        class="h-5 w-5 text-violet-600 mr-2"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -66,18 +66,18 @@
           clip-rule="evenodd"
         />
       </svg>
-      <span class="text-sm font-medium text-blue-800">
+      <span class="text-sm font-medium text-violet-800">
         Portfolio needs rebalancing
       </span>
     </div>
 
     <div
       v-else
-      class="flex items-center p-3 bg-gray-50 rounded-md"
+      class="flex items-center p-3 bg-eggshell-500 rounded-md"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 text-green-600 mr-2"
+        class="h-5 w-5 text-spring-600 mr-2"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -87,7 +87,7 @@
           clip-rule="evenodd"
         />
       </svg>
-      <span class="text-sm font-medium text-green-800">
+      <span class="text-sm font-medium text-spring-800">
         Portfolio well balanced
       </span>
     </div>
@@ -138,13 +138,13 @@ export default {
 
     returnColour() {
       if (this.ytdReturn >= 5) {
-        return 'text-green-600';
+        return 'text-spring-600';
       } else if (this.ytdReturn >= 0) {
-        return 'text-green-500';
+        return 'text-spring-500';
       } else if (this.ytdReturn >= -5) {
-        return 'text-red-500';
+        return 'text-raspberry-500';
       } else {
-        return 'text-red-600';
+        return 'text-raspberry-600';
       }
     },
   },

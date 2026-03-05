@@ -2,15 +2,15 @@
   <div class="mb-6">
     <PlanSectionHeader title="Conclusion" subtitle="Aggregated summary across all plans" color="gray" />
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <p class="text-gray-700 leading-relaxed mb-4">
+    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
+      <p class="text-horizon-500 leading-relaxed mb-4">
         This holistic plan brings together recommendations from {{ moduleCount }} area{{ moduleCount !== 1 ? 's' : '' }}
         of your financial life. Below is a consolidated view of the actions that matter most.
       </p>
 
       <!-- Essential actions across all plans -->
       <div v-if="essentialActions.length" class="mb-4">
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Priority Actions</h4>
+        <h4 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Priority Actions</h4>
         <ul class="space-y-1.5">
           <li
             v-for="(action, idx) in essentialActions"
@@ -23,9 +23,9 @@
             >
               {{ idx + 1 }}
             </span>
-            <span class="text-gray-800">
+            <span class="text-horizon-500">
               {{ action.title }}
-              <span class="text-xs text-gray-500 ml-1">({{ formatModuleName(action.sourceModule) }})</span>
+              <span class="text-xs text-neutral-500 ml-1">({{ formatModuleName(action.sourceModule) }})</span>
             </span>
           </li>
         </ul>
@@ -33,23 +33,23 @@
 
       <!-- Optional actions -->
       <div v-if="optionalActions.length" class="mb-4">
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Optional Improvements</h4>
+        <h4 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Optional Improvements</h4>
         <ul class="space-y-1.5">
           <li
             v-for="(action, idx) in optionalActions"
             :key="'optional-' + idx"
-            class="flex items-start text-sm text-gray-600"
+            class="flex items-start text-sm text-neutral-500"
           >
-            <span class="flex-shrink-0 text-gray-400 mr-2 mt-0.5">&mdash;</span>
+            <span class="flex-shrink-0 text-horizon-400 mr-2 mt-0.5">&mdash;</span>
             <span>
               {{ action.title }}
-              <span class="text-xs text-gray-500 ml-1">({{ formatModuleName(action.sourceModule) }})</span>
+              <span class="text-xs text-neutral-500 ml-1">({{ formatModuleName(action.sourceModule) }})</span>
             </span>
           </li>
         </ul>
       </div>
 
-      <div v-if="!essentialActions.length && !optionalActions.length" class="text-sm text-gray-500 italic">
+      <div v-if="!essentialActions.length && !optionalActions.length" class="text-sm text-neutral-500 italic">
         Enable actions above to see your personalised priority list here.
       </div>
     </div>

@@ -4,9 +4,9 @@
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/80 to-slate-900/90"></div>
         <!-- Animated gradient orbs -->
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
@@ -32,7 +32,7 @@
                 type="button"
                 @click="enterPreviewMode"
                 :disabled="enteringPreview"
-                class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+                class="group px-8 py-4 bg-violet-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-400 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
               >
                 {{ enteringPreview ? 'Loading...' : 'Try the Demo' }}
               </button>
@@ -50,7 +50,7 @@
                 href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-blue-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-md text-violet-200 rounded-full font-medium text-sm hover:bg-white/20 transition-all border border-white/20"
               >
                 Join waitlist for priority access on release
               </a>
@@ -89,9 +89,9 @@
         </div>
         <div class="rounded-2xl overflow-hidden border border-white/15 shadow-2xl shadow-black/40 bg-slate-900/50 backdrop-blur-md">
           <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border-b border-white/10">
-            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-raspberry-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-violet-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-spring-500/80"></span>
             <span class="ml-3 text-xs text-slate-400 font-mono">fynla.org</span>
           </div>
           <img
@@ -106,12 +106,12 @@
     <!-- Planning Modules Section -->
     <div id="planning-modules" class="relative bg-gradient-to-b from-slate-900 to-slate-800 py-24 overflow-hidden">
       <!-- Background blur elements -->
-      <div class="absolute top-0 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute top-0 left-1/4 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl"></div>
       <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-primary-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Five Integrated Modules</span>
+          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-raspberry-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Five Integrated Modules</span>
           <h2 class="text-4xl md:text-5xl font-bold text-white mt-3 mb-4">
             Complete Financial Planning
           </h2>
@@ -122,9 +122,9 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Protection Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-violet-500/50 hover:bg-white/10 transition-all">
+            <div class="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
@@ -154,9 +154,9 @@
           </div>
 
           <!-- Investment Module -->
-          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all">
-            <div class="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="group bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-violet-500/50 hover:bg-white/10 transition-all">
+            <div class="w-14 h-14 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
@@ -226,7 +226,7 @@
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-primary-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Key Features</span>
+          <span class="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-raspberry-400 font-semibold text-sm uppercase tracking-wider border border-white/20 mb-4">Key Features</span>
           <h2 class="text-4xl md:text-5xl font-bold text-white mt-3 mb-4">
             Built for UK Families
           </h2>
@@ -234,8 +234,8 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-16 h-16 bg-raspberry-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-8 h-8 text-raspberry-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
@@ -244,8 +244,8 @@
           </div>
 
           <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-16 h-16 bg-raspberry-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-8 h-8 text-raspberry-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
             </div>
@@ -254,8 +254,8 @@
           </div>
 
           <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
-            <div class="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-8 h-8 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-16 h-16 bg-raspberry-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-8 h-8 text-raspberry-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
@@ -270,8 +270,8 @@
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-24 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/50 to-slate-900/80"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/50 to-slate-900/80"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -287,7 +287,7 @@
               type="button"
               @click="enterPreviewMode"
               :disabled="enteringPreview"
-              class="group px-8 py-4 bg-blue-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+              class="group px-8 py-4 bg-violet-500 text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-400 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
             >
               <span class="flex items-center justify-center">
                 Try the Demo

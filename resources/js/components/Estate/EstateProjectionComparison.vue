@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
+  <div class="bg-white rounded-lg border border-light-gray p-6">
     <div class="mb-4">
-      <h3 class="text-lg font-semibold text-gray-900">
+      <h3 class="text-lg font-semibold text-horizon-500">
         Estate Projection: Now vs Death at Age {{ projection.life_expectancy.death_age }}
       </h3>
-      <p class="text-sm text-gray-600 mt-1">
+      <p class="text-sm text-neutral-500 mt-1">
         Based on UK ONS life expectancy tables ({{ projection.life_expectancy.current_age }} year old {{ gender }})
         · Growth rate: {{ formatPercent(projection.growth_rate_used) }} per annum
       </p>
@@ -13,48 +13,48 @@
     <!-- Comparison Table -->
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+        <thead class="bg-eggshell-500">
           <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
               Item
             </th>
-            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
               Now
             </th>
-            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
               Death at Age {{ projection.life_expectancy.death_age }}
-              <span class="block text-xs font-normal text-gray-400 mt-0.5">
+              <span class="block text-xs font-normal text-horizon-400 mt-0.5">
                 ({{ projection.at_death.years_from_now }} years, {{ projection.at_death.year }})
               </span>
             </th>
-            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
               Change
             </th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <!-- Assets Row -->
-          <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          <tr class="hover:bg-eggshell-500">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-horizon-500">
               Total Assets
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-horizon-500">
               {{ formatCurrency(projection.current.assets) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-spring-600 font-medium">
               {{ formatCurrency(projection.at_death.assets) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-spring-600">
               +{{ formatCurrency(projection.at_death.assets - projection.current.assets) }}
             </td>
           </tr>
 
           <!-- Mortgages Row -->
-          <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          <tr class="hover:bg-eggshell-500">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-horizon-500">
               Mortgages
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-600">
               {{ formatCurrency(projection.current.mortgages) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" :class="getMortgageChangeClass()">
@@ -66,49 +66,49 @@
           </tr>
 
           <!-- Other Liabilities Row -->
-          <tr v-if="projection.current.other_liabilities > 0" class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          <tr v-if="projection.current.other_liabilities > 0" class="hover:bg-eggshell-500">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-horizon-500">
               Other Liabilities
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-600">
               {{ formatCurrency(projection.current.other_liabilities) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-600">
               {{ formatCurrency(projection.at_death.other_liabilities) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-neutral-500">
               -
             </td>
           </tr>
 
           <!-- Net Estate Row (highlighted) -->
-          <tr class="bg-blue-50 font-semibold">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-900">
+          <tr class="bg-violet-50 font-semibold">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-violet-900">
               Net Estate
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-violet-900">
               {{ formatCurrency(projection.current.net_estate) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-violet-900">
               {{ formatCurrency(projection.at_death.net_estate) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-violet-900">
               +{{ formatCurrency(projection.at_death.net_estate - projection.current.net_estate) }}
             </td>
           </tr>
 
           <!-- Inheritance Tax Liability Row (highlighted) -->
-          <tr class="bg-red-50 font-semibold">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-red-900">
+          <tr class="bg-raspberry-50 font-semibold">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-raspberry-900">
               Inheritance Tax Liability (40%)
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-900">
               {{ formatCurrency(projection.current.iht_liability) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-900">
               {{ formatCurrency(projection.at_death.iht_liability) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-900">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-raspberry-900">
               {{ formatIHTChange() }}
             </td>
           </tr>
@@ -117,16 +117,16 @@
     </div>
 
     <!-- Growth Assumptions Note -->
-    <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+    <div class="mt-4 p-4 bg-violet-50 border border-violet-200 rounded-md">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-violet-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h4 class="text-sm font-medium text-blue-800">Projection Assumptions</h4>
-          <div class="mt-2 text-sm text-blue-700">
+          <h4 class="text-sm font-medium text-violet-800">Projection Assumptions</h4>
+          <div class="mt-2 text-sm text-violet-700">
             <ul class="list-disc list-inside space-y-1">
               <li>Assets grow at {{ formatPercent(projection.growth_rate_used) }} per annum (compound)</li>
               <li>Repayment mortgages amortize over remaining term</li>
@@ -167,9 +167,9 @@ export default {
 
     getMortgageChangeClass() {
       const change = this.projection.at_death.mortgages - this.projection.current.mortgages;
-      if (change < 0) return 'text-green-600'; // Reduced = good
-      if (change === 0) return 'text-gray-500';
-      return 'text-red-600'; // Increased = bad
+      if (change < 0) return 'text-spring-600'; // Reduced = good
+      if (change === 0) return 'text-neutral-500';
+      return 'text-raspberry-600'; // Increased = bad
     },
 
     formatMortgageChange() {

@@ -7,9 +7,9 @@
     </div>
 
     <!-- Display Mode -->
-    <div v-if="!isEditing" class="bg-white rounded-lg border border-gray-200 p-6">
+    <div v-if="!isEditing" class="bg-white rounded-lg border border-light-gray p-6">
       <div class="flex justify-between items-start mb-6">
-        <h3 class="text-h4 font-semibold text-gray-900">Health & Lifestyle</h3>
+        <h3 class="text-h4 font-semibold text-horizon-500">Health & Lifestyle</h3>
         <button
           @click="startEditing"
           class="btn-secondary"
@@ -23,28 +23,28 @@
         <!-- Left Column -->
         <div class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Health Status:</span>
-            <span class="text-body-sm text-gray-900 text-right">{{ formatHealthStatus(displayData.health_status) }}</span>
+            <span class="text-body-sm text-neutral-500">Health Status:</span>
+            <span class="text-body-sm text-horizon-500 text-right">{{ formatHealthStatus(displayData.health_status) }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Smoking Status:</span>
-            <span class="text-body-sm text-gray-900 text-right">{{ formatSmokingStatus(displayData.smoking_status) }}</span>
+            <span class="text-body-sm text-neutral-500">Smoking Status:</span>
+            <span class="text-body-sm text-horizon-500 text-right">{{ formatSmokingStatus(displayData.smoking_status) }}</span>
           </div>
         </div>
 
         <!-- Right Column -->
         <div class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-body-sm text-gray-600">Education Level:</span>
-            <span class="text-body-sm text-gray-900 text-right">{{ formatEducationLevel(displayData.education_level) }}</span>
+            <span class="text-body-sm text-neutral-500">Education Level:</span>
+            <span class="text-body-sm text-horizon-500 text-right">{{ formatEducationLevel(displayData.education_level) }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Edit Mode -->
-    <div v-else class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-h4 font-semibold text-gray-900 mb-6">Edit Health & Lifestyle</h3>
+    <div v-else class="bg-white rounded-lg border border-light-gray p-6">
+      <h3 class="text-h4 font-semibold text-horizon-500 mb-6">Edit Health & Lifestyle</h3>
 
       <form @submit.prevent="saveChanges" class="space-y-6">
         <!-- Error Message -->
@@ -71,7 +71,7 @@
               <option value="no_existing">No, existing health conditions</option>
               <option value="no_both">No, previous and existing health conditions</option>
             </select>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Affects protection insurance premiums
             </p>
           </div>
@@ -93,7 +93,7 @@
               <option value="quit_long_ago">No, gave up more than 12 months ago</option>
               <option value="yes">Yes</option>
             </select>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Significantly impacts insurance premiums
             </p>
           </div>
@@ -116,7 +116,7 @@
               <option value="professional">Professional Qualification</option>
               <option value="other">Other</option>
             </select>
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               Optional - helps with occupation profiling
             </p>
           </div>

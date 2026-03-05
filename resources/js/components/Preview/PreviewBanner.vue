@@ -198,41 +198,41 @@ export default {
 
         buttonColorClass() {
             const colors = {
-                young_family: 'text-blue-100 hover:text-white',
-                peak_earners: 'text-green-100 hover:text-white',
+                young_family: 'text-violet-100 hover:text-white',
+                peak_earners: 'text-spring-100 hover:text-white',
                 widow: 'text-purple-100 hover:text-white',
                 entrepreneur: 'text-fuchsia-100 hover:text-white',
                 young_saver: 'text-cyan-100 hover:text-white',
                 student: 'text-teal-100 hover:text-white',
                 retired_couple: 'text-rose-100 hover:text-white',
             };
-            return colors[this.basePersonaId] || 'text-gray-100 hover:text-white';
+            return colors[this.basePersonaId] || 'text-savannah-100 hover:text-white';
         },
 
         registerButtonClass() {
             const colors = {
-                young_family: 'bg-white text-blue-600 hover:bg-blue-50',
-                peak_earners: 'bg-white text-green-600 hover:bg-green-50',
+                young_family: 'bg-white text-violet-600 hover:bg-violet-50',
+                peak_earners: 'bg-white text-spring-600 hover:bg-spring-50',
                 widow: 'bg-white text-purple-600 hover:bg-purple-50',
                 entrepreneur: 'bg-white text-fuchsia-600 hover:bg-fuchsia-50',
                 young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
                 student: 'bg-white text-teal-600 hover:bg-teal-50',
                 retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
             };
-            return colors[this.basePersonaId] || 'bg-white text-gray-600 hover:bg-gray-50';
+            return colors[this.basePersonaId] || 'bg-white text-neutral-500 hover:bg-savannah-100';
         },
 
         loadingTextClass() {
             const colors = {
-                young_family: 'text-blue-100',
-                peak_earners: 'text-green-100',
+                young_family: 'text-violet-100',
+                peak_earners: 'text-spring-100',
                 widow: 'text-purple-100',
                 entrepreneur: 'text-fuchsia-100',
                 young_saver: 'text-cyan-100',
                 student: 'text-teal-100',
                 retired_couple: 'text-rose-100',
             };
-            return colors[this.basePersonaId] || 'text-gray-100';
+            return colors[this.basePersonaId] || 'text-savannah-100';
         },
 
         /**

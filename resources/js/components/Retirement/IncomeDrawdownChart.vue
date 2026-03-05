@@ -83,7 +83,7 @@ export default {
       return {
         chart: {
           type: 'bar',
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: true,
             tools: {
@@ -286,13 +286,13 @@ export default {
   align-items: center;
   justify-content: center;
   height: 400px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
-  @apply border border-dashed border-gray-300;
+  @apply border border-dashed border-horizon-300;
 }
 
 .chart-placeholder p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   margin: 0;
 }
@@ -300,7 +300,7 @@ export default {
 /* Custom tooltip styles - need to be global for ApexCharts */
 :deep(.custom-tooltip) {
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -310,42 +310,42 @@ export default {
 :deep(.tooltip-header) {
   font-size: 14px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 :deep(.tooltip-row) {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 :deep(.tooltip-row strong) {
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 :deep(.tooltip-row.total) {
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 :deep(.tooltip-row.target) {
-  @apply text-blue-500;
+  @apply text-violet-500;
 }
 
 :deep(.tooltip-row.fund) {
   margin-top: 4px;
   padding-top: 4px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 :deep(.tooltip-divider) {
   height: 1px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   margin: 8px 0;
 }
 
@@ -359,12 +359,12 @@ export default {
 }
 
 :deep(.status-above) {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 :deep(.status-below) {
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 </style>

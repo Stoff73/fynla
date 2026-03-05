@@ -408,7 +408,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-bottom: 16px;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
@@ -418,24 +418,24 @@ export default {
 }
 
 .strategy-card.at-target {
-  @apply border-green-200;
+  @apply border-spring-200;
   background: linear-gradient(135deg, white 0%, theme('colors.green.50') 100%);
 }
 
 .strategy-card.priority-1 .priority-badge {
-  @apply bg-green-600;
+  @apply bg-spring-600;
 }
 
 .strategy-card.priority-2 .priority-badge {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
 }
 
 .strategy-card.priority-3 .priority-badge {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .strategy-card.priority-4 .priority-badge {
-  @apply bg-gray-500;
+  @apply bg-savannah-500;
 }
 
 .card-header {
@@ -468,13 +468,13 @@ export default {
 .strategy-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .pension-name {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -482,8 +482,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -497,7 +497,7 @@ export default {
 
 .description {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 12px 0;
   line-height: 1.5;
 }
@@ -507,7 +507,7 @@ export default {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  @apply text-green-700;
+  @apply text-spring-700;
   margin: 0 0 20px 0;
 }
 
@@ -530,13 +530,13 @@ export default {
 
 .current-label {
   font-size: 12px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .new-label {
   font-size: 14px;
   font-weight: 600;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .slider-wrapper {
@@ -561,7 +561,7 @@ export default {
   appearance: none;
   width: 20px;
   height: 20px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid white;
@@ -571,7 +571,7 @@ export default {
 .slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid white;
@@ -585,7 +585,7 @@ export default {
   left: 0;
   right: 0;
   height: 8px;
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
   border-radius: 4px;
   z-index: 0;
 }
@@ -596,7 +596,7 @@ export default {
   transform: translateY(-50%);
   left: 0;
   height: 8px;
-  @apply bg-gradient-to-r from-primary-500 to-primary-400;
+  @apply bg-gradient-to-r from-raspberry-500 to-raspberry-400;
   border-radius: 4px;
   z-index: 1;
   pointer-events: none;
@@ -606,7 +606,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 /* Impact Section */
@@ -614,7 +614,7 @@ export default {
   display: flex;
   gap: 24px;
   padding: 16px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
   margin-bottom: 16px;
   transition: opacity 0.2s;
@@ -631,43 +631,43 @@ export default {
 .impact-label {
   display: block;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 .impact-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .impact-value.positive {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .impact-value.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .impact-value.blue {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .impact-value.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 /* Constraints Info */
 .constraints-info {
   padding: 12px 16px;
-  @apply bg-blue-100;
+  @apply bg-violet-100;
   border-radius: 8px;
-  @apply border border-blue-200;
+  @apply border border-violet-200;
 }
 
 .constraints-info p {
   font-size: 12px;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0;
 }
 
@@ -679,13 +679,13 @@ export default {
 .projection-section {
   margin-top: 24px;
   padding-top: 24px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .projection-title {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -700,7 +700,7 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 12px;
 }
 
@@ -711,20 +711,20 @@ export default {
 }
 
 .comparison-item.without {
-  @apply bg-red-50;
-  @apply border border-red-200;
+  @apply bg-raspberry-50;
+  @apply border border-raspberry-200;
 }
 
 .comparison-item.with {
-  @apply bg-green-50;
-  @apply border border-green-200;
+  @apply bg-spring-50;
+  @apply border border-spring-200;
 }
 
 .comparison-label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -739,12 +739,12 @@ export default {
 .pot-value {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .income-value {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .coverage-badge {
@@ -757,23 +757,23 @@ export default {
 }
 
 .coverage-excellent {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .coverage-good {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .coverage-fair {
-  @apply bg-blue-200;
-  @apply text-blue-800;
+  @apply bg-violet-200;
+  @apply text-violet-800;
 }
 
 .coverage-poor {
-  @apply bg-red-200;
-  @apply text-red-800;
+  @apply bg-raspberry-200;
+  @apply text-raspberry-800;
 }
 
 .comparison-arrow {
@@ -781,7 +781,7 @@ export default {
 }
 
 .comparison-arrow svg {
-  @apply w-6 h-6 text-green-600;
+  @apply w-6 h-6 text-spring-600;
 }
 
 @media (max-width: 640px) {

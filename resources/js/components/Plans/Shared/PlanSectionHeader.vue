@@ -36,7 +36,7 @@ export default {
         blue: 'bg-blue-50 border border-blue-200',
         green: 'bg-green-50 border border-green-200',
         purple: 'bg-purple-50 border border-purple-200',
-        gray: 'bg-gray-50 border border-gray-200',
+        gray: 'bg-eggshell-500 border border-light-gray',
         teal: 'bg-teal-50 border border-teal-200',
       };
       return map[this.color] || map.blue;
@@ -46,7 +46,7 @@ export default {
         blue: 'text-blue-900',
         green: 'text-green-900',
         purple: 'text-purple-900',
-        gray: 'text-gray-900',
+        gray: 'text-horizon-500',
         teal: 'text-teal-900',
       };
       return map[this.color] || map.blue;
@@ -56,7 +56,7 @@ export default {
         blue: 'text-blue-700',
         green: 'text-green-700',
         purple: 'text-purple-700',
-        gray: 'text-gray-600',
+        gray: 'text-neutral-500',
         teal: 'text-teal-700',
       };
       return map[this.color] || map.blue;

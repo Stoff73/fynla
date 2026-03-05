@@ -2,27 +2,27 @@
   <div class="card">
     <!-- Portfolio Section (clickable) -->
     <div
-      class="cursor-pointer hover:bg-gray-50 -m-6 p-6 pb-4 rounded-t-lg transition-colors"
+      class="cursor-pointer hover:bg-savannah-100 -m-6 p-6 pb-4 rounded-t-lg transition-colors"
       @click="navigateToInvestments"
     >
       <!-- Primary Value Section with YTD Net -->
-      <div class="border-b border-gray-200 pb-4 mb-4">
-        <span class="text-sm text-gray-500">Total Portfolio Value</span>
+      <div class="border-b border-light-gray pb-4 mb-4">
+        <span class="text-sm text-neutral-500">Total Portfolio Value</span>
         <div class="flex items-baseline gap-3 mt-1">
-          <span class="text-3xl font-bold text-primary-600">
+          <span class="text-3xl font-bold text-raspberry-500">
             {{ formatCurrency(totalValue) }}
           </span>
         </div>
         <div class="flex items-center gap-2 mt-2">
-          <span class="text-sm text-gray-500">Annualised Return:</span>
+          <span class="text-sm text-neutral-500">Annualised Return:</span>
           <span
             v-if="portfolioAnnualisedReturn !== null"
             class="text-sm font-semibold"
-            :class="portfolioAnnualisedReturn >= 0 ? 'text-green-600' : 'text-red-600'"
+            :class="portfolioAnnualisedReturn >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
           >
             {{ portfolioAnnualisedReturn >= 0 ? '+' : '' }}{{ portfolioAnnualisedReturn.toFixed(2) }}%
           </span>
-          <span v-else class="text-sm text-gray-400">N/A</span>
+          <span v-else class="text-sm text-horizon-400">N/A</span>
         </div>
       </div>
 
@@ -34,39 +34,39 @@
           class="flex justify-between items-center"
         >
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-900">{{ account.displayName }}</span>
+            <span class="text-sm font-medium text-horizon-500">{{ account.displayName }}</span>
             <span
               v-if="account.isJoint"
-              class="text-xs text-blue-600 font-medium"
+              class="text-xs text-violet-600 font-medium"
             >
               (Joint)
             </span>
           </div>
-          <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
+          <div class="text-sm font-semibold text-horizon-500">{{ formatCurrency(account.current_value) }}</div>
         </div>
       </div>
     </div>
 
     <!-- Divider -->
-    <div class="border-t border-gray-200 my-4"></div>
+    <div class="border-t border-light-gray my-4"></div>
 
     <!-- Cash Flow Section (clickable) -->
     <div
-      class="cursor-pointer hover:bg-gray-50 -mx-6 -mb-6 p-6 pt-0 rounded-b-lg transition-colors"
+      class="cursor-pointer hover:bg-savannah-100 -mx-6 -mb-6 p-6 pt-0 rounded-b-lg transition-colors"
       @click="navigateToCash"
     >
-      <div class="border-b border-gray-200 pb-4 mb-4">
-        <span class="text-sm text-gray-500">{{ currentMonth }} Cash Flow</span>
+      <div class="border-b border-light-gray pb-4 mb-4">
+        <span class="text-sm text-neutral-500">{{ currentMonth }} Cash Flow</span>
         <div class="flex items-baseline gap-2 mt-1">
           <span
             class="text-3xl font-bold"
-            :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+            :class="monthlySurplus >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
           >
             {{ formatCurrency(Math.abs(monthlySurplus)) }}
           </span>
           <span
             class="text-sm font-medium"
-            :class="monthlySurplus >= 0 ? 'text-green-600' : 'text-red-600'"
+            :class="monthlySurplus >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
           >
             {{ monthlySurplus >= 0 ? 'surplus' : 'deficit' }}
           </span>
@@ -76,12 +76,12 @@
       <!-- Breakdown -->
       <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">Money In</span>
-          <span class="text-sm font-semibold text-green-600">{{ formatCurrency(monthlyIncome) }}</span>
+          <span class="text-sm text-neutral-500">Money In</span>
+          <span class="text-sm font-semibold text-spring-600">{{ formatCurrency(monthlyIncome) }}</span>
         </div>
         <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-600">Money Out</span>
-          <span class="text-sm font-semibold text-red-600">{{ formatCurrency(monthlyExpenditure) }}</span>
+          <span class="text-sm text-neutral-500">Money Out</span>
+          <span class="text-sm font-semibold text-raspberry-600">{{ formatCurrency(monthlyExpenditure) }}</span>
         </div>
       </div>
     </div>

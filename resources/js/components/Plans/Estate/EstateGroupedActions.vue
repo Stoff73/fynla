@@ -13,7 +13,7 @@
             v-for="action in sortByPriority(actions)"
             :key="action.id"
             class="bg-white rounded-lg border p-4 transition-all duration-200"
-            :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-75'"
+            :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-light-gray opacity-75'"
           >
             <!-- Action header with toggle -->
             <div class="flex items-start justify-between">
@@ -25,10 +25,10 @@
                   >
                     {{ priorityLabel(action.priority) }}
                   </span>
-                  <span class="text-xs text-gray-500">{{ action.category }}</span>
+                  <span class="text-xs text-neutral-500">{{ action.category }}</span>
                 </div>
-                <h4 class="text-sm font-semibold text-gray-900">{{ action.title }}</h4>
-                <p class="text-sm text-gray-600 mt-1">{{ action.description }}</p>
+                <h4 class="text-sm font-semibold text-horizon-500">{{ action.title }}</h4>
+                <p class="text-sm text-neutral-500 mt-1">{{ action.description }}</p>
 
                 <!-- Estimated impact -->
                 <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
@@ -48,7 +48,7 @@
                       <path v-else fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                     {{ action.affordability.is_affordable ? 'Affordable' : 'May exceed budget' }}
-                    <span class="ml-1 text-gray-500">
+                    <span class="ml-1 text-neutral-500">
                       ({{ formatCurrency(action.affordability.monthly_premium_estimate) }}/month)
                     </span>
                   </div>
@@ -58,10 +58,10 @@
                 </div>
 
                 <!-- Funding source for charitable/gifting -->
-                <div v-if="action.funding_source" class="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                  <span class="font-medium text-gray-700">Funding:</span>
+                <div v-if="action.funding_source" class="mt-2 p-2 bg-eggshell-500 rounded text-xs text-neutral-500">
+                  <span class="font-medium text-horizon-500">Funding:</span>
                   {{ action.funding_source.note }}
-                  <span v-if="action.funding_source.liquid_assets_available > 0" class="text-gray-500 ml-1">
+                  <span v-if="action.funding_source.liquid_assets_available > 0" class="text-neutral-500 ml-1">
                     ({{ formatCurrency(action.funding_source.liquid_assets_available) }} liquid assets available)
                   </span>
                 </div>
@@ -69,7 +69,7 @@
                 <!-- PET Gifting Schedule -->
                 <div v-if="action.category === 'pet_gifting' && action.gift_schedule && action.gift_schedule.length > 0" class="mt-3">
                   <button
-                    class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors duration-150 flex items-center"
+                    class="text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors duration-150 flex items-center"
                     @click="toggleSchedule(action.id)"
                   >
                     <svg
@@ -85,27 +85,27 @@
                   </button>
 
                   <div v-if="expandedSchedule[action.id]" class="mt-2">
-                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
-                      <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <div class="overflow-x-auto border border-light-gray rounded-lg">
+                      <table class="min-w-full divide-y divide-light-gray">
+                        <thead class="bg-eggshell-500">
                           <tr>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Gift Amount</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inheritance Tax Reduction</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Exempt After Year</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Year</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Gift Amount</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Inheritance Tax Reduction</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">Exempt After Year</th>
                           </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-light-gray">
                           <tr v-for="(entry, idx) in action.gift_schedule" :key="idx">
-                            <td class="px-3 py-2 text-xs text-gray-900">Year {{ entry.year + 1 }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-900 text-right">{{ formatCurrency(entry.amount) }}</td>
+                            <td class="px-3 py-2 text-xs text-horizon-500">Year {{ entry.year + 1 }}</td>
+                            <td class="px-3 py-2 text-xs text-horizon-500 text-right">{{ formatCurrency(entry.amount) }}</td>
                             <td class="px-3 py-2 text-xs text-green-700 text-right">{{ formatCurrency(entry.iht_reduction) }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-600 text-right">Year {{ entry.becomes_exempt }}</td>
+                            <td class="px-3 py-2 text-xs text-neutral-500 text-right">Year {{ entry.becomes_exempt }}</td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
-                    <p v-if="action.seven_year_cycles" class="text-xs text-gray-500 mt-1.5">
+                    <p v-if="action.seven_year_cycles" class="text-xs text-neutral-500 mt-1.5">
                       {{ action.seven_year_cycles }} complete 7-year cycle{{ action.seven_year_cycles !== 1 ? 's' : '' }} of {{ formatCurrency(action.amount_per_cycle) }} each.
                     </p>
                   </div>
@@ -114,20 +114,20 @@
                 <!-- Annual Gifting Detail -->
                 <div v-if="action.category === 'annual_gifting' && action.annual_gifting_detail" class="mt-3">
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div class="bg-gray-50 rounded p-2">
-                      <p class="text-xs text-gray-500">Annual Amount</p>
-                      <p class="text-xs font-semibold text-gray-900">{{ formatCurrency(action.annual_gifting_detail.annual_amount) }}</p>
+                    <div class="bg-eggshell-500 rounded p-2">
+                      <p class="text-xs text-neutral-500">Annual Amount</p>
+                      <p class="text-xs font-semibold text-horizon-500">{{ formatCurrency(action.annual_gifting_detail.annual_amount) }}</p>
                     </div>
-                    <div class="bg-gray-50 rounded p-2">
-                      <p class="text-xs text-gray-500">Over</p>
-                      <p class="text-xs font-semibold text-gray-900">{{ action.annual_gifting_detail.years }} years</p>
+                    <div class="bg-eggshell-500 rounded p-2">
+                      <p class="text-xs text-neutral-500">Over</p>
+                      <p class="text-xs font-semibold text-horizon-500">{{ action.annual_gifting_detail.years }} years</p>
                     </div>
-                    <div class="bg-gray-50 rounded p-2">
-                      <p class="text-xs text-gray-500">Total Gifted</p>
-                      <p class="text-xs font-semibold text-gray-900">{{ formatCurrency(action.annual_gifting_detail.total_gifted) }}</p>
+                    <div class="bg-eggshell-500 rounded p-2">
+                      <p class="text-xs text-neutral-500">Total Gifted</p>
+                      <p class="text-xs font-semibold text-horizon-500">{{ formatCurrency(action.annual_gifting_detail.total_gifted) }}</p>
                     </div>
-                    <div class="bg-gray-50 rounded p-2">
-                      <p class="text-xs text-gray-500">Inheritance Tax Saved</p>
+                    <div class="bg-eggshell-500 rounded p-2">
+                      <p class="text-xs text-neutral-500">Inheritance Tax Saved</p>
                       <p class="text-xs font-semibold text-green-700">{{ formatCurrency(action.annual_gifting_detail.iht_saved) }}</p>
                     </div>
                   </div>
@@ -136,7 +136,7 @@
                 <!-- Expandable guidance section -->
                 <div v-if="action.guidance && action.guidance.steps && action.guidance.steps.length > 0" class="mt-3">
                   <button
-                    class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors duration-150 flex items-center"
+                    class="text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors duration-150 flex items-center"
                     @click="toggleGuidance(action.id)"
                   >
                     <svg
@@ -152,17 +152,17 @@
                   </button>
 
                   <div v-if="expandedGuidance[action.id]" class="mt-2 pl-1">
-                    <ol class="list-decimal list-inside space-y-1.5 text-xs text-gray-600">
+                    <ol class="list-decimal list-inside space-y-1.5 text-xs text-neutral-500">
                       <li v-for="(step, idx) in action.guidance.steps" :key="idx">
                         {{ step }}
                       </li>
                     </ol>
                     <div class="mt-2 flex flex-wrap gap-3 text-xs">
-                      <span v-if="action.guidance.timeframe" class="text-gray-500">
-                        <span class="font-medium text-gray-700">Timeframe:</span> {{ action.guidance.timeframe }}
+                      <span v-if="action.guidance.timeframe" class="text-neutral-500">
+                        <span class="font-medium text-horizon-500">Timeframe:</span> {{ action.guidance.timeframe }}
                       </span>
-                      <span v-if="action.guidance.professional_advice" class="text-gray-500">
-                        <span class="font-medium text-gray-700">Advice:</span> {{ action.guidance.professional_advice }}
+                      <span v-if="action.guidance.professional_advice" class="text-neutral-500">
+                        <span class="font-medium text-horizon-500">Advice:</span> {{ action.guidance.professional_advice }}
                       </span>
                     </div>
                   </div>
@@ -172,8 +172,8 @@
               <!-- Toggle switch -->
               <div class="flex-shrink-0">
                 <button
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  :class="action.enabled ? 'bg-[#1257A0]' : 'bg-gray-300'"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                  :class="action.enabled ? 'bg-raspberry-500' : 'bg-horizon-300'"
                   role="switch"
                   :aria-checked="action.enabled"
                   :aria-label="`${action.enabled ? 'Disable' : 'Enable'} action: ${action.title}`"
@@ -190,14 +190,14 @@
         </div>
 
         <!-- What-if comparison -->
-        <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-gray-200 p-4 mt-3">
-          <div class="grid grid-cols-2 divide-x divide-gray-200">
+        <div v-if="hasWhatIfData" class="bg-white rounded-lg border border-light-gray p-4 mt-3">
+          <div class="grid grid-cols-2 divide-x divide-light-gray">
             <div class="pr-4">
-              <h5 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Current Position</h5>
+              <h5 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Current Position</h5>
               <EstateWhatIfControls :scenario="whatIf.current_scenario" />
             </div>
             <div class="pl-4">
-              <h5 class="text-xs font-semibold text-primary-700 uppercase tracking-wider mb-3">With Actions</h5>
+              <h5 class="text-xs font-semibold text-raspberry-700 uppercase tracking-wider mb-3">With Actions</h5>
               <EstateWhatIfControls :scenario="projectedScenario" show-savings />
             </div>
           </div>
@@ -205,8 +205,8 @@
       </div>
     </template>
 
-    <div v-else class="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-      <p class="text-gray-500 text-sm">No recommendations available for this plan.</p>
+    <div v-else class="bg-eggshell-500 rounded-lg border border-light-gray p-6 text-center">
+      <p class="text-neutral-500 text-sm">No recommendations available for this plan.</p>
     </div>
   </div>
 </template>
@@ -312,7 +312,7 @@ export default {
       const map = {
         critical: 'bg-red-100 text-red-800',
         high: 'bg-blue-100 text-blue-800',
-        medium: 'bg-gray-100 text-gray-800',
+        medium: 'bg-savannah-100 text-horizon-500',
         low: 'bg-green-100 text-green-800',
       };
       return map[priority] || map.medium;

@@ -1,6 +1,6 @@
 <template>
   <!-- Grid row for displaying expenditure values -->
-  <div :class="['col-label text-body-sm py-1', indent ? 'pl-7' : '', bold ? 'font-semibold text-gray-900' : 'text-gray-600']">
+  <div :class="['col-label text-body-sm py-1', indent ? 'pl-7' : '', bold ? 'font-semibold text-horizon-500' : 'text-neutral-500']">
     {{ label }}
     <slot name="badge" />
   </div>
@@ -76,7 +76,7 @@ export default {
     },
     valueClass: {
       type: String,
-      default: 'text-gray-900',
+      default: 'text-horizon-500',
     },
   },
 

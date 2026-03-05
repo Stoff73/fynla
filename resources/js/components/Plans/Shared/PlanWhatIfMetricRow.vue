@@ -1,8 +1,8 @@
 <template>
-  <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-    <span class="text-sm text-gray-600">{{ label }}</span>
+  <div class="flex items-center justify-between py-2 border-b border-savannah-100 last:border-b-0">
+    <span class="text-sm text-neutral-500">{{ label }}</span>
     <div class="flex items-center space-x-2">
-      <span class="text-sm font-semibold text-gray-900">{{ formattedValue }}</span>
+      <span class="text-sm font-semibold text-horizon-500">{{ formattedValue }}</span>
       <span
         v-if="delta !== null && delta !== undefined && delta !== 0"
         class="text-xs font-medium px-1.5 py-0.5 rounded"

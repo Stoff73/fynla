@@ -1,11 +1,11 @@
 <template>
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+  <div class="fixed inset-0 bg-horizon-500 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-medium text-gray-900">
+        <h3 class="text-lg font-medium text-horizon-500">
           {{ isEdit ? 'Edit Trust' : 'Add New Trust' }}
         </h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500">
+        <button @click="$emit('close')" class="text-horizon-400 hover:text-neutral-500">
           <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -16,25 +16,25 @@
         <!-- Trust Name & Type -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="trust_name" class="block text-sm font-medium text-gray-700">Trust Name *</label>
+            <label for="trust_name" class="block text-sm font-medium text-neutral-500">Trust Name *</label>
             <input
               v-model="form.trust_name"
               type="text"
               id="trust_name"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               placeholder="e.g., Smith Family Trust"
             />
           </div>
 
           <div>
-            <label for="trust_type" class="block text-sm font-medium text-gray-700">Trust Type *</label>
+            <label for="trust_type" class="block text-sm font-medium text-neutral-500">Trust Type *</label>
             <select
               v-model="form.trust_type"
               id="trust_type"
               required
               @change="onTrustTypeChange"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             >
               <option value="">Select trust type...</option>
               <option value="bare">Bare Trust</option>
@@ -51,28 +51,28 @@
         </div>
 
         <!-- Trust Type Information -->
-        <div v-if="trustTypeInfo" class="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 class="text-sm font-semibold text-blue-900 mb-2">{{ trustTypeInfo.name }}</h4>
-          <p class="text-xs text-blue-800 mb-2">{{ trustTypeInfo.description }}</p>
-          <p class="text-xs text-blue-700"><strong>Inheritance Tax Treatment:</strong> {{ trustTypeInfo.iht_treatment }}</p>
-          <p class="text-xs text-blue-700 mt-1"><strong>Best For:</strong> {{ trustTypeInfo.best_for }}</p>
+        <div v-if="trustTypeInfo" class="bg-violet-50 border border-violet-200 rounded-md p-4">
+          <h4 class="text-sm font-semibold text-violet-900 mb-2">{{ trustTypeInfo.name }}</h4>
+          <p class="text-xs text-violet-800 mb-2">{{ trustTypeInfo.description }}</p>
+          <p class="text-xs text-violet-700"><strong>Inheritance Tax Treatment:</strong> {{ trustTypeInfo.iht_treatment }}</p>
+          <p class="text-xs text-violet-700 mt-1"><strong>Best For:</strong> {{ trustTypeInfo.best_for }}</p>
         </div>
 
         <!-- Creation Date & Values -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label for="trust_creation_date" class="block text-sm font-medium text-gray-700">Creation Date *</label>
+            <label for="trust_creation_date" class="block text-sm font-medium text-neutral-500">Creation Date *</label>
             <input
               v-model="form.trust_creation_date"
               type="date"
               id="trust_creation_date"
               required
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             />
           </div>
 
           <div>
-            <label for="initial_value" class="block text-sm font-medium text-gray-700">Initial Value (£) *</label>
+            <label for="initial_value" class="block text-sm font-medium text-neutral-500">Initial Value (£) *</label>
             <input
               v-model.number="form.initial_value"
               type="number"
@@ -80,12 +80,12 @@
               required
               min="0"
               step="0.01"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             />
           </div>
 
           <div>
-            <label for="current_value" class="block text-sm font-medium text-gray-700">Current Value (£) *</label>
+            <label for="current_value" class="block text-sm font-medium text-neutral-500">Current Value (£) *</label>
             <input
               v-model.number="form.current_value"
               type="number"
@@ -93,58 +93,58 @@
               required
               min="0"
               step="0.01"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             />
           </div>
         </div>
 
         <!-- Discounted Gift Trust Fields -->
-        <div v-if="form.trust_type === 'discounted_gift'" class="border border-blue-200 rounded-md p-4 bg-blue-50">
-          <h4 class="text-sm font-semibold text-blue-900 mb-3">Discounted Gift Trust Details</h4>
+        <div v-if="form.trust_type === 'discounted_gift'" class="border border-violet-200 rounded-md p-4 bg-violet-50">
+          <h4 class="text-sm font-semibold text-violet-900 mb-3">Discounted Gift Trust Details</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="discount_amount" class="block text-sm font-medium text-gray-700">Discount Amount (£)</label>
+              <label for="discount_amount" class="block text-sm font-medium text-neutral-500">Discount Amount (£)</label>
               <input
                 v-model.number="form.discount_amount"
                 type="number"
                 id="discount_amount"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
-              <p class="mt-1 text-xs text-gray-500">Actuarial value of retained income stream</p>
+              <p class="mt-1 text-xs text-neutral-500">Actuarial value of retained income stream</p>
             </div>
 
             <div>
-              <label for="retained_income_annual" class="block text-sm font-medium text-gray-700">Annual Income (£)</label>
+              <label for="retained_income_annual" class="block text-sm font-medium text-neutral-500">Annual Income (£)</label>
               <input
                 v-model.number="form.retained_income_annual"
                 type="number"
                 id="retained_income_annual"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
-              <p class="mt-1 text-xs text-gray-500">Annual income retained by settlor</p>
+              <p class="mt-1 text-xs text-neutral-500">Annual income retained by settlor</p>
             </div>
           </div>
         </div>
 
         <!-- Loan Trust Fields -->
-        <div v-if="form.trust_type === 'loan'" class="border border-green-200 rounded-md p-4 bg-green-50">
-          <h4 class="text-sm font-semibold text-green-900 mb-3">Loan Trust Details</h4>
+        <div v-if="form.trust_type === 'loan'" class="border border-spring-200 rounded-md p-4 bg-spring-50">
+          <h4 class="text-sm font-semibold text-spring-900 mb-3">Loan Trust Details</h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label for="loan_amount" class="block text-sm font-medium text-gray-700">Loan Amount (£)</label>
+              <label for="loan_amount" class="block text-sm font-medium text-neutral-500">Loan Amount (£)</label>
               <input
                 v-model.number="form.loan_amount"
                 type="number"
                 id="loan_amount"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
-              <p class="mt-1 text-xs text-gray-500">Outstanding loan balance</p>
+              <p class="mt-1 text-xs text-neutral-500">Outstanding loan balance</p>
             </div>
 
             <div>
@@ -152,14 +152,14 @@
                 <input
                   v-model="form.loan_interest_bearing"
                   type="checkbox"
-                  class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                  class="rounded border-horizon-300 text-violet-600 shadow-sm focus:border-violet-500 focus:ring-violet-500"
                 />
-                <span class="ml-2 text-sm text-gray-700">Interest Bearing</span>
+                <span class="ml-2 text-sm text-neutral-500">Interest Bearing</span>
               </label>
             </div>
 
             <div v-if="form.loan_interest_bearing">
-              <label for="loan_interest_rate" class="block text-sm font-medium text-gray-700">Interest Rate (%)</label>
+              <label for="loan_interest_rate" class="block text-sm font-medium text-neutral-500">Interest Rate (%)</label>
               <input
                 v-model.number="form.loan_interest_rate"
                 type="number"
@@ -167,7 +167,7 @@
                 min="0"
                 max="100"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
             </div>
           </div>
@@ -178,27 +178,27 @@
           <h4 class="text-sm font-semibold text-purple-900 mb-3">Life Insurance Trust Details</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="sum_assured" class="block text-sm font-medium text-gray-700">Sum Assured (£)</label>
+              <label for="sum_assured" class="block text-sm font-medium text-neutral-500">Sum Assured (£)</label>
               <input
                 v-model.number="form.sum_assured"
                 type="number"
                 id="sum_assured"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
-              <p class="mt-1 text-xs text-gray-500">Life insurance policy payout</p>
+              <p class="mt-1 text-xs text-neutral-500">Life insurance policy payout</p>
             </div>
 
             <div>
-              <label for="annual_premium" class="block text-sm font-medium text-gray-700">Annual Premium (£)</label>
+              <label for="annual_premium" class="block text-sm font-medium text-neutral-500">Annual Premium (£)</label>
               <input
                 v-model.number="form.annual_premium"
                 type="number"
                 id="annual_premium"
                 min="0"
                 step="0.01"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+                class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               />
             </div>
           </div>
@@ -207,23 +207,23 @@
         <!-- Beneficiaries & Trustees -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="beneficiaries" class="block text-sm font-medium text-gray-700">Beneficiaries</label>
+            <label for="beneficiaries" class="block text-sm font-medium text-neutral-500">Beneficiaries</label>
             <textarea
               v-model="form.beneficiaries"
               id="beneficiaries"
               rows="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               placeholder="List beneficiaries..."
             ></textarea>
           </div>
 
           <div>
-            <label for="trustees" class="block text-sm font-medium text-gray-700">Trustees</label>
+            <label for="trustees" class="block text-sm font-medium text-neutral-500">Trustees</label>
             <textarea
               v-model="form.trustees"
               id="trustees"
               rows="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
               placeholder="List trustees..."
             ></textarea>
           </div>
@@ -231,23 +231,23 @@
 
         <!-- Purpose & Notes -->
         <div>
-          <label for="purpose" class="block text-sm font-medium text-gray-700">Purpose</label>
+          <label for="purpose" class="block text-sm font-medium text-neutral-500">Purpose</label>
           <textarea
             v-model="form.purpose"
             id="purpose"
             rows="2"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+            class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             placeholder="Purpose of the trust..."
           ></textarea>
         </div>
 
         <div>
-          <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+          <label for="notes" class="block text-sm font-medium text-neutral-500">Notes</label>
           <textarea
             v-model="form.notes"
             id="notes"
             rows="2"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+            class="mt-1 block w-full rounded-md border-horizon-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             placeholder="Additional notes..."
           ></textarea>
         </div>
@@ -258,15 +258,15 @@
             <input
               v-model="form.is_active"
               type="checkbox"
-              class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-primary-500"
+              class="rounded border-horizon-300 text-violet-600 shadow-sm focus:border-violet-500 focus:ring-violet-500"
             />
-            <span class="ml-2 text-sm text-gray-700">Trust is Active</span>
+            <span class="ml-2 text-sm text-neutral-500">Trust is Active</span>
           </label>
         </div>
 
         <!-- Error Message -->
-        <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-3">
-          <p class="text-sm text-red-800">{{ error }}</p>
+        <div v-if="error" class="bg-raspberry-50 border border-raspberry-200 rounded-md p-3">
+          <p class="text-sm text-raspberry-800">{{ error }}</p>
         </div>
 
         <!-- Form Actions -->
@@ -274,14 +274,14 @@
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50"
+            class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-button hover:bg-eggshell-500"
             :disabled="submitting"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-button hover:bg-primary-700 disabled:opacity-50"
+            class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 border border-transparent rounded-button hover:bg-raspberry-600 disabled:opacity-50"
             :disabled="submitting"
           >
             {{ submitting ? 'Saving...' : (isEdit ? 'Update Trust' : 'Create Trust') }}

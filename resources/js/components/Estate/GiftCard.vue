@@ -279,8 +279,8 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  @apply bg-gray-50;
-  @apply border-b border-gray-200;
+  @apply bg-eggshell-500;
+  @apply border-b border-light-gray;
 }
 
 .gift-icon {
@@ -294,18 +294,18 @@ export default {
 }
 
 .icon-success {
-  @apply bg-green-100;
-  @apply text-green-600;
+  @apply bg-spring-100;
+  @apply text-spring-600;
 }
 
 .icon-warning {
-  @apply bg-blue-100;
-  @apply text-blue-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .icon-danger {
-  @apply bg-red-100;
-  @apply text-red-600;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-600;
 }
 
 .gift-info {
@@ -315,13 +315,13 @@ export default {
 .recipient-name {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-800;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .gift-date {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
   display: flex;
   align-items: center;
@@ -335,7 +335,7 @@ export default {
 .value-label {
   display: block;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
@@ -343,7 +343,7 @@ export default {
   display: block;
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-800;
+  @apply text-horizon-500;
 }
 
 .card-body {
@@ -358,12 +358,12 @@ export default {
 }
 
 .info-row .label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .info-row .value {
-  @apply text-gray-800;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
@@ -379,18 +379,18 @@ export default {
 }
 
 .progress-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .progress-percentage {
-  @apply text-gray-800;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .progress-bar-container {
   height: 12px;
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -416,7 +416,7 @@ export default {
 .taper-relief {
   margin: 16px 0;
   padding: 12px;
-  @apply bg-blue-50;
+  @apply bg-violet-50;
   border-radius: 6px;
 }
 
@@ -432,23 +432,23 @@ export default {
 }
 
 .relief-low {
-  @apply bg-red-200;
-  @apply text-red-800;
+  @apply bg-raspberry-200;
+  @apply text-raspberry-800;
 }
 
 .relief-medium {
-  @apply bg-blue-200;
-  @apply text-blue-800;
+  @apply bg-violet-200;
+  @apply text-violet-800;
 }
 
 .relief-high {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .relief-description {
   font-size: 12px;
-  @apply text-blue-900;
+  @apply text-violet-900;
   margin: 0;
 }
 
@@ -467,15 +467,15 @@ export default {
 }
 
 .banner-success {
-  @apply bg-green-100 text-green-800 border border-green-500;
+  @apply bg-spring-100 text-spring-800 border border-spring-500;
 }
 
 .banner-warning {
-  @apply bg-blue-100 text-blue-800 border border-blue-500;
+  @apply bg-violet-100 text-violet-800 border border-violet-500;
 }
 
 .banner-danger {
-  @apply bg-red-100 text-red-800 border border-red-500;
+  @apply bg-raspberry-100 text-raspberry-800 border border-raspberry-500;
 }
 
 .card-footer {
@@ -483,8 +483,8 @@ export default {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  @apply bg-gray-50;
-  @apply border-t border-gray-200;
+  @apply bg-eggshell-500;
+  @apply border-t border-light-gray;
 }
 
 .btn {
@@ -511,20 +511,20 @@ export default {
 }
 
 .btn-secondary {
-  @apply bg-gray-200;
-  @apply text-gray-700;
+  @apply bg-savannah-200;
+  @apply text-neutral-500;
 }
 
 .btn-secondary:hover {
-  @apply bg-gray-300;
+  @apply bg-savannah-300;
 }
 
 .btn-danger {
-  @apply bg-red-200;
-  @apply text-red-800;
+  @apply bg-raspberry-200;
+  @apply text-raspberry-800;
 }
 
 .btn-danger:hover {
-  @apply bg-red-300;
+  @apply bg-raspberry-300;
 }
 </style>

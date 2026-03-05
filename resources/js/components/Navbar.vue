@@ -5,12 +5,12 @@
     @close="handleLogoutModalClose"
   />
 
-  <nav class="bg-gray-50 shadow-sm border-b border-gray-200" style="background-color: #F9FAFB;">
+  <nav class="bg-eggshell-500 shadow-sm border-b border-light-gray">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
 
         <!-- Page Title -->
-        <h1 v-if="pageTitle" class="text-lg font-semibold text-gray-900">{{ pageTitle }}</h1>
+        <h1 v-if="pageTitle" class="text-lg font-semibold text-horizon-500">{{ pageTitle }}</h1>
         <div v-else></div>
 
         <div class="flex items-center">
@@ -19,7 +19,7 @@
           <router-link
             v-if="showMFAReminder"
             to="/settings/security"
-            class="inline-flex items-center px-3 py-2 border border-green-600 text-body-sm font-medium rounded-button text-white bg-green-600 hover:bg-green-700 transition-colors"
+            class="inline-flex items-center px-3 py-2 border border-spring-600 text-body-sm font-medium rounded-button text-white bg-spring-600 hover:bg-spring-700 transition-colors"
             title="Secure your account with two-factor authentication"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,7 +31,7 @@
           <router-link
             v-if="showCompleteSetupButton"
             to="/onboarding"
-            class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-primary-600 hover:bg-primary-700"
+            class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -54,7 +54,7 @@
             <button
               type="button"
               @click="userDropdownOpen = !userDropdownOpen"
-              class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-gray-700 bg-gray-100 hover:bg-gray-200"
+              class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-horizon-500 bg-savannah-100 hover:bg-savannah-200"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -82,7 +82,7 @@
                   <!-- Valuable Info items shown directly for tablet+ -->
                   <router-link
                     to="/valuable-info?section=letter"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -91,7 +91,7 @@
                   </router-link>
                   <router-link
                     to="/valuable-info?section=will"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -100,7 +100,7 @@
                   </router-link>
                   <router-link
                     to="/valuable-info?section=income"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -109,7 +109,7 @@
                   </router-link>
                   <router-link
                     to="/valuable-info?section=expenditure"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -118,17 +118,17 @@
                   </router-link>
                   <router-link
                     to="/valuable-info?section=risk"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     Risk Profile
                   </router-link>
-                  <div class="border-t border-gray-100 my-1"></div>
+                  <div class="border-t border-savannah-100 my-1"></div>
                   <router-link
                     to="/profile"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -137,7 +137,7 @@
                   </router-link>
                   <router-link
                     to="/settings"
-                    class="flex items-center px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -147,7 +147,7 @@
                   </router-link>
                   <button
                     @click="handleLogout"
-                    class="flex items-center w-full text-left px-4 py-2 text-body-sm text-gray-700 hover:bg-gray-100"
+                    class="flex items-center w-full text-left px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
                   >
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

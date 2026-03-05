@@ -4,80 +4,80 @@
 
     <div class="space-y-4">
       <!-- IHT Calculation Table (same as estate module) -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Inheritance Tax Calculation</h3>
+      <div class="bg-white rounded-lg shadow-sm border border-light-gray p-5">
+        <h3 class="text-sm font-semibold text-horizon-500 mb-3">Inheritance Tax Calculation</h3>
         <IHTCalculationTable v-if="tableProps" v-bind="tableProps" />
 
         <!-- Messages below table -->
         <div class="mt-3 space-y-1.5">
-          <p v-if="situation.iht_rate_message" class="text-xs text-gray-500">
+          <p v-if="situation.iht_rate_message" class="text-xs text-neutral-500">
             {{ situation.iht_rate_message }}
           </p>
-          <p v-if="situation.nrb_message" class="text-xs text-gray-500">
-            <span class="font-medium text-gray-600">Nil Rate Band:</span> {{ situation.nrb_message }}
+          <p v-if="situation.nrb_message" class="text-xs text-neutral-500">
+            <span class="font-medium text-neutral-500">Nil Rate Band:</span> {{ situation.nrb_message }}
           </p>
-          <p v-if="situation.rnrb_message" class="text-xs text-gray-500">
-            <span class="font-medium text-gray-600">Residence Nil Rate Band:</span> {{ situation.rnrb_message }}
+          <p v-if="situation.rnrb_message" class="text-xs text-neutral-500">
+            <span class="font-medium text-neutral-500">Residence Nil Rate Band:</span> {{ situation.rnrb_message }}
           </p>
         </div>
       </div>
 
       <!-- Asset Breakdown -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Asset Breakdown</h3>
+      <div class="bg-white rounded-lg shadow-sm border border-light-gray p-5">
+        <h3 class="text-sm font-semibold text-horizon-500 mb-3">Asset Breakdown</h3>
         <div class="grid grid-cols-3 gap-3">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Liquid Assets</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.asset_breakdown.liquid) }}</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Liquid Assets</p>
+            <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(situation.asset_breakdown.liquid) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Semi-Liquid Assets</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.asset_breakdown.semi_liquid) }}</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Semi-Liquid Assets</p>
+            <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(situation.asset_breakdown.semi_liquid) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Illiquid Assets</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.asset_breakdown.illiquid) }}</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Illiquid Assets</p>
+            <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(situation.asset_breakdown.illiquid) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Life Cover -->
-      <div v-if="hasLifeCover" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Life Cover</h3>
+      <div v-if="hasLifeCover" class="bg-white rounded-lg shadow-sm border border-light-gray p-5">
+        <h3 class="text-sm font-semibold text-horizon-500 mb-3">Life Cover</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Cover in Trust</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Cover in Trust</p>
             <p class="text-sm font-bold text-green-700">{{ formatCurrency(situation.life_cover.cover_in_trust) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Cover Not in Trust</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.life_cover.cover_not_in_trust) }}</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Cover Not in Trust</p>
+            <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(situation.life_cover.cover_not_in_trust) }}</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Total Policies</p>
-            <p class="text-sm font-bold text-gray-900">{{ situation.life_cover.policy_count }}</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Total Policies</p>
+            <p class="text-sm font-bold text-horizon-500">{{ situation.life_cover.policy_count }}</p>
           </div>
         </div>
       </div>
 
       <!-- Charitable Giving -->
-      <div v-if="situation.charitable_giving" class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Charitable Giving</h3>
+      <div v-if="situation.charitable_giving" class="bg-white rounded-lg shadow-sm border border-light-gray p-5">
+        <h3 class="text-sm font-semibold text-horizon-500 mb-3">Charitable Giving</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Current Charitable Rate</p>
-            <p class="text-sm font-bold text-gray-900">{{ situation.charitable_giving.current_percentage }}%</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Current Charitable Rate</p>
+            <p class="text-sm font-bold text-horizon-500">{{ situation.charitable_giving.current_percentage }}%</p>
           </div>
-          <div class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Threshold for 36% Rate</p>
-            <p class="text-sm font-bold text-gray-900">{{ situation.charitable_giving.threshold }}%</p>
+          <div class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Threshold for 36% Rate</p>
+            <p class="text-sm font-bold text-horizon-500">{{ situation.charitable_giving.threshold }}%</p>
           </div>
-          <div v-if="situation.charitable_giving.shortfall > 0" class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Shortfall to Qualify</p>
-            <p class="text-sm font-bold text-gray-900">{{ formatCurrency(situation.charitable_giving.shortfall) }}</p>
+          <div v-if="situation.charitable_giving.shortfall > 0" class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Shortfall to Qualify</p>
+            <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(situation.charitable_giving.shortfall) }}</p>
           </div>
-          <div v-if="situation.charitable_giving.potential_saving > 0" class="bg-gray-50 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Potential Saving</p>
+          <div v-if="situation.charitable_giving.potential_saving > 0" class="bg-eggshell-500 rounded-lg p-3">
+            <p class="text-xs text-neutral-500">Potential Saving</p>
             <p class="text-sm font-bold text-green-700">{{ formatCurrency(situation.charitable_giving.potential_saving) }}</p>
           </div>
         </div>

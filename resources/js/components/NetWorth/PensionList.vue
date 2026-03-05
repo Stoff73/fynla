@@ -58,22 +58,22 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
       </div>
 
       <!-- Error State -->
       <div
         v-else-if="error"
-        class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
+        class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-4 mb-6"
       >
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-raspberry-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
             </svg>
           </div>
           <div class="ml-3">
-            <p class="text-sm text-red-700">{{ error }}</p>
+            <p class="text-sm text-raspberry-700">{{ error }}</p>
           </div>
         </div>
       </div>
@@ -112,7 +112,7 @@
                   </div>
                   <div v-if="pension.monthly_contribution_amount" class="detail-row">
                     <span class="detail-label">Monthly Contribution</span>
-                    <span class="detail-value text-green-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
+                    <span class="detail-value text-spring-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
                   </div>
                 </div>
               </div>
@@ -176,7 +176,7 @@
           <div class="lg:col-span-9 space-y-6">
             <!-- Projections Loading -->
             <div v-if="projectionsLoading" class="projection-loading">
-              <div class="spinner"></div>
+              <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
               <p>Running Monte Carlo simulation...</p>
             </div>
 
@@ -259,7 +259,7 @@
                     <span>Income Need</span>
                     <span class="font-semibold">{{ formatCurrency(targetIncome) }}/year</span>
                   </div>
-                  <div class="comparison-row" :class="guaranteedIncome >= targetIncome ? 'text-green-600' : 'text-blue-600'">
+                  <div class="comparison-row" :class="guaranteedIncome >= targetIncome ? 'text-spring-600' : 'text-violet-600'">
                     <span>{{ guaranteedIncome >= targetIncome ? 'Surplus' : 'Shortfall' }}</span>
                     <span class="font-semibold">{{ formatCurrency(Math.abs(guaranteedIncome - targetIncome)) }}/year</span>
                   </div>
@@ -387,7 +387,7 @@
 
           <!-- Strategy Loading -->
           <div v-if="strategiesLoading" class="strategies-loading">
-            <div class="spinner-small"></div>
+            <div class="w-5 h-5 border-2 border-light-gray border-t-raspberry-500 rounded-full animate-spin"></div>
             <span>Analysing strategies...</span>
           </div>
 
@@ -975,7 +975,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -984,8 +984,8 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -994,7 +994,7 @@ export default {
 }
 
 .risk-profile-link:hover {
-  @apply bg-blue-100;
+  @apply bg-violet-100;
 }
 
 .risk-icon {
@@ -1012,7 +1012,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -1023,7 +1023,7 @@ export default {
 }
 
 .add-pension-button:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 .upload-button {
@@ -1032,8 +1032,8 @@ export default {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  @apply text-primary-500;
-  @apply border-2 border-primary-500;
+  @apply text-raspberry-500;
+  @apply border-2 border-raspberry-500;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -1042,7 +1042,7 @@ export default {
 }
 
 .upload-button:hover {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .button-icon {
@@ -1061,7 +1061,7 @@ export default {
 .pension-card-standalone {
   position: relative;
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
@@ -1071,20 +1071,20 @@ export default {
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-primary-500;
+  @apply border-raspberry-500;
 }
 
 /* Empty Standalone State */
 .empty-standalone {
   background: white;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
   border-radius: 12px;
   padding: 32px 20px;
   text-align: center;
 }
 
 .empty-standalone p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   margin: 0 0 12px 0;
 }
@@ -1106,17 +1106,17 @@ export default {
 
 .income-card-standalone.target {
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-blue-200;
+  @apply border border-violet-200;
 }
 
 .income-card-standalone.surplus {
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border border-green-200;
+  @apply border border-spring-200;
 }
 
 .income-card-standalone.shortfall {
   background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .income-card-divider {
@@ -1128,7 +1128,7 @@ export default {
 .income-card-value-secondary {
   font-size: 20px;
   font-weight: 700;
-  @apply text-blue-800;
+  @apply text-violet-800;
 }
 
 .depletion-warning-standalone {
@@ -1136,8 +1136,8 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  @apply bg-blue-100;
-  @apply border border-blue-200;
+  @apply bg-violet-100;
+  @apply border border-violet-200;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -1145,13 +1145,13 @@ export default {
 .depletion-warning-standalone svg {
   width: 20px;
   height: 20px;
-  @apply text-blue-700;
+  @apply text-violet-700;
   flex-shrink: 0;
 }
 
 .depletion-warning-standalone span {
   font-size: 13px;
-  @apply text-blue-800;
+  @apply text-violet-800;
   font-weight: 500;
 }
 
@@ -1174,8 +1174,8 @@ export default {
 }
 
 .badge-dc {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-db {
@@ -1184,8 +1184,8 @@ export default {
 }
 
 .badge-state {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 /* Card Content - matches investment cards */
@@ -1198,7 +1198,7 @@ export default {
 .pension-provider {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1212,7 +1212,7 @@ export default {
   gap: 4px;
   margin-top: 6px;
   padding-top: 8px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -1223,12 +1223,12 @@ export default {
 
 .detail-label {
   font-size: 11px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
   font-size: 13px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
@@ -1236,19 +1236,19 @@ export default {
 .empty-compact {
   text-align: center;
   padding: 24px 16px;
-  @apply bg-gray-50;
+  @apply bg-savannah-100;
   border-radius: 8px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-compact p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   margin: 0 0 12px 0;
 }
 
 .add-first-btn {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -1259,7 +1259,7 @@ export default {
 }
 
 .add-first-btn:hover {
-  @apply bg-primary-600;
+  @apply bg-raspberry-500;
 }
 
 /* Center Panel - Projections */
@@ -1271,24 +1271,11 @@ export default {
   padding: 80px 20px;
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  @apply border-4 border-gray-200 border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  @apply border border-light-gray;
 }
 
 .projection-loading p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -1298,7 +1285,7 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 /* Full-width Empty State - matches investment list */
@@ -1307,11 +1294,11 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -1320,19 +1307,19 @@ export default {
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-projections p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -1342,7 +1329,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .guaranteed-income-header {
@@ -1356,7 +1343,7 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  @apply bg-green-100 text-green-600;
+  @apply bg-spring-100 text-spring-600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1371,13 +1358,13 @@ export default {
 .guaranteed-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .guaranteed-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -1387,20 +1374,20 @@ export default {
   align-items: center;
   padding: 16px;
   border-radius: 8px;
-  @apply bg-green-50 border border-green-200;
+  @apply bg-spring-50 border border-spring-200;
   margin-bottom: 24px;
 }
 
 .guaranteed-total-label {
   font-size: 14px;
   font-weight: 500;
-  @apply text-green-800;
+  @apply text-spring-800;
 }
 
 .guaranteed-total-value {
   font-size: 24px;
   font-weight: 700;
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .guaranteed-breakdown {
@@ -1413,7 +1400,7 @@ export default {
 .guaranteed-item {
   padding: 16px;
   border-radius: 8px;
-  @apply bg-gray-50 border border-gray-200;
+  @apply bg-savannah-100 border border-light-gray;
 }
 
 .guaranteed-item-header {
@@ -1426,7 +1413,7 @@ export default {
 .guaranteed-item-name {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .guaranteed-item-details {
@@ -1439,12 +1426,12 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 .guaranteed-comparison {
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1454,7 +1441,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  @apply text-gray-600;
+  @apply text-neutral-500;
 }
 
 /* Clickable Cards */
@@ -1484,7 +1471,7 @@ export default {
 }
 
 .planner-card.income {
-  @apply border-2 border-blue-200;
+  @apply border-2 border-violet-200;
   background: linear-gradient(135deg, white 0%, theme('colors.blue.50') 100%);
 }
 
@@ -1499,7 +1486,7 @@ export default {
 }
 
 .planner-card.income:hover {
-  @apply border-blue-400;
+  @apply border-violet-400;
 }
 
 .planner-card.capital:hover {
@@ -1524,13 +1511,13 @@ export default {
 }
 
 .planner-card-icon.income {
-  @apply bg-blue-100;
+  @apply bg-violet-100;
 }
 
 .planner-card-icon.income svg {
   width: 22px;
   height: 22px;
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .planner-card-icon.capital {
@@ -1547,12 +1534,12 @@ export default {
   flex: 1;
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .planner-card-arrow {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   transition: all 0.2s;
 }
 
@@ -1562,7 +1549,7 @@ export default {
 }
 
 .planner-card:hover .planner-card-arrow {
-  @apply text-gray-600;
+  @apply text-neutral-500;
   transform: translateX(2px);
 }
 
@@ -1584,22 +1571,22 @@ export default {
 
 .planner-metric-label {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .planner-metric-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .planner-metric-value.green {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .planner-metric-value.red {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 @media (max-width: 1024px) {
@@ -1625,7 +1612,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .chart-header {
@@ -1638,15 +1625,15 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .risk-badge-corner {
   display: inline-block;
   padding: 4px 10px;
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -1655,7 +1642,7 @@ export default {
 
 .chart-footer {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   text-align: center;
   margin: 16px 0 0 0;
 }
@@ -1664,7 +1651,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   font-size: 14px;
   font-weight: 500;
 }
@@ -1675,7 +1662,7 @@ export default {
 }
 
 .view-more-small {
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .view-more-small svg {
@@ -1684,7 +1671,7 @@ export default {
 }
 
 .clickable:hover .view-more-small {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 /* Summary Row */
@@ -1705,7 +1692,7 @@ export default {
 }
 
 .summary-item.blue {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .summary-item.purple {
@@ -1713,15 +1700,15 @@ export default {
 }
 
 .summary-item.green {
-  @apply bg-green-50;
+  @apply bg-spring-50;
 }
 
 .summary-item.blue {
-  @apply bg-blue-50;
+  @apply bg-violet-50;
 }
 
 .summary-item.red {
-  @apply bg-red-50;
+  @apply bg-raspberry-50;
 }
 
 .summary-item.teal {
@@ -1750,14 +1737,14 @@ export default {
 .summary-item-label {
   display: block;
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 .summary-item-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 /* Strategies Section - Full Width */
@@ -1765,7 +1752,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   margin-top: 24px;
 }
 
@@ -1783,13 +1770,13 @@ export default {
 .strategies-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .strategies-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -1797,17 +1784,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 14px;
   padding: 20px;
-}
-
-.spinner-small {
-  width: 20px;
-  height: 20px;
-  @apply border-2 border-gray-200 border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 /* DOB Required Preview */
@@ -1817,12 +1796,12 @@ export default {
   gap: 16px;
   padding: 20px;
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-blue-200;
+  @apply border border-violet-200;
   border-radius: 10px;
 }
 
 .dob-required-icon {
-  @apply w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0;
+  @apply w-12 h-12 bg-violet-500 rounded-full flex items-center justify-center flex-shrink-0;
 }
 
 .dob-required-icon svg {
@@ -1834,13 +1813,13 @@ export default {
 .dob-required-text h4 {
   font-size: 16px;
   font-weight: 700;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0 0 4px 0;
 }
 
 .dob-required-text p {
   font-size: 14px;
-  @apply text-blue-700;
+  @apply text-violet-700;
   margin: 0;
 }
 
@@ -1850,12 +1829,12 @@ export default {
   gap: 16px;
   padding: 20px;
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border border-green-200;
+  @apply border border-spring-200;
   border-radius: 10px;
 }
 
 .on-track-icon {
-  @apply w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0;
+  @apply w-12 h-12 bg-spring-500 rounded-full flex items-center justify-center flex-shrink-0;
 }
 
 .on-track-icon svg {
@@ -1867,13 +1846,13 @@ export default {
 .on-track-text h4 {
   font-size: 16px;
   font-weight: 700;
-  @apply text-green-800;
+  @apply text-spring-800;
   margin: 0 0 4px 0;
 }
 
 .on-track-text p {
   font-size: 14px;
-  @apply text-green-700;
+  @apply text-spring-700;
   margin: 0;
 }
 
@@ -1885,7 +1864,7 @@ export default {
   gap: 20px;
   padding: 20px;
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-blue-200;
+  @apply border border-violet-200;
   border-radius: 10px;
 }
 
@@ -1899,7 +1878,7 @@ export default {
 .strategy-summary-icon {
   width: 48px;
   height: 48px;
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1916,31 +1895,31 @@ export default {
 .strategy-summary-text h4 {
   font-size: 16px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0 0 6px 0;
 }
 
 .strategy-probability {
   font-size: 14px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   margin: 0;
 }
 
 .prob-current {
   font-weight: 600;
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .prob-projected {
   font-weight: 600;
-  @apply text-green-500;
+  @apply text-spring-500;
 }
 
 .strategy-cta {
   display: flex;
   align-items: center;
   gap: 6px;
-  @apply text-blue-600;
+  @apply text-violet-600;
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
@@ -1967,7 +1946,7 @@ export default {
 .income-sidebar {
   background: white;
   border-radius: 12px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   padding: 20px;
   position: sticky;
   top: 100px;
@@ -1978,7 +1957,7 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 12px;
@@ -1997,28 +1976,28 @@ export default {
 
 .income-card.target {
   background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-blue-200;
+  @apply border border-violet-200;
 }
 
 .income-card.guaranteed {
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border border-green-200;
+  @apply border border-spring-200;
 }
 
 .income-card.surplus {
   background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border border-green-200;
+  @apply border border-spring-200;
 }
 
 .income-card.shortfall {
   background: linear-gradient(135deg, theme('colors.red.50') 0%, theme('colors.red.100') 100%);
-  @apply border border-red-200;
+  @apply border border-raspberry-200;
 }
 
 .income-card-heading {
   font-size: 14px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -2026,25 +2005,25 @@ export default {
 
 .income-card-label {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
 .income-card-value {
   font-size: 22px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .income-card-value-green {
   font-size: 20px;
   font-weight: 700;
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .income-card-sublabel {
   font-size: 12px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin-top: 4px;
 }
 
@@ -2058,7 +2037,7 @@ export default {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
@@ -2072,21 +2051,21 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 12px;
-  @apply bg-blue-100;
-  @apply border border-blue-200;
+  @apply bg-violet-100;
+  @apply border border-violet-200;
   border-radius: 8px;
 }
 
 .depletion-warning svg {
   width: 20px;
   height: 20px;
-  @apply text-blue-700;
+  @apply text-violet-700;
   flex-shrink: 0;
 }
 
 .depletion-warning span {
   font-size: 13px;
-  @apply text-blue-800;
+  @apply text-violet-800;
   font-weight: 500;
 }
 
@@ -2105,11 +2084,11 @@ export default {
 }
 
 .notification.success {
-  @apply bg-green-500 text-white;
+  @apply bg-spring-500 text-white;
 }
 
 .notification.error {
-  @apply bg-red-500 text-white;
+  @apply bg-raspberry-500 text-white;
 }
 
 @keyframes slideIn {

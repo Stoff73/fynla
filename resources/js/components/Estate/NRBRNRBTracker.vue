@@ -246,9 +246,9 @@ export default {
     },
 
     taxableAmountClass() {
-      if (this.taxableAmount === 0) return 'text-green-600';
-      if (this.taxableAmount > 500000) return 'text-red-600';
-      return 'text-blue-600';
+      if (this.taxableAmount === 0) return 'text-spring-600';
+      if (this.taxableAmount > 500000) return 'text-raspberry-600';
+      return 'text-violet-600';
     },
 
     showEligibilityNotes() {
@@ -271,19 +271,19 @@ export default {
   text-align: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  @apply border-b-2 border-gray-200;
+  @apply border-b-2 border-light-gray;
 }
 
 .tracker-header h3 {
   font-size: 20px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 4px 0;
 }
 
 .subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -307,12 +307,12 @@ export default {
 .allowance-title h4 {
   font-size: 15px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .info-icon {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   cursor: help;
   font-size: 14px;
 }
@@ -323,21 +323,21 @@ export default {
 }
 
 .used {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .separator {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 4px;
 }
 
 .total {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .progress-bar-container {
   height: 24px;
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -366,7 +366,7 @@ export default {
 }
 
 .progress-disabled {
-  @apply bg-gray-300;
+  @apply bg-savannah-300;
 }
 
 .progress-label {
@@ -384,7 +384,7 @@ export default {
 }
 
 .remaining {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -399,22 +399,22 @@ export default {
 }
 
 .badge-info {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-warning {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-error {
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 
 .combined-summary {
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 8px;
   padding: 16px;
   margin-top: 24px;
@@ -430,11 +430,11 @@ export default {
 .summary-row.highlight {
   margin-top: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .summary-row .label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -443,12 +443,12 @@ export default {
 }
 
 .total-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-size: 15px;
 }
 
 .used-value {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .taxable-value {
@@ -456,7 +456,7 @@ export default {
 }
 
 .eligibility-notes {
-  @apply mt-5 p-4 bg-blue-50 border-l-4 border-blue-500 rounded;
+  @apply mt-5 p-4 bg-violet-50 border-l-4 border-violet-500 rounded;
 }
 
 .note-header {
@@ -464,7 +464,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin-bottom: 12px;
   font-size: 14px;
 }
@@ -477,7 +477,7 @@ export default {
 
 .eligibility-notes li {
   font-size: 13px;
-  @apply text-blue-900;
+  @apply text-violet-900;
   margin-bottom: 6px;
   line-height: 1.5;
 }

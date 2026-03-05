@@ -2,16 +2,16 @@
   <div class="asset-location-optimiser">
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-eggshell-500 rounded-lg p-4 mb-6">
       <div class="flex items-center">
-        <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="h-5 w-5 text-raspberry-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
-        <span class="text-sm font-medium text-red-800">{{ error }}</span>
+        <span class="text-sm font-medium text-raspberry-800">{{ error }}</span>
       </div>
     </div>
 
@@ -20,8 +20,8 @@
       <!-- Header with Optimization Score -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Optimization Score Card -->
-        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Asset Location Score</h3>
+        <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Asset Location Score</h3>
           <div class="flex items-center justify-center mb-4">
             <apexchart
               v-if="analysis"
@@ -35,34 +35,34 @@
             <p class="text-2xl font-bold mb-1" :class="getScoreColour(analysis?.optimization_score?.score)">
               {{ analysis?.optimization_score?.score || 0 }}/100
             </p>
-            <p class="text-sm text-gray-600">{{ analysis?.optimization_score?.grade || 'N/A' }}</p>
+            <p class="text-sm text-neutral-500">{{ analysis?.optimization_score?.grade || 'N/A' }}</p>
           </div>
         </div>
 
         <!-- Tax Drag Summary -->
         <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Tax Drag Analysis</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Drag Analysis</h3>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p class="text-sm text-gray-600 mb-1">Total Annual Tax Drag</p>
-              <p class="text-2xl font-bold text-red-600">
+              <p class="text-sm text-neutral-500 mb-1">Total Annual Tax Drag</p>
+              <p class="text-2xl font-bold text-raspberry-600">
                 £{{ formatNumber(analysis?.tax_drag?.total_annual_drag || 0) }}
               </p>
-              <p class="text-xs text-gray-500">{{ analysis?.tax_drag?.drag_percent || 0 }}% of returns</p>
+              <p class="text-xs text-neutral-500">{{ analysis?.tax_drag?.drag_percent || 0 }}% of returns</p>
             </div>
             <div>
-              <p class="text-sm text-gray-600 mb-1">Potential Savings</p>
-              <p class="text-2xl font-bold text-green-600">
+              <p class="text-sm text-neutral-500 mb-1">Potential Savings</p>
+              <p class="text-2xl font-bold text-spring-600">
                 £{{ formatNumber(analysis?.tax_drag?.potential_savings || 0) }}
               </p>
-              <p class="text-xs text-gray-500">per year</p>
+              <p class="text-xs text-neutral-500">per year</p>
             </div>
             <div>
-              <p class="text-sm text-gray-600 mb-1">20-Year Impact</p>
-              <p class="text-2xl font-bold text-blue-600">
+              <p class="text-sm text-neutral-500 mb-1">20-Year Impact</p>
+              <p class="text-2xl font-bold text-violet-600">
                 £{{ formatNumber(analysis?.tax_drag?.long_term_impact || 0) }}
               </p>
-              <p class="text-xs text-gray-500">compound savings</p>
+              <p class="text-xs text-neutral-500">compound savings</p>
             </div>
           </div>
         </div>
@@ -70,54 +70,54 @@
 
       <!-- Current Allocation Breakdown -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Asset Location</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Current Asset Location</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- ISA Allocation -->
-          <div class="border border-gray-200 rounded-lg p-4">
+          <div class="border border-light-gray rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-md font-semibold text-gray-800">ISA (Tax-Free)</h4>
-              <span class="px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded">OPTIMAL</span>
+              <h4 class="text-md font-semibold text-horizon-500">ISA (Tax-Free)</h4>
+              <span class="px-2 py-1 bg-spring-500 text-white text-xs font-semibold rounded">OPTIMAL</span>
             </div>
-            <p class="text-2xl font-bold text-gray-800 mb-2">
+            <p class="text-2xl font-bold text-horizon-500 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.isa_value || 0) }}
             </p>
             <div class="space-y-1">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Equities:</span>
+                <span class="text-neutral-500">Equities:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.isa_breakdown?.equities || 0) }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Bonds:</span>
+                <span class="text-neutral-500">Bonds:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.isa_breakdown?.bonds || 0) }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Cash:</span>
+                <span class="text-neutral-500">Cash:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.isa_breakdown?.cash || 0) }}</span>
               </div>
             </div>
           </div>
 
           <!-- GIA Allocation -->
-          <div class="border border-gray-200 rounded-lg p-4">
+          <div class="border border-light-gray rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-md font-semibold text-gray-800">General Investment Account (Taxable)</h4>
-              <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-red-500 text-white text-xs font-semibold rounded">HIGH TAX</span>
+              <h4 class="text-md font-semibold text-horizon-500">General Investment Account (Taxable)</h4>
+              <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-raspberry-500 text-white text-xs font-semibold rounded">HIGH TAX</span>
               <span v-else class="px-2 py-1 bg-yellow-500 text-white text-xs font-semibold rounded">MODERATE</span>
             </div>
-            <p class="text-2xl font-bold text-gray-800 mb-2">
+            <p class="text-2xl font-bold text-horizon-500 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.gia_value || 0) }}
             </p>
             <div class="space-y-1">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Equities:</span>
+                <span class="text-neutral-500">Equities:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.gia_breakdown?.equities || 0) }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Bonds:</span>
+                <span class="text-neutral-500">Bonds:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.gia_breakdown?.bonds || 0) }}</span>
               </div>
-              <div class="flex justify-between text-sm text-red-600">
+              <div class="flex justify-between text-sm text-raspberry-600">
                 <span>Annual Tax Drag:</span>
                 <span class="font-semibold">£{{ formatNumber(analysis?.current_allocation?.gia_tax_drag || 0) }}</span>
               </div>
@@ -125,21 +125,21 @@
           </div>
 
           <!-- Pension Allocation -->
-          <div class="border border-gray-200 rounded-lg p-4">
+          <div class="border border-light-gray rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-md font-semibold text-gray-800">Pension (Tax-Deferred)</h4>
-              <span class="px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded">LONG-TERM</span>
+              <h4 class="text-md font-semibold text-horizon-500">Pension (Tax-Deferred)</h4>
+              <span class="px-2 py-1 bg-violet-500 text-white text-xs font-semibold rounded">LONG-TERM</span>
             </div>
-            <p class="text-2xl font-bold text-gray-800 mb-2">
+            <p class="text-2xl font-bold text-horizon-500 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.pension_value || 0) }}
             </p>
             <div class="space-y-1">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Equities:</span>
+                <span class="text-neutral-500">Equities:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.pension_breakdown?.equities || 0) }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Bonds:</span>
+                <span class="text-neutral-500">Bonds:</span>
                 <span class="font-medium">£{{ formatNumber(analysis?.current_allocation?.pension_breakdown?.bonds || 0) }}</span>
               </div>
             </div>
@@ -149,31 +149,31 @@
 
       <!-- Recommendations -->
       <div v-if="recommendations && recommendations.length > 0" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Optimization Recommendations</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimization Recommendations</h3>
 
         <div class="space-y-4">
           <div v-for="(rec, index) in recommendations" :key="index" class="border-l-4 p-4 rounded-r-lg" :class="getRecommendationClass(rec.priority)">
             <div class="flex items-start justify-between mb-2">
-              <h4 class="font-semibold text-gray-800">{{ rec.title }}</h4>
+              <h4 class="font-semibold text-horizon-500">{{ rec.title }}</h4>
               <div class="flex items-center space-x-2">
                 <span class="px-2 py-1 text-xs font-semibold rounded uppercase" :class="getPriorityBadgeClass(rec.priority)">
                   {{ rec.priority }}
                 </span>
-                <span v-if="rec.tax_saving" class="px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded">
+                <span v-if="rec.tax_saving" class="px-2 py-1 bg-spring-500 text-white text-xs font-semibold rounded">
                   Save £{{ formatNumber(rec.tax_saving) }}/yr
                 </span>
               </div>
             </div>
-            <p class="text-sm text-gray-600 mb-3">{{ rec.description }}</p>
+            <p class="text-sm text-neutral-500 mb-3">{{ rec.description }}</p>
 
-            <div v-if="rec.action_details" class="bg-gray-50 rounded p-3 text-sm space-y-2">
-              <p class="font-medium text-gray-700">Recommended Action:</p>
+            <div v-if="rec.action_details" class="bg-eggshell-500 rounded p-3 text-sm space-y-2">
+              <p class="font-medium text-neutral-500">Recommended Action:</p>
               <ul class="space-y-1">
                 <li v-for="(action, idx) in rec.action_details" :key="idx" class="flex items-start">
-                  <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="h-4 w-4 text-violet-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                   </svg>
-                  <span class="text-gray-700">{{ action }}</span>
+                  <span class="text-neutral-500">{{ action }}</span>
                 </li>
               </ul>
             </div>
@@ -183,74 +183,74 @@
 
       <!-- Asset Type Suitability Matrix -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Asset Type Suitability by Account</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Asset Type Suitability by Account</h3>
 
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-4 font-semibold text-gray-700">Asset Type</th>
-                <th class="text-center py-3 px-4 font-semibold text-green-700">ISA (Tax-Free)</th>
-                <th class="text-center py-3 px-4 font-semibold text-gray-700">General Account (Taxable)</th>
-                <th class="text-center py-3 px-4 font-semibold text-blue-700">Pension (Deferred)</th>
+              <tr class="border-b border-light-gray">
+                <th class="text-left py-3 px-4 font-semibold text-neutral-500">Asset Type</th>
+                <th class="text-center py-3 px-4 font-semibold text-spring-700">ISA (Tax-Free)</th>
+                <th class="text-center py-3 px-4 font-semibold text-neutral-500">General Account (Taxable)</th>
+                <th class="text-center py-3 px-4 font-semibold text-violet-700">Pension (Deferred)</th>
               </tr>
             </thead>
             <tbody>
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Dividend-Paying Stocks</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-raspberry-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Growth Stocks</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
                   <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">BEST</span>
                 </td>
               </tr>
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Corporate Bonds</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-raspberry-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Index Funds (Low Turnover)</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">GOOD</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
               </tr>
               <tr>
                 <td class="py-3 px-4 font-medium">Property Investment Trusts (REITs)</td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-green-500 text-white rounded font-semibold">BEST</span>
+                  <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">BEST</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-red-500 text-white rounded font-semibold">POOR</span>
+                  <span class="inline-block w-full px-2 py-1 bg-raspberry-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
                   <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
@@ -260,23 +260,23 @@
           </table>
         </div>
 
-        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h4 class="text-sm font-semibold text-gray-800 mb-2">Key Principles:</h4>
-          <ul class="space-y-1 text-sm text-gray-700">
+        <div class="mt-4 p-4 bg-eggshell-500 rounded-lg">
+          <h4 class="text-sm font-semibold text-horizon-500 mb-2">Key Principles:</h4>
+          <ul class="space-y-1 text-sm text-neutral-500">
             <li class="flex items-start">
-              <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-4 w-4 text-violet-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
               Prioritize high-income assets (bonds, dividend stocks, REITs) in tax-advantaged accounts
             </li>
             <li class="flex items-start">
-              <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-4 w-4 text-violet-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
               Growth stocks can be tax-efficient in General Investment Accounts (capital gains tax allowance, lower rates than income tax)
             </li>
             <li class="flex items-start">
-              <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-4 w-4 text-violet-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
               Pensions are ideal for long-term growth with highest expected returns
@@ -287,17 +287,17 @@
 
       <!-- Action Plan -->
       <div v-if="analysis?.action_plan && analysis.action_plan.length > 0" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Optimization Action Plan</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimization Action Plan</h3>
 
         <div class="space-y-3">
-          <div v-for="(step, index) in analysis.action_plan" :key="index" class="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-semibold mr-4">
+          <div v-for="(step, index) in analysis.action_plan" :key="index" class="flex items-start p-4 bg-eggshell-500 rounded-lg border border-light-gray">
+            <div class="flex-shrink-0 w-8 h-8 bg-raspberry-500 text-white rounded-full flex items-center justify-center font-semibold mr-4">
               {{ index + 1 }}
             </div>
             <div class="flex-1">
-              <h4 class="font-semibold text-gray-800 mb-1">{{ step.title }}</h4>
-              <p class="text-sm text-gray-600 mb-2">{{ step.description }}</p>
-              <div v-if="step.savings" class="text-sm font-medium text-green-600">
+              <h4 class="font-semibold text-horizon-500 mb-1">{{ step.title }}</h4>
+              <p class="text-sm text-neutral-500 mb-2">{{ step.description }}</p>
+              <div v-if="step.savings" class="text-sm font-medium text-spring-600">
                 Estimated Annual Savings: £{{ formatNumber(step.savings) }}
               </div>
             </div>
@@ -414,26 +414,26 @@ export default {
     },
 
     getScoreColour(score) {
-      if (score >= 80) return 'text-green-600';
-      if (score >= 60) return 'text-blue-600';
+      if (score >= 80) return 'text-spring-600';
+      if (score >= 60) return 'text-violet-600';
       if (score >= 40) return 'text-yellow-600';
-      return 'text-red-600';
+      return 'text-raspberry-600';
     },
 
     getRecommendationClass(priority) {
       const classes = {
-        high: 'border-red-500 bg-white',
+        high: 'border-raspberry-500 bg-white',
         medium: 'border-yellow-500 bg-white',
-        low: 'border-blue-500 bg-white',
+        low: 'border-violet-500 bg-white',
       };
       return classes[priority] || classes.low;
     },
 
     getPriorityBadgeClass(priority) {
       const classes = {
-        high: 'bg-red-500 text-white',
+        high: 'bg-raspberry-500 text-white',
         medium: 'bg-yellow-500 text-white',
-        low: 'bg-blue-500 text-white',
+        low: 'bg-violet-500 text-white',
       };
       return classes[priority] || classes.low;
     },

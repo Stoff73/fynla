@@ -10,8 +10,8 @@
     @back="handleBack"
   >
     <div class="space-y-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK Inheritance Tax. Non-UK domiciled individuals only pay Inheritance Tax on UK assets, while UK domiciled individuals pay Inheritance Tax on worldwide assets.
         </p>
       </div>
@@ -29,14 +29,14 @@
             placeholder="Search for your country of birth..."
             @update:model-value="handleCountryChange"
           />
-          <p class="mt-1 text-body-sm text-gray-500">
+          <p class="mt-1 text-body-sm text-neutral-500">
             Your country of birth helps us determine your domicile status for tax purposes.
           </p>
         </div>
 
         <!-- UK Arrival Date (shown only for non-UK born) -->
         <div v-if="shouldShowUKArrivalDate" class="space-y-4 border-t pt-4">
-          <h4 class="text-body font-medium text-gray-900">
+          <h4 class="text-body font-medium text-horizon-500">
             UK Residency Information
           </h4>
 
@@ -52,22 +52,22 @@
               :max="today"
               @change="calculateYearsResident"
             >
-            <p class="mt-1 text-body-sm text-gray-500">
+            <p class="mt-1 text-body-sm text-neutral-500">
               When did you first move to the UK?
             </p>
           </div>
 
-          <div v-if="yearsResident !== null" class="bg-gray-50 rounded-lg p-4">
-            <p class="text-body-sm text-gray-700">
+          <div v-if="yearsResident !== null" class="bg-eggshell-500 rounded-lg p-4">
+            <p class="text-body-sm text-horizon-500">
               <strong>Years UK Resident:</strong> {{ yearsResident }} years
             </p>
-            <p class="mt-2 text-body-sm font-medium text-gray-900">
+            <p class="mt-2 text-body-sm font-medium text-horizon-500">
               <strong>Domicile Status:</strong> {{ domicileStatusLabel }}
             </p>
-            <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-blue-700">
+            <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-violet-700">
               You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years. This means you are subject to UK Inheritance Tax on your worldwide assets.
             </p>
-            <p v-else class="mt-2 text-body-sm text-blue-700">
+            <p v-else class="mt-2 text-body-sm text-violet-700">
               You are not yet deemed domiciled. You only pay UK Inheritance Tax on UK assets. You will need {{ 15 - yearsResident }} more year(s) of UK residence to become deemed domiciled.
             </p>
           </div>

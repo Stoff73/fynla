@@ -18,8 +18,8 @@
           <!-- Header: name, type, and status badge -->
           <div class="flex items-start justify-between mb-3">
             <div class="min-w-0 flex-1 mr-3">
-              <h4 class="text-sm font-semibold text-gray-900 leading-snug">{{ goal.name }}</h4>
-              <span class="text-xs text-gray-500 mt-0.5 block">{{ goal.display_type }}</span>
+              <h4 class="text-sm font-semibold text-horizon-500 leading-snug">{{ goal.name }}</h4>
+              <span class="text-xs text-neutral-500 mt-0.5 block">{{ goal.display_type }}</span>
             </div>
             <span class="goal-status-badge" :class="goalStatus(goal).badge">
               <span class="status-dot" :class="goalStatus(goal).dot"></span>
@@ -38,29 +38,29 @@
           />
 
           <!-- Description -->
-          <p v-if="goal.description" class="text-xs text-gray-500 italic mt-3 leading-relaxed">
+          <p v-if="goal.description" class="text-xs text-neutral-500 italic mt-3 leading-relaxed">
             {{ goal.description }}
           </p>
 
           <!-- Detail grid -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-xs text-gray-500">Priority</p>
-              <p class="text-xs font-semibold text-gray-900 capitalize">
+            <div class="bg-eggshell-500 rounded-lg p-2.5">
+              <p class="text-xs text-neutral-500">Priority</p>
+              <p class="text-xs font-semibold text-horizon-500 capitalize">
                 {{ goal.priority || '—' }}
                 <span v-if="goal.is_essential" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Essential</span>
               </p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-xs text-gray-500">Target Date</p>
-              <p class="text-xs font-semibold text-gray-900">{{ formatGoalDate(goal.target_date) }}</p>
+            <div class="bg-eggshell-500 rounded-lg p-2.5">
+              <p class="text-xs text-neutral-500">Target Date</p>
+              <p class="text-xs font-semibold text-horizon-500">{{ formatGoalDate(goal.target_date) }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-xs text-gray-500">Amount Remaining</p>
-              <p class="text-xs font-semibold text-gray-900">{{ formatCurrency(Math.max(0, goal.target_amount - goal.current_amount)) }}</p>
+            <div class="bg-eggshell-500 rounded-lg p-2.5">
+              <p class="text-xs text-neutral-500">Amount Remaining</p>
+              <p class="text-xs font-semibold text-horizon-500">{{ formatCurrency(Math.max(0, goal.target_amount - goal.current_amount)) }}</p>
             </div>
-            <div class="bg-gray-50 rounded-lg p-2.5">
-              <p class="text-xs text-gray-500">Required Monthly</p>
+            <div class="bg-eggshell-500 rounded-lg p-2.5">
+              <p class="text-xs text-neutral-500">Required Monthly</p>
               <p class="text-xs font-semibold" :class="requiredMonthlyColor(goal)">
                 {{ goal.required_monthly_contribution > 0 ? formatCurrency(goal.required_monthly_contribution) : '—' }}
               </p>
@@ -70,7 +70,7 @@
           <!-- Meta info -->
           <div v-if="goal.months_remaining > 0 || goal.monthly_contribution > 0" class="goal-meta">
             <span v-if="goal.months_remaining > 0" class="goal-meta-item">
-              <svg class="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3.5 h-3.5 mr-1 text-horizon-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {{ goal.months_remaining }} {{ goal.months_remaining === 1 ? 'month' : 'months' }} remaining
@@ -83,15 +83,15 @@
 
           <!-- Action block for incomplete goals -->
           <div v-if="goal.progress_percentage < 100" class="goal-action-block">
-            <p class="text-xs font-semibold text-gray-900 mb-2">Action to Complete Goal</p>
-            <p class="text-xs text-gray-700 leading-relaxed">
-              {{ formatCurrency(goal.target_amount) }} &minus; {{ formatCurrency(goal.current_amount) }} = <span class="font-semibold text-gray-900">{{ formatCurrency(Math.max(0, goal.target_amount - goal.current_amount)) }}</span> lump sum needed
+            <p class="text-xs font-semibold text-horizon-500 mb-2">Action to Complete Goal</p>
+            <p class="text-xs text-horizon-500 leading-relaxed">
+              {{ formatCurrency(goal.target_amount) }} &minus; {{ formatCurrency(goal.current_amount) }} = <span class="font-semibold text-horizon-500">{{ formatCurrency(Math.max(0, goal.target_amount - goal.current_amount)) }}</span> lump sum needed
             </p>
-            <p class="text-xs text-gray-500 mt-1.5">
+            <p class="text-xs text-neutral-500 mt-1.5">
               Before tax year end &mdash; 5 April {{ taxYearEndYear }}
             </p>
-            <p v-if="goal.funding_source && goal.funding_source.name" class="text-xs text-gray-600 mt-1.5">
-              Recommended source: <span class="font-medium text-gray-900">{{ goal.funding_source.name }}</span>
+            <p v-if="goal.funding_source && goal.funding_source.name" class="text-xs text-neutral-500 mt-1.5">
+              Recommended source: <span class="font-medium text-horizon-500">{{ goal.funding_source.name }}</span>
             </p>
             <p v-else class="text-xs text-blue-600 mt-1.5">
               Link an account to identify a funding source
@@ -114,10 +114,10 @@
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900">
+            <p class="text-sm font-medium text-horizon-500">
               {{ unlinkedGoals.length }} {{ unlinkedGoals.length === 1 ? 'goal needs' : 'goals need' }} a linked account
             </p>
-            <p class="text-sm text-gray-600 mt-1 leading-relaxed">
+            <p class="text-sm text-neutral-500 mt-1 leading-relaxed">
               {{ unlinkedGoalNames }} — link {{ unlinkedGoals.length === 1 ? 'this goal' : 'these goals' }} to an account to track progress automatically.
             </p>
             <router-link
@@ -191,7 +191,7 @@ export default {
     },
 
     requiredMonthlyColor(goal) {
-      if (!goal.required_monthly_contribution || goal.required_monthly_contribution <= 0) return 'text-gray-900';
+      if (!goal.required_monthly_contribution || goal.required_monthly_contribution <= 0) return 'text-horizon-500';
       return (goal.monthly_contribution || 0) >= goal.required_monthly_contribution ? 'text-green-700' : 'text-red-700';
     },
 
@@ -222,7 +222,7 @@ export default {
 }
 
 .goal-card {
-  @apply bg-white border border-gray-200 rounded-lg p-5 shadow-sm;
+  @apply bg-white border border-light-gray rounded-lg p-5 shadow-sm;
   animation: goalCardEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -230,7 +230,7 @@ export default {
 }
 
 .goal-card:hover {
-  @apply border-gray-300 shadow-md;
+  @apply border-horizon-300 shadow-md;
   transform: translateY(-1px);
 }
 
@@ -267,7 +267,7 @@ export default {
 
 /* -- Meta info row -- */
 .goal-meta {
-  @apply flex items-center mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500;
+  @apply flex items-center mt-3 pt-3 border-t border-savannah-100 text-xs text-neutral-500;
 }
 
 .goal-meta-item {
@@ -275,7 +275,7 @@ export default {
 }
 
 .goal-meta-divider {
-  @apply w-1 h-1 rounded-full bg-gray-300 mx-3 flex-shrink-0;
+  @apply w-1 h-1 rounded-full bg-horizon-300 mx-3 flex-shrink-0;
 }
 
 /* -- Goal action block -- */
@@ -286,12 +286,12 @@ export default {
 
 /* -- Unlinked goals prompt -- */
 .unlinked-goals-prompt {
-  @apply bg-gray-50 border border-gray-200 rounded-lg p-5;
+  @apply bg-eggshell-500 border border-light-gray rounded-lg p-5;
   transition: border-color 0.2s ease;
 }
 
 .unlinked-goals-prompt:hover {
-  @apply border-gray-300;
+  @apply border-horizon-300;
 }
 
 .unlinked-goals-icon {
@@ -300,12 +300,12 @@ export default {
 
 .unlinked-goals-link {
   @apply inline-flex items-center text-sm font-medium mt-2.5;
-  @apply text-primary-600;
+  @apply text-raspberry-500;
   transition: color 0.15s ease;
 }
 
 .unlinked-goals-link:hover {
-  @apply text-primary-700;
+  @apply text-raspberry-600;
 }
 
 .unlinked-goals-link:hover svg {

@@ -1,15 +1,15 @@
 <template>
   <div class="max-w-3xl mx-auto">
     <div class="mb-6">
-      <h2 class="text-h2 font-display text-gray-900 mb-2">
+      <h2 class="text-h2 font-display text-horizon-500 mb-2">
         {{ title }}
       </h2>
-      <p class="text-body text-gray-600">
+      <p class="text-body text-neutral-500">
         {{ description }}
       </p>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
       <slot></slot>
     </div>
 
@@ -39,7 +39,7 @@
           @click="onSkip"
           :disabled="loading"
           type="button"
-          class="text-body-sm text-gray-600 hover:text-gray-900 underline disabled:opacity-50 disabled:cursor-not-allowed"
+          class="text-body-sm text-neutral-500 hover:text-horizon-500 underline disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Skip this step
         </button>

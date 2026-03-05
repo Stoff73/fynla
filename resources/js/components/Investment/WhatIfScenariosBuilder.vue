@@ -1,15 +1,15 @@
 <template>
   <div class="what-if-scenarios bg-white rounded-lg shadow-sm">
     <!-- Header -->
-    <div class="p-6 border-b border-gray-200">
+    <div class="p-6 border-b border-light-gray">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900">What-If Scenarios</h2>
-          <p class="mt-1 text-sm text-gray-600">Model portfolio changes and compare outcomes</p>
+          <h2 class="text-2xl font-bold text-horizon-500">What-If Scenarios</h2>
+          <p class="mt-1 text-sm text-neutral-500">Model portfolio changes and compare outcomes</p>
         </div>
         <button
           @click="showCreateModal = true"
-          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
+          class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors duration-200"
         >
           + Create Scenario
         </button>
@@ -17,36 +17,36 @@
 
       <!-- Statistics Cards -->
       <div v-if="scenarioStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-blue-600 mb-1">Total</div>
-          <div class="text-2xl font-bold text-blue-900">{{ scenarioStats.total }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Total</div>
+          <div class="text-2xl font-bold text-violet-900">{{ scenarioStats.total }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div class="text-sm font-medium text-gray-600 mb-1">Draft</div>
-          <div class="text-2xl font-bold text-gray-900">{{ scenarioStats.draft }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4 border border-light-gray">
+          <div class="text-sm font-medium text-neutral-500 mb-1">Draft</div>
+          <div class="text-2xl font-bold text-horizon-500">{{ scenarioStats.draft }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-purple-600 mb-1">Running</div>
-          <div class="text-2xl font-bold text-purple-900">{{ scenarioStats.running }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Running</div>
+          <div class="text-2xl font-bold text-violet-900">{{ scenarioStats.running }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-green-600 mb-1">Completed</div>
-          <div class="text-2xl font-bold text-green-900">{{ scenarioStats.completed }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-spring-600 mb-1">Completed</div>
+          <div class="text-2xl font-bold text-spring-900">{{ scenarioStats.completed }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-blue-600 mb-1">Saved</div>
-          <div class="text-2xl font-bold text-blue-900">{{ scenarioStats.saved }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Saved</div>
+          <div class="text-2xl font-bold text-violet-900">{{ scenarioStats.saved }}</div>
         </div>
       </div>
 
       <!-- Filters -->
       <div class="flex flex-wrap gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <label class="block text-sm font-medium text-neutral-500 mb-1">Status</label>
           <select
             v-model="filters.status"
             @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -57,11 +57,11 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+          <label class="block text-sm font-medium text-neutral-500 mb-1">Type</label>
           <select
             v-model="filters.type"
             @change="applyFilters"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           >
             <option value="">All Types</option>
             <option value="custom">Custom</option>
@@ -76,16 +76,16 @@
               type="checkbox"
               v-model="filters.saved_only"
               @change="applyFilters"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-primary-500"
+              class="w-4 h-4 text-violet-600 border-horizon-300 rounded focus:ring-violet-500"
             />
-            <span class="ml-2 text-sm font-medium text-gray-700">Saved only</span>
+            <span class="ml-2 text-sm font-medium text-neutral-500">Saved only</span>
           </label>
         </div>
 
         <div class="flex items-end">
           <button
             @click="clearFilters"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-neutral-500 bg-savannah-100 hover:bg-savannah-200 rounded-button transition-colors duration-200"
           >
             Clear Filters
           </button>
@@ -97,23 +97,23 @@
     <div class="p-6">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-12">
-        <svg class="animate-spin h-12 w-12 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-12 w-12 mx-auto text-violet-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p class="mt-4 text-gray-600">Loading scenarios...</p>
+        <p class="mt-4 text-neutral-500">Loading scenarios...</p>
       </div>
 
       <!-- Empty State -->
       <div v-else-if="!scenarios || scenarios.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">No scenarios found</h3>
-        <p class="mt-2 text-gray-500">Create your first what-if scenario to explore different outcomes.</p>
+        <h3 class="mt-4 text-lg font-medium text-horizon-500">No scenarios found</h3>
+        <p class="mt-2 text-neutral-500">Create your first what-if scenario to explore different outcomes.</p>
         <button
           @click="showCreateModal = true"
-          class="mt-4 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
+          class="mt-4 px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors duration-200"
         >
           Create Scenario
         </button>
@@ -151,7 +151,7 @@
                 <button
                   v-if="scenario.is_saved"
                   @click="unsaveScenario(scenario.id)"
-                  class="text-blue-500 hover:text-blue-600"
+                  class="text-violet-500 hover:text-violet-600"
                   title="Remove bookmark"
                 >
                   <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
@@ -161,7 +161,7 @@
                 <button
                   v-else
                   @click="saveScenario(scenario.id)"
-                  class="text-gray-400 hover:text-blue-500"
+                  class="text-horizon-400 hover:text-violet-500"
                   title="Bookmark scenario"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,16 +170,16 @@
                 </button>
               </div>
 
-              <h3 class="text-lg font-semibold text-gray-900">{{ scenario.scenario_name }}</h3>
-              <p v-if="scenario.description" class="text-sm text-gray-600 mt-1">{{ scenario.description }}</p>
-              <p v-if="scenario.template_name" class="text-xs text-gray-500 mt-1">Template: {{ scenario.template_name }}</p>
+              <h3 class="text-lg font-semibold text-horizon-500">{{ scenario.scenario_name }}</h3>
+              <p v-if="scenario.description" class="text-sm text-neutral-500 mt-1">{{ scenario.description }}</p>
+              <p v-if="scenario.template_name" class="text-xs text-neutral-500 mt-1">Template: {{ scenario.template_name }}</p>
             </div>
 
             <!-- Action Menu -->
             <div class="relative">
               <button
                 @click="toggleActionMenu(scenario.id)"
-                class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                class="p-2 text-horizon-400 hover:text-neutral-500 rounded-lg hover:bg-savannah-100"
               >
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -189,31 +189,31 @@
               <!-- Dropdown Menu -->
               <div
                 v-if="activeMenuId === scenario.id"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-light-gray z-10"
               >
                 <button
                   v-if="scenario.status === 'draft'"
                   @click="runScenario(scenario.id)"
-                  class="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-spring-700 hover:bg-spring-50"
                 >
                   Run Simulation
                 </button>
                 <button
                   v-if="scenario.status === 'completed'"
                   @click="viewResults(scenario)"
-                  class="block w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-blue-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-violet-700 hover:bg-violet-50"
                 >
                   View Results
                 </button>
                 <button
                   @click="selectForComparison(scenario)"
-                  class="block w-full text-left px-4 py-2 text-sm text-purple-700 hover:bg-purple-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-violet-700 hover:bg-violet-50"
                 >
                   Compare
                 </button>
                 <button
                   @click="deleteScenario(scenario.id)"
-                  class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-raspberry-700 hover:bg-raspberry-50"
                 >
                   Delete
                 </button>
@@ -222,7 +222,7 @@
           </div>
 
           <!-- Scenario Info -->
-          <div class="flex flex-wrap gap-4 text-sm text-gray-600">
+          <div class="flex flex-wrap gap-4 text-sm text-neutral-500">
             <div>Created: {{ formatDate(scenario.created_at) }}</div>
             <div v-if="scenario.completed_at">Completed: {{ formatDate(scenario.completed_at) }}</div>
           </div>
@@ -232,22 +232,22 @@
       <!-- Comparison Selection Bar -->
       <div
         v-if="selectedForComparison.length > 0"
-        class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50"
+        class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl border border-light-gray p-4 z-50"
       >
         <div class="flex items-center gap-4">
-          <span class="text-sm font-medium text-gray-700">
+          <span class="text-sm font-medium text-neutral-500">
             {{ selectedForComparison.length }} scenario(s) selected for comparison
           </span>
           <button
             @click="compareSelectedScenarios"
             :disabled="selectedForComparison.length < 2"
-            class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:bg-savannah-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
           >
             Compare
           </button>
           <button
             @click="selectedForComparison = []"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
+            class="px-4 py-2 text-sm font-medium text-neutral-500 bg-savannah-100 hover:bg-savannah-200 rounded-button transition-colors duration-200"
           >
             Clear
           </button>
@@ -263,29 +263,29 @@
     >
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Create What-If Scenario</h3>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Create What-If Scenario</h3>
 
           <!-- Template Selection -->
           <div class="mb-6">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">Choose a Template or Create Custom</h4>
+            <h4 class="text-sm font-medium text-neutral-500 mb-3">Choose a Template or Create Custom</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
                 v-for="template in scenarioTemplates"
                 :key="template.id"
                 @click="selectTemplate(template)"
-                class="text-left p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors duration-200"
-                :class="selectedTemplate?.id === template.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                class="text-left p-4 border rounded-lg hover:border-violet-500 hover:bg-violet-50 transition-colors duration-200"
+                :class="selectedTemplate?.id === template.id ? 'border-violet-500 bg-violet-50' : 'border-light-gray'"
               >
-                <div class="font-medium text-gray-900">{{ template.name }}</div>
-                <div class="text-xs text-gray-600 mt-1">{{ template.description }}</div>
+                <div class="font-medium text-horizon-500">{{ template.name }}</div>
+                <div class="text-xs text-neutral-500 mt-1">{{ template.description }}</div>
               </button>
               <button
                 @click="selectTemplate(null)"
-                class="text-left p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors duration-200"
-                :class="selectedTemplate === null ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                class="text-left p-4 border rounded-lg hover:border-violet-500 hover:bg-violet-50 transition-colors duration-200"
+                :class="selectedTemplate === null ? 'border-violet-500 bg-violet-50' : 'border-light-gray'"
               >
-                <div class="font-medium text-gray-900">Custom Scenario</div>
-                <div class="text-xs text-gray-600 mt-1">Build your own scenario from scratch</div>
+                <div class="font-medium text-horizon-500">Custom Scenario</div>
+                <div class="text-xs text-neutral-500 mt-1">Build your own scenario from scratch</div>
               </button>
             </div>
           </div>
@@ -293,28 +293,28 @@
           <!-- Scenario Details Form -->
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Scenario Name *</label>
+              <label class="block text-sm font-medium text-neutral-500 mb-1">Scenario Name *</label>
               <input
                 v-model="newScenario.scenario_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., Early Retirement Scenario"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label class="block text-sm font-medium text-neutral-500 mb-1">Description</label>
               <textarea
                 v-model="newScenario.description"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 rows="3"
                 placeholder="Describe what this scenario models..."
               ></textarea>
             </div>
 
             <!-- Parameter Inputs (simplified for this example) -->
-            <div v-if="selectedTemplate" class="bg-gray-50 rounded-lg p-4">
-              <p class="text-sm text-blue-800">
+            <div v-if="selectedTemplate" class="bg-eggshell-500 rounded-lg p-4">
+              <p class="text-sm text-violet-800">
                 This scenario will use the pre-configured parameters from the "{{ selectedTemplate.name }}" template.
               </p>
             </div>
@@ -324,14 +324,14 @@
           <div class="flex justify-end gap-3 mt-6">
             <button
               @click="closeCreateModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-neutral-500 bg-savannah-100 hover:bg-savannah-200 rounded-button transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               @click="createScenario"
               :disabled="!newScenario.scenario_name"
-              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 disabled:bg-savannah-300 disabled:cursor-not-allowed rounded-button transition-colors duration-200"
             >
               Create Scenario
             </button>
@@ -547,29 +547,29 @@ export default {
     },
 
     getScenarioBorderClass(scenario) {
-      if (scenario.status === 'completed') return 'border-l-4 border-green-500 bg-white';
-      if (scenario.status === 'running') return 'border-l-4 border-purple-500 bg-white';
-      if (scenario.status === 'failed') return 'border-l-4 border-red-500 bg-white';
-      return 'border-gray-200 bg-white';
+      if (scenario.status === 'completed') return 'border-l-4 border-spring-500 bg-white';
+      if (scenario.status === 'running') return 'border-l-4 border-violet-500 bg-white';
+      if (scenario.status === 'failed') return 'border-l-4 border-raspberry-500 bg-white';
+      return 'border-light-gray bg-white';
     },
 
     getStatusClass(status) {
       const classes = {
-        draft: 'bg-gray-100 text-gray-800',
-        running: 'bg-purple-500 text-white',
-        completed: 'bg-green-500 text-white',
-        failed: 'bg-red-500 text-white',
+        draft: 'bg-savannah-100 text-horizon-500',
+        running: 'bg-violet-500 text-white',
+        completed: 'bg-spring-500 text-white',
+        failed: 'bg-raspberry-500 text-white',
       };
-      return classes[status] || 'bg-gray-100 text-gray-800';
+      return classes[status] || 'bg-savannah-100 text-horizon-500';
     },
 
     getTypeClass(type) {
       const classes = {
-        custom: 'bg-blue-500 text-white',
-        template: 'bg-indigo-500 text-white',
-        comparison: 'bg-purple-500 text-white',
+        custom: 'bg-violet-500 text-white',
+        template: 'bg-violet-500 text-white',
+        comparison: 'bg-violet-500 text-white',
       };
-      return classes[type] || 'bg-gray-100 text-gray-800';
+      return classes[type] || 'bg-savannah-100 text-horizon-500';
     },
 
     formatStatus(status) {

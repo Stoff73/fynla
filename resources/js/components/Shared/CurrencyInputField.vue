@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="relative">
-      <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">£</span>
+      <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
       <input
         :value="modelValue"
         @input="handleInput"
@@ -14,7 +14,7 @@
         class="input-field pl-8"
       />
     </div>
-    <p v-if="hint" class="mt-1 text-body-sm text-gray-500">{{ hint }}</p>
+    <p v-if="hint" class="mt-1 text-body-sm text-neutral-500">{{ hint }}</p>
   </div>
 </template>
 

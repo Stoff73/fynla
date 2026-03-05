@@ -25,19 +25,19 @@
     <!-- Legend -->
     <div class="legend">
       <div class="legend-item">
-        <span class="legend-colour bg-green-600"></span>
+        <span class="legend-colour bg-spring-600"></span>
         <span>Exempt gifts (spouse/charity) - immediately Inheritance Tax-free</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour bg-red-500"></span>
+        <span class="legend-colour bg-raspberry-500"></span>
         <span>Within 7 years (potentially taxable)</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour bg-blue-500"></span>
+        <span class="legend-colour bg-violet-500"></span>
         <span>Years 3-7 (taper relief applies)</span>
       </div>
       <div class="legend-item">
-        <span class="legend-colour bg-green-600"></span>
+        <span class="legend-colour bg-spring-600"></span>
         <span>Survived 7 years (Inheritance Tax-exempt)</span>
       </div>
     </div>
@@ -376,13 +376,13 @@ export default {
 .chart-header h3 {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -393,18 +393,18 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
 }
 
 .empty-state i {
-  @apply text-gray-300;
+  @apply text-savannah-300;
   margin-bottom: 16px;
 }
 
 .empty-state p {
   margin: 8px 0;
   font-size: 16px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .legend {
@@ -414,7 +414,7 @@ export default {
   justify-content: center;
   margin: 24px 0;
   padding: 16px;
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 6px;
 }
 
@@ -423,7 +423,7 @@ export default {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
 }
 
 .legend-colour {
@@ -436,22 +436,22 @@ export default {
 .taper-relief-info {
   margin-top: 32px;
   padding-top: 24px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .taper-relief-info h4 {
   font-size: 16px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
 .relief-note {
-  @apply text-sm text-gray-700 bg-green-50 border-l-4 border-green-600 p-3 mb-4 rounded leading-relaxed;
+  @apply text-sm text-neutral-500 bg-spring-50 border-l-4 border-spring-600 p-3 mb-4 rounded leading-relaxed;
 }
 
 .relief-note strong {
-  @apply text-green-800;
+  @apply text-spring-800;
 }
 
 .relief-table {
@@ -461,34 +461,34 @@ export default {
 }
 
 .relief-table thead {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
 }
 
 .relief-table th {
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  @apply text-gray-700;
-  @apply border-b-2 border-gray-200;
+  @apply text-neutral-500;
+  @apply border-b-2 border-light-gray;
 }
 
 .relief-table td {
   padding: 12px;
-  @apply text-gray-500;
-  @apply border-b border-gray-200;
+  @apply text-neutral-500;
+  @apply border-b border-light-gray;
 }
 
 .relief-table tbody tr:hover {
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
 }
 
 .relief-table tbody tr.highlight {
-  @apply bg-green-100;
+  @apply bg-spring-100;
   font-weight: 600;
 }
 
 .relief-table tbody tr.highlight td {
-  @apply text-green-800;
+  @apply text-spring-800;
 }
 </style>
 
@@ -503,12 +503,12 @@ export default {
 }
 
 .tooltip-header {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   padding: 12px 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
   border-radius: 6px 6px 0 0;
   font-size: 14px;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .tooltip-body {
@@ -523,16 +523,16 @@ export default {
 }
 
 .tooltip-row span {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .tooltip-row strong {
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .tooltip-row.highlight {
   margin-top: 8px;
   padding-top: 8px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 </style>

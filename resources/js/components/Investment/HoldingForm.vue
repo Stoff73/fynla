@@ -2,19 +2,19 @@
   <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
-      <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+      <div class="fixed inset-0 transition-opacity bg-horizon-500 bg-opacity-75"></div>
 
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-gray-200">
+        <div class="bg-white px-6 py-4 border-b border-light-gray">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">
+            <h3 class="text-lg font-semibold text-horizon-500">
               {{ isEditMode ? 'Edit Holding' : 'Add New Holding' }}
             </h3>
             <button
               @click="closeModal"
-              class="text-gray-400 hover:text-gray-600 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -28,14 +28,14 @@
           <div class="bg-white px-6 py-4 space-y-4">
             <!-- Account Selection -->
             <div>
-              <label for="account_id" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="account_id" class="block text-sm font-medium text-neutral-500 mb-1">
                 Account
               </label>
               <select
                 id="account_id"
                 v-model="formData.investment_account_id"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                :class="{ 'border-red-500': errors.investment_account_id }"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.investment_account_id }"
                 :disabled="accounts.length === 0"
               >
                 <option value="">{{ accounts.length === 0 ? 'No accounts available' : 'Select an account' }}</option>
@@ -43,51 +43,51 @@
                   {{ formatAccountName(account) }}
                 </option>
               </select>
-              <p v-if="errors.investment_account_id" class="mt-1 text-sm text-red-600">{{ errors.investment_account_id }}</p>
-              <p v-if="accounts.length === 0" class="mt-2 text-sm text-blue-600 bg-gray-50 rounded-md p-2">
+              <p v-if="errors.investment_account_id" class="mt-1 text-sm text-raspberry-600">{{ errors.investment_account_id }}</p>
+              <p v-if="accounts.length === 0" class="mt-2 text-sm text-violet-600 bg-eggshell-500 rounded-md p-2">
                 ⚠️ You need to create an investment account first before adding holdings. Please go to the Accounts tab to add an account.
               </p>
             </div>
 
             <!-- Security Name -->
             <div>
-              <label for="security_name" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="security_name" class="block text-sm font-medium text-neutral-500 mb-1">
                 Security Name
               </label>
               <input
                 id="security_name"
                 v-model="formData.security_name"
                 type="text"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                :class="{ 'border-red-500': errors.security_name }"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.security_name }"
                 placeholder="e.g., Vanguard FTSE All-World"
               />
-              <p v-if="errors.security_name" class="mt-1 text-sm text-red-600">{{ errors.security_name }}</p>
+              <p v-if="errors.security_name" class="mt-1 text-sm text-raspberry-600">{{ errors.security_name }}</p>
             </div>
 
             <!-- Ticker and ISIN -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label for="ticker" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="ticker" class="block text-sm font-medium text-neutral-500 mb-1">
                   Ticker
                 </label>
                 <input
                   id="ticker"
                   v-model="formData.ticker"
                   type="text"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="e.g., VWRL"
                 />
               </div>
               <div>
-                <label for="isin" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="isin" class="block text-sm font-medium text-neutral-500 mb-1">
                   ISIN
                 </label>
                 <input
                   id="isin"
                   v-model="formData.isin"
                   type="text"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="e.g., IE00B3RBWM25"
                 />
               </div>
@@ -95,14 +95,14 @@
 
             <!-- Asset Type -->
             <div>
-              <label for="asset_type" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="asset_type" class="block text-sm font-medium text-neutral-500 mb-1">
                 Asset Type
               </label>
               <select
                 id="asset_type"
                 v-model="formData.asset_type"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                :class="{ 'border-red-500': errors.asset_type }"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                :class="{ 'border-raspberry-500': errors.asset_type }"
               >
                 <option value="">Select asset type</option>
                 <option value="uk_equity">UK Equity</option>
@@ -115,13 +115,13 @@
                 <option value="alternative">Alternative</option>
                 <option value="property">Property</option>
               </select>
-              <p v-if="errors.asset_type" class="mt-1 text-sm text-red-600">{{ errors.asset_type }}</p>
+              <p v-if="errors.asset_type" class="mt-1 text-sm text-raspberry-600">{{ errors.asset_type }}</p>
             </div>
 
             <!-- Allocation Percentage and Purchase Price (Optional) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label for="allocation_percent" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="allocation_percent" class="block text-sm font-medium text-neutral-500 mb-1">
                   Allocation % of Account
                 </label>
                 <div class="relative">
@@ -132,18 +132,18 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 pr-8"
-                    :class="{ 'border-red-500': errors.allocation_percent }"
+                    class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 pr-8"
+                    :class="{ 'border-raspberry-500': errors.allocation_percent }"
                     placeholder="e.g., 25.5"
                   />
-                  <span class="absolute right-3 top-2.5 text-gray-500">%</span>
+                  <span class="absolute right-3 top-2.5 text-neutral-500">%</span>
                 </div>
-                <p v-if="errors.allocation_percent" class="mt-1 text-sm text-red-600">{{ errors.allocation_percent }}</p>
-                <p class="mt-1 text-xs text-gray-500">Percentage of this account's total value</p>
+                <p v-if="errors.allocation_percent" class="mt-1 text-sm text-raspberry-600">{{ errors.allocation_percent }}</p>
+                <p class="mt-1 text-xs text-neutral-500">Percentage of this account's total value</p>
               </div>
               <div>
-                <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Price (£) <span class="text-gray-400 text-xs">(Optional)</span>
+                <label for="purchase_price" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Purchase Price (£) <span class="text-horizon-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   id="purchase_price"
@@ -151,19 +151,19 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  :class="{ 'border-red-500': errors.purchase_price }"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.purchase_price }"
                   placeholder="0.00"
                 />
-                <p v-if="errors.purchase_price" class="mt-1 text-sm text-red-600">{{ errors.purchase_price }}</p>
+                <p v-if="errors.purchase_price" class="mt-1 text-sm text-raspberry-600">{{ errors.purchase_price }}</p>
               </div>
             </div>
 
             <!-- Current Price (Optional) and Purchase Date -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label for="current_price" class="block text-sm font-medium text-gray-700 mb-1">
-                  Current Price (£) <span class="text-gray-400 text-xs">(Optional)</span>
+                <label for="current_price" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Current Price (£) <span class="text-horizon-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   id="current_price"
@@ -171,31 +171,31 @@
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  :class="{ 'border-red-500': errors.current_price }"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.current_price }"
                   placeholder="0.00"
                 />
-                <p v-if="errors.current_price" class="mt-1 text-sm text-red-600">{{ errors.current_price }}</p>
+                <p v-if="errors.current_price" class="mt-1 text-sm text-raspberry-600">{{ errors.current_price }}</p>
               </div>
               <div>
-                <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Date <span class="text-gray-400 text-xs">(Optional)</span>
+                <label for="purchase_date" class="block text-sm font-medium text-neutral-500 mb-1">
+                  Purchase Date <span class="text-horizon-400 text-xs">(Optional)</span>
                 </label>
                 <input
                   id="purchase_date"
                   v-model="formData.purchase_date"
                   type="date"
-                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  :class="{ 'border-red-500': errors.purchase_date }"
+                  class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  :class="{ 'border-raspberry-500': errors.purchase_date }"
                   :max="today"
                 />
-                <p v-if="errors.purchase_date" class="mt-1 text-sm text-red-600">{{ errors.purchase_date }}</p>
+                <p v-if="errors.purchase_date" class="mt-1 text-sm text-raspberry-600">{{ errors.purchase_date }}</p>
               </div>
             </div>
 
             <!-- OCF Percent -->
             <div>
-              <label for="ocf_percent" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="ocf_percent" class="block text-sm font-medium text-neutral-500 mb-1">
                 Ongoing Charge Figure (OCF) %
               </label>
               <input
@@ -205,26 +205,26 @@
                 step="0.01"
                 min="0"
                 max="10"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 placeholder="e.g., 0.22"
               />
-              <p class="mt-1 text-xs text-gray-500">Annual management fee as a percentage</p>
+              <p class="mt-1 text-xs text-neutral-500">Annual management fee as a percentage</p>
             </div>
 
             <!-- Calculated Fields Display -->
-            <div v-if="selectedAccount && formData.allocation_percent" class="bg-gray-50 rounded-md p-4">
-              <h4 class="text-sm font-semibold text-blue-900 mb-2">Calculated Values</h4>
+            <div v-if="selectedAccount && formData.allocation_percent" class="bg-eggshell-500 rounded-md p-4">
+              <h4 class="text-sm font-semibold text-violet-900 mb-2">Calculated Values</h4>
               <div class="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span class="text-blue-700">Account Value:</span>
-                  <span class="ml-2 font-medium text-blue-900">{{ formatCurrency(selectedAccount.current_value) }}</span>
+                  <span class="text-violet-700">Account Value:</span>
+                  <span class="ml-2 font-medium text-violet-900">{{ formatCurrency(selectedAccount.current_value) }}</span>
                 </div>
                 <div>
-                  <span class="text-blue-700">Holding Value:</span>
-                  <span class="ml-2 font-medium text-blue-900">{{ formatCurrency(calculatedHoldingValue) }}</span>
+                  <span class="text-violet-700">Holding Value:</span>
+                  <span class="ml-2 font-medium text-violet-900">{{ formatCurrency(calculatedHoldingValue) }}</span>
                 </div>
                 <div v-if="formData.purchase_price && formData.current_price">
-                  <span class="text-blue-700">Price Return:</span>
+                  <span class="text-violet-700">Price Return:</span>
                   <span class="ml-2 font-medium" :class="returnClass">{{ formatReturn(returnPercent) }}</span>
                 </div>
               </div>
@@ -232,18 +232,18 @@
           </div>
 
           <!-- Footer -->
-          <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+          <div class="bg-eggshell-500 px-6 py-4 flex justify-end gap-3">
             <button
               type="button"
               @click="closeModal"
-              class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="submitting"
-              class="px-4 py-2 bg-primary-600 text-white rounded-button text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ submitting ? 'Saving...' : (isEditMode ? 'Update Holding' : 'Add Holding') }}
             </button>
@@ -327,9 +327,9 @@ export default {
     },
 
     returnClass() {
-      if (this.returnPercent > 0) return 'text-green-600';
-      if (this.returnPercent < 0) return 'text-red-600';
-      return 'text-gray-600';
+      if (this.returnPercent > 0) return 'text-spring-600';
+      if (this.returnPercent < 0) return 'text-raspberry-600';
+      return 'text-neutral-500';
     },
   },
 

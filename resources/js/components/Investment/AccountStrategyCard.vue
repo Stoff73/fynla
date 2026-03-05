@@ -1,6 +1,6 @@
 <template>
   <div class="strategy-section">
-    <h4 class="text-lg font-bold text-gray-900 mb-4">Strategies</h4>
+    <h4 class="text-lg font-bold text-horizon-500 mb-4">Strategies</h4>
 
     <!-- Recommendations Grid -->
     <div v-if="accountRecommendations.length > 0" class="strategy-grid">
@@ -13,15 +13,15 @@
         <span :class="getPriorityBadgeClass(rec.priority)">
           {{ getPriorityLabel(rec.priority) }}
         </span>
-        <h5 class="font-medium text-gray-900 mt-2">{{ rec.title }}</h5>
-        <p class="text-sm text-gray-600 mt-1">{{ rec.description }}</p>
+        <h5 class="font-medium text-horizon-500 mt-2">{{ rec.title }}</h5>
+        <p class="text-sm text-neutral-500 mt-1">{{ rec.description }}</p>
       </div>
     </div>
 
     <!-- All good state -->
     <div v-else class="text-center py-6">
-      <p class="text-sm text-green-600 font-medium">Looking Good</p>
-      <p class="text-xs text-gray-500 mt-1">No recommendations for this account</p>
+      <p class="text-sm text-spring-600 font-medium">Looking Good</p>
+      <p class="text-xs text-neutral-500 mt-1">No recommendations for this account</p>
     </div>
   </div>
 </template>
@@ -237,11 +237,11 @@ export default {
     getPriorityBadgeClass(priority) {
       const base = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
       switch (priority) {
-        case 1: return `${base} bg-red-500 text-white`;
-        case 2: return `${base} bg-red-500 text-white`;
-        case 3: return `${base} bg-blue-500 text-white`;
-        case 4: return `${base} bg-gray-400 text-white`;
-        default: return `${base} bg-gray-400 text-white`;
+        case 1: return `${base} bg-raspberry-500 text-white`;
+        case 2: return `${base} bg-raspberry-500 text-white`;
+        case 3: return `${base} bg-violet-500 text-white`;
+        case 4: return `${base} bg-savannah-300 text-white`;
+        default: return `${base} bg-savannah-300 text-white`;
       }
     },
 
@@ -283,7 +283,7 @@ export default {
 <style scoped>
 .strategy-section {
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 12px;
   padding: 20px;
   margin-top: 24px;
@@ -297,7 +297,7 @@ export default {
 
 .strategy-card {
   background: white;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   border-radius: 12px;
   padding: 16px;
 }

@@ -11,26 +11,26 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> Protection policies provide financial security for you and your family. We analyse your existing coverage to identify any gaps and provide recommendations based on your income, debts, and dependants.
         </p>
       </div>
 
       <!-- I have no policies checkbox -->
-      <div class="border border-gray-200 rounded-lg p-4 bg-blue-50">
+      <div class="border border-light-gray rounded-lg p-4 bg-violet-50">
         <label class="flex items-start gap-3 cursor-pointer">
           <input
             v-model="hasNoPolicies"
             type="checkbox"
-            class="mt-1 h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
+            class="mt-1 h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
             @change="handleNoPoliciesChange"
           >
           <div>
-            <span class="text-body font-medium text-gray-900">
+            <span class="text-body font-medium text-horizon-500">
               I have no protection policies in place
             </span>
-            <p class="text-body-sm text-gray-600 mt-1">
+            <p class="text-body-sm text-neutral-500 mt-1">
               Check this if you don't currently have any life insurance, critical illness, income protection, or other protection policies. We'll help you understand what coverage you might need in the Protection module.
             </p>
           </div>
@@ -39,60 +39,60 @@
 
       <!-- Added Policies List -->
       <div v-if="policies.length > 0" class="space-y-3">
-        <h4 class="text-body font-medium text-gray-900">
+        <h4 class="text-body font-medium text-horizon-500">
           Policies ({{ policies.length }})
         </h4>
 
         <div
           v-for="policy in policies"
           :key="policy.id"
-          class="border border-gray-200 rounded-lg p-4 bg-gray-50"
+          class="border border-light-gray rounded-lg p-4 bg-eggshell-500"
         >
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <h5 class="text-body font-medium text-gray-900">
+                <h5 class="text-body font-medium text-horizon-500">
                   {{ getPolicyTypeLabel(policy.policyType || policy.policy_type) }}
                 </h5>
-                <span class="text-body-sm px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                <span class="text-body-sm px-2 py-0.5 bg-violet-100 text-violet-700 rounded">
                   {{ policy.provider }}
                 </span>
                 <!-- Life Policy Type Tag (only for life insurance) -->
                 <span
                   v-if="isLifeInsurancePolicy(policy) && policy.life_policy_type"
-                  class="text-body-sm px-2 py-0.5 bg-green-100 text-green-700 rounded"
+                  class="text-body-sm px-2 py-0.5 bg-spring-100 text-spring-700 rounded"
                 >
                   {{ getLifePolicyTypeLabel(policy.life_policy_type) }}
                 </span>
               </div>
               <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
                 <div>
-                  <p class="text-body-sm text-gray-500">{{ getCoverageLabel(policy.policyType || policy.policy_type) }}</p>
-                  <p class="text-body font-medium text-gray-900">{{ formatCurrency(policy.coverage_amount || policy.sum_assured || policy.benefit_amount || 0) }}</p>
+                  <p class="text-body-sm text-neutral-500">{{ getCoverageLabel(policy.policyType || policy.policy_type) }}</p>
+                  <p class="text-body font-medium text-horizon-500">{{ formatCurrency(policy.coverage_amount || policy.sum_assured || policy.benefit_amount || 0) }}</p>
                 </div>
                 <div>
-                  <p class="text-body-sm text-gray-500">Premium</p>
-                  <p class="text-body font-medium text-gray-900">
+                  <p class="text-body-sm text-neutral-500">Premium</p>
+                  <p class="text-body font-medium text-horizon-500">
                     {{ formatCurrency(policy.premium_amount) }} {{ policy.premium_frequency === 'monthly' ? 'pm' : 'pa' }}
                   </p>
                 </div>
                 <div v-if="policy.policy_number">
-                  <p class="text-body-sm text-gray-500">Policy Number</p>
-                  <p class="text-body text-gray-900">{{ policy.policy_number }}</p>
+                  <p class="text-body-sm text-neutral-500">Policy Number</p>
+                  <p class="text-body text-horizon-500">{{ policy.policy_number }}</p>
                 </div>
               </div>
             </div>
             <div class="flex gap-2 ml-4">
               <button
                 type="button"
-                class="text-primary-600 hover:text-primary-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="editPolicy(policy)"
               >
                 Edit
               </button>
               <button
                 type="button"
-                class="text-red-600 hover:text-red-700 text-body-sm"
+                class="text-raspberry-500 hover:text-raspberry-700 text-body-sm"
                 @click="deletePolicy(policy)"
               >
                 Remove
@@ -114,7 +114,7 @@
         <button
           v-preview-disabled="'upload'"
           type="button"
-          class="inline-flex items-center px-4 py-2 border-2 border-blue-600 text-blue-600 bg-white rounded-button hover:bg-blue-50 transition-colors text-sm font-medium"
+          class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
           @click="showUploadModal = true"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,11 +124,11 @@
         </button>
       </div>
 
-      <p v-if="policies.length === 0 && !hasNoPolicies" class="text-body-sm text-gray-500 italic">
+      <p v-if="policies.length === 0 && !hasNoPolicies" class="text-body-sm text-neutral-500 italic">
         You can skip this step and add protection policies later from your dashboard.
       </p>
 
-      <p v-if="hasNoPolicies" class="text-body-sm text-green-700 bg-green-50 p-3 rounded-lg">
+      <p v-if="hasNoPolicies" class="text-body-sm text-spring-700 bg-spring-50 p-3 rounded-lg">
         You've indicated you have no protection policies. The Protection module will help you understand your protection needs and recommend suitable coverage.
       </p>
     </div>

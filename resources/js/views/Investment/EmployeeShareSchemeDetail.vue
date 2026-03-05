@@ -3,25 +3,25 @@
     <!-- Key Metrics Header -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Card 1: Exercise/Grant Value -->
-      <div class="metric-card bg-blue-50 border border-blue-200">
+      <div class="metric-card bg-violet-50 border border-violet-200">
         <p class="metric-label">{{ isRSU ? 'Grant Value' : 'Exercise Value' }}</p>
-        <p class="metric-value text-blue-600">{{ formatCurrency(isRSU ? grantValue : exerciseValue) }}</p>
+        <p class="metric-value text-violet-600">{{ formatCurrency(isRSU ? grantValue : exerciseValue) }}</p>
         <p class="metric-sub">{{ formatNumber(account.units_granted) }} units</p>
       </div>
 
       <!-- Card 2: Vested Value -->
-      <div class="metric-card bg-green-50 border border-green-200">
+      <div class="metric-card bg-spring-50 border border-spring-200">
         <p class="metric-label">Vested Value</p>
-        <p class="metric-value text-green-600">{{ formatCurrency(vestedValue) }}</p>
+        <p class="metric-value text-spring-600">{{ formatCurrency(vestedValue) }}</p>
         <p class="metric-sub">{{ formatNumber(account.units_vested || 0) }} vested</p>
       </div>
 
       <!-- Card 3: Vesting Progress -->
-      <div class="metric-card bg-purple-50 border border-purple-200">
+      <div class="metric-card bg-violet-50 border border-violet-200">
         <p class="metric-label">Vesting Progress</p>
-        <p class="metric-value text-purple-600">{{ vestingProgressPercent.toFixed(0) }}%</p>
-        <div class="w-full bg-purple-200 rounded-full h-2 mt-2">
-          <div class="bg-purple-500 h-2 rounded-full" :style="{ width: `${vestingProgressPercent}%` }"></div>
+        <p class="metric-value text-violet-600">{{ vestingProgressPercent.toFixed(0) }}%</p>
+        <div class="w-full bg-violet-200 rounded-full h-2 mt-2">
+          <div class="bg-violet-500 h-2 rounded-full" :style="{ width: `${vestingProgressPercent}%` }"></div>
         </div>
       </div>
 
@@ -30,26 +30,26 @@
         <template v-if="isOptionsScheme">
           <p class="metric-label">Exercise Window</p>
           <template v-if="isInExerciseWindow">
-            <p class="metric-value text-green-600">Open</p>
+            <p class="metric-value text-spring-600">Open</p>
             <p class="metric-sub">{{ daysRemainingInWindow }} days left</p>
           </template>
           <template v-else-if="daysToExerciseWindow">
-            <p class="metric-value text-blue-600">{{ daysToExerciseWindow }}</p>
+            <p class="metric-value text-violet-600">{{ daysToExerciseWindow }}</p>
             <p class="metric-sub">days until open</p>
           </template>
           <template v-else>
-            <p class="metric-value text-gray-600">--</p>
+            <p class="metric-value text-neutral-500">--</p>
             <p class="metric-sub">Not set</p>
           </template>
         </template>
         <template v-else>
           <p class="metric-label">Full Vest</p>
           <template v-if="daysToFullVest">
-            <p class="metric-value text-blue-600">{{ daysToFullVest }}</p>
+            <p class="metric-value text-violet-600">{{ daysToFullVest }}</p>
             <p class="metric-sub">days remaining</p>
           </template>
           <template v-else>
-            <p class="metric-value text-green-600">Complete</p>
+            <p class="metric-value text-spring-600">Complete</p>
             <p class="metric-sub">Fully vested</p>
           </template>
         </template>
@@ -101,7 +101,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Units Granted</span>
-          <span class="detail-value text-blue-600 font-bold">{{ formatNumber(account.units_granted) }}</span>
+          <span class="detail-value text-violet-600 font-bold">{{ formatNumber(account.units_granted) }}</span>
         </div>
         <div v-if="isOptionsScheme" class="detail-item">
           <span class="detail-label">Exercise Price</span>
@@ -123,18 +123,18 @@
       <h3 class="section-title">Vesting Schedule</h3>
 
       <!-- Vesting Progress Bar -->
-      <div class="vesting-progress mb-6 p-4 bg-gray-50 rounded-lg">
+      <div class="vesting-progress mb-6 p-4 bg-eggshell-500 rounded-lg">
         <div class="flex justify-between text-sm mb-2">
-          <span class="text-gray-600">Vesting Progress</span>
+          <span class="text-neutral-500">Vesting Progress</span>
           <span class="font-semibold">{{ vestingProgressPercent.toFixed(1) }}%</span>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-3">
+        <div class="w-full bg-savannah-200 rounded-full h-3">
           <div
-            class="bg-green-500 h-3 rounded-full transition-all duration-500"
+            class="bg-spring-500 h-3 rounded-full transition-all duration-500"
             :style="{ width: `${vestingProgressPercent}%` }"
           ></div>
         </div>
-        <div class="flex justify-between text-xs text-gray-500 mt-2">
+        <div class="flex justify-between text-xs text-neutral-500 mt-2">
           <span>{{ formatNumber(account.units_vested || 0) }} vested</span>
           <span>{{ formatNumber(account.units_unvested || 0) }} unvested</span>
         </div>
@@ -178,23 +178,23 @@
         </div>
         <div v-if="account.share_price_date" class="detail-item">
           <span class="detail-label">Price Date</span>
-          <span class="detail-value text-gray-500">{{ formatDate(account.share_price_date) }}</span>
+          <span class="detail-value text-neutral-500">{{ formatDate(account.share_price_date) }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Units Vested</span>
-          <span class="detail-value text-green-600">{{ formatNumber(account.units_vested || 0) }}</span>
+          <span class="detail-value text-spring-600">{{ formatNumber(account.units_vested || 0) }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Units Unvested</span>
-          <span class="detail-value text-blue-600">{{ formatNumber(account.units_unvested || 0) }}</span>
+          <span class="detail-value text-violet-600">{{ formatNumber(account.units_unvested || 0) }}</span>
         </div>
         <div v-if="account.units_exercised" class="detail-item">
           <span class="detail-label">Units Exercised</span>
-          <span class="detail-value text-blue-600">{{ formatNumber(account.units_exercised) }}</span>
+          <span class="detail-value text-violet-600">{{ formatNumber(account.units_exercised) }}</span>
         </div>
         <div v-if="account.units_forfeited" class="detail-item">
           <span class="detail-label">Units Forfeited</span>
-          <span class="detail-value text-red-600">{{ formatNumber(account.units_forfeited) }}</span>
+          <span class="detail-value text-raspberry-600">{{ formatNumber(account.units_forfeited) }}</span>
         </div>
       </div>
     </div>
@@ -224,7 +224,7 @@
         </div>
         <div v-if="account.total_exercise_proceeds" class="detail-item">
           <span class="detail-label">Total Exercise Proceeds</span>
-          <span class="detail-value text-green-600">{{ formatCurrency(account.total_exercise_proceeds) }}</span>
+          <span class="detail-value text-spring-600">{{ formatCurrency(account.total_exercise_proceeds) }}</span>
         </div>
         <div v-if="account.total_exercise_cost" class="detail-item">
           <span class="detail-label">Total Exercise Cost</span>
@@ -266,7 +266,7 @@
         </div>
         <div v-if="isCSOPScheme && csopThreeYearDate" class="detail-item">
           <span class="detail-label">CSOP 3-Year Date</span>
-          <span class="detail-value" :class="isInCsopTaxWindow ? 'text-green-600' : 'text-blue-600'">
+          <span class="detail-value" :class="isInCsopTaxWindow ? 'text-spring-600' : 'text-violet-600'">
             {{ formatDate(csopThreeYearDate) }}
           </span>
         </div>
@@ -282,8 +282,8 @@
     </div>
 
     <!-- SAYE Savings (SAYE only) -->
-    <div v-if="isSAYE" class="details-section bg-green-50 border-green-200">
-      <h3 class="section-title text-green-800">SAYE Savings Contract</h3>
+    <div v-if="isSAYE" class="details-section bg-spring-50 border-spring-200">
+      <h3 class="section-title text-spring-800">SAYE Savings Contract</h3>
       <div class="details-grid">
         <div class="detail-item">
           <span class="detail-label">Monthly Savings</span>
@@ -291,7 +291,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Current Balance</span>
-          <span class="detail-value text-green-600 font-bold">{{ formatCurrency(account.saye_current_savings_balance) }}</span>
+          <span class="detail-value text-spring-600 font-bold">{{ formatCurrency(account.saye_current_savings_balance) }}</span>
         </div>
         <div v-if="account.saye_maturity_date" class="detail-item">
           <span class="detail-label">Maturity Date</span>
@@ -303,7 +303,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Projected Savings</span>
-          <span class="detail-value text-green-600">{{ formatCurrency(sayeProjectedSavings) }}</span>
+          <span class="detail-value text-spring-600">{{ formatCurrency(sayeProjectedSavings) }}</span>
         </div>
       </div>
     </div>
@@ -322,7 +322,7 @@
         </div>
         <div v-if="account.termination_date" class="detail-item">
           <span class="detail-label">Termination Date</span>
-          <span class="detail-value text-red-600">{{ formatDate(account.termination_date) }}</span>
+          <span class="detail-value text-raspberry-600">{{ formatDate(account.termination_date) }}</span>
         </div>
         <div v-if="account.leaver_notes" class="detail-item detail-item-wide">
           <span class="detail-label">Notes</span>
@@ -414,9 +414,9 @@ export default {
       return now >= start && now <= end;
     },
     exerciseWindowCardClass() {
-      if (this.isInExerciseWindow) return 'bg-green-50 border border-green-200';
-      if (this.daysToExerciseWindow) return 'bg-blue-50 border border-blue-200';
-      return 'bg-gray-50 border border-gray-200';
+      if (this.isInExerciseWindow) return 'bg-spring-50 border border-spring-200';
+      if (this.daysToExerciseWindow) return 'bg-violet-50 border border-violet-200';
+      return 'bg-eggshell-500 border border-light-gray';
     },
 
     // Full vest
@@ -471,15 +471,15 @@ export default {
     },
     schemeStatusClass() {
       const classes = {
-        'active': 'text-green-600',
-        'vesting': 'text-blue-600',
-        'exercisable': 'text-green-600',
-        'exercised': 'text-blue-600',
-        'expired': 'text-gray-600',
-        'forfeited': 'text-red-600',
-        'cancelled': 'text-gray-600',
+        'active': 'text-spring-600',
+        'vesting': 'text-violet-600',
+        'exercisable': 'text-spring-600',
+        'exercised': 'text-violet-600',
+        'expired': 'text-neutral-500',
+        'forfeited': 'text-raspberry-600',
+        'cancelled': 'text-neutral-500',
       };
-      return classes[this.account.scheme_status] || 'text-green-600';
+      return classes[this.account.scheme_status] || 'text-spring-600';
     },
   },
 
@@ -533,7 +533,7 @@ export default {
 }
 
 .metric-label {
-  @apply text-sm text-gray-600 mb-1;
+  @apply text-sm text-neutral-500 mb-1;
 }
 
 .metric-value {
@@ -541,15 +541,15 @@ export default {
 }
 
 .metric-sub {
-  @apply text-xs text-gray-500 mt-1;
+  @apply text-xs text-neutral-500 mt-1;
 }
 
 .details-section {
-  @apply bg-white rounded-lg border border-gray-200 p-6;
+  @apply bg-white rounded-lg border border-light-gray p-6;
 }
 
 .section-title {
-  @apply text-lg font-semibold text-gray-900 mb-5 pb-3 border-b border-gray-200;
+  @apply text-lg font-semibold text-horizon-500 mb-5 pb-3 border-b border-light-gray;
 }
 
 .details-grid {
@@ -566,11 +566,11 @@ export default {
 }
 
 .detail-label {
-  @apply text-sm font-medium text-gray-500;
+  @apply text-sm font-medium text-neutral-500;
 }
 
 .detail-value {
-  @apply text-base font-semibold text-gray-900;
+  @apply text-base font-semibold text-horizon-500;
 }
 
 .alert {
@@ -578,15 +578,15 @@ export default {
 }
 
 .alert-success {
-  @apply bg-green-50 border border-green-200 text-green-800;
+  @apply bg-spring-50 border border-spring-200 text-spring-800;
 }
 
 .alert-info {
-  @apply bg-blue-50 border border-blue-200 text-blue-800;
+  @apply bg-violet-50 border border-violet-200 text-violet-800;
 }
 
 .alert-warning {
-  @apply bg-blue-50 border border-blue-200 text-blue-800;
+  @apply bg-violet-50 border border-violet-200 text-violet-800;
 }
 
 @media (max-width: 640px) {

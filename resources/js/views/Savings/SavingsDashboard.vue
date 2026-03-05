@@ -14,26 +14,26 @@
       <template v-else>
         <!-- Header (only show when not embedded) -->
         <div v-if="!isEmbedded" class="mb-8">
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Savings & Emergency Fund</h1>
-          <p class="text-gray-600">
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Savings & Emergency Fund</h1>
+          <p class="text-neutral-500">
             Manage your savings accounts, track emergency fund, and monitor progress towards your goals
           </p>
         </div>
 
         <!-- Loading State -->
         <div v-if="loading" class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
         </div>
 
         <!-- Error State -->
         <div
           v-else-if="error"
-          class="bg-red-50 border-l-4 border-red-500 p-4 mb-6"
+          class="bg-raspberry-50 border-l-4 border-raspberry-500 p-4 mb-6"
         >
           <div class="flex">
             <div class="flex-shrink-0">
               <svg
-                class="h-5 w-5 text-red-400"
+                class="h-5 w-5 text-raspberry-400"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -46,7 +46,7 @@
               </svg>
             </div>
             <div class="ml-3">
-              <p class="text-sm text-red-700">{{ error }}</p>
+              <p class="text-sm text-raspberry-700">{{ error }}</p>
             </div>
           </div>
         </div>
@@ -69,16 +69,16 @@
 
         <div :class="isEmbedded ? 'savings-embedded' : 'bg-white rounded-lg shadow'">
           <!-- Tab Navigation -->
-          <div v-if="!isEmbedded" class="border-b border-gray-200">
-            <nav class="-mb-px flex overflow-x-auto" aria-label="Tabs">
+          <div v-if="!isEmbedded" class="border-b border-light-gray">
+            <nav class="-mb-px flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
               <button
                 v-for="tab in tabs"
                 :key="tab.id"
                 @click="activeTab = tab.id"
                 :class="[
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                    ? 'border-violet-500 text-violet-600'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
                   'whitespace-nowrap py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0',
                 ]"
               >
@@ -100,16 +100,16 @@
 
             <!-- Savings Goals Tab (unified) -->
             <div v-else-if="activeTab === 'goals'" class="text-center py-12">
-              <svg class="mx-auto h-12 w-12 text-primary-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="mx-auto h-12 w-12 text-raspberry-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Goals Have Moved</h3>
-              <p class="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+              <h3 class="text-lg font-semibold text-horizon-500 mb-2">Goals Have Moved</h3>
+              <p class="text-sm text-neutral-500 mb-4 max-w-md mx-auto">
                 Savings goals are now managed in the unified Goals &amp; Life Events module, where you can track all your financial goals in one place.
               </p>
               <router-link
                 to="/goals?module=savings"
-                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white font-medium rounded-lg hover:bg-raspberry-600 transition-colors"
               >
                 Go to Goals &amp; Life Events
                 <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,15 +238,5 @@ export default {
     padding-left: 1rem;
     padding-right: 1rem;
   }
-}
-
-/* Smooth scroll for tab navigation on mobile */
-nav[aria-label="Tabs"] {
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-nav[aria-label="Tabs"]::-webkit-scrollbar {
-  display: none;
 }
 </style>

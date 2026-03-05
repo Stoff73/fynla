@@ -35,7 +35,7 @@
       </div>
 
       <div v-if="loading" class="loading-state">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
         <p>Loading liabilities...</p>
       </div>
 
@@ -75,7 +75,7 @@
         </div>
         <div class="summary-item">
           <span class="summary-label">Total Balance Owed</span>
-          <span class="summary-value text-red-600">{{ formatCurrency(totalBalance) }}</span>
+          <span class="summary-value text-raspberry-600">{{ formatCurrency(totalBalance) }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Total Monthly Payments</span>
@@ -85,13 +85,13 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div v-if="showFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="closeFormModal">
+    <div v-if="showFormModal" class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="closeFormModal">
       <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
         <div class="overflow-y-auto max-h-[90vh]">
           <!-- Modal Close Button -->
           <button
             @click="closeFormModal"
-            class="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 transition-colors"
+            class="absolute top-4 right-4 z-20 text-horizon-400 hover:text-neutral-500 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -276,7 +276,7 @@ export default {
 .list-title {
   font-size: 24px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -288,17 +288,17 @@ export default {
 
 .filter-select {
   padding: 8px 12px;
-  @apply border border-gray-300;
+  @apply border border-horizon-300;
   border-radius: 8px;
   font-size: 14px;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   background: white;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
-  @apply border-red-500;
+  @apply border-raspberry-500;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
@@ -307,7 +307,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -318,7 +318,7 @@ export default {
 }
 
 .add-button:hover {
-  @apply bg-red-600;
+  @apply bg-raspberry-600;
 }
 
 .liabilities-grid {
@@ -336,7 +336,7 @@ export default {
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .summary-item {
@@ -348,7 +348,7 @@ export default {
 .summary-label {
   font-size: 12px;
   font-weight: 500;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -356,7 +356,7 @@ export default {
 .summary-value {
   font-size: 18px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 /* States */
@@ -376,52 +376,52 @@ export default {
 
 .loading-state p,
 .error-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
 
 .error-state p {
-  @apply text-red-500;
+  @apply text-raspberry-500;
 }
 
 .retry-button {
   margin-top: 16px;
   padding: 8px 16px;
-  @apply bg-gray-100;
-  @apply text-gray-700;
-  @apply border border-gray-300;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
+  @apply border border-horizon-300;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .retry-button:hover {
-  @apply bg-gray-200;
+  @apply bg-savannah-200;
 }
 
 .empty-state {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-title {
   font-size: 20px;
   font-weight: 700;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 8px;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
   max-width: 400px;
@@ -434,7 +434,7 @@ export default {
   gap: 8px;
   margin-top: 24px;
   padding: 12px 24px;
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -445,7 +445,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-red-600;
+  @apply bg-raspberry-600;
 }
 
 /* Mobile */

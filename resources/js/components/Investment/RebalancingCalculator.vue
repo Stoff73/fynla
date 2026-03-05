@@ -2,8 +2,8 @@
   <div class="rebalancing-calculator">
     <!-- Header -->
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Portfolio Rebalancing</h2>
-      <p class="text-gray-600">
+      <h2 class="text-2xl font-bold text-horizon-500 mb-2">Portfolio Rebalancing</h2>
+      <p class="text-neutral-500">
         Calculate the specific trades needed to reach your target portfolio allocation,
         with automatic Capital Gains Tax optimization.
       </p>
@@ -11,30 +11,30 @@
 
     <!-- Configuration Panel -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Configuration</h3>
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Configuration</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Source Selection -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-500 mb-2">
             Rebalancing Source
           </label>
           <select
             v-model="source"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             @change="onSourceChange"
           >
             <option value="optimization">From Portfolio Optimisation</option>
             <option value="manual">Manual Target Weights</option>
           </select>
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-neutral-500">
             {{ source === 'optimization' ? 'Use optimal weights from MPT analysis' : 'Enter custom target allocation' }}
           </p>
         </div>
 
         <!-- Minimum Trade Size -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-500 mb-2">
             Minimum Trade Size (£)
           </label>
           <input
@@ -42,9 +42,9 @@
             type="number"
             min="0"
             step="50"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
-          <p class="mt-1 text-xs text-gray-500">
+          <p class="mt-1 text-xs text-neutral-500">
             Ignore trades smaller than this amount
           </p>
         </div>
@@ -56,13 +56,13 @@
               v-model="optimiseForCGT"
               type="checkbox"
               id="optimiseCGT"
-              class="h-4 w-4 text-blue-600 focus:ring-primary-500 border-gray-300 rounded"
+              class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
             />
-            <label for="optimiseCGT" class="ml-2 block text-sm font-medium text-gray-700">
+            <label for="optimiseCGT" class="ml-2 block text-sm font-medium text-neutral-500">
               Optimise for Capital Gains Tax
             </label>
           </div>
-          <p class="mt-1 ml-6 text-xs text-gray-500">
+          <p class="mt-1 ml-6 text-xs text-neutral-500">
             Minimize Capital Gains Tax liability by optimising the order of buy/sell actions
           </p>
         </div>
@@ -70,7 +70,7 @@
         <!-- CGT Settings (shown if optimization enabled) -->
         <template v-if="optimiseForCGT">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-neutral-500 mb-2">
               Capital Gains Tax Annual Allowance (£)
             </label>
             <input
@@ -78,20 +78,20 @@
               type="number"
               min="0"
               step="100"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
-            <p class="mt-1 text-xs text-gray-500">
+            <p class="mt-1 text-xs text-neutral-500">
               UK: £3,000 for 2025/26
             </p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-neutral-500 mb-2">
               Capital Gains Tax Rate (%)
             </label>
             <select
               v-model.number="taxRate"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option :value="0.10">10% (Basic Rate)</option>
               <option :value="0.20">20% (Higher Rate)</option>
@@ -99,7 +99,7 @@
           </div>
 
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-neutral-500 mb-2">
               Loss Carryforward (£)
             </label>
             <input
@@ -107,9 +107,9 @@
               type="number"
               min="0"
               step="100"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
-            <p class="mt-1 text-xs text-gray-500">
+            <p class="mt-1 text-xs text-neutral-500">
               Capital losses carried forward from previous tax years
             </p>
           </div>
@@ -121,7 +121,7 @@
         <button
           @click="calculateRebalancing"
           :disabled="loading || !canCalculate"
-          class="w-full px-4 py-2 text-white bg-primary-600 rounded-button hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          class="w-full px-4 py-2 text-white bg-raspberry-500 rounded-button hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:bg-savannah-300 disabled:cursor-not-allowed"
         >
           <span v-if="loading" class="flex items-center justify-center">
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -138,16 +138,16 @@
     <!-- Error Message -->
     <div
       v-if="error"
-      class="mb-6 bg-white border-l-4 border-red-500 p-4"
+      class="mb-6 bg-white border-l-4 border-raspberry-500 p-4"
     >
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="h-5 w-5 text-raspberry-400" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-sm text-red-700">{{ error }}</p>
+          <p class="text-sm text-raspberry-700">{{ error }}</p>
         </div>
       </div>
     </div>
@@ -177,13 +177,13 @@
       <div class="flex justify-end space-x-3">
         <button
           @click="clearResults"
-          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-button hover:bg-eggshell-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
         >
           Clear
         </button>
         <button
           @click="exportResults"
-          class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-button hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-button hover:bg-eggshell-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
         >
           Export to CSV
         </button>
@@ -196,7 +196,7 @@
       class="bg-white rounded-lg shadow p-12 text-center"
     >
       <svg
-        class="mx-auto h-16 w-16 text-gray-400"
+        class="mx-auto h-16 w-16 text-horizon-400"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -208,10 +208,10 @@
           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
         />
       </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-900">
+      <h3 class="mt-4 text-lg font-medium text-horizon-500">
         Ready to Calculate Rebalancing
       </h3>
-      <p class="mt-2 text-sm text-gray-500">
+      <p class="mt-2 text-sm text-neutral-500">
         Configure your settings above and click "Calculate Rebalancing" to see the trades needed to reach your target allocation.
       </p>
     </div>
@@ -403,17 +403,4 @@ export default {
 </script>
 
 <style scoped>
-/* Animations */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
 </style>

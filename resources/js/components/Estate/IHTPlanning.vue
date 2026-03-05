@@ -1,25 +1,25 @@
 <template>
   <div class="iht-planning-tab">
     <!-- Error State - No Profile -->
-    <div v-if="error && !ihtData" class="bg-white border-2 border-blue-500 rounded-lg p-6 mb-6">
+    <div v-if="error && !ihtData" class="bg-white border-2 border-violet-500 rounded-lg p-6 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-6 w-6 text-neutral-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
         <div class="ml-3 flex-1">
-          <h3 class="text-sm font-medium text-gray-900">Inheritance Tax Profile Required</h3>
-          <p class="mt-2 text-sm text-gray-900">{{ error }}</p>
-          <p class="mt-2 text-sm text-gray-900">Please set up your inheritance tax profile in the Estate module to see your tax calculation.</p>
+          <h3 class="text-sm font-medium text-horizon-500">Inheritance Tax Profile Required</h3>
+          <p class="mt-2 text-sm text-horizon-500">{{ error }}</p>
+          <p class="mt-2 text-sm text-horizon-500">Please set up your inheritance tax profile in the Estate module to see your tax calculation.</p>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Calculating inheritance tax liability...</p>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+      <p class="mt-2 text-neutral-500">Calculating inheritance tax liability...</p>
     </div>
 
     <!-- Spouse Exemption Notice (Always show for married users) -->
@@ -40,16 +40,16 @@
     />
 
     <!-- Old Spouse Exemption Notice (keep for backward compatibility with non-married) -->
-    <div v-if="ihtData?.spouse_exemption_applies && ihtData?.spouse_exemption > 0 && !isMarried" class="bg-gray-50 rounded-lg p-4 mb-6">
+    <div v-if="ihtData?.spouse_exemption_applies && ihtData?.spouse_exemption > 0 && !isMarried" class="bg-eggshell-500 rounded-lg p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-horizon-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-green-800">Spouse Exemption Applied</h3>
-          <p class="mt-2 text-sm text-green-700">
+          <h3 class="text-sm font-medium text-spring-800">Spouse Exemption Applied</h3>
+          <p class="mt-2 text-sm text-spring-700">
             <strong>{{ formatCurrency(ihtData.spouse_exemption) }}</strong> ({{ formatPercent((ihtData.spouse_exemption / ihtData.net_estate_value)) }}) of your estate is exempt from inheritance tax due to unlimited spousal transfer on death.
           </p>
         </div>
@@ -59,32 +59,32 @@
     <!-- Inheritance Tax Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-blue-500">
-        <p class="text-sm text-gray-600 font-medium mb-2">Joint Death (Now)</p>
-        <p class="text-xs text-gray-500 mb-1">Current net estate</p>
-        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
-        <p class="text-xs text-gray-600 mt-2">If both die today</p>
+      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-violet-500">
+        <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Now)</p>
+        <p class="text-xs text-neutral-500 mb-1">Current net estate</p>
+        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
+        <p class="text-xs text-neutral-500 mt-2">If both die today</p>
       </div>
 
       <!-- Joint Death PROJECTED -->
       <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-purple-500">
-        <p class="text-sm text-gray-600 font-medium mb-2">Joint Death (Projected)</p>
-        <p class="text-xs text-gray-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
-        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
-        <p class="text-xs text-gray-600 mt-2">Projected net estate</p>
+        <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Projected)</p>
+        <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
+        <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
+        <p class="text-xs text-neutral-500 mt-2">Projected net estate</p>
       </div>
 
       <!-- Total Inheritance Tax Payable -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-red-500">
-        <p class="text-sm text-gray-600 font-medium mb-2">Total Inheritance Tax Payable</p>
+      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-raspberry-500">
+        <p class="text-sm text-neutral-500 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
           <div>
-            <p class="text-xs text-gray-500 mb-1">If both die now:</p>
-            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
+            <p class="text-xs text-neutral-500 mb-1">If both die now:</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
           </div>
-          <div class="border-t border-red-200 pt-2">
-            <p class="text-xs text-gray-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}:</p>
-            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
+          <div class="border-t border-raspberry-200 pt-2">
+            <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}:</p>
+            <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
           </div>
         </div>
       </div>
@@ -94,171 +94,171 @@
     <div v-else-if="ihtData && projection" class="mb-8">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <!-- Combined Summary Card -->
-        <div class="bg-white rounded-lg p-5 border border-gray-200">
-          <p class="text-sm text-gray-600 font-medium mb-3">
+        <div class="bg-white rounded-lg p-5 border border-light-gray">
+          <p class="text-sm text-neutral-500 font-medium mb-3">
             Inheritance Tax Summary
-            <span v-if="charitableBequest" class="ml-1 text-xs text-green-600">({{ effectiveIHTRateLabel }} rate)</span>
+            <span v-if="charitableBequest" class="ml-1 text-xs text-spring-600">({{ effectiveIHTRateLabel }} rate)</span>
           </p>
           <div class="grid grid-cols-2 gap-4">
             <!-- Taxable Estate -->
             <div>
-              <p class="text-xs text-gray-500 mb-1">Taxable Estate</p>
-              <p class="text-sm font-bold text-gray-900">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
-              <p class="text-xs text-gray-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(projection.at_death.taxable_estate) }}</p>
+              <p class="text-xs text-neutral-500 mb-1">Taxable Estate</p>
+              <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(projection.at_death.taxable_estate) }}</p>
             </div>
             <!-- Tax Liability -->
             <div>
-              <p class="text-xs text-gray-500 mb-1">Inheritance Tax Liability</p>
-              <p class="text-sm font-bold" :class="charitableBequest ? 'text-green-700' : 'text-gray-900'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
-              <p class="text-xs text-gray-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
+              <p class="text-xs text-neutral-500 mb-1">Inheritance Tax Liability</p>
+              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
             </div>
           </div>
         </div>
 
         <!-- Will Card -->
-        <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
+        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-gray-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-900">Will</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Will</h4>
             </div>
-            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
           <div class="space-y-2">
             <div class="flex items-center text-xs">
-              <span class="text-gray-600">Status:</span>
-              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white border-l-4 border-gray-400 text-green-800">
+              <span class="text-neutral-500">Status:</span>
+              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white border-l-4 border-horizon-400 text-spring-800">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Complete
               </span>
-              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-gray-900">
+              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-horizon-500">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Incomplete
               </span>
             </div>
-            <div v-if="hasWill" class="text-xs text-gray-600">
+            <div v-if="hasWill" class="text-xs text-neutral-500">
               <p>Last updated: {{ formatDate(willLastUpdated) }}</p>
-              <p class="text-gray-500 mt-1">Executor: {{ willExecutor }}</p>
+              <p class="text-neutral-500 mt-1">Executor: {{ willExecutor }}</p>
             </div>
-            <div v-else class="text-xs text-gray-600">
+            <div v-else class="text-xs text-neutral-500">
               <p>No will recorded</p>
             </div>
           </div>
         </div>
 
         <!-- Gifting Card -->
-        <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
+        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-green-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-spring-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-900">Gifting</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Gifting</h4>
             </div>
-            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
           <div class="space-y-2">
             <div class="text-xs">
-              <p class="text-gray-600">Annual Exemption:</p>
-              <p class="text-lg font-bold text-green-700">£3,000</p>
+              <p class="text-neutral-500">Annual Exemption:</p>
+              <p class="text-lg font-bold text-spring-700">£3,000</p>
             </div>
             <div class="text-xs">
-              <p class="text-gray-600">Inheritance Tax Liability:</p>
-              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(projection?.now?.iht_liability || 0) }}</p>
+              <p class="text-neutral-500">Inheritance Tax Liability:</p>
+              <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(projection?.now?.iht_liability || 0) }}</p>
             </div>
           </div>
         </div>
 
         <!-- Life Policy Card -->
-        <div class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
+        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-gray-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-900">Life Policy</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Life Policy</h4>
             </div>
-            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
           <div class="space-y-2">
             <div class="text-xs">
-              <p class="text-gray-600">Cover Needed:</p>
-              <p class="text-lg font-bold text-gray-900">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</p>
+              <p class="text-neutral-500">Cover Needed:</p>
+              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</p>
             </div>
             <div class="text-xs">
-              <p class="text-gray-600">Recommended:</p>
-              <p class="text-sm font-semibold text-gray-900">Whole of Life</p>
-              <p class="text-xs text-gray-500 mt-1">Written in trust</p>
+              <p class="text-neutral-500">Recommended:</p>
+              <p class="text-sm font-semibold text-horizon-500">Whole of Life</p>
+              <p class="text-xs text-neutral-500 mt-1">Written in trust</p>
             </div>
           </div>
         </div>
 
         <!-- Charitable Bequest Card -->
-        <div class="bg-white rounded-lg border border-gray-200 p-5">
+        <div class="bg-white rounded-lg border border-light-gray p-5">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-pink-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-900">Charitable Bequest</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Charitable Bequest</h4>
             </div>
             <div v-if="savingCharitableBequest" class="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>
           </div>
           <div class="space-y-3">
             <div class="text-xs">
-              <p class="text-gray-600 mb-2">Leave 10%+ to charity?</p>
+              <p class="text-neutral-500 mb-2">Leave 10%+ to charity?</p>
               <div class="flex items-center space-x-4">
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="radio" :checked="charitableBequest === true" :disabled="savingCharitableBequest" class="form-radio text-pink-600 h-4 w-4" @change="toggleCharitableBequest(true)">
-                  <span class="ml-1.5 text-sm text-gray-700">Yes</span>
+                  <span class="ml-1.5 text-sm text-neutral-500">Yes</span>
                 </label>
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="radio" :checked="charitableBequest === false" :disabled="savingCharitableBequest" class="form-radio text-pink-600 h-4 w-4" @change="toggleCharitableBequest(false)">
-                  <span class="ml-1.5 text-sm text-gray-700">No</span>
+                  <span class="ml-1.5 text-sm text-neutral-500">No</span>
                 </label>
               </div>
             </div>
             <div v-if="charitableBequest" class="text-xs">
-              <p class="text-gray-600">Potential Inheritance Tax Savings:</p>
+              <p class="text-neutral-500">Potential Inheritance Tax Savings:</p>
               <p class="text-lg font-bold text-pink-700">{{ formatCurrency(charitableBequestSavings) }}</p>
-              <p class="text-xs text-gray-500 mt-1">Rate reduces from 40% to 36%</p>
+              <p class="text-xs text-neutral-500 mt-1">Rate reduces from 40% to 36%</p>
             </div>
-            <div v-else class="text-xs text-gray-500">
+            <div v-else class="text-xs text-neutral-500">
               <p>Leaving 10%+ to charity reduces the Inheritance Tax rate from 40% to 36%</p>
             </div>
           </div>
         </div>
 
         <!-- Trust Card (only show if taxable estate > £2m) -->
-        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
+        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
               </svg>
-              <h4 class="text-sm font-semibold text-gray-900">Trust</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Trust</h4>
             </div>
-            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
           <div class="space-y-2">
             <div class="text-xs">
-              <p class="text-gray-600">Total Trust Value:</p>
+              <p class="text-neutral-500">Total Trust Value:</p>
               <p class="text-lg font-bold text-indigo-700">{{ formatCurrency(totalTrustValue) }}</p>
             </div>
             <div class="text-xs">
-              <p class="text-gray-600">Outside Estate:</p>
-              <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(trustValueOutsideEstate) }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ trustEfficiencyPercent }}% efficient</p>
+              <p class="text-neutral-500">Outside Estate:</p>
+              <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(trustValueOutsideEstate) }}</p>
+              <p class="text-xs text-neutral-500 mt-1">{{ trustEfficiencyPercent }}% efficient</p>
             </div>
           </div>
         </div>
@@ -266,20 +266,20 @@
     </div>
 
     <!-- Inheritance Tax Breakdown - Second Death (Married Users) -->
-    <div v-if="!loading && isMarried && secondDeathData?.second_death_analysis" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div v-if="!loading && isMarried && secondDeathData?.second_death_analysis" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
       <div class="flex items-center gap-2 mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Inheritance Tax Calculation (Joint Death Scenario)</h3>
+        <h3 class="text-lg font-semibold text-horizon-500">Inheritance Tax Calculation (Joint Death Scenario)</h3>
         <div class="relative group">
-          <svg class="h-5 w-5 text-blue-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="h-5 w-5 text-violet-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
           </svg>
-          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-            <p class="text-sm text-gray-700 mb-2">
+          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-light-gray rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <p class="text-sm text-neutral-500 mb-2">
               <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
               with the combined estate then passing to your beneficiaries. The projected age ({{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }})
               is based on your life expectancy and may differ from your spouse's.
             </p>
-            <p class="text-sm text-gray-700">
+            <p class="text-sm text-neutral-500">
               <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
               (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
               potentially with different allowances and values.
@@ -306,22 +306,22 @@
     </div>
 
     <!-- Inheritance Tax Breakdown - Standard (Non-Married Users OR Married without spouse link) -->
-    <div v-else-if="!loading && ihtData && standardTableProps" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div v-else-if="!loading && ihtData && standardTableProps" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
       <div class="flex items-center gap-2 mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">
+        <h3 class="text-lg font-semibold text-horizon-500">
           {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
         </h3>
         <div v-if="isMarried && projection" class="relative group">
-          <svg class="h-5 w-5 text-blue-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="h-5 w-5 text-violet-500 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
           </svg>
-          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-            <p class="text-sm text-gray-700 mb-2">
+          <div class="absolute left-0 top-6 z-50 w-80 p-4 bg-white border border-light-gray rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <p class="text-sm text-neutral-500 mb-2">
               <strong>What this calculation shows:</strong> This scenario assumes both you and your spouse pass away at the same time,
               with the combined estate then passing to your beneficiaries. The projected age ({{ projection.at_death.estimated_age_at_death }})
               is based on your life expectancy and may differ from your spouse's.
             </p>
-            <p class="text-sm text-gray-700">
+            <p class="text-sm text-neutral-500">
               <strong>If one spouse dies first:</strong> Under most wills, the entire estate passes to the surviving spouse tax-free
               (spouse exemption). Inheritance Tax would then be calculated on the surviving spouse's estate at their death,
               potentially with different allowances and values.
@@ -331,7 +331,7 @@
       </div>
 
       <!-- Simple description for non-married users -->
-      <p v-if="!isMarried && projection" class="text-sm text-gray-600 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
+      <p v-if="!isMarried && projection" class="text-sm text-neutral-500 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
 
       <!-- IHT Calculation Table Component -->
       <IHTCalculationTable
@@ -351,24 +351,24 @@
     <!-- Tax Allowances Information (NRB & RNRB Messages) -->
     <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <!-- NRB Message -->
-      <div v-if="ihtData.nrb_message" class="bg-gray-50 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-blue-800">Tax-Free Allowance</h3>
-        <p class="mt-2 text-sm text-blue-800">{{ ihtData.nrb_message }}</p>
+      <div v-if="ihtData.nrb_message" class="bg-eggshell-500 rounded-lg p-4">
+        <h3 class="text-sm font-semibold text-violet-800">Tax-Free Allowance</h3>
+        <p class="mt-2 text-sm text-violet-800">{{ ihtData.nrb_message }}</p>
       </div>
 
       <!-- RNRB Message -->
-      <div v-if="ihtData.rnrb_message" class="bg-gray-50 rounded-lg p-4">
-        <h3 class="text-sm font-semibold" :class="ihtData.rnrb_status === 'full' ? 'text-green-800' : 'text-gray-800'">Home Allowance</h3>
-        <p class="mt-2 text-sm" :class="ihtData.rnrb_status === 'full' ? 'text-green-800' : 'text-gray-800'">{{ ihtData.rnrb_message }}</p>
+      <div v-if="ihtData.rnrb_message" class="bg-eggshell-500 rounded-lg p-4">
+        <h3 class="text-sm font-semibold" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">Home Allowance</h3>
+        <p class="mt-2 text-sm" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">{{ ihtData.rnrb_message }}</p>
       </div>
     </div>
 
     <!-- Cash Projection Breakdown Table (Hidden from view - logic retained) -->
-    <div v-if="false && !loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div v-if="false && !loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Cash Projection Methodology</h3>
+        <h3 class="text-lg font-semibold text-horizon-500">Cash Projection Methodology</h3>
         <button
-          class="text-sm text-blue-600 hover:text-blue-800"
+          class="text-sm text-violet-600 hover:text-violet-800"
           @click="showCashProjectionTable = !showCashProjectionTable"
         >
           {{ showCashProjectionTable ? 'Hide Details' : 'Show Details' }}
@@ -377,27 +377,27 @@
 
       <!-- Summary -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <div class="bg-gray-50 rounded p-3">
-          <p class="text-xs text-gray-500">Starting Cash</p>
-          <p class="text-sm font-semibold text-gray-900">{{ formatCurrency(cashProjectionBreakdown.starting_cash) }}</p>
+        <div class="bg-eggshell-500 rounded p-3">
+          <p class="text-xs text-neutral-500">Starting Cash</p>
+          <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(cashProjectionBreakdown.starting_cash) }}</p>
         </div>
-        <div class="bg-gray-50 rounded p-3">
-          <p class="text-xs text-gray-500">Pre-Retirement Surplus</p>
-          <p class="text-sm font-semibold" :class="preRetirementSurplus >= 0 ? 'text-green-700' : 'text-red-700'">
+        <div class="bg-eggshell-500 rounded p-3">
+          <p class="text-xs text-neutral-500">Pre-Retirement Surplus</p>
+          <p class="text-sm font-semibold" :class="preRetirementSurplus >= 0 ? 'text-spring-700' : 'text-raspberry-700'">
             {{ formatCurrency(preRetirementSurplus) }}/year
           </p>
         </div>
-        <div class="bg-gray-50 rounded p-3">
-          <p class="text-xs text-gray-500">Retirement Surplus</p>
-          <p class="text-sm font-semibold" :class="retirementSurplus >= 0 ? 'text-green-700' : 'text-red-700'">
+        <div class="bg-eggshell-500 rounded p-3">
+          <p class="text-xs text-neutral-500">Retirement Surplus</p>
+          <p class="text-sm font-semibold" :class="retirementSurplus >= 0 ? 'text-spring-700' : 'text-raspberry-700'">
             {{ formatCurrency(retirementSurplus) }}/year
           </p>
         </div>
-        <div class="bg-gray-50 rounded p-3">
-          <p class="text-xs text-gray-500">Final Cash (Age {{ cashProjectionBreakdown.death_age }})</p>
-          <p class="text-sm font-semibold" :class="cashProjectionBreakdown.final_cash_raw >= 0 ? 'text-gray-900' : 'text-red-700'">
+        <div class="bg-eggshell-500 rounded p-3">
+          <p class="text-xs text-neutral-500">Final Cash (Age {{ cashProjectionBreakdown.death_age }})</p>
+          <p class="text-sm font-semibold" :class="cashProjectionBreakdown.final_cash_raw >= 0 ? 'text-horizon-500' : 'text-raspberry-700'">
             {{ formatCurrency(cashProjectionBreakdown.final_cash_capped) }}
-            <span v-if="cashProjectionBreakdown.final_cash_raw < 0" class="text-xs text-red-500 block">
+            <span v-if="cashProjectionBreakdown.final_cash_raw < 0" class="text-xs text-raspberry-500 block">
               ({{ formatCurrency(cashProjectionBreakdown.final_cash_raw) }} shortfall from investments)
             </span>
           </p>
@@ -408,14 +408,14 @@
       <div v-if="showCashProjectionTable" class="overflow-x-auto">
         <table class="min-w-full text-xs">
           <thead>
-            <tr class="bg-gray-100">
-              <th class="px-2 py-2 text-left font-medium text-gray-600">Year</th>
-              <th class="px-2 py-2 text-left font-medium text-gray-600">Age</th>
-              <th class="px-2 py-2 text-left font-medium text-gray-600">Phase</th>
-              <th class="px-2 py-2 text-right font-medium text-gray-600">Income</th>
-              <th class="px-2 py-2 text-right font-medium text-gray-600">Expenses</th>
-              <th class="px-2 py-2 text-right font-medium text-gray-600">Surplus</th>
-              <th class="px-2 py-2 text-right font-medium text-gray-600">Running Total</th>
+            <tr class="bg-savannah-100">
+              <th class="px-2 py-2 text-left font-medium text-neutral-500">Year</th>
+              <th class="px-2 py-2 text-left font-medium text-neutral-500">Age</th>
+              <th class="px-2 py-2 text-left font-medium text-neutral-500">Phase</th>
+              <th class="px-2 py-2 text-right font-medium text-neutral-500">Income</th>
+              <th class="px-2 py-2 text-right font-medium text-neutral-500">Expenses</th>
+              <th class="px-2 py-2 text-right font-medium text-neutral-500">Surplus</th>
+              <th class="px-2 py-2 text-right font-medium text-neutral-500">Running Total</th>
             </tr>
           </thead>
           <tbody>
@@ -423,28 +423,28 @@
               v-for="row in cashProjectionBreakdown.years"
               :key="row.year"
               :class="[
-                row.running_total < 0 ? 'bg-red-50' : '',
-                row.phase === 'Pre-Retirement' ? 'bg-blue-50/30' : '',
-                row.age === cashProjectionBreakdown.retirement_age ? 'border-t-2 border-blue-300' : '',
-                row.age === cashProjectionBreakdown.state_pension_age ? 'border-t border-green-300' : ''
+                row.running_total < 0 ? 'bg-raspberry-50' : '',
+                row.phase === 'Pre-Retirement' ? 'bg-violet-50/30' : '',
+                row.age === cashProjectionBreakdown.retirement_age ? 'border-t-2 border-violet-300' : '',
+                row.age === cashProjectionBreakdown.state_pension_age ? 'border-t border-spring-300' : ''
               ]"
             >
-              <td class="px-2 py-1 text-gray-600">{{ row.year }}</td>
-              <td class="px-2 py-1 text-gray-900 font-medium">{{ row.age }}</td>
+              <td class="px-2 py-1 text-neutral-500">{{ row.year }}</td>
+              <td class="px-2 py-1 text-horizon-500 font-medium">{{ row.age }}</td>
               <td class="px-2 py-1">
                 <span
                   class="px-1.5 py-0.5 rounded text-xs"
-                  :class="row.phase === 'Pre-Retirement' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                  :class="row.phase === 'Pre-Retirement' ? 'bg-violet-100 text-violet-700' : 'bg-spring-100 text-spring-700'"
                 >
                   {{ row.phase }}
                 </span>
               </td>
-              <td class="px-2 py-1 text-right text-gray-900">{{ formatCurrency(row.income) }}</td>
-              <td class="px-2 py-1 text-right text-gray-900">{{ formatCurrency(row.expenses) }}</td>
-              <td class="px-2 py-1 text-right font-medium" :class="row.surplus >= 0 ? 'text-green-700' : 'text-red-700'">
+              <td class="px-2 py-1 text-right text-horizon-500">{{ formatCurrency(row.income) }}</td>
+              <td class="px-2 py-1 text-right text-horizon-500">{{ formatCurrency(row.expenses) }}</td>
+              <td class="px-2 py-1 text-right font-medium" :class="row.surplus >= 0 ? 'text-spring-700' : 'text-raspberry-700'">
                 {{ formatCurrency(row.surplus) }}
               </td>
-              <td class="px-2 py-1 text-right font-medium" :class="row.running_total >= 0 ? 'text-gray-900' : 'text-red-700'">
+              <td class="px-2 py-1 text-right font-medium" :class="row.running_total >= 0 ? 'text-horizon-500' : 'text-raspberry-700'">
                 {{ formatCurrency(row.running_total) }}
               </td>
             </tr>
@@ -452,21 +452,21 @@
         </table>
 
         <!-- Legend -->
-        <div class="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
+        <div class="mt-4 flex flex-wrap gap-4 text-xs text-neutral-500">
           <div class="flex items-center gap-1">
-            <span class="w-3 h-3 bg-blue-50 border border-blue-200 rounded"></span>
+            <span class="w-3 h-3 bg-violet-50 border border-violet-200 rounded"></span>
             <span>Pre-Retirement</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="w-3 h-3 bg-red-50 border border-red-200 rounded"></span>
+            <span class="w-3 h-3 bg-raspberry-50 border border-raspberry-200 rounded"></span>
             <span>Negative Balance (shortfall from investments)</span>
           </div>
         </div>
       </div>
 
       <!-- Methodology Note -->
-      <div class="mt-4 text-xs text-gray-500 bg-gray-50 rounded p-3">
-        <p class="font-medium text-gray-700 mb-1">Methodology:</p>
+      <div class="mt-4 text-xs text-neutral-500 bg-eggshell-500 rounded p-3">
+        <p class="font-medium text-neutral-500 mb-1">Methodology:</p>
         <ul class="list-disc list-inside space-y-0.5">
           <li>Pre-retirement: Employment income minus estimated expenses (70% of income if no profile)</li>
           <li>Retirement: Target retirement income + state pension minus retirement expenses</li>
@@ -493,11 +493,11 @@
     />
 
     <!-- Standard Recommendations (Non-Married Users OR Married without full second death data) -->
-    <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-gray-50 rounded-lg p-4">
+    <div v-if="!secondDeathData?.mitigation_strategies && ihtData?.iht_liability > 0" class="bg-eggshell-500 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg
-            class="h-5 w-5 text-gray-400"
+            class="h-5 w-5 text-horizon-400"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -510,8 +510,8 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-gray-900">Inheritance Tax Mitigation Strategies</h3>
-          <div class="mt-2 text-sm text-gray-700">
+          <h3 class="text-sm font-medium text-horizon-500">Inheritance Tax Mitigation Strategies</h3>
+          <div class="mt-2 text-sm text-neutral-500">
             <p class="font-semibold mb-2">
               Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
@@ -527,11 +527,11 @@
       </div>
     </div>
 
-    <div v-else-if="ihtData && ihtData.iht_liability === 0" class="bg-gray-50 rounded-lg p-4">
+    <div v-else-if="ihtData && ihtData.iht_liability === 0" class="bg-eggshell-500 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg
-            class="h-5 w-5 text-gray-400"
+            class="h-5 w-5 text-horizon-400"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -544,8 +544,8 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-green-800">No Inheritance Tax Liability</h3>
-          <div class="mt-2 text-sm text-green-700">
+          <h3 class="text-sm font-medium text-spring-800">No Inheritance Tax Liability</h3>
+          <div class="mt-2 text-sm text-spring-700">
             <p class="mb-2">
               Good news! Your estate is currently below the Inheritance Tax threshold with {{ formatCurrency(ihtData?.total_allowance || 500000) }} in allowances available.
             </p>
@@ -559,53 +559,53 @@
 
     <!-- Trust Planning Summary -->
     <div v-if="ihtData?.trust_details && ihtData.trust_details.length > 0" class="bg-white shadow rounded-lg p-6 mt-6">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Trust Planning Summary</h3>
+      <h3 class="text-lg font-medium text-horizon-500 mb-4">Trust Planning Summary</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-gray-600 font-medium">Total Trust Value</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(totalTrustValue) }}</p>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-neutral-500 font-medium">Total Trust Value</p>
+          <p class="text-2xl font-bold text-horizon-500 mt-1">{{ formatCurrency(totalTrustValue) }}</p>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-green-600 font-medium">Value Outside Estate</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(trustValueOutsideEstate) }}</p>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-spring-600 font-medium">Value Outside Estate</p>
+          <p class="text-2xl font-bold text-horizon-500 mt-1">{{ formatCurrency(trustValueOutsideEstate) }}</p>
         </div>
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs text-gray-600 font-medium">Inheritance Tax Efficiency</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">{{ trustEfficiencyPercent }}%</p>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <p class="text-xs text-neutral-500 font-medium">Inheritance Tax Efficiency</p>
+          <p class="text-2xl font-bold text-horizon-500 mt-1">{{ trustEfficiencyPercent }}%</p>
         </div>
       </div>
 
       <div class="space-y-3">
-        <div v-for="trust in ihtData.trust_details" :key="trust.trust_id" class="border border-gray-200 rounded-lg p-3">
+        <div v-for="trust in ihtData.trust_details" :key="trust.trust_id" class="border border-light-gray rounded-lg p-3">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <h4 class="text-sm font-semibold text-gray-900">{{ trust.trust_name }}</h4>
-              <p class="text-xs text-gray-500">{{ getTrustTypeName(trust.trust_type) }}</p>
+              <h4 class="text-sm font-semibold text-horizon-500">{{ trust.trust_name }}</h4>
+              <p class="text-xs text-neutral-500">{{ getTrustTypeName(trust.trust_type) }}</p>
             </div>
-            <span class="text-sm font-medium text-gray-900">{{ formatCurrency(trust.current_value) }}</span>
+            <span class="text-sm font-medium text-horizon-500">{{ formatCurrency(trust.current_value) }}</span>
           </div>
 
           <div class="grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span class="text-gray-500">Value in Estate:</span>
-              <span class="font-medium ml-1" :class="trust.iht_value > 0 ? 'text-gray-600' : 'text-green-600'">
+              <span class="text-neutral-500">Value in Estate:</span>
+              <span class="font-medium ml-1" :class="trust.iht_value > 0 ? 'text-neutral-500' : 'text-spring-600'">
                 {{ formatCurrency(trust.iht_value) }}
               </span>
             </div>
             <div>
-              <span class="text-gray-500">Outside Estate:</span>
-              <span class="font-medium text-green-600 ml-1">{{ formatCurrency(trust.current_value - trust.iht_value) }}</span>
+              <span class="text-neutral-500">Outside Estate:</span>
+              <span class="font-medium text-spring-600 ml-1">{{ formatCurrency(trust.current_value - trust.iht_value) }}</span>
             </div>
           </div>
 
-          <div v-if="trust.iht_value > 0" class="mt-2 pt-2 border-t border-gray-200">
-            <p class="text-xs text-gray-900">
+          <div v-if="trust.iht_value > 0" class="mt-2 pt-2 border-t border-light-gray">
+            <p class="text-xs text-horizon-500">
               <strong>Note:</strong> {{ getTrustIHTExplanation(trust.trust_type) }}
             </p>
           </div>
-          <div v-else class="mt-2 pt-2 border-t border-gray-200">
-            <p class="text-xs text-green-700">
+          <div v-else class="mt-2 pt-2 border-t border-light-gray">
+            <p class="text-xs text-spring-700">
               ✓ This trust's value is completely outside your estate for Inheritance Tax purposes
             </p>
           </div>
@@ -614,7 +614,7 @@
     </div>
 
     <!-- Life Events Impact on Estate -->
-    <div v-if="estateLifeEvents.length > 0 && ihtData" class="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+    <div v-if="estateLifeEvents.length > 0 && ihtData" class="bg-white rounded-lg p-4 sm:p-6 border border-light-gray">
       <EstateLifeEventsImpact
         :events="estateLifeEventsWithIHT"
         :summary="estateLifeEventsSummary"

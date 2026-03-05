@@ -11,10 +11,10 @@
     </div>
 
     <!-- Expenditure Card -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <div class="bg-white rounded-lg border border-light-gray p-6">
       <div class="mb-6">
-        <h3 class="text-h4 font-semibold text-gray-900">Household Expenditure</h3>
-        <p class="mt-1 text-body-sm text-gray-600">
+        <h3 class="text-h4 font-semibold text-horizon-500">Household Expenditure</h3>
+        <p class="mt-1 text-body-sm text-neutral-500">
           Manage your spending patterns for accurate financial planning
         </p>
       </div>

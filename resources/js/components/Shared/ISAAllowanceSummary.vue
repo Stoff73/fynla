@@ -1,8 +1,8 @@
 <template>
   <div class="isa-allowance-summary bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-gray-800">ISA Allowance 2025/26</h3>
-      <div class="text-sm text-gray-500">
+      <h3 class="text-xl font-semibold text-horizon-500">ISA Allowance 2025/26</h3>
+      <div class="text-sm text-neutral-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-5 w-5"
@@ -23,19 +23,19 @@
     <!-- Total Usage -->
     <div class="mb-6">
       <div class="flex items-baseline justify-between mb-2">
-        <span class="text-3xl font-bold text-gray-800">
+        <span class="text-3xl font-bold text-horizon-500">
           {{ formattedTotalUsed }}
         </span>
-        <span class="text-sm text-gray-600">
+        <span class="text-sm text-neutral-500">
           of {{ formattedAllowance }}
         </span>
       </div>
-      <p class="text-sm text-gray-600">Total ISA Subscriptions</p>
+      <p class="text-sm text-neutral-500">Total ISA Subscriptions</p>
     </div>
 
     <!-- Progress Bar -->
     <div class="mb-6">
-      <div class="w-full bg-gray-200 rounded-full h-4">
+      <div class="w-full bg-savannah-200 rounded-full h-4">
         <div
           class="h-4 rounded-full transition-all"
           :class="progressBarClass"
@@ -46,7 +46,7 @@
         <span class="text-sm" :class="remainingClass">
           {{ formattedRemaining }} remaining
         </span>
-        <span class="text-sm text-gray-600">{{ usagePercent }}% used</span>
+        <span class="text-sm text-neutral-500">{{ usagePercent }}% used</span>
       </div>
     </div>
 
@@ -54,19 +54,19 @@
     <div class="space-y-3 mb-6">
       <div class="flex justify-between items-center">
         <div class="flex items-center">
-          <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-          <span class="text-sm text-gray-700">Cash ISA</span>
+          <div class="w-3 h-3 rounded-full bg-violet-500 mr-2"></div>
+          <span class="text-sm text-neutral-500">Cash ISA</span>
         </div>
-        <span class="text-sm font-semibold text-gray-800">
+        <span class="text-sm font-semibold text-horizon-500">
           {{ formattedCashISA }}
         </span>
       </div>
       <div class="flex justify-between items-center">
         <div class="flex items-center">
-          <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-          <span class="text-sm text-gray-700">Stocks & Shares ISA</span>
+          <div class="w-3 h-3 rounded-full bg-spring-500 mr-2"></div>
+          <span class="text-sm text-neutral-500">Stocks & Shares ISA</span>
         </div>
-        <span class="text-sm font-semibold text-gray-800">
+        <span class="text-sm font-semibold text-horizon-500">
           {{ formattedStocksISA }}
         </span>
       </div>
@@ -76,13 +76,13 @@
     <div class="flex space-x-2">
       <button
         @click="navigateToSavings"
-        class="flex-1 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-button hover:bg-blue-100 transition-colors"
+        class="flex-1 px-4 py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-button hover:bg-violet-100 transition-colors"
       >
         Manage Cash ISAs
       </button>
       <button
         @click="navigateToInvestment"
-        class="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-button hover:bg-green-100 transition-colors"
+        class="flex-1 px-4 py-2 text-sm font-medium text-spring-600 bg-spring-50 rounded-button hover:bg-spring-100 transition-colors"
       >
         Manage Stocks & Shares ISAs
       </button>
@@ -91,11 +91,11 @@
     <!-- Warning if over limit -->
     <div
       v-if="isOverLimit"
-      class="mt-4 p-3 bg-red-50 rounded-md flex items-start"
+      class="mt-4 p-3 bg-raspberry-50 rounded-md flex items-start"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5"
+        class="h-5 w-5 text-raspberry-600 mr-2 flex-shrink-0 mt-0.5"
         viewBox="0 0 20 20"
         fill="currentColor"
       >
@@ -105,7 +105,7 @@
           clip-rule="evenodd"
         />
       </svg>
-      <span class="text-sm text-red-800">
+      <span class="text-sm text-raspberry-800">
         ISA allowance exceeded! You may face tax penalties on excess contributions.
       </span>
     </div>
@@ -179,16 +179,16 @@ export default {
     },
 
     progressBarClass() {
-      if (this.isOverLimit) return 'bg-red-600';
-      if (this.usagePercent >= 90) return 'bg-blue-500';
-      if (this.usagePercent >= 75) return 'bg-blue-500';
-      return 'bg-green-600';
+      if (this.isOverLimit) return 'bg-raspberry-600';
+      if (this.usagePercent >= 90) return 'bg-violet-500';
+      if (this.usagePercent >= 75) return 'bg-violet-500';
+      return 'bg-spring-600';
     },
 
     remainingClass() {
-      if (this.isOverLimit) return 'text-red-600 font-semibold';
-      if (this.remaining < 2000) return 'text-blue-600 font-semibold';
-      return 'text-green-600 font-semibold';
+      if (this.isOverLimit) return 'text-raspberry-600 font-semibold';
+      if (this.remaining < 2000) return 'text-violet-600 font-semibold';
+      return 'text-spring-600 font-semibold';
     },
   },
 

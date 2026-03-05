@@ -3,7 +3,7 @@
       <!-- Back Button -->
       <button
         @click="$emit('back')"
-        class="back-button"
+        class="detail-inline-back"
       >
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -13,7 +13,7 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="w-12 h-12 border-[3px] border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
         <p>Running projections...</p>
       </div>
 
@@ -181,45 +181,7 @@ export default {
 
 <style scoped>
 .future-value-tab {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Back Button */
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-gray-700;
-  background: white;
-  @apply border border-gray-300;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.back-button:hover {
-  @apply bg-gray-50;
-  @apply border-gray-400;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeInSlideUp 0.3s ease-out;
 }
 
 /* Loading State */
@@ -232,24 +194,8 @@ export default {
   text-align: center;
 }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  @apply border-[3px] border-gray-200;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 16px;
   margin: 0;
 }
@@ -260,25 +206,25 @@ export default {
   padding: 80px 40px;
   background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-gray-300;
+  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
-  @apply text-gray-400;
+  @apply text-horizon-400;
   margin: 0 auto 16px;
 }
 
 .empty-state p {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;
 }
 
 .empty-subtitle {
-  @apply text-gray-400;
+  @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
 }
@@ -295,12 +241,12 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  @apply border border-gray-200;
+  @apply border border-light-gray;
 }
 
 .summary-card.blue {
   @apply bg-gradient-to-br from-blue-50 to-blue-100;
-  @apply border-blue-200;
+  @apply border-violet-200;
 }
 
 .summary-card.purple {
@@ -329,7 +275,7 @@ export default {
 
 .summary-card.green {
   @apply bg-gradient-to-br from-green-50 to-green-100;
-  @apply border-green-200;
+  @apply border-spring-200;
 }
 
 .summary-card.teal {
@@ -339,12 +285,12 @@ export default {
 
 .summary-card.red {
   @apply bg-gradient-to-br from-red-50 to-red-100;
-  @apply border-red-200;
+  @apply border-raspberry-200;
 }
 
 .summary-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
   font-weight: 500;
 }
@@ -352,19 +298,19 @@ export default {
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .per-year {
   font-size: 14px;
   font-weight: 500;
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .summary-subtitle {
   font-size: 13px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 8px 0 0 0;
 }
 
@@ -375,7 +321,7 @@ export default {
 .chart-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0 0 12px 0;
 }
 
@@ -418,15 +364,15 @@ export default {
 
 .chart-subtitle {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .risk-badge {
   display: inline-block;
   padding: 2px 8px;
-  @apply bg-blue-50;
-  @apply text-blue-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -436,8 +382,8 @@ export default {
 .depletion-badge {
   display: inline-block;
   padding: 2px 8px;
-  @apply bg-red-100;
-  @apply text-red-700;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-700;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -447,8 +393,8 @@ export default {
 .success-badge {
   display: inline-block;
   padding: 2px 8px;
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
@@ -459,8 +405,8 @@ export default {
 .info-panel {
   display: flex;
   gap: 16px;
-  @apply bg-blue-50;
-  @apply border border-blue-200;
+  @apply bg-violet-50;
+  @apply border border-violet-200;
   border-radius: 12px;
   padding: 20px;
 }
@@ -472,7 +418,7 @@ export default {
 .info-icon {
   width: 24px;
   height: 24px;
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .info-content {
@@ -482,7 +428,7 @@ export default {
 .info-title {
   font-size: 14px;
   font-weight: 600;
-  @apply text-blue-800;
+  @apply text-violet-800;
   margin: 0 0 12px 0;
 }
 
@@ -494,18 +440,18 @@ export default {
 
 .info-list li {
   font-size: 14px;
-  @apply text-blue-900;
+  @apply text-violet-900;
   margin-bottom: 6px;
 }
 
 .info-list li strong {
-  @apply text-blue-800;
+  @apply text-violet-800;
 }
 
 .info-warning {
   font-size: 13px;
-  @apply text-red-800;
-  @apply bg-red-100;
+  @apply text-raspberry-800;
+  @apply bg-raspberry-100;
   padding: 8px 12px;
   border-radius: 6px;
   margin: 12px 0 0 0;

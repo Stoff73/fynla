@@ -9,7 +9,7 @@
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
       <div
-        class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
+        class="fixed inset-0 bg-horizon-500 bg-opacity-75 transition-opacity"
         aria-hidden="true"
         @click="onContinue"
       ></div>
@@ -21,9 +21,9 @@
         class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
       >
         <div>
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-violet-100">
             <svg
-              class="h-6 w-6 text-blue-600"
+              class="h-6 w-6 text-violet-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -37,15 +37,15 @@
             </svg>
           </div>
           <div class="mt-3 text-center sm:mt-5">
-            <h3 id="modal-title" class="text-h3 font-display text-gray-900">
+            <h3 id="modal-title" class="text-h3 font-display text-horizon-500">
               Skip to Dashboard?
             </h3>
             <div class="mt-2 space-y-3">
-              <p class="text-body text-gray-600">
+              <p class="text-body text-neutral-500">
                 Your dashboard will be incomplete without the remaining information, but you can always complete it later.
               </p>
-              <p class="text-body text-gray-600">
-                Look for the <span class="font-medium text-gray-900">Areas to Complete</span> card on your dashboard, or return to onboarding at any time from your settings.
+              <p class="text-body text-neutral-500">
+                Look for the <span class="font-medium text-horizon-500">Areas to Complete</span> card on your dashboard, or return to onboarding at any time from your settings.
               </p>
             </div>
           </div>

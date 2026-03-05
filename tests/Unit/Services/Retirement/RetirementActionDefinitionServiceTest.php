@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\RetirementActionDefinitionService;

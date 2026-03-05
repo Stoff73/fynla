@@ -5,14 +5,14 @@
       <div class="mb-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ factorDisplayName }}</h1>
-            <p class="mt-2 text-sm sm:text-base text-gray-600">
+            <h1 class="text-2xl sm:text-3xl font-bold text-horizon-500">{{ factorDisplayName }}</h1>
+            <p class="mt-2 text-sm sm:text-base text-neutral-500">
               Understanding how this factor affects your risk profile
             </p>
           </div>
           <button
             @click="goBack"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -31,30 +31,30 @@
         <!-- CAPACITY FOR LOSS: Custom detail view -->
         <template v-if="factorKey === 'capacity_for_loss'">
           <!-- Your Calculation -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Calculation</h3>
+          <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+            <h3 class="text-lg font-semibold text-horizon-500 mb-4">Your Calculation</h3>
             <div class="flex items-center justify-center gap-2 text-center py-4">
               <div class="flex flex-col items-center">
-                <div class="flex items-center gap-1 border-b-2 border-gray-300 pb-2 px-2">
+                <div class="flex items-center gap-1 border-b-2 border-horizon-300 pb-2 px-2">
                   <div class="flex flex-col items-center">
-                    <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.investments_total || 0) }}</span>
-                    <span class="text-xs text-gray-400">investments</span>
+                    <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.investments_total || 0) }}</span>
+                    <span class="text-xs text-horizon-400">investments</span>
                   </div>
-                  <span class="text-gray-400 text-lg mx-1">+</span>
+                  <span class="text-horizon-400 text-lg mx-1">+</span>
                   <div class="flex flex-col items-center">
-                    <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.pensions_total || 0) }}</span>
-                    <span class="text-xs text-gray-400">pensions</span>
+                    <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.pensions_total || 0) }}</span>
+                    <span class="text-xs text-horizon-400">pensions</span>
                   </div>
                 </div>
                 <div class="flex flex-col items-center pt-2">
-                  <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.net_worth || 0) }}</span>
-                  <span class="text-xs text-gray-400">net worth</span>
+                  <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.net_worth || 0) }}</span>
+                  <span class="text-xs text-horizon-400">net worth</span>
                 </div>
               </div>
-              <span class="text-gray-400 text-lg mx-2">× 100</span>
-              <span class="text-gray-400 text-lg mx-1">=</span>
+              <span class="text-horizon-400 text-lg mx-2">× 100</span>
+              <span class="text-horizon-400 text-lg mx-1">=</span>
               <div class="flex flex-col items-center">
-                <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                <span class="text-xl font-bold text-horizon-500">{{ factorData.value }}</span>
                 <span
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
                   :class="getLevelBadgeClass(factorData.level)"
@@ -66,8 +66,8 @@
           </div>
 
           <!-- Inline Thresholds -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Threshold Levels</h3>
+          <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+            <h3 class="text-lg font-semibold text-horizon-500 mb-4">Threshold Levels</h3>
             <div class="space-y-2">
               <div
                 v-for="threshold in factorExplanation.thresholds"
@@ -75,7 +75,7 @@
                 class="flex items-center justify-between p-3 rounded-lg border"
                 :class="threshold.level === factorData.level
                   ? 'bg-blue-50 border-blue-300'
-                  : 'bg-gray-50 border-gray-200'"
+                  : 'bg-eggshell-500 border-light-gray'"
               >
                 <div class="flex items-center gap-3">
                   <div
@@ -83,8 +83,8 @@
                     :class="getThresholdDotClass(threshold.level)"
                   ></div>
                   <div>
-                    <span class="text-sm font-medium text-gray-900">{{ threshold.range }}</span>
-                    <span class="text-sm text-gray-500 ml-2">{{ getCapacityLabel(threshold.level) }}</span>
+                    <span class="text-sm font-medium text-horizon-500">{{ threshold.range }}</span>
+                    <span class="text-sm text-neutral-500 ml-2">{{ getCapacityLabel(threshold.level) }}</span>
                   </div>
                 </div>
                 <span
@@ -102,28 +102,28 @@
         <!-- ALL OTHER FACTORS: Custom concise views -->
         <template v-else>
           <!-- Your Data card -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Data</h3>
+          <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+            <h3 class="text-lg font-semibold text-horizon-500 mb-4">Your Data</h3>
 
             <!-- TIME HORIZON -->
             <template v-if="factorKey === 'time_horizon'">
               <div class="flex items-center justify-center gap-2 text-center py-4">
                 <div class="flex flex-col items-center">
-                  <div class="flex items-center gap-1 border-b-2 border-gray-300 pb-2 px-2">
+                  <div class="flex items-center gap-1 border-b-2 border-horizon-300 pb-2 px-2">
                     <div class="flex flex-col items-center">
-                      <span class="text-base font-semibold text-gray-900">{{ factorData.components?.target_retirement_age || '67' }}</span>
-                      <span class="text-xs text-gray-400">retirement age</span>
+                      <span class="text-base font-semibold text-horizon-500">{{ factorData.components?.target_retirement_age || '67' }}</span>
+                      <span class="text-xs text-horizon-400">retirement age</span>
                     </div>
-                    <span class="text-gray-400 text-lg mx-1">&minus;</span>
+                    <span class="text-horizon-400 text-lg mx-1">&minus;</span>
                     <div class="flex flex-col items-center">
-                      <span class="text-base font-semibold text-gray-900">{{ factorData.components?.current_age || '—' }}</span>
-                      <span class="text-xs text-gray-400">current age</span>
+                      <span class="text-base font-semibold text-horizon-500">{{ factorData.components?.current_age || '—' }}</span>
+                      <span class="text-xs text-horizon-400">current age</span>
                     </div>
                   </div>
                 </div>
-                <span class="text-gray-400 text-lg mx-2">=</span>
+                <span class="text-horizon-400 text-lg mx-2">=</span>
                 <div class="flex flex-col items-center">
-                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span class="text-xl font-bold text-horizon-500">{{ factorData.value }}</span>
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -132,18 +132,18 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 text-center">Source: Your profile date of birth &amp; target retirement age</p>
+              <p class="text-xs text-horizon-400 text-center">Source: Your profile date of birth &amp; target retirement age</p>
             </template>
 
             <!-- INVESTMENT KNOWLEDGE -->
             <template v-else-if="factorKey === 'knowledge_level'">
-              <div class="divide-y divide-gray-200">
+              <div class="divide-y divide-light-gray">
                 <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Investment knowledge</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ factorData.value }}</span>
+                  <span class="text-sm text-neutral-500">Investment knowledge</span>
+                  <span class="text-sm font-semibold text-horizon-500">{{ factorData.value }}</span>
                 </div>
                 <div class="flex justify-between items-center pt-3">
-                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span class="text-sm font-semibold text-horizon-500">Result</span>
                   <span
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -152,15 +152,15 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 mt-3">Source: Your risk profile knowledge level</p>
+              <p class="text-xs text-horizon-400 mt-3">Source: Your risk profile knowledge level</p>
             </template>
 
             <!-- DEPENDANTS -->
             <template v-else-if="factorKey === 'dependants'">
-              <div class="divide-y divide-gray-200">
+              <div class="divide-y divide-light-gray">
                 <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Dependants found</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.count || 0 }}</span>
+                  <span class="text-sm text-neutral-500">Dependants found</span>
+                  <span class="text-sm font-semibold text-horizon-500">{{ factorData.components?.count || 0 }}</span>
                 </div>
                 <template v-if="factorData.components?.dependants?.length">
                   <div
@@ -168,12 +168,12 @@
                     :key="dep.name"
                     class="flex justify-between py-2"
                   >
-                    <span class="text-sm text-gray-600">{{ dep.name }}</span>
-                    <span class="text-sm text-gray-500">{{ formatRelationship(dep.relationship) }}</span>
+                    <span class="text-sm text-neutral-500">{{ dep.name }}</span>
+                    <span class="text-sm text-neutral-500">{{ formatRelationship(dep.relationship) }}</span>
                   </div>
                 </template>
                 <div class="flex justify-between items-center pt-3">
-                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span class="text-sm font-semibold text-horizon-500">Result</span>
                   <span
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -182,22 +182,22 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 mt-3">Source: Family members marked as dependants</p>
+              <p class="text-xs text-horizon-400 mt-3">Source: Family members marked as dependants</p>
             </template>
 
             <!-- EMPLOYMENT -->
             <template v-else-if="factorKey === 'employment'">
-              <div class="divide-y divide-gray-200">
+              <div class="divide-y divide-light-gray">
                 <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Employment status</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ factorData.value }}</span>
+                  <span class="text-sm text-neutral-500">Employment status</span>
+                  <span class="text-sm font-semibold text-horizon-500">{{ factorData.value }}</span>
                 </div>
                 <div class="flex justify-between py-2">
-                  <span class="text-sm text-gray-600">Active income</span>
-                  <span class="text-sm font-semibold text-gray-900">{{ factorData.components?.is_working ? 'Yes' : 'No' }}</span>
+                  <span class="text-sm text-neutral-500">Active income</span>
+                  <span class="text-sm font-semibold text-horizon-500">{{ factorData.components?.is_working ? 'Yes' : 'No' }}</span>
                 </div>
                 <div class="flex justify-between items-center pt-3">
-                  <span class="text-sm font-semibold text-gray-900">Result</span>
+                  <span class="text-sm font-semibold text-horizon-500">Result</span>
                   <span
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -206,27 +206,27 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 mt-3">Source: Your profile employment status</p>
+              <p class="text-xs text-horizon-400 mt-3">Source: Your profile employment status</p>
             </template>
 
             <!-- EMERGENCY CASH -->
             <template v-else-if="factorKey === 'emergency_cash'">
               <div class="flex items-center justify-center gap-2 text-center py-4">
                 <div class="flex flex-col items-center">
-                  <div class="flex items-center gap-1 border-b-2 border-gray-300 pb-2 px-2">
+                  <div class="flex items-center gap-1 border-b-2 border-horizon-300 pb-2 px-2">
                     <div class="flex flex-col items-center">
-                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.emergency_fund_total || 0) }}</span>
-                      <span class="text-xs text-gray-400">emergency fund</span>
+                      <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.emergency_fund_total || 0) }}</span>
+                      <span class="text-xs text-horizon-400">emergency fund</span>
                     </div>
                   </div>
                   <div class="flex flex-col items-center pt-2">
-                    <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
-                    <span class="text-xs text-gray-400">monthly expenditure</span>
+                    <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
+                    <span class="text-xs text-horizon-400">monthly expenditure</span>
                   </div>
                 </div>
-                <span class="text-gray-400 text-lg mx-2">=</span>
+                <span class="text-horizon-400 text-lg mx-2">=</span>
                 <div class="flex flex-col items-center">
-                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span class="text-xl font-bold text-horizon-500">{{ factorData.value }}</span>
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -235,7 +235,7 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 text-center">Source: Savings accounts marked as emergency fund &amp; your monthly expenditure</p>
+              <p class="text-xs text-horizon-400 text-center">Source: Savings accounts marked as emergency fund &amp; your monthly expenditure</p>
             </template>
 
             <!-- SURPLUS CASH -->
@@ -244,19 +244,19 @@
                 <div class="flex flex-col items-center">
                   <div class="flex items-center gap-1">
                     <div class="flex flex-col items-center">
-                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_income || 0) }}</span>
-                      <span class="text-xs text-gray-400">monthly income</span>
+                      <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.monthly_income || 0) }}</span>
+                      <span class="text-xs text-horizon-400">monthly income</span>
                     </div>
-                    <span class="text-gray-400 text-lg mx-1">&minus;</span>
+                    <span class="text-horizon-400 text-lg mx-1">&minus;</span>
                     <div class="flex flex-col items-center">
-                      <span class="text-base font-semibold text-gray-900">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
-                      <span class="text-xs text-gray-400">monthly expenditure</span>
+                      <span class="text-base font-semibold text-horizon-500">{{ formatCurrency(factorData.components?.monthly_expenditure || 0) }}</span>
+                      <span class="text-xs text-horizon-400">monthly expenditure</span>
                     </div>
                   </div>
                 </div>
-                <span class="text-gray-400 text-lg mx-2">=</span>
+                <span class="text-horizon-400 text-lg mx-2">=</span>
                 <div class="flex flex-col items-center">
-                  <span class="text-xl font-bold text-gray-900">{{ factorData.value }}</span>
+                  <span class="text-xl font-bold text-horizon-500">{{ factorData.value }}</span>
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1"
                     :class="getLevelBadgeClass(factorData.level)"
@@ -265,13 +265,13 @@
                   </span>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 text-center">Source: Your profile income ({{ formatCurrency(factorData.components?.annual_income || 0) }}/yr) &amp; monthly expenditure</p>
+              <p class="text-xs text-horizon-400 text-center">Source: Your profile income ({{ formatCurrency(factorData.components?.annual_income || 0) }}/yr) &amp; monthly expenditure</p>
             </template>
           </div>
 
           <!-- Thresholds -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Threshold Levels</h3>
+          <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+            <h3 class="text-lg font-semibold text-horizon-500 mb-4">Threshold Levels</h3>
             <div class="space-y-2">
               <div
                 v-for="threshold in factorExplanation.thresholds"
@@ -279,7 +279,7 @@
                 class="flex items-center justify-between p-3 rounded-lg border"
                 :class="threshold.level === factorData.level
                   ? 'bg-blue-50 border-blue-300'
-                  : 'bg-gray-50 border-gray-200'"
+                  : 'bg-eggshell-500 border-light-gray'"
               >
                 <div class="flex items-center gap-3">
                   <div
@@ -287,8 +287,8 @@
                     :class="getThresholdDotClass(threshold.level)"
                   ></div>
                   <div>
-                    <span class="text-sm font-medium text-gray-900">{{ threshold.range }}</span>
-                    <span class="text-sm text-gray-500 ml-2">{{ getLevelDisplayName(threshold.level) }}</span>
+                    <span class="text-sm font-medium text-horizon-500">{{ threshold.range }}</span>
+                    <span class="text-sm text-neutral-500 ml-2">{{ getLevelDisplayName(threshold.level) }}</span>
                   </div>
                 </div>
                 <span
@@ -306,7 +306,7 @@
 
       <!-- Factor not found -->
       <div v-else class="text-center py-12">
-        <p class="text-gray-500">Factor not found. Please go back and try again.</p>
+        <p class="text-neutral-500">Factor not found. Please go back and try again.</p>
         <button
           @click="goBack"
           class="text-blue-600 hover:text-blue-800 mt-2 inline-block"
@@ -495,7 +495,7 @@ export default {
         upper_medium: 'bg-teal-100 text-teal-800',
         high: 'bg-blue-100 text-blue-800',
       };
-      return classes[level] || 'bg-gray-100 text-gray-800';
+      return classes[level] || 'bg-savannah-100 text-horizon-500';
     },
 
     getLevelCircleClass(level) {
@@ -506,7 +506,7 @@ export default {
         upper_medium: 'bg-teal-100 text-teal-700',
         high: 'bg-blue-100 text-blue-700',
       };
-      return classes[level] || 'bg-gray-100 text-gray-700';
+      return classes[level] || 'bg-savannah-100 text-neutral-500';
     },
 
     getFactorBgClass(level) {
@@ -517,7 +517,7 @@ export default {
         upper_medium: 'bg-teal-100',
         high: 'bg-blue-100',
       };
-      return classes[level] || 'bg-gray-100';
+      return classes[level] || 'bg-savannah-100';
     },
 
     getFactorColorClass(level) {
@@ -528,7 +528,7 @@ export default {
         upper_medium: 'text-teal-600',
         high: 'text-blue-600',
       };
-      return classes[level] || 'text-gray-600';
+      return classes[level] || 'text-neutral-500';
     },
 
     getCapacityLabel(level) {
@@ -549,7 +549,7 @@ export default {
         lower_medium: 'bg-pink-500',
         low: 'bg-yellow-500',
       };
-      return classes[level] || 'bg-gray-400';
+      return classes[level] || 'bg-horizon-400';
     },
 
     formatRelationship(rel) {

@@ -1,7 +1,7 @@
 <template>
   <div class="risk-level-selector">
     <!-- Label -->
-    <label v-if="label" class="block text-sm font-medium text-gray-700 mb-2">
+    <label v-if="label" class="block text-sm font-medium text-neutral-500 mb-2">
       {{ label }}
     </label>
 
@@ -43,7 +43,7 @@
           <button
             v-if="collapsible"
             type="button"
-            class="ml-2 text-gray-400 hover:text-gray-600"
+            class="ml-2 text-horizon-400 hover:text-neutral-500"
             @click="showInfo = false"
           >
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,7 +54,7 @@
 
         <!-- Asset Allocation (optional) -->
         <div v-if="showAllocation && selectedLevelConfig?.allocation" class="mt-4">
-          <h5 class="text-xs font-medium text-gray-600 mb-2">Typical Asset Allocation</h5>
+          <h5 class="text-xs font-medium text-neutral-500 mb-2">Typical Asset Allocation</h5>
           <div class="flex gap-2">
             <div
               v-for="asset in selectedLevelConfig.allocation"
@@ -74,16 +74,16 @@
                   {{ asset.percentage }}%
                 </span>
               </div>
-              <span class="text-xs text-gray-600 mt-1 block capitalize">{{ asset.type }}</span>
+              <span class="text-xs text-neutral-500 mt-1 block capitalize">{{ asset.type }}</span>
             </div>
           </div>
         </div>
 
         <!-- Expected Returns (optional) -->
-        <div v-if="showReturns && selectedLevelConfig?.returns" class="mt-4 pt-3 border-t border-gray-200">
+        <div v-if="showReturns && selectedLevelConfig?.returns" class="mt-4 pt-3 border-t border-light-gray">
           <div class="flex justify-between text-sm">
-            <span class="text-gray-600">Expected Return Range:</span>
-            <span class="font-medium text-gray-900">
+            <span class="text-neutral-500">Expected Return Range:</span>
+            <span class="font-medium text-horizon-500">
               {{ selectedLevelConfig.returns.low }}% - {{ selectedLevelConfig.returns.high }}%
             </span>
           </div>
@@ -338,7 +338,7 @@ export default {
         upper_medium: 'bg-teal-50 border-teal-200',
         high: 'bg-blue-50 border-blue-200',
       };
-      return classes[level] || 'bg-gray-50 border-gray-200';
+      return classes[level] || 'bg-eggshell-500 border-light-gray';
     },
 
     getInfoTextClasses() {
@@ -350,7 +350,7 @@ export default {
         upper_medium: 'text-teal-800',
         high: 'text-blue-800',
       };
-      return classes[level] || 'text-gray-800';
+      return classes[level] || 'text-horizon-500';
     },
 
     getInfoDescClasses() {
@@ -362,7 +362,7 @@ export default {
         upper_medium: 'text-teal-700',
         high: 'text-blue-700',
       };
-      return classes[level] || 'text-gray-700';
+      return classes[level] || 'text-neutral-500';
     },
 
     getAssetBarClasses(assetType) {
@@ -370,7 +370,7 @@ export default {
         equity: 'bg-purple-100',
         bond: 'bg-blue-100',
         cash: 'bg-green-100',
-      }[assetType] || 'bg-gray-100';
+      }[assetType] || 'bg-savannah-100';
     },
 
     getAssetFillClasses(assetType) {
@@ -378,7 +378,7 @@ export default {
         equity: 'bg-purple-500',
         bond: 'bg-blue-500',
         cash: 'bg-green-500',
-      }[assetType] || 'bg-gray-500';
+      }[assetType] || 'bg-neutral-500';
     },
   },
 };

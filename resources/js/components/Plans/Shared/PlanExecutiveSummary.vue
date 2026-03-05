@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-    <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ summary.narrative }}</p>
+  <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+    <p class="text-horizon-500 leading-relaxed whitespace-pre-line">{{ summary.narrative }}</p>
   </div>
 </template>
 

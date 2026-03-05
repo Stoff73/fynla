@@ -36,12 +36,12 @@
         >
             <div
                 v-if="isOpen"
-                class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden"
+                class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-light-gray z-50 overflow-hidden"
             >
                 <!-- Header -->
-                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <h3 class="font-semibold text-gray-900">Select a Financial Scenario</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Explore different life stages and situations</p>
+                <div class="px-4 py-3 bg-savannah-100 border-b border-light-gray">
+                    <h3 class="font-semibold text-horizon-500">Select a Financial Scenario</h3>
+                    <p class="text-xs text-neutral-500 mt-0.5">Explore different life stages and situations</p>
                 </div>
 
                 <!-- Persona options -->
@@ -64,18 +64,18 @@
 
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-medium text-gray-900">{{ persona.name }}</span>
+                                    <span class="font-medium text-horizon-500">{{ persona.name }}</span>
                                     <span
                                         v-if="persona.id === basePersonaId"
-                                        class="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded"
+                                        class="text-xs bg-raspberry-100 text-raspberry-700 px-1.5 py-0.5 rounded"
                                     >
                                         Current
                                     </span>
                                 </div>
-                                <p class="text-sm text-gray-500 mt-0.5">{{ persona.tagline }}</p>
-                                <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                                <p class="text-sm text-neutral-500 mt-0.5">{{ persona.tagline }}</p>
+                                <div class="flex items-center gap-3 mt-1 text-xs text-horizon-400">
                                     <span>{{ persona.netWorthRange }}</span>
-                                    <span class="text-gray-300">|</span>
+                                    <span class="text-horizon-300">|</span>
                                     <span>{{ persona.focus }}</span>
                                 </div>
                             </div>
@@ -84,8 +84,8 @@
                 </div>
 
                 <!-- Footer with edit indicator -->
-                <div v-if="hasEdits" class="px-4 py-3 bg-blue-50 border-t border-blue-200">
-                    <div class="flex items-center gap-2 text-sm text-blue-700">
+                <div v-if="hasEdits" class="px-4 py-3 bg-violet-50 border-t border-violet-200">
+                    <div class="flex items-center gap-2 text-sm text-violet-700">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -109,21 +109,21 @@
                     <div class="fixed inset-0 bg-black/50" @click="cancelSwitch" />
                     <div class="flex min-h-full items-center justify-center p-4">
                         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6" @click.stop>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Switch Personas?</h3>
-                            <p class="text-gray-600 mb-4">
+                            <h3 class="text-lg font-semibold text-horizon-500 mb-2">Switch Personas?</h3>
+                            <p class="text-neutral-500 mb-4">
                                 You have {{ editCount }} unsaved change{{ editCount === 1 ? '' : 's' }}.
                                 Switching to <strong>{{ pendingPersona?.name }}</strong> will discard them.
                             </p>
                             <div class="flex gap-3">
                                 <button
                                     @click="confirmSwitch"
-                                    class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700"
+                                    class="flex-1 bg-raspberry-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-raspberry-700"
                                 >
                                     Switch Anyway
                                 </button>
                                 <button
                                     @click="cancelSwitch"
-                                    class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200"
+                                    class="flex-1 bg-savannah-100 text-neutral-500 px-4 py-2 rounded-lg font-medium hover:bg-savannah-200"
                                 >
                                     Cancel
                                 </button>
@@ -191,8 +191,8 @@ export default {
                 // Use persona-specific darker shade for the selector button
                 // Use basePersonaId to maintain consistent color when viewing as spouse
                 const darkColors = {
-                    young_family: 'bg-primary-600 hover:bg-primary-700 text-white',
-                    peak_earners: 'bg-green-700 hover:bg-green-800 text-white',
+                    young_family: 'bg-raspberry-600 hover:bg-raspberry-700 text-white',
+                    peak_earners: 'bg-spring-700 hover:bg-spring-800 text-white',
                     widow: 'bg-purple-600 hover:bg-purple-700 text-white',
                     entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
@@ -201,7 +201,7 @@ export default {
                 };
                 base = darkColors[this.basePersonaId] || 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white';
             } else {
-                base = 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200';
+                base = 'bg-white hover:bg-savannah-100 text-neutral-500 border border-light-gray';
             }
 
             if (this.size === 'small') {
@@ -260,22 +260,22 @@ export default {
         personaButtonClasses(persona) {
             // Use basePersonaId to maintain highlighting when viewing as spouse
             if (persona.id === this.basePersonaId) {
-                return 'bg-primary-50 border border-primary-200';
+                return 'bg-raspberry-50 border border-raspberry-200';
             }
-            return 'hover:bg-gray-50';
+            return 'hover:bg-savannah-100';
         },
 
         avatarClasses(persona) {
             const colors = {
-                young_family: 'bg-blue-100',
-                peak_earners: 'bg-green-100',
+                young_family: 'bg-violet-100',
+                peak_earners: 'bg-spring-100',
                 widow: 'bg-purple-100',
                 entrepreneur: 'bg-fuchsia-100',
                 young_saver: 'bg-cyan-100',
                 student: 'bg-teal-100',
                 retired_couple: 'bg-rose-100',
             };
-            return colors[persona.id] || 'bg-gray-100';
+            return colors[persona.id] || 'bg-savannah-100';
         },
 
         getPersonaEmoji(personaId) {

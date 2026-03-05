@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
     <!-- Progress Indicator -->
     <div v-if="focusArea && steps.length > 0" class="max-w-5xl mx-auto mb-8">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
         <div class="overflow-x-auto">
           <div class="flex items-start justify-between min-w-max px-2">
             <div
@@ -47,7 +47,7 @@
         <div v-if="!isCompletionStep" class="mt-3 text-center">
           <button
             type="button"
-            class="text-sm text-gray-500 hover:text-primary-600 transition-colors underline"
+            class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
             @click="showSkipToDashboardModal = true"
           >
             Skip to Dashboard
@@ -169,36 +169,36 @@ export default {
 
     const getStepCircleClass = (step, index) => {
       if (isCurrentStep(index)) {
-        return 'bg-teal-600 border-teal-600 text-white';
+        return 'bg-raspberry-500 border-raspberry-500 text-white';
       }
       if (isStepSkipped(step)) {
-        return 'bg-blue-500 border-blue-500 text-white';
+        return 'bg-violet-500 border-violet-500 text-white';
       }
       if (isStepCompleted(step, index)) {
-        return 'bg-green-600 border-green-600 text-white';
+        return 'bg-spring-600 border-spring-600 text-white';
       }
-      return 'bg-white border-gray-300 text-gray-400';
+      return 'bg-white border-horizon-300 text-horizon-400';
     };
 
     const getStepLabelClass = (step, index) => {
       if (isCurrentStep(index)) {
-        return 'text-teal-600 font-semibold';
+        return 'text-raspberry-500 font-semibold';
       }
       if (isStepSkipped(step)) {
-        return 'text-blue-600';
+        return 'text-violet-600';
       }
       if (isStepCompleted(step, index)) {
-        return 'text-green-600';
+        return 'text-spring-600';
       }
-      return 'text-gray-500';
+      return 'text-neutral-500';
     };
 
     const getConnectingLineClass = (step, index) => {
       // Line is green if the next step is completed or current
       if (index < currentStepIndex.value) {
-        return 'bg-green-600';
+        return 'bg-spring-600';
       }
-      return 'bg-gray-300';
+      return 'bg-horizon-300';
     };
 
     const getStepShortLabel = (step) => {

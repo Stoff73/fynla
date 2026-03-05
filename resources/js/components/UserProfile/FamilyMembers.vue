@@ -28,11 +28,11 @@
     </div>
 
     <!-- Family Members Card -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <div class="bg-white rounded-lg border border-light-gray p-6">
       <div class="flex justify-between items-start mb-6">
         <div>
-          <h3 class="text-h4 font-semibold text-gray-900">Family Members</h3>
-          <p class="mt-1 text-body-sm text-gray-600">
+          <h3 class="text-h4 font-semibold text-horizon-500">Family Members</h3>
+          <p class="mt-1 text-body-sm text-neutral-500">
             Manage your family members and dependents
           </p>
         </div>
@@ -55,7 +55,7 @@
         <div class="flex justify-between items-start">
           <div class="flex-1">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h3 class="text-h5 font-semibold text-gray-900">{{ member.name }}</h3>
+              <h3 class="text-h5 font-semibold text-horizon-500">{{ member.name }}</h3>
               <span
                 class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="getRelationshipBadgeClass(member.relationship)"
@@ -64,7 +64,7 @@
               </span>
               <span
                 v-if="member.is_dependent"
-                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-800"
               >
                 Dependent
               </span>
@@ -101,30 +101,30 @@
 
             <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div v-if="member.date_of_birth">
-                <p class="text-body-xs text-gray-500">Date of Birth</p>
-                <p class="text-body-sm text-gray-900">{{ formatDate(member.date_of_birth) }}</p>
-                <p class="text-body-xs text-gray-500">Age: {{ calculateAge(member.date_of_birth) }}</p>
+                <p class="text-body-xs text-neutral-500">Date of Birth</p>
+                <p class="text-body-sm text-horizon-500">{{ formatDate(member.date_of_birth) }}</p>
+                <p class="text-body-xs text-neutral-500">Age: {{ calculateAge(member.date_of_birth) }}</p>
               </div>
 
               <div v-if="member.gender">
-                <p class="text-body-xs text-gray-500">Gender</p>
-                <p class="text-body-sm text-gray-900 capitalize">{{ member.gender }}</p>
+                <p class="text-body-xs text-neutral-500">Gender</p>
+                <p class="text-body-sm text-horizon-500 capitalize">{{ member.gender }}</p>
               </div>
 
               <div v-if="member.annual_income">
-                <p class="text-body-xs text-gray-500">Annual Income</p>
-                <p class="text-body-sm text-gray-900">{{ formatCurrency(member.annual_income) }}</p>
+                <p class="text-body-xs text-neutral-500">Annual Income</p>
+                <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
               </div>
 
               <div v-if="member.education_status">
-                <p class="text-body-xs text-gray-500">Education</p>
-                <p class="text-body-sm text-gray-900 capitalize">{{ member.education_status.replace('_', ' ') }}</p>
+                <p class="text-body-xs text-neutral-500">Education</p>
+                <p class="text-body-sm text-horizon-500 capitalize">{{ member.education_status.replace('_', ' ') }}</p>
               </div>
             </div>
 
             <div v-if="member.notes" class="mt-3">
-              <p class="text-body-xs text-gray-500">Notes</p>
-              <p class="text-body-sm text-gray-900">{{ member.notes }}</p>
+              <p class="text-body-xs text-neutral-500">Notes</p>
+              <p class="text-body-sm text-horizon-500">{{ member.notes }}</p>
             </div>
           </div>
 
@@ -145,12 +145,12 @@
             </button>
           </div>
           <div v-else-if="member.relationship === 'spouse'" class="ml-4">
-            <p class="text-body-xs text-gray-500 italic">
+            <p class="text-body-xs text-neutral-500 italic">
               Linked account — can only be edited or deleted by logging into the spouse's account
             </p>
           </div>
           <div v-else class="ml-4">
-            <p class="text-body-xs text-gray-500 italic">
+            <p class="text-body-xs text-neutral-500 italic">
               Managed by spouse
             </p>
           </div>
@@ -160,7 +160,7 @@
 
       <!-- Empty State -->
       <div v-else class="text-center py-8">
-        <p class="text-body-base text-gray-500">No family members added yet</p>
+        <p class="text-body-base text-neutral-500">No family members added yet</p>
         <button
           v-preview-disabled="'add'"
           @click="openAddModal"
@@ -173,15 +173,15 @@
 
     <!-- Charitable Bequest -->
     <div class="card p-6 mt-6">
-      <h3 class="text-h5 font-semibold text-gray-900 mb-4">Charitable Bequest</h3>
+      <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Charitable Bequest</h3>
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-body text-gray-700 mb-1">Do you wish to leave anything to charity?</p>
-          <p class="text-body-sm text-gray-500">
+          <p class="text-body text-neutral-500 mb-1">Do you wish to leave anything to charity?</p>
+          <p class="text-body-sm text-neutral-500">
             Leaving 10% or more to charity can reduce your Inheritance Tax rate from 40% to 36%
           </p>
         </div>
-        <div class="text-body font-medium" :class="charitableBequest ? 'text-green-600' : 'text-gray-600'">
+        <div class="text-body font-medium" :class="charitableBequest ? 'text-green-600' : 'text-neutral-500'">
           {{ charitableBequest ? 'Yes' : charitableBequest === false ? 'No' : 'Not set' }}
         </div>
       </div>
@@ -321,7 +321,7 @@ export default {
         parent: 'bg-green-100 text-green-800',
         other_dependent: 'bg-blue-100 text-blue-800',
       };
-      return classes[relationship] || 'bg-gray-100 text-gray-800';
+      return classes[relationship] || 'bg-savannah-100 text-horizon-500';
     };
 
     const openAddModal = () => {

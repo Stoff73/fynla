@@ -84,7 +84,7 @@ import { previewModeMixin } from '@/mixins/previewModeMixin';
 
 | File | Purpose |
 |------|---------|
-| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` - use for consistent chart palettes |
+| `designSystem.js` | `CHART_COLORS`, `ASSET_COLORS`, `PRIMARY_COLORS` (Raspberry), `SECONDARY_COLORS` (Horizon), `SUCCESS_COLORS` (Spring), `WARNING_COLORS` (Violet) — aligned with `fynlaDesignGuide.md` v1.2.0 palette |
 | `eventIcons.js` | `LIFE_EVENT_ICONS` - maps event types to icon names |
 | `eventIconSvgs.js` | `EVENT_ICON_SVGS` - inline SVG components for life event icons |
 | `goalIcons.js` | `GOAL_TYPE_ICONS`, `getGoalIcon()` - maps goal types to emoji icons |

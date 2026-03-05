@@ -1,37 +1,37 @@
 <template>
   <div class="will-planning-tab">
     <!-- Preview Mode Notice -->
-    <div v-if="isPreviewMode" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-6 shadow-sm">
+    <div v-if="isPreviewMode" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-violet-200 rounded-xl p-5 mb-6 shadow-sm">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <svg class="h-6 w-6 text-violet-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.573-3.007-9.963-7.178z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
         <div class="ml-4">
-          <h3 class="text-base font-semibold text-blue-800">You're Viewing a Sample Profile</h3>
-          <p class="mt-1 text-sm text-blue-700">
+          <h3 class="text-base font-semibold text-violet-800">You're Viewing a Sample Profile</h3>
+          <p class="mt-1 text-sm text-violet-700">
             This is a preview using sample data to help you explore how Fynla can support your will planning. Any changes you make here won't be saved.
           </p>
-          <p class="mt-2 text-sm text-blue-700">
-            <router-link to="/register" class="font-semibold text-blue-600 hover:text-blue-800 underline">Create your free account</router-link> to record your own will details, track when it was last updated, and ensure your estate planning information is always at your fingertips.
+          <p class="mt-2 text-sm text-violet-700">
+            <router-link to="/register" class="font-semibold text-violet-600 hover:text-violet-800 underline">Create your free account</router-link> to record your own will details, track when it was last updated, and ensure your estate planning information is always at your fingertips.
           </p>
         </div>
       </div>
     </div>
 
     <!-- Legal Disclaimer (always shown) -->
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-      <p class="text-xs text-gray-600">
+    <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4 mb-6">
+      <p class="text-xs text-neutral-500">
         <strong>Important:</strong> This tool is for planning and record-keeping purposes only and does not constitute legal advice. Always consult a qualified solicitor when creating or updating your will.
       </p>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Loading will details...</p>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+      <p class="mt-2 text-neutral-500">Loading will details...</p>
     </div>
 
     <!-- Main Content -->
@@ -44,17 +44,17 @@
       />
 
       <!-- Empty estate message (shown when no will and no estate data) -->
-      <div v-else-if="(form.has_will === false || form.has_will === null) && !isEditing && netEstateValue === 0" class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">How Your Estate Would Be Distributed</h3>
-        <p class="text-sm text-gray-600">
+      <div v-else-if="(form.has_will === false || form.has_will === null) && !isEditing && netEstateValue === 0" class="bg-eggshell-500 border border-light-gray rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-2">How Your Estate Would Be Distributed</h3>
+        <p class="text-sm text-neutral-500">
           Add your assets and liabilities to see how your estate would be distributed under UK intestacy rules.
         </p>
       </div>
 
       <!-- Will Planning Card -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+      <div class="bg-white rounded-lg border border-light-gray p-6 mb-6">
         <div class="flex justify-between items-start mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Will Planning</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Will Planning</h3>
           <div class="flex gap-3">
             <template v-if="!isEditing">
               <button
@@ -90,31 +90,31 @@
           <div v-if="form.has_will === true" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div class="text-sm font-medium text-gray-700 mb-1">Will Last Updated</div>
-                <p class="text-sm text-gray-900">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
+                <div class="text-sm font-medium text-neutral-500 mb-1">Will Last Updated</div>
+                <p class="text-sm text-horizon-500">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
               </div>
               <div>
-                <div class="text-sm font-medium text-gray-700 mb-1">Executor</div>
-                <p class="text-sm text-gray-900">{{ form.executor_name || 'Not specified' }}</p>
+                <div class="text-sm font-medium text-neutral-500 mb-1">Executor</div>
+                <p class="text-sm text-horizon-500">{{ form.executor_name || 'Not specified' }}</p>
               </div>
             </div>
 
-            <div v-if="isMarried" class="border-t border-gray-200 pt-4">
-              <div class="text-sm font-medium text-gray-700 mb-1">Spouse as Primary Beneficiary</div>
-              <p class="text-sm text-gray-900">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
-              <p v-if="form.spouse_primary_beneficiary" class="text-sm text-gray-600 mt-1">
+            <div v-if="isMarried" class="border-t border-light-gray pt-4">
+              <div class="text-sm font-medium text-neutral-500 mb-1">Spouse as Primary Beneficiary</div>
+              <p class="text-sm text-horizon-500">{{ form.spouse_primary_beneficiary ? 'Yes' : 'No' }}</p>
+              <p v-if="form.spouse_primary_beneficiary" class="text-sm text-neutral-500 mt-1">
                 {{ form.spouse_bequest_percentage }}% to spouse ({{ formatCurrency(spouseAmount) }})
               </p>
             </div>
 
-            <div v-if="form.executor_notes" class="border-t border-gray-200 pt-4">
-              <div class="text-sm font-medium text-gray-700 mb-1">Executor Notes</div>
-              <p class="text-sm text-gray-900 whitespace-pre-line">{{ form.executor_notes }}</p>
+            <div v-if="form.executor_notes" class="border-t border-light-gray pt-4">
+              <div class="text-sm font-medium text-neutral-500 mb-1">Executor Notes</div>
+              <p class="text-sm text-horizon-500 whitespace-pre-line">{{ form.executor_notes }}</p>
             </div>
           </div>
 
           <!-- Show message if no will -->
-          <div v-else class="text-sm text-gray-600">
+          <div v-else class="text-sm text-neutral-500">
             <p v-if="form.has_will === false">You have indicated that you don't have a will. Click Edit to update this.</p>
             <p v-else>Will status not specified. Click Edit to configure your will details.</p>
           </div>
@@ -124,27 +124,27 @@
         <div v-else class="space-y-6">
           <!-- Has Will Question -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-3">Do you have a will?</label>
+            <label class="block text-sm font-medium text-neutral-500 mb-3">Do you have a will?</label>
             <div class="space-y-2">
               <label class="inline-flex items-center">
                 <input
                   type="radio"
                   v-model="form.has_will"
                   :value="true"
-                  class="form-radio text-primary-600"
+                  class="form-radio text-raspberry-500"
                   @change="handleWillStatusChange"
                 />
-                <span class="ml-2 text-sm text-gray-700">Yes</span>
+                <span class="ml-2 text-sm text-neutral-500">Yes</span>
               </label>
               <label class="inline-flex items-center ml-6">
                 <input
                   type="radio"
                   v-model="form.has_will"
                   :value="false"
-                  class="form-radio text-primary-600"
+                  class="form-radio text-raspberry-500"
                   @change="handleWillStatusChange"
                 />
-                <span class="ml-2 text-sm text-gray-700">No</span>
+                <span class="ml-2 text-sm text-neutral-500">No</span>
               </label>
             </div>
           </div>
@@ -153,47 +153,47 @@
           <template v-if="form.has_will === true">
             <!-- Will Last Updated -->
             <div>
-              <label for="will_last_updated" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="will_last_updated" class="block text-sm font-medium text-neutral-500 mb-2">
                 When was your will last updated?
               </label>
               <input
                 id="will_last_updated"
                 v-model="form.will_last_updated"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
                 :max="today"
               />
-              <p class="mt-1 text-xs text-gray-500">
+              <p class="mt-1 text-xs text-neutral-500">
                 It's recommended to review your will every 5 years or after major life events
               </p>
             </div>
 
             <!-- Executor Name -->
             <div>
-              <label for="executor_name" class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="executor_name" class="block text-sm font-medium text-neutral-500 mb-2">
                 Who is your executor?
               </label>
               <input
                 id="executor_name"
                 v-model="form.executor_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
                 placeholder="Enter executor name"
               />
             </div>
 
             <!-- Spouse Bequest (only show if married) -->
-            <div v-if="isMarried" class="border-t border-gray-200 pt-6">
+            <div v-if="isMarried" class="border-t border-light-gray pt-6">
               <div class="flex items-center justify-between mb-4">
-                <label class="block text-sm font-medium text-gray-700">
+                <label class="block text-sm font-medium text-neutral-500">
                   Spouse as Primary Beneficiary
                 </label>
                 <button
                   type="button"
                   @click="form.spouse_primary_beneficiary = !form.spouse_primary_beneficiary"
                   :class="[
-                    form.spouse_primary_beneficiary ? 'bg-primary-600' : 'bg-gray-200',
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
+                    form.spouse_primary_beneficiary ? 'bg-raspberry-500' : 'bg-savannah-200',
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2'
                   ]"
                 >
                   <span
@@ -206,7 +206,7 @@
               </div>
 
               <div v-if="form.spouse_primary_beneficiary" class="mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-sm font-medium text-neutral-500 mb-2">
                   Percentage to Spouse ({{ form.spouse_bequest_percentage }}%)
                 </label>
                 <input
@@ -215,58 +215,58 @@
                   min="0"
                   max="100"
                   step="1"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  class="w-full h-2 bg-savannah-200 rounded-lg appearance-none cursor-pointer"
                 />
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>0%</span>
                   <span>50%</span>
                   <span>100%</span>
                 </div>
-                <p class="text-xs text-gray-600 mt-2">
+                <p class="text-xs text-neutral-500 mt-2">
                   <strong>{{ formatCurrency(spouseAmount) }}</strong> will pass to your spouse tax-free (unlimited spouse exemption)
                 </p>
-                <p v-if="form.spouse_bequest_percentage < 100" class="text-xs text-blue-600 mt-1">
+                <p v-if="form.spouse_bequest_percentage < 100" class="text-xs text-violet-600 mt-1">
                   <strong>{{ formatCurrency(nonSpouseAmount) }}</strong> will be subject to Inheritance Tax calculation (distributed to other beneficiaries)
                 </p>
               </div>
 
-              <div v-else class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p class="text-sm text-blue-800">
+              <div v-else class="mt-4 bg-violet-50 border border-violet-200 rounded-lg p-3">
+                <p class="text-sm text-violet-800">
                   Your spouse is not set as the primary beneficiary. The entire estate will be subject to Inheritance Tax calculation.
                 </p>
               </div>
             </div>
 
             <!-- Executor Notes -->
-            <div class="border-t border-gray-200 pt-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
+            <div class="border-t border-light-gray pt-6">
+              <label class="block text-sm font-medium text-neutral-500 mb-2">
                 Executor Notes (Optional)
               </label>
               <textarea
                 v-model="form.executor_notes"
                 rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-blue-500"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
                 placeholder="Any special instructions or notes for your executor..."
               ></textarea>
             </div>
           </template>
 
           <!-- No Will Message (shown when has_will is false in edit mode) -->
-          <div v-if="form.has_will === false" class="bg-green-50 p-4 rounded-lg border border-green-200">
-            <p class="text-sm text-green-800">
+          <div v-if="form.has_will === false" class="bg-spring-50 p-4 rounded-lg border border-spring-200">
+            <p class="text-sm text-spring-800">
               <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
             </p>
           </div>
         </div>
 
         <!-- Bequests Section (inside card, shown when has_will is true and not editing) -->
-        <div v-if="form.has_will === true && !isEditing" class="border-t border-gray-200 mt-6 pt-6">
+        <div v-if="form.has_will === true && !isEditing" class="border-t border-light-gray mt-6 pt-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Specific Bequests</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">Specific Bequests</h3>
           <button
             v-preview-disabled="'add'"
             @click="showBequestModal = true"
-            class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 text-sm"
+            class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 text-sm"
           >
             Add Bequest
           </button>
@@ -277,12 +277,12 @@
           <div
             v-for="bequest in bequests"
             :key="bequest.id"
-            class="border border-gray-200 rounded-lg p-4 hover:border-blue-300"
+            class="border border-light-gray rounded-lg p-4 hover:border-violet-300"
           >
             <div class="flex justify-between items-start">
               <div class="flex-1">
-                <h4 class="text-sm font-semibold text-gray-900">{{ bequest.beneficiary_name }}</h4>
-                <p class="text-xs text-gray-600 mt-1">
+                <h4 class="text-sm font-semibold text-horizon-500">{{ bequest.beneficiary_name }}</h4>
+                <p class="text-xs text-neutral-500 mt-1">
                   <span v-if="bequest.bequest_type === 'percentage'">
                     {{ bequest.percentage_of_estate }}% of estate
                   </span>
@@ -296,7 +296,7 @@
                     Residuary bequest
                   </span>
                 </p>
-                <p v-if="bequest.conditions" class="text-xs text-gray-500 mt-1">
+                <p v-if="bequest.conditions" class="text-xs text-neutral-500 mt-1">
                   Conditions: {{ bequest.conditions }}
                 </p>
               </div>
@@ -304,14 +304,14 @@
                 <button
                   v-preview-disabled="'edit'"
                   @click="editBequest(bequest)"
-                  class="text-blue-600 hover:text-blue-800 text-sm"
+                  class="text-violet-600 hover:text-violet-800 text-sm"
                 >
                   Edit
                 </button>
                 <button
                   v-preview-disabled="'delete'"
                   @click="deleteBequest(bequest.id)"
-                  class="text-red-600 hover:text-red-800 text-sm"
+                  class="text-raspberry-600 hover:text-raspberry-800 text-sm"
                 >
                   Delete
                 </button>
@@ -321,7 +321,7 @@
         </div>
 
         <!-- Empty State -->
-        <div v-else class="text-center py-8 text-gray-500">
+        <div v-else class="text-center py-8 text-neutral-500">
           <p class="text-sm">No specific bequests added yet.</p>
           <p class="text-xs mt-1">Click "Add Bequest" to specify gifts to beneficiaries.</p>
         </div>
@@ -330,13 +330,13 @@
     </div>
 
     <!-- Success Message -->
-    <div v-if="successMessage" class="fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg z-50">
-      <p class="text-sm text-green-800">{{ successMessage }}</p>
+    <div v-if="successMessage" class="fixed top-4 right-4 bg-spring-50 border border-spring-200 rounded-lg p-4 shadow-lg z-50">
+      <p class="text-sm text-spring-800">{{ successMessage }}</p>
     </div>
 
     <!-- Error Message -->
-    <div v-if="errorMessage" class="fixed top-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg z-50">
-      <p class="text-sm text-red-800">{{ errorMessage }}</p>
+    <div v-if="errorMessage" class="fixed top-4 right-4 bg-raspberry-50 border border-raspberry-200 rounded-lg p-4 shadow-lg z-50">
+      <p class="text-sm text-raspberry-800">{{ errorMessage }}</p>
     </div>
   </div>
 </template>
@@ -584,23 +584,3 @@ export default {
 };
 </script>
 
-<style scoped>
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  @apply bg-primary-600;
-  cursor: pointer;
-  border-radius: 50%;
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  @apply bg-primary-600;
-  cursor: pointer;
-  border-radius: 50%;
-  border: none;
-}
-</style>

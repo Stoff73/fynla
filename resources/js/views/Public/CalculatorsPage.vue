@@ -4,8 +4,8 @@
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden">
       <!-- Background Elements -->
       <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/80 to-slate-900/90"></div>
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/80 to-slate-900/90"></div>
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
       </div>
 
@@ -14,7 +14,7 @@
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <!-- Badge -->
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 text-sm font-medium mb-4">
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-violet-200 text-sm font-medium mb-4">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
@@ -23,7 +23,7 @@
 
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
           Financial
-          <span class="text-primary-400">Calculators</span>
+          <span class="text-raspberry-400">Calculators</span>
         </h1>
         <p class="text-lg text-slate-300 max-w-2xl mx-auto mb-8">
           Free tools to help you understand your finances better.
@@ -38,7 +38,7 @@
             :class="[
               'group relative p-4 rounded-xl transition-all duration-300 text-center',
               activeCalculator === calc.id
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                ? 'bg-raspberry-500 text-white shadow-lg shadow-raspberry-500/25'
                 : 'bg-white/10 backdrop-blur-md text-white hover:bg-white/20 border border-white/20'
             ]"
           >
@@ -47,7 +47,7 @@
               activeCalculator === calc.id ? 'bg-white/20' : 'bg-white/10'
             ]">
               <!-- Income Tax Icon - Blue -->
-              <svg v-if="calc.id === 'income-tax'" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-if="calc.id === 'income-tax'" class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               <!-- Mortgage Icon - Indigo -->
@@ -55,7 +55,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               <!-- Loan Icon - Blue -->
-              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <!-- Emergency Fund Icon - Emerald -->
@@ -79,7 +79,7 @@
       <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'income-tax'">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Income Tax Calculator</h2>
-          <p class="text-blue-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
+          <p class="text-violet-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
         </div>
 
         <div class="p-8">
@@ -92,7 +92,7 @@
                   <input
                     v-model.number="incomeTax.income"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
@@ -105,7 +105,7 @@
                   <input
                     v-model.number="incomeTax.pension"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="0"
                   />
                 </div>
@@ -122,7 +122,7 @@
 
             <div v-if="incomeTax.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Results
@@ -143,16 +143,16 @@
                 <div class="border-t border-slate-300 my-2"></div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Income Tax</span>
-                  <span class="font-semibold text-red-600">-{{ formatCurrency(incomeTax.result.tax) }}</span>
+                  <span class="font-semibold text-raspberry-600">-{{ formatCurrency(incomeTax.result.tax) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">National Insurance</span>
-                  <span class="font-semibold text-red-600">-{{ formatCurrency(incomeTax.result.ni) }}</span>
+                  <span class="font-semibold text-raspberry-600">-{{ formatCurrency(incomeTax.result.ni) }}</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-green-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-spring-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Net Income</span>
-                  <span class="font-bold text-2xl text-green-600">{{ formatCurrency(incomeTax.result.net) }}</span>
+                  <span class="font-bold text-2xl text-spring-600">{{ formatCurrency(incomeTax.result.net) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Effective Tax Rate</span>
@@ -280,14 +280,14 @@
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Interest</span>
-                  <span class="font-semibold text-red-600">{{ formatCurrency(mortgage.result.totalInterest) }}</span>
+                  <span class="font-semibold text-raspberry-600">{{ formatCurrency(mortgage.result.totalInterest) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Repayment</span>
                   <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.totalRepayment) }}</span>
                 </div>
-                <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p class="text-sm text-blue-900">
+                <div class="mt-4 bg-violet-50 border border-violet-200 rounded-xl p-4">
+                  <p class="text-sm text-violet-900">
                     <strong>Maximum Affordable (4.5x income):</strong><br />
                     {{ formatCurrency(mortgage.result.maxAffordable) }}
                   </p>
@@ -324,7 +324,7 @@
                   <input
                     v-model.number="loan.amount"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="10,000"
                   />
                 </div>
@@ -336,7 +336,7 @@
                   v-model.number="loan.rate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="8.9"
                 />
               </div>
@@ -346,7 +346,7 @@
                 <input
                   v-model.number="loan.term"
                   type="number"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="36"
                 />
               </div>
@@ -380,13 +380,13 @@
                   <span class="font-semibold text-slate-900">{{ loan.result.term }} months</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-blue-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-violet-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Monthly Payment</span>
-                  <span class="font-bold text-2xl text-blue-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
+                  <span class="font-bold text-2xl text-violet-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Interest</span>
-                  <span class="font-semibold text-red-600">{{ formatCurrency(loan.result.totalInterest) }}</span>
+                  <span class="font-semibold text-raspberry-600">{{ formatCurrency(loan.result.totalInterest) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Total Repayment</span>
@@ -411,7 +411,7 @@
       <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'emergency-fund'">
         <div class="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Emergency Fund Calculator</h2>
-          <p class="text-green-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
+          <p class="text-spring-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
         </div>
 
         <div class="p-8">
@@ -424,7 +424,7 @@
                   <input
                     v-model.number="emergencyFund.monthlyExpenses"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="2,500"
                   />
                 </div>
@@ -437,7 +437,7 @@
                   <input
                     v-model.number="emergencyFund.currentSavings"
                     type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="5,000"
                   />
                 </div>
@@ -447,7 +447,7 @@
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Target Months</label>
                 <select
                   v-model.number="emergencyFund.targetMonths"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                 >
                   <option :value="3">3 months (minimum recommended)</option>
                   <option :value="6">6 months (standard recommendation)</option>
@@ -466,7 +466,7 @@
 
             <div v-if="emergencyFund.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 Results
@@ -481,9 +481,9 @@
                   <span class="font-semibold text-slate-900">{{ emergencyFund.result.targetMonths }} months</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-green-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-spring-50 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Target Fund</span>
-                  <span class="font-bold text-2xl text-green-600">{{ formatCurrency(emergencyFund.result.targetAmount) }}</span>
+                  <span class="font-bold text-2xl text-spring-600">{{ formatCurrency(emergencyFund.result.targetAmount) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Current Savings</span>
@@ -491,7 +491,7 @@
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Shortfall</span>
-                  <span :class="emergencyFund.result.shortfall > 0 ? 'font-semibold text-red-600' : 'font-semibold text-green-600'">
+                  <span :class="emergencyFund.result.shortfall > 0 ? 'font-semibold text-raspberry-600' : 'font-semibold text-spring-600'">
                     {{ emergencyFund.result.shortfall > 0 ? formatCurrency(emergencyFund.result.shortfall) : 'Fully funded!' }}
                   </span>
                 </div>
@@ -501,23 +501,23 @@
                 </div>
                 <div class="mt-4" :class="[
                   'rounded-xl p-4',
-                  emergencyFund.result.adequacy === 'Good' ? 'bg-green-50 border border-green-200' :
-                  emergencyFund.result.adequacy === 'Adequate' ? 'bg-blue-50 border border-blue-200' :
-                  'bg-red-50 border border-red-200'
+                  emergencyFund.result.adequacy === 'Good' ? 'bg-spring-50 border border-spring-200' :
+                  emergencyFund.result.adequacy === 'Adequate' ? 'bg-violet-50 border border-violet-200' :
+                  'bg-raspberry-50 border border-raspberry-200'
                 ]">
                   <p :class="[
                     'text-sm font-semibold',
-                    emergencyFund.result.adequacy === 'Good' ? 'text-green-900' :
-                    emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-900' :
-                    'text-red-900'
+                    emergencyFund.result.adequacy === 'Good' ? 'text-spring-900' :
+                    emergencyFund.result.adequacy === 'Adequate' ? 'text-violet-900' :
+                    'text-raspberry-900'
                   ]">
                     Status: {{ emergencyFund.result.adequacy }}
                   </p>
                   <p :class="[
                     'text-xs mt-1',
-                    emergencyFund.result.adequacy === 'Good' ? 'text-green-700' :
-                    emergencyFund.result.adequacy === 'Adequate' ? 'text-blue-700' :
-                    'text-red-700'
+                    emergencyFund.result.adequacy === 'Good' ? 'text-spring-700' :
+                    emergencyFund.result.adequacy === 'Adequate' ? 'text-violet-700' :
+                    'text-raspberry-700'
                   ]">
                     {{ emergencyFund.result.message }}
                   </p>
@@ -643,18 +643,18 @@
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-slate-600">Investment Growth</span>
-                  <span class="font-semibold text-green-600">{{ formatCurrency(pension.result.investmentGrowth) }}</span>
+                  <span class="font-semibold text-spring-600">{{ formatCurrency(pension.result.investmentGrowth) }}</span>
                 </div>
-                <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p class="text-sm text-blue-900 font-semibold mb-2">At 4% withdrawal rate:</p>
+                <div class="mt-4 bg-violet-50 border border-violet-200 rounded-xl p-4">
+                  <p class="text-sm text-violet-900 font-semibold mb-2">At 4% withdrawal rate:</p>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <p class="text-xs text-blue-700">Annual Income</p>
-                      <p class="font-bold text-blue-900">{{ formatCurrency(pension.result.annualIncome) }}</p>
+                      <p class="text-xs text-violet-700">Annual Income</p>
+                      <p class="font-bold text-violet-900">{{ formatCurrency(pension.result.annualIncome) }}</p>
                     </div>
                     <div>
-                      <p class="text-xs text-blue-700">Monthly Income</p>
-                      <p class="font-bold text-blue-900">{{ formatCurrency(pension.result.monthlyIncome) }}</p>
+                      <p class="text-xs text-violet-700">Monthly Income</p>
+                      <p class="font-bold text-violet-900">{{ formatCurrency(pension.result.monthlyIncome) }}</p>
                     </div>
                   </div>
                 </div>
@@ -677,8 +677,8 @@
     <!-- CTA Section -->
     <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
       <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-900/50 to-slate-900/80"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/50 to-slate-900/80"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-3xl"></div>
       </div>
       <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="bg-white/5 backdrop-blur-md rounded-3xl p-10 border border-white/10">
@@ -691,7 +691,7 @@
           <div class="flex flex-col sm:flex-row justify-center gap-4">
             <router-link
               to="/register"
-              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-50 transition-all shadow-lg hover:shadow-xl"
             >
               <span class="flex items-center justify-center">
                 Get Started Free

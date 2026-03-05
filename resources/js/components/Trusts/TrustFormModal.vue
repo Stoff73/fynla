@@ -1,17 +1,17 @@
 <template>
   <div class="fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      <div class="fixed inset-0 bg-neutral-500 bg-opacity-75 transition-opacity"></div>
 
       <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">
+          <h2 class="text-2xl font-bold text-horizon-500">
             {{ trust ? 'Edit Trust' : 'Create New Trust' }}
           </h2>
           <button
             @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600"
+            class="text-horizon-400 hover:text-neutral-500"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -29,7 +29,7 @@
           <div class="space-y-4">
             <!-- Trust Name -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Trust Name
               </label>
               <input
@@ -43,7 +43,7 @@
 
             <!-- Trust Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Trust Type
               </label>
               <select
@@ -66,9 +66,9 @@
             </div>
 
             <!-- Other Trust Type Fields (shown when 'other' is selected) -->
-            <div v-if="formData.trust_type === 'other'" class="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div v-if="formData.trust_type === 'other'" class="space-y-4 p-4 bg-eggshell-500 rounded-lg border border-light-gray">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Trust Type Description <span class="text-red-500">*</span>
                 </label>
                 <input
@@ -78,10 +78,10 @@
                   class="input-field"
                   placeholder="e.g., Offshore Asset Protection Trust"
                 />
-                <p class="mt-1 text-xs text-gray-500">Please describe the type of trust</p>
+                <p class="mt-1 text-xs text-neutral-500">Please describe the type of trust</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Country <span class="text-red-500">*</span>
                 </label>
                 <select
@@ -110,7 +110,7 @@
                 </select>
               </div>
               <div v-if="formData.country === 'other'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Other Country <span class="text-red-500">*</span>
                 </label>
                 <input
@@ -126,7 +126,7 @@
             <!-- Creation Date and Initial Value -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Creation Date
                 </label>
                 <input
@@ -137,7 +137,7 @@
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Initial Value
                 </label>
                 <input
@@ -154,7 +154,7 @@
 
             <!-- Current Value -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Current Value
               </label>
               <input
@@ -170,7 +170,7 @@
 
             <!-- Beneficiaries -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Beneficiaries
               </label>
               <textarea
@@ -183,7 +183,7 @@
 
             <!-- Trustees -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Trustees
               </label>
               <textarea
@@ -196,7 +196,7 @@
 
             <!-- Purpose -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Purpose
               </label>
               <textarea
@@ -213,9 +213,9 @@
                 v-model="formData.is_active"
                 type="checkbox"
                 id="is_active"
-                class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-horizon-300 rounded"
               />
-              <label for="is_active" class="ml-2 block text-sm text-gray-700">
+              <label for="is_active" class="ml-2 block text-sm text-neutral-500">
                 Trust is currently active
               </label>
             </div>

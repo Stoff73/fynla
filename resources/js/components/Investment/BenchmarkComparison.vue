@@ -2,16 +2,16 @@
   <div class="benchmark-comparison">
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-gray-50 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-eggshell-500 rounded-lg p-4 mb-6">
       <div class="flex items-center">
-        <svg class="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="h-5 w-5 text-raspberry-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
-        <span class="text-sm font-medium text-red-800">{{ error }}</span>
+        <span class="text-sm font-medium text-raspberry-800">{{ error }}</span>
       </div>
     </div>
 
@@ -20,14 +20,14 @@
       <!-- Benchmark Selector & Period -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
-          <h2 class="text-xl font-semibold text-gray-800">Benchmark Comparison</h2>
+          <h2 class="text-xl font-semibold text-horizon-500">Benchmark Comparison</h2>
 
           <div class="flex items-center space-x-4">
             <select
               v-model="selectedBenchmarks"
               multiple
               size="4"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              class="px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             >
               <option value="ftse_all_share">FTSE All-Share</option>
               <option value="ftse_100">FTSE 100</option>
@@ -40,7 +40,7 @@
             <select
               v-model="selectedPeriod"
               @change="loadComparisonData"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              class="px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             >
               <option value="1m">1 Month</option>
               <option value="3m">3 Months</option>
@@ -53,7 +53,7 @@
             <button
               @click="compareSelected"
               :disabled="selectedBenchmarks.length === 0"
-              class="px-6 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-6 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Compare
             </button>
@@ -63,7 +63,7 @@
 
       <!-- Performance Comparison Chart -->
       <div v-if="comparisonData" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Performance Comparison</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-6">Performance Comparison</h3>
 
         <apexchart
           type="line"
@@ -75,18 +75,18 @@
 
       <!-- Comparison Table -->
       <div v-if="comparisonData" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Detailed Metrics Comparison</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-6">Detailed Metrics Comparison</h3>
 
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-4 font-semibold text-gray-700">Metric</th>
-                <th class="text-right py-3 px-4 font-semibold text-blue-700">Your Portfolio</th>
+              <tr class="border-b border-light-gray">
+                <th class="text-left py-3 px-4 font-semibold text-neutral-500">Metric</th>
+                <th class="text-right py-3 px-4 font-semibold text-violet-700">Your Portfolio</th>
                 <th
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="benchmark.id"
-                  class="text-right py-3 px-4 font-semibold text-gray-700"
+                  class="text-right py-3 px-4 font-semibold text-neutral-500"
                 >
                   {{ benchmark.name }}
                 </th>
@@ -94,38 +94,38 @@
             </thead>
             <tbody>
               <!-- Total Return -->
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Total Return</td>
-                <td class="text-right py-3 px-4 font-semibold" :class="comparisonData.portfolio.total_return >= 0 ? 'text-green-600' : 'text-red-600'">
+                <td class="text-right py-3 px-4 font-semibold" :class="comparisonData.portfolio.total_return >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
                   {{ formatPercent(comparisonData.portfolio.total_return) }}
                 </td>
                 <td
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="`return-${benchmark.id}`"
                   class="text-right py-3 px-4"
-                  :class="benchmark.total_return >= 0 ? 'text-green-600' : 'text-red-600'"
+                  :class="benchmark.total_return >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
                 >
                   {{ formatPercent(benchmark.total_return) }}
                 </td>
               </tr>
 
               <!-- Volatility -->
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Volatility</td>
-                <td class="text-right py-3 px-4 font-semibold text-gray-800">
+                <td class="text-right py-3 px-4 font-semibold text-horizon-500">
                   {{ formatPercent(comparisonData.portfolio.volatility) }}
                 </td>
                 <td
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="`vol-${benchmark.id}`"
-                  class="text-right py-3 px-4 text-gray-800"
+                  class="text-right py-3 px-4 text-horizon-500"
                 >
                   {{ formatPercent(benchmark.volatility) }}
                 </td>
               </tr>
 
               <!-- Sharpe Ratio -->
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Sharpe Ratio</td>
                 <td class="text-right py-3 px-4 font-semibold" :class="getSharpeColour(comparisonData.portfolio.sharpe_ratio)">
                   {{ formatDecimal(comparisonData.portfolio.sharpe_ratio) }}
@@ -141,46 +141,46 @@
               </tr>
 
               <!-- Max Drawdown -->
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Max Drawdown</td>
-                <td class="text-right py-3 px-4 font-semibold text-red-600">
+                <td class="text-right py-3 px-4 font-semibold text-raspberry-600">
                   {{ formatPercent(comparisonData.portfolio.max_drawdown) }}
                 </td>
                 <td
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="`dd-${benchmark.id}`"
-                  class="text-right py-3 px-4 text-red-600"
+                  class="text-right py-3 px-4 text-raspberry-600"
                 >
                   {{ formatPercent(benchmark.max_drawdown) }}
                 </td>
               </tr>
 
               <!-- Beta -->
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-savannah-100">
                 <td class="py-3 px-4 font-medium">Beta</td>
-                <td class="text-right py-3 px-4 font-semibold text-gray-800">
+                <td class="text-right py-3 px-4 font-semibold text-horizon-500">
                   {{ formatDecimal(comparisonData.portfolio.beta || 1.0) }}
                 </td>
                 <td
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="`beta-${benchmark.id}`"
-                  class="text-right py-3 px-4 text-gray-800"
+                  class="text-right py-3 px-4 text-horizon-500"
                 >
                   {{ formatDecimal(benchmark.beta || 1.0) }}
                 </td>
               </tr>
 
               <!-- Alpha -->
-              <tr class="border-b border-gray-100 bg-gray-50">
+              <tr class="border-b border-savannah-100 bg-eggshell-500">
                 <td class="py-3 px-4 font-medium">Alpha (vs FTSE All-Share)</td>
-                <td class="text-right py-3 px-4 font-semibold" :class="comparisonData.portfolio.alpha >= 0 ? 'text-green-600' : 'text-red-600'">
+                <td class="text-right py-3 px-4 font-semibold" :class="comparisonData.portfolio.alpha >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
                   {{ formatPercent(comparisonData.portfolio.alpha) }}
                 </td>
                 <td
                   v-for="benchmark in comparisonData.benchmarks"
                   :key="`alpha-${benchmark.id}`"
                   class="text-right py-3 px-4"
-                  :class="benchmark.alpha >= 0 ? 'text-green-600' : 'text-red-600'"
+                  :class="benchmark.alpha >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
                 >
                   {{ formatPercent(benchmark.alpha || 0) }}
                 </td>
@@ -192,7 +192,7 @@
 
       <!-- Risk-Return Scatter Plot -->
       <div v-if="comparisonData" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-6">Risk vs Return Analysis</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-6">Risk vs Return Analysis</h3>
 
         <apexchart
           type="scatter"
@@ -201,8 +201,8 @@
           height="400"
         />
 
-        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-700">
+        <div class="mt-4 p-4 bg-eggshell-500 rounded-lg">
+          <p class="text-sm text-neutral-500">
             <strong>Interpretation:</strong> Points further to the left and higher up represent better risk-adjusted performance.
             Your portfolio is shown in blue.
           </p>
@@ -213,32 +213,32 @@
       <div v-if="comparisonData" class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Relative Performance -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">Relative Performance</h4>
-          <p class="text-xs text-gray-600 mb-2">vs Best Performing Benchmark</p>
-          <p class="text-2xl font-bold mb-1" :class="comparisonData.summary.vs_best >= 0 ? 'text-green-600' : 'text-red-600'">
+          <h4 class="text-sm font-semibold text-neutral-500 mb-4">Relative Performance</h4>
+          <p class="text-xs text-neutral-500 mb-2">vs Best Performing Benchmark</p>
+          <p class="text-2xl font-bold mb-1" :class="comparisonData.summary.vs_best >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
             {{ comparisonData.summary.vs_best >= 0 ? '+' : '' }}{{ formatPercent(comparisonData.summary.vs_best) }}
           </p>
-          <p class="text-xs text-gray-500">{{ comparisonData.summary.best_benchmark }}</p>
+          <p class="text-xs text-neutral-500">{{ comparisonData.summary.best_benchmark }}</p>
         </div>
 
         <!-- Risk-Adjusted Rank -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">Sharpe Ratio Ranking</h4>
-          <p class="text-xs text-gray-600 mb-2">Position by Risk-Adjusted Return</p>
-          <p class="text-4xl font-bold text-blue-600 mb-1">
+          <h4 class="text-sm font-semibold text-neutral-500 mb-4">Sharpe Ratio Ranking</h4>
+          <p class="text-xs text-neutral-500 mb-2">Position by Risk-Adjusted Return</p>
+          <p class="text-4xl font-bold text-violet-600 mb-1">
             {{ comparisonData.summary.sharpe_rank }}
           </p>
-          <p class="text-xs text-gray-500">of {{ comparisonData.benchmarks.length + 1 }} portfolios</p>
+          <p class="text-xs text-neutral-500">of {{ comparisonData.benchmarks.length + 1 }} portfolios</p>
         </div>
 
         <!-- Volatility Comparison -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">Volatility Assessment</h4>
-          <p class="text-xs text-gray-600 mb-2">vs Average Benchmark</p>
+          <h4 class="text-sm font-semibold text-neutral-500 mb-4">Volatility Assessment</h4>
+          <p class="text-xs text-neutral-500 mb-2">vs Average Benchmark</p>
           <p class="text-2xl font-bold mb-1" :class="getVolatilityColour(comparisonData.summary.vs_avg_volatility)">
             {{ comparisonData.summary.vs_avg_volatility >= 0 ? '+' : '' }}{{ formatPercent(comparisonData.summary.vs_avg_volatility) }}
           </p>
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-neutral-500">
             {{ comparisonData.summary.vs_avg_volatility < 0 ? 'Less volatile' : 'More volatile' }}
           </p>
         </div>
@@ -246,7 +246,7 @@
 
       <!-- Insights -->
       <div v-if="comparisonData && comparisonData.insights" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Key Insights</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Key Insights</h3>
 
         <div class="space-y-3">
           <div
@@ -255,8 +255,8 @@
             class="border-l-4 p-4 rounded-r-lg"
             :class="getInsightClass(insight.type)"
           >
-            <p class="text-sm font-medium text-gray-800 mb-1">{{ insight.title }}</p>
-            <p class="text-sm text-gray-600">{{ insight.description }}</p>
+            <p class="text-sm font-medium text-horizon-500 mb-1">{{ insight.title }}</p>
+            <p class="text-sm text-neutral-500">{{ insight.description }}</p>
           </div>
         </div>
       </div>
@@ -457,20 +457,20 @@ export default {
     },
 
     getSharpeColour(sharpe) {
-      if (sharpe >= 2) return 'text-green-600';
-      if (sharpe >= 1) return 'text-blue-600';
+      if (sharpe >= 2) return 'text-spring-600';
+      if (sharpe >= 1) return 'text-violet-600';
       if (sharpe >= 0) return 'text-yellow-600';
-      return 'text-red-600';
+      return 'text-raspberry-600';
     },
 
     getVolatilityColour(diff) {
-      return diff < 0 ? 'text-green-600' : 'text-red-600';
+      return diff < 0 ? 'text-spring-600' : 'text-raspberry-600';
     },
 
     getInsightClass(type) {
-      if (type === 'positive') return 'border-green-500 bg-white';
+      if (type === 'positive') return 'border-spring-500 bg-white';
       if (type === 'warning') return 'border-yellow-500 bg-white';
-      return 'border-blue-500 bg-white';
+      return 'border-violet-500 bg-white';
     },
   },
 };

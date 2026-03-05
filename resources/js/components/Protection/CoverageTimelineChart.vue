@@ -8,7 +8,7 @@
       :series="series"
       height="350"
     />
-    <div v-if="!hasData" class="flex items-center justify-center h-64 text-gray-400">
+    <div v-if="!hasData" class="flex items-center justify-center h-64 text-horizon-400">
       <p>No policy timeline data available</p>
     </div>
   </div>
@@ -96,7 +96,7 @@ export default {
       return {
         chart: {
           type: 'rangeBar',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
           toolbar: {
             show: false,
           },

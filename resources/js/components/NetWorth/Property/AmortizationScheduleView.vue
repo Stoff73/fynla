@@ -2,12 +2,12 @@
   <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h3 class="text-xl font-semibold text-gray-900">Amortization Schedule</h3>
-        <p class="text-sm text-gray-600 mt-1">{{ mortgage.lender_name }} - {{ mortgage.mortgage_type }}</p>
+        <h3 class="text-xl font-semibold text-horizon-500">Amortization Schedule</h3>
+        <p class="text-sm text-neutral-500 mt-1">{{ mortgage.lender_name }} - {{ mortgage.mortgage_type }}</p>
       </div>
       <button
         @click="downloadCSV"
-        class="px-4 py-2 bg-primary-600 text-white rounded-button hover:bg-primary-700 transition-colors flex items-center space-x-2"
+        class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors flex items-center space-x-2"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -18,13 +18,13 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="mt-4 text-gray-600">Loading amortization schedule...</p>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+      <p class="mt-4 text-neutral-500">Loading amortization schedule...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-gray-50 rounded-lg p-6 text-center">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error" class="bg-savannah-100 rounded-lg p-6 text-center">
+      <p class="text-raspberry-600">{{ error }}</p>
       <button
         @click="loadSchedule"
         class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
@@ -37,61 +37,61 @@
     <div v-else-if="schedule.length > 0" class="space-y-6">
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-blue-700">Loan Amount</p>
-          <p class="text-xl font-bold text-blue-900">{{ formatCurrencyWithPence(mortgage.original_loan_amount) }}</p>
+        <div class="bg-savannah-100 rounded-lg p-4">
+          <p class="text-sm text-violet-700">Loan Amount</p>
+          <p class="text-xl font-bold text-violet-900">{{ formatCurrencyWithPence(mortgage.original_loan_amount) }}</p>
         </div>
 
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-green-700">Monthly Payment</p>
-          <p class="text-xl font-bold text-green-900">{{ formatCurrencyWithPence(mortgage.monthly_payment) }}</p>
+        <div class="bg-savannah-100 rounded-lg p-4">
+          <p class="text-sm text-spring-700">Monthly Payment</p>
+          <p class="text-xl font-bold text-spring-900">{{ formatCurrencyWithPence(mortgage.monthly_payment) }}</p>
         </div>
 
-        <div class="bg-gray-50 rounded-lg p-4">
+        <div class="bg-savannah-100 rounded-lg p-4">
           <p class="text-sm text-purple-700">Interest Rate</p>
           <p class="text-xl font-bold text-purple-900">{{ parseFloat(mortgage.interest_rate).toFixed(2) }}%</p>
         </div>
 
-        <div class="bg-gray-50 rounded-lg p-4">
-          <p class="text-sm text-blue-700">Remaining Term</p>
-          <p class="text-xl font-bold text-blue-900">{{ remainingYears }} years</p>
+        <div class="bg-savannah-100 rounded-lg p-4">
+          <p class="text-sm text-violet-700">Remaining Term</p>
+          <p class="text-xl font-bold text-violet-900">{{ remainingYears }} years</p>
         </div>
       </div>
 
       <!-- Total Interest Summary -->
-      <div class="bg-gray-50 rounded-lg p-4">
+      <div class="bg-savannah-100 rounded-lg p-4">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm text-red-700">Total Interest to be Paid</p>
-            <p class="text-2xl font-bold text-red-900">{{ formatCurrencyWithPence(totalInterest) }}</p>
+            <p class="text-sm text-raspberry-700">Total Interest to be Paid</p>
+            <p class="text-2xl font-bold text-raspberry-900">{{ formatCurrencyWithPence(totalInterest) }}</p>
           </div>
           <div class="text-right">
-            <p class="text-sm text-red-700">Total Amount Payable</p>
-            <p class="text-2xl font-bold text-red-900">{{ formatCurrencyWithPence(totalPayable) }}</p>
+            <p class="text-sm text-raspberry-700">Total Amount Payable</p>
+            <p class="text-2xl font-bold text-raspberry-900">{{ formatCurrencyWithPence(totalPayable) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Pagination Controls -->
       <div class="flex justify-between items-center">
-        <div class="text-sm text-gray-600">
+        <div class="text-sm text-neutral-500">
           Showing payments {{ startIndex + 1 }} to {{ endIndex }} of {{ schedule.length }}
         </div>
         <div class="flex space-x-2">
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
-          <span class="px-3 py-1 text-gray-700">
+          <span class="px-3 py-1 text-neutral-500">
             Page {{ currentPage }} of {{ totalPages }}
           </span>
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -99,30 +99,30 @@
       </div>
 
       <!-- Amortization Table -->
-      <div class="overflow-x-auto border border-gray-200 rounded-lg">
+      <div class="overflow-x-auto border border-light-gray rounded-lg">
         <table class="w-full">
-          <thead class="bg-gray-50">
+          <thead class="bg-savannah-100">
             <tr>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Month</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Opening Balance</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Payment</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Interest</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Principal</th>
-              <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Closing Balance</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-horizon-500">Month</th>
+              <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Opening Balance</th>
+              <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Payment</th>
+              <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Interest</th>
+              <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Principal</th>
+              <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Closing Balance</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr
               v-for="payment in paginatedSchedule"
               :key="payment.month"
-              class="hover:bg-gray-50"
+              class="hover:bg-savannah-100"
             >
-              <td class="px-4 py-3 text-sm text-gray-900">{{ payment.month }}</td>
-              <td class="px-4 py-3 text-sm text-right text-gray-900">{{ formatCurrencyWithPence(payment.opening_balance) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrencyWithPence(payment.payment) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-red-600">{{ formatCurrencyWithPence(payment.interest) }}</td>
-              <td class="px-4 py-3 text-sm text-right text-green-600">{{ formatCurrencyWithPence(payment.principal) }}</td>
-              <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ formatCurrencyWithPence(payment.closing_balance) }}</td>
+              <td class="px-4 py-3 text-sm text-horizon-500">{{ payment.month }}</td>
+              <td class="px-4 py-3 text-sm text-right text-horizon-500">{{ formatCurrencyWithPence(payment.opening_balance) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-medium text-horizon-500">{{ formatCurrencyWithPence(payment.payment) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-raspberry-600">{{ formatCurrencyWithPence(payment.interest) }}</td>
+              <td class="px-4 py-3 text-sm text-right text-spring-600">{{ formatCurrencyWithPence(payment.principal) }}</td>
+              <td class="px-4 py-3 text-sm text-right font-medium text-horizon-500">{{ formatCurrencyWithPence(payment.closing_balance) }}</td>
             </tr>
           </tbody>
         </table>
@@ -134,17 +134,17 @@
           <button
             @click="previousPage"
             :disabled="currentPage === 1"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
-          <span class="px-3 py-1 text-gray-700">
+          <span class="px-3 py-1 text-neutral-500">
             Page {{ currentPage }} of {{ totalPages }}
           </span>
           <button
             @click="nextPage"
             :disabled="currentPage === totalPages"
-            class="px-3 py-1 bg-gray-200 text-gray-700 rounded-button hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 bg-savannah-200 text-neutral-500 rounded-button hover:bg-horizon-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -152,7 +152,7 @@
       </div>
     </div>
 
-    <div v-else class="text-center py-12 text-gray-500">
+    <div v-else class="text-center py-12 text-neutral-500">
       <p>No amortization schedule available.</p>
     </div>
   </div>

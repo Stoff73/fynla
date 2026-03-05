@@ -11,19 +11,19 @@
       <div
         v-if="isOpen"
         class="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2rem)] z-[70]
-               bg-white rounded-lg border border-gray-200 shadow-md
+               bg-white rounded-lg border border-light-gray shadow-md
                flex flex-col transition-all duration-200"
         style="max-height: calc(100vh - 8rem);"
       >
         <!-- Card Header -->
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-6 py-4 border-b border-light-gray">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Fynla Assistant</h3>
+            <h3 class="text-lg font-semibold text-horizon-500">Fynla Assistant</h3>
             <div class="flex items-center gap-1">
               <!-- New conversation -->
               <button
                 @click="startNew"
-                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
                 title="New conversation"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -33,8 +33,8 @@
               <!-- History toggle -->
               <button
                 @click="toggleHistory"
-                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                :class="{ 'bg-gray-100 text-gray-600': showHistory }"
+                class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+                :class="{ 'bg-savannah-100 text-neutral-500': showHistory }"
                 title="Conversation history"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -44,7 +44,7 @@
               <!-- Close -->
               <button
                 @click="closePanel"
-                class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
                 title="Close"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -64,11 +64,11 @@
           leave-from-class="translate-y-0 opacity-100"
           leave-to-class="-translate-y-2 opacity-0"
         >
-          <div v-if="showHistory" class="border-b border-gray-200 bg-gray-50 max-h-48 overflow-y-auto">
+          <div v-if="showHistory" class="border-b border-light-gray bg-savannah-100 max-h-48 overflow-y-auto">
             <div v-if="loadingConversations" class="p-4 text-center">
-              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mx-auto"></div>
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-raspberry-600 mx-auto"></div>
             </div>
-            <div v-else-if="conversations.length === 0" class="p-4 text-center text-sm text-gray-500">
+            <div v-else-if="conversations.length === 0" class="p-4 text-center text-sm text-neutral-500">
               No previous conversations
             </div>
             <div v-else>
@@ -76,21 +76,21 @@
                 v-for="conv in conversations"
                 :key="conv.id"
                 @click="loadConversation(conv.id)"
-                class="w-full text-left px-4 py-2.5 hover:bg-gray-100 border-b border-gray-100
+                class="w-full text-left px-4 py-2.5 hover:bg-savannah-100 border-b border-light-gray
                        transition-colors flex items-center justify-between group"
-                :class="{ 'bg-blue-50': currentConversation?.id === conv.id }"
+                :class="{ 'bg-violet-50': currentConversation?.id === conv.id }"
               >
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">
+                  <p class="text-sm font-medium text-horizon-500 truncate">
                     {{ conv.title || 'New conversation' }}
                   </p>
-                  <p class="text-xs text-gray-500 mt-0.5">
+                  <p class="text-xs text-neutral-500 mt-0.5">
                     {{ formatRelativeTime(conv.last_message_at || conv.created_at) }}
                   </p>
                 </div>
                 <button
                   @click.stop="deleteConversation(conv.id)"
-                  class="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  class="p-1 text-horizon-400 hover:text-raspberry-500 opacity-0 group-hover:opacity-100 transition-all"
                   title="Delete conversation"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -106,20 +106,20 @@
         <div ref="messagesContainer" class="flex-1 overflow-y-auto p-6 space-y-4" style="min-height: 200px; max-height: 400px;">
           <!-- Loading state -->
           <div v-if="loading" class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
           </div>
 
           <!-- Empty state with suggested prompts -->
           <div v-else-if="messages.length === 0 && !streaming" class="flex flex-col items-center justify-center py-4">
-            <p class="text-sm text-gray-500 mb-4">How can I help with your finances?</p>
+            <p class="text-sm text-neutral-500 mb-4">How can I help with your finances?</p>
 
             <div class="space-y-2 w-full">
               <button
                 v-for="prompt in suggestedPrompts"
                 :key="prompt"
                 @click="sendSuggested(prompt)"
-                class="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100
-                       border border-gray-200 rounded-lg transition-colors text-gray-700"
+                class="w-full text-left px-3 py-2 text-sm bg-savannah-100 hover:bg-savannah-100
+                       border border-light-gray rounded-lg transition-colors text-neutral-500"
               >
                 {{ prompt }}
               </button>
@@ -147,33 +147,33 @@
 
             <!-- Streaming indicator -->
             <div v-if="streaming" class="flex justify-start">
-              <div class="max-w-[85%] rounded-lg px-3 py-2 bg-gray-50 border border-gray-200">
-                <div v-if="streamingText" class="text-sm leading-relaxed text-gray-800">
+              <div class="max-w-[85%] rounded-lg px-3 py-2 bg-savannah-100 border border-light-gray">
+                <div v-if="streamingText" class="text-sm leading-relaxed text-horizon-500">
                   <AiMessageContent
                     :message="{ role: 'assistant', content: streamingText }"
                   />
-                  <span class="inline-block w-1.5 h-4 bg-primary-600 ml-0.5 animate-pulse"></span>
+                  <span class="inline-block w-1.5 h-4 bg-raspberry-600 ml-0.5 animate-pulse"></span>
                 </div>
                 <div v-else class="flex items-center gap-2">
                   <div class="flex gap-1">
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
                   </div>
-                  <span class="text-xs text-gray-500">Thinking...</span>
+                  <span class="text-xs text-neutral-500">Thinking...</span>
                 </div>
               </div>
             </div>
           </template>
 
           <!-- Error message -->
-          <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div v-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
           </div>
         </div>
 
         <!-- Card Footer - Input area -->
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+        <div class="px-6 py-4 border-t border-light-gray bg-savannah-100 rounded-b-lg">
           <div class="flex gap-2">
             <textarea
               ref="inputField"
@@ -182,15 +182,15 @@
               placeholder="Ask about your finances..."
               rows="1"
               :disabled="streaming || loading"
-              class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                     disabled:bg-gray-100 disabled:cursor-not-allowed"
+              class="flex-1 resize-none rounded-lg border border-horizon-300 px-3 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                     disabled:bg-savannah-100 disabled:cursor-not-allowed"
               :class="{ 'opacity-60': streaming }"
             ></textarea>
             <button
               @click="send"
               :disabled="!canSend"
-              class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700
+              class="px-3 py-2 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
                      transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center"
             >
@@ -199,7 +199,7 @@
               </svg>
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-1.5">
+          <p class="text-xs text-horizon-400 mt-1.5">
             Not regulated financial advice. Press Enter to send.
           </p>
         </div>
@@ -389,12 +389,12 @@ export default {
 
         messageClass(msg) {
             if (msg.role === 'user') {
-                return 'bg-primary-600 text-white';
+                return 'bg-raspberry-600 text-white';
             }
             if (msg.role === 'navigation' || msg.role === 'entity_created') {
                 return 'bg-transparent p-0';
             }
-            return 'bg-gray-50 border border-gray-200 text-gray-800';
+            return 'bg-savannah-100 border border-light-gray text-horizon-500';
         },
 
         formatRelativeTime(dateStr) {

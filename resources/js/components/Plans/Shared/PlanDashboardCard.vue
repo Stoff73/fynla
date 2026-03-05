@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-lg shadow-md border border-gray-200 p-6 transition-all duration-200"
+    class="bg-white rounded-lg shadow-md border border-light-gray p-6 transition-all duration-200"
     :class="clickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-500' : 'opacity-70'"
     @click="clickable ? $emit('click') : null"
   >
@@ -14,7 +14,7 @@
       </div>
       <div class="ml-4 flex-1 min-w-0">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+          <h3 class="text-lg font-semibold text-horizon-500">{{ title }}</h3>
           <span
             v-if="statusLabel"
             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
@@ -26,18 +26,18 @@
       </div>
     </div>
 
-    <p class="text-gray-600 text-sm mb-4">{{ description }}</p>
+    <p class="text-neutral-500 text-sm mb-4">{{ description }}</p>
 
     <!-- Progress bar -->
     <div v-if="completeness !== null && completeness !== undefined" class="mb-4">
-      <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+      <div class="flex items-center justify-between text-xs text-neutral-500 mb-1">
         <span>Data readiness</span>
         <span>{{ completeness }}%</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-1.5">
+      <div class="w-full bg-horizon-200 rounded-full h-1.5">
         <div
           class="h-1.5 rounded-full transition-all duration-300"
-          :class="completeness >= 80 ? 'bg-green-500' : completeness >= 50 ? 'bg-blue-500' : 'bg-gray-400'"
+          :class="completeness >= 80 ? 'bg-green-500' : completeness >= 50 ? 'bg-blue-500' : 'bg-horizon-400'"
           :style="{ width: `${completeness}%` }"
         />
       </div>
@@ -102,7 +102,7 @@ export default {
     statusClasses() {
       if (this.completeness >= 80) return 'bg-green-100 text-green-800';
       if (this.completeness >= 50) return 'bg-blue-100 text-blue-800';
-      return 'bg-gray-100 text-gray-600';
+      return 'bg-savannah-100 text-neutral-500';
     },
   },
 };

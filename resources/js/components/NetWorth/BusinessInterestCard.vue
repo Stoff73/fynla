@@ -145,7 +145,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -178,18 +178,18 @@ export default {
 }
 
 .type-sole_trader {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-partnership {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-limited_company {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .type-llp {
@@ -205,18 +205,18 @@ export default {
 }
 
 .status-trading {
-  @apply bg-green-100;
-  @apply text-green-800;
+  @apply bg-spring-100;
+  @apply text-spring-800;
 }
 
 .status-dormant {
-  @apply bg-gray-100;
-  @apply text-gray-500;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .status-pre_trading {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .actions {
@@ -247,23 +247,23 @@ export default {
 }
 
 .edit-btn {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .edit-btn:hover {
-  @apply bg-gray-200;
-  @apply text-gray-900;
+  @apply bg-savannah-200;
+  @apply text-horizon-500;
 }
 
 .delete-btn {
-  @apply bg-red-50;
-  @apply text-red-600;
+  @apply bg-raspberry-50;
+  @apply text-raspberry-600;
 }
 
 .delete-btn:hover {
-  @apply bg-red-100;
-  @apply text-red-700;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-700;
 }
 
 .card-content {
@@ -275,7 +275,7 @@ export default {
 .business-name {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -284,7 +284,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -297,20 +297,20 @@ export default {
 .detail-row.highlighted {
   font-weight: 600;
   padding-bottom: 8px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .detail-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .detail-value.text-gray {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
@@ -318,12 +318,12 @@ export default {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  @apply bg-green-50;
-  @apply text-green-800;
+  @apply bg-spring-50;
+  @apply text-spring-800;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  @apply border border-green-200;
+  @apply border border-spring-200;
 }
 
 @media (max-width: 768px) {

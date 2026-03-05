@@ -9,7 +9,7 @@
     >
       <!-- Background overlay -->
       <div
-        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        class="fixed inset-0 bg-neutral-500 bg-opacity-75 transition-opacity"
         @click="handleClose"
       ></div>
 
@@ -20,7 +20,7 @@
           class="relative inline-block bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg w-full"
         >
           <!-- Header -->
-          <div class="bg-primary-600 px-6 py-4">
+          <div class="bg-raspberry-500 px-6 py-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
                 <svg class="h-6 w-6 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,8 +52,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-2">Thank you!</h4>
-                <p class="text-sm text-gray-600">Your bug report has been submitted successfully. We'll investigate and get back to you if needed.</p>
+                <h4 class="text-lg font-semibold text-horizon-500 mb-2">Thank you!</h4>
+                <p class="text-sm text-neutral-500">Your bug report has been submitted successfully. We'll investigate and get back to you if needed.</p>
               </div>
 
               <!-- Form fields -->
@@ -72,7 +72,7 @@
 
                 <!-- Description -->
                 <div class="mb-4">
-                  <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                  <label for="description" class="block text-sm font-medium text-neutral-500 mb-1">
                     What went wrong? <span class="text-red-500">*</span>
                   </label>
                   <textarea
@@ -81,23 +81,23 @@
                     rows="4"
                     required
                     maxlength="5000"
-                    class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-primary-500 text-sm"
+                    class="w-full rounded-md border border-horizon-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-violet-500 text-sm"
                     placeholder="Describe what happened. Be as specific as possible..."
                   ></textarea>
-                  <p class="mt-1 text-xs text-gray-500">{{ form.description.length }}/5000 characters</p>
+                  <p class="mt-1 text-xs text-neutral-500">{{ form.description.length }}/5000 characters</p>
                 </div>
 
                 <!-- Expected behaviour -->
                 <div class="mb-4">
-                  <label for="expectedBehaviour" class="block text-sm font-medium text-gray-700 mb-1">
-                    What did you expect to happen? <span class="text-gray-400">(optional)</span>
+                  <label for="expectedBehaviour" class="block text-sm font-medium text-neutral-500 mb-1">
+                    What did you expect to happen? <span class="text-horizon-400">(optional)</span>
                   </label>
                   <textarea
                     id="expectedBehaviour"
                     v-model="form.expectedBehaviour"
                     rows="2"
                     maxlength="2000"
-                    class="w-full rounded-md border border-gray-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-primary-500 text-sm"
+                    class="w-full rounded-md border border-horizon-300 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-violet-500 text-sm"
                     placeholder="Describe what you expected to happen instead..."
                   ></textarea>
                 </div>
@@ -115,12 +115,12 @@
             </div>
 
             <!-- Footer -->
-            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+            <div class="bg-eggshell-500 px-6 py-4 flex justify-end space-x-3">
               <button
                 v-if="!submitted"
                 type="button"
                 @click="handleClose"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-md shadow-sm hover:bg-savannah-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
               >
                 Cancel
               </button>
@@ -128,7 +128,7 @@
                 v-if="!submitted"
                 type="submit"
                 :disabled="submitting || !form.description.trim()"
-                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 border border-transparent rounded-md shadow-sm hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="submitting" class="flex items-center">
                   <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -143,7 +143,7 @@
                 v-if="submitted"
                 type="button"
                 @click="handleClose"
-                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 border border-transparent rounded-md shadow-sm hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
               >
                 Close
               </button>

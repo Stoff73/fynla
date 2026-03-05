@@ -2,7 +2,7 @@
   <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <!-- Background overlay -->
     <div
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
     ></div>
 
     <!-- Modal container -->
@@ -16,12 +16,12 @@
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold text-gray-900">
+            <h3 class="text-xl font-semibold text-horizon-500">
               {{ isEditing ? 'Edit Savings Goal' : 'Create New Savings Goal' }}
             </h3>
             <button
               @click="handleClose"
-              class="text-gray-400 hover:text-gray-500 transition-colors"
+              class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -40,30 +40,30 @@
           <div class="space-y-4 pr-2">
             <!-- Goal Name -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Goal Name
               </label>
               <input
                 v-model="formData.goal_name"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="e.g., Emergency Fund, House Deposit, Wedding"
               />
             </div>
 
             <!-- Target Amount -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Target Amount
               </label>
               <div class="relative">
-                <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                 <input
                   v-model.number="formData.target_amount"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
@@ -71,47 +71,47 @@
 
             <!-- Current Saved -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Current Amount Saved
               </label>
               <div class="relative">
-                <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                 <input
                   v-model.number="formData.current_saved"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
-              <p class="text-xs text-gray-500 mt-1">Leave at 0 if starting fresh</p>
+              <p class="text-xs text-neutral-500 mt-1">Leave at 0 if starting fresh</p>
             </div>
 
             <!-- Target Date -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Target Date
               </label>
               <input
                 v-model="formData.target_date"
                 type="date"
                 :min="minDate"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
-              <p v-if="monthsToTarget > 0" class="text-xs text-gray-600 mt-1">
+              <p v-if="monthsToTarget > 0" class="text-xs text-neutral-500 mt-1">
                 {{ monthsToTarget }} months away - Requires ~{{ formatCurrency(requiredMonthlySavings) }}/month
               </p>
             </div>
 
             <!-- Priority -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Priority
               </label>
               <select
                 v-model="formData.priority"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="high">High Priority</option>
                 <option value="medium">Medium Priority</option>
@@ -121,12 +121,12 @@
 
             <!-- Linked Account -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Link to Savings Account (Optional)
               </label>
               <select
                 v-model="formData.linked_account_id"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option :value="null">Not linked to any account</option>
                 <option
@@ -137,28 +137,28 @@
                   {{ account.institution }} - {{ formatCurrency(account.current_balance) }}
                 </option>
               </select>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-neutral-500 mt-1">
                 Link this goal to a specific savings account for tracking
               </p>
             </div>
 
             <!-- Auto Transfer Amount -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Auto Transfer Amount (Monthly)
               </label>
               <div class="relative">
-                <span class="absolute left-3 top-2.5 text-gray-500">£</span>
+                <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
                 <input
                   v-model.number="formData.auto_transfer_amount"
                   type="number"
                   step="0.01"
                   min="0"
-                  class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full pl-8 pr-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-neutral-500 mt-1">
                 Optional: Set up a regular monthly savings amount
               </p>
             </div>
@@ -169,14 +169,14 @@
             <button
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-button hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 disabled:bg-savannah-300 disabled:cursor-not-allowed transition-colors"
             >
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Goal' : 'Create Goal') }}
             </button>
             <button
               type="button"
               @click="handleClose"
-              class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              class="px-6 py-3 bg-savannah-100 text-neutral-500 font-medium rounded-lg hover:bg-savannah-200 transition-colors"
             >
               Cancel
             </button>
@@ -319,7 +319,7 @@ export default {
 /* Custom scrollbar for form content */
 .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.300') theme('colors.gray.50');
+  scrollbar-color: theme('colors.horizon.300') theme('colors.savannah.100');
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -327,16 +327,16 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-gray-50;
+  @apply bg-eggshell-500;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  @apply bg-gray-300;
+  @apply bg-savannah-300;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-savannah-400;
 }
 </style>

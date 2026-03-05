@@ -5,14 +5,14 @@
       <div class="mb-8">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Risk Profile</h1>
-            <p class="mt-2 text-sm sm:text-base text-gray-600">
+            <h1 class="text-2xl sm:text-3xl font-bold text-horizon-500">Risk Profile</h1>
+            <p class="mt-2 text-sm sm:text-base text-neutral-500">
               Your risk profile is automatically calculated from your financial data
             </p>
           </div>
           <router-link
             to="/net-worth/investments"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -29,8 +29,8 @@
 
       <template v-else>
         <!-- Section 1: Calculated Risk Level -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Your Risk Level</h2>
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+          <h2 class="text-lg font-semibold text-horizon-500 mb-4">Your Risk Level</h2>
 
           <!-- Risk Level Display - Clickable to see explanation -->
           <router-link to="/risk-profile/levels" class="flex items-center gap-6 group cursor-pointer">
@@ -44,19 +44,19 @@
             </div>
             <div class="flex-1">
               <div class="flex items-center gap-2">
-                <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{{ riskLevelDisplayName }}</h3>
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <h3 class="text-2xl font-bold text-horizon-500 group-hover:text-blue-600 transition-colors">{{ riskLevelDisplayName }}</h3>
+                <svg class="w-5 h-5 text-horizon-400 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-              <p class="text-sm text-gray-600 mt-1">{{ riskLevelDescription }}</p>
-              <p v-if="!isSelfAssessed" class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+              <p class="text-sm text-neutral-500 mt-1">{{ riskLevelDescription }}</p>
+              <p v-if="!isSelfAssessed" class="text-xs text-neutral-500 mt-2 flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 Automatically calculated from your financial data
               </p>
-              <p v-if="riskAssessedAt" class="text-xs text-gray-400 mt-1">
+              <p v-if="riskAssessedAt" class="text-xs text-horizon-400 mt-1">
                 Last updated: {{ formatDate(riskAssessedAt) }}
               </p>
               <p class="text-xs text-blue-600 group-hover:text-blue-800 mt-2 flex items-center gap-1">
@@ -70,14 +70,14 @@
         </div>
 
         <!-- Section 2: Factor Breakdown -->
-        <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">How Your Risk Level is Calculated</h3>
-          <p class="text-sm text-gray-600 mb-4">
+        <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-2">How Your Risk Level is Calculated</h3>
+          <p class="text-sm text-neutral-500 mb-4">
             Your risk profile is determined by analyzing 7 financial factors. The most common risk level across all factors becomes your overall risk level.
           </p>
 
           <!-- Factor Level Summary -->
-          <div class="flex flex-wrap gap-2 mb-4 p-3 bg-gray-50 rounded-lg">
+          <div class="flex flex-wrap gap-2 mb-4 p-3 bg-eggshell-500 rounded-lg">
             <span
               v-for="(count, level) in levelCounts"
               :key="level"
@@ -99,35 +99,35 @@
               <FactorBreakdownCard :factor="factor" />
             </router-link>
           </div>
-          <p class="text-xs text-gray-500 mt-3 text-center">
+          <p class="text-xs text-neutral-500 mt-3 text-center">
             Click on any factor to learn more about how it's calculated
           </p>
         </div>
 
         <!-- Section 3: Understanding Your Risk Level -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Understanding Your Risk Level</h3>
-          <div class="text-sm text-gray-600 space-y-3">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Understanding Your Risk Level</h3>
+          <div class="text-sm text-neutral-500 space-y-3">
             <p>
               Your risk profile influences the mix of assets in your portfolio - from lower-risk
               cash and bonds to higher-risk equities and alternatives. The {{ (riskLevelDisplayName || 'medium').toLowerCase() }} risk level suggests:
             </p>
             <div v-if="riskConfig" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
+              <div class="text-center p-3 bg-eggshell-500 rounded-lg">
                 <p class="text-2xl font-bold text-blue-600">{{ riskConfig.asset_allocation?.equities || 0 }}%</p>
-                <p class="text-xs text-gray-500">Equities</p>
+                <p class="text-xs text-neutral-500">Equities</p>
               </div>
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
+              <div class="text-center p-3 bg-eggshell-500 rounded-lg">
                 <p class="text-2xl font-bold text-green-600">{{ riskConfig.asset_allocation?.bonds || 0 }}%</p>
-                <p class="text-xs text-gray-500">Bonds</p>
+                <p class="text-xs text-neutral-500">Bonds</p>
               </div>
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
+              <div class="text-center p-3 bg-eggshell-500 rounded-lg">
                 <p class="text-2xl font-bold text-teal-600">{{ riskConfig.asset_allocation?.cash || 0 }}%</p>
-                <p class="text-xs text-gray-500">Cash</p>
+                <p class="text-xs text-neutral-500">Cash</p>
               </div>
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
+              <div class="text-center p-3 bg-eggshell-500 rounded-lg">
                 <p class="text-2xl font-bold text-purple-600">{{ riskConfig.asset_allocation?.alternatives || 0 }}%</p>
-                <p class="text-xs text-gray-500">Alternatives</p>
+                <p class="text-xs text-neutral-500">Alternatives</p>
               </div>
             </div>
             <div v-if="riskConfig" class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
@@ -156,9 +156,9 @@
         </div>
 
         <!-- Section 5: Products with Custom Risk -->
-        <div v-if="productsWithCustomRisk.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Products with Custom Risk Settings</h3>
-          <p class="text-sm text-gray-600 mb-4">
+        <div v-if="productsWithCustomRisk.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+          <h3 class="text-lg font-semibold text-horizon-500 mb-2">Products with Custom Risk Settings</h3>
+          <p class="text-sm text-neutral-500 mb-4">
             These investments have risk levels that differ from your main profile.
           </p>
 
@@ -166,7 +166,7 @@
             <div
               v-for="product in productsWithCustomRisk"
               :key="product.id"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+              class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg border border-light-gray"
             >
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center" :class="getProductIconClasses(product.type)">
@@ -176,8 +176,8 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="font-medium text-gray-900 text-sm">{{ product.name }}</p>
-                  <p class="text-xs text-gray-500">{{ product.type === 'investment' ? 'Investment Account' : 'Defined Contribution Pension' }}</p>
+                  <p class="font-medium text-horizon-500 text-sm">{{ product.name }}</p>
+                  <p class="text-xs text-neutral-500">{{ product.type === 'investment' ? 'Investment Account' : 'Defined Contribution Pension' }}</p>
                 </div>
               </div>
               <RiskBadge
@@ -190,7 +190,7 @@
         </div>
 
         <!-- Section 6: Investment Types (Educational) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
           <InvestmentTypesAccordion />
         </div>
       </template>
@@ -248,7 +248,7 @@ export default {
         upper_medium: 'bg-teal-100',
         high: 'bg-blue-100',
       };
-      return classes[this.riskLevel] || 'bg-gray-100';
+      return classes[this.riskLevel] || 'bg-savannah-100';
     },
 
     riskLevelTextClass() {
@@ -259,7 +259,7 @@ export default {
         upper_medium: 'text-teal-600',
         high: 'text-blue-600',
       };
-      return classes[this.riskLevel] || 'text-gray-600';
+      return classes[this.riskLevel] || 'text-neutral-500';
     },
 
     levelCounts() {
@@ -363,7 +363,7 @@ export default {
         upper_medium: 'bg-teal-100 text-teal-800',
         high: 'bg-blue-100 text-blue-800',
       };
-      return classes[level] || 'bg-gray-100 text-gray-800';
+      return classes[level] || 'bg-savannah-100 text-horizon-500';
     },
 
     getProductIconClasses(type) {

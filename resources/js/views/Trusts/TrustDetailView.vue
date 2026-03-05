@@ -11,7 +11,7 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="w-12 h-12 border-[3px] border-horizon-200 border-t-violet-600 rounded-full animate-spin mb-4"></div>
         <p>Loading trust details...</p>
       </div>
 
@@ -364,7 +364,7 @@ export default {
 .back-btn {
   display: flex;
   align-items: center;
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 24px;
@@ -372,7 +372,7 @@ export default {
 }
 
 .back-btn:hover {
-  color: #111827;
+  @apply text-horizon-500;
 }
 
 /* Loading State */
@@ -382,47 +382,28 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 64px;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #7c3aed;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  @apply text-neutral-500;
 }
 
 /* Error State */
 .error-state {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
+  @apply bg-red-50 border border-red-200 rounded-xl;
   padding: 24px;
   text-align: center;
-  color: #991b1b;
+  @apply text-red-800;
 }
 
 .retry-btn {
   margin-top: 16px;
   padding: 8px 16px;
-  background: #991b1b;
-  color: white;
+  @apply bg-red-800 text-white;
   border-radius: 8px;
   font-weight: 500;
   transition: background 0.2s;
 }
 
 .retry-btn:hover {
-  background: #7f1d1d;
+  @apply bg-red-900;
 }
 
 /* Trust Content */
@@ -434,11 +415,8 @@ export default {
 
 /* Header Card */
 .header-card {
-  background: white;
-  border-radius: 12px;
+  @apply bg-white rounded-xl shadow-sm border border-light-gray;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
 }
 
 .header-top {
@@ -474,40 +452,37 @@ export default {
 }
 
 .status-badge.active {
-  background: #d1fae5;
-  color: #065f46;
+  @apply bg-green-100 text-green-800;
 }
 
 .status-badge.inactive {
-  background: #f3f4f6;
-  color: #6b7280;
+  @apply bg-savannah-100 text-neutral-500;
 }
 
 .rpt-badge {
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  background: #fef3c7;
-  color: #b45309;
+  @apply bg-blue-50 text-blue-700;
   border-radius: 9999px;
 }
 
 .trust-name {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 8px 0;
 }
 
 .trust-type {
   font-size: 16px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .trust-country {
   font-size: 14px;
-  color: #9ca3af;
+  @apply text-horizon-400;
   margin: 4px 0 0 0;
 }
 
@@ -518,15 +493,14 @@ export default {
 
 .edit-btn {
   padding: 10px 20px;
-  background: #7c3aed;
-  color: white;
+  @apply bg-violet-600 text-white;
   font-weight: 500;
   border-radius: 8px;
   transition: background 0.2s;
 }
 
 .edit-btn:hover {
-  background: #6d28d9;
+  @apply bg-violet-700;
 }
 
 /* Metrics Grid */
@@ -544,42 +518,42 @@ export default {
 }
 
 .metric-card {
-  background: #f9fafb;
+  @apply bg-eggshell-500;
   border-radius: 8px;
   padding: 16px;
 }
 
 .metric-card.primary {
-  background: #ede9fe;
+  @apply bg-violet-100;
 }
 
 .metric-label {
   font-size: 12px;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0 0 8px 0;
 }
 
 .metric-card.primary .metric-label {
-  color: #7c3aed;
+  @apply text-violet-600;
 }
 
 .metric-value {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .metric-card.primary .metric-value {
-  color: #7c3aed;
+  @apply text-violet-600;
 }
 
 .metric-value.positive {
-  color: #059669;
+  @apply text-green-600;
 }
 
 .metric-value.negative {
-  color: #dc2626;
+  @apply text-red-600;
 }
 
 .metric-value.date {
@@ -606,11 +580,8 @@ export default {
 
 /* Detail Card */
 .detail-card {
-  background: white;
-  border-radius: 12px;
+  @apply bg-white rounded-xl shadow-sm border border-light-gray;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
 }
 
 .detail-card.full-width {
@@ -620,7 +591,7 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-500;
   margin: 0 0 16px 0;
 }
 
@@ -635,7 +606,7 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  @apply border-b border-savannah-100;
 }
 
 .detail-row:last-child {
@@ -645,20 +616,20 @@ export default {
 
 .detail-label {
   font-size: 14px;
-  color: #6b7280;
+  @apply text-neutral-500;
   flex-shrink: 0;
 }
 
 .detail-value {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
+  @apply text-horizon-500;
   text-align: right;
   margin-left: 16px;
 }
 
 .empty-detail {
-  color: #9ca3af;
+  @apply text-horizon-400;
   font-size: 14px;
   text-align: center;
   padding: 16px 0;
@@ -667,16 +638,16 @@ export default {
 .tax-note {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  @apply border-t border-light-gray;
   font-size: 13px;
-  color: #6b7280;
+  @apply text-neutral-500;
   line-height: 1.5;
 }
 
 .purpose-text,
 .notes-text {
   font-size: 14px;
-  color: #374151;
+  @apply text-horizon-500;
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
@@ -684,8 +655,7 @@ export default {
 
 /* RPT Info Card */
 .rpt-info-card {
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
+  @apply bg-blue-50 border border-blue-300;
   border-radius: 12px;
   padding: 24px;
 }
@@ -700,14 +670,14 @@ export default {
 .rpt-icon {
   width: 24px;
   height: 24px;
-  color: #b45309;
+  @apply text-blue-600;
   flex-shrink: 0;
 }
 
 .rpt-title {
   font-size: 16px;
   font-weight: 600;
-  color: #92400e;
+  @apply text-blue-800;
   margin: 0;
 }
 
@@ -722,21 +692,21 @@ export default {
   padding-left: 20px;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #92400e;
+  @apply text-blue-800;
 }
 
 .rpt-list li::before {
   content: '-';
   position: absolute;
   left: 0;
-  color: #b45309;
+  @apply text-blue-600;
 }
 
 .next-charge {
   font-size: 14px;
-  color: #92400e;
+  @apply text-blue-800;
   margin: 0;
   padding-top: 12px;
-  border-top: 1px solid rgba(180, 83, 9, 0.2);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
 }
 </style>

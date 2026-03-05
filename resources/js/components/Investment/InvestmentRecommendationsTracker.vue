@@ -1,12 +1,12 @@
 <template>
   <div class="recommendations-tracker bg-white rounded-lg shadow-sm">
     <!-- Header with Statistics -->
-    <div class="p-6 border-b border-gray-200">
+    <div class="p-6 border-b border-light-gray">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Investment Strategies</h2>
+        <h2 class="text-2xl font-bold text-horizon-500">Investment Strategies</h2>
         <button
           @click="refreshRecommendations"
-          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
+          class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors duration-200"
           :disabled="loading"
         >
           {{ loading ? 'Loading...' : 'Refresh' }}
@@ -16,33 +16,33 @@
       <!-- Statistics Cards -->
       <div v-if="effectiveStats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <!-- Total Recommendations -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-blue-600 mb-1">Total</div>
-          <div class="text-2xl font-bold text-blue-900">{{ effectiveStats.total }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Total</div>
+          <div class="text-2xl font-bold text-violet-900">{{ effectiveStats.total }}</div>
         </div>
 
         <!-- Pending -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-blue-600 mb-1">Pending</div>
-          <div class="text-2xl font-bold text-blue-900">{{ effectiveStats.pending }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Pending</div>
+          <div class="text-2xl font-bold text-violet-900">{{ effectiveStats.pending }}</div>
         </div>
 
         <!-- In Progress -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-purple-600 mb-1">In Progress</div>
-          <div class="text-2xl font-bold text-purple-900">{{ effectiveStats.in_progress }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">In Progress</div>
+          <div class="text-2xl font-bold text-violet-900">{{ effectiveStats.in_progress }}</div>
         </div>
 
         <!-- Completed -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-green-600 mb-1">Completed</div>
-          <div class="text-2xl font-bold text-green-900">{{ effectiveStats.completed }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-spring-600 mb-1">Completed</div>
+          <div class="text-2xl font-bold text-spring-900">{{ effectiveStats.completed }}</div>
         </div>
 
         <!-- Potential Savings -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="text-sm font-medium text-indigo-600 mb-1">Potential Savings</div>
-          <div class="text-2xl font-bold text-indigo-900">£{{ formatNumber(effectiveStats.total_potential_saving) }}</div>
+        <div class="bg-eggshell-500 rounded-lg p-4">
+          <div class="text-sm font-medium text-violet-600 mb-1">Potential Savings</div>
+          <div class="text-2xl font-bold text-violet-900">£{{ formatNumber(effectiveStats.total_potential_saving) }}</div>
         </div>
       </div>
     </div>
@@ -51,20 +51,20 @@
     <div class="p-6">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-12">
-        <svg class="animate-spin h-12 w-12 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-12 w-12 mx-auto text-violet-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p class="mt-4 text-gray-600">Loading strategies...</p>
+        <p class="mt-4 text-neutral-500">Loading strategies...</p>
       </div>
 
       <!-- Empty State -->
       <div v-else-if="!recommendations || recommendations.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-12 w-12 text-horizon-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">No strategies found</h3>
-        <p class="mt-2 text-gray-500">Try adjusting your filters or generate new strategies.</p>
+        <h3 class="mt-4 text-lg font-medium text-horizon-500">No strategies found</h3>
+        <p class="mt-2 text-neutral-500">Try adjusting your filters or generate new strategies.</p>
       </div>
 
       <!-- Recommendations Cards -->
@@ -104,14 +104,14 @@
                 </span>
               </div>
 
-              <h3 class="text-lg font-semibold text-gray-900">{{ recommendation.title }}</h3>
+              <h3 class="text-lg font-semibold text-horizon-500">{{ recommendation.title }}</h3>
             </div>
 
             <!-- Action Menu -->
             <div class="relative">
               <button
                 @click="toggleActionMenu(recommendation.id)"
-                class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                class="p-2 text-horizon-400 hover:text-neutral-500 rounded-lg hover:bg-savannah-100"
               >
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -121,32 +121,32 @@
               <!-- Dropdown Menu -->
               <div
                 v-if="activeMenuId === recommendation.id"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-light-gray z-10"
               >
                 <button
                   v-if="recommendation.status === 'pending'"
                   @click="updateStatus(recommendation.id, 'in_progress')"
-                  class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  class="block w-full text-left px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-100"
                 >
                   Start Working
                 </button>
                 <button
                   v-if="recommendation.status === 'in_progress'"
                   @click="updateStatus(recommendation.id, 'completed')"
-                  class="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-spring-700 hover:bg-spring-50"
                 >
                   Mark Complete
                 </button>
                 <button
                   v-if="recommendation.status !== 'dismissed'"
                   @click="openDismissModal(recommendation)"
-                  class="block w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-blue-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-violet-700 hover:bg-violet-50"
                 >
                   Dismiss
                 </button>
                 <button
                   @click="deleteRecommendation(recommendation.id)"
-                  class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-raspberry-700 hover:bg-raspberry-50"
                 >
                   Delete
                 </button>
@@ -155,35 +155,35 @@
           </div>
 
           <!-- Description -->
-          <p class="text-gray-700 mb-3">{{ recommendation.description }}</p>
+          <p class="text-neutral-500 mb-3">{{ recommendation.description }}</p>
 
           <!-- Action Required -->
-          <div class="bg-gray-50 rounded-lg p-3 mb-3">
-            <div class="text-sm font-medium text-blue-900 mb-1">Action Required:</div>
-            <div class="text-sm text-blue-800">{{ recommendation.action_required }}</div>
+          <div class="bg-eggshell-500 rounded-lg p-3 mb-3">
+            <div class="text-sm font-medium text-violet-900 mb-1">Action Required:</div>
+            <div class="text-sm text-violet-800">{{ recommendation.action_required }}</div>
           </div>
 
           <!-- Metrics Row -->
           <div class="flex flex-wrap gap-4 text-sm">
             <div v-if="recommendation.potential_saving" class="flex items-center gap-1">
-              <span class="font-medium text-gray-700">Potential Saving:</span>
-              <span class="text-green-600 font-semibold">£{{ formatNumber(recommendation.potential_saving) }}</span>
+              <span class="font-medium text-neutral-500">Potential Saving:</span>
+              <span class="text-spring-600 font-semibold">£{{ formatNumber(recommendation.potential_saving) }}</span>
             </div>
             <div v-if="recommendation.impact_level" class="flex items-center gap-1">
-              <span class="font-medium text-gray-700">Impact:</span>
+              <span class="font-medium text-neutral-500">Impact:</span>
               <span :class="getImpactClass(recommendation.impact_level)">{{ recommendation.impact_level }}</span>
             </div>
             <div v-if="recommendation.estimated_effort" class="flex items-center gap-1">
-              <span class="font-medium text-gray-700">Effort:</span>
-              <span class="text-gray-600">{{ recommendation.estimated_effort }}</span>
+              <span class="font-medium text-neutral-500">Effort:</span>
+              <span class="text-neutral-500">{{ recommendation.estimated_effort }}</span>
             </div>
           </div>
 
           <!-- Completion/Dismissal Info -->
-          <div v-if="recommendation.completed_at" class="mt-3 text-sm text-green-600">
+          <div v-if="recommendation.completed_at" class="mt-3 text-sm text-spring-600">
             ✓ Completed {{ formatDate(recommendation.completed_at) }}
           </div>
-          <div v-if="recommendation.dismissed_at" class="mt-3 text-sm text-blue-600">
+          <div v-if="recommendation.dismissed_at" class="mt-3 text-sm text-violet-600">
             Dismissed {{ formatDate(recommendation.dismissed_at) }}
             <span v-if="recommendation.dismissal_reason"> - {{ recommendation.dismissal_reason }}</span>
           </div>
@@ -199,24 +199,24 @@
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Dismiss Strategy</h3>
-          <p class="text-gray-700 mb-4">Please provide a reason for dismissing this strategy:</p>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Dismiss Strategy</h3>
+          <p class="text-neutral-500 mb-4">Please provide a reason for dismissing this strategy:</p>
           <textarea
             v-model="dismissalReason"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             rows="4"
             placeholder="Enter dismissal reason..."
           ></textarea>
           <div class="flex justify-end gap-3 mt-4">
             <button
               @click="closeDismissModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-button transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-neutral-500 bg-savannah-100 hover:bg-savannah-200 rounded-button transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               @click="confirmDismiss"
-              class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-button transition-colors duration-200"
+              class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors duration-200"
               :disabled="!dismissalReason"
             >
               Dismiss
@@ -392,48 +392,48 @@ export default {
     },
 
     getRecommendationBorderClass(recommendation) {
-      if (recommendation.status === 'completed') return 'border-l-4 border-green-500 bg-white';
-      if (recommendation.status === 'dismissed') return 'border-gray-200 bg-gray-50';
-      if (recommendation.priority <= 3) return 'border-l-4 border-red-500 bg-white';
-      if (recommendation.priority <= 7) return 'border-l-4 border-blue-500 bg-white';
-      return 'border-l-4 border-blue-500 bg-white';
+      if (recommendation.status === 'completed') return 'border-l-4 border-spring-500 bg-white';
+      if (recommendation.status === 'dismissed') return 'border-light-gray bg-eggshell-500';
+      if (recommendation.priority <= 3) return 'border-l-4 border-raspberry-500 bg-white';
+      if (recommendation.priority <= 7) return 'border-l-4 border-violet-500 bg-white';
+      return 'border-l-4 border-violet-500 bg-white';
     },
 
     getPriorityClass(priority) {
-      if (priority <= 3) return 'bg-red-500 text-white';
-      if (priority <= 7) return 'bg-blue-500 text-white';
-      return 'bg-blue-500 text-white';
+      if (priority <= 3) return 'bg-raspberry-500 text-white';
+      if (priority <= 7) return 'bg-violet-500 text-white';
+      return 'bg-violet-500 text-white';
     },
 
     getCategoryClass(category) {
       const classes = {
-        rebalancing: 'bg-purple-500 text-white',
-        tax: 'bg-green-500 text-white',
-        fees: 'bg-blue-500 text-white',
-        risk: 'bg-red-500 text-white',
-        goal: 'bg-indigo-500 text-white',
+        rebalancing: 'bg-violet-500 text-white',
+        tax: 'bg-spring-500 text-white',
+        fees: 'bg-violet-500 text-white',
+        risk: 'bg-raspberry-500 text-white',
+        goal: 'bg-violet-500 text-white',
         contribution: 'bg-teal-500 text-white',
       };
-      return classes[category] || 'bg-gray-500 text-white';
+      return classes[category] || 'bg-eggshell-500 text-white';
     },
 
     getStatusClass(status) {
       const classes = {
-        pending: 'bg-blue-500 text-white',
-        in_progress: 'bg-purple-500 text-white',
-        completed: 'bg-green-500 text-white',
-        dismissed: 'bg-gray-500 text-white',
+        pending: 'bg-violet-500 text-white',
+        in_progress: 'bg-violet-500 text-white',
+        completed: 'bg-spring-500 text-white',
+        dismissed: 'bg-eggshell-500 text-white',
       };
-      return classes[status] || 'bg-gray-500 text-white';
+      return classes[status] || 'bg-eggshell-500 text-white';
     },
 
     getImpactClass(impact) {
       const classes = {
-        low: 'text-blue-600',
-        medium: 'text-blue-600',
-        high: 'text-red-600',
+        low: 'text-violet-600',
+        medium: 'text-violet-600',
+        high: 'text-raspberry-600',
       };
-      return classes[impact] || 'text-gray-600';
+      return classes[impact] || 'text-neutral-500';
     },
 
     formatCategory(category) {

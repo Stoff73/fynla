@@ -3,7 +3,7 @@
     <label
       v-if="label"
       :for="inputId"
-      class="block text-body-sm font-medium text-gray-700 mb-1"
+      class="block text-body-sm font-medium text-neutral-500 mb-1"
     >
       {{ label }}
     </label>
@@ -18,7 +18,7 @@
         :disabled="disabled"
         :required="required"
         class="input-field pr-10"
-        :class="{ 'cursor-not-allowed bg-gray-100': disabled }"
+        :class="{ 'cursor-not-allowed bg-savannah-100': disabled }"
         @focus="showDropdown = true"
         @blur="handleBlur"
         @input="handleInput"
@@ -27,7 +27,7 @@
       <!-- Dropdown Icon -->
       <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
         <svg
-          class="w-5 h-5 text-gray-400"
+          class="w-5 h-5 text-horizon-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -44,14 +44,14 @@
       <!-- Dropdown List -->
       <div
         v-show="showDropdown && filteredCountries.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+        class="absolute z-10 w-full mt-1 bg-white border border-horizon-300 rounded-md shadow-lg max-h-60 overflow-auto"
       >
         <ul class="py-1">
           <li
             v-for="country in filteredCountries"
             :key="country"
-            class="px-4 py-2 hover:bg-primary-50 cursor-pointer transition-colors"
-            :class="{ 'bg-primary-100': country === modelValue }"
+            class="px-4 py-2 hover:bg-raspberry-50 cursor-pointer transition-colors"
+            :class="{ 'bg-raspberry-100': country === modelValue }"
             @mousedown.prevent="selectCountry(country)"
           >
             {{ country }}
@@ -62,16 +62,16 @@
       <!-- No Results -->
       <div
         v-show="showDropdown && searchQuery && filteredCountries.length === 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4"
+        class="absolute z-10 w-full mt-1 bg-white border border-horizon-300 rounded-md shadow-lg p-4"
       >
-        <p class="text-body-sm text-gray-500 text-center">
+        <p class="text-body-sm text-neutral-500 text-center">
           No countries found matching "{{ searchQuery }}"
         </p>
       </div>
     </div>
 
     <!-- Selected Country Display (when not focused) -->
-    <p v-if="modelValue && !showDropdown" class="mt-1 text-body-sm text-gray-600">
+    <p v-if="modelValue && !showDropdown" class="mt-1 text-body-sm text-neutral-500">
       Selected: <span class="font-medium">{{ modelValue }}</span>
     </p>
   </div>
@@ -394,7 +394,7 @@ export default {
 }
 
 .overflow-auto::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-savannah-100;
   border-radius: 4px;
 }
 

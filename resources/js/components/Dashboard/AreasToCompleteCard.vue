@@ -1,15 +1,15 @@
 <template>
   <div v-if="areasToComplete.length > 0">
     <!-- Header -->
-    <h3 class="text-lg font-semibold text-gray-900 mb-1">Areas to Complete</h3>
-    <p class="text-xs text-gray-500 mb-4">These areas were skipped during setup</p>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-1">Areas to Complete</h3>
+    <p class="text-xs text-neutral-500 mb-4">These areas were skipped during setup</p>
 
     <!-- Areas List -->
     <div class="space-y-2">
       <div
         v-for="area in areasToComplete"
         :key="area.id"
-        class="flex items-center justify-between py-2 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
+        class="flex items-center justify-between py-2 cursor-pointer hover:bg-savannah-100 -mx-2 px-2 rounded transition-colors"
         @click="navigateTo(area.route)"
       >
         <div class="flex items-center gap-3 min-w-0">
@@ -59,21 +59,21 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <span class="text-sm font-medium text-gray-900 block truncate">{{ area.title }}</span>
-            <span class="text-xs text-gray-500 block truncate">{{ area.description }}</span>
+            <span class="text-sm font-medium text-horizon-500 block truncate">{{ area.title }}</span>
+            <span class="text-xs text-neutral-500 block truncate">{{ area.description }}</span>
           </div>
         </div>
-        <svg class="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-horizon-400 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
     </div>
 
     <!-- Complete Setup link -->
-    <div class="mt-4 pt-3 border-t border-gray-100 text-center">
+    <div class="mt-4 pt-3 border-t border-light-gray text-center">
       <router-link
         to="/onboarding"
-        class="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+        class="text-sm font-medium text-raspberry-500 hover:text-raspberry-700 transition-colors"
       >
         Complete Setup in Onboarding
       </router-link>
@@ -103,8 +103,8 @@ export default {
           description: 'Date of birth, address, and contact details',
           route: '/valuable-info?section=personal',
           icon: 'user',
-          iconBgClass: 'bg-blue-100',
-          iconClass: 'text-blue-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
         },
         family_info: {
           title: 'Family Information',
@@ -143,8 +143,8 @@ export default {
           description: 'Life, critical illness, and income protection',
           route: '/protection',
           icon: 'shield',
-          iconBgClass: 'bg-green-100',
-          iconClass: 'text-green-600',
+          iconBgClass: 'bg-spring-100',
+          iconClass: 'text-spring-600',
         },
         assets: {
           title: 'Assets',
@@ -159,16 +159,16 @@ export default {
           description: 'Loans, credit cards, and debts',
           route: '/net-worth',
           icon: 'credit-card',
-          iconBgClass: 'bg-red-100',
-          iconClass: 'text-red-600',
+          iconBgClass: 'bg-raspberry-100',
+          iconClass: 'text-raspberry-600',
         },
         will_info: {
           title: 'Will Information',
           description: 'Your will and executor details',
           route: '/valuable-info?section=will',
           icon: 'document',
-          iconBgClass: 'bg-gray-100',
-          iconClass: 'text-gray-600',
+          iconBgClass: 'bg-savannah-100',
+          iconClass: 'text-neutral-500',
         },
         trust_info: {
           title: 'Trust Information',

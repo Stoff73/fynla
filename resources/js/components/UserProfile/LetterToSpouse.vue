@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start">
       <div>
-        <p class="text-sm text-gray-600">
+        <p class="text-sm text-neutral-500">
           {{ pageDescription }}
         </p>
       </div>
@@ -13,7 +13,7 @@
           v-if="!isEditing"
           @click="generatePDF"
           :disabled="generatingPdf"
-          class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+          class="px-4 py-2 bg-white text-neutral-500 border border-horizon-300 rounded-lg font-medium hover:bg-savannah-100 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           <svg v-if="!generatingPdf" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -27,14 +27,14 @@
         <button
           v-if="!isEditing"
           @click="isEditing = true"
-          class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+          class="px-4 py-2 bg-white text-neutral-500 border border-horizon-300 rounded-lg font-medium hover:bg-savannah-100 transition-colors"
         >
           Edit
         </button>
         <template v-else>
           <button
             @click="cancelEditing"
-            class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            class="px-4 py-2 bg-white text-neutral-500 border border-horizon-300 rounded-lg font-medium hover:bg-savannah-100 transition-colors"
             :disabled="saving"
           >
             Cancel
@@ -42,7 +42,7 @@
           <button
             @click="saveLetter"
             :disabled="saving"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+            class="px-4 py-2 bg-raspberry-500 text-white rounded-lg font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50"
           >
             {{ saving ? 'Saving...' : 'Save' }}
           </button>
@@ -78,92 +78,92 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Letter Content -->
     <div v-else class="space-y-6">
       <!-- Part 1: What to Do Immediately -->
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div class="border-b border-gray-200 px-6 py-4">
-          <h3 class="text-lg font-semibold text-gray-900">Part 1: What to Do Immediately</h3>
-          <p class="mt-1 text-sm text-gray-500">Critical first steps and key contacts</p>
+      <div class="bg-white rounded-lg border border-light-gray shadow-sm">
+        <div class="border-b border-light-gray px-6 py-4">
+          <h3 class="text-lg font-semibold text-horizon-500">Part 1: What to Do Immediately</h3>
+          <p class="mt-1 text-sm text-neutral-500">Critical first steps and key contacts</p>
         </div>
         <div class="p-6 space-y-6">
           <!-- VIEW MODE -->
           <template v-if="!isEditing">
             <!-- Immediate Actions Checklist -->
             <div>
-              <h4 class="text-sm font-semibold text-gray-900 mb-3">Immediate Actions Checklist</h4>
-              <div v-if="parsedImmediateActions.length > 0" class="bg-white rounded-lg border border-gray-200 p-4">
+              <h4 class="text-sm font-semibold text-horizon-500 mb-3">Immediate Actions Checklist</h4>
+              <div v-if="parsedImmediateActions.length > 0" class="bg-white rounded-lg border border-light-gray p-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div
                     v-for="(action, index) in parsedImmediateActions"
                     :key="index"
                     class="flex items-start"
                   >
-                    <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold mr-3 mt-0.5">
+                    <div class="flex-shrink-0 w-6 h-6 rounded-full bg-raspberry-100 text-raspberry-700 flex items-center justify-center text-xs font-semibold mr-3 mt-0.5">
                       {{ index + 1 }}
                     </div>
-                    <span class="text-sm text-gray-700">{{ action }}</span>
+                    <span class="text-sm text-neutral-500">{{ action }}</span>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-sm text-gray-500 italic">No immediate actions specified</p>
+              <p v-else class="text-sm text-neutral-500 italic">No immediate actions specified</p>
             </div>
 
             <!-- Key Contacts Grid -->
             <div>
-              <h4 class="text-sm font-semibold text-gray-900 mb-3">Key Contacts</h4>
+              <h4 class="text-sm font-semibold text-horizon-500 mb-3">Key Contacts</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Executor Card - Highlighted -->
-                <div class="bg-primary-50 rounded-lg p-4 border border-primary-200">
+                <div class="bg-raspberry-50 rounded-lg p-4 border border-raspberry-200">
                   <div class="flex items-center mb-2">
-                    <svg class="w-4 h-4 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-raspberry-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
-                    <span class="text-xs font-semibold text-primary-700 uppercase tracking-wide">Executor</span>
-                    <span v-if="willData && willData.executor_name" class="ml-auto text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">From Will</span>
+                    <span class="text-xs font-semibold text-raspberry-700 uppercase tracking-wide">Executor</span>
+                    <span v-if="willData && willData.executor_name" class="ml-auto text-xs bg-raspberry-100 text-raspberry-700 px-2 py-0.5 rounded">From Will</span>
                   </div>
-                  <p class="text-sm font-medium text-gray-900">{{ displayExecutorName || 'Not specified' }}</p>
-                  <p v-if="formData.executor_contact" class="text-sm text-gray-600 mt-1">{{ formData.executor_contact }}</p>
-                  <p v-if="willData && willData.executor_notes" class="text-xs text-gray-500 mt-2 italic">{{ willData.executor_notes }}</p>
+                  <p class="text-sm font-medium text-horizon-500">{{ displayExecutorName || 'Not specified' }}</p>
+                  <p v-if="formData.executor_contact" class="text-sm text-neutral-500 mt-1">{{ formData.executor_contact }}</p>
+                  <p v-if="willData && willData.executor_notes" class="text-xs text-neutral-500 mt-2 italic">{{ willData.executor_notes }}</p>
                 </div>
 
                 <!-- Solicitor Card -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="bg-white rounded-lg p-4 border border-light-gray">
                   <div class="flex items-center mb-2">
-                    <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-neutral-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                     </svg>
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Solicitor</span>
+                    <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Solicitor</span>
                   </div>
-                  <p class="text-sm font-medium text-gray-900">{{ formData.attorney_name || 'Not specified' }}</p>
-                  <p v-if="formData.attorney_contact" class="text-sm text-gray-600 mt-1">{{ formData.attorney_contact }}</p>
+                  <p class="text-sm font-medium text-horizon-500">{{ formData.attorney_name || 'Not specified' }}</p>
+                  <p v-if="formData.attorney_contact" class="text-sm text-neutral-500 mt-1">{{ formData.attorney_contact }}</p>
                 </div>
 
                 <!-- Financial Adviser Card -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="bg-white rounded-lg p-4 border border-light-gray">
                   <div class="flex items-center mb-2">
-                    <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-neutral-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Financial Adviser</span>
+                    <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Financial Adviser</span>
                   </div>
-                  <p class="text-sm font-medium text-gray-900">{{ formData.financial_advisor_name || 'Not specified' }}</p>
-                  <p v-if="formData.financial_advisor_contact" class="text-sm text-gray-600 mt-1">{{ formData.financial_advisor_contact }}</p>
+                  <p class="text-sm font-medium text-horizon-500">{{ formData.financial_advisor_name || 'Not specified' }}</p>
+                  <p v-if="formData.financial_advisor_contact" class="text-sm text-neutral-500 mt-1">{{ formData.financial_advisor_contact }}</p>
                 </div>
 
                 <!-- Accountant Card -->
-                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="bg-white rounded-lg p-4 border border-light-gray">
                   <div class="flex items-center mb-2">
-                    <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-neutral-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accountant</span>
+                    <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Accountant</span>
                   </div>
-                  <p class="text-sm font-medium text-gray-900">{{ formData.accountant_name || 'Not specified' }}</p>
-                  <p v-if="formData.accountant_contact" class="text-sm text-gray-600 mt-1">{{ formData.accountant_contact }}</p>
+                  <p class="text-sm font-medium text-horizon-500">{{ formData.accountant_name || 'Not specified' }}</p>
+                  <p v-if="formData.accountant_contact" class="text-sm text-neutral-500 mt-1">{{ formData.accountant_contact }}</p>
                 </div>
               </div>
             </div>
@@ -171,16 +171,16 @@
             <!-- Immediate Funds & Employer -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Accessing Immediate Funds</h4>
-                <div class="bg-white rounded-lg border border-gray-200 p-4">
-                  <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.immediate_funds_access || 'Not specified' }}</p>
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Accessing Immediate Funds</h4>
+                <div class="bg-white rounded-lg border border-light-gray p-4">
+                  <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.immediate_funds_access || 'Not specified' }}</p>
                 </div>
               </div>
               <div>
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Employer HR Contact</h4>
-                <div class="bg-white rounded-lg border border-gray-200 p-4">
-                  <p class="text-sm font-medium text-gray-900">{{ formData.employer_hr_contact || 'Not specified' }}</p>
-                  <p v-if="formData.employer_benefits_info" class="text-sm text-gray-600 mt-1">{{ formData.employer_benefits_info }}</p>
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Employer HR Contact</h4>
+                <div class="bg-white rounded-lg border border-light-gray p-4">
+                  <p class="text-sm font-medium text-horizon-500">{{ formData.employer_hr_contact || 'Not specified' }}</p>
+                  <p v-if="formData.employer_benefits_info" class="text-sm text-neutral-500 mt-1">{{ formData.employer_benefits_info }}</p>
                 </div>
               </div>
             </div>
@@ -190,7 +190,7 @@
           <template v-else>
             <!-- Immediate Actions -->
             <div>
-              <label class="block text-body-sm font-medium text-gray-700 mb-2">
+              <label class="block text-body-sm font-medium text-neutral-500 mb-2">
                 Immediate Actions Checklist
               </label>
               <textarea
@@ -203,10 +203,10 @@
 
             <!-- Key Contacts Grid -->
             <div>
-              <h4 class="text-body font-semibold text-gray-800 mb-4">Key Contacts</h4>
+              <h4 class="text-body font-semibold text-horizon-500 mb-4">Key Contacts</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Executor</div>
+                <div class="bg-eggshell-500 rounded-lg p-4 border border-light-gray">
+                  <div class="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1">Executor</div>
                   <input
                     v-model="formData.executor_name"
                     type="text"
@@ -220,8 +220,8 @@
                     placeholder="Phone / Email"
                   />
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Solicitor</div>
+                <div class="bg-eggshell-500 rounded-lg p-4 border border-light-gray">
+                  <div class="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1">Solicitor</div>
                   <input
                     v-model="formData.attorney_name"
                     type="text"
@@ -235,8 +235,8 @@
                     placeholder="Phone / Email"
                   />
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Financial Adviser</div>
+                <div class="bg-eggshell-500 rounded-lg p-4 border border-light-gray">
+                  <div class="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1">Financial Adviser</div>
                   <input
                     v-model="formData.financial_advisor_name"
                     type="text"
@@ -250,8 +250,8 @@
                     placeholder="Phone / Email"
                   />
                 </div>
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Accountant</div>
+                <div class="bg-eggshell-500 rounded-lg p-4 border border-light-gray">
+                  <div class="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1">Accountant</div>
                   <input
                     v-model="formData.accountant_name"
                     type="text"
@@ -271,7 +271,7 @@
             <!-- Immediate Funds & Employer -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Accessing Immediate Funds</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Accessing Immediate Funds</label>
                 <textarea
                   v-model="formData.immediate_funds_access"
                   rows="3"
@@ -280,7 +280,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Employer HR Contact</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Employer HR Contact</label>
                 <input
                   v-model="formData.employer_hr_contact"
                   type="text"
@@ -300,31 +300,31 @@
       </div>
 
       <!-- Part 2: Financial Overview (Auto-populated) -->
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+      <div class="bg-white rounded-lg border border-light-gray shadow-sm">
+        <div class="border-b border-light-gray px-6 py-4 flex justify-between items-center">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">Part 2: Financial Overview</h3>
-            <p class="mt-1 text-sm text-gray-500">Your current financial position (automatically updated)</p>
+            <h3 class="text-lg font-semibold text-horizon-500">Part 2: Financial Overview</h3>
+            <p class="mt-1 text-sm text-neutral-500">Your current financial position (automatically updated)</p>
           </div>
-          <span class="text-xs font-semibold text-primary-700 bg-primary-100 px-3 py-1 rounded-full">Auto-populated</span>
+          <span class="text-xs font-semibold text-raspberry-700 bg-raspberry-100 px-3 py-1 rounded-full">Auto-populated</span>
         </div>
         <div class="p-6 space-y-6">
           <!-- Bank Accounts / Savings -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Bank Accounts & Savings</h4>
-              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalSavings) }}</span>
+              <h4 class="text-sm font-semibold text-horizon-500">Bank Accounts & Savings</h4>
+              <span class="text-lg font-bold text-horizon-500">{{ formatCurrency(profileData.totalSavings) }}</span>
             </div>
             <div v-if="profileData.savings.length > 0" class="flex flex-wrap gap-3">
               <div
                 v-for="account in profileData.savings"
                 :key="account.id"
-                class="bg-white rounded-lg p-4 border border-gray-200 min-w-[200px] flex-1 max-w-[280px]"
+                class="bg-white rounded-lg p-4 border border-light-gray min-w-[200px] flex-1 max-w-[280px]"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
-                    <div class="text-sm text-gray-500">{{ account.institution || account.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ account.account_name || account.provider }}</div>
+                    <div class="text-sm text-neutral-500">{{ account.institution || account.provider }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
@@ -332,85 +332,85 @@
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
                   </div>
                 </div>
-                <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_balance) }}</div>
+                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_balance) }}</div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No savings accounts recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No savings accounts recorded</p>
           </div>
 
           <!-- Pensions -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Pensions</h4>
-              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalPensions) }}</span>
+              <h4 class="text-sm font-semibold text-horizon-500">Pensions</h4>
+              <span class="text-lg font-bold text-horizon-500">{{ formatCurrency(profileData.totalPensions) }}</span>
             </div>
             <div v-if="profileData.pensions.length > 0" class="flex flex-wrap gap-3">
               <div
                 v-for="pension in profileData.pensions"
                 :key="pension.id"
-                class="bg-white rounded-lg p-4 border border-gray-200 min-w-[200px] flex-1 max-w-[280px]"
+                class="bg-white rounded-lg p-4 border border-light-gray min-w-[200px] flex-1 max-w-[280px]"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ pension.scheme_name || pension.provider }}</div>
-                    <div class="text-sm text-gray-500">{{ pension.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ pension.scheme_name || pension.provider }}</div>
+                    <div class="text-sm text-neutral-500">{{ pension.provider }}</div>
                   </div>
                 </div>
                 <div class="mt-2">
-                  <div class="text-lg font-semibold text-gray-900">{{ formatCurrency(pension.current_value || pension.current_fund_value) }}</div>
-                  <div v-if="pension.employer" class="text-xs text-gray-500 mt-1">{{ pension.employer }}</div>
+                  <div class="text-lg font-semibold text-horizon-500">{{ formatCurrency(pension.current_value || pension.current_fund_value) }}</div>
+                  <div v-if="pension.employer" class="text-xs text-neutral-500 mt-1">{{ pension.employer }}</div>
                 </div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No pensions recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No pensions recorded</p>
           </div>
 
           <!-- Investment Accounts -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Investments</h4>
-              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalInvestments) }}</span>
+              <h4 class="text-sm font-semibold text-horizon-500">Investments</h4>
+              <span class="text-lg font-bold text-horizon-500">{{ formatCurrency(profileData.totalInvestments) }}</span>
             </div>
             <div v-if="profileData.investments.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div
                 v-for="account in profileData.investments"
                 :key="account.id"
-                class="bg-white rounded-lg p-4 border border-gray-200"
+                class="bg-white rounded-lg p-4 border border-light-gray"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ account.account_name || account.provider }}</div>
-                    <div class="text-sm text-gray-500">{{ account.provider }}</div>
+                    <div class="font-medium text-horizon-500">{{ account.account_name || account.provider }}</div>
+                    <div class="text-sm text-neutral-500">{{ account.provider }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
-                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">General Investment Account</span>
+                    <span v-else-if="account.account_type === 'gia'" class="text-xs bg-savannah-100 text-neutral-500 px-2 py-0.5 rounded">General Investment Account</span>
                     <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
                   </div>
                 </div>
-                <div class="mt-2 text-lg font-semibold text-gray-900">{{ formatCurrency(account.current_value) }}</div>
+                <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_value) }}</div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No investment accounts recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No investment accounts recorded</p>
           </div>
 
           <!-- Properties -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Properties</h4>
-              <span class="text-lg font-bold text-gray-900">{{ formatCurrency(profileData.totalPropertyValue) }}</span>
+              <h4 class="text-sm font-semibold text-horizon-500">Properties</h4>
+              <span class="text-lg font-bold text-horizon-500">{{ formatCurrency(profileData.totalPropertyValue) }}</span>
             </div>
             <div v-if="profileData.properties.length > 0" class="flex flex-wrap gap-3">
               <div
                 v-for="property in profileData.properties"
                 :key="property.id"
-                class="bg-white rounded-lg p-4 border border-gray-200 min-w-[250px] flex-1 max-w-[320px]"
+                class="bg-white rounded-lg p-4 border border-light-gray min-w-[250px] flex-1 max-w-[320px]"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ property.property_name || property.address_line_1 }}</div>
-                    <div class="text-sm text-gray-500">{{ formatPropertyType(property.property_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ property.property_name || property.address_line_1 }}</div>
+                    <div class="text-sm text-neutral-500">{{ formatPropertyType(property.property_type) }}</div>
                   </div>
                   <span :class="ownershipBadgeClass(property.ownership_type)" class="text-xs px-2 py-0.5 rounded">
                     {{ formatOwnershipType(property.ownership_type) }}
@@ -418,62 +418,62 @@
                 </div>
                 <div class="mt-2 flex justify-between">
                   <div>
-                    <div class="text-sm text-gray-500">Value</div>
-                    <div class="font-semibold text-gray-900">{{ formatCurrency(property.current_value) }}</div>
+                    <div class="text-sm text-neutral-500">Value</div>
+                    <div class="font-semibold text-horizon-500">{{ formatCurrency(property.current_value) }}</div>
                   </div>
                   <div v-if="property.mortgage_balance">
-                    <div class="text-sm text-gray-500">Mortgage</div>
+                    <div class="text-sm text-neutral-500">Mortgage</div>
                     <div class="font-semibold text-red-600">{{ formatCurrency(property.mortgage_balance) }}</div>
                   </div>
                 </div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No properties recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No properties recorded</p>
           </div>
 
           <!-- Insurance Policies -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Life Insurance & Protection</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Life Insurance & Protection</h4>
               <span class="text-lg font-bold text-green-600">{{ formatCurrency(profileData.totalCoverage) }}</span>
             </div>
             <div v-if="profileData.policies.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div
                 v-for="policy in profileData.policies"
                 :key="`${policy.policy_type}-${policy.id}`"
-                class="bg-white rounded-lg p-4 border border-gray-200"
+                class="bg-white rounded-lg p-4 border border-light-gray"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ policy.provider }}</div>
-                    <div class="text-sm text-gray-500">{{ formatPolicyType(policy.policy_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ policy.provider }}</div>
+                    <div class="text-sm text-neutral-500">{{ formatPolicyType(policy.policy_type) }}</div>
                   </div>
                 </div>
                 <div class="mt-2">
-                  <div class="text-sm text-gray-500">Sum Assured</div>
+                  <div class="text-sm text-neutral-500">Sum Assured</div>
                   <div class="font-semibold text-green-600">{{ formatCurrency(policy.sum_assured || policy.benefit_amount) }}</div>
                 </div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No protection policies recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No protection policies recorded</p>
           </div>
 
           <!-- Liabilities -->
           <div>
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-sm font-semibold text-gray-900">Liabilities & Debts</h4>
+              <h4 class="text-sm font-semibold text-horizon-500">Liabilities & Debts</h4>
               <span class="text-lg font-bold text-red-600">{{ formatCurrency(profileData.totalLiabilities) }}</span>
             </div>
             <div v-if="profileData.liabilities.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div
                 v-for="liability in profileData.liabilities"
                 :key="liability.id"
-                class="bg-white rounded-lg p-4 border border-gray-200"
+                class="bg-white rounded-lg p-4 border border-light-gray"
               >
                 <div class="flex justify-between items-start">
                   <div>
-                    <div class="font-medium text-gray-900">{{ liability.liability_name }}</div>
-                    <div class="text-sm text-gray-500">{{ formatLiabilityType(liability.liability_type) }}</div>
+                    <div class="font-medium text-horizon-500">{{ liability.liability_name }}</div>
+                    <div class="text-sm text-neutral-500">{{ formatLiabilityType(liability.liability_type) }}</div>
                   </div>
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="liability.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
@@ -483,42 +483,42 @@
                 <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 italic">No liabilities recorded</p>
+            <p v-else class="text-sm text-neutral-500 italic">No liabilities recorded</p>
           </div>
 
           <!-- Bequests (from Will) -->
           <div v-if="willData && willData.bequests && willData.bequests.length > 0">
             <div class="flex justify-between items-center mb-3">
               <div class="flex items-center gap-2">
-                <h4 class="text-sm font-semibold text-gray-900">Bequests & Legacies</h4>
-                <span class="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">From Will</span>
+                <h4 class="text-sm font-semibold text-horizon-500">Bequests & Legacies</h4>
+                <span class="text-xs bg-raspberry-100 text-raspberry-700 px-2 py-0.5 rounded">From Will</span>
               </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div
                 v-for="(bequest, index) in willData.bequests"
                 :key="'bequest-' + index"
-                class="bg-white rounded-lg p-4 border border-gray-200"
+                class="bg-white rounded-lg p-4 border border-light-gray"
               >
                 <div class="flex justify-between items-start mb-2">
-                  <div class="font-medium text-gray-900">{{ bequest.beneficiary_name }}</div>
+                  <div class="font-medium text-horizon-500">{{ bequest.beneficiary_name }}</div>
                   <span :class="getBequestTypeBadgeClass(bequest.bequest_type)" class="text-xs px-2 py-0.5 rounded">
                     {{ formatBequestType(bequest.bequest_type) }}
                   </span>
                 </div>
                 <div class="text-sm">
                   <template v-if="bequest.bequest_type === 'percentage'">
-                    <span class="font-semibold text-gray-900">{{ bequest.percentage_of_estate }}%</span>
-                    <span class="text-gray-500"> of estate</span>
+                    <span class="font-semibold text-horizon-500">{{ bequest.percentage_of_estate }}%</span>
+                    <span class="text-neutral-500"> of estate</span>
                   </template>
                   <template v-else-if="bequest.bequest_type === 'specific_amount'">
-                    <span class="font-semibold text-gray-900">{{ formatCurrency(bequest.specific_amount) }}</span>
+                    <span class="font-semibold text-horizon-500">{{ formatCurrency(bequest.specific_amount) }}</span>
                   </template>
                   <template v-else-if="bequest.bequest_type === 'specific_asset'">
-                    <span class="text-gray-700">{{ bequest.specific_asset_description }}</span>
+                    <span class="text-neutral-500">{{ bequest.specific_asset_description }}</span>
                   </template>
                 </div>
-                <p v-if="bequest.conditions" class="text-xs text-gray-500 mt-2 italic">{{ bequest.conditions }}</p>
+                <p v-if="bequest.conditions" class="text-xs text-neutral-500 mt-2 italic">{{ bequest.conditions }}</p>
               </div>
             </div>
           </div>
@@ -526,47 +526,47 @@
       </div>
 
       <!-- Part 3: Additional Information (Manual Entry) -->
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div class="border-b border-gray-200 px-6 py-4">
-          <h3 class="text-lg font-semibold text-gray-900">Part 3: Additional Information</h3>
-          <p class="mt-1 text-sm text-gray-500">Important details not captured elsewhere</p>
+      <div class="bg-white rounded-lg border border-light-gray shadow-sm">
+        <div class="border-b border-light-gray px-6 py-4">
+          <h3 class="text-lg font-semibold text-horizon-500">Part 3: Additional Information</h3>
+          <p class="mt-1 text-sm text-neutral-500">Important details not captured elsewhere</p>
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
           <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Password Manager / Online Access</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.password_manager_info || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Password Manager / Online Access</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.password_manager_info || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Estate Documents Location</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.estate_documents_location || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Estate Documents Location</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.estate_documents_location || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Vehicles</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.vehicles_info || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Vehicles</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.vehicles_info || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Valuable Items</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.valuable_items_info || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Valuable Items</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.valuable_items_info || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Cryptocurrency</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.cryptocurrency_info || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Cryptocurrency</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.cryptocurrency_info || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Recurring Bills</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.recurring_bills_info || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Recurring Bills</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.recurring_bills_info || 'Not specified' }}</p>
               </div>
               <!-- Additional Custom Boxes - View Mode -->
               <div
                 v-for="(box, index) in formData.additional_boxes"
                 :key="'view-box-' + index"
-                class="bg-white rounded-lg border border-gray-200 p-4"
+                class="bg-white rounded-lg border border-light-gray p-4"
               >
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">{{ box.title || 'Untitled' }}</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ box.content || 'Not specified' }}</p>
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">{{ box.title || 'Untitled' }}</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ box.content || 'Not specified' }}</p>
               </div>
             </div>
           </template>
@@ -575,7 +575,7 @@
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Password Manager / Online Access</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Password Manager / Online Access</label>
                 <textarea
                   v-model="formData.password_manager_info"
                   rows="3"
@@ -584,7 +584,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Estate Documents Location</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Estate Documents Location</label>
                 <textarea
                   v-model="formData.estate_documents_location"
                   rows="3"
@@ -593,7 +593,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Vehicles</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Vehicles</label>
                 <textarea
                   v-model="formData.vehicles_info"
                   rows="2"
@@ -602,7 +602,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Valuable Items</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Valuable Items</label>
                 <textarea
                   v-model="formData.valuable_items_info"
                   rows="2"
@@ -611,7 +611,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Cryptocurrency</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Cryptocurrency</label>
                 <textarea
                   v-model="formData.cryptocurrency_info"
                   rows="2"
@@ -620,7 +620,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Recurring Bills</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Recurring Bills</label>
                 <textarea
                   v-model="formData.recurring_bills_info"
                   rows="2"
@@ -631,13 +631,13 @@
             </div>
 
             <!-- Additional Custom Boxes - Edit Mode -->
-            <div v-if="formData.additional_boxes.length > 0" class="mt-6 pt-6 border-t border-gray-200">
-              <h4 class="text-sm font-semibold text-gray-900 mb-4">Additional Information</h4>
+            <div v-if="formData.additional_boxes.length > 0" class="mt-6 pt-6 border-t border-light-gray">
+              <h4 class="text-sm font-semibold text-horizon-500 mb-4">Additional Information</h4>
               <div class="space-y-4">
                 <div
                   v-for="(box, index) in formData.additional_boxes"
                   :key="'edit-box-' + index"
-                  class="bg-white rounded-lg border border-gray-200 p-4"
+                  class="bg-white rounded-lg border border-light-gray p-4"
                 >
                   <div class="flex justify-between items-start mb-3">
                     <input
@@ -673,41 +673,41 @@
                 v-if="canAddMoreBoxes"
                 @click="addAdditionalBox"
                 type="button"
-                class="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                class="flex items-center text-sm text-raspberry-500 hover:text-raspberry-600 font-medium"
               >
                 <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
                 Add Additional Information Box
-                <span class="ml-2 text-gray-400 font-normal">({{ formData.additional_boxes.length }}/10)</span>
+                <span class="ml-2 text-horizon-400 font-normal">({{ formData.additional_boxes.length }}/10)</span>
               </button>
-              <p v-else class="text-sm text-gray-500">Maximum of 10 additional boxes reached</p>
+              <p v-else class="text-sm text-neutral-500">Maximum of 10 additional boxes reached</p>
             </div>
           </template>
         </div>
       </div>
 
       <!-- Part 4: Funeral and Final Wishes -->
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div class="border-b border-gray-200 px-6 py-4">
-          <h3 class="text-lg font-semibold text-gray-900">Part 4: Funeral and Final Wishes</h3>
-          <p class="mt-1 text-sm text-gray-500">Your preferences for final arrangements</p>
+      <div class="bg-white rounded-lg border border-light-gray shadow-sm">
+        <div class="border-b border-light-gray px-6 py-4">
+          <h3 class="text-lg font-semibold text-horizon-500">Part 4: Funeral and Final Wishes</h3>
+          <p class="mt-1 text-sm text-neutral-500">Your preferences for final arrangements</p>
         </div>
         <div class="p-6 space-y-4">
           <!-- VIEW MODE -->
           <template v-if="!isEditing">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Funeral Service Details</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.funeral_service_details || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Funeral Service Details</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.funeral_service_details || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Obituary Wishes</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.obituary_wishes || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Obituary Wishes</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.obituary_wishes || 'Not specified' }}</p>
               </div>
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Additional Wishes</h4>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ formData.additional_wishes || 'Not specified' }}</p>
+              <div class="bg-white rounded-lg border border-light-gray p-4">
+                <h4 class="text-sm font-semibold text-horizon-500 mb-2">Additional Wishes</h4>
+                <p class="text-sm text-neutral-500 whitespace-pre-line">{{ formData.additional_wishes || 'Not specified' }}</p>
               </div>
             </div>
           </template>
@@ -716,7 +716,7 @@
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Funeral Service Details</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Funeral Service Details</label>
                 <textarea
                   v-model="formData.funeral_service_details"
                   rows="2"
@@ -725,7 +725,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Obituary Wishes</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Obituary Wishes</label>
                 <textarea
                   v-model="formData.obituary_wishes"
                   rows="2"
@@ -734,7 +734,7 @@
                 ></textarea>
               </div>
               <div>
-                <label class="block text-body-sm font-medium text-gray-700 mb-2">Additional Wishes</label>
+                <label class="block text-body-sm font-medium text-neutral-500 mb-2">Additional Wishes</label>
                 <textarea
                   v-model="formData.additional_wishes"
                   rows="2"
@@ -754,7 +754,6 @@
 import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import logoImage from '@/assets/images/logoTransparent.png';
 
 export default {
   name: 'LetterToSpouse',
@@ -864,7 +863,7 @@ export default {
     },
 
     logoUrl() {
-      return logoImage;
+      return '/images/logos/logoTransparent.png';
     },
 
     /**
@@ -1704,7 +1703,7 @@ export default {
     ownershipBadgeClass(type) {
       if (type === 'joint') return 'bg-blue-100 text-blue-700';
       if (type === 'tenants_in_common') return 'bg-purple-100 text-purple-700';
-      return 'bg-gray-100 text-gray-700';
+      return 'bg-savannah-100 text-neutral-500';
     },
 
     formatPolicyType(type) {
@@ -1750,7 +1749,7 @@ export default {
       if (type === 'percentage') return 'bg-blue-100 text-blue-700';
       if (type === 'specific_amount') return 'bg-green-100 text-green-700';
       if (type === 'specific_asset') return 'bg-purple-100 text-purple-700';
-      return 'bg-gray-100 text-gray-700';
+      return 'bg-savannah-100 text-neutral-500';
     },
 
     /**

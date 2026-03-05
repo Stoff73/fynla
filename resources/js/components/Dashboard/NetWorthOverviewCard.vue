@@ -148,7 +148,7 @@ export default {
 }
 
 .net-worth-overview-card:hover {
-  @apply bg-primary-500/[0.04];
+  @apply bg-raspberry-500/[0.04];
 }
 
 .card-header {
@@ -161,12 +161,12 @@ export default {
 .card-title {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
 .card-icon {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
 }
 
 .card-icon svg {
@@ -185,27 +185,27 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 16px;
-  @apply border-b border-gray-200;
+  @apply border-b border-light-gray;
 }
 
 .value-label {
   font-size: 14px;
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .value-amount {
   font-size: 32px;
   font-weight: 700;
-  @apply text-gray-900;
+  @apply text-horizon-500;
 }
 
 .value-amount.positive {
-  @apply text-green-600;
+  @apply text-spring-600;
 }
 
 .value-amount.negative {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .section-breakdown {
@@ -217,13 +217,13 @@ export default {
 .section-breakdown + .section-breakdown {
   margin-top: 16px;
   padding-top: 16px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .section-header {
   font-size: 14px;
   font-weight: 600;
-  @apply text-gray-700;
+  @apply text-neutral-500;
   margin-bottom: 4px;
 }
 
@@ -241,21 +241,21 @@ export default {
 }
 
 .breakdown-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
   font-weight: 500;
 }
 
 .breakdown-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 
 .breakdown-value-asset {
-  @apply text-blue-600;
+  @apply text-violet-600;
 }
 
 .breakdown-value-liability {
-  @apply text-red-600;
+  @apply text-raspberry-600;
 }
 
 .loading-skeleton {
@@ -297,11 +297,11 @@ export default {
 }
 
 .error-message {
-  @apply text-red-500 text-sm mb-3;
+  @apply text-raspberry-500 text-sm mb-3;
 }
 
 .retry-button {
-  @apply bg-primary-500 text-white px-4 py-2 rounded-md border-none cursor-pointer text-sm font-semibold transition-all duration-200 hover:bg-primary-600;
+  @apply bg-raspberry-500 text-white px-4 py-2 rounded-md border-none cursor-pointer text-sm font-semibold transition-all duration-200 hover:bg-raspberry-500;
 }
 
 /* Mobile responsive */

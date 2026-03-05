@@ -17,7 +17,7 @@
       <div class="liability-details">
         <div class="detail-row">
           <span class="detail-label">Balance Owed</span>
-          <span class="detail-value text-red-600">{{ formatCurrency(liability.current_balance) }}</span>
+          <span class="detail-value text-raspberry-600">{{ formatCurrency(liability.current_balance) }}</span>
         </div>
         <div v-if="liability.monthly_payment" class="detail-row">
           <span class="detail-label">Monthly Payment</span>
@@ -76,7 +76,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  @apply border border-gray-200;
+  @apply border border-light-gray;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -84,7 +84,7 @@ export default {
 .liability-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-red-500;
+  @apply border-raspberry-500;
 }
 
 .card-header {
@@ -114,13 +114,13 @@ export default {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 
 .type-student_loan {
-  @apply bg-blue-100;
-  @apply text-blue-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .type-personal_loan {
@@ -144,18 +144,18 @@ export default {
 }
 
 .type-credit_card {
-  @apply bg-red-100;
-  @apply text-red-800;
+  @apply bg-raspberry-100;
+  @apply text-raspberry-800;
 }
 
 .type-overdraft {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .type-other {
-  @apply bg-gray-100;
-  @apply text-gray-700;
+  @apply bg-savannah-100;
+  @apply text-neutral-500;
 }
 
 .card-content {
@@ -167,7 +167,7 @@ export default {
 .liability-name {
   font-size: 18px;
   font-weight: 600;
-  @apply text-gray-900;
+  @apply text-horizon-500;
   margin: 0;
 }
 
@@ -176,7 +176,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  @apply border-t border-gray-200;
+  @apply border-t border-light-gray;
 }
 
 .detail-row {
@@ -187,11 +187,11 @@ export default {
 }
 
 .detail-label {
-  @apply text-gray-500;
+  @apply text-neutral-500;
 }
 
 .detail-value {
-  @apply text-gray-900;
+  @apply text-horizon-500;
   font-weight: 600;
 }
 

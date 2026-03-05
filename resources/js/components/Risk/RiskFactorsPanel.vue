@@ -1,7 +1,7 @@
 <template>
   <div class="risk-factors-panel">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">What Risks Do You Face When Investing?</h3>
-    <p class="text-sm text-gray-600 mb-6">
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">What Risks Do You Face When Investing?</h3>
+    <p class="text-sm text-neutral-500 mb-6">
       Understanding these key investment risks will help you make informed decisions about your portfolio.
     </p>
 
@@ -92,12 +92,12 @@
     </div>
 
     <!-- Summary callout -->
-    <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+    <div class="mt-6 bg-eggshell-500 border border-light-gray rounded-lg p-4">
       <div class="flex items-start gap-3">
-        <svg class="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-5 h-5 text-neutral-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="text-sm text-gray-700">
+        <p class="text-sm text-neutral-500">
           <strong>Key insight:</strong> Different risks require different approaches.
           A well-balanced portfolio considers all these factors based on your personal circumstances,
           time horizon, and goals.

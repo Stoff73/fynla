@@ -1,6 +1,6 @@
 <template>
   <button
-    class="fixed top-4 left-4 z-[61] sm:hidden inline-flex items-center justify-center p-2 rounded-md bg-white shadow-md border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+    class="fixed top-4 left-4 z-[61] sm:hidden inline-flex items-center justify-center p-2 rounded-md bg-white shadow-md border border-light-gray text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100 transition-colors"
     @click="$emit('toggle')"
   >
     <span class="sr-only">Open navigation menu</span>

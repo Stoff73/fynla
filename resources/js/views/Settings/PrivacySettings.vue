@@ -210,7 +210,7 @@
             </div>
 
             <div v-if="deletionWizard.loading" class="loading-indicator">
-              <div class="spinner"></div>
+              <div class="w-5 h-5 border-2 border-light-gray border-t-raspberry-500 rounded-full animate-spin"></div>
               <span>Preparing...</span>
             </div>
           </div>
@@ -806,7 +806,7 @@ export default {
 }
 
 .toggle input:checked + .toggle-slider {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
 }
 
 .toggle input:checked + .toggle-slider:before {
@@ -988,7 +988,7 @@ export default {
 }
 
 .step.active .step-number {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
@@ -1003,7 +1003,7 @@ export default {
 }
 
 .step.active .step-label {
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   font-weight: 500;
 }
 
@@ -1054,12 +1054,12 @@ export default {
 }
 
 .deletion-option:hover {
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   background-color: #f0f9ff;
 }
 
 .deletion-option.selected {
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   background-color: #eff6ff;
 }
 
@@ -1078,7 +1078,7 @@ export default {
   height: 48px;
   border-radius: 50%;
   background-color: #dbeafe;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1114,7 +1114,7 @@ export default {
   height: 64px;
   border-radius: 50%;
   background-color: #dbeafe;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1151,7 +1151,7 @@ export default {
 }
 
 .code-input:focus {
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1238,7 +1238,7 @@ export default {
 
 .form-input:focus {
   outline: none;
-  @apply border-primary-500;
+  @apply border-raspberry-500;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1271,21 +1271,6 @@ export default {
   padding: 1rem;
 }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e5e7eb;
-  @apply border-t-primary-500;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Button Styles */
 .btn {
   padding: 0.75rem 1.5rem;
@@ -1303,7 +1288,7 @@ export default {
 }
 
 .btn-primary {
-  @apply bg-primary-500;
+  @apply bg-raspberry-500;
   color: white;
 }
 
@@ -1332,7 +1317,7 @@ export default {
 
 .btn-link {
   background: none;
-  @apply text-primary-500;
+  @apply text-raspberry-500;
   padding: 0.5rem;
 }
 
@@ -1340,13 +1325,5 @@ export default {
   text-decoration: underline;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
 </style>

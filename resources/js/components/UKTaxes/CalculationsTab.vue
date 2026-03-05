@@ -1,35 +1,35 @@
 <template>
   <div class="space-y-6">
     <div class="card">
-      <h2 class="text-h2 text-gray-900 mb-4">How Fynla Calculations Work</h2>
-      <p class="text-body text-gray-600 mb-6">
+      <h2 class="text-h2 text-horizon-500 mb-4">How Fynla Calculations Work</h2>
+      <p class="text-body text-neutral-500 mb-6">
         This section explains the key financial calculations used throughout the Financial Planning System.
       </p>
     </div>
 
     <!-- Income Tax Calculation -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
-        <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
         Income Tax Calculation
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Personal Allowance</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           If income > £100,000:
           <br>Personal Allowance = £12,570 - ((income - £100,000) / 2)
           <br>Personal Allowance = max(0, Personal Allowance)
         </code>
 
         <p><strong>Step 2:</strong> Calculate Taxable Income</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Taxable Income = Gross Income - Personal Allowance
         </code>
 
         <p><strong>Step 3:</strong> Apply Tax Bands</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           £0 - £37,700: 20% (Basic Rate)
           <br>£37,701 - £125,140: 40% (Higher Rate)
           <br>£125,141+: 45% (Additional Rate)
@@ -48,7 +48,7 @@
 
     <!-- IHT Calculation -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
@@ -56,13 +56,13 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Gross Estate Value</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Gross Estate = Total Assets - Total Liabilities
           <br>(Includes: property, investments, savings, personal possessions)
         </code>
 
         <p><strong>Step 2:</strong> Determine Available Allowances</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Nil Rate Band Available = £325,000 × (1 + spouse_nrb_transferred)
           <br><br>If property asset AND passing to descendants:
           <br>&nbsp;&nbsp;Residence Nil Rate Band Available = £175,000 × (1 + spouse_rnrb_transferred)
@@ -72,13 +72,13 @@
         </code>
 
         <p><strong>Step 3:</strong> Calculate Taxable Estate</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Total Allowances = Nil Rate Band Available + Residence Nil Rate Band Available
           <br>Taxable Estate = max(0, Gross Estate - Total Allowances)
         </code>
 
         <p><strong>Step 4:</strong> Calculate Inheritance Tax Liability</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Inheritance Tax Liability = Taxable Estate × 40%
           <br>(Or 36% if 10%+ of net estate left to charity)
         </code>
@@ -97,7 +97,7 @@
 
     <!-- CGT Calculation -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
@@ -105,18 +105,18 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Capital Gain</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Capital Gain = Sale Price - Purchase Price - Allowable Costs
           <br>(Allowable costs: purchase fees, improvement costs, sale fees)
         </code>
 
         <p><strong>Step 2:</strong> Apply Annual Exempt Amount</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Taxable Gain = max(0, Capital Gain - £3,000)
         </code>
 
         <p><strong>Step 3:</strong> Determine Capital Gains Tax Rate</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           General Assets (shares, funds):
           <br>&nbsp;&nbsp;Basic Rate Taxpayer: 10%
           <br>&nbsp;&nbsp;Higher/Additional Rate: 20%
@@ -126,7 +126,7 @@
         </code>
 
         <p><strong>Step 4:</strong> Calculate Capital Gains Tax Due</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Capital Gains Tax Due = Taxable Gain × Applicable Rate
         </code>
 
@@ -146,7 +146,7 @@
 
     <!-- Pension Annual Allowance -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -154,20 +154,20 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Determine Base Allowance</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           If accessed pension flexibly: £10,000 (Money Purchase Annual Allowance)
           <br>Otherwise: £60,000 (Standard Annual Allowance)
         </code>
 
         <p><strong>Step 2:</strong> Check for Tapering (High Earners)</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           If threshold_income > £200,000 AND adjusted_income > £260,000:
           <br>&nbsp;&nbsp;Reduction = (adjusted_income - £260,000) / 2
           <br>&nbsp;&nbsp;Tapered Allowance = max(£10,000, £60,000 - Reduction)
         </code>
 
         <p><strong>Step 3:</strong> Add Carry Forward (if applicable)</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Total Available = Current Year Allowance + Unused from Last 3 Years
           <br>(Subject to pension scheme membership in those years)
         </code>
@@ -185,7 +185,7 @@
 
     <!-- Emergency Fund Calculation -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
@@ -193,19 +193,19 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Monthly Essential Expenses</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Essential Expenses = Mortgage/Rent + Bills + Food + Transport + Insurance
           <br>(Excludes discretionary spending like entertainment, dining out)
         </code>
 
         <p><strong>Step 2:</strong> Calculate Total Emergency Fund</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Emergency Fund = Sum of all savings accounts marked as "emergency fund"
           <br>(Easy access and notice accounts, not long-term fixed accounts)
         </code>
 
         <p><strong>Step 3:</strong> Calculate Runway</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Runway (months) = Emergency Fund / Monthly Essential Expenses
         </code>
 
@@ -227,7 +227,7 @@
 
     <!-- Portfolio Allocation Calculation -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
@@ -236,19 +236,19 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Current Allocation</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           For each asset class:
           <br>Current % = (Asset Class Value / Total Portfolio Value) × 100
         </code>
 
         <p><strong>Step 2:</strong> Compare to Target Allocation</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Deviation = Current % - Target %
           <br>Absolute Deviation = |Current % - Target %|
         </code>
 
         <p><strong>Step 3:</strong> Determine Rebalancing Need</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           If any Absolute Deviation > 5%:
           <br>&nbsp;&nbsp;Rebalancing Recommended = true
         </code>
@@ -267,7 +267,7 @@
 
     <!-- Retirement Readiness Score -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
@@ -275,26 +275,26 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Projected Retirement Income</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Defined Contribution Pension Pot at Retirement = Current Value × (1 + growth_rate)^years
           <br>Defined Contribution Annual Income = Pot × Safe Withdrawal Rate (typically 4%)
           <br>Total Projected Income = Defined Contribution Income + Defined Benefit Income + State Pension
         </code>
 
         <p><strong>Step 2:</strong> Determine Target Retirement Income</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Target Income = Current Income × Replacement Ratio
           <br>(Replacement Ratio typically 50-70% of pre-retirement income)
         </code>
 
         <p><strong>Step 3:</strong> Calculate Readiness Score</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Readiness Score = (Projected Income / Target Income) × 100
           <br>Score = min(100, Readiness Score)
         </code>
 
         <p><strong>Score Interpretation:</strong></p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           90-100%: On track (green)
           <br>70-89%: Nearly there (blue)
           <br>Below 70%: Action needed (red)
@@ -317,7 +317,7 @@
 
     <!-- Protection Coverage Gap -->
     <div class="card">
-      <h3 class="text-h3 text-gray-900 mb-3 flex items-center">
+      <h3 class="text-h3 text-horizon-500 mb-3 flex items-center">
         <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
@@ -325,7 +325,7 @@
       </h3>
       <div class="space-y-3 text-sm">
         <p><strong>Step 1:</strong> Calculate Human Capital Value</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Years to Retirement = Retirement Age - Current Age
           <br>Future Earnings = Annual Income × Years to Retirement
           <br>Discount Rate = 3% (inflation-adjusted)
@@ -333,14 +333,14 @@
         </code>
 
         <p><strong>Step 2:</strong> Determine Required Coverage</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Life Insurance Need = Human Capital + Debts - Existing Assets
           <br>Critical Illness Need = 3-5 years of income
           <br>Income Protection Need = 60-70% of gross income until retirement
         </code>
 
         <p><strong>Step 3:</strong> Calculate Coverage Gap</p>
-        <code class="block bg-gray-50 p-3 rounded text-xs font-mono">
+        <code class="block bg-eggshell-500 p-3 rounded text-xs font-mono">
           Coverage Gap = Required Coverage - Existing Coverage
           <br>Adequacy Score = (Existing Coverage / Required Coverage) × 100
         </code>

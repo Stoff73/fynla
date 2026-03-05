@@ -6,21 +6,21 @@
       color="purple"
     />
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
       <!-- Budget overview -->
       <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-sm font-medium text-gray-700">Monthly Disposable Income</span>
-          <span class="text-sm font-bold text-gray-900">{{ formatCurrency(monthlyDisposableIncome) }}</span>
+          <span class="text-sm font-medium text-horizon-500">Monthly Disposable Income</span>
+          <span class="text-sm font-bold text-horizon-500">{{ formatCurrency(monthlyDisposableIncome) }}</span>
         </div>
         <div class="flex items-center justify-between mb-2">
-          <span class="text-sm font-medium text-gray-700">Total Allocated (enabled actions)</span>
+          <span class="text-sm font-medium text-horizon-500">Total Allocated (enabled actions)</span>
           <span class="text-sm font-bold" :class="totalAllocated > monthlyDisposableIncome ? 'text-red-700' : 'text-green-700'">
             {{ formatCurrency(totalAllocated) }}
           </span>
         </div>
         <!-- Allocation bar -->
-        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+        <div class="w-full h-3 bg-savannah-100 rounded-full overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-300"
             :class="allocationBarColor"
@@ -28,7 +28,7 @@
           />
         </div>
         <div class="flex justify-between mt-1">
-          <span class="text-xs text-gray-500">{{ formatPercentage(allocationPercentage) }} allocated</span>
+          <span class="text-xs text-neutral-500">{{ formatPercentage(allocationPercentage) }} allocated</span>
           <span v-if="remainingBudget >= 0" class="text-xs text-green-600">{{ formatCurrency(remainingBudget) }} remaining</span>
           <span v-else class="text-xs text-red-600">{{ formatCurrency(Math.abs(remainingBudget)) }} over budget</span>
         </div>
@@ -56,13 +56,13 @@
               >
                 {{ formatModuleName(action.sourceModule) }}
               </span>
-              <span v-if="action.isGoalAction" class="text-xs text-gray-500">Goal</span>
+              <span v-if="action.isGoalAction" class="text-xs text-neutral-500">Goal</span>
             </div>
-            <h4 class="text-sm font-semibold text-gray-900">{{ action.title }}</h4>
+            <h4 class="text-sm font-semibold text-horizon-500">{{ action.title }}</h4>
           </div>
           <div class="flex-shrink-0 text-right">
-            <p class="text-sm font-semibold" :class="action.enabled ? 'text-gray-900' : 'text-gray-400'">
-              {{ formatCurrency(action.monthlyCost) }}<span class="text-xs font-normal text-gray-500">/mo</span>
+            <p class="text-sm font-semibold" :class="action.enabled ? 'text-horizon-500' : 'text-horizon-400'">
+              {{ formatCurrency(action.monthlyCost) }}<span class="text-xs font-normal text-neutral-500">/mo</span>
             </p>
             <p v-if="exceedsBudget(index) && action.enabled" class="text-xs text-red-600 mt-0.5">
               Exceeds available income
@@ -71,7 +71,7 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-8 text-gray-500">
+      <div v-else class="text-center py-8 text-neutral-500">
         <p class="text-sm">No actions available across your plans.</p>
       </div>
     </div>
@@ -153,9 +153,9 @@ export default {
     },
 
     actionRowClasses(action, index) {
-      if (!action.enabled) return 'border-gray-100 bg-gray-50 opacity-60';
+      if (!action.enabled) return 'border-savannah-100 bg-eggshell-500 opacity-60';
       if (this.exceedsBudget(index)) return 'border-red-200 bg-red-50/30';
-      return 'border-gray-200';
+      return 'border-light-gray';
     },
 
     priorityLabel(priority) {
@@ -167,7 +167,7 @@ export default {
       const map = {
         critical: 'bg-red-100 text-red-800',
         high: 'bg-blue-100 text-blue-800',
-        medium: 'bg-gray-100 text-gray-800',
+        medium: 'bg-savannah-100 text-horizon-500',
         low: 'bg-green-100 text-green-800',
       };
       return map[priority] || map.medium;
@@ -178,9 +178,9 @@ export default {
         protection: 'bg-purple-100 text-purple-800',
         investment: 'bg-blue-100 text-blue-800',
         retirement: 'bg-green-100 text-green-800',
-        estate: 'bg-gray-100 text-gray-800',
+        estate: 'bg-savannah-100 text-horizon-500',
       };
-      return map[module] || 'bg-gray-100 text-gray-800';
+      return map[module] || 'bg-savannah-100 text-horizon-500';
     },
 
     formatModuleName(module) {
