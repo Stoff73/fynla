@@ -59,7 +59,7 @@
     <!-- Inheritance Tax Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 border border-light-gray">
+      <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Now)</p>
         <p class="text-xs text-neutral-500 mb-1">Current net estate</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
@@ -67,7 +67,7 @@
       </div>
 
       <!-- Joint Death PROJECTED -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 border border-light-gray">
+      <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Projected)</p>
         <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
@@ -75,14 +75,14 @@
       </div>
 
       <!-- Total Inheritance Tax Payable -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border border-light-gray">
+      <div class="bg-white rounded-lg p-5 sm:col-span-2 lg:col-span-1 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
           <div>
             <p class="text-xs text-neutral-500 mb-1">If both die now:</p>
             <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
           </div>
-          <div class="border-t border-raspberry-200 pt-2">
+          <div class="border-t border-light-gray pt-2">
             <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}:</p>
             <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
           </div>
@@ -94,7 +94,7 @@
     <div v-else-if="ihtData && projection" class="mb-8">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <!-- Combined Summary Card -->
-        <div class="bg-white rounded-lg p-5 border border-light-gray">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow">
           <p class="text-sm text-neutral-500 font-medium mb-3">
             Inheritance Tax Summary
             <span v-if="charitableBequest" class="ml-1 text-xs text-spring-600">({{ effectiveIHTRateLabel }} rate)</span>
@@ -116,7 +116,7 @@
         </div>
 
         <!-- Will Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Gifting Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-spring-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -176,7 +176,7 @@
         </div>
 
         <!-- Life Policy Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -202,7 +202,7 @@
         </div>
 
         <!-- Charitable Bequest Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-raspberry-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -238,7 +238,7 @@
         </div>
 
         <!-- Trust Card (only show if taxable estate > £2m) -->
-        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
+        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-violet-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
