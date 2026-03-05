@@ -132,6 +132,8 @@ CLAUDE.md
 13. EstateLifeEventsImpact: spring/raspberry colours, no side highlight bars
 14. Print headers and PDF exports use new hi-res logo
 15. Onboarding focus area selection shows new logo
+16. Estate module: all cards use `border border-light-gray`, no coloured heavy borders
+17. Estate module: no `gray-*`, `green-*`, `red-*`, `blue-*`, `indigo-*`, `purple-*`, `pink-*`, `emerald-*`, `yellow-*`, `teal-*` tokens remaining
 
 ## Rollback
 
@@ -179,3 +181,26 @@ Removed dashboard clutter from retirement, investment, and estate modules:
 | `InvestmentList.vue` | ModuleLifeEvents, ModuleGoalStrategies, Strategy card, PortfolioStrategyPanel import, strategy methods/computed |
 | `EstateDashboard.vue` | ModuleLifeEvents |
 | `EstateLifeEventsImpact.vue` | Migrated `success-*`/`error-*` → `spring-*`/`raspberry-*`, removed `border-l-4` side highlights |
+
+### Estate Module Palette Migration (26 files)
+
+All estate components migrated to `fynlaDesignGuide.md` v1.2.0 palette:
+
+| Token Replaced | New Token |
+|---------------|-----------|
+| `gray-200` | `light-gray` |
+| `green-*` | `spring-*` |
+| `red-*` | `raspberry-*` |
+| `blue-*` | `horizon-*` / `violet-*` |
+| `indigo-*` | `violet-*` / `horizon-*` |
+| `purple-*` | `violet-*` |
+| `pink-*` | `raspberry-*` |
+| `emerald-*` | `spring-*` |
+| `yellow-*` | `violet-*` |
+| `teal-*` | `horizon-*` |
+| `error-*` | `raspberry-*` |
+| `success-*` | `spring-*` |
+| `border-l-4` | `border` (uniform borders) |
+| `border-2 border-{color}-500` | `border border-light-gray` (consistent card style) |
+
+**Files changed:** AssetsLiabilities, CashFlow, DualGiftingTimeline, EstateOverviewCard, EstateProjectionComparison, GiftCard, GiftForm, GiftingStrategy, GiftingTimelineChart, IHTAssetBreakdown, IHTCalculationTable, IHTLiabilityBreakdown, IHTMitigationStrategies, IHTPlanning, IntestacyRules, LiabilityForm, LifeCoverRecommendations, LifePolicyStrategy, MissingDataAlert, NRBRNRBTracker, SpouseExemptionNotice, TrustForm, TrustPlanning, TrustPlanningStrategy, WillPlanning, EstateDashboard
