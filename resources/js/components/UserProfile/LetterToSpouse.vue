@@ -863,7 +863,7 @@ export default {
     },
 
     logoUrl() {
-      return '/images/logos/logoTransparent.png';
+      return '/images/logos/LogoHiResFynlaDark.png';
     },
 
     /**

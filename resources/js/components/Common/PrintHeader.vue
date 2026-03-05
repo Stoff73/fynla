@@ -18,7 +18,7 @@ export default {
 
   data() {
     return {
-      logoUrl: '/images/logos/logoTransparent.png',
+      logoUrl: '/images/logos/LogoHiResFynlaDark.png',
     };
   },
 };
