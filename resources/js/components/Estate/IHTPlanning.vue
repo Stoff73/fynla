@@ -103,14 +103,14 @@
             <!-- Taxable Estate -->
             <div>
               <p class="text-xs text-neutral-500 mb-1">Taxable Estate</p>
-              <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
-              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(projection.at_death.taxable_estate) }}</p>
+              <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.taxableEstate?.now || 0) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(standardTableProps?.taxableEstate?.projected || 0) }}</p>
             </div>
             <!-- Tax Liability -->
             <div>
               <p class="text-xs text-neutral-500 mb-1">Inheritance Tax Liability</p>
-              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
-              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
+              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(standardTableProps?.ihtLiability?.projected || 0) }}</p>
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@
           <div class="space-y-2">
             <div class="text-xs">
               <p class="text-neutral-500">Cover Needed:</p>
-              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</p>
+              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
             </div>
             <div class="text-xs">
               <p class="text-neutral-500">Recommended:</p>
@@ -871,55 +871,8 @@ export default {
       return this.charitableBaseline * 0.10;
     },
 
-    effectiveIHTRate() {
-      // 36% if charitable bequest, 40% otherwise
-      return this.charitableBequest ? 0.36 : 0.40;
-    },
-
     effectiveIHTRateLabel() {
       return this.charitableBequest ? '36%' : '40%';
-    },
-
-    // Adjusted IHT liability based on charitable bequest
-    adjustedIHTLiability() {
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityProjected() {
-      const taxableEstate = this.projection?.at_death?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityMinus5() {
-      const taxableEstate = this.projectionMinus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityPlus5() {
-      const taxableEstate = this.projectionPlus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    // For married users - second death calculations
-    adjustedSecondDeathIHTLiabilityNow() {
-      const taxableEstate = this.secondDeathData?.second_death_analysis?.current_iht_calculation?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityProjected() {
-      const taxableEstate = this.taxableEstateProjected || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityMinus5() {
-      const taxableEstate = this.secondDeathProjectionMinus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityPlus5() {
-      const taxableEstate = this.secondDeathProjectionPlus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
     },
 
     // Charitable donation for projected values

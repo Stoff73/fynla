@@ -87,7 +87,7 @@ class IHTController extends Controller
             // Recalculate projected taxable estate and IHT with corrected net estate
             $totalAllowances = $calculation['nrb_available'] + $calculation['rnrb_available'];
             $calculation['projected_taxable_estate'] = max(0, $calculation['projected_net_estate'] - $totalAllowances);
-            $calculation['projected_iht_liability'] = $calculation['projected_taxable_estate'] * 0.40;
+            $calculation['projected_iht_liability'] = $calculation['projected_taxable_estate'] * ($calculation['iht_rate'] ?? 0.40);
 
             // Format response for frontend compatibility
             $response = [
