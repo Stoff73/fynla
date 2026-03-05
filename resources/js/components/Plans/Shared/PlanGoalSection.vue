@@ -5,7 +5,7 @@
       <PlanSectionHeader
         title="Linked Goals"
         subtitle="Goals linked to your accounts with progress tracking"
-        color="teal"
+        color="horizon"
       />
 
       <div class="space-y-3">
@@ -48,7 +48,7 @@
               <p class="text-xs text-neutral-500">Priority</p>
               <p class="text-xs font-semibold text-horizon-500 capitalize">
                 {{ goal.priority || '—' }}
-                <span v-if="goal.is_essential" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Essential</span>
+                <span v-if="goal.is_essential" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">Essential</span>
               </p>
             </div>
             <div class="bg-eggshell-500 rounded-lg p-2.5">
@@ -93,10 +93,10 @@
             <p v-if="goal.funding_source && goal.funding_source.name" class="text-xs text-neutral-500 mt-1.5">
               Recommended source: <span class="font-medium text-horizon-500">{{ goal.funding_source.name }}</span>
             </p>
-            <p v-else class="text-xs text-blue-600 mt-1.5">
+            <p v-else class="text-xs text-violet-600 mt-1.5">
               Link an account to identify a funding source
             </p>
-            <p v-if="goal.funding_source && goal.funding_source.warning" class="text-xs text-red-600 mt-1.5 leading-relaxed">
+            <p v-if="goal.funding_source && goal.funding_source.warning" class="text-xs text-raspberry-600 mt-1.5 leading-relaxed">
               {{ goal.funding_source.warning }}
             </p>
           </div>
@@ -109,7 +109,7 @@
       <div class="unlinked-goals-prompt">
         <div class="flex items-start gap-3">
           <div class="unlinked-goals-icon">
-            <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
@@ -192,7 +192,7 @@ export default {
 
     requiredMonthlyColor(goal) {
       if (!goal.required_monthly_contribution || goal.required_monthly_contribution <= 0) return 'text-horizon-500';
-      return (goal.monthly_contribution || 0) >= goal.required_monthly_contribution ? 'text-green-700' : 'text-red-700';
+      return (goal.monthly_contribution || 0) >= goal.required_monthly_contribution ? 'text-spring-700' : 'text-raspberry-700';
     },
 
     goalStatus(goal) {
@@ -245,24 +245,24 @@ export default {
 }
 
 .badge-complete {
-  @apply bg-green-100 text-green-800;
+  @apply bg-spring-100 text-spring-800;
 }
 .dot-complete {
-  @apply bg-green-500;
+  @apply bg-spring-500;
 }
 
 .badge-on-track {
-  @apply bg-blue-100 text-blue-800;
+  @apply bg-violet-100 text-violet-800;
 }
 .dot-on-track {
-  @apply bg-blue-500;
+  @apply bg-violet-500;
 }
 
 .badge-behind {
-  @apply bg-red-100 text-red-800;
+  @apply bg-raspberry-100 text-raspberry-800;
 }
 .dot-behind {
-  @apply bg-red-500;
+  @apply bg-raspberry-500;
 }
 
 /* -- Meta info row -- */
@@ -280,8 +280,8 @@ export default {
 
 /* -- Goal action block -- */
 .goal-action-block {
-  @apply mt-3 pt-3 border-t border-blue-100 bg-blue-50 rounded-lg p-3 -mx-1;
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  @apply mt-3 pt-3 border-t border-violet-100 bg-violet-50 rounded-lg p-3 -mx-1;
+  border: 1px solid rgba(88, 84, 230, 0.15);
 }
 
 /* -- Unlinked goals prompt -- */
@@ -295,7 +295,7 @@ export default {
 }
 
 .unlinked-goals-icon {
-  @apply w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5;
+  @apply w-8 h-8 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0 mt-0.5;
 }
 
 .unlinked-goals-link {

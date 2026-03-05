@@ -33,9 +33,19 @@ class RecommendationsAggregatorService
         // Protection module
         try {
             $protectionAnalysis = $this->protectionEngine->analyze($userId);
-            $protectionRecs = $this->protectionEngine->generateRecommendations($protectionAnalysis);
-            $formattedProtection = $this->formatRecommendations($protectionRecs, 'protection');
-            $allRecommendations = array_merge($allRecommendations, $formattedProtection);
+            $protectionRecs = $protectionAnalysis['data']['recommendations'] ?? [];
+            // Also extract coverage gaps as recommendations
+            $gaps = $protectionAnalysis['data']['gaps'] ?? [];
+            foreach ($gaps as $gap) {
+                if (is_array($gap) && isset($gap['recommendation'])) {
+                    $protectionRecs[] = [
+                        'recommendation_text' => $gap['recommendation'],
+                        'priority_score' => 70,
+                        'category' => $gap['type'] ?? 'coverage_gap',
+                    ];
+                }
+            }
+            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($protectionRecs, 'protection'));
         } catch (\Exception $e) {
             Log::warning("Failed to get protection recommendations for user {$userId}: ".$e->getMessage());
         }
@@ -43,43 +53,69 @@ class RecommendationsAggregatorService
         // Savings module
         try {
             $savingsAnalysis = $this->savingsCalculator->analyze($userId);
-            $savingsRecs = $savingsAnalysis['recommendations'] ?? [];
-            $formattedSavings = $this->formatRecommendations($savingsRecs, 'savings');
-            $allRecommendations = array_merge($allRecommendations, $formattedSavings);
+            $savingsRecs = [];
+            // Emergency fund recommendation
+            $ef = $savingsAnalysis['emergency_fund'] ?? [];
+            if (! empty($ef['recommendation']) && strtolower($ef['category'] ?? '') !== 'excellent') {
+                $savingsRecs[] = [
+                    'recommendation_text' => $ef['recommendation'],
+                    'priority_score' => ($ef['category'] ?? '') === 'critical' ? 90 : 60,
+                    'category' => 'emergency_fund',
+                ];
+            }
+            // ISA allowance recommendation
+            $isa = $savingsAnalysis['isa_allowance'] ?? [];
+            $remaining = $isa['remaining'] ?? 0;
+            if ($remaining > 0) {
+                $savingsRecs[] = [
+                    'recommendation_text' => 'You have £'.number_format($remaining).' of ISA allowance remaining this tax year. Consider maximising your tax-free savings.',
+                    'priority_score' => 55,
+                    'category' => 'isa_allowance',
+                ];
+            }
+            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($savingsRecs, 'savings'));
         } catch (\Exception $e) {
             Log::warning("Failed to get savings recommendations for user {$userId}: ".$e->getMessage());
-        }
-
-        // Investment module
-        try {
-            $investmentAccounts = $user->investmentAccounts;
-            if ($investmentAccounts->isNotEmpty()) {
-                // Investment analyzer may not have recommendations structure yet
-                // This is a safe guard for future implementation
-                $investmentRecs = [];
-                $formattedInvestment = $this->formatRecommendations($investmentRecs, 'investment');
-                $allRecommendations = array_merge($allRecommendations, $formattedInvestment);
-            }
-        } catch (\Exception $e) {
-            Log::warning("Failed to get investment recommendations for user {$userId}: ".$e->getMessage());
         }
 
         // Retirement module
         try {
             $retirementAnalysis = $this->retirementAgent->analyze($userId);
-            $retirementRecs = $retirementAnalysis['recommendations'] ?? [];
-            $formattedRetirement = $this->formatRecommendations($retirementRecs, 'retirement');
-            $allRecommendations = array_merge($allRecommendations, $formattedRetirement);
+            $retirementData = $retirementAnalysis['data'] ?? $retirementAnalysis;
+            $retirementRecs = $retirementData['recommendations'] ?? [];
+            // Extract actionable items from income projection shortfall
+            $summary = $retirementData['summary'] ?? [];
+            if (isset($summary['shortfall']) && $summary['shortfall'] > 0) {
+                $retirementRecs[] = [
+                    'recommendation_text' => 'Your projected retirement income has a shortfall of £'.number_format($summary['shortfall']).' per year. Consider increasing pension contributions.',
+                    'priority_score' => 80,
+                    'category' => 'income_shortfall',
+                ];
+            }
+            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($retirementRecs, 'retirement'));
         } catch (\Exception $e) {
             Log::warning("Failed to get retirement recommendations for user {$userId}: ".$e->getMessage());
         }
 
-        // Estate module
+        // Estate module — extract from implementation_timeline
         try {
             $estatePlan = $this->estatePlanService->generateComprehensiveEstatePlan($user);
-            $estateRecs = $estatePlan['recommendations'] ?? [];
-            $formattedEstate = $this->formatRecommendations($estateRecs, 'estate');
-            $allRecommendations = array_merge($allRecommendations, $formattedEstate);
+            $estateRecs = [];
+            // Extract actions from implementation_timeline
+            $timeline = $estatePlan['implementation_timeline'] ?? [];
+            foreach ($timeline as $item) {
+                if (is_array($item) && isset($item['action'])) {
+                    $priority = ($item['priority'] ?? 2) === 1 ? 85 : 60;
+                    $estateRecs[] = [
+                        'recommendation_text' => $item['action'].(! empty($item['timeframe']) ? " ({$item['timeframe']})" : ''),
+                        'priority_score' => $priority,
+                        'category' => $item['category'] ?? 'estate_planning',
+                        'estimated_cost' => $item['cost'] ?? null,
+                        'potential_benefit' => is_numeric($item['iht_saving'] ?? null) ? $item['iht_saving'] : null,
+                    ];
+                }
+            }
+            $allRecommendations = array_merge($allRecommendations, $this->formatRecommendations($estateRecs, 'estate'));
         } catch (\Exception $e) {
             Log::warning("Failed to get estate recommendations for user {$userId}: ".$e->getMessage());
         }
@@ -263,10 +299,10 @@ class RecommendationsAggregatorService
             $summary['by_timeline'][$timeline] = ($summary['by_timeline'][$timeline] ?? 0) + 1;
 
             // Sum potential benefits and costs
-            if (isset($rec['potential_benefit'])) {
+            if (isset($rec['potential_benefit']) && is_numeric($rec['potential_benefit'])) {
                 $summary['total_potential_benefit'] += $rec['potential_benefit'];
             }
-            if (isset($rec['estimated_cost'])) {
+            if (isset($rec['estimated_cost']) && is_numeric($rec['estimated_cost'])) {
                 $summary['total_estimated_cost'] += $rec['estimated_cost'];
             }
         }

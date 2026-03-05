@@ -30,7 +30,7 @@
       </div>
       <div class="bg-white rounded-lg border border-light-gray p-4 text-center">
         <p class="text-xs text-neutral-500 uppercase">ISA Remaining</p>
-        <p class="text-lg font-bold text-green-700">{{ formatCurrency(situation.isa_allowance.remaining || 0) }}</p>
+        <p class="text-lg font-bold text-spring-700">{{ formatCurrency(situation.isa_allowance.remaining || 0) }}</p>
       </div>
     </div>
   </div>

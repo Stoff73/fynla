@@ -128,7 +128,7 @@
           </div>
 
           <div v-if="trust.trust_type === 'life_insurance' && trust.sum_assured" class="mt-3 pt-3 border-t border-light-gray">
-            <p class="text-xs text-purple-700">
+            <p class="text-xs text-violet-500">
               <strong>Sum Assured:</strong> {{ formatCurrency(trust.sum_assured) }}
               | <strong>Annual Premium:</strong> {{ formatCurrency(trust.annual_premium) }}
             </p>
@@ -208,7 +208,7 @@
           </button>
           <button
             @click="deleteTrust"
-            class="px-4 py-2 text-sm font-medium text-white bg-error-600 border border-transparent rounded-button hover:bg-error-700"
+            class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 border border-transparent rounded-button hover:bg-raspberry-600"
           >
             Delete
           </button>
@@ -348,13 +348,13 @@ export default {
       const classes = {
         bare: 'bg-violet-100 text-violet-800',
         interest_in_possession: 'bg-spring-100 text-spring-800',
-        discretionary: 'bg-purple-100 text-purple-800',
-        accumulation_maintenance: 'bg-indigo-100 text-indigo-800',
+        discretionary: 'bg-violet-50 text-violet-500',
+        accumulation_maintenance: 'bg-violet-50 text-violet-500',
         life_insurance: 'bg-raspberry-100 text-raspberry-800',
         discounted_gift: 'bg-violet-100 text-violet-800',
-        loan: 'bg-teal-100 text-teal-800',
+        loan: 'bg-horizon-100 text-horizon-500',
         mixed: 'bg-savannah-100 text-horizon-500',
-        settlor_interested: 'bg-pink-100 text-pink-800',
+        settlor_interested: 'bg-raspberry-50 text-raspberry-700',
       };
       return classes[type] || 'bg-savannah-100 text-horizon-500';
     },

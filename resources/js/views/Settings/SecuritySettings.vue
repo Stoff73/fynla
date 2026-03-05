@@ -407,14 +407,14 @@ export default {
 }
 
 .page-title {
+  @apply text-horizon-500;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
   margin-bottom: 0.5rem;
 }
 
 .page-description {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .settings-section {
@@ -433,9 +433,9 @@ export default {
 }
 
 .section-title {
+  @apply text-horizon-500;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
   margin: 0;
 }
 
@@ -447,17 +447,15 @@ export default {
 }
 
 .status-badge.enabled {
-  background-color: #d1fae5;
-  color: #065f46;
+  @apply bg-spring-100 text-spring-800;
 }
 
 .status-badge.disabled {
-  background-color: #fee2e2;
-  color: #991b1b;
+  @apply bg-raspberry-100 text-raspberry-800;
 }
 
 .section-description {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 0.875rem;
   margin-bottom: 1rem;
 }
@@ -477,7 +475,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background-color: #f9fafb;
+  @apply bg-eggshell-500;
   border-radius: 0.375rem;
 }
 
@@ -489,18 +487,17 @@ export default {
 }
 
 .device-icon {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .device-name {
+  @apply text-horizon-500;
   font-weight: 500;
-  color: #111827;
 }
 
 .current-badge {
+  @apply bg-violet-100 text-violet-800;
   font-size: 0.75rem;
-  background-color: #dbeafe;
-  color: #1e40af;
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
 }
@@ -509,12 +506,11 @@ export default {
   display: flex;
   gap: 1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .tips-section {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  @apply bg-spring-50 border border-spring-200;
 }
 
 .tips-list {
@@ -528,11 +524,11 @@ export default {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0;
-  color: #166534;
+  @apply text-spring-800;
 }
 
 .tip-icon.check {
-  color: #16a34a;
+  @apply text-spring-500;
   font-weight: bold;
 }
 
@@ -542,17 +538,16 @@ export default {
 }
 
 .btn-outline.btn-danger {
-  border-color: #fca5a5;
-  color: #dc2626;
+  @apply border-raspberry-300 text-raspberry-600;
   background-color: white;
 }
 
 .btn-outline.btn-danger:hover {
-  background-color: #fef2f2;
+  @apply bg-raspberry-50;
 }
 
 .empty-state {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-style: italic;
 }
 </style>

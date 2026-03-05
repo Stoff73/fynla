@@ -118,7 +118,7 @@
       </div>
 
       <!-- Call to Action -->
-      <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
+      <div class="bg-horizon-500 rounded-lg p-6 text-white">
         <h3 class="text-lg font-semibold mb-2">Take Control of Your Legacy</h3>
         <p class="text-sm text-violet-100 mb-4">
           Creating a will ensures your estate is distributed according to your wishes, not government rules.

@@ -1,7 +1,7 @@
 <template>
   <div class="iht-planning-tab">
     <!-- Error State - No Profile -->
-    <div v-if="error && !ihtData" class="bg-white border-2 border-violet-500 rounded-lg p-6 mb-6">
+    <div v-if="error && !ihtData" class="bg-violet-50 border border-violet-200 rounded-lg p-6 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
           <svg class="h-6 w-6 text-neutral-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,7 +59,7 @@
     <!-- Inheritance Tax Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-violet-500">
+      <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Now)</p>
         <p class="text-xs text-neutral-500 mb-1">Current net estate</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.net_estate_value || 0) }}</p>
@@ -67,7 +67,7 @@
       </div>
 
       <!-- Joint Death PROJECTED -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 border-2 border-purple-500">
+      <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Joint Death (Projected)</p>
         <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}</p>
         <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.net_estate_value || 0) }}</p>
@@ -75,14 +75,14 @@
       </div>
 
       <!-- Total Inheritance Tax Payable -->
-      <div class="bg-white rounded-lg p-4 sm:p-6 sm:col-span-2 lg:col-span-1 border-2 border-raspberry-500">
+      <div class="bg-white rounded-lg p-5 sm:col-span-2 lg:col-span-1 border border-light-gray shadow-sm">
         <p class="text-sm text-neutral-500 font-medium mb-2">Total Inheritance Tax Payable</p>
         <div class="space-y-3">
           <div>
             <p class="text-xs text-neutral-500 mb-1">If both die now:</p>
             <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.current_iht_calculation?.iht_liability || 0) }}</p>
           </div>
-          <div class="border-t border-raspberry-200 pt-2">
+          <div class="border-t border-light-gray pt-2">
             <p class="text-xs text-neutral-500 mb-1">At age {{ secondDeathData.second_death_analysis.second_death.estimated_age_at_death }}:</p>
             <p class="text-lg sm:text-xl lg:text-2xl font-bold text-horizon-500">{{ formatCurrency(secondDeathData.second_death_analysis.iht_calculation?.iht_liability || 0) }}</p>
           </div>
@@ -94,7 +94,7 @@
     <div v-else-if="ihtData && projection" class="mb-8">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <!-- Combined Summary Card -->
-        <div class="bg-white rounded-lg p-5 border border-light-gray">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow">
           <p class="text-sm text-neutral-500 font-medium mb-3">
             Inheritance Tax Summary
             <span v-if="charitableBequest" class="ml-1 text-xs text-spring-600">({{ effectiveIHTRateLabel }} rate)</span>
@@ -103,20 +103,20 @@
             <!-- Taxable Estate -->
             <div>
               <p class="text-xs text-neutral-500 mb-1">Taxable Estate</p>
-              <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(ihtData?.taxable_estate || 0) }}</p>
-              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(projection.at_death.taxable_estate) }}</p>
+              <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.taxableEstate?.now || 0) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(standardTableProps?.taxableEstate?.projected || 0) }}</p>
             </div>
             <!-- Tax Liability -->
             <div>
               <p class="text-xs text-neutral-500 mb-1">Inheritance Tax Liability</p>
-              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(charitableBequest ? adjustedIHTLiability : projection.now.iht_liability) }}</p>
-              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(charitableBequest ? adjustedIHTLiabilityProjected : projection.at_death.iht_liability) }}</p>
+              <p class="text-sm font-bold" :class="charitableBequest ? 'text-spring-700' : 'text-horizon-500'">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
+              <p class="text-xs text-horizon-400 mt-1">Age {{ ihtData.estimated_age_at_death }}: {{ formatCurrency(standardTableProps?.ihtLiability?.projected || 0) }}</p>
             </div>
           </div>
         </div>
 
         <!-- Will Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToWillTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -131,11 +131,11 @@
           <div class="space-y-2">
             <div class="flex items-center text-xs">
               <span class="text-neutral-500">Status:</span>
-              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white border-l-4 border-horizon-400 text-spring-800">
+              <span v-if="hasWill" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white  text-spring-800">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Complete
               </span>
-              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-horizon-500">
+              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-horizon-500">
                 <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
                 Incomplete
               </span>
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Gifting Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToGiftingTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-spring-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -176,7 +176,7 @@
         </div>
 
         <!-- Life Policy Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToProtectionModule">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
               <svg class="h-6 w-6 text-neutral-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -191,7 +191,7 @@
           <div class="space-y-2">
             <div class="text-xs">
               <p class="text-neutral-500">Cover Needed:</p>
-              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(ihtData?.estate_iht_liability || 0) }}</p>
+              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
             </div>
             <div class="text-xs">
               <p class="text-neutral-500">Recommended:</p>
@@ -202,33 +202,33 @@
         </div>
 
         <!-- Charitable Bequest Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-pink-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-raspberry-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
               </svg>
               <h4 class="text-sm font-semibold text-horizon-500">Charitable Bequest</h4>
             </div>
-            <div v-if="savingCharitableBequest" class="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>
+            <div v-if="savingCharitableBequest" class="animate-spin h-4 w-4 border-2 border-raspberry-500 border-t-transparent rounded-full"></div>
           </div>
           <div class="space-y-3">
             <div class="text-xs">
               <p class="text-neutral-500 mb-2">Leave 10%+ to charity?</p>
               <div class="flex items-center space-x-4">
                 <label class="inline-flex items-center cursor-pointer">
-                  <input type="radio" :checked="charitableBequest === true" :disabled="savingCharitableBequest" class="form-radio text-pink-600 h-4 w-4" @change="toggleCharitableBequest(true)">
+                  <input type="radio" :checked="charitableBequest === true" :disabled="savingCharitableBequest" class="form-radio text-raspberry-500 h-4 w-4" @change="toggleCharitableBequest(true)">
                   <span class="ml-1.5 text-sm text-neutral-500">Yes</span>
                 </label>
                 <label class="inline-flex items-center cursor-pointer">
-                  <input type="radio" :checked="charitableBequest === false" :disabled="savingCharitableBequest" class="form-radio text-pink-600 h-4 w-4" @change="toggleCharitableBequest(false)">
+                  <input type="radio" :checked="charitableBequest === false" :disabled="savingCharitableBequest" class="form-radio text-raspberry-500 h-4 w-4" @change="toggleCharitableBequest(false)">
                   <span class="ml-1.5 text-sm text-neutral-500">No</span>
                 </label>
               </div>
             </div>
             <div v-if="charitableBequest" class="text-xs">
               <p class="text-neutral-500">Potential Inheritance Tax Savings:</p>
-              <p class="text-lg font-bold text-pink-700">{{ formatCurrency(charitableBequestSavings) }}</p>
+              <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }}</p>
               <p class="text-xs text-neutral-500 mt-1">Rate reduces from 40% to 36%</p>
             </div>
             <div v-else class="text-xs text-neutral-500">
@@ -238,10 +238,10 @@
         </div>
 
         <!-- Trust Card (only show if taxable estate > £2m) -->
-        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg border border-light-gray p-5 hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
+        <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <svg class="h-6 w-6 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-6 w-6 text-violet-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
               </svg>
               <h4 class="text-sm font-semibold text-horizon-500">Trust</h4>
@@ -253,7 +253,7 @@
           <div class="space-y-2">
             <div class="text-xs">
               <p class="text-neutral-500">Total Trust Value:</p>
-              <p class="text-lg font-bold text-indigo-700">{{ formatCurrency(totalTrustValue) }}</p>
+              <p class="text-lg font-bold text-violet-500">{{ formatCurrency(totalTrustValue) }}</p>
             </div>
             <div class="text-xs">
               <p class="text-neutral-500">Outside Estate:</p>
@@ -434,7 +434,7 @@
               <td class="px-2 py-1">
                 <span
                   class="px-1.5 py-0.5 rounded text-xs"
-                  :class="row.phase === 'Pre-Retirement' ? 'bg-violet-100 text-violet-700' : 'bg-spring-100 text-spring-700'"
+                  :class="row.phase === 'Pre-Retirement' ? 'bg-violet-50 text-violet-700' : 'bg-spring-100 text-spring-700'"
                 >
                   {{ row.phase }}
                 </span>
@@ -871,55 +871,8 @@ export default {
       return this.charitableBaseline * 0.10;
     },
 
-    effectiveIHTRate() {
-      // 36% if charitable bequest, 40% otherwise
-      return this.charitableBequest ? 0.36 : 0.40;
-    },
-
     effectiveIHTRateLabel() {
       return this.charitableBequest ? '36%' : '40%';
-    },
-
-    // Adjusted IHT liability based on charitable bequest
-    adjustedIHTLiability() {
-      const taxableEstate = this.ihtData?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityProjected() {
-      const taxableEstate = this.projection?.at_death?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityMinus5() {
-      const taxableEstate = this.projectionMinus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedIHTLiabilityPlus5() {
-      const taxableEstate = this.projectionPlus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    // For married users - second death calculations
-    adjustedSecondDeathIHTLiabilityNow() {
-      const taxableEstate = this.secondDeathData?.second_death_analysis?.current_iht_calculation?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityProjected() {
-      const taxableEstate = this.taxableEstateProjected || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityMinus5() {
-      const taxableEstate = this.secondDeathProjectionMinus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
-    },
-
-    adjustedSecondDeathIHTLiabilityPlus5() {
-      const taxableEstate = this.secondDeathProjectionPlus5?.taxable_estate || 0;
-      return taxableEstate * this.effectiveIHTRate;
     },
 
     // Charitable donation for projected values

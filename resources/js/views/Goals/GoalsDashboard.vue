@@ -199,6 +199,12 @@ export default {
     };
   },
 
+  watch: {
+    '$route.query.tab'(tab) {
+      this.activeTab = tab === 'events' ? 'events' : 'overview';
+    },
+  },
+
   computed: {
     ...mapState('goals', ['loading', 'error', 'goals']),
     ...mapGetters('goals', ['dashboardData']),
@@ -224,6 +230,11 @@ export default {
 
   mounted() {
     this.loadGoalsData();
+
+    // Check for tab query parameter (e.g., from sidebar Life Events link)
+    if (this.$route.query.tab === 'events') {
+      this.activeTab = 'events';
+    }
 
     // Check for action query parameter (e.g., from dashboard empty state CTA)
     if (this.$route.query.action === 'create') {

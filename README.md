@@ -1,12 +1,12 @@
 # Fynla - UK Financial Planning System
 
-A comprehensive financial planning web application designed for UK individuals and families, covering five integrated modules: Protection, Savings, Investment, Retirement, and Estate Planning. Switched to fynlaAdvisory 9th Februaru 2026, to start on full financial planning trres and UI design.
+A comprehensive financial planning web application designed for UK individuals and families, covering seven integrated modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination. Features an AI-powered chat assistant, unified financial plans with PDF export, and a complete design system.
 
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red?logo=laravel)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green?logo=vue.js)
 ![PHP](https://img.shields.io/badge/PHP-8.2+-blue?logo=php)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue?logo=mysql)
-![Tests](https://img.shields.io/badge/tests-1075%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1603%20passing-brightgreen)
 
 ---
 
@@ -21,7 +21,7 @@ A comprehensive financial planning web application designed for UK individuals a
 | API Endpoints | 400+ |
 | Vuex Store Modules | 21 |
 | Agents | 8 |
-| Test Cases | 1,075 |
+| Test Cases | 1,603 |
 
 ---
 
@@ -62,9 +62,9 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ## Current Status
 
-**Version**: v0.7.0
-**Last Updated**: February 6, 2026
-**Test Suite**: 1,075 tests passing
+**Version**: v0.8.3
+**Last Updated**: 5 March 2026
+**Test Suite**: 1,603 tests passing
 
 ### Completion Status
 
@@ -77,7 +77,7 @@ A comprehensive financial planning web application designed for UK individuals a
 | Admin Panel | 100% | User management, backups, tax configuration |
 | Document Upload | 100% | AI-powered extraction (Claude Sonnet) |
 | Security Compliance | 100% | TOTP MFA, GDPR, audit logging, RBAC |
-| Preview Mode | 100% | 6 database-backed personas |
+| Preview Mode | 100% | 7 database-backed personas |
 | Goals & Life Events | 100% | Goal tracking, projections, life events |
 | Email Verification | 100% | 6-digit code verification for registration/login |
 | Mobile Responsive | 90% | Dashboard and key views optimized |
@@ -154,6 +154,7 @@ Try the full application with realistic financial data:
 | Alex Chen | Single tech entrepreneur with SIPP | ~£550k |
 | John Morgan | Young adult saver, LISA, Cash ISA, student loan | ~£25k |
 | Patricia & Harold Bennett | Retired couple, DB pensions, IHT planning | ~£1.8m |
+| Janice Taylor | University student, LISA, student loan | ~-£33k |
 
 ---
 
@@ -442,7 +443,7 @@ php -d memory_limit=512M ./vendor/bin/pest
 | Unit | 200+ | Service classes, calculations |
 | Feature | 800+ | API endpoints, integrations |
 | Architecture | 50+ | Coding standards enforcement |
-| **Total** | **1,075** | All passing |
+| **Total** | **1,603** | All passing |
 
 ### After Running Tests
 
@@ -492,8 +493,8 @@ php artisan route:clear
 | Document | Purpose |
 |----------|---------|
 | `CLAUDE.md` | Development guidelines for Claude Code |
-| `Feb6Updates/deploy6.md` | v0.7.0 deployment changes |
-| `Feb5Updates/deploy5.md` | v0.7.0 deployment changes |
+| `fynlaDesignGuide.md` | Design system v1.2.0 (single source of truth) |
+| `March2Update/patch083.md` | v0.8.3 comprehensive patch report |
 | `deploy/README.md` | Deployment configuration |
 | `preview.md` | Preview mode architecture |
 
@@ -501,34 +502,40 @@ php artisan route:clear
 
 ## Recent Updates
 
-### February 5-6, 2026 - v0.7.0
+### 27 February - 5 March 2026 - v0.8.3
 
-- Laravel best practices audit: 12 Form Requests, 10 API Resources, IHTController extraction (code quality 85 to 94)
-- Goals projections rewritten with simple FV calculation using user's own assumptions
-- Goals cash flow chart now shows actual net income (was zero)
+- **Financial Plans System (Complete Rebuild)** — Unified plan framework with 5 plan types (Investment, Protection, Retirement, Estate, Goal) following a consistent 6-section structure: executive summary, current situation, toggleable actions, what-if scenarios, dynamic conclusion, PDF export
+- **Holistic Plan Rewrite** — Frontend-orchestrated aggregation of individual module plans with priority allocation against shared disposable income
+- **AI Chat Assistant** — AI-powered chat assistant ("Fynla Assistant") with 17 tools, SSE streaming, and simulated AI for preview personas (zero API cost for demos)
+- **Side Navigation Menu** — Collapsible left-side navigation with expanded/collapsed modes, mobile overlay, and persisted state
+- **Student Preview Persona** — 7th persona (Janice Taylor, 21, university student) with optimised student dashboard
+- **Design System Overhaul (v1.2.0)** — Complete visual rebrand: Raspberry CTAs, Horizon text, Spring success, Violet warnings, Eggshell backgrounds, Segoe UI typography
+- **CSS Centralisation** — Eliminated 1,110 lines of duplicated CSS across 65 components, established CSS governance rules
+- **Plan Enhancements** — Structured executive summaries, personal information sections, per-account/pension recommendations with reactive charts, admin-configurable plan values (PlanConfigService)
+- **Code Audit** — Fixed 3 critical bugs, 7 important fixes, 12 simplifications across all plan services
+- **Print/Save PDF** — Multi-plan print support with type-specific builders and cascading line charts
+
+### 22 February 2026 - v0.8.1
+
+- Security hardening (4 phases): data encryption at rest, brute force protection, account enumeration prevention, challenge token authentication
+- Security headers: CSP hardened, permissions policy, session security, source maps disabled
+- Model and API hardening: hidden attributes, mass assignment protection, generic error messages
+- Revolut payment integration with subscription management
+- Token storage migrated to sessionStorage exclusively
+
+### 5-6 February 2026 - v0.7.0
+
+- Laravel best practices audit: 12 Form Requests, 10 API Resources, IHTController extraction
+- Goals projections rewritten with simple FV calculation
 - Retirement planner: income tax slider, decumulation graph, DB/State pension fallback
-- Wealth summary: excludes DB pensions, responsive values, joint ownership accuracy
-- Fixed 500 errors across 8 API Resources (null safety on eager-loaded relationships)
-- Fixed mortgage display, occupation lookup, info guide errors
-- Removed postcode lookup (GetAddress.io shutdown)
-- Contribution streaks, life event management, household view for goals
+- Wealth summary improvements, 500 error fixes across 8 API Resources
 
-### January 19, 2026 - v0.6.2
+### 19 January 2026 - v0.6.2
 
 - TOTP MFA, failed login tracking, session management, GDPR compliance, audit logging, RBAC
 - Goals-based planning module with 8 goal types
-- Automated risk profile calculator (7-factor analysis)
-- Financial statements: balance sheet, income statement, cash flow
-- Investment dashboard redesign with strategy cards
-- Young Adult Saver and Retired Couple personas
-- 134 new security tests
-
-### January 16, 2026 - v0.5.1
-
-- Security & Privacy page, landing page enhancements
-- Estate dashboard redesign, retirement dashboard 3-column layout
-- Draggable dashboard widgets, auto-collapse sidebar
-- IHT terminology update, tax projection columns
+- Automated risk profile calculator, financial statements
+- Young Adult Saver and Retired Couple personas, 134 new security tests
 
 ---
 
@@ -547,7 +554,7 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Version**: v0.7.0 | **Last Updated**: February 6, 2026 | **Status**: Production Ready
+**Version**: v0.8.3 | **Last Updated**: 5 March 2026 | **Status**: Production Ready
 
 Built with [Claude Code](https://claude.com/claude-code)
 

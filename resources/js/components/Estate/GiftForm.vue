@@ -423,7 +423,7 @@ textarea.form-control {
   margin: 20px 0;
   padding: 16px;
   @apply bg-violet-50;
-  @apply border-l-4 border-raspberry-500;
+  @apply border border-raspberry-200;
   border-radius: 4px;
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6">
-    <PlanSectionHeader title="Current Situation" subtitle="Your investment and savings overview" color="blue" />
+    <PlanSectionHeader title="Current Situation" subtitle="Your investment and savings overview" color="violet" />
 
     <div class="space-y-4">
       <!-- Investment Accounts -->

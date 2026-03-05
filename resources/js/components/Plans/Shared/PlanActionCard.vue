@@ -1,7 +1,7 @@
 <template>
   <div
     class="bg-white rounded-lg border p-4 transition-all duration-200"
-    :class="action.enabled ? 'border-blue-200 bg-blue-50/30' : 'border-light-gray opacity-75'"
+    :class="action.enabled ? 'border-violet-200 bg-violet-50/30' : 'border-light-gray opacity-75'"
   >
     <div class="flex items-start justify-between">
       <div class="flex-1 min-w-0 mr-4">
@@ -16,8 +16,8 @@
         </div>
         <h4 class="text-sm font-semibold text-horizon-500">{{ action.title }}</h4>
         <p class="text-sm text-neutral-500 mt-1">{{ action.description }}</p>
-        <p v-if="action.estimated_impact" class="text-xs text-green-700 mt-1 font-medium">
-          Estimated impact: {{ formatCurrency(action.estimated_impact) }} (this is not a real figure until we connect to a quote engine)
+        <p v-if="action.estimated_impact" class="text-xs text-spring-700 mt-1 font-medium">
+          Estimated impact: {{ formatCurrency(action.estimated_impact) }}
         </p>
 
         <!-- Funding source -->
@@ -26,7 +26,7 @@
             <label class="text-xs font-medium text-neutral-500 whitespace-nowrap">Fund from</label>
             <template v-if="eligibleAccounts.length > 1">
               <select
-                class="text-xs border border-horizon-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                class="text-xs border border-horizon-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
                 :value="selectedAccountKey"
                 @change="onFundingSourceChange($event)"
               >
@@ -44,7 +44,7 @@
             </span>
             <span v-else class="text-xs text-neutral-500 italic">No eligible accounts</span>
           </div>
-          <p v-if="selectedWarning" class="text-xs text-red-600 mt-1">
+          <p v-if="selectedWarning" class="text-xs text-raspberry-600 mt-1">
             {{ selectedWarning }}
           </p>
         </div>

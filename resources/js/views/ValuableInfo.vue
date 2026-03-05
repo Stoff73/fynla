@@ -85,6 +85,14 @@ export default {
       }
     });
 
+    // Update active tab when route query changes (e.g., sidebar navigation)
+    watch(() => route.query.section, (section) => {
+      const validTabIds = ['letter', 'will', 'income', 'expenditure', 'risk'];
+      if (section && validTabIds.includes(section) && activeTab.value !== section) {
+        activeTab.value = section;
+      }
+    });
+
     // Marital statuses that show "Expression of Wishes" instead of "Letter to Spouse"
     const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
 

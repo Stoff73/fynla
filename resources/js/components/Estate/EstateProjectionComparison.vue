@@ -12,7 +12,7 @@
 
     <!-- Comparison Table -->
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
+      <table class="min-w-full divide-y divide-light-gray">
         <thead class="bg-eggshell-500">
           <tr>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -32,7 +32,7 @@
             </th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody class="bg-white divide-y divide-light-gray">
           <!-- Assets Row -->
           <tr class="hover:bg-eggshell-500">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-horizon-500">

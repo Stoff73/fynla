@@ -129,7 +129,7 @@
     </div>
 
     <!-- Recommendations -->
-    <div v-if="netCashFlow < 0" class="bg-raspberry-50 border-l-4 border-raspberry-500 p-4">
+    <div v-if="netCashFlow < 0" class="bg-raspberry-50 border border-raspberry-200 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg
@@ -153,7 +153,7 @@
         </div>
       </div>
     </div>
-    <div v-else class="bg-spring-50 border-l-4 border-spring-500 p-4">
+    <div v-else class="bg-spring-50 border border-spring-200 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg

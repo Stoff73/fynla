@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
@@ -27,37 +29,53 @@ beforeEach(function () {
     );
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
+// Helper to set up empty mocks for all modules
+function setupEmptyMocks($context): void
+{
+    $context->protectionEngine->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'gaps' => []]]);
+    $context->savingsCalculator->shouldReceive('analyze')->andReturn(['emergency_fund' => [], 'isa_allowance' => []]);
+    $context->user->setRelation('investmentAccounts', collect([]));
+    $context->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $context->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
+}
+
 test('aggregateRecommendations returns recommendations from all modules', function () {
-    // Setup mock responses
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        [
-            'recommendation_id' => 'prot_1',
-            'recommendation_text' => 'Increase life insurance coverage',
-            'priority_score' => 85.0,
-            'category' => 'risk_mitigation',
-        ],
-    ]);
-
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            [
-                'recommendation_id' => 'sav_1',
-                'recommendation' => 'Build 6-month emergency fund',
-                'priority' => 90.0,
+    // Protection returns recommendation via data.recommendations
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                [
+                    'recommendation_id' => 'prot_1',
+                    'recommendation_text' => 'Increase life insurance coverage',
+                    'priority_score' => 85.0,
+                    'category' => 'risk_mitigation',
+                ],
             ],
+            'gaps' => [],
         ],
     ]);
 
-    // Mock user's investmentAccounts relationship
+    // Savings returns emergency fund recommendation
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
+        'emergency_fund' => [
+            'recommendation' => 'Build 6-month emergency fund',
+            'category' => 'critical',
+        ],
+        'isa_allowance' => [],
+    ]);
+
     $this->user->setRelation('investmentAccounts', collect([]));
 
     $this->retirementAgent->shouldReceive('analyze')->andReturn([
-        'recommendations' => [],
+        'data' => ['recommendations' => [], 'summary' => []],
     ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
-        'recommendations' => [],
+        'implementation_timeline' => [],
     ]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
@@ -68,61 +86,68 @@ test('aggregateRecommendations returns recommendations from all modules', functi
 });
 
 test('aggregateRecommendations sorts by priority score descending', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'prot_1', 'recommendation_text' => 'Test 1', 'priority_score' => 50.0],
-    ]);
-
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 'sav_1', 'recommendation' => 'Test 2', 'priority' => 90.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'prot_1', 'recommendation_text' => 'Test 1', 'priority_score' => 50.0],
+            ],
+            'gaps' => [],
         ],
     ]);
 
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
+        'emergency_fund' => [
+            'recommendation' => 'Test 2',
+            'category' => 'critical',
+        ],
+        'isa_allowance' => [],
+    ]);
+
     $this->user->setRelation('investmentAccounts', collect([]));
     $this->retirementAgent->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 'ret_1', 'recommendation' => 'Test 3', 'priority' => 70.0],
+        'data' => [
+            'recommendations' => [],
+            'summary' => ['shortfall' => 5000],
         ],
     ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
-        'recommendations' => [],
+        'implementation_timeline' => [],
     ]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
     expect($recommendations)->toHaveCount(3);
-    expect($recommendations[0]['priority_score'])->toBe(90.0);
-    expect($recommendations[1]['priority_score'])->toBe(70.0);
-    expect($recommendations[2]['priority_score'])->toBe(50.0);
+    expect($recommendations[0]['priority_score'])->toBe(90); // Savings critical
+    expect($recommendations[1]['priority_score'])->toBe(80); // Retirement shortfall
+    expect($recommendations[2]['priority_score'])->toBe(50.0); // Protection
 });
 
 test('formatRecommendations normalizes different recommendation formats', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        [
-            'recommendation_id' => 'prot_1',
-            'recommendation_text' => 'Test recommendation',
-            'priority_score' => 75.0,
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                [
+                    'recommendation_id' => 'prot_1',
+                    'recommendation_text' => 'Test recommendation',
+                    'priority_score' => 75.0,
+                ],
+            ],
+            'gaps' => [],
         ],
     ]);
 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            [
-                'id' => 'sav_1',
-                'recommendation' => 'Different format',
-                'priority' => 80.0,
-            ],
+        'emergency_fund' => [
+            'recommendation' => 'Different format',
+            'category' => 'warning',
         ],
+        'isa_allowance' => [],
     ]);
 
-    // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -136,19 +161,22 @@ test('formatRecommendations normalizes different recommendation formats', functi
 });
 
 test('determineTimeline assigns correct timeline based on priority score', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'Immediate', 'priority_score' => 85.0],
-        ['recommendation_id' => 'p2', 'recommendation_text' => 'Short term', 'priority_score' => 65.0],
-        ['recommendation_id' => 'p3', 'recommendation_text' => 'Medium term', 'priority_score' => 45.0],
-        ['recommendation_id' => 'p4', 'recommendation_text' => 'Long term', 'priority_score' => 25.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Immediate', 'priority_score' => 85.0],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Short term', 'priority_score' => 65.0],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Medium term', 'priority_score' => 45.0],
+                ['recommendation_id' => 'p4', 'recommendation_text' => 'Long term', 'priority_score' => 25.0],
+            ],
+            'gaps' => [],
+        ],
     ]);
 
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['emergency_fund' => [], 'isa_allowance' => []]);
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -159,18 +187,21 @@ test('determineTimeline assigns correct timeline based on priority score', funct
 });
 
 test('determineImpact assigns correct impact based on priority score', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'High', 'priority_score' => 75.0],
-        ['recommendation_id' => 'p2', 'recommendation_text' => 'Medium', 'priority_score' => 50.0],
-        ['recommendation_id' => 'p3', 'recommendation_text' => 'Low', 'priority_score' => 30.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'High', 'priority_score' => 75.0],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Medium', 'priority_score' => 50.0],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Low', 'priority_score' => 30.0],
+            ],
+            'gaps' => [],
+        ],
     ]);
 
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['emergency_fund' => [], 'isa_allowance' => []]);
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -180,43 +211,51 @@ test('determineImpact assigns correct impact based on priority score', function 
 });
 
 test('getRecommendationsByModule filters correctly', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'Protection rec', 'priority_score' => 75.0],
-    ]);
-
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 's1', 'recommendation' => 'Savings rec', 'priority' => 80.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Protection rec', 'priority_score' => 75.0],
+            ],
+            'gaps' => [],
         ],
     ]);
 
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
+        'emergency_fund' => [
+            'recommendation' => 'Savings rec',
+            'category' => 'warning',
+        ],
+        'isa_allowance' => [],
+    ]);
+
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $protectionRecs = $this->service->getRecommendationsByModule($this->user->id, 'protection');
     $savingsRecs = $this->service->getRecommendationsByModule($this->user->id, 'savings');
 
     expect($protectionRecs)->toHaveCount(1);
     expect($savingsRecs)->toHaveCount(1);
-    expect($protectionRecs[1]['module'])->toBe('protection');
-    expect($savingsRecs[0]['module'])->toBe('savings');
+    expect(array_values($protectionRecs)[0]['module'])->toBe('protection');
+    expect(array_values($savingsRecs)[0]['module'])->toBe('savings');
 });
 
 test('getRecommendationsByPriority filters correctly', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'High priority', 'priority_score' => 75.0],
-        ['recommendation_id' => 'p2', 'recommendation_text' => 'Low priority', 'priority_score' => 30.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'High priority', 'priority_score' => 75.0],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Low priority', 'priority_score' => 30.0],
+            ],
+            'gaps' => [],
+        ],
     ]);
 
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['emergency_fund' => [], 'isa_allowance' => []]);
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $highPriorityRecs = $this->service->getRecommendationsByPriority($this->user->id, 'high');
     $lowPriorityRecs = $this->service->getRecommendationsByPriority($this->user->id, 'low');
@@ -226,20 +265,23 @@ test('getRecommendationsByPriority filters correctly', function () {
 });
 
 test('getTopRecommendations returns limited results', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'Rec 1', 'priority_score' => 90.0],
-        ['recommendation_id' => 'p2', 'recommendation_text' => 'Rec 2', 'priority_score' => 80.0],
-        ['recommendation_id' => 'p3', 'recommendation_text' => 'Rec 3', 'priority_score' => 70.0],
-        ['recommendation_id' => 'p4', 'recommendation_text' => 'Rec 4', 'priority_score' => 60.0],
-        ['recommendation_id' => 'p5', 'recommendation_text' => 'Rec 5', 'priority_score' => 50.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Rec 1', 'priority_score' => 90.0],
+                ['recommendation_id' => 'p2', 'recommendation_text' => 'Rec 2', 'priority_score' => 80.0],
+                ['recommendation_id' => 'p3', 'recommendation_text' => 'Rec 3', 'priority_score' => 70.0],
+                ['recommendation_id' => 'p4', 'recommendation_text' => 'Rec 4', 'priority_score' => 60.0],
+                ['recommendation_id' => 'p5', 'recommendation_text' => 'Rec 5', 'priority_score' => 50.0],
+            ],
+            'gaps' => [],
+        ],
     ]);
 
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn(['emergency_fund' => [], 'isa_allowance' => []]);
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $topRecs = $this->service->getTopRecommendations($this->user->id, 3);
 
@@ -249,33 +291,32 @@ test('getTopRecommendations returns limited results', function () {
 });
 
 test('getSummary calculates correct statistics', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        [
-            'recommendation_id' => 'p1',
-            'recommendation_text' => 'High priority protection',
-            'priority_score' => 85.0,
-            'estimated_cost' => 1000.0,
-            'potential_benefit' => 50000.0,
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                [
+                    'recommendation_id' => 'p1',
+                    'recommendation_text' => 'High priority protection',
+                    'priority_score' => 85.0,
+                    'estimated_cost' => 1000.0,
+                    'potential_benefit' => 50000.0,
+                ],
+            ],
+            'gaps' => [],
         ],
     ]);
 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            [
-                'recommendation_id' => 's1',
-                'recommendation' => 'Medium priority savings',
-                'priority' => 50.0,
-                'cost' => 500.0,
-                'benefit' => 10000.0,
-            ],
+        'emergency_fund' => [
+            'recommendation' => 'Medium priority savings',
+            'category' => 'warning',
         ],
+        'isa_allowance' => [],
     ]);
 
-    // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $summary = $this->service->getSummary($this->user->id);
 
@@ -284,23 +325,24 @@ test('getSummary calculates correct statistics', function () {
     expect($summary['by_priority']['medium'])->toBe(1);
     expect($summary['by_module']['protection'])->toBe(1);
     expect($summary['by_module']['savings'])->toBe(1);
-    expect($summary['total_estimated_cost'])->toBe(1500.0);
-    expect($summary['total_potential_benefit'])->toBe(60000.0);
+    expect($summary['total_estimated_cost'])->toBe(1000.0);
+    expect($summary['total_potential_benefit'])->toBe(50000.0);
 });
 
 test('aggregateRecommendations handles service exceptions gracefully', function () {
     $this->protectionEngine->shouldReceive('analyze')->andThrow(new \Exception('Protection service error'));
 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 's1', 'recommendation' => 'Savings rec', 'priority' => 80.0],
+        'emergency_fund' => [
+            'recommendation' => 'Savings rec',
+            'category' => 'warning',
         ],
+        'isa_allowance' => [],
     ]);
 
-    // Mock user's investmentAccounts relationship
     $this->user->setRelation('investmentAccounts', collect([]));
-    $this->retirementAgent->shouldReceive('analyze')->andReturn(['recommendations' => []]);
-    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['recommendations' => []]);
+    $this->retirementAgent->shouldReceive('analyze')->andReturn(['data' => ['recommendations' => [], 'summary' => []]]);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
@@ -310,40 +352,76 @@ test('aggregateRecommendations handles service exceptions gracefully', function 
 });
 
 test('determineCategory assigns correct category based on module', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andReturn([]);
-    $this->protectionEngine->shouldReceive('generateRecommendations')->andReturn([
-        ['recommendation_id' => 'p1', 'recommendation_text' => 'Protection', 'priority_score' => 75.0],
-    ]);
-
-    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 's1', 'recommendation' => 'Savings', 'priority' => 75.0],
+    $this->protectionEngine->shouldReceive('analyze')->andReturn([
+        'data' => [
+            'recommendations' => [
+                ['recommendation_id' => 'p1', 'recommendation_text' => 'Protection', 'priority_score' => 75.0],
+            ],
+            'gaps' => [],
         ],
     ]);
 
-    // Mock user's investmentAccounts relationship
+    $this->savingsCalculator->shouldReceive('analyze')->andReturn([
+        'emergency_fund' => [
+            'recommendation' => 'Savings',
+            'category' => 'warning',
+        ],
+        'isa_allowance' => [],
+    ]);
+
     $this->user->setRelation('investmentAccounts', collect([]));
     $this->retirementAgent->shouldReceive('analyze')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 'r1', 'recommendation' => 'Retirement', 'priority' => 75.0],
+        'data' => [
+            'recommendations' => [],
+            'summary' => ['shortfall' => 5000],
         ],
     ]);
 
     $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
-        'recommendations' => [
-            ['recommendation_id' => 'e1', 'recommendation' => 'Estate', 'priority' => 75.0],
+        'implementation_timeline' => [
+            ['action' => 'Estate action', 'priority' => 1, 'category' => 'estate_planning'],
         ],
     ]);
 
     $recommendations = $this->service->aggregateRecommendations($this->user->id);
 
-    $protectionRec = array_values(array_filter($recommendations, fn ($r) => $r['module'] === 'protection'))[0];
-    $savingsRec = array_values(array_filter($recommendations, fn ($r) => $r['module'] === 'savings'))[0];
-    $retirementRec = array_values(array_filter($recommendations, fn ($r) => $r['module'] === 'retirement'))[0];
-    $estateRec = array_values(array_filter($recommendations, fn ($r) => $r['module'] === 'estate'))[0];
+    $protectionRec = collect($recommendations)->firstWhere('module', 'protection');
+    $savingsRec = collect($recommendations)->firstWhere('module', 'savings');
+    $retirementRec = collect($recommendations)->firstWhere('module', 'retirement');
+    $estateRec = collect($recommendations)->firstWhere('module', 'estate');
 
     expect($protectionRec['category'])->toBe('risk_mitigation');
-    expect($savingsRec['category'])->toBe('liquidity_management');
-    expect($retirementRec['category'])->toBe('retirement_planning');
-    expect($estateRec['category'])->toBe('tax_optimization');
+    expect($savingsRec['category'])->toBe('emergency_fund');
+    expect($retirementRec['category'])->toBe('income_shortfall');
+    expect($estateRec['category'])->toBe('estate_planning');
+});
+
+test('aggregateRecommendations handles non-numeric iht_saving gracefully', function () {
+    setupEmptyMocks($this);
+
+    // Override estate mock with 'Variable' iht_saving
+    $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
+    $this->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn([
+        'implementation_timeline' => [
+            ['action' => 'Downsize property', 'priority' => 2, 'iht_saving' => 'Variable'],
+        ],
+    ]);
+
+    $service = new RecommendationsAggregatorService(
+        $this->protectionEngine,
+        $this->savingsCalculator,
+        $this->investmentAnalyzer,
+        $this->retirementAgent,
+        $this->estatePlanService
+    );
+
+    $recommendations = $service->aggregateRecommendations($this->user->id);
+    $estateRec = collect($recommendations)->firstWhere('module', 'estate');
+
+    expect($estateRec)->not->toBeNull();
+    expect($estateRec['potential_benefit'])->toBeNull();
+
+    // Verify getSummary doesn't throw TypeError
+    $summary = $service->getSummary($this->user->id);
+    expect($summary['total_potential_benefit'])->toBe(0);
 });

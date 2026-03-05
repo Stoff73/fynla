@@ -42,20 +42,6 @@
         </div>
       </div>
 
-      <!-- Life Events & Goal Strategies -->
-      <div class="space-y-3 mb-5">
-        <ModuleLifeEvents
-          module="retirement"
-          :events="lifeEvents"
-          :impact-summary="lifeEventImpact"
-        />
-        <ModuleGoalStrategies
-          module="retirement"
-          :strategies="goalStrategies"
-          :summary="goalsSummary"
-        />
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -370,79 +356,6 @@
           </div>
         </div>
 
-        <!-- Strategies Section - Full Width -->
-        <div v-if="showStrategies && !projectionsLoading" class="strategies-section clickable" @click="setActiveTab('strategies')">
-          <div class="strategies-header">
-            <div class="strategies-header-left">
-              <h3 class="strategies-title">Recommended Strategies</h3>
-              <p class="strategies-subtitle">Actions to improve your retirement readiness</p>
-            </div>
-            <div class="view-more">
-              <span>View all</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </div>
-          </div>
-
-          <!-- Strategy Loading -->
-          <div v-if="strategiesLoading" class="strategies-loading">
-            <div class="w-5 h-5 border-2 border-light-gray border-t-raspberry-500 rounded-full animate-spin"></div>
-            <span>Analysing strategies...</span>
-          </div>
-
-          <!-- DOB Required -->
-          <div v-else-if="strategiesRequiresDob" class="dob-required-preview">
-            <div class="dob-required-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-            </div>
-            <div class="dob-required-text">
-              <h4>Date of Birth Required</h4>
-              <p>Enter your date of birth in your profile to calculate pension strategies.</p>
-            </div>
-          </div>
-
-          <!-- On Track Banner -->
-          <div v-else-if="strategiesOnTrack" class="on-track-banner">
-            <div class="on-track-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div class="on-track-text">
-              <h4>You're On Track!</h4>
-              <p>{{ strategiesProbability }}% probability of achieving your retirement goals</p>
-            </div>
-          </div>
-
-          <!-- Strategy Summary -->
-          <div v-else-if="applicableStrategies.length > 0" class="strategy-summary">
-            <div class="strategy-summary-content">
-              <div class="strategy-summary-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-              </div>
-              <div class="strategy-summary-text">
-                <h4>{{ primaryStrategyMessage }}</h4>
-                <p class="strategy-probability">
-                  This would increase your success probability from
-                  <span class="prob-current">{{ strategiesProbability }}%</span>
-                  to
-                  <span class="prob-projected">{{ primaryStrategyProbability }}%</span>
-                </p>
-              </div>
-            </div>
-            <div class="strategy-cta">
-              <span>View strategies</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </div>
-          </div>
-        </div>
       </template>
 
       <!-- Future Value Tab -->
@@ -454,12 +367,6 @@
         @show-income="setActiveTab('income')"
       />
 
-
-      <!-- Strategies Tab -->
-      <StrategiesTab
-        v-else-if="activeTab === 'strategies'"
-        @back="setActiveTab('current')"
-      />
 
       <!-- Retirement Income Tab -->
       <RetirementIncomeTab
@@ -513,11 +420,8 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import PensionPotProjectionChart from '@/components/Retirement/PensionPotProjectionChart.vue';
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
-import StrategiesTab from '@/components/Retirement/StrategiesTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
-import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
-import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -532,11 +436,8 @@ export default {
     RiskBadge,
     PensionPotProjectionChart,
     FutureValueTab,
-    StrategiesTab,
     RetirementIncomeTab,
     CapitalAdequacyTab,
-    ModuleLifeEvents,
-    ModuleGoalStrategies,
   },
 
   data() {
@@ -563,16 +464,10 @@ export default {
       'error',
       'projections',
       'projectionsLoading',
-      'strategies',
-      'strategiesLoading',
       'profile',
       'activeTab',
       'requiredCapital',
       'retirementIncome',
-      'lifeEvents',
-      'lifeEventImpact',
-      'goalStrategies',
-      'goalsSummary',
     ]),
     ...mapGetters('auth', ['currentUser']),
 
@@ -704,69 +599,6 @@ export default {
       return 'red';
     },
 
-    showStrategies() {
-      // Don't show strategies for retired users or users without DC pensions
-      // (contribution strategies only apply to DC pensions)
-      if (this.isRetired || !this.hasDCPensions) {
-        return false;
-      }
-      // Show strategies section if we have projections
-      return !!this.projections?.income_drawdown;
-    },
-
-    strategiesRequiresDob() {
-      return this.strategies?.requires_dob === true;
-    },
-
-    strategiesOnTrack() {
-      return (this.strategies?.current_status?.probability || 0) >= 95;
-    },
-
-    strategiesProbability() {
-      return this.strategies?.current_status?.probability || 0;
-    },
-
-    applicableStrategies() {
-      return this.strategies?.strategies?.filter(s => s.applicable) || [];
-    },
-
-    primaryStrategy() {
-      return this.applicableStrategies[0] || null;
-    },
-
-    primaryStrategyMessage() {
-      const strategy = this.primaryStrategy;
-      if (!strategy) return 'No strategies available';
-
-      // Generate human-readable message based on strategy type
-      if (strategy.type === 'retirement_age') {
-        const currentAge = strategy.current_value;
-        const recommendedAge = strategy.recommended_value;
-        const yearsDiff = recommendedAge - currentAge;
-        if (yearsDiff > 0) {
-          return `Retire ${yearsDiff} year${yearsDiff > 1 ? 's' : ''} later (at age ${recommendedAge}) to achieve your target`;
-        }
-        return strategy.description;
-      }
-
-      if (strategy.type === 'increase_contributions') {
-        const additionalMonthly = strategy.impact?.additional_monthly || 0;
-        return `Increase pension contributions by ${this.formatCurrency(additionalMonthly)}/month`;
-      }
-
-      if (strategy.type === 'income_target') {
-        const recommendedIncome = strategy.recommended_value;
-        return `Adjust your target retirement income to ${this.formatCurrency(recommendedIncome)}/year`;
-      }
-
-      // Fallback to the description from backend
-      return strategy.description || strategy.title;
-    },
-
-    primaryStrategyProbability() {
-      const strategy = this.primaryStrategy;
-      return strategy?.impact?.new_probability || this.strategiesProbability;
-    },
   },
 
   watch: {
@@ -775,7 +607,7 @@ export default {
         this.loadProjections();
       }
       // Scroll to top when switching to detail tabs
-      if (newTab === 'strategies' || newTab === 'future' || newTab === 'income' || newTab === 'capital') {
+      if (newTab === 'future' || newTab === 'income' || newTab === 'capital') {
         this.$nextTick(() => {
           window.scrollTo({ top: 0, behavior: 'instant' });
         });
@@ -904,11 +736,8 @@ export default {
           this.fetchRequiredCapital(),
           this.fetchRetirementIncome(),
         ]);
-        if (this.showStrategies) {
-          await this.fetchStrategies();
-        }
       } catch (error) {
-        console.error('Failed to load projections/strategies:', error);
+        console.error('Failed to load projections:', error);
       }
     },
 
@@ -1745,201 +1574,6 @@ export default {
   font-size: 18px;
   font-weight: 700;
   @apply text-horizon-500;
-}
-
-/* Strategies Section - Full Width */
-.strategies-section {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  @apply border border-light-gray;
-  margin-top: 24px;
-}
-
-.strategies-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.strategies-header-left {
-  flex: 1;
-}
-
-.strategies-title {
-  font-size: 18px;
-  font-weight: 600;
-  @apply text-horizon-500;
-  margin: 0 0 4px 0;
-}
-
-.strategies-subtitle {
-  font-size: 14px;
-  @apply text-neutral-500;
-  margin: 0;
-}
-
-.strategies-loading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  @apply text-neutral-500;
-  font-size: 14px;
-  padding: 20px;
-}
-
-/* DOB Required Preview */
-.dob-required-preview {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-violet-200;
-  border-radius: 10px;
-}
-
-.dob-required-icon {
-  @apply w-12 h-12 bg-violet-500 rounded-full flex items-center justify-center flex-shrink-0;
-}
-
-.dob-required-icon svg {
-  width: 28px;
-  height: 28px;
-  color: white;
-}
-
-.dob-required-text h4 {
-  font-size: 16px;
-  font-weight: 700;
-  @apply text-violet-800;
-  margin: 0 0 4px 0;
-}
-
-.dob-required-text p {
-  font-size: 14px;
-  @apply text-violet-700;
-  margin: 0;
-}
-
-.on-track-banner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, theme('colors.green.50') 0%, theme('colors.green.100') 100%);
-  @apply border border-spring-200;
-  border-radius: 10px;
-}
-
-.on-track-icon {
-  @apply w-12 h-12 bg-spring-500 rounded-full flex items-center justify-center flex-shrink-0;
-}
-
-.on-track-icon svg {
-  width: 28px;
-  height: 28px;
-  color: white;
-}
-
-.on-track-text h4 {
-  font-size: 16px;
-  font-weight: 700;
-  @apply text-spring-800;
-  margin: 0 0 4px 0;
-}
-
-.on-track-text p {
-  font-size: 14px;
-  @apply text-spring-700;
-  margin: 0;
-}
-
-/* Strategy Summary */
-.strategy-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, theme('colors.blue.50') 0%, theme('colors.blue.100') 100%);
-  @apply border border-violet-200;
-  border-radius: 10px;
-}
-
-.strategy-summary-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-}
-
-.strategy-summary-icon {
-  width: 48px;
-  height: 48px;
-  @apply bg-raspberry-500;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.strategy-summary-icon svg {
-  width: 26px;
-  height: 26px;
-  color: white;
-}
-
-.strategy-summary-text h4 {
-  font-size: 16px;
-  font-weight: 600;
-  @apply text-violet-800;
-  margin: 0 0 6px 0;
-}
-
-.strategy-probability {
-  font-size: 14px;
-  @apply text-raspberry-500;
-  margin: 0;
-}
-
-.prob-current {
-  font-weight: 600;
-  @apply text-raspberry-500;
-}
-
-.prob-projected {
-  font-weight: 600;
-  @apply text-spring-500;
-}
-
-.strategy-cta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  @apply text-violet-600;
-  font-size: 14px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.strategy-cta svg {
-  width: 16px;
-  height: 16px;
-}
-
-@media (max-width: 768px) {
-  .strategy-summary {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .strategy-cta {
-    align-self: flex-end;
-  }
 }
 
 /* Right Panel - Income Sidebar */
