@@ -18,6 +18,18 @@
               >
                 Home
               </router-link>
+              <a
+                href="/#features"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              >
+                Features
+              </a>
+              <router-link
+                to="/pricing"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              >
+                Pricing
+              </router-link>
               <router-link
                 to="/calculators"
                 class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
@@ -28,13 +40,7 @@
                 to="/learning-centre"
                 class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
               >
-                Learning Centre
-              </router-link>
-              <router-link
-                to="/security"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                Security
+                Learning centre
               </router-link>
               <router-link
                 to="/about"
@@ -42,28 +48,16 @@
               >
                 About
               </router-link>
-              <router-link
-                to="/pricing"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                Pricing
-              </router-link>
             </div>
           </div>
 
-          <!-- Right side buttons - hidden on mobile -->
-          <div class="hidden md:flex items-center space-x-4">
+          <!-- Right side button - hidden on mobile -->
+          <div class="hidden md:flex items-center">
             <router-link
               to="/login"
-              class="text-sm font-medium text-horizon-500 hover:text-raspberry-500 transition-colors"
+              class="px-6 py-2 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
             >
-              Log In
-            </router-link>
-            <router-link
-              to="/?demo=true"
-              class="px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
-            >
-              Get Started
+              Sign in
             </router-link>
           </div>
 
@@ -92,6 +86,20 @@
           >
             Home
           </router-link>
+          <a
+            href="/#features"
+            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
+            @click="mobileMenuOpen = false"
+          >
+            Features
+          </a>
+          <router-link
+            to="/pricing"
+            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
+            @click="mobileMenuOpen = false"
+          >
+            Pricing
+          </router-link>
           <router-link
             to="/calculators"
             class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
@@ -104,14 +112,7 @@
             class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
             @click="mobileMenuOpen = false"
           >
-            Learning Centre
-          </router-link>
-          <router-link
-            to="/security"
-            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-            @click="mobileMenuOpen = false"
-          >
-            Security
+            Learning centre
           </router-link>
           <router-link
             to="/about"
@@ -121,25 +122,11 @@
             About
           </router-link>
           <router-link
-            to="/pricing"
-            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-            @click="mobileMenuOpen = false"
-          >
-            Pricing
-          </router-link>
-          <router-link
             to="/login"
             class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
             @click="mobileMenuOpen = false"
           >
-            Log In
-          </router-link>
-          <router-link
-            to="/?demo=true"
-            class="block pl-3 pr-4 py-2 text-base font-medium text-raspberry-500 hover:bg-savannah-100"
-            @click="mobileMenuOpen = false"
-          >
-            Get Started
+            Sign in
           </router-link>
         </div>
       </div>
