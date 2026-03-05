@@ -204,3 +204,60 @@ All estate components migrated to `fynlaDesignGuide.md` v1.2.0 palette:
 | `border-2 border-{color}-500` | `border border-light-gray` (consistent card style) |
 
 **Files changed:** AssetsLiabilities, CashFlow, DualGiftingTimeline, EstateOverviewCard, EstateProjectionComparison, GiftCard, GiftForm, GiftingStrategy, GiftingTimelineChart, IHTAssetBreakdown, IHTCalculationTable, IHTLiabilityBreakdown, IHTMitigationStrategies, IHTPlanning, IntestacyRules, LiabilityForm, LifeCoverRecommendations, LifePolicyStrategy, MissingDataAlert, NRBRNRBTracker, SpouseExemptionNotice, TrustForm, TrustPlanning, TrustPlanningStrategy, WillPlanning, EstateDashboard
+
+### IHT Summary Card Fix (uiUpdates branch)
+
+Fixed mismatch between the IHT summary card at the top of the estate module and the calculation table below it.
+
+**Root cause (3 issues):**
+1. **`IHTController.php`** — Controller recalculated projected IHT with hardcoded `* 0.40`, ignoring the charitable 36% rate from `IHTCalculationService`
+2. **`IHTPlanning.vue` summary card** — Read values from separate data properties (`ihtData`, `projection`) instead of `standardTableProps` (the same computed object that feeds the calculation table)
+3. **`IHTPlanning.vue`** — Redundant frontend `adjustedIHTLiability*` computed properties recalculated IHT independently, diverging from backend values
+
+**Fix:**
+- Controller now uses `$calculation['iht_rate']` instead of hardcoded `0.40`
+- Summary card and life policy card now read from `standardTableProps` — guaranteed to match the table
+- Removed 9 unused computed properties (`effectiveIHTRate`, `adjustedIHTLiability`, `adjustedIHTLiabilityProjected`, `adjustedIHTLiabilityMinus5`, `adjustedIHTLiabilityPlus5`, `adjustedSecondDeathIHTLiabilityNow`, `adjustedSecondDeathIHTLiabilityProjected`, `adjustedSecondDeathIHTLiabilityMinus5`, `adjustedSecondDeathIHTLiabilityPlus5`)
+
+**Files changed:**
+```
+app/Http/Controllers/Api/Estate/IHTController.php  (1 line)
+resources/js/components/Estate/IHTPlanning.vue      (6 added, 53 removed)
+```
+
+### Side Menu Reorganisation (uiUpdates branch)
+
+Restructured sidebar navigation headings and link order.
+
+**New menu structure:**
+| Section | Items |
+|---------|-------|
+| Main | Dashboard, Net Worth |
+| Current | Cash, Protection, Investments, Retirement, Estate Planning, Trusts, Business, Personal Valuables, Income, Expenditure, Risk Profile. Will + Expression of Wishes shown here for single users. |
+| Planning | Holistic Plan, Plans, Goals, Life Events, Actions |
+| Family | Will, Letter to Spouse *(only shown when user has spouse/partner)* |
+| Account | User Profile, Settings |
+| Support | Help, Feedback, Bug Report |
+| Admin | Admin Panel, UK Taxes *(admin only)* |
+
+**Key changes:**
+- "Planning" section renamed to "Current"
+- "Advanced" section removed — items redistributed
+- "Plans & Actions" renamed to "Planning" — Goals and Life Events now separate links
+- New "Family" section (conditional on `hasSpouse`) with Will and Letter to Spouse
+- Single users see Will + Expression of Wishes under Current instead
+- Income → `/valuable-info?section=income`, Expenditure → `/valuable-info?section=expenditure`
+- Will → `/valuable-info?section=will`, Letter to Spouse → `/valuable-info?section=letter`
+- Life Events → `/goals?tab=events` (switches to events tab on Goals dashboard)
+- Valuable Info removed from Account section (content accessible via individual sidebar links)
+- `SideMenuItem` `to` prop now accepts `String | Object` for query param navigation
+- `hasSpouse` checks `preview/hasSpouse` in preview mode, `spousePermission/hasSpouse` otherwise
+
+**Files changed:**
+```
+resources/js/components/SideMenu.vue        (menu structure, hasSpouse logic, active state helpers)
+resources/js/components/SideMenuIcon.vue    (5 new icons: currency-pound, arrow-up-tray, calendar, document-check, envelope)
+resources/js/components/SideMenuItem.vue    (to prop accepts String|Object)
+resources/js/views/ValuableInfo.vue         (watcher for route query → active tab sync)
+resources/js/views/Goals/GoalsDashboard.vue (tab query param support + watcher)
+```
