@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 
-test('user can login with valid credentials', function () {
+it('allows user to login with valid credentials', function () {
     $user = User::factory()->create([
         'email' => 'test@example.com',
         'password' => bcrypt('password123'),
@@ -39,7 +39,7 @@ test('user can login with valid credentials', function () {
     expect($response->json('data.token_type'))->toBe('Bearer');
 });
 
-test('user login creates new access token', function () {
+it('creates new access token on login', function () {
     User::factory()->create([
         'email' => 'token@example.com',
         'password' => bcrypt('password123'),
@@ -58,7 +58,7 @@ test('user login creates new access token', function () {
     ]);
 });
 
-test('user cannot login with invalid email', function () {
+it('rejects login with invalid email', function () {
     User::factory()->create([
         'email' => 'valid@example.com',
         'password' => bcrypt('password123'),
@@ -76,7 +76,7 @@ test('user cannot login with invalid email', function () {
         ]);
 });
 
-test('user cannot login with invalid password', function () {
+it('rejects login with invalid password', function () {
     User::factory()->create([
         'email' => 'test@example.com',
         'password' => bcrypt('correctpassword'),
@@ -94,14 +94,14 @@ test('user cannot login with invalid password', function () {
         ]);
 });
 
-test('login requires email and password', function () {
+it('requires email and password for login', function () {
     $response = $this->postJson('/api/auth/login', []);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['email', 'password']);
 });
 
-test('login requires valid email format', function () {
+it('requires valid email format for login', function () {
     $response = $this->postJson('/api/auth/login', [
         'email' => 'invalid-email',
         'password' => 'password123',
@@ -111,7 +111,7 @@ test('login requires valid email format', function () {
         ->assertJsonValidationErrors(['email']);
 });
 
-test('multiple successful logins create multiple tokens', function () {
+it('creates multiple tokens for multiple successful logins', function () {
     $user = User::factory()->create([
         'email' => 'multi@example.com',
         'password' => bcrypt('password123'),

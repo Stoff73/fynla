@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Services\AI\AiChatService;
 use App\Services\AI\AiSimulatedService;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiChatController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private readonly AiChatService $chatService,
         private readonly AiSimulatedService $simulatedService,

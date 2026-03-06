@@ -19,17 +19,17 @@ class RiskProfileFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'risk_tolerance' => $this->faker->randomElement(['cautious', 'balanced', 'adventurous']),
-            'capacity_for_loss_percent' => $this->faker->randomFloat(2, 10, 50),
-            'time_horizon_years' => $this->faker->numberBetween(5, 40),
-            'knowledge_level' => $this->faker->randomElement(['novice', 'intermediate', 'experienced']),
-            'attitude_to_volatility' => $this->faker->randomElement([
+            'risk_tolerance' => fake()->randomElement(['cautious', 'balanced', 'adventurous']),
+            'capacity_for_loss_percent' => fake()->randomFloat(2, 10, 50),
+            'time_horizon_years' => fake()->numberBetween(5, 40),
+            'knowledge_level' => fake()->randomElement(['novice', 'intermediate', 'experienced']),
+            'attitude_to_volatility' => fake()->randomElement([
                 'Very uncomfortable with any fluctuations',
                 'Comfortable with small fluctuations',
                 'Comfortable with moderate fluctuations',
                 'Comfortable with significant fluctuations',
             ]),
-            'esg_preference' => $this->faker->boolean(40), // 40% chance of true
+            'esg_preference' => fake()->boolean(40), // 40% chance of true
         ];
     }
 
@@ -37,7 +37,7 @@ class RiskProfileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'risk_tolerance' => 'cautious',
-            'capacity_for_loss_percent' => $this->faker->randomFloat(2, 10, 20),
+            'capacity_for_loss_percent' => fake()->randomFloat(2, 10, 20),
             'attitude_to_volatility' => 'Comfortable with small fluctuations',
         ]);
     }
@@ -46,7 +46,7 @@ class RiskProfileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'risk_tolerance' => 'balanced',
-            'capacity_for_loss_percent' => $this->faker->randomFloat(2, 20, 35),
+            'capacity_for_loss_percent' => fake()->randomFloat(2, 20, 35),
             'attitude_to_volatility' => 'Comfortable with moderate fluctuations',
         ]);
     }
@@ -55,7 +55,7 @@ class RiskProfileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'risk_tolerance' => 'adventurous',
-            'capacity_for_loss_percent' => $this->faker->randomFloat(2, 35, 50),
+            'capacity_for_loss_percent' => fake()->randomFloat(2, 35, 50),
             'attitude_to_volatility' => 'Comfortable with significant fluctuations',
         ]);
     }

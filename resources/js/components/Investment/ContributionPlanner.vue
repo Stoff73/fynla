@@ -390,7 +390,7 @@
           </div>
 
           <div v-if="optimizationResult.isa_status.warning" class="bg-eggshell-500 rounded-lg p-3">
-            <p class="text-sm text-yellow-800">
+            <p class="text-sm text-violet-800">
               <strong>Warning:</strong> You are approaching your ISA allowance limit for this tax year.
             </p>
           </div>
@@ -521,7 +521,7 @@ export default {
     getPriorityBadgeClass(priority) {
       const classes = {
         high: 'bg-raspberry-500 text-white',
-        medium: 'bg-yellow-500 text-white',
+        medium: 'bg-violet-500 text-white',
         low: 'bg-violet-500 text-white',
       };
       return classes[priority] || classes.low;

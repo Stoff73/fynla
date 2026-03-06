@@ -113,12 +113,12 @@
                   </div>
                   <div>
                     <div class="flex justify-between text-sm mb-1">
-                      <span class="text-yellow-700 font-medium">Within 10% of Target</span>
-                      <span class="text-yellow-700 font-semibold">{{ nearTargetPercent }}%</span>
+                      <span class="text-violet-700 font-medium">Within 10% of Target</span>
+                      <span class="text-violet-700 font-semibold">{{ nearTargetPercent }}%</span>
                     </div>
                     <div class="w-full bg-savannah-200 rounded-full h-2">
                       <div
-                        class="bg-yellow-500 h-2 rounded-full"
+                        class="bg-violet-500 h-2 rounded-full"
                         :style="{ width: nearTargetPercent + '%' }"
                       ></div>
                     </div>
@@ -416,7 +416,7 @@ export default {
     getProbabilityColour(probability) {
       if (probability >= 80) return 'text-spring-600';
       if (probability >= 60) return 'text-violet-600';
-      if (probability >= 40) return 'text-yellow-600';
+      if (probability >= 40) return 'text-violet-600';
       return 'text-raspberry-600';
     },
   },

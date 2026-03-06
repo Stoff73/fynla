@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\JointAccountLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class JointAccountLogController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Get joint account logs for the authenticated user.
      * Returns logs where user is either the editor or the joint owner.

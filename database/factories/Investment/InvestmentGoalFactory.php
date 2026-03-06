@@ -19,18 +19,18 @@ class InvestmentGoalFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'goal_name' => $this->faker->randomElement([
+            'goal_name' => fake()->randomElement([
                 'Retirement Fund',
                 'House Deposit',
                 'Children\'s Education',
                 'Financial Independence',
                 'Emergency Fund',
             ]),
-            'goal_type' => $this->faker->randomElement(['retirement', 'education', 'wealth', 'home']),
-            'target_amount' => $this->faker->randomFloat(2, 50000, 2000000),
-            'target_date' => $this->faker->dateTimeBetween('+5 years', '+40 years'),
-            'priority' => $this->faker->randomElement(['high', 'medium', 'low']),
-            'is_essential' => $this->faker->boolean(30), // 30% chance of true
+            'goal_type' => fake()->randomElement(['retirement', 'education', 'wealth', 'home']),
+            'target_amount' => fake()->randomFloat(2, 50000, 2000000),
+            'target_date' => fake()->dateTimeBetween('+5 years', '+40 years'),
+            'priority' => fake()->randomElement(['high', 'medium', 'low']),
+            'is_essential' => fake()->boolean(30), // 30% chance of true
             'linked_account_ids' => [],
         ];
     }

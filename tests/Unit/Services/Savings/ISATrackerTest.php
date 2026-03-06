@@ -25,6 +25,10 @@ beforeEach(function () {
     $this->app->instance(TaxConfigService::class, $mockTaxConfig);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('ISATracker', function () {
     describe('getCurrentTaxYear', function () {
         it('returns correct tax year format', function () {

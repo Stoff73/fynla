@@ -459,7 +459,7 @@ export default {
     getSharpeColour(sharpe) {
       if (sharpe >= 2) return 'text-spring-600';
       if (sharpe >= 1) return 'text-violet-600';
-      if (sharpe >= 0) return 'text-yellow-600';
+      if (sharpe >= 0) return 'text-violet-600';
       return 'text-raspberry-600';
     },
 
@@ -469,7 +469,7 @@ export default {
 
     getInsightClass(type) {
       if (type === 'positive') return 'border-spring-500 bg-white';
-      if (type === 'warning') return 'border-yellow-500 bg-white';
+      if (type === 'warning') return 'border-violet-500 bg-white';
       return 'border-violet-500 bg-white';
     },
   },

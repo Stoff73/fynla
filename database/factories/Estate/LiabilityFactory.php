@@ -29,13 +29,13 @@ class LiabilityFactory extends Factory
             'ownership_type' => 'individual',
             'joint_owner_id' => null,
             'trust_id' => null,
-            'liability_type' => $this->faker->randomElement($liabilityTypes),
+            'liability_type' => fake()->randomElement($liabilityTypes),
             'country' => 'UK',
-            'liability_name' => $this->faker->words(3, true),
-            'current_balance' => $this->faker->randomFloat(2, 1000, 100000),
-            'monthly_payment' => $this->faker->randomFloat(2, 50, 1000),
-            'interest_rate' => $this->faker->randomFloat(4, 0.0199, 0.2499),
-            'maturity_date' => $this->faker->optional()->dateTimeBetween('+1 year', '+30 years'),
+            'liability_name' => fake()->words(3, true),
+            'current_balance' => fake()->randomFloat(2, 1000, 100000),
+            'monthly_payment' => fake()->randomFloat(2, 50, 1000),
+            'interest_rate' => fake()->randomFloat(4, 0.0199, 0.2499),
+            'maturity_date' => fake()->optional()->dateTimeBetween('+1 year', '+30 years'),
             'secured_against' => null,
             'is_priority_debt' => false,
             'mortgage_type' => null,
@@ -53,8 +53,8 @@ class LiabilityFactory extends Factory
             'liability_type' => 'mortgage',
             'secured_against' => 'Property',
             'is_priority_debt' => true,
-            'mortgage_type' => $this->faker->randomElement(['repayment', 'interest_only', 'mixed']),
-            'current_balance' => $this->faker->randomFloat(2, 50000, 500000),
+            'mortgage_type' => fake()->randomElement(['repayment', 'interest_only', 'mixed']),
+            'current_balance' => fake()->randomFloat(2, 50000, 500000),
         ]);
     }
 
@@ -65,7 +65,7 @@ class LiabilityFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'liability_type' => 'personal_loan',
-            'current_balance' => $this->faker->randomFloat(2, 1000, 25000),
+            'current_balance' => fake()->randomFloat(2, 1000, 25000),
         ]);
     }
 
@@ -76,8 +76,8 @@ class LiabilityFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'liability_type' => 'credit_card',
-            'interest_rate' => $this->faker->randomFloat(4, 0.15, 0.30),
-            'current_balance' => $this->faker->randomFloat(2, 100, 10000),
+            'interest_rate' => fake()->randomFloat(4, 0.15, 0.30),
+            'current_balance' => fake()->randomFloat(2, 100, 10000),
             'maturity_date' => null,
         ]);
     }
@@ -89,8 +89,8 @@ class LiabilityFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'liability_type' => 'student_loan',
-            'interest_rate' => $this->faker->randomFloat(4, 0.01, 0.07),
-            'current_balance' => $this->faker->randomFloat(2, 10000, 50000),
+            'interest_rate' => fake()->randomFloat(4, 0.01, 0.07),
+            'current_balance' => fake()->randomFloat(2, 10000, 50000),
         ]);
     }
 

@@ -17,13 +17,13 @@ class IHTCalculationFactory extends Factory
 
     public function definition(): array
     {
-        $isMarried = $this->faker->boolean(60);
-        $userGrossAssets = $this->faker->randomFloat(2, 200000, 2000000);
-        $spouseGrossAssets = $isMarried ? $this->faker->randomFloat(2, 100000, 1500000) : 0;
+        $isMarried = fake()->boolean(60);
+        $userGrossAssets = fake()->randomFloat(2, 200000, 2000000);
+        $spouseGrossAssets = $isMarried ? fake()->randomFloat(2, 100000, 1500000) : 0;
         $totalGrossAssets = $userGrossAssets + $spouseGrossAssets;
 
-        $userLiabilities = $this->faker->randomFloat(2, 0, $userGrossAssets * 0.3);
-        $spouseLiabilities = $isMarried ? $this->faker->randomFloat(2, 0, $spouseGrossAssets * 0.3) : 0;
+        $userLiabilities = fake()->randomFloat(2, 0, $userGrossAssets * 0.3);
+        $spouseLiabilities = $isMarried ? fake()->randomFloat(2, 0, $spouseGrossAssets * 0.3) : 0;
         $totalLiabilities = $userLiabilities + $spouseLiabilities;
 
         $userNetEstate = $userGrossAssets - $userLiabilities;
@@ -31,7 +31,7 @@ class IHTCalculationFactory extends Factory
         $totalNetEstate = $userNetEstate + $spouseNetEstate;
 
         $nrbAvailable = $isMarried ? 650000 : 325000;
-        $rnrbAvailable = $this->faker->randomElement([0, 175000, 350000]);
+        $rnrbAvailable = fake()->randomElement([0, 175000, 350000]);
         $totalAllowances = $nrbAvailable + $rnrbAvailable;
 
         $taxableEstate = max(0, $totalNetEstate - $totalAllowances);
@@ -58,21 +58,21 @@ class IHTCalculationFactory extends Factory
             'taxable_estate' => $taxableEstate,
             'iht_liability' => $ihtLiability,
             'effective_rate' => round($effectiveRate, 2),
-            'projected_gross_assets' => $totalGrossAssets * $this->faker->randomFloat(2, 1.0, 1.5),
-            'projected_liabilities' => $totalLiabilities * $this->faker->randomFloat(2, 0.3, 1.0),
+            'projected_gross_assets' => $totalGrossAssets * fake()->randomFloat(2, 1.0, 1.5),
+            'projected_liabilities' => $totalLiabilities * fake()->randomFloat(2, 0.3, 1.0),
             'projected_net_estate' => null,
             'projected_taxable_estate' => null,
             'projected_iht_liability' => null,
-            'projected_cash' => $this->faker->randomFloat(2, 10000, 200000),
-            'projected_investments' => $this->faker->randomFloat(2, 50000, 500000),
-            'projected_properties' => $this->faker->randomFloat(2, 200000, 800000),
-            'retirement_age' => $this->faker->numberBetween(60, 70),
+            'projected_cash' => fake()->randomFloat(2, 10000, 200000),
+            'projected_investments' => fake()->randomFloat(2, 50000, 500000),
+            'projected_properties' => fake()->randomFloat(2, 200000, 800000),
+            'retirement_age' => fake()->numberBetween(60, 70),
             'result_json' => null,
-            'years_to_death' => $this->faker->numberBetween(10, 40),
-            'estimated_age_at_death' => $this->faker->numberBetween(75, 95),
+            'years_to_death' => fake()->numberBetween(10, 40),
+            'estimated_age_at_death' => fake()->numberBetween(75, 95),
             'calculation_date' => now(),
             'is_married' => $isMarried,
-            'data_sharing_enabled' => $isMarried ? $this->faker->boolean(80) : false,
+            'data_sharing_enabled' => $isMarried ? fake()->boolean(80) : false,
             'assets_hash' => md5((string) $userGrossAssets),
             'liabilities_hash' => md5((string) $userLiabilities),
         ];
@@ -134,7 +134,7 @@ class IHTCalculationFactory extends Factory
      */
     public function highValue(): static
     {
-        $netEstate = $this->faker->randomFloat(2, 1500000, 5000000);
+        $netEstate = fake()->randomFloat(2, 1500000, 5000000);
         $taxable = $netEstate - 500000;
         $iht = $taxable * 0.40;
 

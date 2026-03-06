@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\RecommendationTracking;
 use App\Models\User;
 use App\Services\Estate\EstateAnalyzer;
@@ -43,7 +45,11 @@ beforeEach(function () {
     $this->app->instance(EstateAnalyzer::class, $this->estateAnalyzer);
 });
 
-test('GET /api/recommendations returns all recommendations', function () {
+afterEach(function () {
+    Mockery::close();
+});
+
+it('GET /api/recommendations returns all recommendations', function () {
     $response = $this->getJson('/api/recommendations');
 
     $response->assertStatus(200)
@@ -65,7 +71,7 @@ test('GET /api/recommendations returns all recommendations', function () {
         ]);
 });
 
-test('GET /api/recommendations filters by module', function () {
+it('filters recommendations by module via GET /api/recommendations', function () {
     $response = $this->getJson('/api/recommendations?module=protection');
 
     $response->assertStatus(200);
@@ -78,7 +84,7 @@ test('GET /api/recommendations filters by module', function () {
     }
 });
 
-test('GET /api/recommendations filters by priority', function () {
+it('filters recommendations by priority via GET /api/recommendations', function () {
     $response = $this->getJson('/api/recommendations?priority=high');
 
     $response->assertStatus(200);
@@ -91,7 +97,7 @@ test('GET /api/recommendations filters by priority', function () {
     }
 });
 
-test('GET /api/recommendations filters by timeline', function () {
+it('filters recommendations by timeline via GET /api/recommendations', function () {
     $response = $this->getJson('/api/recommendations?timeline=immediate');
 
     $response->assertStatus(200);
@@ -104,7 +110,7 @@ test('GET /api/recommendations filters by timeline', function () {
     }
 });
 
-test('GET /api/recommendations applies limit parameter', function () {
+it('applies limit parameter to GET /api/recommendations', function () {
     $response = $this->getJson('/api/recommendations?limit=3');
 
     $response->assertStatus(200);
@@ -113,14 +119,14 @@ test('GET /api/recommendations applies limit parameter', function () {
     expect(count($data))->toBeLessThanOrEqual(3);
 });
 
-test('GET /api/recommendations validates module parameter', function () {
+it('validates module parameter in GET /api/recommendations', function () {
     $response = $this->getJson('/api/recommendations?module=invalid_module');
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['module']);
 });
 
-test('GET /api/recommendations/summary returns summary statistics', function () {
+it('returns summary statistics via GET /api/recommendations/summary', function () {
     $response = $this->getJson('/api/recommendations/summary');
 
     $response->assertStatus(200)
@@ -137,7 +143,7 @@ test('GET /api/recommendations/summary returns summary statistics', function () 
         ]);
 });
 
-test('GET /api/recommendations/top returns limited high-priority recommendations', function () {
+it('returns limited high-priority recommendations via GET /api/recommendations/top', function () {
     $response = $this->getJson('/api/recommendations/top?limit=5');
 
     $response->assertStatus(200)
@@ -159,7 +165,7 @@ test('GET /api/recommendations/top returns limited high-priority recommendations
     }
 });
 
-test('POST /api/recommendations/{id}/mark-done creates tracking record', function () {
+it('creates tracking record via POST /api/recommendations/{id}/mark-done', function () {
     $recommendationId = 'test_rec_'.uniqid();
 
     $response = $this->postJson("/api/recommendations/{$recommendationId}/mark-done", [
@@ -182,7 +188,7 @@ test('POST /api/recommendations/{id}/mark-done creates tracking record', functio
     ]);
 });
 
-test('POST /api/recommendations/{id}/in-progress creates tracking record', function () {
+it('creates tracking record via POST /api/recommendations/{id}/in-progress', function () {
     $recommendationId = 'test_rec_'.uniqid();
 
     $response = $this->postJson("/api/recommendations/{$recommendationId}/in-progress", [
@@ -204,7 +210,7 @@ test('POST /api/recommendations/{id}/in-progress creates tracking record', funct
     ]);
 });
 
-test('POST /api/recommendations/{id}/dismiss creates tracking record', function () {
+it('creates tracking record via POST /api/recommendations/{id}/dismiss', function () {
     $recommendationId = 'test_rec_'.uniqid();
 
     $response = $this->postJson("/api/recommendations/{$recommendationId}/dismiss", [
@@ -225,7 +231,7 @@ test('POST /api/recommendations/{id}/dismiss creates tracking record', function 
     ]);
 });
 
-test('PATCH /api/recommendations/{id}/notes updates notes', function () {
+it('updates notes via PATCH /api/recommendations/{id}/notes', function () {
     $tracking = RecommendationTracking::create([
         'user_id' => $this->user->id,
         'recommendation_id' => 'test_'.uniqid(),
@@ -250,7 +256,7 @@ test('PATCH /api/recommendations/{id}/notes updates notes', function () {
     ]);
 });
 
-test('PATCH /api/recommendations/{id}/notes validates notes field', function () {
+it('validates notes field in PATCH /api/recommendations/{id}/notes', function () {
     $tracking = RecommendationTracking::create([
         'user_id' => $this->user->id,
         'recommendation_id' => 'test_'.uniqid(),
@@ -266,7 +272,7 @@ test('PATCH /api/recommendations/{id}/notes validates notes field', function () 
         ->assertJsonValidationErrors(['notes']);
 });
 
-test('GET /api/recommendations/completed returns completed recommendations', function () {
+it('returns completed recommendations via GET /api/recommendations/completed', function () {
     // Create completed recommendation
     RecommendationTracking::create([
         'user_id' => $this->user->id,
@@ -312,7 +318,7 @@ test('GET /api/recommendations/completed returns completed recommendations', fun
     }
 });
 
-test('recommendations API requires authentication', function () {
+it('requires authentication for recommendations API', function () {
     // Without auth middleware, the endpoint should work (200)
     // In production with auth middleware, this would be 401
     $this->withoutMiddleware()->get('/api/recommendations')
@@ -322,7 +328,7 @@ test('recommendations API requires authentication', function () {
     $this->getJson('/api/recommendations')->assertStatus(200);
 });
 
-test('users can only update their own recommendation notes', function () {
+it('restricts users to updating only their own recommendation notes', function () {
     $otherUser = User::factory()->create();
 
     $tracking = RecommendationTracking::create([

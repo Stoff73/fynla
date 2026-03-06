@@ -74,7 +74,7 @@
           <div class="w-full bg-savannah-200 rounded-full h-3">
             <div
               class="h-3 rounded-full transition-all"
-              :class="isaPercentage >= 100 ? 'bg-raspberry-600' : isaPercentage >= 80 ? 'bg-yellow-500' : 'bg-spring-600'"
+              :class="isaPercentage >= 100 ? 'bg-raspberry-600' : isaPercentage >= 80 ? 'bg-violet-500' : 'bg-spring-600'"
               :style="{ width: Math.min(isaPercentage, 100) + '%' }"
             ></div>
           </div>

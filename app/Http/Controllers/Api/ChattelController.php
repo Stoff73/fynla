@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\Chattel\StoreChattelRequest;
 use App\Http\Requests\Chattel\UpdateChattelRequest;
 use App\Http\Resources\ChattelResource;
@@ -26,6 +27,8 @@ use Illuminate\Http\Request;
  */
 class ChattelController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private ChattelCGTService $cgtService,
         private NetWorthService $netWorthService

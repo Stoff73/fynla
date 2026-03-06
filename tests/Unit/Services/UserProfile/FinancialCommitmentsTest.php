@@ -34,7 +34,7 @@ beforeEach(function () {
 // BASIC FUNCTIONALITY TESTS
 // =============================================================================
 
-test('returns empty commitments for user with no assets', function () {
+it('returns empty commitments for user with no assets', function () {
     $result = $this->service->getFinancialCommitments($this->user);
 
     expect($result['commitments'])->toBeArray()
@@ -45,7 +45,7 @@ test('returns empty commitments for user with no assets', function () {
         ->and($result['totals']['total'])->toBe(0);
 });
 
-test('includes structure with all commitment types', function () {
+it('includes structure with all commitment types', function () {
     $result = $this->service->getFinancialCommitments($this->user);
 
     expect($result)->toHaveKeys(['commitments', 'totals'])
@@ -57,7 +57,7 @@ test('includes structure with all commitment types', function () {
 // DC PENSION CONTRIBUTION TESTS
 // =============================================================================
 
-test('calculates individual DC pension contribution correctly', function () {
+it('calculates individual DC pension contribution correctly', function () {
     DCPension::factory()->create([
         'user_id' => $this->user->id,
         'scheme_name' => 'Workplace Pension',
@@ -76,7 +76,7 @@ test('calculates individual DC pension contribution correctly', function () {
         ->and($result['totals']['total'])->toBe(300.00);
 });
 
-test('DC pensions are always individual (never joint)', function () {
+it('treats DC pensions as always individual (never joint)', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -98,7 +98,7 @@ test('DC pensions are always individual (never joint)', function () {
         ->and($result['totals']['retirement'])->toBe(600.00);
 });
 
-test('excludes DC pensions with zero contributions', function () {
+it('excludes DC pensions with zero contributions', function () {
     DCPension::factory()->create([
         'user_id' => $this->user->id,
         'scheme_name' => 'Inactive Pension',
@@ -111,7 +111,7 @@ test('excludes DC pensions with zero contributions', function () {
         ->and($result['totals']['retirement'])->toBe(0);
 });
 
-test('handles multiple DC pensions correctly', function () {
+it('handles multiple DC pensions correctly', function () {
     DCPension::factory()->create([
         'user_id' => $this->user->id,
         'scheme_name' => 'Workplace Pension',
@@ -134,7 +134,7 @@ test('handles multiple DC pensions correctly', function () {
 // PROPERTY EXPENSE TESTS
 // =============================================================================
 
-test('calculates individual property expenses correctly', function () {
+it('calculates individual property expenses correctly', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => '15 Amherst Place',
@@ -176,7 +176,7 @@ test('calculates individual property expenses correctly', function () {
         ->and($result['totals']['properties'])->toBe(945.00);
 });
 
-test('joint property expenses are split by ownership percentage', function () {
+it('splits joint property expenses by ownership percentage', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -214,7 +214,7 @@ test('joint property expenses are split by ownership percentage', function () {
         ->and($result['totals']['properties'])->toBe(650.00);
 });
 
-test('handles property without mortgage', function () {
+it('handles property without mortgage', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => 'Unmortgaged Property',
@@ -235,7 +235,7 @@ test('handles property without mortgage', function () {
         ->and($result['commitments']['properties'][0]['breakdown'])->not->toHaveKey('mortgage');
 });
 
-test('uses first mortgage on property (service takes first mortgage only)', function () {
+it('uses first mortgage on property (service takes first mortgage only)', function () {
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'address_line_1' => 'Property with Mortgage',
@@ -261,7 +261,7 @@ test('uses first mortgage on property (service takes first mortgage only)', func
 // LIFE INSURANCE PREMIUM TESTS
 // =============================================================================
 
-test('converts monthly life insurance premium correctly', function () {
+it('converts monthly life insurance premium correctly', function () {
     LifeInsurancePolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 150.00,
@@ -280,7 +280,7 @@ test('converts monthly life insurance premium correctly', function () {
         ->and($result['totals']['protection'])->toBe(150.00);
 });
 
-test('converts quarterly premium to monthly', function () {
+it('converts quarterly premium to monthly', function () {
     LifeInsurancePolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 450.00,
@@ -292,7 +292,7 @@ test('converts quarterly premium to monthly', function () {
     expect($result['commitments']['protection'][0]['monthly_amount'])->toBe(150.00); // 450 / 3
 });
 
-test('converts annual premium to monthly', function () {
+it('converts annual premium to monthly', function () {
     LifeInsurancePolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 1800.00,
@@ -304,7 +304,7 @@ test('converts annual premium to monthly', function () {
     expect($result['commitments']['protection'][0]['monthly_amount'])->toBe(150.00); // 1800 / 12
 });
 
-test('life insurance is always individual (never joint)', function () {
+it('treats life insurance as always individual (never joint)', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -327,7 +327,7 @@ test('life insurance is always individual (never joint)', function () {
 // CRITICAL ILLNESS PREMIUM TESTS
 // =============================================================================
 
-test('calculates critical illness premium correctly', function () {
+it('calculates critical illness premium correctly', function () {
     CriticalIllnessPolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 80.00,
@@ -348,7 +348,7 @@ test('calculates critical illness premium correctly', function () {
 // INCOME PROTECTION PREMIUM TESTS
 // =============================================================================
 
-test('calculates income protection premium correctly', function () {
+it('calculates income protection premium correctly', function () {
     IncomeProtectionPolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 120.00,
@@ -365,7 +365,7 @@ test('calculates income protection premium correctly', function () {
         ]);
 });
 
-test('aggregates multiple protection policies', function () {
+it('aggregates multiple protection policies', function () {
     LifeInsurancePolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 150.00,
@@ -394,7 +394,7 @@ test('aggregates multiple protection policies', function () {
 // LIABILITY REPAYMENT TESTS
 // =============================================================================
 
-test('calculates individual liability repayment correctly', function () {
+it('calculates individual liability repayment correctly', function () {
     Liability::factory()->create([
         'user_id' => $this->user->id,
         'liability_name' => 'Personal Loan',
@@ -414,7 +414,7 @@ test('calculates individual liability repayment correctly', function () {
         ->and($result['totals']['liabilities'])->toBe(250.00);
 });
 
-test('splits joint liability repayment 50/50', function () {
+it('splits joint liability repayment 50/50', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -440,7 +440,7 @@ test('splits joint liability repayment 50/50', function () {
 // COMPREHENSIVE INTEGRATION TESTS
 // =============================================================================
 
-test('calculates total commitments across all categories', function () {
+it('calculates total commitments across all categories', function () {
     // DC Pension
     DCPension::factory()->create([
         'user_id' => $this->user->id,
@@ -482,7 +482,7 @@ test('calculates total commitments across all categories', function () {
         ->and($result['totals']['total'])->toBe(1700.00);
 });
 
-test('joint property values are split by ownership percentage', function () {
+it('splits joint property values by ownership percentage', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -511,7 +511,7 @@ test('joint property values are split by ownership percentage', function () {
         ->and($userCommitments['totals']['total'])->toBe(1000.00);
 });
 
-test('handles mixed individual and joint commitments correctly', function () {
+it('handles mixed individual and joint commitments correctly', function () {
     $spouse = User::factory()->create();
     $this->user->update(['spouse_id' => $spouse->id]);
 
@@ -567,7 +567,7 @@ test('handles mixed individual and joint commitments correctly', function () {
 // EDGE CASE TESTS
 // =============================================================================
 
-test('handles null monthly payment values gracefully', function () {
+it('handles null monthly payment values gracefully', function () {
     Liability::factory()->create([
         'user_id' => $this->user->id,
         'liability_name' => 'Credit Card',
@@ -582,7 +582,7 @@ test('handles null monthly payment values gracefully', function () {
         ->and($result['totals']['liabilities'])->toBe(0);
 });
 
-test('handles zero monthly payment values', function () {
+it('handles zero monthly payment values', function () {
     DCPension::factory()->create([
         'user_id' => $this->user->id,
         'monthly_contribution_amount' => 0.00,
@@ -594,7 +594,7 @@ test('handles zero monthly payment values', function () {
     expect($result['commitments']['retirement'])->toBeEmpty();
 });
 
-test('excludes properties with zero total costs', function () {
+it('excludes properties with zero total costs', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'monthly_council_tax' => 0.00,
@@ -610,7 +610,7 @@ test('excludes properties with zero total costs', function () {
         ->and($result['totals']['properties'])->toBe(0);
 });
 
-test('rounds monetary values correctly', function () {
+it('rounds monetary values correctly', function () {
     LifeInsurancePolicy::factory()->create([
         'user_id' => $this->user->id,
         'premium_amount' => 123.456, // Should round

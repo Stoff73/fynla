@@ -105,7 +105,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Factories
 
-42 factories in `database/factories/`. Structure:
+44 factories in `database/factories/`. Structure:
 ```php
 class MyModelFactory extends Factory {
     protected $model = MyModel::class;

@@ -75,7 +75,7 @@
           <div class="bg-eggshell-500 rounded-lg p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-horizon-500">General Investment Account</h3>
-              <span class="px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full">TAXABLE</span>
+              <span class="px-3 py-1 bg-violet-500 text-white text-xs font-semibold rounded-full">TAXABLE</span>
             </div>
 
             <div class="space-y-3 mb-4">
@@ -93,7 +93,7 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-sm text-neutral-500">Withdrawal:</span>
-                <span class="font-semibold text-yellow-600">May Trigger Tax</span>
+                <span class="font-semibold text-violet-600">May Trigger Tax</span>
               </div>
             </div>
 
@@ -375,7 +375,7 @@
               <span class="text-sm font-semibold text-neutral-500">£3,000</span>
             </div>
             <div class="w-full bg-savannah-200 rounded-full h-3 mb-2">
-              <div class="h-3 bg-yellow-600 rounded-full" style="width: 20%"></div>
+              <div class="h-3 bg-violet-600 rounded-full" style="width: 20%"></div>
             </div>
             <div class="flex justify-between text-xs text-neutral-500">
               <span>Used: £600</span>
@@ -596,7 +596,7 @@ export default {
       const winner = this.getWinner();
       if (winner === 'ISA') return 'bg-white border-l-4 border-spring-500';
       if (winner === 'Pension') return 'bg-white border-l-4 border-violet-500';
-      return 'bg-white border-l-4 border-yellow-500';
+      return 'bg-white border-l-4 border-violet-500';
     },
 
     getWinnerTextClass() {

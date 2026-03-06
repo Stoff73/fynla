@@ -10,14 +10,14 @@ beforeEach(function () {
 
 describe('ScenarioService', function () {
     describe('getTemplates', function () {
-        test('returns array of scenario templates', function () {
+        it('returns array of scenario templates', function () {
             $templates = $this->service->getTemplates();
 
             expect($templates)->toBeArray();
             expect($templates)->not->toBeEmpty();
         });
 
-        test('each template has required fields', function () {
+        it('has required fields in each template', function () {
             $templates = $this->service->getTemplates();
 
             foreach ($templates as $template) {
@@ -30,28 +30,28 @@ describe('ScenarioService', function () {
             }
         });
 
-        test('template IDs are unique', function () {
+        it('has unique template IDs', function () {
             $templates = $this->service->getTemplates();
             $ids = array_column($templates, 'id');
 
             expect(count($ids))->toBe(count(array_unique($ids)));
         });
 
-        test('includes market crash template', function () {
+        it('includes market crash template', function () {
             $templates = $this->service->getTemplates();
             $ids = array_column($templates, 'id');
 
             expect($ids)->toContain('market_crash');
         });
 
-        test('includes early retirement template', function () {
+        it('includes early retirement template', function () {
             $templates = $this->service->getTemplates();
             $ids = array_column($templates, 'id');
 
             expect($ids)->toContain('early_retirement');
         });
 
-        test('includes contribution-related templates', function () {
+        it('includes contribution-related templates', function () {
             $templates = $this->service->getTemplates();
             $ids = array_column($templates, 'id');
 
@@ -59,7 +59,7 @@ describe('ScenarioService', function () {
             expect($ids)->toContain('lump_sum_contribution');
         });
 
-        test('includes allocation templates', function () {
+        it('includes allocation templates', function () {
             $templates = $this->service->getTemplates();
             $ids = array_column($templates, 'id');
 
@@ -69,7 +69,7 @@ describe('ScenarioService', function () {
     });
 
     describe('getTemplate', function () {
-        test('returns template by valid ID', function () {
+        it('returns template by valid ID', function () {
             $template = $this->service->getTemplate('market_crash');
 
             expect($template)->not->toBeNull();
@@ -78,13 +78,13 @@ describe('ScenarioService', function () {
             expect($template['category'])->toBe('market_conditions');
         });
 
-        test('returns null for invalid template ID', function () {
+        it('returns null for invalid template ID', function () {
             $template = $this->service->getTemplate('nonexistent_template');
 
             expect($template)->toBeNull();
         });
 
-        test('market crash has correct parameters', function () {
+        it('has correct parameters for market crash', function () {
             $template = $this->service->getTemplate('market_crash');
 
             expect($template['parameters'])->toHaveKey('return_adjustment');
@@ -92,7 +92,7 @@ describe('ScenarioService', function () {
             expect($template['parameters'])->toHaveKey('recovery_period_years');
         });
 
-        test('early retirement has correct parameters', function () {
+        it('has correct parameters for early retirement', function () {
             $template = $this->service->getTemplate('early_retirement');
 
             expect($template['parameters'])->toHaveKey('retirement_age');
@@ -100,7 +100,7 @@ describe('ScenarioService', function () {
             expect($template['parameters'])->toHaveKey('withdrawal_rate');
         });
 
-        test('fee reduction has correct parameters', function () {
+        it('has correct parameters for fee reduction', function () {
             $template = $this->service->getTemplate('fee_reduction');
 
             expect($template['parameters'])->toHaveKey('fee_reduction');

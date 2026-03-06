@@ -43,7 +43,7 @@ function setupEmptyMocks($context): void
     $context->estatePlanService->shouldReceive('generateComprehensiveEstatePlan')->andReturn(['implementation_timeline' => []]);
 }
 
-test('aggregateRecommendations returns recommendations from all modules', function () {
+it('returns recommendations from all modules via aggregateRecommendations', function () {
     // Protection returns recommendation via data.recommendations
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
@@ -85,7 +85,7 @@ test('aggregateRecommendations returns recommendations from all modules', functi
     expect($recommendations[1]['module'])->toBe('protection'); // Lower priority (85)
 });
 
-test('aggregateRecommendations sorts by priority score descending', function () {
+it('sorts aggregated recommendations by priority score descending', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -123,7 +123,7 @@ test('aggregateRecommendations sorts by priority score descending', function () 
     expect($recommendations[2]['priority_score'])->toBe(50.0); // Protection
 });
 
-test('formatRecommendations normalizes different recommendation formats', function () {
+it('normalizes different recommendation formats', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -160,7 +160,7 @@ test('formatRecommendations normalizes different recommendation formats', functi
     expect($recommendations[0])->toHaveKey('category');
 });
 
-test('determineTimeline assigns correct timeline based on priority score', function () {
+it('assigns correct timeline based on priority score', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -186,7 +186,7 @@ test('determineTimeline assigns correct timeline based on priority score', funct
     expect($recommendations[3]['timeline'])->toBe('long_term');
 });
 
-test('determineImpact assigns correct impact based on priority score', function () {
+it('assigns correct impact based on priority score', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -210,7 +210,7 @@ test('determineImpact assigns correct impact based on priority score', function 
     expect($recommendations[2]['impact'])->toBe('low');
 });
 
-test('getRecommendationsByModule filters correctly', function () {
+it('filters recommendations by module correctly', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -241,7 +241,7 @@ test('getRecommendationsByModule filters correctly', function () {
     expect(array_values($savingsRecs)[0]['module'])->toBe('savings');
 });
 
-test('getRecommendationsByPriority filters correctly', function () {
+it('filters recommendations by priority correctly', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -264,7 +264,7 @@ test('getRecommendationsByPriority filters correctly', function () {
     expect($lowPriorityRecs)->toHaveCount(1);
 });
 
-test('getTopRecommendations returns limited results', function () {
+it('returns limited results from getTopRecommendations', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -290,7 +290,7 @@ test('getTopRecommendations returns limited results', function () {
     expect($topRecs[2]['priority_score'])->toBe(70.0);
 });
 
-test('getSummary calculates correct statistics', function () {
+it('calculates correct statistics in getSummary', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -329,7 +329,7 @@ test('getSummary calculates correct statistics', function () {
     expect($summary['total_potential_benefit'])->toBe(50000.0);
 });
 
-test('aggregateRecommendations handles service exceptions gracefully', function () {
+it('handles service exceptions gracefully during aggregation', function () {
     $this->protectionEngine->shouldReceive('analyze')->andThrow(new \Exception('Protection service error'));
 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
@@ -351,7 +351,7 @@ test('aggregateRecommendations handles service exceptions gracefully', function 
     expect($recommendations[0]['module'])->toBe('savings');
 });
 
-test('determineCategory assigns correct category based on module', function () {
+it('assigns correct category based on module', function () {
     $this->protectionEngine->shouldReceive('analyze')->andReturn([
         'data' => [
             'recommendations' => [
@@ -396,7 +396,7 @@ test('determineCategory assigns correct category based on module', function () {
     expect($estateRec['category'])->toBe('estate_planning');
 });
 
-test('aggregateRecommendations handles non-numeric iht_saving gracefully', function () {
+it('handles non-numeric iht_saving gracefully during aggregation', function () {
     setupEmptyMocks($this);
 
     // Override estate mock with 'Variable' iht_saving

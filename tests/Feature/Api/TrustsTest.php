@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Estate\Trust;
@@ -17,7 +19,7 @@ beforeEach(function () {
     Sanctum::actingAs($this->user);
 });
 
-test('GET /api/estate/trusts/{id}/assets returns trust assets', function () {
+it('returns trust assets via GET /api/estate/trusts/{id}/assets', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -55,7 +57,7 @@ test('GET /api/estate/trusts/{id}/assets returns trust assets', function () {
     expect((float) $data['total_value'])->toBe(600000.0);
 });
 
-test('POST /api/estate/trusts/{id}/calculate-iht-impact calculates IHT', function () {
+it('calculates IHT via POST /api/estate/trusts/{id}/calculate-iht-impact', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -87,7 +89,7 @@ test('POST /api/estate/trusts/{id}/calculate-iht-impact calculates IHT', functio
     expect($response->json('data.periodic_charge'))->toBeArray();
 });
 
-test('GET /api/estate/trusts/upcoming-tax-returns returns data', function () {
+it('returns data via GET /api/estate/trusts/upcoming-tax-returns', function () {
     Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -111,7 +113,7 @@ test('GET /api/estate/trusts/upcoming-tax-returns returns data', function () {
         ]);
 });
 
-test('users cannot access other users trust assets', function () {
+it('prevents access to other users trust assets', function () {
     $otherUser = User::factory()->create();
     $otherTrust = Trust::factory()->create([
         'user_id' => $otherUser->id,
@@ -124,7 +126,7 @@ test('users cannot access other users trust assets', function () {
     $response->assertStatus(404);
 });
 
-test('trust assets endpoint handles empty trust', function () {
+it('handles empty trust in trust assets endpoint', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -139,7 +141,7 @@ test('trust assets endpoint handles empty trust', function () {
     expect((float) $data['total_value'])->toBe(0.0);
 });
 
-test('trust assets endpoint returns correct breakdown', function () {
+it('returns correct breakdown from trust assets endpoint', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -169,7 +171,7 @@ test('trust assets endpoint returns correct breakdown', function () {
     expect($breakdown['properties']['count'])->toBe(1);
 });
 
-test('upcoming tax returns handles user with no RPT trusts', function () {
+it('handles user with no RPT trusts in upcoming tax returns', function () {
     Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -186,7 +188,7 @@ test('upcoming tax returns handles user with no RPT trusts', function () {
     expect($data)->toHaveKey('tax_returns');
 });
 
-test('trust assets include correct metadata', function () {
+it('includes correct metadata in trust assets', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -211,7 +213,7 @@ test('trust assets include correct metadata', function () {
     expect($properties[0]['name'])->toContain('123 Test Street');
 });
 
-test('trust assets handle partial ownership', function () {
+it('handles partial ownership in trust assets', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,

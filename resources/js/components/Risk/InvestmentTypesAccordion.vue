@@ -15,9 +15,9 @@
           @click="toggleSection('cash')"
         >
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
             <span class="font-medium text-horizon-500">Cash & Cash Equivalents</span>
-            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+            <span class="px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-800 rounded-full">
               Low Risk
             </span>
           </div>

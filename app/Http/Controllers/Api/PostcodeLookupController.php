@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Log;
  */
 class PostcodeLookupController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * UK postcode regex pattern
      * Matches formats like: SW1A 1AA, SW1A1AA, sw1a 1aa

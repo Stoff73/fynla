@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
@@ -21,7 +23,7 @@ describe('Retirement Index Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('GET /api/retirement returns all retirement data for authenticated user', function () {
+    it('returns all retirement data for authenticated user via GET /api/retirement', function () {
         // Create test data
         DCPension::factory()->create(['user_id' => $this->user->id]);
         DBPension::factory()->create(['user_id' => $this->user->id]);
@@ -42,7 +44,7 @@ describe('Retirement Index Endpoint (Authenticated)', function () {
             ]);
     });
 
-    test('GET /api/retirement returns empty arrays when no data exists', function () {
+    it('returns empty arrays when no data exists via GET /api/retirement', function () {
         $response = $this->getJson('/api/retirement');
 
         $response->assertStatus(200)
@@ -62,7 +64,7 @@ describe('Retirement Analysis Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('POST /api/retirement/analyze performs retirement analysis', function () {
+    it('performs retirement analysis via POST /api/retirement/analyze', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 100000,
@@ -100,7 +102,7 @@ describe('Annual Allowance Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('GET /api/retirement/annual-allowance/{taxYear} returns allowance information', function () {
+    it('returns allowance information via GET /api/retirement/annual-allowance/{taxYear}', function () {
         $response = $this->getJson('/api/retirement/annual-allowance/2024-25');
 
         $response->assertStatus(200)
@@ -115,7 +117,7 @@ describe('Annual Allowance Endpoint (Authenticated)', function () {
             ]);
     });
 
-    test('GET /api/retirement/annual-allowance/{taxYear} calculates tapering for high earners', function () {
+    it('calculates tapering for high earners via GET /api/retirement/annual-allowance/{taxYear}', function () {
         // Create high income scenario
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
@@ -137,7 +139,7 @@ describe('Recommendations Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('GET /api/retirement/recommendations returns personalized recommendations', function () {
+    it('returns personalised recommendations via GET /api/retirement/recommendations', function () {
         DCPension::factory()->create(['user_id' => $this->user->id]);
         RetirementProfile::factory()->create(['user_id' => $this->user->id]);
 
@@ -159,7 +161,7 @@ describe('Scenarios Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('POST /api/retirement/scenarios runs what-if scenarios', function () {
+    it('runs what-if scenarios via POST /api/retirement/scenarios', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 150000,
@@ -193,7 +195,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('POST /api/retirement/pensions/dc creates DC pension', function () {
+    it('creates DC pension via POST /api/retirement/pensions/dc', function () {
         $pensionData = [
             'scheme_name' => 'Workplace Pension',
             'scheme_type' => 'workplace',
@@ -224,7 +226,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         ]);
     });
 
-    test('PUT /api/retirement/pensions/dc/{id} updates DC pension', function () {
+    it('updates DC pension via PUT /api/retirement/pensions/dc/{id}', function () {
         $pension = DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 50000,
@@ -248,7 +250,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         ]);
     });
 
-    test('DELETE /api/retirement/pensions/dc/{id} deletes DC pension', function () {
+    it('deletes DC pension via DELETE /api/retirement/pensions/dc/{id}', function () {
         $pension = DCPension::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->deleteJson("/api/retirement/pensions/dc/{$pension->id}");
@@ -264,7 +266,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         ]);
     });
 
-    test('user cannot update another users DC pension', function () {
+    it('prevents updating another users DC pension', function () {
         $otherUser = User::factory()->create();
         $pension = DCPension::factory()->create(['user_id' => $otherUser->id]);
 
@@ -278,7 +280,7 @@ describe('DC Pension CRUD Endpoints (Authenticated)', function () {
         $response->assertStatus(403);
     });
 
-    test('user cannot delete another users DC pension', function () {
+    it('prevents deleting another users DC pension', function () {
         $otherUser = User::factory()->create();
         $pension = DCPension::factory()->create(['user_id' => $otherUser->id]);
 
@@ -295,7 +297,7 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('POST /api/retirement/pensions/db creates DB pension', function () {
+    it('creates DB pension via POST /api/retirement/pensions/db', function () {
         $pensionData = [
             'scheme_name' => 'NHS Pension',
             'scheme_type' => 'public_sector',
@@ -324,7 +326,7 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
         ]);
     });
 
-    test('PUT /api/retirement/pensions/db/{id} updates DB pension', function () {
+    it('updates DB pension via PUT /api/retirement/pensions/db/{id}', function () {
         $pension = DBPension::factory()->create([
             'user_id' => $this->user->id,
             'accrued_annual_pension' => 10000,
@@ -343,7 +345,7 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
             ->assertJsonPath('data.accrued_annual_pension', '12000.00');
     });
 
-    test('DELETE /api/retirement/pensions/db/{id} deletes DB pension', function () {
+    it('deletes DB pension via DELETE /api/retirement/pensions/db/{id}', function () {
         $pension = DBPension::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->deleteJson("/api/retirement/pensions/db/{$pension->id}");
@@ -358,7 +360,7 @@ describe('DB Pension CRUD Endpoints (Authenticated)', function () {
         ]);
     });
 
-    test('user cannot access another users DB pension', function () {
+    it('prevents access to another users DB pension', function () {
         $otherUser = User::factory()->create();
         $pension = DBPension::factory()->create(['user_id' => $otherUser->id]);
 
@@ -375,7 +377,7 @@ describe('State Pension Endpoint (Authenticated)', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('POST /api/retirement/state-pension updates state pension', function () {
+    it('updates state pension via POST /api/retirement/state-pension', function () {
         StatePension::factory()->create([
             'user_id' => $this->user->id,
             'ni_years_completed' => 25,
@@ -396,7 +398,7 @@ describe('State Pension Endpoint (Authenticated)', function () {
         ]);
     });
 
-    test('POST /api/retirement/state-pension creates record if none exists', function () {
+    it('creates state pension record if none exists via POST /api/retirement/state-pension', function () {
         $response = $this->postJson('/api/retirement/state-pension', [
             'ni_years_completed' => 20,
             'ni_years_required' => 35,
@@ -412,7 +414,7 @@ describe('State Pension Endpoint (Authenticated)', function () {
         ]);
     });
 
-    test('POST /api/retirement/state-pension validates input', function () {
+    it('validates input for POST /api/retirement/state-pension', function () {
         $response = $this->postJson('/api/retirement/state-pension', [
             'ni_years_completed' => 'invalid',
         ]);
@@ -423,7 +425,7 @@ describe('State Pension Endpoint (Authenticated)', function () {
 
 // Unauthenticated Tests (No beforeEach authentication)
 describe('Retirement API Authentication Requirements', function () {
-    test('all endpoints require authentication', function () {
+    it('requires authentication for all endpoints', function () {
         $endpoints = [
             ['GET', '/api/retirement'],
             ['POST', '/api/retirement/analyze'],
@@ -449,7 +451,7 @@ describe('Retirement API Authorization Checks', function () {
         $this->actingAs($this->user, 'sanctum');
     });
 
-    test('users cannot access other users data', function () {
+    it('prevents users from accessing other users data', function () {
         $otherUser = User::factory()->create();
 
         $dcPension = DCPension::factory()->create(['user_id' => $otherUser->id]);

@@ -149,7 +149,7 @@ export default {
 }
 
 .strategy-disclaimer.warning {
-  @apply bg-yellow-50;
+  @apply bg-violet-50;
   @apply border border-blue-300;
 }
 

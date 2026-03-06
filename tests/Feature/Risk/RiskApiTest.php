@@ -32,7 +32,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/investment/risk/profile', function () {
-    test('auto-calculates risk profile when none exists', function () {
+    it('auto-calculates risk profile when none exists', function () {
         // With auto-risk calculator, profiles are created on-demand
         $response = $this->getJson('/api/investment/risk/profile');
 
@@ -53,7 +53,7 @@ describe('GET /api/investment/risk/profile', function () {
         expect($response->json('data.factor_breakdown'))->toHaveCount(7);
     });
 
-    test('returns existing risk profile with factor breakdown', function () {
+    it('returns existing risk profile with factor breakdown', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'medium',
@@ -83,7 +83,7 @@ describe('GET /api/investment/risk/profile', function () {
         expect($response->json('data.is_self_assessed'))->toBe(false);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         $response = $this->withoutMiddleware()
             ->getJson('/api/investment/risk/profile');
 
@@ -93,7 +93,7 @@ describe('GET /api/investment/risk/profile', function () {
 });
 
 describe('POST /api/investment/risk/recalculate', function () {
-    test('calculates risk profile from user data', function () {
+    it('calculates risk profile from user data', function () {
         // Setup user with financial data
         InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
@@ -134,7 +134,7 @@ describe('POST /api/investment/risk/recalculate', function () {
         expect($profile->risk_level)->toBe($response->json('data.risk_level'));
     });
 
-    test('returns 7 factors in breakdown', function () {
+    it('returns 7 factors in breakdown', function () {
         $response = $this->postJson('/api/investment/risk/recalculate');
 
         $response->assertStatus(200);
@@ -152,7 +152,7 @@ describe('POST /api/investment/risk/recalculate', function () {
         expect($factorNames)->toContain('surplus_cash');
     });
 
-    test('updates existing profile on recalculation', function () {
+    it('updates existing profile on recalculation', function () {
         // Create initial profile
         RiskProfile::create([
             'user_id' => $this->user->id,
@@ -174,7 +174,7 @@ describe('POST /api/investment/risk/recalculate', function () {
 });
 
 describe('GET /api/investment/risk/levels', function () {
-    test('returns all 5 risk levels with configurations', function () {
+    it('returns all 5 risk levels with configurations', function () {
         $response = $this->getJson('/api/investment/risk/levels');
 
         $response->assertStatus(200)
@@ -203,7 +203,7 @@ describe('GET /api/investment/risk/levels', function () {
 });
 
 describe('GET /api/investment/risk/allowed-levels', function () {
-    test('returns all levels when no profile exists', function () {
+    it('returns all levels when no profile exists', function () {
         // Without auto-calculation on this endpoint, returns all levels
         $response = $this->getJson('/api/investment/risk/allowed-levels');
 
@@ -221,7 +221,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($response->json('data.allowed_levels'))->toHaveCount(5);
     });
 
-    test('returns all 5 levels when profile exists (no restriction to adjacent)', function () {
+    it('returns all 5 levels when profile exists (no restriction to adjacent)', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'medium',
@@ -245,7 +245,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($allowedKeys)->toHaveCount(5);
     });
 
-    test('returns all 5 levels at low end', function () {
+    it('returns all 5 levels at low end', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'low',
@@ -263,7 +263,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
         expect($allowedKeys)->toHaveCount(5);
     });
 
-    test('returns all 5 levels at high end', function () {
+    it('returns all 5 levels at high end', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'high',
@@ -283,7 +283,7 @@ describe('GET /api/investment/risk/allowed-levels', function () {
 });
 
 describe('GET /api/investment/risk/config/{level}', function () {
-    test('returns configuration for valid risk level', function () {
+    it('returns configuration for valid risk level', function () {
         $response = $this->getJson('/api/investment/risk/config/medium');
 
         $response->assertStatus(200)
@@ -315,7 +315,7 @@ describe('GET /api/investment/risk/config/{level}', function () {
         expect($response->json('data.display_name'))->toBe('Medium');
     });
 
-    test('returns error for invalid risk level', function () {
+    it('returns error for invalid risk level', function () {
         $response = $this->getJson('/api/investment/risk/config/invalid');
 
         // Laravel validation returns 422 for invalid input
@@ -324,7 +324,7 @@ describe('GET /api/investment/risk/config/{level}', function () {
 });
 
 describe('POST /api/investment/risk/validate-product-level', function () {
-    test('validates product level is within allowed range', function () {
+    it('validates product level is within allowed range', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'medium',
@@ -347,7 +347,7 @@ describe('POST /api/investment/risk/validate-product-level', function () {
             ]);
     });
 
-    test('accepts any product level regardless of main level', function () {
+    it('accepts any product level regardless of main level', function () {
         RiskProfile::create([
             'user_id' => $this->user->id,
             'risk_level' => 'low',

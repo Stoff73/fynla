@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Agents\CoordinatingAgent;
 use App\Constants\TaxDefaults;
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Coordination\CashFlowCoordinator;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class HolisticPlanningController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly CashFlowCoordinator $cashFlowCoordinator

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\PaymentConfirmation;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Mail;
 
 class WebhookController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private readonly RevolutService $revolutService
     ) {}

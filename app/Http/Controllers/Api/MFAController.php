@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AuditLog;
 use App\Models\LoginAttempt;
 use App\Services\Audit\AuditService;
@@ -18,6 +19,8 @@ use Illuminate\Support\Str;
 
 class MFAController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private MFAService $mfaService,
         private AuditService $auditService,

@@ -577,7 +577,7 @@ export default {
     allowanceBarClass() {
       if (this.allowanceUsedPercent >= 100) return 'bg-raspberry-600';
       if (this.allowanceUsedPercent >= 75) return 'bg-violet-500';
-      if (this.allowanceUsedPercent >= 50) return 'bg-yellow-500';
+      if (this.allowanceUsedPercent >= 50) return 'bg-violet-500';
       return 'bg-spring-600';
     },
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AuditLog;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\SessionService;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Hash;
 
 class SessionController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private SessionService $sessionService,
         private AuditService $auditService

@@ -13,6 +13,7 @@ beforeEach(function () {
 
 afterEach(function () {
     Carbon::setTestNow(null);
+    Mockery::close();
 });
 
 function createGoalMock(array $attributes): SavingsGoal

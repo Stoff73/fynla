@@ -18,14 +18,14 @@ class RetirementProfileFactory extends Factory
      */
     public function definition(): array
     {
-        $currentAge = $this->faker->numberBetween(25, 55);
-        $targetRetirementAge = $this->faker->numberBetween(
+        $currentAge = fake()->numberBetween(25, 55);
+        $targetRetirementAge = fake()->numberBetween(
             max(60, $currentAge + 5),
             68
         );
 
-        $currentAnnualSalary = $this->faker->randomFloat(2, 25000, 100000);
-        $targetRetirementIncome = $currentAnnualSalary * $this->faker->randomFloat(2, 0.5, 0.8); // 50-80% of current salary
+        $currentAnnualSalary = fake()->randomFloat(2, 25000, 100000);
+        $targetRetirementIncome = $currentAnnualSalary * fake()->randomFloat(2, 0.5, 0.8); // 50-80% of current salary
 
         return [
             'user_id' => \App\Models\User::factory(),
@@ -33,10 +33,10 @@ class RetirementProfileFactory extends Factory
             'target_retirement_age' => $targetRetirementAge,
             'current_annual_salary' => $currentAnnualSalary,
             'target_retirement_income' => $targetRetirementIncome,
-            'essential_expenditure' => $this->faker->randomFloat(2, 15000, 40000),
-            'lifestyle_expenditure' => $this->faker->randomFloat(2, 5000, 30000),
-            'life_expectancy' => $this->faker->numberBetween(80, 95),
-            'spouse_life_expectancy' => $this->faker->optional(0.6)->numberBetween(80, 95),
+            'essential_expenditure' => fake()->randomFloat(2, 15000, 40000),
+            'lifestyle_expenditure' => fake()->randomFloat(2, 5000, 30000),
+            'life_expectancy' => fake()->numberBetween(80, 95),
+            'spouse_life_expectancy' => fake()->optional(0.6)->numberBetween(80, 95),
             'prior_year_unused_allowance' => null,
         ];
     }

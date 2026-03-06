@@ -36,26 +36,26 @@ class DisabilityPolicyFactory extends Factory
             'Class 4 (Very High Risk)',
         ];
 
-        $policyStartDate = $this->faker->dateTimeBetween('-5 years', 'now');
-        $hasOccupationClass = $this->faker->boolean(70);
-        $hasPolicyNumber = $this->faker->boolean(90);
-        $hasBenefitPeriod = $this->faker->boolean(80);
-        $hasPolicyTerm = $this->faker->boolean(60);
+        $policyStartDate = fake()->dateTimeBetween('-5 years', 'now');
+        $hasOccupationClass = fake()->boolean(70);
+        $hasPolicyNumber = fake()->boolean(90);
+        $hasBenefitPeriod = fake()->boolean(80);
+        $hasPolicyTerm = fake()->boolean(60);
 
         return [
             'user_id' => User::factory(),
-            'provider' => $this->faker->randomElement($providers),
-            'policy_number' => $hasPolicyNumber ? ('DP'.$this->faker->numerify('######')) : null,
-            'benefit_amount' => $this->faker->numberBetween(1000, 4000),
-            'benefit_frequency' => $this->faker->randomElement(['monthly', 'weekly']),
-            'deferred_period_weeks' => $this->faker->randomElement([4, 8, 13, 26]),
-            'benefit_period_months' => $hasBenefitPeriod ? $this->faker->randomElement([12, 24, 36, 48, 60]) : null,
-            'premium_amount' => $this->faker->randomFloat(2, 20, 80),
+            'provider' => fake()->randomElement($providers),
+            'policy_number' => $hasPolicyNumber ? ('DP'.fake()->numerify('######')) : null,
+            'benefit_amount' => fake()->numberBetween(1000, 4000),
+            'benefit_frequency' => fake()->randomElement(['monthly', 'weekly']),
+            'deferred_period_weeks' => fake()->randomElement([4, 8, 13, 26]),
+            'benefit_period_months' => $hasBenefitPeriod ? fake()->randomElement([12, 24, 36, 48, 60]) : null,
+            'premium_amount' => fake()->randomFloat(2, 20, 80),
             'premium_frequency' => 'monthly',
-            'occupation_class' => $hasOccupationClass ? $this->faker->randomElement($occupationClasses) : null,
+            'occupation_class' => $hasOccupationClass ? fake()->randomElement($occupationClasses) : null,
             'policy_start_date' => $policyStartDate,
-            'policy_term_years' => $hasPolicyTerm ? $this->faker->numberBetween(10, 25) : null,
-            'coverage_type' => $this->faker->randomElement(['accident_only', 'accident_and_sickness']),
+            'policy_term_years' => $hasPolicyTerm ? fake()->numberBetween(10, 25) : null,
+            'coverage_type' => fake()->randomElement(['accident_only', 'accident_and_sickness']),
         ];
     }
 }

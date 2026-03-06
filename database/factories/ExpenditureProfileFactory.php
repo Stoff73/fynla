@@ -17,13 +17,13 @@ class ExpenditureProfileFactory extends Factory
 
     public function definition(): array
     {
-        $housing = $this->faker->randomFloat(2, 500, 2500);
-        $utilities = $this->faker->randomFloat(2, 100, 400);
-        $food = $this->faker->randomFloat(2, 200, 800);
-        $transport = $this->faker->randomFloat(2, 50, 500);
-        $insurance = $this->faker->randomFloat(2, 50, 300);
-        $loans = $this->faker->randomFloat(2, 0, 500);
-        $discretionary = $this->faker->randomFloat(2, 100, 1000);
+        $housing = fake()->randomFloat(2, 500, 2500);
+        $utilities = fake()->randomFloat(2, 100, 400);
+        $food = fake()->randomFloat(2, 200, 800);
+        $transport = fake()->randomFloat(2, 50, 500);
+        $insurance = fake()->randomFloat(2, 50, 300);
+        $loans = fake()->randomFloat(2, 0, 500);
+        $discretionary = fake()->randomFloat(2, 100, 1000);
 
         $total = $housing + $utilities + $food + $transport + $insurance + $loans + $discretionary;
 
@@ -46,14 +46,14 @@ class ExpenditureProfileFactory extends Factory
     public function lowCost(): static
     {
         return $this->state(fn (array $attributes) => [
-            'monthly_housing' => $this->faker->randomFloat(2, 400, 800),
-            'monthly_utilities' => $this->faker->randomFloat(2, 80, 150),
-            'monthly_food' => $this->faker->randomFloat(2, 150, 300),
-            'monthly_transport' => $this->faker->randomFloat(2, 30, 100),
-            'monthly_insurance' => $this->faker->randomFloat(2, 30, 80),
+            'monthly_housing' => fake()->randomFloat(2, 400, 800),
+            'monthly_utilities' => fake()->randomFloat(2, 80, 150),
+            'monthly_food' => fake()->randomFloat(2, 150, 300),
+            'monthly_transport' => fake()->randomFloat(2, 30, 100),
+            'monthly_insurance' => fake()->randomFloat(2, 30, 80),
             'monthly_loans' => 0,
-            'monthly_discretionary' => $this->faker->randomFloat(2, 50, 200),
-            'total_monthly_expenditure' => $this->faker->randomFloat(2, 800, 1600),
+            'monthly_discretionary' => fake()->randomFloat(2, 50, 200),
+            'total_monthly_expenditure' => fake()->randomFloat(2, 800, 1600),
         ]);
     }
 
@@ -63,14 +63,14 @@ class ExpenditureProfileFactory extends Factory
     public function highCost(): static
     {
         return $this->state(fn (array $attributes) => [
-            'monthly_housing' => $this->faker->randomFloat(2, 2000, 4000),
-            'monthly_utilities' => $this->faker->randomFloat(2, 300, 600),
-            'monthly_food' => $this->faker->randomFloat(2, 600, 1200),
-            'monthly_transport' => $this->faker->randomFloat(2, 300, 800),
-            'monthly_insurance' => $this->faker->randomFloat(2, 200, 500),
-            'monthly_loans' => $this->faker->randomFloat(2, 300, 1000),
-            'monthly_discretionary' => $this->faker->randomFloat(2, 500, 2000),
-            'total_monthly_expenditure' => $this->faker->randomFloat(2, 4500, 10000),
+            'monthly_housing' => fake()->randomFloat(2, 2000, 4000),
+            'monthly_utilities' => fake()->randomFloat(2, 300, 600),
+            'monthly_food' => fake()->randomFloat(2, 600, 1200),
+            'monthly_transport' => fake()->randomFloat(2, 300, 800),
+            'monthly_insurance' => fake()->randomFloat(2, 200, 500),
+            'monthly_loans' => fake()->randomFloat(2, 300, 1000),
+            'monthly_discretionary' => fake()->randomFloat(2, 500, 2000),
+            'total_monthly_expenditure' => fake()->randomFloat(2, 4500, 10000),
         ]);
     }
 }

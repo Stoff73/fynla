@@ -1621,12 +1621,12 @@ export default {
 }
 
 .summary-card.yellow {
-  @apply border-yellow-200;
-  @apply bg-yellow-50;
+  @apply border-violet-200;
+  @apply bg-violet-50;
 }
 
 .summary-card.yellow .summary-value {
-  @apply text-yellow-700;
+  @apply text-violet-700;
 }
 
 .summary-card.red {

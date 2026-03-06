@@ -6,11 +6,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Agents\InvestmentAgent;
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InvestmentProjectionController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private InvestmentAgent $investmentAgent
     ) {}

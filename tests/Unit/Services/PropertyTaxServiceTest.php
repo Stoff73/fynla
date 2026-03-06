@@ -95,6 +95,12 @@ class PropertyTaxServiceTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
     // SDLT Tests
 
     public function test_sdlt_main_residence_under_250k(): void

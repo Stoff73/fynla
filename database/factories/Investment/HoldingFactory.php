@@ -17,9 +17,9 @@ class HoldingFactory extends Factory
 
     public function definition(): array
     {
-        $quantity = $this->faker->randomFloat(6, 10, 500);
-        $purchasePrice = $this->faker->randomFloat(4, 50, 500);
-        $currentPrice = $purchasePrice * $this->faker->randomFloat(2, 0.8, 1.5);
+        $quantity = fake()->randomFloat(6, 10, 500);
+        $purchasePrice = fake()->randomFloat(4, 50, 500);
+        $currentPrice = $purchasePrice * fake()->randomFloat(2, 0.8, 1.5);
         $costBasis = $quantity * $purchasePrice;
         $currentValue = $quantity * $currentPrice;
 
@@ -27,8 +27,8 @@ class HoldingFactory extends Factory
             // Polymorphic relationship - default to InvestmentAccount
             'holdable_id' => InvestmentAccount::factory(),
             'holdable_type' => InvestmentAccount::class,
-            'asset_type' => $this->faker->randomElement(['equity', 'bond', 'fund', 'etf', 'alternative']),
-            'security_name' => $this->faker->randomElement([
+            'asset_type' => fake()->randomElement(['equity', 'bond', 'fund', 'etf', 'alternative']),
+            'security_name' => fake()->randomElement([
                 'Vanguard S&P 500 ETF',
                 'iShares Core FTSE 100 ETF',
                 'Vanguard Global Bond Index Fund',
@@ -36,16 +36,16 @@ class HoldingFactory extends Factory
                 'Legal & General UK Index Trust',
                 'BlackRock Gold & General Fund',
             ]),
-            'ticker' => strtoupper($this->faker->bothify('???')),
-            'isin' => strtoupper($this->faker->bothify('GB##########')),
+            'ticker' => strtoupper(fake()->bothify('???')),
+            'isin' => strtoupper(fake()->bothify('GB##########')),
             'quantity' => $quantity,
             'purchase_price' => $purchasePrice,
-            'purchase_date' => $this->faker->dateTimeBetween('-5 years', '-1 month'),
+            'purchase_date' => fake()->dateTimeBetween('-5 years', '-1 month'),
             'current_price' => $currentPrice,
             'current_value' => $currentValue,
             'cost_basis' => $costBasis,
-            'dividend_yield' => $this->faker->randomFloat(4, 0, 5),
-            'ocf_percent' => $this->faker->randomFloat(4, 0.05, 1.5),
+            'dividend_yield' => fake()->randomFloat(4, 0, 5),
+            'ocf_percent' => fake()->randomFloat(4, 0.05, 1.5),
         ];
     }
 
@@ -64,7 +64,7 @@ class HoldingFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'asset_type' => 'equity',
-            'dividend_yield' => $this->faker->randomFloat(4, 1, 4),
+            'dividend_yield' => fake()->randomFloat(4, 1, 4),
         ]);
     }
 
@@ -72,7 +72,7 @@ class HoldingFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'asset_type' => 'bond',
-            'dividend_yield' => $this->faker->randomFloat(4, 3, 6),
+            'dividend_yield' => fake()->randomFloat(4, 3, 6),
         ]);
     }
 }

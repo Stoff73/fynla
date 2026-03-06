@@ -301,8 +301,8 @@ export default {
 }
 
 .source-item.taxable {
-  @apply bg-yellow-50;
-  @apply border-yellow-200;
+  @apply bg-violet-50;
+  @apply border-violet-200;
 }
 
 .source-row {

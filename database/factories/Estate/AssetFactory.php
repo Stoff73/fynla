@@ -17,7 +17,7 @@ class AssetFactory extends Factory
 
     public function definition(): array
     {
-        $assetType = $this->faker->randomElement([
+        $assetType = fake()->randomElement([
             'property',
             'investment',
             'pension',
@@ -28,22 +28,22 @@ class AssetFactory extends Factory
             'other',
         ]);
 
-        $isMainResidence = $assetType === 'property' && $this->faker->boolean(40);
+        $isMainResidence = $assetType === 'property' && fake()->boolean(40);
 
         return [
             'user_id' => User::factory(),
             'asset_type' => $assetType,
             'asset_name' => $this->generateAssetName($assetType),
-            'current_value' => $this->faker->randomFloat(2, 5000, 500000),
-            'liquidity' => $this->faker->randomElement(['liquid', 'semi_liquid', 'illiquid']),
+            'current_value' => fake()->randomFloat(2, 5000, 500000),
+            'liquidity' => fake()->randomElement(['liquid', 'semi_liquid', 'illiquid']),
             'is_giftable' => $assetType !== 'pension',
             'not_giftable_reason' => $assetType === 'pension' ? 'Pension funds cannot be gifted during lifetime' : null,
             'is_main_residence' => $isMainResidence,
-            'ownership_type' => $this->faker->randomElement(['individual', 'joint', 'tenants_in_common']),
-            'beneficiary_designation' => $this->faker->optional(0.3)->name(),
+            'ownership_type' => fake()->randomElement(['individual', 'joint', 'tenants_in_common']),
+            'beneficiary_designation' => fake()->optional(0.3)->name(),
             'is_iht_exempt' => false,
             'exemption_reason' => null,
-            'valuation_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
+            'valuation_date' => fake()->dateTimeBetween('-6 months', 'now'),
         ];
     }
 
@@ -53,43 +53,43 @@ class AssetFactory extends Factory
     private function generateAssetName(string $assetType): string
     {
         return match ($assetType) {
-            'property' => $this->faker->randomElement([
+            'property' => fake()->randomElement([
                 'Family Home',
                 'Buy-to-Let Property',
                 'Holiday Cottage',
                 'London Flat',
             ]),
-            'investment' => $this->faker->randomElement([
+            'investment' => fake()->randomElement([
                 'Stocks & Shares ISA',
                 'General Investment Account',
                 'Vanguard Portfolio',
                 'Hargreaves Lansdown ISA',
             ]),
-            'pension' => $this->faker->randomElement([
+            'pension' => fake()->randomElement([
                 'Workplace Pension',
                 'Self-Invested Personal Pension',
                 'NHS Pension',
                 'Teachers\' Pension',
             ]),
-            'cash' => $this->faker->randomElement([
+            'cash' => fake()->randomElement([
                 'Current Account',
                 'Cash ISA',
                 'Premium Bonds',
                 'Savings Account',
             ]),
-            'business_interest' => $this->faker->company().' Shares',
-            'personal_possession' => $this->faker->randomElement([
+            'business_interest' => fake()->company().' Shares',
+            'personal_possession' => fake()->randomElement([
                 'Jewellery Collection',
                 'Art Collection',
                 'Classic Car',
                 'Antique Furniture',
             ]),
-            'life_insurance' => $this->faker->randomElement([
+            'life_insurance' => fake()->randomElement([
                 'Term Life Policy',
                 'Whole of Life Policy',
                 'Death in Service Benefit',
             ]),
-            default => $this->faker->words(3, true),
+            default => fake()->words(3, true),
         };
     }
 
@@ -102,7 +102,7 @@ class AssetFactory extends Factory
             'asset_type' => 'property',
             'asset_name' => 'Family Home',
             'is_main_residence' => true,
-            'current_value' => $this->faker->randomFloat(2, 200000, 800000),
+            'current_value' => fake()->randomFloat(2, 200000, 800000),
             'liquidity' => 'illiquid',
         ]);
     }
@@ -114,7 +114,7 @@ class AssetFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_iht_exempt' => true,
-            'exemption_reason' => $this->faker->randomElement([
+            'exemption_reason' => fake()->randomElement([
                 'Business Property Relief',
                 'Agricultural Property Relief',
                 'Spouse/civil partner exemption',
@@ -141,7 +141,7 @@ class AssetFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'asset_type' => 'cash',
             'asset_name' => 'Savings Account',
-            'current_value' => $this->faker->randomFloat(2, 1000, 100000),
+            'current_value' => fake()->randomFloat(2, 1000, 100000),
             'liquidity' => 'liquid',
             'is_giftable' => true,
         ]);
@@ -155,7 +155,7 @@ class AssetFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'asset_type' => 'investment',
             'asset_name' => 'Stocks & Shares ISA',
-            'current_value' => $this->faker->randomFloat(2, 10000, 300000),
+            'current_value' => fake()->randomFloat(2, 10000, 300000),
             'liquidity' => 'semi_liquid',
             'is_giftable' => true,
         ]);

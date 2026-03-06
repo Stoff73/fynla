@@ -209,21 +209,8 @@ export default {
 </script>
 
 <style scoped>
-/* -- Entrance animation for goal cards -- */
-@keyframes goalCardEnter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .goal-card {
-  @apply bg-white border border-light-gray rounded-lg p-5 shadow-sm;
-  animation: goalCardEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  @apply bg-white border border-light-gray rounded-lg p-5 shadow-sm animate-fade-in-slide;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);

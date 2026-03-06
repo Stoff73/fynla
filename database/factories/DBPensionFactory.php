@@ -20,27 +20,27 @@ class DBPensionFactory extends Factory
     {
         return [
             'user_id' => \App\Models\User::factory(),
-            'scheme_name' => $this->faker->randomElement([
+            'scheme_name' => fake()->randomElement([
                 'NHS Pension Scheme',
                 'Teachers\' Pension',
                 'Civil Service Pension',
                 'Local Government Pension Scheme',
                 'Police Pension Scheme',
             ]),
-            'scheme_type' => $this->faker->randomElement(['final_salary', 'career_average', 'public_sector']),
-            'accrued_annual_pension' => $this->faker->randomFloat(2, 5000, 40000),
-            'pensionable_service_years' => $this->faker->randomFloat(2, 5, 35),
-            'pensionable_salary' => $this->faker->randomFloat(2, 25000, 80000),
-            'normal_retirement_age' => $this->faker->randomElement([60, 65, 66, 67, 68]),
-            'revaluation_method' => $this->faker->randomElement([
+            'scheme_type' => fake()->randomElement(['final_salary', 'career_average', 'public_sector']),
+            'accrued_annual_pension' => fake()->randomFloat(2, 5000, 40000),
+            'pensionable_service_years' => fake()->randomFloat(2, 5, 35),
+            'pensionable_salary' => fake()->randomFloat(2, 25000, 80000),
+            'normal_retirement_age' => fake()->randomElement([60, 65, 66, 67, 68]),
+            'revaluation_method' => fake()->randomElement([
                 'CPI indexation',
                 'RPI indexation',
                 'Treasury Order',
                 'Fixed rate',
             ]),
-            'spouse_pension_percent' => $this->faker->randomElement([50.0, 66.67, 100.0]),
-            'lump_sum_entitlement' => $this->faker->randomFloat(2, 0, 100000),
-            'inflation_protection' => $this->faker->randomElement(['cpi', 'rpi', 'fixed', 'none']),
+            'spouse_pension_percent' => fake()->randomElement([50.0, 66.67, 100.0]),
+            'lump_sum_entitlement' => fake()->randomFloat(2, 0, 100000),
+            'inflation_protection' => fake()->randomElement(['cpi', 'rpi', 'fixed', 'none']),
         ];
     }
 }

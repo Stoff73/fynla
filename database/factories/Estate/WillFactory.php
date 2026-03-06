@@ -17,16 +17,16 @@ class WillFactory extends Factory
 
     public function definition(): array
     {
-        $hasWill = $this->faker->boolean(70);
+        $hasWill = fake()->boolean(70);
 
         return [
             'user_id' => User::factory(),
             'has_will' => $hasWill,
-            'spouse_primary_beneficiary' => $hasWill ? $this->faker->boolean(80) : null,
-            'spouse_bequest_percentage' => $hasWill ? $this->faker->randomElement([50.00, 75.00, 100.00]) : null,
-            'executor_name' => $hasWill ? $this->faker->name() : null,
-            'executor_notes' => $hasWill ? $this->faker->optional(0.3)->sentence() : null,
-            'will_last_updated' => $hasWill ? $this->faker->dateTimeBetween('-5 years', 'now') : null,
+            'spouse_primary_beneficiary' => $hasWill ? fake()->boolean(80) : null,
+            'spouse_bequest_percentage' => $hasWill ? fake()->randomElement([50.00, 75.00, 100.00]) : null,
+            'executor_name' => $hasWill ? fake()->name() : null,
+            'executor_notes' => $hasWill ? fake()->optional(0.3)->sentence() : null,
+            'will_last_updated' => $hasWill ? fake()->dateTimeBetween('-5 years', 'now') : null,
         ];
     }
 
@@ -39,8 +39,8 @@ class WillFactory extends Factory
             'has_will' => true,
             'spouse_primary_beneficiary' => true,
             'spouse_bequest_percentage' => 100.00,
-            'executor_name' => $this->faker->name(),
-            'will_last_updated' => $this->faker->dateTimeBetween('-2 years', 'now'),
+            'executor_name' => fake()->name(),
+            'will_last_updated' => fake()->dateTimeBetween('-2 years', 'now'),
         ]);
     }
 
@@ -66,7 +66,7 @@ class WillFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'has_will' => true,
-            'will_last_updated' => $this->faker->dateTimeBetween('-10 years', '-3 years'),
+            'will_last_updated' => fake()->dateTimeBetween('-10 years', '-3 years'),
         ]);
     }
 }

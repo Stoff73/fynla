@@ -29,21 +29,21 @@ class ProtectionProfileFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'annual_income' => $this->faker->numberBetween(25000, 150000),
-            'monthly_expenditure' => $this->faker->numberBetween(2000, 8000),
-            'mortgage_balance' => $this->faker->numberBetween(0, 500000),
-            'other_debts' => $this->faker->numberBetween(0, 50000),
-            'number_of_dependents' => $this->faker->numberBetween(0, 4),
-            'dependents_ages' => $this->faker->randomElement([
+            'annual_income' => fake()->numberBetween(25000, 150000),
+            'monthly_expenditure' => fake()->numberBetween(2000, 8000),
+            'mortgage_balance' => fake()->numberBetween(0, 500000),
+            'other_debts' => fake()->numberBetween(0, 50000),
+            'number_of_dependents' => fake()->numberBetween(0, 4),
+            'dependents_ages' => fake()->randomElement([
                 [],
                 [5],
                 [5, 10],
                 [3, 8, 15],
             ]),
-            'retirement_age' => $this->faker->numberBetween(65, 70),
-            'occupation' => $this->faker->jobTitle(),
-            'smoker_status' => $this->faker->boolean(20), // 20% chance of smoker
-            'health_status' => $this->faker->randomElement(['excellent', 'good', 'fair', 'poor']),
+            'retirement_age' => fake()->numberBetween(65, 70),
+            'occupation' => fake()->jobTitle(),
+            'smoker_status' => fake()->boolean(20), // 20% chance of smoker
+            'health_status' => fake()->randomElement(['excellent', 'good', 'fair', 'poor']),
         ];
     }
 }

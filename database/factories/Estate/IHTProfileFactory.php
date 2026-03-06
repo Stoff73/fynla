@@ -17,20 +17,20 @@ class IHTProfileFactory extends Factory
 
     public function definition(): array
     {
-        $hasSpouse = $this->faker->boolean(60);
-        $ownHome = $this->faker->boolean(70);
+        $hasSpouse = fake()->boolean(60);
+        $ownHome = fake()->boolean(70);
 
         return [
             'user_id' => User::factory(),
             'marital_status' => $hasSpouse
-                ? $this->faker->randomElement(['married', 'civil_partnership'])
-                : $this->faker->randomElement(['single', 'divorced', 'widowed']),
+                ? fake()->randomElement(['married', 'civil_partnership'])
+                : fake()->randomElement(['single', 'divorced', 'widowed']),
             'has_spouse' => $hasSpouse,
             'own_home' => $ownHome,
-            'home_value' => $ownHome ? $this->faker->randomFloat(2, 150000, 800000) : 0,
+            'home_value' => $ownHome ? fake()->randomFloat(2, 150000, 800000) : 0,
             'nrb_transferred_from_spouse' => 0,
             'rnrb_transferred_from_spouse' => 0,
-            'charitable_giving_percent' => $this->faker->optional(0.2)->randomFloat(2, 1, 15),
+            'charitable_giving_percent' => fake()->optional(0.2)->randomFloat(2, 1, 15),
         ];
     }
 
@@ -78,7 +78,7 @@ class IHTProfileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'own_home' => true,
-            'home_value' => $this->faker->randomFloat(2, 200000, 800000),
+            'home_value' => fake()->randomFloat(2, 200000, 800000),
         ]);
     }
 
@@ -99,7 +99,7 @@ class IHTProfileFactory extends Factory
     public function charitableGiver(): static
     {
         return $this->state(fn (array $attributes) => [
-            'charitable_giving_percent' => $this->faker->randomFloat(2, 10, 15),
+            'charitable_giving_percent' => fake()->randomFloat(2, 10, 15),
         ]);
     }
 }

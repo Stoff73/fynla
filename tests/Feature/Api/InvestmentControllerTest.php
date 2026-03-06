@@ -25,7 +25,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/investment', function () {
-    test('returns investment dashboard data', function () {
+    it('returns investment dashboard data', function () {
         InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'account_name' => 'Test ISA',
@@ -47,7 +47,7 @@ describe('GET /api/investment', function () {
         expect($response->json('data.accounts'))->toHaveCount(1);
     });
 
-    test('returns empty accounts array when no investments exist', function () {
+    it('returns empty accounts array when no investments exist', function () {
         $response = $this->getJson('/api/investment');
 
         $response->assertStatus(200);
@@ -56,7 +56,7 @@ describe('GET /api/investment', function () {
 });
 
 describe('POST /api/investment/accounts', function () {
-    test('creates a new investment account', function () {
+    it('creates a new investment account', function () {
         $data = [
             'account_type' => 'isa',
             'provider' => 'Vanguard',
@@ -79,7 +79,7 @@ describe('POST /api/investment/accounts', function () {
         ]);
     });
 
-    test('validates required fields', function () {
+    it('validates required fields', function () {
         $response = $this->postJson('/api/investment/accounts', []);
 
         $response->assertStatus(422);
@@ -87,7 +87,7 @@ describe('POST /api/investment/accounts', function () {
 });
 
 describe('PUT /api/investment/accounts/{id}', function () {
-    test('updates an investment account', function () {
+    it('updates an investment account', function () {
         $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
             'provider' => 'Original Provider',
@@ -112,7 +112,7 @@ describe('PUT /api/investment/accounts/{id}', function () {
 });
 
 describe('DELETE /api/investment/accounts/{id}', function () {
-    test('deletes an investment account', function () {
+    it('deletes an investment account', function () {
         $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
         ]);

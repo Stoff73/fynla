@@ -425,8 +425,7 @@ export default {
           consent_type: type,
           granted: granted,
         });
-        this.$toast?.success?.(`${type} consent updated`) ||
-          console.log(`${type} consent updated`);
+        this.$toast?.success?.(`${type} consent updated`);
       } catch (error) {
         this.$toast?.error?.('Failed to update consent') ||
           console.error('Failed to update consent:', error);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
@@ -19,7 +21,7 @@ beforeEach(function () {
 });
 
 describe('Full Retirement Analysis Flow', function () {
-    test('complete retirement analysis with all pension types', function () {
+    it('completes retirement analysis with all pension types', function () {
         // Step 1: Create retirement profile
         $profile = RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
@@ -90,7 +92,7 @@ describe('Full Retirement Analysis Flow', function () {
             ->and($data['recommendations'])->toBeArray();
     });
 
-    test('analysis handles missing pension data gracefully', function () {
+    it('handles missing pension data gracefully in analysis', function () {
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
             'target_retirement_income' => 25000,
@@ -111,7 +113,7 @@ describe('Full Retirement Analysis Flow', function () {
         expect($data['income_gap'])->toBeNumeric();
     });
 
-    test('full analysis includes all income sources', function () {
+    it('includes all income sources in full analysis', function () {
         // Create comprehensive retirement setup
         RetirementProfile::factory()->create(['user_id' => $this->user->id]);
         DCPension::factory()->count(2)->create(['user_id' => $this->user->id]);
@@ -132,7 +134,7 @@ describe('Full Retirement Analysis Flow', function () {
 });
 
 describe('Contribution Optimization Flow', function () {
-    test('generates contribution recommendations based on income gap', function () {
+    it('generates contribution recommendations based on income gap', function () {
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
             'current_age' => 40,
@@ -166,7 +168,7 @@ describe('Contribution Optimization Flow', function () {
         expect($hasContributionRec)->toBeTrue();
     });
 
-    test('identifies employer match opportunities', function () {
+    it('identifies employer match opportunities', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'employee_contribution_percent' => 2, // Below typical employer match threshold
@@ -188,7 +190,7 @@ describe('Contribution Optimization Flow', function () {
         expect($recommendations)->toBeArray();
     });
 
-    test('contribution optimization considers annual allowance', function () {
+    it('considers annual allowance in contribution optimisation', function () {
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
             'current_annual_salary' => 150000, // High earner
@@ -214,7 +216,7 @@ describe('Contribution Optimization Flow', function () {
 });
 
 describe('Decumulation Planning Scenarios', function () {
-    test('calculates withdrawal strategies for retirement', function () {
+    it('calculates withdrawal strategies for retirement', function () {
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
             'current_age' => 66, // Already retired or near retirement
@@ -245,7 +247,7 @@ describe('Decumulation Planning Scenarios', function () {
             ]);
     });
 
-    test('compares PCLS vs no PCLS scenarios', function () {
+    it('compares PCLS vs no PCLS scenarios', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 400000,
@@ -275,7 +277,7 @@ describe('Decumulation Planning Scenarios', function () {
         expect($withPCLSData)->toHaveKey('scenario');
     });
 
-    test('models delayed retirement scenarios', function () {
+    it('models delayed retirement scenarios', function () {
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
             'current_age' => 60,
@@ -303,7 +305,7 @@ describe('Decumulation Planning Scenarios', function () {
 });
 
 describe('Cache Behavior', function () {
-    test('analysis results are cached', function () {
+    it('caches analysis results', function () {
         RetirementProfile::factory()->create(['user_id' => $this->user->id]);
         DCPension::factory()->create(['user_id' => $this->user->id]);
 
@@ -330,7 +332,7 @@ describe('Cache Behavior', function () {
         expect($response2->json('success'))->toBe(true);
     });
 
-    test('cache is invalidated on pension updates', function () {
+    it('invalidates cache on pension updates', function () {
         $pension = DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 100000,
@@ -362,7 +364,7 @@ describe('Cache Behavior', function () {
         $response->assertStatus(200);
     });
 
-    test('annual allowance check is cached', function () {
+    it('caches annual allowance check', function () {
         Cache::flush();
 
         RetirementProfile::factory()->create([
@@ -381,7 +383,7 @@ describe('Cache Behavior', function () {
         expect($response1->json('data'))->toEqual($response2->json('data'));
     });
 
-    test('cache has appropriate TTL', function () {
+    it('has appropriate cache TTL', function () {
         DCPension::factory()->create(['user_id' => $this->user->id]);
         RetirementProfile::factory()->create(['user_id' => $this->user->id]);
 
@@ -400,7 +402,7 @@ describe('Cache Behavior', function () {
 });
 
 describe('Complex Integration Scenarios', function () {
-    test('handles user with multiple pensions and complex profile', function () {
+    it('handles user with multiple pensions and complex profile', function () {
         // Complex user profile
         RetirementProfile::factory()->create([
             'user_id' => $this->user->id,
@@ -468,7 +470,7 @@ describe('Complex Integration Scenarios', function () {
             ->and($data['income_gap'])->toBeNumeric();
     });
 
-    test('end-to-end user journey from setup to analysis', function () {
+    it('completes end-to-end user journey from setup to analysis', function () {
         // Step 1: User adds DC pension (using correct route)
         $dcResponse = $this->postJson('/api/retirement/pensions/dc', [
             'scheme_name' => 'Workplace Pension',

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\OccupationCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OccupationController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Search for occupations matching the query.
      * Requires minimum 3 characters to search.

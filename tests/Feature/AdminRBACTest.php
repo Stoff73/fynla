@@ -34,7 +34,7 @@ beforeEach(function () {
 });
 
 describe('Admin User Authentication', function () {
-    test('admin user login returns user data', function () {
+    it('returns user data on admin login', function () {
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin@test.com',
             'password' => 'password',
@@ -56,7 +56,7 @@ describe('Admin User Authentication', function () {
             ]);
     });
 
-    test('authenticated admin user endpoint returns admin role', function () {
+    it('returns admin role for authenticated admin user endpoint', function () {
         Sanctum::actingAs($this->adminUser);
 
         $response = $this->getJson('/api/auth/user');
@@ -74,7 +74,7 @@ describe('Admin User Authentication', function () {
         expect($response->json('data.role'))->toBe('admin');
     });
 
-    test('authenticated regular user endpoint returns user role', function () {
+    it('returns user role for authenticated regular user endpoint', function () {
         Sanctum::actingAs($this->regularUser);
 
         $response = $this->getJson('/api/auth/user');
@@ -85,7 +85,7 @@ describe('Admin User Authentication', function () {
 });
 
 describe('Admin-Only Routes Protection', function () {
-    test('unauthenticated user cannot access admin routes', function () {
+    it('prevents unauthenticated user from accessing admin routes', function () {
         // Try to access an admin route without authentication
         $response = $this->getJson('/api/uk-taxes');
 
@@ -93,7 +93,7 @@ describe('Admin-Only Routes Protection', function () {
         $response->assertStatus(401);
     });
 
-    test('regular user gets 403 forbidden when accessing admin routes', function () {
+    it('returns 403 forbidden for regular user accessing admin routes', function () {
         Sanctum::actingAs($this->regularUser);
 
         $response = $this->getJson('/api/uk-taxes');
@@ -104,7 +104,7 @@ describe('Admin-Only Routes Protection', function () {
             ]);
     });
 
-    test('admin user can access admin routes', function () {
+    it('allows admin user to access admin routes', function () {
         Sanctum::actingAs($this->adminUser);
 
         // Note: This will fail with 404 if the route doesn't exist yet
@@ -118,7 +118,7 @@ describe('Admin-Only Routes Protection', function () {
 });
 
 describe('Dashboard Visibility', function () {
-    test('dashboard response includes user role', function () {
+    it('includes user role in dashboard response', function () {
         Sanctum::actingAs($this->adminUser);
 
         $response = $this->getJson('/api/dashboard');
@@ -127,7 +127,7 @@ describe('Dashboard Visibility', function () {
         // Dashboard should return successfully for admin user
     });
 
-    test('regular user can access dashboard', function () {
+    it('allows regular user to access dashboard', function () {
         Sanctum::actingAs($this->regularUser);
 
         $response = $this->getJson('/api/dashboard');
@@ -138,7 +138,7 @@ describe('Dashboard Visibility', function () {
 });
 
 describe('Admin Seeder', function () {
-    test('admin user exists in database after seeding', function () {
+    it('has admin user in database after seeding', function () {
         // Run the admin seeder
         $this->seed(\Database\Seeders\AdminUserSeeder::class);
 
@@ -150,7 +150,7 @@ describe('Admin Seeder', function () {
         expect($admin->name)->toBe('Admin User');
     });
 
-    test('admin user can authenticate', function () {
+    it('allows admin user to authenticate', function () {
         // Run the admin seeder
         $this->seed(\Database\Seeders\AdminUserSeeder::class);
 
