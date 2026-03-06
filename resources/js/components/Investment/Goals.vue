@@ -254,7 +254,7 @@ export default {
 
     getProgressBarColour(progress) {
       if (progress >= 80) return 'bg-spring-500';
-      if (progress >= 50) return 'bg-yellow-500';
+      if (progress >= 50) return 'bg-violet-500';
       return 'bg-violet-500';
     },
 
@@ -262,7 +262,7 @@ export default {
       const priorityLower = (priority || 'medium').toLowerCase();
       if (priorityLower === 'high') return 'bg-raspberry-500 text-white';
       if (priorityLower === 'low') return 'bg-savannah-100 text-horizon-500';
-      return 'bg-yellow-500 text-white';
+      return 'bg-violet-500 text-white';
     },
 
     openGoalModal() {

@@ -277,10 +277,12 @@ class ContributionOptimizer
         $message = '';
         $potentialSaving = 0.0;
 
-        if ($isHigherRateTaxpayer && $currentContributions < 40000) {
+        $pensionConfig = $this->taxConfig->getPensionAllowances();
+        $annualAllowance = $pensionConfig['annual_allowance'] ?? 60000;
+
+        if ($isHigherRateTaxpayer && $currentContributions < $annualAllowance) {
             $optimizationAvailable = true;
-            $pensionConfig = $this->taxConfig->getPensionAllowances();
-            $additionalContribution = min(20000, $pensionConfig['annual_allowance'] - $currentContributions);
+            $additionalContribution = $annualAllowance - $currentContributions;
             $potentialSaving = $this->calculateTaxRelief($additionalContribution, $income);
 
             $message = sprintf(

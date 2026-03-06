@@ -17,6 +17,33 @@ use App\Services\TaxConfigService;
  */
 class ConflictResolver
 {
+    /** @var int Adequacy score below which a module is considered critically underserved */
+    private const CRITICAL_ADEQUACY_THRESHOLD = 50;
+
+    /** @var float Allocation weight for the higher-priority module when both are critical */
+    private const SPLIT_PRIORITY_HIGH_WEIGHT = 0.6;
+
+    /** @var float Allocation weight for the lower-priority module when both are critical */
+    private const SPLIT_PRIORITY_LOW_WEIGHT = 0.4;
+
+    /** @var float Allocation weight for the dominant module when one is more severe */
+    private const DOMINANT_PRIORITY_WEIGHT = 0.8;
+
+    /** @var float Allocation weight for the subordinate module when one is more severe */
+    private const SUBORDINATE_PRIORITY_WEIGHT = 0.2;
+
+    /** @var int Adequacy threshold below which protection/savings conflict is flagged */
+    private const CONFLICT_ADEQUACY_THRESHOLD = 75;
+
+    /** @var float Conflict severity ratio threshold for critical */
+    private const SEVERITY_CRITICAL_RATIO = 2.0;
+
+    /** @var float Conflict severity ratio threshold for high */
+    private const SEVERITY_HIGH_RATIO = 1.5;
+
+    /** @var float Conflict severity ratio threshold for medium */
+    private const SEVERITY_MEDIUM_RATIO = 1.2;
+
     public function __construct(
         private readonly TaxConfigService $taxConfig
     ) {}
@@ -74,13 +101,13 @@ class ConflictResolver
         $emergencyFundAdequacy = $recommendations['module_scores']['savings']['emergency_fund_adequacy'] ?? 0;
 
         // Priority to whichever has lower adequacy score
-        if ($protectionAdequacy < 50 && $emergencyFundAdequacy < 50) {
+        if ($protectionAdequacy < self::CRITICAL_ADEQUACY_THRESHOLD && $emergencyFundAdequacy < self::CRITICAL_ADEQUACY_THRESHOLD) {
             // Both critical - split available funds
             return [
                 'resolution' => 'split_priority',
                 'allocation' => [
-                    'protection' => 0.6, // Slight priority to protection (risk of death)
-                    'savings' => 0.4,
+                    'protection' => self::SPLIT_PRIORITY_HIGH_WEIGHT, // Slight priority to protection (risk of death)
+                    'savings' => self::SPLIT_PRIORITY_LOW_WEIGHT,
                 ],
                 'reasoning' => 'Both protection and emergency fund are critically low. Prioritize protection slightly as it addresses catastrophic risk.',
             ];
@@ -88,8 +115,8 @@ class ConflictResolver
             return [
                 'resolution' => 'protection_priority',
                 'allocation' => [
-                    'protection' => 0.8,
-                    'savings' => 0.2,
+                    'protection' => self::DOMINANT_PRIORITY_WEIGHT,
+                    'savings' => self::SUBORDINATE_PRIORITY_WEIGHT,
                 ],
                 'reasoning' => 'Protection gap is more severe than emergency fund shortfall.',
             ];
@@ -97,8 +124,8 @@ class ConflictResolver
             return [
                 'resolution' => 'savings_priority',
                 'allocation' => [
-                    'protection' => 0.2,
-                    'savings' => 0.8,
+                    'protection' => self::SUBORDINATE_PRIORITY_WEIGHT,
+                    'savings' => self::DOMINANT_PRIORITY_WEIGHT,
                 ],
                 'reasoning' => 'Emergency fund is more critical than protection gap.',
             ];
@@ -194,7 +221,7 @@ class ConflictResolver
         $riskTolerance = $demands['risk_tolerance'] ?? 'medium';
 
         // Determine optimal split based on user context
-        if ($emergencyFundAdequacy < 50) {
+        if ($emergencyFundAdequacy < self::CRITICAL_ADEQUACY_THRESHOLD) {
             // Emergency fund critical - prioritize Cash ISA
             $cashISAAllocation = min($cashISADemand, $isaAllowance);
             $stocksSharesISAAllocation = max(0, $isaAllowance - $cashISAAllocation);
@@ -364,14 +391,14 @@ class ConflictResolver
         $protectionAdequacy = $recommendations['module_scores']['protection']['adequacy_score'] ?? 100;
         $emergencyFundAdequacy = $recommendations['module_scores']['savings']['emergency_fund_adequacy'] ?? 100;
 
-        if ($protectionDemand > 0 && $savingsDemand > 0 && ($protectionAdequacy < 75 || $emergencyFundAdequacy < 75)) {
+        if ($protectionDemand > 0 && $savingsDemand > 0 && ($protectionAdequacy < self::CONFLICT_ADEQUACY_THRESHOLD || $emergencyFundAdequacy < self::CONFLICT_ADEQUACY_THRESHOLD)) {
             return [
                 'type' => 'protection_vs_savings_conflict',
                 'protection_demand' => $protectionDemand,
                 'savings_demand' => $savingsDemand,
                 'protection_adequacy' => $protectionAdequacy,
                 'emergency_fund_adequacy' => $emergencyFundAdequacy,
-                'severity' => min($protectionAdequacy, $emergencyFundAdequacy) < 50 ? 'high' : 'medium',
+                'severity' => min($protectionAdequacy, $emergencyFundAdequacy) < self::CRITICAL_ADEQUACY_THRESHOLD ? 'high' : 'medium',
             ];
         }
 
@@ -461,11 +488,11 @@ class ConflictResolver
 
         $ratio = $demand / $available;
 
-        if ($ratio >= 2.0) {
+        if ($ratio >= self::SEVERITY_CRITICAL_RATIO) {
             return 'critical';
-        } elseif ($ratio >= 1.5) {
+        } elseif ($ratio >= self::SEVERITY_HIGH_RATIO) {
             return 'high';
-        } elseif ($ratio >= 1.2) {
+        } elseif ($ratio >= self::SEVERITY_MEDIUM_RATIO) {
             return 'medium';
         } else {
             return 'low';

@@ -19,11 +19,11 @@ class RebalancingActionFactory extends Factory
 
     public function definition(): array
     {
-        $actionType = $this->faker->randomElement(['buy', 'sell', 'hold']);
-        $currentPrice = $this->faker->randomFloat(4, 10, 500);
-        $sharesToTrade = $actionType !== 'hold' ? $this->faker->randomFloat(6, 1, 100) : 0;
+        $actionType = fake()->randomElement(['buy', 'sell', 'hold']);
+        $currentPrice = fake()->randomFloat(4, 10, 500);
+        $sharesToTrade = $actionType !== 'hold' ? fake()->randomFloat(6, 1, 100) : 0;
         $tradeValue = round($sharesToTrade * $currentPrice, 2);
-        $currentHolding = $this->faker->randomFloat(2, 5000, 100000);
+        $currentHolding = fake()->randomFloat(2, 5000, 100000);
         $targetValue = $actionType === 'buy'
             ? $currentHolding + $tradeValue
             : ($actionType === 'sell' ? $currentHolding - $tradeValue : $currentHolding);
@@ -33,7 +33,7 @@ class RebalancingActionFactory extends Factory
             'holding_id' => Holding::factory(),
             'investment_account_id' => InvestmentAccount::factory(),
             'action_type' => $actionType,
-            'security_name' => $this->faker->randomElement([
+            'security_name' => fake()->randomElement([
                 'Vanguard FTSE Global All Cap Index Fund',
                 'iShares Core FTSE 100 ETF',
                 'Vanguard LifeStrategy 60% Equity Fund',
@@ -41,30 +41,30 @@ class RebalancingActionFactory extends Factory
                 'HSBC FTSE All-World Index Fund',
                 'Royal London Short Term Money Market Fund',
             ]),
-            'ticker' => strtoupper($this->faker->bothify('???')),
-            'isin' => strtoupper($this->faker->bothify('GB##########')),
+            'ticker' => strtoupper(fake()->bothify('???')),
+            'isin' => strtoupper(fake()->bothify('GB##########')),
             'shares_to_trade' => $sharesToTrade,
             'trade_value' => $tradeValue,
             'current_price' => $currentPrice,
             'current_holding' => $currentHolding,
             'target_value' => $targetValue,
-            'target_weight' => $this->faker->randomFloat(4, 1, 50),
-            'priority' => $this->faker->numberBetween(1, 10),
-            'rationale' => $this->faker->randomElement([
+            'target_weight' => fake()->randomFloat(4, 1, 50),
+            'priority' => fake()->numberBetween(1, 10),
+            'rationale' => fake()->randomElement([
                 'Rebalance to target allocation',
                 'Overweight - reduce to target weight',
                 'Underweight - increase to target weight',
                 'Tax-loss harvesting opportunity',
                 'Consolidate holdings',
             ]),
-            'cgt_cost_basis' => $this->faker->randomFloat(2, 5000, 80000),
-            'cgt_gain_or_loss' => $this->faker->randomFloat(2, -5000, 20000),
-            'cgt_liability' => max(0, $this->faker->randomFloat(2, 0, 4000)),
+            'cgt_cost_basis' => fake()->randomFloat(2, 5000, 80000),
+            'cgt_gain_or_loss' => fake()->randomFloat(2, -5000, 20000),
+            'cgt_liability' => max(0, fake()->randomFloat(2, 0, 4000)),
             'status' => 'pending',
             'executed_at' => null,
             'executed_price' => null,
             'executed_shares' => null,
-            'notes' => $this->faker->optional(0.3)->sentence(),
+            'notes' => fake()->optional(0.3)->sentence(),
         ];
     }
 
@@ -108,13 +108,13 @@ class RebalancingActionFactory extends Factory
     public function executed(): static
     {
         return $this->state(function (array $attributes) {
-            $price = $attributes['current_price'] ?? $this->faker->randomFloat(4, 10, 500);
-            $shares = $attributes['shares_to_trade'] ?? $this->faker->randomFloat(6, 1, 100);
+            $price = $attributes['current_price'] ?? fake()->randomFloat(4, 10, 500);
+            $shares = $attributes['shares_to_trade'] ?? fake()->randomFloat(6, 1, 100);
 
             return [
                 'status' => 'executed',
-                'executed_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
-                'executed_price' => $price * $this->faker->randomFloat(4, 0.98, 1.02),
+                'executed_at' => fake()->dateTimeBetween('-1 month', 'now'),
+                'executed_price' => $price * fake()->randomFloat(4, 0.98, 1.02),
                 'executed_shares' => $shares,
             ];
         });
@@ -137,7 +137,7 @@ class RebalancingActionFactory extends Factory
     public function highPriority(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => $this->faker->numberBetween(1, 3),
+            'priority' => fake()->numberBetween(1, 3),
         ]);
     }
 }

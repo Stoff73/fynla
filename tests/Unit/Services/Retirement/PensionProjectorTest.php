@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\StatePension;
@@ -23,7 +25,11 @@ beforeEach(function () {
     );
 });
 
-test('projects DC pension value correctly', function () {
+afterEach(function () {
+    Mockery::close();
+});
+
+it('projects DC pension value correctly', function () {
     $pension = new DCPension([
         'current_fund_value' => 100000,
         'monthly_contribution_amount' => 500,
@@ -42,7 +48,7 @@ test('projects DC pension value correctly', function () {
         ->and($projectedValue)->toBeLessThan(450000);
 });
 
-test('projects DC pension with zero contributions', function () {
+it('projects DC pension with zero contributions', function () {
     $pension = new DCPension([
         'current_fund_value' => 50000,
         'monthly_contribution_amount' => 0,
@@ -60,7 +66,7 @@ test('projects DC pension with zero contributions', function () {
         ->and($projectedValue)->toBeLessThan(110000);
 });
 
-test('projects DB pension correctly with no revaluation', function () {
+it('projects DB pension correctly with no revaluation', function () {
     $pension = new DBPension([
         'accrued_annual_pension' => 15000,
         'inflation_protection' => 'none',
@@ -72,7 +78,7 @@ test('projects DB pension correctly with no revaluation', function () {
     expect($projectedIncome)->toBe(15000.0);
 });
 
-test('projects DB pension with CPI revaluation', function () {
+it('projects DB pension with CPI revaluation', function () {
     $pension = new DBPension([
         'accrued_annual_pension' => 15000,
         'inflation_protection' => 'cpi',
@@ -86,7 +92,7 @@ test('projects DB pension with CPI revaluation', function () {
         ->and($projectedIncome)->toBeLessThan(25000);
 });
 
-test('projects state pension with forecast', function () {
+it('projects state pension with forecast', function () {
     $statePension = new StatePension([
         'state_pension_forecast_annual' => 11502,
         'ni_years_completed' => 35,
@@ -98,7 +104,7 @@ test('projects state pension with forecast', function () {
     expect($projectedIncome)->toBe(11502.0);
 });
 
-test('projects state pension without forecast based on NI years', function () {
+it('projects state pension without forecast based on NI years', function () {
     $statePension = new StatePension([
         'state_pension_forecast_annual' => null,
         'ni_years_completed' => 20,
@@ -113,7 +119,7 @@ test('projects state pension without forecast based on NI years', function () {
         ->and($projectedIncome)->toBeLessThan(7200);
 });
 
-test('calculates income replacement ratio correctly', function () {
+it('calculates income replacement ratio correctly', function () {
     $projectedIncome = 30000;
     $currentIncome = 50000;
 
@@ -122,7 +128,7 @@ test('calculates income replacement ratio correctly', function () {
     expect($ratio)->toBe(60.0);
 });
 
-test('handles zero current income for replacement ratio', function () {
+it('handles zero current income for replacement ratio', function () {
     $projectedIncome = 30000;
     $currentIncome = 0;
 

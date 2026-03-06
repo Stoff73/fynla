@@ -117,14 +117,14 @@ export default {
       if (this.streak >= 12) return 'bg-violet-50';
       if (this.streak >= 6) return 'bg-violet-50';
       if (this.streak >= 3) return 'bg-violet-50';
-      return 'bg-yellow-50';
+      return 'bg-violet-50';
     },
 
     textClass() {
       if (this.streak === 0) return 'text-neutral-500';
       if (this.streak >= 6) return 'text-violet-600';
       if (this.streak >= 3) return 'text-violet-500';
-      return 'text-yellow-600';
+      return 'text-violet-600';
     },
 
     numberClass() {
@@ -132,7 +132,7 @@ export default {
       if (this.streak >= 12) return 'text-violet-600';
       if (this.streak >= 6) return 'text-violet-600';
       if (this.streak >= 3) return 'text-violet-500';
-      return 'text-yellow-600';
+      return 'text-violet-600';
     },
 
     messageClass() {
@@ -151,13 +151,13 @@ export default {
 
     encouragementBgClass() {
       if (this.streak >= 6) return 'bg-violet-100';
-      if (this.streak >= 3) return 'bg-yellow-100';
+      if (this.streak >= 3) return 'bg-violet-100';
       return 'bg-spring-100';
     },
 
     encouragementTextClass() {
       if (this.streak >= 6) return 'text-violet-700';
-      if (this.streak >= 3) return 'text-yellow-700';
+      if (this.streak >= 3) return 'text-violet-700';
       return 'text-spring-700';
     },
 
@@ -185,7 +185,7 @@ export default {
         if (this.streak >= 12) return 'bg-violet-500';
         if (this.streak >= 6) return 'bg-violet-500';
         if (this.streak >= 3) return 'bg-violet-400';
-        return 'bg-yellow-400';
+        return 'bg-violet-400';
       }
       // Empty segment
       return 'bg-horizon-200';
@@ -195,14 +195,5 @@ export default {
 </script>
 
 <style scoped>
-@keyframes ping {
-  75%, 100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-}
-
-.animate-ping {
-  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
+/* Uses Tailwind's built-in animate-ping class */
 </style>

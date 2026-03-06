@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Estate\Trust;
@@ -20,7 +22,7 @@ beforeEach(function () {
     ]);
 });
 
-test('aggregates multiple asset types for a trust', function () {
+it('aggregates multiple asset types for a trust', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -49,7 +51,7 @@ test('aggregates multiple asset types for a trust', function () {
     expect((float) $result['total_value'])->toBe(750000.0);
 });
 
-test('calculates correct total value with partial ownership', function () {
+it('calculates correct total value with partial ownership', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -71,7 +73,7 @@ test('calculates correct total value with partial ownership', function () {
     expect($result['asset_count'])->toBe(2);
 });
 
-test('returns empty assets when trust has no assets', function () {
+it('returns empty assets when trust has no assets', function () {
     $result = $this->service->aggregateAssetsForTrust($this->trust);
 
     expect($result['asset_count'])->toBe(0);
@@ -83,7 +85,7 @@ test('returns empty assets when trust has no assets', function () {
     expect($result['assets']['chattels'])->toBeEmpty();
 });
 
-test('creates correct value breakdown by asset type', function () {
+it('creates correct value breakdown by asset type', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -108,7 +110,7 @@ test('creates correct value breakdown by asset type', function () {
     expect((float) $result['breakdown']['cash_accounts']['percentage'])->toBe(20.0);
 });
 
-test('handles zero total value in breakdown percentage calculation', function () {
+it('handles zero total value in breakdown percentage calculation', function () {
     $result = $this->service->aggregateAssetsForTrust($this->trust);
 
     expect((float) $result['total_value'])->toBe(0.0);
@@ -116,7 +118,7 @@ test('handles zero total value in breakdown percentage calculation', function ()
     expect($result['breakdown']['cash_accounts']['percentage'])->toBe(0);
 });
 
-test('aggregates properties with all metadata', function () {
+it('aggregates properties with all metadata', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -137,7 +139,7 @@ test('aggregates properties with all metadata', function () {
     expect((float) $property['value'])->toBe(750000.0);
 });
 
-test('aggregates cash accounts correctly', function () {
+it('aggregates cash accounts correctly', function () {
     CashAccount::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -154,7 +156,7 @@ test('aggregates cash accounts correctly', function () {
     expect((float) $account['value'])->toBe(25000.0);
 });
 
-test('aggregates business interests correctly', function () {
+it('aggregates business interests correctly', function () {
     BusinessInterest::factory()->create([
         'user_id' => $this->user->id,
         'trust_id' => $this->trust->id,
@@ -173,7 +175,7 @@ test('aggregates business interests correctly', function () {
     expect((float) $business['value'])->toBe(250000.0); // 50% ownership
 });
 
-test('aggregates assets for multiple trusts for a user', function () {
+it('aggregates assets for multiple trusts for a user', function () {
     $trust2 = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -202,7 +204,7 @@ test('aggregates assets for multiple trusts for a user', function () {
     expect($totalValue)->toBe(400000.0);
 });
 
-test('only aggregates assets belonging to specific trust', function () {
+it('only aggregates assets belonging to the specific trust', function () {
     $otherTrust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,

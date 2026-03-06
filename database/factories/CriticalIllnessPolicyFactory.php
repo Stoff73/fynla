@@ -46,19 +46,19 @@ class CriticalIllnessPolicyFactory extends Factory
             'Third Degree Burns',
         ];
 
-        $policyStartDate = $this->faker->dateTimeBetween('-5 years', 'now');
+        $policyStartDate = fake()->dateTimeBetween('-5 years', 'now');
 
         return [
             'user_id' => User::factory(),
-            'policy_type' => $this->faker->randomElement(['standalone', 'accelerated']),
-            'provider' => $this->faker->randomElement($providers),
-            'policy_number' => 'CI'.$this->faker->unique()->numerify('######'),
-            'sum_assured' => $this->faker->numberBetween(50000, 500000),
-            'premium_amount' => $this->faker->randomFloat(2, 30, 150),
-            'premium_frequency' => $this->faker->randomElement(['monthly', 'quarterly', 'annually']),
+            'policy_type' => fake()->randomElement(['standalone', 'accelerated']),
+            'provider' => fake()->randomElement($providers),
+            'policy_number' => 'CI'.fake()->unique()->numerify('######'),
+            'sum_assured' => fake()->numberBetween(50000, 500000),
+            'premium_amount' => fake()->randomFloat(2, 30, 150),
+            'premium_frequency' => fake()->randomElement(['monthly', 'quarterly', 'annually']),
             'policy_start_date' => $policyStartDate,
-            'policy_term_years' => $this->faker->numberBetween(10, 25),
-            'conditions_covered' => $this->faker->randomElements($conditions, $this->faker->numberBetween(5, 12)),
+            'policy_term_years' => fake()->numberBetween(10, 25),
+            'conditions_covered' => fake()->randomElements($conditions, fake()->numberBetween(5, 12)),
         ];
     }
 }

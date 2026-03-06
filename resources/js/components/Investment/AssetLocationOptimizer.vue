@@ -103,7 +103,7 @@
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-md font-semibold text-horizon-500">General Investment Account (Taxable)</h4>
               <span v-if="analysis?.current_allocation?.gia_tax_drag > 1" class="px-2 py-1 bg-raspberry-500 text-white text-xs font-semibold rounded">HIGH TAX</span>
-              <span v-else class="px-2 py-1 bg-yellow-500 text-white text-xs font-semibold rounded">MODERATE</span>
+              <span v-else class="px-2 py-1 bg-violet-500 text-white text-xs font-semibold rounded">MODERATE</span>
             </div>
             <p class="text-2xl font-bold text-horizon-500 mb-2">
               £{{ formatNumber(analysis?.current_allocation?.gia_value || 0) }}
@@ -214,7 +214,7 @@
                   <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">GOOD</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
+                  <span class="inline-block w-full px-2 py-1 bg-violet-500 text-white rounded font-semibold">OK</span>
                 </td>
                 <td class="text-center py-3 px-4">
                   <span class="inline-block w-full px-2 py-1 bg-spring-500 text-white rounded font-semibold">BEST</span>
@@ -253,7 +253,7 @@
                   <span class="inline-block w-full px-2 py-1 bg-raspberry-500 text-white rounded font-semibold">POOR</span>
                 </td>
                 <td class="text-center py-3 px-4">
-                  <span class="inline-block w-full px-2 py-1 bg-yellow-500 text-white rounded font-semibold">OK</span>
+                  <span class="inline-block w-full px-2 py-1 bg-violet-500 text-white rounded font-semibold">OK</span>
                 </td>
               </tr>
             </tbody>
@@ -416,14 +416,14 @@ export default {
     getScoreColour(score) {
       if (score >= 80) return 'text-spring-600';
       if (score >= 60) return 'text-violet-600';
-      if (score >= 40) return 'text-yellow-600';
+      if (score >= 40) return 'text-violet-600';
       return 'text-raspberry-600';
     },
 
     getRecommendationClass(priority) {
       const classes = {
         high: 'border-raspberry-500 bg-white',
-        medium: 'border-yellow-500 bg-white',
+        medium: 'border-violet-500 bg-white',
         low: 'border-violet-500 bg-white',
       };
       return classes[priority] || classes.low;
@@ -432,7 +432,7 @@ export default {
     getPriorityBadgeClass(priority) {
       const classes = {
         high: 'bg-raspberry-500 text-white',
-        medium: 'bg-yellow-500 text-white',
+        medium: 'bg-violet-500 text-white',
         low: 'bg-violet-500 text-white',
       };
       return classes[priority] || classes.low;

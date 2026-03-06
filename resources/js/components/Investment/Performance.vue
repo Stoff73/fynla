@@ -190,7 +190,7 @@ export default {
     portfolioHealthColour() {
       const score = this.portfolioHealthScore;
       if (score >= 80) return 'text-spring-600';
-      if (score >= 60) return 'text-yellow-600';
+      if (score >= 60) return 'text-violet-600';
       return 'text-raspberry-600';
     },
 
@@ -209,7 +209,7 @@ export default {
     diversificationColour() {
       const score = this.diversificationScore;
       if (score >= 70) return 'text-spring-600';
-      if (score >= 50) return 'text-yellow-600';
+      if (score >= 50) return 'text-violet-600';
       return 'text-raspberry-600';
     },
 

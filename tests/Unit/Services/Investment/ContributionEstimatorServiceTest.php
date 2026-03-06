@@ -21,14 +21,14 @@ afterEach(function () {
 });
 
 describe('ContributionEstimatorService', function () {
-    test('returns user override when provided', function () {
+    it('returns user override when provided', function () {
         $account = new InvestmentAccount(['account_type' => 'isa']);
 
         $result = $this->service->estimateMonthlyContribution($account, 500.0);
         expect($result)->toBe(500.0);
     });
 
-    test('returns zero for negative user override on SIPP', function () {
+    it('returns zero for negative user override on SIPP', function () {
         $account = new InvestmentAccount(['account_type' => 'sipp']);
 
         // Negative override is ignored, falls through to SIPP default (0.0)
@@ -36,7 +36,7 @@ describe('ContributionEstimatorService', function () {
         expect($result)->toBe(0.0);
     });
 
-    test('estimates ISA contribution from allowance when no subscription data', function () {
+    it('estimates ISA contribution from allowance when no subscription data', function () {
         $account = new InvestmentAccount([
             'account_type' => 'isa',
             'isa_subscription_current_year' => 0,
@@ -48,7 +48,7 @@ describe('ContributionEstimatorService', function () {
         expect($result)->toBeLessThan(1700);
     });
 
-    test('estimates GIA contribution from account value', function () {
+    it('estimates GIA contribution from account value', function () {
         $account = new InvestmentAccount([
             'account_type' => 'gia',
             'current_value' => 100000,
@@ -60,14 +60,14 @@ describe('ContributionEstimatorService', function () {
         expect($result)->toBeLessThan(417);
     });
 
-    test('returns zero for SIPP account type', function () {
+    it('returns zero for SIPP account type', function () {
         $account = new InvestmentAccount(['account_type' => 'sipp']);
 
         $result = $this->service->estimateMonthlyContribution($account);
         expect($result)->toBe(0.0);
     });
 
-    test('calculates portfolio contribution across multiple accounts', function () {
+    it('calculates portfolio contribution across multiple accounts', function () {
         $isaAccount = new InvestmentAccount([
             'account_type' => 'isa',
             'isa_subscription_current_year' => 0,
@@ -88,7 +88,7 @@ describe('ContributionEstimatorService', function () {
         expect($result)->toBeLessThan(1900);
     });
 
-    test('applies per-account overrides in portfolio calculation', function () {
+    it('applies per-account overrides in portfolio calculation', function () {
         $account1 = new InvestmentAccount(['account_type' => 'isa']);
         $account1->id = 1;
         $account2 = new InvestmentAccount([
@@ -106,7 +106,7 @@ describe('ContributionEstimatorService', function () {
         expect($result)->toBeLessThan(717);
     });
 
-    test('handles ISA subscription data when available', function () {
+    it('handles ISA subscription data when available', function () {
         $account = new InvestmentAccount([
             'account_type' => 'isa',
             'isa_subscription_current_year' => 6000,

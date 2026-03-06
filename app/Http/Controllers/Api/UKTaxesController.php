@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 
 class UKTaxesController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Get UK tax configuration and rates.
      * This endpoint is admin-only for viewing current UK tax rules.

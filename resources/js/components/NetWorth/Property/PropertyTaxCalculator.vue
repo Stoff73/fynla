@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div class="bg-savannah-100 rounded-md p-4">
-      <p class="text-sm text-yellow-800">
+      <p class="text-sm text-violet-800">
         <strong>Disclaimer:</strong> These calculators are for informational purposes only and should not be considered financial or tax advice.
         Please consult with a qualified tax advisor for your specific situation.
       </p>
@@ -241,7 +241,7 @@
       <h3 class="text-lg font-semibold text-horizon-500">Rental Income Tax Calculator</h3>
 
       <div v-if="property.property_type !== 'buy_to_let'" class="bg-savannah-100 rounded-md p-4">
-        <p class="text-sm text-yellow-800">
+        <p class="text-sm text-violet-800">
           This calculator is primarily for Buy to Let properties. Results may not be accurate for other property types.
         </p>
       </div>

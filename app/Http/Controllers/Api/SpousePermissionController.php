@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\SpousePermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SpousePermissionController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Get the current permission status with spouse
      *

@@ -332,7 +332,7 @@ export default {
     getInfoPanelClasses() {
       const level = this.modelValue;
       const classes = {
-        low: 'bg-yellow-50 border-yellow-200',
+        low: 'bg-violet-50 border-violet-200',
         lower_medium: 'bg-pink-50 border-pink-200',
         medium: 'bg-green-50 border-green-200',
         upper_medium: 'bg-teal-50 border-teal-200',
@@ -344,7 +344,7 @@ export default {
     getInfoTextClasses() {
       const level = this.modelValue;
       const classes = {
-        low: 'text-yellow-800',
+        low: 'text-violet-800',
         lower_medium: 'text-pink-800',
         medium: 'text-green-800',
         upper_medium: 'text-teal-800',
@@ -356,7 +356,7 @@ export default {
     getInfoDescClasses() {
       const level = this.modelValue;
       const classes = {
-        low: 'text-yellow-700',
+        low: 'text-violet-700',
         lower_medium: 'text-pink-700',
         medium: 'text-green-700',
         upper_medium: 'text-teal-700',

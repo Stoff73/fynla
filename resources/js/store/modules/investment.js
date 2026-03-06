@@ -777,17 +777,6 @@ const mutations = {
         };
     },
 
-    SET_MONTE_CARLO_RESULT(state, { goalId, result }) {
-        // Store Monte Carlo results keyed by goal ID
-        if (!state.monteCarloResultsByGoal) {
-            state.monteCarloResultsByGoal = {};
-        }
-        state.monteCarloResultsByGoal = {
-            ...state.monteCarloResultsByGoal,
-            [goalId]: result
-        };
-    },
-
     addAccount(state, account) {
         state.accounts.push(account);
     },

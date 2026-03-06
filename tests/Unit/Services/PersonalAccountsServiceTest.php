@@ -69,7 +69,7 @@ beforeEach(function () {
 });
 
 describe('calculateProfitAndLoss', function () {
-    test('calculates profit and loss correctly', function () {
+    it('calculates profit and loss correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -86,7 +86,7 @@ describe('calculateProfitAndLoss', function () {
         ]);
     });
 
-    test('calculates total income correctly', function () {
+    it('calculates total income correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -102,7 +102,7 @@ describe('calculateProfitAndLoss', function () {
         expect($result['total_income'])->toBe($expectedIncome);
     });
 
-    test('includes all income line items', function () {
+    it('includes all income line items', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -119,7 +119,7 @@ describe('calculateProfitAndLoss', function () {
         expect($incomeItems)->toContain('Other Income');
     });
 
-    test('calculates total expenses correctly', function () {
+    it('calculates total expenses correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -131,7 +131,7 @@ describe('calculateProfitAndLoss', function () {
         expect($result['total_expenses'])->toBe($expectedMortgagePayments + $expectedPropertyExpenses);
     });
 
-    test('calculates net profit/loss correctly', function () {
+    it('calculates net profit/loss correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -142,7 +142,7 @@ describe('calculateProfitAndLoss', function () {
         expect($result['net_profit_loss'])->toBe($expectedNetProfit);
     });
 
-    test('handles user with no income gracefully', function () {
+    it('handles user with no income gracefully', function () {
         $userNoIncome = User::factory()->create([
             'household_id' => $this->household->id,
             'annual_employment_income' => 0,
@@ -160,7 +160,7 @@ describe('calculateProfitAndLoss', function () {
         expect($result['total_income'])->toBe(0.0);
     });
 
-    test('handles user with no expenses gracefully', function () {
+    it('handles user with no expenses gracefully', function () {
         $userNoExpenses = User::factory()->create([
             'household_id' => $this->household->id,
             'annual_employment_income' => 50000.00,
@@ -177,7 +177,7 @@ describe('calculateProfitAndLoss', function () {
 });
 
 describe('calculateCashflow', function () {
-    test('calculates cashflow correctly', function () {
+    it('calculates cashflow correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -194,7 +194,7 @@ describe('calculateCashflow', function () {
         ]);
     });
 
-    test('calculates total inflows correctly', function () {
+    it('calculates total inflows correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -211,7 +211,7 @@ describe('calculateCashflow', function () {
         expect($result['total_inflows'])->toBe($expectedInflows);
     });
 
-    test('includes mortgage payments in outflows', function () {
+    it('includes mortgage payments in outflows', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -220,7 +220,7 @@ describe('calculateCashflow', function () {
         expect($result['total_outflows'])->toBeGreaterThan(0);
     });
 
-    test('calculates net cashflow correctly', function () {
+    it('calculates net cashflow correctly', function () {
         $startDate = Carbon::parse('2024-01-01');
         $endDate = Carbon::parse('2024-12-31');
 
@@ -233,7 +233,7 @@ describe('calculateCashflow', function () {
 });
 
 describe('calculateBalanceSheet', function () {
-    test('calculates balance sheet correctly', function () {
+    it('calculates balance sheet correctly', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -250,7 +250,7 @@ describe('calculateBalanceSheet', function () {
         ]);
     });
 
-    test('calculates total assets correctly', function () {
+    it('calculates total assets correctly', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -264,7 +264,7 @@ describe('calculateBalanceSheet', function () {
         expect($result['total_assets'])->toBeGreaterThanOrEqual($expectedAssets);
     });
 
-    test('includes property value in assets', function () {
+    it('includes property value in assets', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -277,7 +277,7 @@ describe('calculateBalanceSheet', function () {
         expect($propertyAssets)->toBeGreaterThan(0);
     });
 
-    test('includes investment value in assets', function () {
+    it('includes investment value in assets', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -290,7 +290,7 @@ describe('calculateBalanceSheet', function () {
         expect($investmentAssets)->toBeGreaterThan(0);
     });
 
-    test('calculates total liabilities correctly', function () {
+    it('calculates total liabilities correctly', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -299,7 +299,7 @@ describe('calculateBalanceSheet', function () {
         expect($result['total_liabilities'])->toBeGreaterThanOrEqual(300000.00);
     });
 
-    test('includes mortgage in liabilities', function () {
+    it('includes mortgage in liabilities', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -312,7 +312,7 @@ describe('calculateBalanceSheet', function () {
         expect($mortgageLiabilities)->toBeGreaterThan(0);
     });
 
-    test('calculates net worth correctly', function () {
+    it('calculates net worth correctly', function () {
         $asOfDate = Carbon::parse('2024-12-31');
 
         $result = $this->service->calculateBalanceSheet($this->user, $asOfDate);
@@ -322,7 +322,7 @@ describe('calculateBalanceSheet', function () {
         expect($result['total_equity'])->toBe($expectedNetWorth);
     });
 
-    test('handles joint ownership correctly', function () {
+    it('handles joint ownership correctly', function () {
         // Create property with 50% ownership
         $jointProperty = Property::factory()->create([
             'user_id' => $this->user->id,
@@ -338,7 +338,7 @@ describe('calculateBalanceSheet', function () {
         expect($result['total_assets'])->toBeGreaterThan(200000.00);
     });
 
-    test('handles user with no liabilities', function () {
+    it('handles user with no liabilities', function () {
         // Create user with no mortgages
         $userNoLiabilities = User::factory()->create([
             'household_id' => $this->household->id,

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Investment;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Rebalancing\RebalancingCalculator;
 use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
@@ -372,8 +373,7 @@ class RebalancingCalculationController extends Controller
             $isTaxFree = in_array($accountType, ['isa', 'sipp', 'pension', 'lisa']);
 
             // Get user's main risk profile from risk_profiles table
-            $userRiskProfile = \DB::table('risk_profiles')
-                ->where('user_id', $user->id)
+            $userRiskProfile = RiskProfile::where('user_id', $user->id)
                 ->first();
 
             $userRiskLevel = $userRiskProfile

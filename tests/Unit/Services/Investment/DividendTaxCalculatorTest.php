@@ -30,27 +30,27 @@ afterEach(function () {
 });
 
 describe('DividendTaxCalculator', function () {
-    test('returns zero for zero dividend income', function () {
+    it('returns zero for zero dividend income', function () {
         $tax = $this->calculator->calculate(0, 30000);
         expect($tax)->toBe(0.0);
     });
 
-    test('returns zero for negative dividend income', function () {
+    it('returns zero for negative dividend income', function () {
         $tax = $this->calculator->calculate(-500, 30000);
         expect($tax)->toBe(0.0);
     });
 
-    test('returns zero when dividends within allowance', function () {
+    it('returns zero when dividends are within allowance', function () {
         $tax = $this->calculator->calculate(400, 30000);
         expect($tax)->toBe(0.0);
     });
 
-    test('returns zero when dividends exactly equal allowance', function () {
+    it('returns zero when dividends exactly equal allowance', function () {
         $tax = $this->calculator->calculate(500, 30000);
         expect($tax)->toBe(0.0);
     });
 
-    test('calculates basic rate tax for basic rate taxpayer', function () {
+    it('calculates basic rate tax for basic rate taxpayer', function () {
         // £30k salary, £2000 dividends
         // Taxable dividends = 2000 - 500 = 1500
         // All in basic band (salary 30000 < 50270)
@@ -59,7 +59,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(131.25);
     });
 
-    test('splits dividends across basic and higher rate bands', function () {
+    it('splits dividends across basic and higher rate bands', function () {
         // £49,000 salary, £5000 dividends
         // Taxable dividends = 5000 - 500 = 4500
         // Basic band ceiling = 12570 + 37700 = 50270
@@ -71,7 +71,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(1201.25);
     });
 
-    test('calculates higher rate tax for higher rate taxpayer', function () {
+    it('calculates higher rate tax for higher rate taxpayer', function () {
         // £80k salary, £3000 dividends
         // Taxable dividends = 3000 - 500 = 2500
         // Salary already in higher band (80000 > 50270)
@@ -81,7 +81,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(843.75);
     });
 
-    test('splits dividends across higher and additional rate bands', function () {
+    it('splits dividends across higher and additional rate bands', function () {
         // £120k salary, £10000 dividends
         // Total income = 130k, PA tapered
         // Taper: (130000 - 100000) / 2 = 15000, PA = max(0, 12570 - 15000) = 0
@@ -96,7 +96,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(3451.72);
     });
 
-    test('applies personal allowance taper for income over 100k', function () {
+    it('applies personal allowance taper for income over 100k', function () {
         // £110k salary, £1000 dividends
         // Total income = 111k
         // PA taper: (111000 - 100000) / 2 = 5500, PA = 12570 - 5500 = 7070
@@ -108,7 +108,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(168.75);
     });
 
-    test('calculates additional rate for very high earners', function () {
+    it('calculates additional rate for very high earners', function () {
         // £200k salary, £5000 dividends
         // Total income = 205k
         // PA fully tapered to 0
@@ -121,7 +121,7 @@ describe('DividendTaxCalculator', function () {
         expect($tax)->toBe(1772.1);
     });
 
-    test('handles zero non-dividend income', function () {
+    it('handles zero non-dividend income', function () {
         // £0 salary, £20000 dividends (e.g., retired person living on dividends)
         // Taxable dividends = 20000 - 500 = 19500
         // PA = 12570, basic band ceiling = 12570 + 37700 = 50270

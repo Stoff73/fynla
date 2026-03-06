@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,13 +17,13 @@ afterEach(function () {
     Cache::flush();
 });
 
-test('dashboard index requires authentication', function () {
+it('requires authentication for dashboard index', function () {
     $response = $this->getJson('/api/dashboard');
 
     $response->assertStatus(401);
 });
 
-test('dashboard index returns aggregated data', function () {
+it('returns aggregated data from dashboard index', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard');
 
@@ -38,7 +40,7 @@ test('dashboard index returns aggregated data', function () {
         ]);
 });
 
-test('dashboard index caches data for 5 minutes', function () {
+it('caches dashboard index data for 5 minutes', function () {
     // First request
     $response1 = $this->actingAs($this->user)
         ->getJson('/api/dashboard');
@@ -56,13 +58,13 @@ test('dashboard index caches data for 5 minutes', function () {
     $response2->assertStatus(200);
 });
 
-test('financial health score requires authentication', function () {
+it('requires authentication for financial health score', function () {
     $response = $this->getJson('/api/dashboard/financial-health-score');
 
     $response->assertStatus(401);
 });
 
-test('financial health score returns composite score', function () {
+it('returns composite score from financial health score endpoint', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/financial-health-score');
 
@@ -84,7 +86,7 @@ test('financial health score returns composite score', function () {
         ]);
 });
 
-test('financial health score includes weighted breakdown', function () {
+it('includes weighted breakdown in financial health score', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/financial-health-score');
 
@@ -108,7 +110,7 @@ test('financial health score includes weighted breakdown', function () {
     expect($breakdown['estate'])->toHaveKey('contribution');
 });
 
-test('financial health score caches data for 1 hour', function () {
+it('caches financial health score data for 1 hour', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/financial-health-score');
 
@@ -118,13 +120,13 @@ test('financial health score caches data for 1 hour', function () {
     expect(Cache::has($cacheKey))->toBeTrue();
 });
 
-test('alerts requires authentication', function () {
+it('requires authentication for alerts', function () {
     $response = $this->getJson('/api/dashboard/alerts');
 
     $response->assertStatus(401);
 });
 
-test('alerts returns prioritized alerts from all modules', function () {
+it('returns prioritised alerts from all modules', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/alerts');
 
@@ -138,7 +140,7 @@ test('alerts returns prioritized alerts from all modules', function () {
     expect($alerts)->toBeArray();
 });
 
-test('alerts are sorted by severity', function () {
+it('sorts alerts by severity', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/alerts');
 
@@ -158,7 +160,7 @@ test('alerts are sorted by severity', function () {
     }
 });
 
-test('alerts include module information', function () {
+it('includes module information in alerts', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/alerts');
 
@@ -171,7 +173,7 @@ test('alerts include module information', function () {
     }
 });
 
-test('alerts cache data for 15 minutes', function () {
+it('caches alert data for 15 minutes', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/alerts');
 
@@ -181,13 +183,13 @@ test('alerts cache data for 15 minutes', function () {
     expect(Cache::has($cacheKey))->toBeTrue();
 });
 
-test('dismiss alert requires authentication', function () {
+it('requires authentication to dismiss an alert', function () {
     $response = $this->postJson('/api/dashboard/alerts/1/dismiss');
 
     $response->assertStatus(401);
 });
 
-test('dismiss alert invalidates cache', function () {
+it('invalidates cache when dismissing an alert', function () {
     // Prime the cache
     $this->actingAs($this->user)
         ->getJson('/api/dashboard/alerts');
@@ -208,13 +210,13 @@ test('dismiss alert invalidates cache', function () {
     expect(Cache::has($cacheKey))->toBeFalse();
 });
 
-test('invalidate cache requires authentication', function () {
+it('requires authentication to invalidate cache', function () {
     $response = $this->postJson('/api/dashboard/invalidate-cache');
 
     $response->assertStatus(401);
 });
 
-test('invalidate cache clears all dashboard caches', function () {
+it('clears all dashboard caches on invalidation', function () {
     // Prime all caches
     $this->actingAs($this->user)->getJson('/api/dashboard');
     $this->actingAs($this->user)->getJson('/api/dashboard/financial-health-score');
@@ -243,7 +245,7 @@ test('invalidate cache clears all dashboard caches', function () {
     expect(Cache::has($alertsKey))->toBeFalse();
 });
 
-test('different users get separate cached data', function () {
+it('provides separate cached data for different users', function () {
     $user2 = User::factory()->create([
         'first_name' => 'Test',
         'surname' => 'User 2',
@@ -269,7 +271,7 @@ test('different users get separate cached data', function () {
     expect($cacheKey1)->not->toBe($cacheKey2);
 });
 
-test('dashboard handles errors gracefully', function () {
+it('handles errors gracefully in dashboard', function () {
     // This test ensures the endpoint doesn't crash even with missing data
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard');
@@ -278,7 +280,7 @@ test('dashboard handles errors gracefully', function () {
     expect($response->json('success'))->toBeTrue();
 });
 
-test('financial health score label is correct for excellent score', function () {
+it('assigns correct label for financial health score', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/financial-health-score');
 
@@ -299,7 +301,7 @@ test('financial health score label is correct for excellent score', function () 
     }
 });
 
-test('financial health score recommendation is appropriate', function () {
+it('provides appropriate financial health score recommendation', function () {
     $response = $this->actingAs($this->user)
         ->getJson('/api/dashboard/financial-health-score');
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 
-test('authenticated user can logout', function () {
+it('allows authenticated user to logout', function () {
     $user = User::factory()->create();
     $token = $user->createToken('auth_token');
 
@@ -23,7 +23,7 @@ test('authenticated user can logout', function () {
     ]);
 });
 
-test('logout deletes only current token', function () {
+it('deletes only the current token on logout', function () {
     $user = User::factory()->create();
 
     // Create two tokens
@@ -47,13 +47,13 @@ test('logout deletes only current token', function () {
     ]);
 });
 
-test('unauthenticated user cannot logout', function () {
+it('prevents unauthenticated user from logging out', function () {
     $response = $this->postJson('/api/auth/logout');
 
     $response->assertStatus(401);
 });
 
-test('invalid token cannot logout', function () {
+it('prevents logout with invalid token', function () {
     $response = $this->withToken('invalid-token-123')
         ->postJson('/api/auth/logout');
 

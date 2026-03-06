@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 
-test('authenticated user can retrieve their profile', function () {
+it('allows authenticated user to retrieve their profile', function () {
     $user = User::factory()->create([
         'first_name' => 'Test',
         'middle_name' => null,
@@ -35,20 +35,20 @@ test('authenticated user can retrieve their profile', function () {
         ]);
 });
 
-test('unauthenticated user cannot retrieve profile', function () {
+it('prevents unauthenticated user from retrieving profile', function () {
     $response = $this->getJson('/api/auth/user');
 
     $response->assertStatus(401);
 });
 
-test('invalid token cannot retrieve profile', function () {
+it('prevents profile retrieval with invalid token', function () {
     $response = $this->withToken('invalid-token-xyz')
         ->getJson('/api/auth/user');
 
     $response->assertStatus(401);
 });
 
-test('user profile includes all required fields', function () {
+it('includes all required fields in user profile', function () {
     $user = User::factory()->create();
     $token = $user->createToken('auth_token');
 

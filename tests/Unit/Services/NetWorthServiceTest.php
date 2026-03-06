@@ -19,7 +19,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
 });
 
-test('calculate net worth with no assets returns zero', function () {
+it('calculates net worth with no assets as zero', function () {
     $result = $this->service->calculateNetWorth($this->user);
 
     expect($result['total_assets'])->toBe(0.0)
@@ -27,7 +27,7 @@ test('calculate net worth with no assets returns zero', function () {
         ->and($result['net_worth'])->toBe(0.0);
 });
 
-test('calculate net worth with property includes ownership percentage', function () {
+it('includes ownership percentage in property net worth calculation', function () {
     // Single-record pattern: Database stores FULL value, share calculated from percentage
     // For joint properties, ONE record exists with full value
     // User's share = full_value * (ownership_percentage / 100)
@@ -46,7 +46,7 @@ test('calculate net worth with property includes ownership percentage', function
         ->and($result['net_worth'])->toBe(200000.0);
 });
 
-test('calculate net worth with investments', function () {
+it('calculates net worth with investments', function () {
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 50000,
@@ -60,7 +60,7 @@ test('calculate net worth with investments', function () {
         ->and($result['breakdown']['investments'])->toBe(50000.0);
 });
 
-test('calculate net worth with cash accounts', function () {
+it('calculates net worth with cash accounts', function () {
     // Service uses SavingsAccount model for cash calculations
     SavingsAccount::factory()->create([
         'user_id' => $this->user->id,
@@ -74,7 +74,7 @@ test('calculate net worth with cash accounts', function () {
         ->and($result['breakdown']['cash'])->toBe(25000.0);
 });
 
-test('calculate net worth with business interests', function () {
+it('calculates net worth with business interests', function () {
     // Single-record pattern: Database stores FULL business valuation
     // ownership_percentage represents shareholding (e.g., 75% of £100k = £75k share)
     BusinessInterest::factory()->create([
@@ -90,7 +90,7 @@ test('calculate net worth with business interests', function () {
         ->and($result['breakdown']['business'])->toBe(75000.0);
 });
 
-test('calculate net worth with chattels', function () {
+it('calculates net worth with chattels', function () {
     Chattel::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 15000,
@@ -104,7 +104,7 @@ test('calculate net worth with chattels', function () {
         ->and($result['breakdown']['chattels'])->toBe(15000.0);
 });
 
-test('calculate net worth with mortgages reduces net worth', function () {
+it('reduces net worth when mortgages are present', function () {
     $property = Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -125,7 +125,7 @@ test('calculate net worth with mortgages reduces net worth', function () {
         ->and($result['net_worth'])->toBe(200000.0);
 });
 
-test('calculate net worth with multiple asset types', function () {
+it('calculates net worth with multiple asset types', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -157,7 +157,7 @@ test('calculate net worth with multiple asset types', function () {
         ->and($result['net_worth'])->toBe(475000.0);
 });
 
-test('get asset breakdown returns percentages', function () {
+it('returns percentages in asset breakdown', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -178,7 +178,7 @@ test('get asset breakdown returns percentages', function () {
         ->and($breakdown['investments']['percentage'])->toBe(20.0);
 });
 
-test('get assets summary returns counts and totals', function () {
+it('returns counts and totals in assets summary', function () {
     Property::factory()->count(2)->create([
         'user_id' => $this->user->id,
         'current_value' => 200000,
@@ -192,7 +192,7 @@ test('get assets summary returns counts and totals', function () {
         ->and($summary['property']['total_value'])->toBe(400000.0);
 });
 
-test('get joint assets filters correctly', function () {
+it('filters joint assets correctly', function () {
     // Single-record pattern: FULL value stored, share calculated
     Property::factory()->create([
         'user_id' => $this->user->id,
@@ -215,7 +215,7 @@ test('get joint assets filters correctly', function () {
         ->and($jointAssets[0]['ownership_percentage'])->toEqual(50);
 });
 
-test('cached net worth returns same result', function () {
+it('returns same result from cached net worth', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,

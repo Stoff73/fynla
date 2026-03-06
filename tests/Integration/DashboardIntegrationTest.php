@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use Illuminate\Support\Facades\Cache;
@@ -18,7 +20,7 @@ afterEach(function () {
     Cache::flush();
 });
 
-test('dashboard aggregates data from all 5 modules', function () {
+it('aggregates data from all 5 modules', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data)->toBeArray();
@@ -31,42 +33,42 @@ test('dashboard aggregates data from all 5 modules', function () {
     ]);
 });
 
-test('protection summary includes adequacy score', function () {
+it('includes adequacy score in protection summary', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data['protection'])->toHaveKey('adequacy_score');
     expect($data['protection']['adequacy_score'])->toBeNumeric();
 });
 
-test('savings summary includes emergency fund runway', function () {
+it('includes emergency fund runway in savings summary', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data['savings'])->toHaveKey('emergency_fund_runway');
     expect($data['savings']['emergency_fund_runway'])->toBeNumeric();
 });
 
-test('investment summary includes portfolio value', function () {
+it('includes portfolio value in investment summary', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data['investment'])->toHaveKey('portfolio_value');
     expect($data['investment']['portfolio_value'])->toBeNumeric();
 });
 
-test('retirement summary includes income gap', function () {
+it('includes income gap in retirement summary', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data['retirement'])->toHaveKey('income_gap');
     expect($data['retirement']['income_gap'])->toBeNumeric();
 });
 
-test('estate summary includes net worth', function () {
+it('includes net worth in estate summary', function () {
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
     expect($data['estate'])->toHaveKey('net_worth');
     expect($data['estate']['net_worth'])->toBeNumeric();
 });
 
-test('financial health score calculation is correct', function () {
+it('calculates financial health score correctly', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData)->toBeArray();
@@ -78,7 +80,7 @@ test('financial health score calculation is correct', function () {
     ]);
 });
 
-test('composite score is between 0 and 100', function () {
+it('keeps composite score between 0 and 100', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $compositeScore = $scoreData['composite_score'];
@@ -86,7 +88,7 @@ test('composite score is between 0 and 100', function () {
     expect($compositeScore)->toBeLessThanOrEqual(100);
 });
 
-test('breakdown includes all 5 modules', function () {
+it('includes all 5 modules in breakdown', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $breakdown = $scoreData['breakdown'];
@@ -99,7 +101,7 @@ test('breakdown includes all 5 modules', function () {
     ]);
 });
 
-test('each module breakdown has score, weight, and contribution', function () {
+it('has score, weight, and contribution in each module breakdown', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $breakdown = $scoreData['breakdown'];
@@ -112,7 +114,7 @@ test('each module breakdown has score, weight, and contribution', function () {
     }
 });
 
-test('weights sum to 1.0', function () {
+it('sums weights to 1.0', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $breakdown = $scoreData['breakdown'];
@@ -122,7 +124,7 @@ test('weights sum to 1.0', function () {
     expect(abs($totalWeight - 1.0))->toBeLessThan(0.01);
 });
 
-test('contributions sum to composite score', function () {
+it('sums contributions to composite score', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $breakdown = $scoreData['breakdown'];
@@ -134,37 +136,37 @@ test('contributions sum to composite score', function () {
     expect(abs($totalContribution - $compositeScore))->toBeLessThan(0.5);
 });
 
-test('protection weight is 20%', function () {
+it('sets protection weight to 20%', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['breakdown']['protection']['weight'])->toBe(0.20);
 });
 
-test('emergency fund weight is 15%', function () {
+it('sets emergency fund weight to 15%', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['breakdown']['emergency_fund']['weight'])->toBe(0.15);
 });
 
-test('retirement weight is 25%', function () {
+it('sets retirement weight to 25%', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['breakdown']['retirement']['weight'])->toBe(0.25);
 });
 
-test('investment weight is 20%', function () {
+it('sets investment weight to 20%', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['breakdown']['investment']['weight'])->toBe(0.20);
 });
 
-test('estate weight is 20%', function () {
+it('sets estate weight to 20%', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['breakdown']['estate']['weight'])->toBe(0.20);
 });
 
-test('alerts aggregation includes all modules', function () {
+it('includes all modules in alerts aggregation', function () {
     $alerts = $this->aggregator->aggregateAlerts($this->user->id);
 
     expect($alerts)->toBeArray();
@@ -174,7 +176,7 @@ test('alerts aggregation includes all modules', function () {
     expect(count($modules))->toBeGreaterThanOrEqual(1);
 });
 
-test('alerts are sorted by severity', function () {
+it('sorts alerts by severity', function () {
     $alerts = $this->aggregator->aggregateAlerts($this->user->id);
 
     if (count($alerts) > 1) {
@@ -189,7 +191,7 @@ test('alerts are sorted by severity', function () {
     }
 });
 
-test('each alert has required fields', function () {
+it('has required fields in each alert', function () {
     $alerts = $this->aggregator->aggregateAlerts($this->user->id);
 
     foreach ($alerts as $alert) {
@@ -206,7 +208,7 @@ test('each alert has required fields', function () {
     }
 });
 
-test('alert severity is valid', function () {
+it('uses valid alert severity values', function () {
     $alerts = $this->aggregator->aggregateAlerts($this->user->id);
 
     $validSeverities = ['critical', 'important', 'info'];
@@ -216,7 +218,7 @@ test('alert severity is valid', function () {
     }
 });
 
-test('dashboard data fetch and cache workflow', function () {
+it('fetches and caches dashboard data correctly', function () {
     // First call - should fetch and cache
     $response1 = $this->actingAs($this->user)
         ->getJson('/api/dashboard');
@@ -236,7 +238,7 @@ test('dashboard data fetch and cache workflow', function () {
     expect($response1->json('data'))->toBe($response2->json('data'));
 });
 
-test('cache invalidation workflow', function () {
+it('invalidates cache correctly', function () {
     // Prime the cache
     $this->actingAs($this->user)->getJson('/api/dashboard');
     $this->actingAs($this->user)->getJson('/api/dashboard/financial-health-score');
@@ -254,7 +256,7 @@ test('cache invalidation workflow', function () {
     expect(Cache::has("alerts_{$this->user->id}"))->toBeFalse();
 });
 
-test('parallel data loading handles partial failures gracefully', function () {
+it('handles partial failures gracefully during parallel data loading', function () {
     // Even if some modules fail, the dashboard should still return data
     $data = $this->aggregator->aggregateOverviewData($this->user->id);
 
@@ -262,7 +264,7 @@ test('parallel data loading handles partial failures gracefully', function () {
     expect($data)->toBeArray();
 });
 
-test('financial health score label matches score range', function () {
+it('matches financial health score label to score range', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     $score = $scoreData['composite_score'];
@@ -279,7 +281,7 @@ test('financial health score label matches score range', function () {
     }
 });
 
-test('financial health score recommendation is contextual', function () {
+it('provides contextual financial health score recommendation', function () {
     $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
 
     expect($scoreData['recommendation'])->toBeString();

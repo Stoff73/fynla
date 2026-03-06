@@ -45,7 +45,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/user/profile', function () {
-    test('returns authenticated user profile data', function () {
+    it('returns authenticated user profile data', function () {
         $response = $this->getJson('/api/user/profile');
 
         $response->assertStatus(200)
@@ -95,7 +95,7 @@ describe('GET /api/user/profile', function () {
         expect((float) $response->json('data.income_occupation.total_annual_income'))->toBe(78000.0);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -108,7 +108,7 @@ describe('GET /api/user/profile', function () {
 });
 
 describe('PUT /api/user/profile/personal', function () {
-    test('updates user personal information successfully', function () {
+    it('updates user personal information successfully', function () {
         $updatedData = [
             'first_name' => 'Updated',
             'surname' => 'Name',
@@ -142,7 +142,7 @@ describe('PUT /api/user/profile/personal', function () {
         ]);
     });
 
-    test('validates string fields format', function () {
+    it('validates string fields format', function () {
         $invalidData = [
             'first_name' => 123, // Must be string
             'postcode' => 456, // Must be string
@@ -154,7 +154,7 @@ describe('PUT /api/user/profile/personal', function () {
             ->assertJsonValidationErrors(['first_name', 'postcode']);
     });
 
-    test('validates email format', function () {
+    it('validates email format', function () {
         $invalidData = [
             'email' => 'not-an-email',
             'first_name' => 'Test',
@@ -168,7 +168,7 @@ describe('PUT /api/user/profile/personal', function () {
             ->assertJsonValidationErrors(['email']);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -185,7 +185,7 @@ describe('PUT /api/user/profile/personal', function () {
 });
 
 describe('PUT /api/user/profile/income-occupation', function () {
-    test('updates income and occupation data successfully', function () {
+    it('updates income and occupation data successfully', function () {
         $updatedData = [
             'occupation' => 'Senior Developer',
             'employer' => 'New Company Ltd',
@@ -218,7 +218,7 @@ describe('PUT /api/user/profile/income-occupation', function () {
         expect((float) $response->json('data.user.annual_self_employment_income'))->toBe(95000.0);
     });
 
-    test('validates income fields are numeric and non-negative', function () {
+    it('validates income fields are numeric and non-negative', function () {
         $invalidData = [
             'annual_employment_income' => -1000, // Negative not allowed
             'annual_rental_income' => 'not-a-number',
@@ -230,7 +230,7 @@ describe('PUT /api/user/profile/income-occupation', function () {
             ->assertJsonValidationErrors(['annual_employment_income', 'annual_rental_income']);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -245,7 +245,7 @@ describe('PUT /api/user/profile/income-occupation', function () {
 });
 
 describe('Authorization', function () {
-    test('user cannot view another user profile', function () {
+    it('prevents viewing another user profile', function () {
         // Create another user
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
@@ -259,7 +259,7 @@ describe('Authorization', function () {
         expect($response->json('data.personal_info.id'))->not->toBe($otherUser->id);
     });
 
-    test('user cannot update another user profile', function () {
+    it('prevents updating another user profile', function () {
         // Profile updates are scoped to authenticated user only
         // This test verifies the controller only updates the authenticated user's data
         $response = $this->putJson('/api/user/profile/personal', [

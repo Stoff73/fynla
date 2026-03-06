@@ -17,7 +17,7 @@ class GoalFactory extends Factory
 
     public function definition(): array
     {
-        $goalType = $this->faker->randomElement([
+        $goalType = fake()->randomElement([
             'emergency_fund',
             'property_purchase',
             'home_deposit',
@@ -31,37 +31,37 @@ class GoalFactory extends Factory
             'custom',
         ]);
 
-        $targetAmount = $this->faker->randomFloat(2, 1000, 200000);
-        $currentAmount = $this->faker->randomFloat(2, 0, $targetAmount * 0.8);
-        $startDate = $this->faker->dateTimeBetween('-2 years', '-1 month');
+        $targetAmount = fake()->randomFloat(2, 1000, 200000);
+        $currentAmount = fake()->randomFloat(2, 0, $targetAmount * 0.8);
+        $startDate = fake()->dateTimeBetween('-2 years', '-1 month');
 
         $assignedModule = match ($goalType) {
             'property_purchase', 'home_deposit' => 'property',
             'retirement' => 'retirement',
             'wealth_accumulation' => 'investment',
-            default => $this->faker->randomElement(['savings', 'investment']),
+            default => fake()->randomElement(['savings', 'investment']),
         };
 
         return [
             'user_id' => User::factory(),
             'goal_name' => $this->generateGoalName($goalType),
             'goal_type' => $goalType,
-            'custom_goal_type_name' => $goalType === 'custom' ? $this->faker->words(3, true) : null,
-            'description' => $this->faker->optional(0.5)->sentence(),
+            'custom_goal_type_name' => $goalType === 'custom' ? fake()->words(3, true) : null,
+            'description' => fake()->optional(0.5)->sentence(),
             'target_amount' => $targetAmount,
             'current_amount' => $currentAmount,
-            'target_date' => $this->faker->dateTimeBetween('+6 months', '+10 years'),
+            'target_date' => fake()->dateTimeBetween('+6 months', '+10 years'),
             'start_date' => $startDate,
             'assigned_module' => $assignedModule,
             'module_override' => false,
-            'priority' => $this->faker->randomElement(['critical', 'high', 'medium', 'low']),
-            'is_essential' => $this->faker->boolean(30),
+            'priority' => fake()->randomElement(['critical', 'high', 'medium', 'low']),
+            'is_essential' => fake()->boolean(30),
             'status' => 'active',
-            'monthly_contribution' => $this->faker->randomFloat(2, 50, 2000),
+            'monthly_contribution' => fake()->randomFloat(2, 50, 2000),
             'contribution_frequency' => 'monthly',
-            'contribution_streak' => $this->faker->numberBetween(0, 24),
-            'longest_streak' => $this->faker->numberBetween(0, 36),
-            'last_contribution_date' => $this->faker->optional(0.7)->dateTimeBetween('-2 months', 'now'),
+            'contribution_streak' => fake()->numberBetween(0, 24),
+            'longest_streak' => fake()->numberBetween(0, 36),
+            'last_contribution_date' => fake()->optional(0.7)->dateTimeBetween('-2 months', 'now'),
             'linked_account_ids' => null,
             'linked_savings_account_id' => null,
             'risk_preference' => null,
@@ -94,14 +94,14 @@ class GoalFactory extends Factory
             'emergency_fund' => 'Emergency Fund',
             'property_purchase' => 'Property Purchase Fund',
             'home_deposit' => 'Home Deposit',
-            'education' => $this->faker->randomElement(['University Fund', 'School Fees', 'Professional Qualification']),
+            'education' => fake()->randomElement(['University Fund', 'School Fees', 'Professional Qualification']),
             'retirement' => 'Retirement Savings',
             'wealth_accumulation' => 'Wealth Building',
             'wedding' => 'Wedding Fund',
-            'holiday' => $this->faker->randomElement(['Holiday Fund', 'Travel Savings']),
+            'holiday' => fake()->randomElement(['Holiday Fund', 'Travel Savings']),
             'car_purchase' => 'New Car Fund',
             'debt_repayment' => 'Debt Clearance',
-            'custom' => $this->faker->words(3, true),
+            'custom' => fake()->words(3, true),
             default => 'Savings Goal',
         };
     }
@@ -117,7 +117,7 @@ class GoalFactory extends Factory
             'assigned_module' => 'savings',
             'priority' => 'critical',
             'is_essential' => true,
-            'target_amount' => $this->faker->randomFloat(2, 5000, 30000),
+            'target_amount' => fake()->randomFloat(2, 5000, 30000),
         ]);
     }
 
@@ -126,8 +126,8 @@ class GoalFactory extends Factory
      */
     public function propertyPurchase(): static
     {
-        $propertyPrice = $this->faker->randomFloat(2, 150000, 500000);
-        $depositPercent = $this->faker->randomElement([5.00, 10.00, 15.00, 20.00]);
+        $propertyPrice = fake()->randomFloat(2, 150000, 500000);
+        $depositPercent = fake()->randomElement([5.00, 10.00, 15.00, 20.00]);
         $targetAmount = $propertyPrice * ($depositPercent / 100);
 
         return $this->state(fn (array $attributes) => [
@@ -135,13 +135,13 @@ class GoalFactory extends Factory
             'goal_type' => 'home_deposit',
             'assigned_module' => 'property',
             'target_amount' => $targetAmount,
-            'property_location' => $this->faker->city(),
-            'property_type' => $this->faker->randomElement(['house', 'flat', 'terraced', 'semi_detached']),
-            'is_first_time_buyer' => $this->faker->boolean(70),
+            'property_location' => fake()->city(),
+            'property_type' => fake()->randomElement(['house', 'flat', 'terraced', 'semi_detached']),
+            'is_first_time_buyer' => fake()->boolean(70),
             'estimated_property_price' => $propertyPrice,
             'deposit_percentage' => $depositPercent,
             'stamp_duty_estimate' => $propertyPrice * 0.02,
-            'additional_costs_estimate' => $this->faker->randomFloat(2, 2000, 8000),
+            'additional_costs_estimate' => fake()->randomFloat(2, 2000, 8000),
         ]);
     }
 
@@ -156,8 +156,8 @@ class GoalFactory extends Factory
             return [
                 'status' => 'completed',
                 'current_amount' => $targetAmount,
-                'completed_at' => $this->faker->dateTimeBetween('-3 months', 'now'),
-                'completion_notes' => $this->faker->optional(0.5)->sentence(),
+                'completed_at' => fake()->dateTimeBetween('-3 months', 'now'),
+                'completion_notes' => fake()->optional(0.5)->sentence(),
             ];
         });
     }

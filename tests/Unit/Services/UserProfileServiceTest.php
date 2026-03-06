@@ -124,7 +124,7 @@ beforeEach(function () {
 });
 
 describe('getCompleteProfile', function () {
-    test('returns complete user profile with all sections', function () {
+    it('returns complete user profile with all sections', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         expect($profile)->toBeArray();
@@ -137,7 +137,7 @@ describe('getCompleteProfile', function () {
         ]);
     });
 
-    test('returns correct personal information', function () {
+    it('returns correct personal information', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         expect($profile['personal_info'])->toHaveKeys([
@@ -153,7 +153,7 @@ describe('getCompleteProfile', function () {
         expect($profile['personal_info']['email'])->toBe('test@example.com');
     });
 
-    test('returns correct income and occupation data', function () {
+    it('returns correct income and occupation data', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         expect($profile['income_occupation'])->toHaveKeys([
@@ -170,7 +170,7 @@ describe('getCompleteProfile', function () {
         expect($profile['income_occupation']['total_annual_income'])->toBe(90000.0);
     });
 
-    test('calculates total annual income correctly', function () {
+    it('calculates total annual income correctly', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         $expectedTotal =
@@ -183,7 +183,7 @@ describe('getCompleteProfile', function () {
         expect($profile['income_occupation']['total_annual_income'])->toBe($expectedTotal);
     });
 
-    test('includes family members in profile', function () {
+    it('includes family members in profile', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         // Service returns array, not Collection
@@ -192,7 +192,7 @@ describe('getCompleteProfile', function () {
         expect($profile['family_members'][0]['name'])->toBe('Test Child');
     });
 
-    test('returns empty array when user has no family members', function () {
+    it('returns empty array when user has no family members', function () {
         // Delete family members
         FamilyMember::where('user_id', $this->user->id)->delete();
 
@@ -203,7 +203,7 @@ describe('getCompleteProfile', function () {
         expect($profile['family_members'])->toHaveCount(0);
     });
 
-    test('includes assets summary in profile', function () {
+    it('includes assets summary in profile', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         expect($profile['assets_summary'])->toBeArray();
@@ -218,7 +218,7 @@ describe('getCompleteProfile', function () {
         ]);
     });
 
-    test('calculates assets summary correctly', function () {
+    it('calculates assets summary correctly', function () {
         $profile = $this->service->getCompleteProfile($this->user);
 
         expect($profile['assets_summary']['properties']['total'])->toBe(500000.00);
@@ -228,7 +228,7 @@ describe('getCompleteProfile', function () {
 });
 
 describe('updatePersonalInfo', function () {
-    test('updates personal information successfully', function () {
+    it('updates personal information successfully', function () {
         $updateData = [
             'first_name' => 'Updated',
             'surname' => 'Person',
@@ -246,7 +246,7 @@ describe('updatePersonalInfo', function () {
         expect($updatedUser->city)->toBe('Manchester');
     });
 
-    test('persists updated information to database', function () {
+    it('persists updated information to database', function () {
         $updateData = [
             'first_name' => 'Database',
             'surname' => 'TestUser',
@@ -263,7 +263,7 @@ describe('updatePersonalInfo', function () {
         expect($this->user->city)->toBe('Birmingham');
     });
 
-    test('returns updated User model', function () {
+    it('returns updated User model', function () {
         $updateData = ['first_name' => 'Changed'];
 
         $result = $this->service->updatePersonalInfo($this->user, $updateData);
@@ -274,7 +274,7 @@ describe('updatePersonalInfo', function () {
 });
 
 describe('updateIncomeOccupation', function () {
-    test('updates income and occupation information successfully', function () {
+    it('updates income and occupation information successfully', function () {
         $updateData = [
             'occupation' => 'Senior Developer',
             'employer' => 'New Company Ltd',
@@ -290,7 +290,7 @@ describe('updateIncomeOccupation', function () {
         expect((float) $updatedUser->annual_employment_income)->toBe(95000.0);
     });
 
-    test('persists updated income information to database', function () {
+    it('persists updated income information to database', function () {
         $updateData = [
             'annual_employment_income' => 100000.00,
             'annual_self_employment_income' => 20000.00,
@@ -306,7 +306,7 @@ describe('updateIncomeOccupation', function () {
         expect((float) $this->user->annual_self_employment_income)->toBe(20000.0);
     });
 
-    test('returns updated User model', function () {
+    it('returns updated User model', function () {
         $updateData = ['occupation' => 'Test'];
 
         $result = $this->service->updateIncomeOccupation($this->user, $updateData);

@@ -6,11 +6,11 @@ This file supplements the root `CLAUDE.md` with testing-specific patterns.
 
 ```
 tests/
-  Unit/           60 tests - Isolated service/agent/model tests
+  Unit/           69 tests - Isolated service/agent/model tests
     Agents/       Agent orchestration tests
     Models/       Model domain logic
     Services/     Service calculations (organised by module)
-  Feature/        37 tests - API endpoint integration tests
+  Feature/        40 tests - API endpoint integration tests
     Api/          General API tests
     Auth/         Authentication flow
     Estate/       Estate module endpoints
@@ -111,7 +111,7 @@ arch('controllers do not use DB facade directly')
 
 ## Factories
 
-42 factories in `database/factories/` with state methods:
+44 factories in `database/factories/` with state methods:
 ```php
 // Basic usage
 $user = User::factory()->create();

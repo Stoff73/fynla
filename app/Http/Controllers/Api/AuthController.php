@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\VerificationCode;
@@ -31,6 +32,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private LoginLockoutService $lockoutService,
         private MFAService $mfaService,

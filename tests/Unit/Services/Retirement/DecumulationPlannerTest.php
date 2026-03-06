@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Services\Retirement\DecumulationPlanner;
 
 beforeEach(function () {
     $this->planner = new DecumulationPlanner;
 });
 
-test('calculates sustainable withdrawal rate scenarios', function () {
+it('calculates sustainable withdrawal rate scenarios', function () {
     $portfolioValue = 500000; // £500,000 pension pot
     $yearsInRetirement = 30;
     $growthRate = 0.05; // 5% annual growth
@@ -26,7 +28,7 @@ test('calculates sustainable withdrawal rate scenarios', function () {
         ->and($result['recommended_rate'])->toBeIn([3.0, 4.0, 5.0]);
 });
 
-test('3% withdrawal rate is always sustainable', function () {
+it('ensures 3% withdrawal rate is always sustainable', function () {
     $portfolioValue = 300000;
     $yearsInRetirement = 30;
     $growthRate = 0.04;
@@ -43,7 +45,7 @@ test('3% withdrawal rate is always sustainable', function () {
         ->and($result['scenarios'][0]['initial_annual_income'])->toBe(9000.0);
 });
 
-test('5% withdrawal rate may deplete portfolio', function () {
+it('shows 5% withdrawal rate may deplete portfolio', function () {
     $portfolioValue = 200000;
     $yearsInRetirement = 35;
     $growthRate = 0.03; // Lower growth
@@ -61,7 +63,7 @@ test('5% withdrawal rate may deplete portfolio', function () {
         ->and($result['scenarios'][2]['initial_annual_income'])->toBe(10000.0);
 });
 
-test('compares annuity vs drawdown options', function () {
+it('compares annuity vs drawdown options', function () {
     $pensionPot = 400000;
     $age = 65;
     $hasSpouse = true;
@@ -75,7 +77,7 @@ test('compares annuity vs drawdown options', function () {
         ->and($result['drawdown']['guaranteed'])->toBeFalse();
 });
 
-test('annuity rate decreases with joint life option', function () {
+it('decreases annuity rate with joint life option', function () {
     $pensionPot = 300000;
     $age = 67;
 
@@ -87,7 +89,7 @@ test('annuity rate decreases with joint life option', function () {
         ->toBeGreaterThan($jointLife['annuity']['annual_income']);
 });
 
-test('drawdown provides flexible income access', function () {
+it('provides flexible income access via drawdown', function () {
     $pensionPot = 500000;
     $age = 65;
     $hasSpouse = false;
@@ -99,7 +101,7 @@ test('drawdown provides flexible income access', function () {
         ->and($result['recommendation'])->toBeString();
 });
 
-test('calculates PCLS strategy correctly', function () {
+it('calculates PCLS strategy correctly', function () {
     $pensionValue = 400000;
 
     $result = $this->planner->calculatePCLSStrategy($pensionValue);
@@ -110,7 +112,7 @@ test('calculates PCLS strategy correctly', function () {
         ->and($result['tax_saving'])->toBeGreaterThan(0); // Tax savings from 25% lump sum
 });
 
-test('PCLS is capped at 25% of pension value', function () {
+it('caps PCLS at 25% of pension value', function () {
     $pensionValue = 1000000;
 
     $result = $this->planner->calculatePCLSStrategy($pensionValue);
@@ -119,7 +121,7 @@ test('PCLS is capped at 25% of pension value', function () {
         ->and($result['remaining_pot'])->toBe(750000.0);
 });
 
-test('PCLS strategies include various options', function () {
+it('includes various options in PCLS strategies', function () {
     $pensionValue = 500000;
 
     $result = $this->planner->calculatePCLSStrategy($pensionValue);
@@ -129,7 +131,7 @@ test('PCLS strategies include various options', function () {
         ->and($result['recommendation'])->toBeString();
 });
 
-test('models income phasing for tax efficiency', function () {
+it('models income phasing for tax efficiency', function () {
     $pensions = collect([
         (object) ['id' => 1, 'scheme_name' => 'Workplace DC', 'current_fund_value' => 200000, 'type' => 'dc'],
         (object) ['id' => 2, 'scheme_name' => 'SIPP', 'current_fund_value' => 150000, 'type' => 'dc'],
@@ -145,7 +147,7 @@ test('models income phasing for tax efficiency', function () {
         ->and($result['tax_efficiency_tips'])->toBeArray();
 });
 
-test('income phasing prioritizes DB pensions first', function () {
+it('prioritizes DB pensions first in income phasing', function () {
     $pensions = collect([
         (object) ['id' => 1, 'scheme_name' => 'DC Pension', 'current_fund_value' => 300000, 'type' => 'dc'],
         (object) ['id' => 2, 'scheme_name' => 'DB Pension', 'accrued_annual_pension' => 20000, 'type' => 'db'],
@@ -159,7 +161,7 @@ test('income phasing prioritizes DB pensions first', function () {
         ->and($result['tax_efficiency_tips'])->not->toBeEmpty();
 });
 
-test('withdrawal rate adjusts for inflation', function () {
+it('adjusts withdrawal rate for inflation', function () {
     $portfolioValue = 400000;
     $yearsInRetirement = 25;
     $growthRate = 0.06;

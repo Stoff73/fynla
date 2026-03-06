@@ -44,7 +44,7 @@
       <!-- Dropdown List -->
       <div
         v-show="showDropdown && filteredCountries.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-horizon-300 rounded-md shadow-lg max-h-60 overflow-auto"
+        class="absolute z-10 w-full mt-1 bg-white border border-horizon-300 rounded-md shadow-lg max-h-60 overflow-auto scrollbar-thin"
       >
         <ul class="py-1">
           <li
@@ -388,22 +388,5 @@ export default {
 </script>
 
 <style scoped>
-/* Custom scrollbar for dropdown */
-.overflow-auto::-webkit-scrollbar {
-  width: 8px;
-}
-
-.overflow-auto::-webkit-scrollbar-track {
-  @apply bg-savannah-100;
-  border-radius: 4px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+/* Uses global .scrollbar-thin class — applied via template */
 </style>

@@ -27,7 +27,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/retirement', function () {
-    test('returns retirement dashboard data', function () {
+    it('returns retirement dashboard data', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'scheme_name' => 'Workplace Pension',
@@ -45,14 +45,14 @@ describe('GET /api/retirement', function () {
         expect($response->json('success'))->toBe(true);
     });
 
-    test('returns empty data when no pensions exist', function () {
+    it('returns empty data when no pensions exist', function () {
         $response = $this->getJson('/api/retirement');
 
         $response->assertStatus(200);
         expect($response->json('success'))->toBe(true);
     });
 
-    test('includes dc_pensions and db_pensions in response', function () {
+    it('includes dc_pensions and db_pensions in response', function () {
         DCPension::factory()->create(['user_id' => $this->user->id]);
         DBPension::factory()->create(['user_id' => $this->user->id]);
 
@@ -65,7 +65,7 @@ describe('GET /api/retirement', function () {
 });
 
 describe('POST /api/retirement/pensions/dc', function () {
-    test('creates a new DC pension', function () {
+    it('creates a new DC pension', function () {
         $data = [
             'scheme_name' => 'New Workplace Pension',
             'provider' => 'Scottish Widows',
@@ -88,7 +88,7 @@ describe('POST /api/retirement/pensions/dc', function () {
         ]);
     });
 
-    test('accepts empty request with defaults', function () {
+    it('accepts empty request with defaults', function () {
         // DC pension allows creation with minimal/no data
         $response = $this->postJson('/api/retirement/pensions/dc', []);
 
@@ -98,7 +98,7 @@ describe('POST /api/retirement/pensions/dc', function () {
 });
 
 describe('PUT /api/retirement/pensions/dc/{id}', function () {
-    test('updates a DC pension', function () {
+    it('updates a DC pension', function () {
         $pension = DCPension::factory()->create([
             'user_id' => $this->user->id,
             'scheme_name' => 'Original Name',
@@ -123,7 +123,7 @@ describe('PUT /api/retirement/pensions/dc/{id}', function () {
 });
 
 describe('DELETE /api/retirement/pensions/dc/{id}', function () {
-    test('deletes a DC pension', function () {
+    it('deletes a DC pension', function () {
         $pension = DCPension::factory()->create([
             'user_id' => $this->user->id,
         ]);
@@ -142,7 +142,7 @@ describe('DELETE /api/retirement/pensions/dc/{id}', function () {
 });
 
 describe('POST /api/retirement/pensions/db', function () {
-    test('creates a new DB pension', function () {
+    it('creates a new DB pension', function () {
         $data = [
             'scheme_name' => 'NHS Pension',
             'accrued_annual_pension' => 15000,
@@ -165,7 +165,7 @@ describe('POST /api/retirement/pensions/db', function () {
 });
 
 describe('GET /api/retirement/projections', function () {
-    test('returns retirement projections', function () {
+    it('returns retirement projections', function () {
         DCPension::factory()->create([
             'user_id' => $this->user->id,
             'current_fund_value' => 100000,

@@ -1005,7 +1005,7 @@ export default {
         }
       } catch (error) {
         // Will might not exist yet, that's fine
-        console.log('Will data not available:', error.message);
+        // Will might not exist yet - silently ignore
       }
     },
 

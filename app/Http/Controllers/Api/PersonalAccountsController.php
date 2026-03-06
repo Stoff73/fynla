@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\StorePersonalAccountLineItemRequest;
 use App\Http\Requests\UpdatePersonalAccountLineItemRequest;
 use App\Models\PersonalAccount;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 
 class PersonalAccountsController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private PersonalAccountsService $personalAccountsService
     ) {}

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Services\Coordination\ConflictResolver;
 use App\Services\TaxConfigService;
 
@@ -12,6 +14,10 @@ function createConflictResolver(): ConflictResolver
 
     return new ConflictResolver($taxConfig);
 }
+
+afterEach(function () {
+    Mockery::close();
+});
 
 describe('ConflictResolver', function () {
     describe('identifyConflicts', function () {

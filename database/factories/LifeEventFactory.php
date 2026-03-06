@@ -17,10 +17,10 @@ class LifeEventFactory extends Factory
 
     public function definition(): array
     {
-        $isIncome = $this->faker->boolean(50);
+        $isIncome = fake()->boolean(50);
 
         $eventType = $isIncome
-            ? $this->faker->randomElement([
+            ? fake()->randomElement([
                 'inheritance',
                 'gift_received',
                 'bonus',
@@ -31,7 +31,7 @@ class LifeEventFactory extends Factory
                 'lottery_windfall',
                 'custom_income',
             ])
-            : $this->faker->randomElement([
+            : fake()->randomElement([
                 'large_purchase',
                 'home_improvement',
                 'wedding',
@@ -45,18 +45,18 @@ class LifeEventFactory extends Factory
             'user_id' => User::factory(),
             'event_name' => $this->generateEventName($eventType),
             'event_type' => $eventType,
-            'description' => $this->faker->optional(0.5)->sentence(),
-            'amount' => $this->faker->randomFloat(2, 1000, 200000),
+            'description' => fake()->optional(0.5)->sentence(),
+            'amount' => fake()->randomFloat(2, 1000, 200000),
             'impact_type' => $isIncome ? 'income' : 'expense',
-            'expected_date' => $this->faker->dateTimeBetween('+1 month', '+10 years'),
-            'certainty' => $this->faker->randomElement(['confirmed', 'likely', 'possible', 'speculative']),
+            'expected_date' => fake()->dateTimeBetween('+1 month', '+10 years'),
+            'certainty' => fake()->randomElement(['confirmed', 'likely', 'possible', 'speculative']),
             'icon' => null,
             'show_in_projection' => true,
             'show_in_household_view' => true,
             'ownership_type' => 'individual',
             'joint_owner_id' => null,
             'ownership_percentage' => 100.00,
-            'status' => $this->faker->randomElement(['expected', 'confirmed']),
+            'status' => fake()->randomElement(['expected', 'confirmed']),
             'occurred_at' => null,
         ];
     }
@@ -75,15 +75,15 @@ class LifeEventFactory extends Factory
             'business_sale' => 'Business Sale',
             'pension_lump_sum' => 'Pension Lump Sum',
             'lottery_windfall' => 'Windfall',
-            'large_purchase' => $this->faker->randomElement(['New Car', 'Furniture', 'Home Appliances']),
-            'home_improvement' => $this->faker->randomElement(['Kitchen Renovation', 'Extension', 'New Roof', 'Bathroom Renovation']),
+            'large_purchase' => fake()->randomElement(['New Car', 'Furniture', 'Home Appliances']),
+            'home_improvement' => fake()->randomElement(['Kitchen Renovation', 'Extension', 'New Roof', 'Bathroom Renovation']),
             'wedding' => 'Wedding',
-            'education_fees' => $this->faker->randomElement(['University Fees', 'School Fees', 'Professional Course']),
+            'education_fees' => fake()->randomElement(['University Fees', 'School Fees', 'Professional Course']),
             'gift_given' => 'Gift to Family',
             'medical_expense' => 'Medical Treatment',
             'custom_income' => 'Additional Income',
             'custom_expense' => 'Planned Expense',
-            default => $this->faker->words(3, true),
+            default => fake()->words(3, true),
         };
     }
 
@@ -93,7 +93,7 @@ class LifeEventFactory extends Factory
     public function income(): static
     {
         return $this->state(fn (array $attributes) => [
-            'event_type' => $this->faker->randomElement([
+            'event_type' => fake()->randomElement([
                 'inheritance', 'gift_received', 'bonus', 'property_sale', 'custom_income',
             ]),
             'impact_type' => 'income',
@@ -106,7 +106,7 @@ class LifeEventFactory extends Factory
     public function expense(): static
     {
         return $this->state(fn (array $attributes) => [
-            'event_type' => $this->faker->randomElement([
+            'event_type' => fake()->randomElement([
                 'large_purchase', 'home_improvement', 'wedding', 'education_fees', 'custom_expense',
             ]),
             'impact_type' => 'expense',
@@ -122,8 +122,8 @@ class LifeEventFactory extends Factory
             'event_name' => 'Expected Inheritance',
             'event_type' => 'inheritance',
             'impact_type' => 'income',
-            'amount' => $this->faker->randomFloat(2, 50000, 500000),
-            'certainty' => $this->faker->randomElement(['likely', 'possible', 'speculative']),
+            'amount' => fake()->randomFloat(2, 50000, 500000),
+            'certainty' => fake()->randomElement(['likely', 'possible', 'speculative']),
         ]);
     }
 
@@ -145,7 +145,7 @@ class LifeEventFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'completed',
-            'occurred_at' => $this->faker->dateTimeBetween('-6 months', 'now'),
+            'occurred_at' => fake()->dateTimeBetween('-6 months', 'now'),
         ]);
     }
 

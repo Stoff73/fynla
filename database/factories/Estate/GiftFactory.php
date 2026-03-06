@@ -17,14 +17,14 @@ class GiftFactory extends Factory
 
     public function definition(): array
     {
-        $giftDate = $this->faker->dateTimeBetween('-7 years', 'now');
+        $giftDate = fake()->dateTimeBetween('-7 years', 'now');
         $yearsAgo = now()->diffInYears($giftDate);
 
         return [
             'user_id' => User::factory(),
             'gift_date' => $giftDate,
-            'recipient' => $this->faker->name(),
-            'gift_type' => $this->faker->randomElement([
+            'recipient' => fake()->name(),
+            'gift_type' => fake()->randomElement([
                 'outright_gift',
                 'gift_into_trust',
                 'gift_with_reservation',
@@ -34,10 +34,10 @@ class GiftFactory extends Factory
                 'wedding_gift',
                 'normal_expenditure',
             ]),
-            'gift_value' => $this->faker->randomFloat(2, 250, 100000),
-            'status' => $this->faker->randomElement(['active', 'exempt', 'taper_eligible', 'expired']),
+            'gift_value' => fake()->randomFloat(2, 250, 100000),
+            'status' => fake()->randomElement(['active', 'exempt', 'taper_eligible', 'expired']),
             'taper_relief_applicable' => $yearsAgo >= 3,
-            'notes' => $this->faker->optional(0.3)->sentence(),
+            'notes' => fake()->optional(0.3)->sentence(),
         ];
     }
 
@@ -47,7 +47,7 @@ class GiftFactory extends Factory
     public function withinSevenYears(): static
     {
         return $this->state(fn (array $attributes) => [
-            'gift_date' => $this->faker->dateTimeBetween('-6 years', '-1 month'),
+            'gift_date' => fake()->dateTimeBetween('-6 years', '-1 month'),
             'status' => 'active',
         ]);
     }
@@ -58,7 +58,7 @@ class GiftFactory extends Factory
     public function taperEligible(): static
     {
         return $this->state(fn (array $attributes) => [
-            'gift_date' => $this->faker->dateTimeBetween('-7 years', '-3 years'),
+            'gift_date' => fake()->dateTimeBetween('-7 years', '-3 years'),
             'taper_relief_applicable' => true,
             'status' => 'taper_eligible',
         ]);
@@ -84,7 +84,7 @@ class GiftFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'gift_type' => 'small_gift_exemption',
-            'gift_value' => $this->faker->randomFloat(2, 50, 250),
+            'gift_value' => fake()->randomFloat(2, 50, 250),
             'status' => 'exempt',
             'taper_relief_applicable' => false,
         ]);
@@ -97,7 +97,7 @@ class GiftFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'gift_type' => 'potentially_exempt_transfer',
-            'gift_value' => $this->faker->randomFloat(2, 50000, 500000),
+            'gift_value' => fake()->randomFloat(2, 50000, 500000),
             'status' => 'active',
         ]);
     }

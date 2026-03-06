@@ -428,8 +428,8 @@
                 </div>
               </div>
             </div>
-            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p class="text-xs text-yellow-800">
+            <div class="bg-violet-50 border border-violet-200 rounded-md p-3">
+              <p class="text-xs text-violet-800">
                 <strong>Note:</strong> Enterprise Investment Scheme / Seed Enterprise Investment Scheme investments must be held for at least 3 years to retain tax relief.
                 The disposal restriction date will be automatically calculated from your investment date.
               </p>

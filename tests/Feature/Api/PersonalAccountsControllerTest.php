@@ -44,7 +44,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/user/personal-accounts', function () {
-    test('returns personal accounts data for authenticated user', function () {
+    it('returns personal accounts data for authenticated user', function () {
         $response = $this->getJson('/api/user/personal-accounts');
 
         $response->assertStatus(200)
@@ -56,7 +56,7 @@ describe('GET /api/user/personal-accounts', function () {
             ]);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -69,7 +69,7 @@ describe('GET /api/user/personal-accounts', function () {
 });
 
 describe('POST /api/user/personal-accounts/calculate', function () {
-    test('calculates profit and loss correctly', function () {
+    it('calculates profit and loss correctly', function () {
         $requestData = [
             'start_date' => '2024-01-01',
             'end_date' => '2024-12-31',
@@ -98,7 +98,7 @@ describe('POST /api/user/personal-accounts/calculate', function () {
         expect($data)->toHaveKeys(['period', 'income', 'total_income', 'expenses', 'total_expenses', 'net_profit_loss']);
     });
 
-    test('calculates cashflow correctly', function () {
+    it('calculates cashflow correctly', function () {
         $requestData = [
             'start_date' => '2024-01-01',
             'end_date' => '2024-12-31',
@@ -121,7 +121,7 @@ describe('POST /api/user/personal-accounts/calculate', function () {
         expect($data)->toHaveKeys(['period', 'inflows', 'total_inflows', 'outflows', 'total_outflows', 'net_cashflow']);
     });
 
-    test('calculates balance sheet correctly', function () {
+    it('calculates balance sheet correctly', function () {
         $requestData = [
             'as_of_date' => '2024-12-31',
         ];
@@ -144,7 +144,7 @@ describe('POST /api/user/personal-accounts/calculate', function () {
         expect($data)->toHaveKeys(['as_of_date', 'assets', 'total_assets', 'liabilities', 'total_liabilities', 'equity', 'total_equity']);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -160,7 +160,7 @@ describe('POST /api/user/personal-accounts/calculate', function () {
 });
 
 describe('POST /api/user/personal-accounts/line-item', function () {
-    test('creates a manual line item successfully', function () {
+    it('creates a manual line item successfully', function () {
         $lineItemData = [
             'account_type' => 'profit_and_loss',
             'period_start' => '2024-01-01',
@@ -188,7 +188,7 @@ describe('POST /api/user/personal-accounts/line-item', function () {
         ]);
     });
 
-    test('validates required fields', function () {
+    it('validates required fields', function () {
         $invalidData = [
             'account_type' => 'profit_and_loss',
             // Missing required fields
@@ -200,7 +200,7 @@ describe('POST /api/user/personal-accounts/line-item', function () {
             ->assertJsonValidationErrors(['line_item', 'category', 'amount']);
     });
 
-    test('validates amount is numeric', function () {
+    it('validates amount is numeric', function () {
         $invalidData = [
             'account_type' => 'profit_and_loss',
             'period_start' => '2024-01-01',
@@ -216,7 +216,7 @@ describe('POST /api/user/personal-accounts/line-item', function () {
             ->assertJsonValidationErrors(['amount']);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -236,7 +236,7 @@ describe('POST /api/user/personal-accounts/line-item', function () {
 });
 
 describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
-    test('updates a line item successfully', function () {
+    it('updates a line item successfully', function () {
         // Create a line item first
         $lineItem = PersonalAccount::factory()->create([
             'user_id' => $this->user->id,
@@ -267,7 +267,7 @@ describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
         ]);
     });
 
-    test('user cannot update another user line item', function () {
+    it('prevents updating another user line item', function () {
         // Create another user with a line item
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
@@ -284,7 +284,7 @@ describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
         $response->assertStatus(404);
     });
 
-    test('returns 404 for non-existent line item', function () {
+    it('returns 404 for non-existent line item', function () {
         $response = $this->putJson('/api/user/personal-accounts/line-item/99999', [
             'line_item' => 'Test',
             'amount' => 100,
@@ -293,7 +293,7 @@ describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
         $response->assertStatus(404);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         $lineItem = PersonalAccount::factory()->create([
             'user_id' => $this->user->id,
         ]);
@@ -312,7 +312,7 @@ describe('PUT /api/user/personal-accounts/line-item/{id}', function () {
 });
 
 describe('DELETE /api/user/personal-accounts/line-item/{id}', function () {
-    test('deletes a line item successfully', function () {
+    it('deletes a line item successfully', function () {
         $lineItem = PersonalAccount::factory()->create([
             'user_id' => $this->user->id,
         ]);
@@ -331,7 +331,7 @@ describe('DELETE /api/user/personal-accounts/line-item/{id}', function () {
         ]);
     });
 
-    test('user cannot delete another user line item', function () {
+    it('prevents deleting another user line item', function () {
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
         ]);
@@ -349,13 +349,13 @@ describe('DELETE /api/user/personal-accounts/line-item/{id}', function () {
         ]);
     });
 
-    test('returns 404 for non-existent line item', function () {
+    it('returns 404 for non-existent line item', function () {
         $response = $this->deleteJson('/api/user/personal-accounts/line-item/99999');
 
         $response->assertStatus(404);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         $lineItem = PersonalAccount::factory()->create([
             'user_id' => $this->user->id,
         ]);

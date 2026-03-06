@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
 use App\Models\TaxConfiguration;

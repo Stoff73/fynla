@@ -18,7 +18,7 @@ beforeEach(function () {
     Sanctum::actingAs($this->user);
 });
 
-test('get overview endpoint returns net worth data', function () {
+it('returns net worth data from overview endpoint', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -39,7 +39,7 @@ test('get overview endpoint returns net worth data', function () {
         ]);
 });
 
-test('get overview requires authentication', function () {
+it('requires authentication for overview endpoint', function () {
     // Reset app to clear Sanctum auth from beforeEach
     $this->app = $this->createApplication();
 
@@ -50,7 +50,7 @@ test('get overview requires authentication', function () {
     $response->assertStatus(401);
 });
 
-test('get breakdown endpoint returns asset percentages', function () {
+it('returns asset percentages from breakdown endpoint', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -87,7 +87,7 @@ test('get breakdown endpoint returns asset percentages', function () {
         ->and($data['investments']['percentage'])->toEqual(20.0);
 });
 
-test('get assets summary endpoint returns counts and totals', function () {
+it('returns counts and totals from assets summary endpoint', function () {
     Property::factory()->count(2)->create([
         'user_id' => $this->user->id,
         'current_value' => 200000,
@@ -119,7 +119,7 @@ test('get assets summary endpoint returns counts and totals', function () {
         ]);
 });
 
-test('get joint assets endpoint returns only joint assets', function () {
+it('returns only joint assets from joint assets endpoint', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -147,7 +147,7 @@ test('get joint assets endpoint returns only joint assets', function () {
     expect($data[0]['ownership_percentage'])->toEqual(50);
 });
 
-test('refresh endpoint invalidates cache and recalculates', function () {
+it('invalidates cache and recalculates on refresh', function () {
     Property::factory()->create([
         'user_id' => $this->user->id,
         'current_value' => 400000,
@@ -164,7 +164,7 @@ test('refresh endpoint invalidates cache and recalculates', function () {
         ]);
 });
 
-test('user can only access their own net worth', function () {
+it('restricts user to their own net worth data', function () {
     $otherUser = User::factory()->create();
 
     Property::factory()->create([

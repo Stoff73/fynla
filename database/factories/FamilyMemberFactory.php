@@ -19,16 +19,16 @@ class FamilyMemberFactory extends Factory
      */
     public function definition(): array
     {
-        $firstName = $this->faker->firstName();
-        $lastName = $this->faker->lastName();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
 
         return [
-            'relationship' => $this->faker->randomElement(['spouse', 'child', 'parent', 'other_dependent']),
+            'relationship' => fake()->randomElement(['spouse', 'child', 'parent', 'other_dependent']),
             'name' => $firstName.' '.$lastName,
             'first_name' => $firstName,
             'last_name' => $lastName,
-            'date_of_birth' => $this->faker->date(),
-            'gender' => $this->faker->randomElement(['male', 'female', 'other']),
+            'date_of_birth' => fake()->date(),
+            'gender' => fake()->randomElement(['male', 'female', 'other']),
             'is_dependent' => false,
         ];
     }

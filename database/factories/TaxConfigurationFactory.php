@@ -26,7 +26,7 @@ class TaxConfigurationFactory extends Factory
      */
     public function definition(): array
     {
-        $year = $this->faker->numberBetween(2021, 2026);
+        $year = fake()->numberBetween(2021, 2026);
         $nextYear = $year + 1;
         $taxYear = sprintf('%04d/%02d', $year, $nextYear % 100);
 

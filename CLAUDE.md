@@ -69,9 +69,9 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (163 services across 28 module directories)
-- `Http/Controllers/Api/` - API endpoints (69 controllers)
-- `Http/Requests/` - Form request validation (70 classes)
+- `Services/{Module}/` - Domain calculations (174 services across 30 module directories)
+- `Http/Controllers/Api/` - API endpoints (70 controllers)
+- `Http/Requests/` - Form request validation (73 classes)
 - `Http/Resources/` - API response transformation
 - `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`, `ResolvesIncome`, `TracksGoalContributions`)
 - `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
@@ -79,10 +79,10 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (329 across 27 modules)
-- `views/` - Page-level route components (56 views)
+- `components/{Module}/` - Vue components (378 across 27 modules)
+- `views/` - Page-level route components (58 views)
 - `store/modules/` - Vuex state management (21 namespaced modules)
-- `services/` - API wrappers (34 services)
+- `services/` - API wrappers (33 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -138,9 +138,6 @@ The amber (`amber-*`) and orange (`orange-*`) colors are banned from the applica
 ### 10. No Acronyms in User-Facing Text
 All acronyms must be spelled out in user-facing text. Write "Annual Allowance" not "AA", "Stocks & Shares" not "S&S", "Defined Benefit" not "DB", "Defined Contribution" not "DC", "Money Purchase Annual Allowance" not "MPAA", etc. The only exception is **ISA**, which may remain abbreviated.
 
-### 12. No Scores in User-Facing UI
-Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
-
 ### 11. Design System Compliance
 **CRITICAL:** Before changing, updating, or implementing anything related to the UI, you MUST read and follow `fynlaDesignGuide.md` (v1.2.0). This includes:
 - Colors: Raspberry (CTAs), Horizon (text/nav), Spring (success), Violet (warnings/focus), Savannah (hover/subtle), Eggshell (page bg)
@@ -157,6 +154,9 @@ The design system is the single source of truth for all visual decisions. Never 
 - **All colors from palette** — use only tokens from `fynlaDesignGuide.md` v1.2.0: `raspberry-*`, `horizon-*`, `spring-*`, `violet-*`, `savannah-*`, `eggshell-*`, `neutral-*`, `light-gray`, `light-blue-*`, `light-pink-*`. Never use old tokens (`primary-*`, `secondary-*`, `gray-*` for general UI).
 - **Use global classes** for: `.scrollbar-hide`, `.scrollbar-thin`, `.animate-fade-in`, `.animate-fade-in-slide`, `.detail-inline-back`, `.expand-*` transitions, `animate-spin`, badge classes (`.badge-isa`, `.badge-active`, etc.), card variants (`.card`, `.card-lg`, `.card-sm`).
 - **Spinners**: Use `<div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>` — never define custom `@keyframes spin`.
+
+### 13. No Scores in User-Facing UI
+Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
 ## Deployment
 
@@ -249,10 +249,10 @@ Check routes: `php artisan route:list --path=endpoint`
 ```
 
 - **Framework**: Pest (PHPUnit-compatible) with `it()` / `describe()` syntax
-- **Suites**: Unit (60), Feature (37), Architecture (6), Integration (2)
+- **Suites**: Unit (69), Feature (40), Architecture (6), Integration (2)
 - **Database**: `RefreshDatabase` trait resets between tests; TaxConfiguration auto-seeded in `beforeEach()`
 - **Auth**: `$this->actingAs($user)` or `Sanctum::actingAs($user)`
-- **Factories**: 42 factories in `database/factories/` with state methods
+- **Factories**: 44 factories in `database/factories/` with state methods
 - **Mocking**: Mockery for service dependencies; always `Mockery::close()` in `afterEach()`
 - See `tests/CLAUDE.md` for full conventions
 

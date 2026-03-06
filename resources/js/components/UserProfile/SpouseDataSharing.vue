@@ -69,19 +69,19 @@
 
       <!-- Permission Pending (sent by current user) -->
       <div v-else-if="isPending && permission.user_id === currentUserId" class="space-y-4">
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-yellow-800">Permission Request Pending</h4>
-              <p class="mt-1 text-body-sm text-yellow-700">
+              <h4 class="text-body-sm font-medium text-violet-800">Permission Request Pending</h4>
+              <p class="mt-1 text-body-sm text-violet-700">
                 Waiting for your spouse to accept the data sharing request.
               </p>
-              <p class="mt-1 text-body-xs text-yellow-600">
+              <p class="mt-1 text-body-xs text-violet-600">
                 Requested: {{ formatDate(permission.requested_at) }}
               </p>
             </div>

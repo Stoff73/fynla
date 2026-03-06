@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\TaxConfiguration;
 use App\Services\Estate\FutureValueCalculator;
 
@@ -13,7 +15,7 @@ beforeEach(function () {
     $this->calculator = new FutureValueCalculator($taxConfig);
 });
 
-test('it calculates future value correctly', function () {
+it('calculates future value correctly', function () {
     $presentValue = 100000;
     $growthRate = 0.05; // 5%
     $years = 10;
@@ -27,14 +29,14 @@ test('it calculates future value correctly', function () {
         ->and($futureValue)->toBeLessThan(162900);
 });
 
-test('future value with zero years returns present value', function () {
+it('returns present value when zero years', function () {
     $presentValue = 50000;
     $futureValue = $this->calculator->calculateFutureValue($presentValue, 0.05, 0);
 
     expect($futureValue)->toBe(50000.0);
 });
 
-test('it calculates portfolio future value', function () {
+it('calculates portfolio future value', function () {
     $assets = collect([
         (object) ['asset_name' => 'Property', 'asset_type' => 'property', 'current_value' => 300000],
         (object) ['asset_name' => 'Investments', 'asset_type' => 'investment', 'current_value' => 100000],
@@ -50,7 +52,7 @@ test('it calculates portfolio future value', function () {
         ->and($result['asset_projections'])->toHaveCount(3);
 });
 
-test('it calculates portfolio future value with different growth rates by asset type', function () {
+it('calculates portfolio future value with different growth rates by asset type', function () {
     $assets = collect([
         (object) ['asset_name' => 'Property', 'asset_type' => 'property', 'current_value' => 200000],
         (object) ['asset_name' => 'Stocks', 'asset_type' => 'investment', 'current_value' => 100000],
@@ -75,7 +77,7 @@ test('it calculates portfolio future value with different growth rates by asset 
         ->and($investmentProjection['growth_rate'])->toBe(0.07);
 });
 
-test('it provides default growth rates', function () {
+it('provides default growth rates', function () {
     $rates = $this->calculator->getDefaultGrowthRates();
 
     expect($rates)->toBeArray()
@@ -84,7 +86,7 @@ test('it provides default growth rates', function () {
         ->and($rates['investment'])->toBeFloat();
 });
 
-test('it calculates real future value adjusted for inflation', function () {
+it('calculates real future value adjusted for inflation', function () {
     $presentValue = 100000;
     $nominalRate = 0.07; // 7%
     $inflationRate = 0.02; // 2%
@@ -101,7 +103,7 @@ test('it calculates real future value adjusted for inflation', function () {
         ->and($realFV)->toBeLessThan($nominalFV);
 });
 
-test('it projects estate at death', function () {
+it('projects estate at death', function () {
     $assets = collect([
         (object) ['asset_name' => 'House', 'asset_type' => 'property', 'current_value' => 500000],
         (object) ['asset_name' => 'Pension', 'asset_type' => 'pension', 'current_value' => 200000],
@@ -123,7 +125,7 @@ test('it projects estate at death', function () {
         ->and($projection['projected_estate_value_at_death'])->toBeGreaterThan($projection['current_estate_value']);
 });
 
-test('it calculates required growth rate to reach target', function () {
+it('calculates required growth rate to reach target', function () {
     $presentValue = 100000;
     $targetValue = 200000; // Double
     $years = 10;

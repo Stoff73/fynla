@@ -22,14 +22,14 @@ class DCPensionFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'scheme_name' => $this->faker->randomElement([
+            'scheme_name' => fake()->randomElement([
                 'Workplace Pension',
                 'SIPP',
                 'Personal Pension',
                 'Stakeholder Pension',
             ]),
-            'scheme_type' => $this->faker->randomElement(['workplace', 'sipp', 'personal']),
-            'provider' => $this->faker->randomElement([
+            'scheme_type' => fake()->randomElement(['workplace', 'sipp', 'personal']),
+            'provider' => fake()->randomElement([
                 'Aviva',
                 'Legal & General',
                 'Scottish Widows',
@@ -37,20 +37,20 @@ class DCPensionFactory extends Factory
                 'Standard Life',
                 'Fidelity',
             ]),
-            'member_number' => $this->faker->regexify('[A-Z]{2}[0-9]{6}'),
-            'current_fund_value' => $this->faker->randomFloat(2, 10000, 500000),
-            'employee_contribution_percent' => $this->faker->randomFloat(2, 3, 10),
-            'employer_contribution_percent' => $this->faker->randomFloat(2, 3, 8),
-            'monthly_contribution_amount' => $this->faker->randomFloat(2, 200, 1500),
-            'investment_strategy' => $this->faker->randomElement([
+            'member_number' => fake()->regexify('[A-Z]{2}[0-9]{6}'),
+            'current_fund_value' => fake()->randomFloat(2, 10000, 500000),
+            'employee_contribution_percent' => fake()->randomFloat(2, 3, 10),
+            'employer_contribution_percent' => fake()->randomFloat(2, 3, 8),
+            'monthly_contribution_amount' => fake()->randomFloat(2, 200, 1500),
+            'investment_strategy' => fake()->randomElement([
                 'Balanced Growth',
                 'Cautious Growth',
                 'Adventurous Growth',
                 'Target Date Fund',
                 'Ethical Investment',
             ]),
-            'platform_fee_percent' => $this->faker->randomFloat(4, 0.25, 1.5),
-            'retirement_age' => $this->faker->numberBetween(60, 68),
+            'platform_fee_percent' => fake()->randomFloat(4, 0.25, 1.5),
+            'retirement_age' => fake()->numberBetween(60, 68),
             'projected_value_at_retirement' => null,
         ];
     }

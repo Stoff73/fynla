@@ -17,13 +17,13 @@ class PersonalAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'account_type' => $this->faker->randomElement(['profit_and_loss', 'cashflow', 'balance_sheet']),
+            'account_type' => fake()->randomElement(['profit_and_loss', 'cashflow', 'balance_sheet']),
             'period_start' => now()->startOfYear(),
             'period_end' => now()->endOfYear(),
-            'line_item' => $this->faker->words(3, true),
-            'category' => $this->faker->randomElement(['income', 'expense', 'asset', 'liability', 'equity', 'cash_inflow', 'cash_outflow']),
-            'amount' => $this->faker->randomFloat(2, 100, 50000),
-            'notes' => $this->faker->optional()->sentence(),
+            'line_item' => fake()->words(3, true),
+            'category' => fake()->randomElement(['income', 'expense', 'asset', 'liability', 'equity', 'cash_inflow', 'cash_outflow']),
+            'amount' => fake()->randomFloat(2, 100, 50000),
+            'notes' => fake()->optional()->sentence(),
         ];
     }
 }

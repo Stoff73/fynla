@@ -424,7 +424,7 @@ export default {
       if (value === null || value === undefined) return 'text-horizon-500';
       if (value >= 0.90) return 'text-raspberry-600';
       if (value >= 0.70) return 'text-violet-600';
-      if (value >= 0.30) return 'text-yellow-600';
+      if (value >= 0.30) return 'text-violet-600';
       if (value >= 0) return 'text-spring-600';
       return 'text-violet-600';
     },
@@ -436,7 +436,7 @@ export default {
 
       if (value >= 0.90) return 'bg-raspberry-500 text-white';
       if (value >= 0.70) return 'bg-violet-500 text-white';
-      if (value >= 0.30) return 'bg-yellow-500 text-white';
+      if (value >= 0.30) return 'bg-violet-500 text-white';
       if (value >= 0) return 'bg-spring-500 text-white';
       return 'bg-violet-500 text-white';
     },

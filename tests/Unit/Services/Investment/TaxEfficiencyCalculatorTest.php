@@ -42,6 +42,10 @@ beforeEach(function () {
     $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig, $this->dividendTaxCalculator);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('calculateUnrealizedGains', function () {
     it('calculates unrealized gains for holdings', function () {
         $holdings = collect([

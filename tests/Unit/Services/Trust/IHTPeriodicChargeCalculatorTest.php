@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\Estate\Trust;
 use App\Models\Household;
 use App\Models\TaxConfiguration;
@@ -19,7 +21,7 @@ beforeEach(function () {
     $this->household = Household::factory()->create();
 });
 
-test('calculates periodic charge for relevant property trust at 10 year anniversary', function () {
+it('calculates periodic charge for relevant property trust at 10 year anniversary', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -41,7 +43,7 @@ test('calculates periodic charge for relevant property trust at 10 year annivers
     expect($result['years_since_creation'])->toBe(10);
 });
 
-test('does not apply periodic charge to non-relevant property trusts', function () {
+it('does not apply periodic charge to non-relevant property trusts', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -58,7 +60,7 @@ test('does not apply periodic charge to non-relevant property trusts', function 
     expect($result['charge_amount'])->toBe(0);
 });
 
-test('calculates no charge when trust value is below NRB', function () {
+it('calculates no charge when trust value is below NRB', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -76,7 +78,7 @@ test('calculates no charge when trust value is below NRB', function () {
     expect((float) $result['charge_amount'])->toBe(0.0);
 });
 
-test('does not apply periodic charge before 10 year anniversary', function () {
+it('does not apply periodic charge before 10 year anniversary', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -96,7 +98,7 @@ test('does not apply periodic charge before 10 year anniversary', function () {
     expect($result['years_until_next_charge'])->toBeLessThanOrEqual(3);
 });
 
-test('calculates periodic charge at 20 year anniversary', function () {
+it('calculates periodic charge at 20 year anniversary', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -115,7 +117,7 @@ test('calculates periodic charge at 20 year anniversary', function () {
     expect($result['years_since_creation'])->toBe(20);
 });
 
-test('calculates exit charge for relevant property trust', function () {
+it('calculates exit charge for relevant property trust', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -141,7 +143,7 @@ test('calculates exit charge for relevant property trust', function () {
     expect($result)->toHaveKey('charge_amount');
 });
 
-test('does not apply exit charge to non-relevant property trusts', function () {
+it('does not apply exit charge to non-relevant property trusts', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -158,7 +160,7 @@ test('does not apply exit charge to non-relevant property trusts', function () {
     expect($result['charge_amount'])->toBe(0);
 });
 
-test('caps exit charge at 6 percent of asset value', function () {
+it('caps exit charge at 6 percent of asset value', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -180,7 +182,7 @@ test('caps exit charge at 6 percent of asset value', function () {
     expect((float) $result['charge_amount'])->toBeLessThanOrEqual(6000.0); // 100k * 6%
 });
 
-test('calculates entry charge for asset above NRB', function () {
+it('calculates entry charge for asset above NRB', function () {
     $assetValue = 500000;
 
     $result = $this->calculator->calculateEntryCharge($assetValue);
@@ -193,7 +195,7 @@ test('calculates entry charge for asset above NRB', function () {
     expect((float) $result['charge_amount'])->toBe(35000.0); // (500k - 325k) * 20%
 });
 
-test('calculates no entry charge for asset below NRB', function () {
+it('calculates no entry charge for asset below NRB', function () {
     $assetValue = 200000;
 
     $result = $this->calculator->calculateEntryCharge($assetValue);
@@ -203,7 +205,7 @@ test('calculates no entry charge for asset below NRB', function () {
     expect((float) $result['charge_amount'])->toBe(0.0);
 });
 
-test('gets upcoming charges for relevant property trusts', function () {
+it('gets upcoming charges for relevant property trusts', function () {
     // Trust with charge due in 6 months
     Trust::factory()->create([
         'user_id' => $this->user->id,
@@ -247,7 +249,7 @@ test('gets upcoming charges for relevant property trusts', function () {
     expect($upcomingCharges[0])->toHaveKeys(['trust_id', 'trust_name', 'charge_date', 'months_until_charge', 'estimated_charge', 'trust_value']);
 });
 
-test('upcoming charges are sorted by charge date', function () {
+it('sorts upcoming charges by charge date', function () {
     // Trust with charge due in 3 months
     Trust::factory()->create([
         'user_id' => $this->user->id,
@@ -281,7 +283,7 @@ test('upcoming charges are sorted by charge date', function () {
     expect($upcomingCharges[1]['trust_name'])->toBe('Trust Later');
 });
 
-test('calculates tax return due dates correctly', function () {
+it('calculates tax return due dates correctly', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -305,7 +307,7 @@ test('calculates tax return due dates correctly', function () {
     expect($result['is_overdue'])->toBeIn([true, false]);
 });
 
-test('uses total_asset_value field when available for periodic charge', function () {
+it('uses total_asset_value field when available for periodic charge', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -323,7 +325,7 @@ test('uses total_asset_value field when available for periodic charge', function
     expect((float) $result['charge_amount'])->toBe(16500.0); // 275k * 6%
 });
 
-test('falls back to current_value when total_asset_value is null', function () {
+it('falls back to current_value when total_asset_value is null', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -339,7 +341,7 @@ test('falls back to current_value when total_asset_value is null', function () {
     expect((float) $result['trust_value'])->toBe(500000.0);
 });
 
-test('recognizes accumulation and maintenance trusts as relevant property trusts', function () {
+it('recognizes accumulation and maintenance trusts as relevant property trusts', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,
@@ -357,7 +359,7 @@ test('recognizes accumulation and maintenance trusts as relevant property trusts
     expect((float) $result['charge_amount'])->toBeGreaterThan(0.0);
 });
 
-test('calculates quarters since last charge correctly for exit charge', function () {
+it('calculates quarters since last charge correctly for exit charge', function () {
     $trust = Trust::factory()->create([
         'user_id' => $this->user->id,
         'household_id' => $this->household->id,

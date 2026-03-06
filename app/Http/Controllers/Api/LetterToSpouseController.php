@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\User;
 use App\Services\UserProfile\LetterToSpouseService;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 
 class LetterToSpouseController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private LetterToSpouseService $letterService
     ) {}

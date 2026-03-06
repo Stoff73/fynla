@@ -52,28 +52,28 @@ class SicknessIllnessPolicyFactory extends Factory
             'Pregnancy-related complications',
         ];
 
-        $policyStartDate = $this->faker->dateTimeBetween('-5 years', 'now');
-        $hasPolicyNumber = $this->faker->boolean(85);
-        $hasDeferredPeriod = $this->faker->boolean(70);
-        $hasBenefitPeriod = $this->faker->boolean(75);
-        $hasPolicyTerm = $this->faker->boolean(65);
-        $hasConditionsCovered = $this->faker->boolean(80);
-        $hasExclusions = $this->faker->boolean(90);
+        $policyStartDate = fake()->dateTimeBetween('-5 years', 'now');
+        $hasPolicyNumber = fake()->boolean(85);
+        $hasDeferredPeriod = fake()->boolean(70);
+        $hasBenefitPeriod = fake()->boolean(75);
+        $hasPolicyTerm = fake()->boolean(65);
+        $hasConditionsCovered = fake()->boolean(80);
+        $hasExclusions = fake()->boolean(90);
 
         return [
             'user_id' => User::factory(),
-            'provider' => $this->faker->randomElement($providers),
-            'policy_number' => $hasPolicyNumber ? ('SI'.$this->faker->numerify('######')) : null,
-            'benefit_amount' => $this->faker->numberBetween(10000, 100000),
-            'benefit_frequency' => $this->faker->randomElement(['monthly', 'weekly', 'lump_sum']),
-            'deferred_period_weeks' => $hasDeferredPeriod ? $this->faker->numberBetween(0, 8) : null,
-            'benefit_period_months' => $hasBenefitPeriod ? $this->faker->numberBetween(6, 24) : null,
-            'premium_amount' => $this->faker->randomFloat(2, 15, 60),
+            'provider' => fake()->randomElement($providers),
+            'policy_number' => $hasPolicyNumber ? ('SI'.fake()->numerify('######')) : null,
+            'benefit_amount' => fake()->numberBetween(10000, 100000),
+            'benefit_frequency' => fake()->randomElement(['monthly', 'weekly', 'lump_sum']),
+            'deferred_period_weeks' => $hasDeferredPeriod ? fake()->numberBetween(0, 8) : null,
+            'benefit_period_months' => $hasBenefitPeriod ? fake()->numberBetween(6, 24) : null,
+            'premium_amount' => fake()->randomFloat(2, 15, 60),
             'premium_frequency' => 'monthly',
             'policy_start_date' => $policyStartDate,
-            'policy_term_years' => $hasPolicyTerm ? $this->faker->numberBetween(10, 20) : null,
-            'conditions_covered' => $hasConditionsCovered ? $this->faker->randomElements($conditions, $this->faker->numberBetween(3, 8)) : null,
-            'exclusions' => $hasExclusions ? implode('; ', $this->faker->randomElements($exclusions, $this->faker->numberBetween(2, 5))) : null,
+            'policy_term_years' => $hasPolicyTerm ? fake()->numberBetween(10, 20) : null,
+            'conditions_covered' => $hasConditionsCovered ? fake()->randomElements($conditions, fake()->numberBetween(3, 8)) : null,
+            'exclusions' => $hasExclusions ? implode('; ', fake()->randomElements($exclusions, fake()->numberBetween(2, 5))) : null,
         ];
     }
 }

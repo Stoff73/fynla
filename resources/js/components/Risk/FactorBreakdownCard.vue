@@ -77,7 +77,7 @@ export default {
   computed: {
     iconBackgroundClass() {
       const classes = {
-        low: 'bg-yellow-100',
+        low: 'bg-violet-100',
         lower_medium: 'bg-pink-100',
         medium: 'bg-green-100',
         upper_medium: 'bg-teal-100',
@@ -88,7 +88,7 @@ export default {
 
     iconColorClass() {
       const classes = {
-        low: 'text-yellow-600',
+        low: 'text-violet-600',
         lower_medium: 'text-pink-600',
         medium: 'text-green-600',
         upper_medium: 'text-teal-600',
@@ -99,7 +99,7 @@ export default {
 
     levelBadgeClass() {
       const classes = {
-        low: 'bg-yellow-100 text-yellow-800',
+        low: 'bg-violet-100 text-violet-800',
         lower_medium: 'bg-pink-100 text-pink-800',
         medium: 'bg-green-100 text-green-800',
         upper_medium: 'bg-teal-100 text-teal-800',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Tax\TaxProductInfoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Illuminate\Http\Request;
  */
 class TaxProductInfoController extends Controller
 {
+    use SanitizedErrorResponse;
+
     public function __construct(
         private TaxProductInfoService $taxProductInfoService
     ) {}

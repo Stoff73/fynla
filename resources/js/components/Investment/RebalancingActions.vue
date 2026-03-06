@@ -255,15 +255,15 @@
       <!-- Tax Loss Harvesting Opportunities -->
       <div
         v-if="showTaxLossOpportunities && taxLossOpportunities && taxLossOpportunities.opportunities.length > 0"
-        class="px-6 py-4 bg-white border-l-4 border-yellow-500"
+        class="px-6 py-4 bg-white border-l-4 border-violet-500"
       >
-        <h4 class="text-sm font-semibold text-yellow-900 mb-2">
+        <h4 class="text-sm font-semibold text-violet-900 mb-2">
           Tax-Loss Harvesting Opportunities
         </h4>
-        <p class="text-sm text-yellow-800 mb-3">
+        <p class="text-sm text-violet-800 mb-3">
           {{ taxLossOpportunities.message }}
         </p>
-        <div class="text-xs text-yellow-700">
+        <div class="text-xs text-violet-700">
           Potential tax saving: £{{ formatCurrency(taxLossOpportunities.potential_tax_saving) }}
         </div>
       </div>
@@ -338,7 +338,7 @@ export default {
       const classes = {
         1: 'bg-raspberry-500 text-white',
         2: 'bg-violet-500 text-white',
-        3: 'bg-yellow-500 text-white',
+        3: 'bg-violet-500 text-white',
         4: 'bg-violet-500 text-white',
         5: 'bg-savannah-100 text-horizon-500',
       };

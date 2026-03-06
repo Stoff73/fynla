@@ -9,7 +9,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 });
 
-test('user can register with valid data', function () {
+it('allows user to register with valid data', function () {
     $userData = [
         'first_name' => 'John',
         'surname' => 'Doe',
@@ -46,7 +46,7 @@ test('user can register with valid data', function () {
     ]);
 });
 
-test('user registration creates verification code', function () {
+it('creates verification code during registration', function () {
     $userData = [
         'first_name' => 'Jane',
         'surname' => 'Doe',
@@ -77,7 +77,7 @@ test('user registration creates verification code', function () {
     expect(strlen($pending->verification_code))->toBe(6);
 });
 
-test('user cannot register with existing email', function () {
+it('prevents registration with existing email', function () {
     User::factory()->create(['email' => 'existing@example.com']);
 
     $userData = [
@@ -101,7 +101,7 @@ test('user cannot register with existing email', function () {
         ]);
 });
 
-test('user registration requires required fields', function () {
+it('requires all required fields for registration', function () {
     $response = $this->postJson('/api/auth/register', []);
 
     $response->assertStatus(422)
@@ -113,7 +113,7 @@ test('user registration requires required fields', function () {
         ]);
 });
 
-test('user registration requires valid email format', function () {
+it('requires valid email format for registration', function () {
     $userData = [
         'first_name' => 'Test',
         'surname' => 'User',
@@ -131,7 +131,7 @@ test('user registration requires valid email format', function () {
         ->assertJsonValidationErrors(['email']);
 });
 
-test('user registration requires password confirmation', function () {
+it('requires password confirmation for registration', function () {
     $userData = [
         'first_name' => 'Test',
         'surname' => 'User',
@@ -149,7 +149,7 @@ test('user registration requires password confirmation', function () {
         ->assertJsonValidationErrors(['password']);
 });
 
-test('user registration requires minimum password length', function () {
+it('requires minimum password length for registration', function () {
     $userData = [
         'first_name' => 'Test',
         'surname' => 'User',

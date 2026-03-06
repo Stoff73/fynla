@@ -40,7 +40,7 @@ beforeEach(function () {
 });
 
 describe('GET /api/user/family-members', function () {
-    test('returns all family members for authenticated user', function () {
+    it('returns all family members for authenticated user', function () {
         $response = $this->getJson('/api/user/family-members');
 
         $response->assertStatus(200)
@@ -58,7 +58,7 @@ describe('GET /api/user/family-members', function () {
         expect($response->json('data.family_members.1.name'))->toBe('Child Two');
     });
 
-    test('returns empty array when user has no family members', function () {
+    it('returns empty array when user has no family members', function () {
         // Delete existing family members
         FamilyMember::where('user_id', $this->user->id)->delete();
 
@@ -74,7 +74,7 @@ describe('GET /api/user/family-members', function () {
             ]);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -87,7 +87,7 @@ describe('GET /api/user/family-members', function () {
 });
 
 describe('GET /api/user/family-members/{id}', function () {
-    test('returns a specific family member', function () {
+    it('returns a specific family member', function () {
         $response = $this->getJson("/api/user/family-members/{$this->child1->id}");
 
         $response->assertStatus(200)
@@ -103,13 +103,13 @@ describe('GET /api/user/family-members/{id}', function () {
             ]);
     });
 
-    test('returns 404 for non-existent family member', function () {
+    it('returns 404 for non-existent family member', function () {
         $response = $this->getJson('/api/user/family-members/99999');
 
         $response->assertStatus(404);
     });
 
-    test('user cannot view another user family member', function () {
+    it('prevents viewing another user family member', function () {
         // Create another user with family member
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
@@ -124,7 +124,7 @@ describe('GET /api/user/family-members/{id}', function () {
         $response->assertStatus(404);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -137,7 +137,7 @@ describe('GET /api/user/family-members/{id}', function () {
 });
 
 describe('POST /api/user/family-members', function () {
-    test('creates a new family member successfully', function () {
+    it('creates a new family member successfully', function () {
         // API uses first_name and last_name instead of name
         $newMemberData = [
             'relationship' => 'child',
@@ -172,7 +172,7 @@ describe('POST /api/user/family-members', function () {
         expect($response->json('data.family_member.relationship'))->toBe('child');
     });
 
-    test('validates required fields', function () {
+    it('validates required fields', function () {
         $invalidData = [
             'relationship' => '', // Required
             'first_name' => '', // Required
@@ -185,7 +185,7 @@ describe('POST /api/user/family-members', function () {
             ->assertJsonValidationErrors(['relationship', 'first_name', 'last_name']);
     });
 
-    test('validates relationship enum values', function () {
+    it('validates relationship enum values', function () {
         $invalidData = [
             'relationship' => 'invalid_relationship',
             'first_name' => 'Test',
@@ -198,7 +198,7 @@ describe('POST /api/user/family-members', function () {
             ->assertJsonValidationErrors(['relationship']);
     });
 
-    test('validates date format', function () {
+    it('validates date format', function () {
         $invalidData = [
             'relationship' => 'child',
             'first_name' => 'Test',
@@ -212,7 +212,7 @@ describe('POST /api/user/family-members', function () {
             ->assertJsonValidationErrors(['date_of_birth']);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -228,7 +228,7 @@ describe('POST /api/user/family-members', function () {
 });
 
 describe('PUT /api/user/family-members/{id}', function () {
-    test('updates a family member successfully', function () {
+    it('updates a family member successfully', function () {
         $updatedData = [
             'name' => 'Updated Child Name',
             'gender' => 'male',
@@ -253,7 +253,7 @@ describe('PUT /api/user/family-members/{id}', function () {
         ]);
     });
 
-    test('user cannot update another user family member', function () {
+    it('prevents updating another user family member', function () {
         // Create another user with family member
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
@@ -276,7 +276,7 @@ describe('PUT /api/user/family-members/{id}', function () {
         ]);
     });
 
-    test('returns 404 for non-existent family member', function () {
+    it('returns 404 for non-existent family member', function () {
         $response = $this->putJson('/api/user/family-members/99999', [
             'name' => 'Test',
         ]);
@@ -284,7 +284,7 @@ describe('PUT /api/user/family-members/{id}', function () {
         $response->assertStatus(404);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 
@@ -299,7 +299,7 @@ describe('PUT /api/user/family-members/{id}', function () {
 });
 
 describe('DELETE /api/user/family-members/{id}', function () {
-    test('deletes a family member successfully', function () {
+    it('deletes a family member successfully', function () {
         $response = $this->deleteJson("/api/user/family-members/{$this->child1->id}");
 
         $response->assertStatus(200)
@@ -317,7 +317,7 @@ describe('DELETE /api/user/family-members/{id}', function () {
         expect(FamilyMember::find($this->child1->id))->toBeNull();
     });
 
-    test('user cannot delete another user family member', function () {
+    it('prevents deleting another user family member', function () {
         // Create another user with family member
         $otherUser = User::factory()->create([
             'household_id' => Household::factory()->create()->id,
@@ -337,13 +337,13 @@ describe('DELETE /api/user/family-members/{id}', function () {
         ]);
     });
 
-    test('returns 404 for non-existent family member', function () {
+    it('returns 404 for non-existent family member', function () {
         $response = $this->deleteJson('/api/user/family-members/99999');
 
         $response->assertStatus(404);
     });
 
-    test('requires authentication', function () {
+    it('requires authentication', function () {
         // Create a new test instance without authentication
         $this->app = $this->createApplication();
 

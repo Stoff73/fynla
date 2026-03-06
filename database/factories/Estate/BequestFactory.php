@@ -18,28 +18,28 @@ class BequestFactory extends Factory
 
     public function definition(): array
     {
-        $bequestType = $this->faker->randomElement(['percentage', 'specific_amount', 'specific_asset']);
+        $bequestType = fake()->randomElement(['percentage', 'specific_amount', 'specific_asset']);
 
         return [
             'will_id' => Will::factory(),
             'user_id' => User::factory(),
-            'beneficiary_name' => $this->faker->name(),
+            'beneficiary_name' => fake()->name(),
             'beneficiary_user_id' => null,
-            'beneficiary_type' => $this->faker->randomElement(['spouse', 'child', 'grandchild', 'sibling', 'charity', 'other']),
+            'beneficiary_type' => fake()->randomElement(['spouse', 'child', 'grandchild', 'sibling', 'charity', 'other']),
             'charity_registration_number' => null,
             'bequest_type' => $bequestType,
-            'percentage_of_estate' => $bequestType === 'percentage' ? $this->faker->randomElement([10.00, 20.00, 25.00, 50.00]) : null,
-            'specific_amount' => $bequestType === 'specific_amount' ? $this->faker->randomFloat(2, 1000, 100000) : null,
-            'specific_asset_description' => $bequestType === 'specific_asset' ? $this->faker->randomElement([
-                'Family home at '.$this->faker->streetAddress(),
+            'percentage_of_estate' => $bequestType === 'percentage' ? fake()->randomElement([10.00, 20.00, 25.00, 50.00]) : null,
+            'specific_amount' => $bequestType === 'specific_amount' ? fake()->randomFloat(2, 1000, 100000) : null,
+            'specific_asset_description' => $bequestType === 'specific_asset' ? fake()->randomElement([
+                'Family home at '.fake()->streetAddress(),
                 'Jewellery collection',
                 'Classic car',
                 'Art collection',
             ]) : null,
             'asset_id' => null,
-            'priority_order' => $this->faker->numberBetween(1, 10),
-            'conditions' => $this->faker->optional(0.2)->sentence(),
-            'notes' => $this->faker->optional(0.3)->sentence(),
+            'priority_order' => fake()->numberBetween(1, 10),
+            'conditions' => fake()->optional(0.2)->sentence(),
+            'notes' => fake()->optional(0.3)->sentence(),
         ];
     }
 
@@ -76,7 +76,7 @@ class BequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'beneficiary_type' => 'charity',
-            'beneficiary_name' => $this->faker->randomElement([
+            'beneficiary_name' => fake()->randomElement([
                 'British Heart Foundation',
                 'Macmillan Cancer Support',
                 'RSPCA',
@@ -84,7 +84,7 @@ class BequestFactory extends Factory
                 'Marie Curie',
                 'Shelter',
             ]),
-            'charity_registration_number' => (string) $this->faker->numberBetween(100000, 9999999),
+            'charity_registration_number' => (string) fake()->numberBetween(100000, 9999999),
         ]);
     }
 

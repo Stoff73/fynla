@@ -12,7 +12,7 @@ beforeEach(function () {
 });
 
 describe('ReturnCalculationService', function () {
-    test('returns null for account with no holdings', function () {
+    it('returns null for account with no holdings', function () {
         $account = Mockery::mock(InvestmentAccount::class);
         $account->shouldReceive('getAttribute')->with('holdings')->andReturn(collect([]));
 
@@ -20,7 +20,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeNull();
     });
 
-    test('returns null when all holdings have zero cost basis', function () {
+    it('returns null when all holdings have zero cost basis', function () {
         $holding = (object) [
             'cost_basis' => 0,
             'current_value' => 1000,
@@ -34,7 +34,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeNull();
     });
 
-    test('calculates positive annualised return', function () {
+    it('calculates positive annualised return', function () {
         // Holding: cost 10000, now worth 12000, purchased 2 years ago
         // Total return = (12000 - 10000) / 10000 = 0.20 (20%)
         // Annualised = (1.20 ^ (1/2) - 1) * 100 = ~9.54%
@@ -53,7 +53,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeLessThan(10.0);
     });
 
-    test('calculates negative annualised return', function () {
+    it('calculates negative annualised return', function () {
         // Holding: cost 10000, now worth 8000, purchased 1 year ago
         // Total return = (8000 - 10000) / 10000 = -0.20 (-20%)
         $holding = (object) [
@@ -70,7 +70,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeLessThan(0);
     });
 
-    test('returns -100 for total loss', function () {
+    it('returns -100 for total loss', function () {
         // Holding: cost 10000, now worth 0
         $holding = (object) [
             'cost_basis' => 10000,
@@ -85,7 +85,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBe(-100.0);
     });
 
-    test('defaults to 3 year holding period when no purchase date', function () {
+    it('defaults to 3 year holding period when no purchase date', function () {
         // Holding: cost 10000, now worth 15000, no purchase date
         // Total return = 50%, annualised over 3 years
         // (1.50 ^ (1/3) - 1) * 100 ≈ 14.47%
@@ -104,7 +104,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeLessThan(15.0);
     });
 
-    test('handles multiple holdings with cost-basis weighting', function () {
+    it('handles multiple holdings with cost-basis weighting', function () {
         $holding1 = (object) [
             'cost_basis' => 20000,
             'current_value' => 24000,
@@ -125,7 +125,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeGreaterThan(0);
     });
 
-    test('skips holdings with null cost basis', function () {
+    it('skips holdings with null cost basis', function () {
         $holding1 = (object) [
             'cost_basis' => null,
             'current_value' => 5000,
@@ -148,7 +148,7 @@ describe('ReturnCalculationService', function () {
         expect($result)->toBeLessThan(11.0);
     });
 
-    test('enforces minimum 3 month holding period', function () {
+    it('enforces minimum 3 month holding period', function () {
         // Very recent purchase (1 day ago)
         $holding = (object) [
             'cost_basis' => 10000,
