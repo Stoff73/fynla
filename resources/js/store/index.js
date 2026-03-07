@@ -20,6 +20,8 @@ import guidance from './modules/guidance';
 import infoGuide from './modules/infoGuide';
 import aiChat from './modules/aiChat';
 import plans from './modules/plans';
+import taxOptimisation from './modules/taxOptimisation';
+import household from './modules/household';
 
 const store = createStore({
   modules: {
@@ -44,6 +46,8 @@ const store = createStore({
     infoGuide,
     aiChat,
     plans,
+    taxOptimisation,
+    household,
   },
   strict: process.env.NODE_ENV !== 'production',
 });

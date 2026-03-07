@@ -518,6 +518,11 @@
           </div>
         </div>
 
+        <!-- Tax Strategies Tab -->
+        <div v-if="activeTab === 'strategies'">
+          <TaxStrategiesCard />
+        </div>
+
         <!-- Calculations Tab -->
         <div v-if="activeTab === 'calculations'">
           <CalculationsTab />
@@ -531,6 +536,7 @@
 import { ref } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CalculationsTab from '@/components/UKTaxes/CalculationsTab.vue';
+import TaxStrategiesCard from '@/components/Tax/TaxStrategiesCard.vue';
 
 export default {
   name: 'UKTaxesDashboard',
@@ -538,6 +544,7 @@ export default {
   components: {
     AppLayout,
     CalculationsTab,
+    TaxStrategiesCard,
   },
 
   setup() {
@@ -667,6 +674,7 @@ export default {
       { id: 'pensions', label: 'Pensions' },
       { id: 'isas', label: 'ISAs' },
       { id: 'other', label: 'Other Allowances' },
+      { id: 'strategies', label: 'Tax Strategies' },
       { id: 'calculations', label: 'Calculations' },
     ];
 

@@ -96,7 +96,7 @@ class TaxOptimisationAgent extends BaseAgent
         if ($isaRemaining > 0) {
             $scenarios[] = [
                 'name' => 'Maximise ISA Contributions',
-                'description' => sprintf('Invest the full remaining %s ISA allowance', '£' . number_format($isaRemaining, 0)),
+                'description' => sprintf('Invest the full remaining %s ISA allowance', '£'.number_format($isaRemaining, 0)),
                 'potential_tax_saved' => round($isaRemaining * 0.06 * 0.20, 2),
                 'action_required' => 'Fund ISA before end of tax year',
             ];
@@ -106,7 +106,7 @@ class TaxOptimisationAgent extends BaseAgent
         if ($pensionRemaining > 0) {
             $scenarios[] = [
                 'name' => 'Maximise Pension Contributions',
-                'description' => sprintf('Use the remaining %s pension Annual Allowance', '£' . number_format($pensionRemaining, 0)),
+                'description' => sprintf('Use the remaining %s pension Annual Allowance', '£'.number_format($pensionRemaining, 0)),
                 'potential_tax_saved' => round($pensionRemaining * 0.40, 2),
                 'action_required' => 'Increase pension contributions',
             ];

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\Constants\TaxDefaults;
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
@@ -252,7 +250,7 @@ class TaxOptimisationService
 
         $description = sprintf(
             'You have %s of unused ISA allowance this tax year.',
-            '£' . number_format($isaUsage['remaining'], 0)
+            '£'.number_format($isaUsage['remaining'], 0)
         );
 
         $action = 'Contribute to a Stocks and Shares ISA or Cash ISA before the end of the tax year';
@@ -296,12 +294,12 @@ class TaxOptimisationService
 
         $description = sprintf(
             'You have %s of unused pension Annual Allowance (including %s carry forward from prior years).',
-            '£' . number_format($remainingAA, 0),
-            '£' . number_format($pensionAA['carry_forward_available'], 0)
+            '£'.number_format($remainingAA, 0),
+            '£'.number_format($pensionAA['carry_forward_available'], 0)
         );
 
         $action = $taxBand === 'higher' || $taxBand === 'additional'
-            ? 'As a ' . $taxBand . '-rate taxpayer, additional pension contributions receive ' . ((int) ($reliefRate * 100)) . '% tax relief'
+            ? 'As a '.$taxBand.'-rate taxpayer, additional pension contributions receive '.((int) ($reliefRate * 100)).'% tax relief'
             : 'Consider increasing pension contributions to benefit from tax relief';
 
         return [
@@ -340,8 +338,8 @@ class TaxOptimisationService
                 'title' => 'Tax-Loss Harvesting Opportunity',
                 'description' => sprintf(
                     'You have %s in unrealised losses that could offset %s in gains above your annual exempt amount.',
-                    '£' . number_format($cgtPosition['unrealised_losses'], 0),
-                    '£' . number_format($cgtPosition['excess_gains'], 0)
+                    '£'.number_format($cgtPosition['unrealised_losses'], 0),
+                    '£'.number_format($cgtPosition['excess_gains'], 0)
                 ),
                 'action' => 'Consider realising losses to offset gains and reduce your Capital Gains Tax liability',
                 'estimated_annual_saving' => $estimatedSaving,
@@ -362,8 +360,8 @@ class TaxOptimisationService
                 'title' => 'Capital Gains Tax Planning',
                 'description' => sprintf(
                     'You have %s in unrealised gains above your annual exempt amount, which could attract %s in Capital Gains Tax if realised.',
-                    '£' . number_format($cgtPosition['excess_gains'], 0),
-                    '£' . number_format($potentialTax, 0)
+                    '£'.number_format($cgtPosition['excess_gains'], 0),
+                    '£'.number_format($potentialTax, 0)
                 ),
                 'action' => 'Consider staged realisation across tax years or transferring assets to an ISA wrapper',
                 'estimated_annual_saving' => 0,
@@ -432,7 +430,7 @@ class TaxOptimisationService
         if ($spouseISARemaining > 0) {
             $actions[] = sprintf(
                 'Your spouse has %s of unused ISA allowance -- consider funding their ISA',
-                '£' . number_format($spouseISARemaining, 0)
+                '£'.number_format($spouseISARemaining, 0)
             );
         }
 
