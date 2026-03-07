@@ -36,8 +36,6 @@ const riskService = {
    * @param {number} [data.time_horizon_years] - Investment time horizon in years
    * @param {number} [data.capacity_for_loss_percent] - Capacity for loss percentage
    * @param {string} [data.knowledge_level] - Investment knowledge level
-   * @param {string} [data.attitude_to_volatility] - Attitude towards volatility
-   * @param {boolean} [data.esg_preference] - ESG investment preference
    * @returns {Promise} Updated risk profile
    */
   async setProfile(data) {

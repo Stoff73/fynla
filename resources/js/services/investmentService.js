@@ -179,8 +179,6 @@ const investmentService = {
      * @param {Number} profileData.capacity_for_loss_percent - Capacity for loss percentage
      * @param {Number} profileData.time_horizon_years - Time horizon in years
      * @param {String} profileData.knowledge_level - Knowledge level (novice, intermediate, experienced)
-     * @param {String} profileData.attitude_to_volatility - Attitude to volatility
-     * @param {Boolean} profileData.esg_preference - ESG preference
      * @returns {Promise} Risk profile
      */
     async saveRiskProfile(profileData) {
