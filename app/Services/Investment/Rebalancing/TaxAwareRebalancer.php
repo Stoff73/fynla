@@ -31,7 +31,7 @@ class TaxAwareRebalancer
         Collection $holdings,
         array $options = []
     ): array {
-        $cgtAllowance = $options['cgt_allowance'] ?? 12300; // £12,300 for 2024/25
+        $cgtAllowance = $options['cgt_allowance'] ?? 3000; // £12,300 for 2024/25
         $taxRate = $options['tax_rate'] ?? 0.20; // 20% higher rate (default)
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
@@ -449,7 +449,7 @@ class TaxAwareRebalancer
         Collection $holdings,
         array $options = []
     ): array {
-        $cgtAllowance = $options['cgt_allowance'] ?? 12300;
+        $cgtAllowance = $options['cgt_allowance'] ?? 3000;
         $taxRate = $options['tax_rate'] ?? 0.20;
 
         // Calculate CGT for all actions

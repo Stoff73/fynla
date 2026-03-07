@@ -130,14 +130,22 @@ class AssetLocationOptimizer
      */
     private function calculateIncomeTaxRate(float $income): float
     {
-        if ($income <= 12570) {
-            return 0.0; // Personal allowance
-        } elseif ($income <= 50270) {
-            return 0.20; // Basic rate
-        } elseif ($income <= 125140) {
-            return 0.40; // Higher rate
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = (float) ($incomeTax['basic_rate_limit'] ?? 37700);
+        $higherRateLimit = (float) ($incomeTax['higher_rate_limit'] ?? 125140);
+        $basicRate = (float) ($incomeTax['basic_rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTax['higher_rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTax['additional_rate'] ?? 0.45);
+
+        if ($income <= $personalAllowance) {
+            return 0.0;
+        } elseif ($income <= $personalAllowance + $basicRateLimit) {
+            return $basicRate;
+        } elseif ($income <= $higherRateLimit) {
+            return $higherRate;
         } else {
-            return 0.45; // Additional rate
+            return $additionalRate;
         }
     }
 

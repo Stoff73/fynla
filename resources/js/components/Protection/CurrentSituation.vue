@@ -847,7 +847,7 @@ export default {
         medium: 'bg-violet-500 text-white',
         high: 'bg-raspberry-500 text-white',
       };
-      return classes[severity] || 'bg-eggshell-5000 text-white';
+      return classes[severity] || 'bg-eggshell-500 text-white';
     },
 
     async updateHasNoPoliciesFlag() {
