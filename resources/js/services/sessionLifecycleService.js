@@ -56,10 +56,20 @@ export function initSessionLifecycle(store, router) {
     }
   };
 
+  // Throttle resets to avoid excessive timer churn (especially from mousemove)
+  let lastReset = 0;
+  const throttledReset = () => {
+    const now = Date.now();
+    if (now - lastReset > 30000) {
+      lastReset = now;
+      resetInactivityTimer();
+    }
+  };
+
   // Activity events to reset timer
-  const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+  const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
   activityEvents.forEach(event => {
-    document.addEventListener(event, resetInactivityTimer, { passive: true });
+    document.addEventListener(event, throttledReset, { passive: true });
   });
 
   // Start timer on init if user is authenticated

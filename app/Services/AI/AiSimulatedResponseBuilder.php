@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Models\User;
+use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
@@ -422,8 +423,8 @@ class AiSimulatedResponseBuilder
                 if (isset($data['taper_threshold'])) {
                     $text .= "- **Taper Threshold:** {$this->formatCurrency((float) $data['taper_threshold'])}\n";
                 }
-                $nrb = $data['nil_rate_band'] ?? 325000;
-                $rnrb = $data['residence_nil_rate_band'] ?? 175000;
+                $nrb = $data['nil_rate_band'] ?? TaxDefaults::NRB;
+                $rnrb = $data['residence_nil_rate_band'] ?? TaxDefaults::RNRB;
                 $combined = $nrb + $rnrb;
                 $text .= "\nFor a married couple or civil partners, the combined allowance can be up to {$this->formatCurrency((float) ($combined * 2))}.\n";
                 break;

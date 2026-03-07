@@ -705,7 +705,7 @@ class RetirementStrategyService
         $refundReinvestment = $this->calculateRefundReinvestmentStrategy(
             $recommendedRefund,
             $remainingAllowance - $recommendedGrossAnnual, // Remaining after this year's contribution
-            20000.0 // ISA allowance
+            (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000)
         );
 
         // Project compound benefit of reinvestment until retirement
@@ -1309,7 +1309,7 @@ class RetirementStrategyService
     private function calculateRefundReinvestmentStrategy(
         float $refundAmount,
         float $remainingPensionAllowance,
-        float $remainingIsaAllowance = 20000.0
+        float $remainingIsaAllowance = 20000
     ): array {
         if ($refundAmount <= 0) {
             return [
