@@ -44,38 +44,17 @@
             />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="company_sector" class="block text-sm font-medium text-neutral-500 mb-1">
-              Sector
-            </label>
-            <select
-              id="company_sector"
-              v-model="modelValue.company_sector"
-              class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
-            >
-              <option value="">Select sector</option>
-              <option value="technology">Technology</option>
-              <option value="healthcare">Healthcare</option>
-              <option value="fintech">Fintech</option>
-              <option value="consumer">Consumer</option>
-              <option value="energy">Energy</option>
-              <option value="real_estate">Real Estate</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label for="company_website" class="block text-sm font-medium text-neutral-500 mb-1">
-              Website
-            </label>
-            <input
-              id="company_website"
-              v-model="modelValue.company_website"
-              type="url"
-              class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="https://example.com"
-            />
-          </div>
+        <div>
+          <label for="company_website" class="block text-sm font-medium text-neutral-500 mb-1">
+            Website
+          </label>
+          <input
+            id="company_website"
+            v-model="modelValue.company_website"
+            type="url"
+            class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            placeholder="https://example.com"
+          />
         </div>
         <div v-if="isCrowdfunding">
           <label for="crowdfunding_platform" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -294,22 +273,6 @@
           <p v-if="errors.nominee_name" class="mt-1 text-sm text-raspberry-600">{{ errors.nominee_name }}</p>
         </div>
         <div class="flex flex-wrap gap-4">
-          <label class="inline-flex items-center">
-            <input
-              v-model="modelValue.has_voting_rights"
-              type="checkbox"
-              class="rounded border-horizon-300 text-violet-600 focus:ring-violet-500"
-            />
-            <span class="ml-2 text-sm text-neutral-500">Voting Rights</span>
-          </label>
-          <label class="inline-flex items-center">
-            <input
-              v-model="modelValue.has_dividend_rights"
-              type="checkbox"
-              class="rounded border-horizon-300 text-violet-600 focus:ring-violet-500"
-            />
-            <span class="ml-2 text-sm text-neutral-500">Dividend Rights</span>
-          </label>
           <label class="inline-flex items-center">
             <input
               v-model="modelValue.has_anti_dilution"
