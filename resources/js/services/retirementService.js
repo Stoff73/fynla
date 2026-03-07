@@ -144,6 +144,16 @@ export default {
         return response.data;
     },
 
+    // Decumulation analysis (drawdown strategies)
+
+    /**
+     * Get decumulation analysis including withdrawal rates, annuity comparison, and income phasing
+     */
+    async getDecumulationAnalysis() {
+        const response = await api.get(`${API_BASE}/decumulation-analysis`);
+        return response.data;
+    },
+
     // Retirement Income (Decumulation) endpoints
 
     /**

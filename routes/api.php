@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
 use App\Http\Controllers\Api\Estate\IHTController;
+use App\Http\Controllers\Api\Estate\LetterValidationController;
 use App\Http\Controllers\Api\Estate\LifePolicyController;
 use App\Http\Controllers\Api\Estate\TrustController;
 use App\Http\Controllers\Api\Estate\WillController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
+use App\Http\Controllers\Api\Retirement\DecumulationController;
 use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
@@ -792,6 +794,9 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
         Route::delete('/{id}', [WillController::class, 'deleteBequest']);
     });
     Route::post('/calculate-discount', [GiftingController::class, 'calculateDiscountedGiftDiscount']);
+
+    // Letter to Spouse cross-validation
+    Route::get('/letter-validation', [LetterValidationController::class, 'checkConsistency']);
 });
 
 // Retirement module routes
@@ -820,6 +825,9 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     Route::get('/income', [RetirementController::class, 'getRetirementIncome']);
     Route::post('/income/calculate', [RetirementController::class, 'calculateRetirementIncome']);
     Route::get('/income/accounts', [RetirementController::class, 'getIncomeAccounts']);
+
+    // Decumulation analysis (drawdown strategies)
+    Route::get('/decumulation-analysis', [DecumulationController::class, 'analysis']);
 
     // DC pensions
     Route::prefix('pensions/dc')->group(function () {

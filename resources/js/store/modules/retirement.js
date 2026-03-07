@@ -30,6 +30,9 @@ const state = {
     requiredCapitalLoading: false,
     includedInvestmentIds: [], // Investment account IDs included in capital calculation
     includedCashIds: [], // Cash account IDs included in capital calculation
+    // Decumulation analysis state
+    decumulationAnalysis: null, // Full decumulation strategy data from API
+    decumulationLoading: false,
     // Retirement Income (Decumulation) state
     retirementIncome: null, // Full income configuration from API
     retirementIncomeLoading: false,
@@ -154,6 +157,13 @@ const mutations = {
         } else {
             state.includedCashIds.splice(index, 1);
         }
+    },
+    // Decumulation analysis mutations
+    SET_DECUMULATION_ANALYSIS(state, data) {
+        state.decumulationAnalysis = data;
+    },
+    SET_DECUMULATION_LOADING(state, loading) {
+        state.decumulationLoading = loading;
     },
     // Retirement Income (Decumulation) mutations
     SET_RETIREMENT_INCOME(state, data) {
@@ -608,6 +618,24 @@ const actions = {
         }
     },
 
+    // Decumulation Analysis Actions
+    async fetchDecumulationAnalysis({ commit }) {
+        commit('SET_DECUMULATION_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getDecumulationAnalysis();
+            if (response.success) {
+                commit('SET_DECUMULATION_ANALYSIS', response.data);
+            }
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch decumulation analysis');
+            throw error;
+        } finally {
+            commit('SET_DECUMULATION_LOADING', false);
+        }
+    },
+
     // Retirement Income (Decumulation) Actions
     async fetchRetirementIncome({ commit, state }) {
         commit('SET_RETIREMENT_INCOME_LOADING', true);
@@ -774,6 +802,15 @@ const getters = {
     targetRetirementIncome: (state) => state.requiredCapital?.required_income || 0,
     requiredCapitalAtRetirement: (state) => state.requiredCapital?.required_capital_at_retirement || 0,
     requiredCapitalToday: (state) => state.requiredCapital?.required_capital_today || 0,
+
+    // Decumulation Analysis Getters
+    decumulationAnalysis: (state) => state.decumulationAnalysis,
+    decumulationLoading: (state) => state.decumulationLoading,
+    hasDecumulationData: (state) => state.decumulationAnalysis !== null,
+    withdrawalRates: (state) => state.decumulationAnalysis?.withdrawal_rates || null,
+    annuityVsDrawdown: (state) => state.decumulationAnalysis?.annuity_vs_drawdown || null,
+    pclsStrategy: (state) => state.decumulationAnalysis?.pcls_strategy || null,
+    incomePhasing: (state) => state.decumulationAnalysis?.income_phasing || null,
 
     // Retirement Income (Decumulation) Getters
     retirementIncomeData: (state) => state.retirementIncome,

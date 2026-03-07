@@ -128,12 +128,38 @@ class RetirementAgent extends BaseAgent
                 'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
             ];
 
+            // Decumulation analysis for users within 10 years of retirement or already retired
+            $decumulation = null;
+            if ($yearsToRetirement <= 10 && $currentDcValue > 0) {
+                $lifeExpectancy = $profile->life_expectancy ?? 85;
+                $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
+                $hasSpouse = $profile->spouse_life_expectancy !== null;
+
+                $decumulation = [
+                    'withdrawal_rates' => $this->planner->calculateSustainableWithdrawalRate(
+                        $currentDcValue,
+                        $yearsInRetirement
+                    ),
+                    'annuity_vs_drawdown' => $this->planner->compareAnnuityVsDrawdown(
+                        $currentDcValue,
+                        $profile->current_age,
+                        $hasSpouse
+                    ),
+                    'pcls_strategy' => $this->planner->calculatePCLSStrategy($currentDcValue),
+                    'income_phasing' => $this->planner->modelIncomePhasing(
+                        $dcPensions,
+                        $retirementAge
+                    ),
+                ];
+            }
+
             return $this->response(true, 'Retirement analysis completed', [
                 'summary' => $summary,
                 'income_projection' => $incomeProjection,
                 'breakdown' => $breakdown,
                 'annual_allowance' => $allowance,
                 'profile' => $profile,
+                'decumulation' => $decumulation,
             ]);
         }, null, $cacheTags);
     }

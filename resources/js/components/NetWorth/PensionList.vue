@@ -313,6 +313,28 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Drawdown Strategy Card (shown when within 10 years of retirement) -->
+                <div v-if="showDrawdownCard" class="planner-card drawdown clickable" @click="setActiveTab('drawdown')">
+                  <div class="planner-card-header">
+                    <div class="planner-card-icon drawdown">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 class="planner-card-title">How should I draw down my pension?</h3>
+                  </div>
+                  <div class="planner-card-metrics">
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Pension Pot</span>
+                      <span class="planner-metric-value">{{ formatCurrency(dcPensionValue) }}</span>
+                    </div>
+                    <div class="planner-metric">
+                      <span class="planner-metric-label">Years to Retirement</span>
+                      <span class="planner-metric-value">{{ yearsToRetirementComputed }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Monte Carlo Chart -->
@@ -380,6 +402,12 @@
         v-else-if="activeTab === 'capital'"
         @back="setActiveTab('current')"
       />
+
+      <!-- Drawdown Strategy Tab -->
+      <DecumulationStrategyCard
+        v-else-if="activeTab === 'drawdown'"
+        @back="setActiveTab('current')"
+      />
     </template>
 
     <!-- Pension Form Modal -->
@@ -422,6 +450,7 @@ import PensionPotProjectionChart from '@/components/Retirement/PensionPotProject
 import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
+import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -438,6 +467,7 @@ export default {
     FutureValueTab,
     RetirementIncomeTab,
     CapitalAdequacyTab,
+    DecumulationStrategyCard,
   },
 
   data() {
@@ -474,6 +504,17 @@ export default {
     // Check if user is retired
     isRetired() {
       return this.currentUser?.employment_status === 'retired';
+    },
+
+    // Years to retirement (for drawdown card visibility)
+    yearsToRetirementComputed() {
+      if (!this.profile?.target_retirement_age || !this.profile?.current_age) return null;
+      return Math.max(0, this.profile.target_retirement_age - this.profile.current_age);
+    },
+
+    // Show drawdown card when within 10 years of retirement and has DC pensions
+    showDrawdownCard() {
+      return this.hasDCPensions && this.yearsToRetirementComputed !== null && this.yearsToRetirementComputed <= 10;
     },
 
     // Check if user has any DC pensions
@@ -1322,6 +1363,15 @@ export default {
   @apply border-teal-400;
 }
 
+.planner-card.drawdown {
+  @apply border-2 border-raspberry-200;
+  background: linear-gradient(135deg, white 0%, theme('colors.pink.50') 100%);
+}
+
+.planner-card.drawdown:hover {
+  @apply border-raspberry-400;
+}
+
 .planner-card-header {
   display: flex;
   align-items: center;
@@ -1357,6 +1407,16 @@ export default {
   width: 22px;
   height: 22px;
   @apply text-teal-600;
+}
+
+.planner-card-icon.drawdown {
+  @apply bg-raspberry-100;
+}
+
+.planner-card-icon.drawdown svg {
+  width: 22px;
+  height: 22px;
+  @apply text-raspberry-600;
 }
 
 .planner-card-title {
