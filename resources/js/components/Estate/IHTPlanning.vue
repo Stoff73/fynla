@@ -363,6 +363,15 @@
       </div>
     </div>
 
+    <!-- Letter to Spouse Cross-Validation Warnings -->
+    <LetterEstateWarnings
+      v-if="!loading"
+      :summary-only="true"
+      :show-view-action="true"
+      class="mb-8"
+      @view-details="navigateToLetter"
+    />
+
     <!-- Cash Projection Breakdown Table (Hidden from view - logic retained) -->
     <div v-if="false && !loading && cashProjectionBreakdown" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
@@ -632,6 +641,7 @@ import DualGiftingTimeline from './DualGiftingTimeline.vue';
 import LifeCoverRecommendations from './LifeCoverRecommendations.vue';
 import IHTCalculationTable from './IHTCalculationTable.vue';
 import EstateLifeEventsImpact from './EstateLifeEventsImpact.vue';
+import LetterEstateWarnings from './LetterEstateWarnings.vue';
 import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -639,7 +649,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
   name: 'IHTPlanning',
 
-  emits: ['switch-tab'],
+  emits: ['switch-tab', 'will-updated'],
 
   mixins: [currencyMixin],
 
@@ -650,6 +660,7 @@ export default {
     LifeCoverRecommendations,
     IHTCalculationTable,
     EstateLifeEventsImpact,
+    LetterEstateWarnings,
   },
 
   data() {
@@ -1432,6 +1443,10 @@ export default {
 
   methods: {
     ...mapActions('estate', ['calculateIHT', 'calculateIHTPlanning']),
+
+    navigateToLetter() {
+      this.$router.push({ name: 'ValuableInfo' });
+    },
 
     toggleAllowances() {
       this.expandedAllowances = !this.expandedAllowances;
