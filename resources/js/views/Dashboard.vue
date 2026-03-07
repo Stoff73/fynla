@@ -572,6 +572,16 @@
           <SpousalOptimisations />
           <DeathOfSpouseScenario />
         </template>
+
+        <!-- Cross-Module Insights (all non-student users) -->
+        <template v-if="!isStudentPersona">
+          <div class="lg:col-span-3">
+            <h2 class="text-lg font-bold text-horizon-500 mt-2 mb-1">Cross-Module Insights</h2>
+          </div>
+          <div class="lg:col-span-3">
+            <CrossModuleInsights />
+          </div>
+        </template>
       </div>
     </div>
   </AppLayout>
@@ -587,6 +597,7 @@ import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCard
 import HouseholdNetWorth from '@/components/Dashboard/HouseholdNetWorth.vue';
 import SpousalOptimisations from '@/components/Dashboard/SpousalOptimisations.vue';
 import DeathOfSpouseScenario from '@/components/Dashboard/DeathOfSpouseScenario.vue';
+import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
@@ -604,6 +615,7 @@ export default {
     HouseholdNetWorth,
     SpousalOptimisations,
     DeathOfSpouseScenario,
+    CrossModuleInsights,
   },
 
   mixins: [currencyMixin],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\ProtectionAgent;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\Protection\RecommendationEngine;
@@ -19,6 +20,8 @@ beforeEach(function () {
     $this->recommendationEngine = Mockery::mock(RecommendationEngine::class);
     $this->scenarioBuilder = Mockery::mock(ScenarioBuilder::class);
     $this->completenessChecker = Mockery::mock(ProfileCompletenessChecker::class);
+    $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
+    $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
 
     // Create agent with mocked dependencies
     $this->agent = new ProtectionAgent(
@@ -26,7 +29,8 @@ beforeEach(function () {
         $this->adequacyScorer,
         $this->recommendationEngine,
         $this->scenarioBuilder,
-        $this->completenessChecker
+        $this->completenessChecker,
+        $this->personaliser
     );
 });
 
@@ -398,12 +402,15 @@ describe('invalidateCache', function () {
         expect(Cache::tags($cacheTags)->has($cacheKey))->toBeTrue();
 
         // Create a fresh agent instance for this test (without mocks interfering)
+        $personaliserMock = Mockery::mock(RecommendationPersonaliser::class);
+        $personaliserMock->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
         $realAgent = new ProtectionAgent(
             Mockery::mock(CoverageGapAnalyzer::class),
             Mockery::mock(AdequacyScorer::class),
             Mockery::mock(RecommendationEngine::class),
             Mockery::mock(ScenarioBuilder::class),
-            Mockery::mock(ProfileCompletenessChecker::class)
+            Mockery::mock(ProfileCompletenessChecker::class),
+            $personaliserMock
         );
 
         // Invalidate the cache

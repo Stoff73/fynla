@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\EstateAgent;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
@@ -67,6 +68,9 @@ beforeEach(function () {
         'spouse' => null,
     ]);
 
+    $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
+    $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+
     $this->service = new EstatePlanService(
         $this->estateAgent,
         $this->ihtCalculator,
@@ -74,7 +78,8 @@ beforeEach(function () {
         $this->planConfig,
         $this->disposableIncome,
         $this->assetAggregator,
-        $this->formattingService
+        $this->formattingService,
+        $this->personaliser
     );
 });
 

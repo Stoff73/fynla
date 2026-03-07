@@ -9,6 +9,7 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\MonteCarloSimulator;
@@ -131,7 +132,8 @@ class RetirementAgent extends BaseAgent
             // Decumulation analysis for users within 10 years of retirement or already retired
             $decumulation = null;
             if ($yearsToRetirement <= 10 && $currentDcValue > 0) {
-                $lifeExpectancy = $profile->life_expectancy ?? 85;
+                $user = User::find($userId);
+                $lifeExpectancy = $user?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
                 $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
                 $hasSpouse = $profile->spouse_life_expectancy !== null;
 

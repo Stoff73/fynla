@@ -16,7 +16,7 @@ use Carbon\Carbon;
 /**
  * Automated Risk Profile Calculator
  *
- * Calculates a user's risk profile based on 7 financial factors:
+ * Calculates a user's risk profile based on 9 financial factors:
  * 1. Capacity for Loss - (investments + pensions) / net worth
  * 2. Time Horizon - Years to retirement
  * 3. Investment Knowledge - Self-assessed knowledge level (novice/intermediate/experienced)
@@ -24,6 +24,8 @@ use Carbon\Carbon;
  * 5. Employment - Employment status
  * 6. Emergency Cash - Emergency fund runway months
  * 7. Surplus Cash - Monthly income minus expenditure
+ * 8. Age - Recovery time based on current age
+ * 9. Income Stability - Employment type stability assessment
  *
  * Final risk level is determined by mode (most recurring level).
  */
@@ -33,8 +35,16 @@ class AutoRiskCalculator
         private readonly NetWorthService $netWorthService
     ) {}
 
+    private const RISK_LEVEL_ORDER = [
+        'low' => 1,
+        'lower_medium' => 2,
+        'medium' => 3,
+        'upper_medium' => 4,
+        'high' => 5,
+    ];
+
     /**
-     * Calculate risk profile based on 7 factors
+     * Calculate risk profile based on 9 factors
      *
      * @return array{risk_level: string, factor_breakdown: array}
      */
@@ -48,11 +58,56 @@ class AutoRiskCalculator
             $this->calculateEmploymentFactor($user),
             $this->calculateEmergencyCashFactor($user),
             $this->calculateSurplusCashFactor($user),
+            $this->calculateAgeFactor($user),
+            $this->calculateIncomeStabilityFactor($user),
         ];
 
         return [
             'risk_level' => $this->determineFinalLevel($factors),
             'factor_breakdown' => $factors,
+        ];
+    }
+
+    /**
+     * Detect mismatch between user's stated risk tolerance and calculated capacity.
+     *
+     * Returns null if no mismatch or no stated preference.
+     *
+     * @return array{type: string, message: string, user_tolerance: string, calculated_capacity: string, difference: int}|null
+     */
+    public function detectRiskMismatch(RiskProfile $profile): ?array
+    {
+        $userTolerance = $profile->risk_tolerance;
+        $calculatedLevel = $profile->risk_level;
+
+        if (! $userTolerance || ! $calculatedLevel) {
+            return null;
+        }
+
+        $toleranceNumeric = self::RISK_LEVEL_ORDER[$userTolerance] ?? null;
+        $calculatedNumeric = self::RISK_LEVEL_ORDER[$calculatedLevel] ?? null;
+
+        if ($toleranceNumeric === null || $calculatedNumeric === null) {
+            return null;
+        }
+
+        $difference = abs($toleranceNumeric - $calculatedNumeric);
+
+        if ($difference <= 2) {
+            return null;
+        }
+
+        $direction = $toleranceNumeric > $calculatedNumeric ? 'higher' : 'lower';
+
+        return [
+            'type' => 'mismatch',
+            'message' => sprintf(
+                'Your chosen risk level is significantly %s than what your financial circumstances suggest. Consider reviewing your risk profile to ensure your investments align with your current situation.',
+                $direction
+            ),
+            'user_tolerance' => $userTolerance,
+            'calculated_capacity' => $calculatedLevel,
+            'difference' => $difference,
         ];
     }
 
@@ -397,6 +452,108 @@ class AutoRiskCalculator
                 'monthly_expenditure' => round((float) $monthlyExpenditure, 2),
                 'surplus' => round($surplus, 2),
                 'surplus_percent' => $monthlyIncome > 0 ? round(($surplus / $monthlyIncome) * 100, 1) : null,
+            ],
+        ];
+    }
+
+    /**
+     * Factor 8: Age
+     * Younger users have more time to recover from losses
+     *
+     * Under 30 = HIGH
+     * 30-45 = UPPER_MEDIUM
+     * 45-55 = MEDIUM
+     * 55-65 = LOWER_MEDIUM
+     * 65+ = LOW
+     */
+    private function calculateAgeFactor(User $user): array
+    {
+        $age = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : null;
+
+        if ($age === null) {
+            $level = 'medium';
+            $description = 'Age not specified; a balanced approach is assumed.';
+            $value = 'Not specified';
+        } elseif ($age < 30) {
+            $level = 'high';
+            $description = 'At '.$age.', you have decades to recover from market downturns, supporting higher risk.';
+            $value = (string) $age;
+        } elseif ($age < 45) {
+            $level = 'upper_medium';
+            $description = 'At '.$age.', you have significant time for recovery, allowing above-average risk.';
+            $value = (string) $age;
+        } elseif ($age < 55) {
+            $level = 'medium';
+            $description = 'At '.$age.', a balanced approach is appropriate as recovery time narrows.';
+            $value = (string) $age;
+        } elseif ($age < 65) {
+            $level = 'lower_medium';
+            $description = 'At '.$age.', capital preservation becomes increasingly important.';
+            $value = (string) $age;
+        } else {
+            $level = 'low';
+            $description = 'At '.$age.', protecting your capital is the priority with limited recovery time.';
+            $value = (string) $age;
+        }
+
+        return [
+            'factor' => 'age',
+            'display_name' => 'Age',
+            'level' => $level,
+            'value' => $value,
+            'raw_value' => $age,
+            'description' => $description,
+            'icon' => 'calendar',
+            'components' => [
+                'age' => $age,
+                'date_of_birth' => $user->date_of_birth?->toDateString(),
+            ],
+        ];
+    }
+
+    /**
+     * Factor 9: Income Stability
+     * Employment type affects income predictability and risk capacity
+     *
+     * employed (full-time) = UPPER_MEDIUM (stable income)
+     * self_employed = LOWER_MEDIUM (variable income)
+     * contractor = MEDIUM (some stability)
+     * part_time = LOWER_MEDIUM (reduced income)
+     * retired = LOWER_MEDIUM (fixed income)
+     * unemployed = LOW (no income)
+     */
+    private function calculateIncomeStabilityFactor(User $user): array
+    {
+        $employmentStatus = $user->employment_status;
+
+        $stabilityMap = [
+            'employed' => ['level' => 'upper_medium', 'label' => 'Stable', 'description' => 'Full-time employment provides predictable income, supporting higher risk capacity.'],
+            'full_time' => ['level' => 'upper_medium', 'label' => 'Stable', 'description' => 'Full-time employment provides predictable income, supporting higher risk capacity.'],
+            'self_employed' => ['level' => 'lower_medium', 'label' => 'Variable', 'description' => 'Self-employment income can be unpredictable, suggesting a more cautious approach.'],
+            'contractor' => ['level' => 'medium', 'label' => 'Moderate', 'description' => 'Contract work provides income but with less long-term certainty than permanent employment.'],
+            'part_time' => ['level' => 'lower_medium', 'label' => 'Reduced', 'description' => 'Part-time income is lower, limiting capacity to absorb investment losses.'],
+            'retired' => ['level' => 'lower_medium', 'label' => 'Fixed', 'description' => 'Retirement income is largely fixed, making capital preservation important.'],
+            'semi_retired' => ['level' => 'lower_medium', 'label' => 'Fixed', 'description' => 'Semi-retirement income is largely fixed, making capital preservation important.'],
+            'unemployed' => ['level' => 'low', 'label' => 'None', 'description' => 'Without employment income, investment risk should be minimised.'],
+        ];
+
+        $config = $stabilityMap[$employmentStatus] ?? [
+            'level' => 'lower_medium',
+            'label' => 'Unknown',
+            'description' => 'Employment status not specified; a cautious approach is recommended.',
+        ];
+
+        return [
+            'factor' => 'income_stability',
+            'display_name' => 'Income Stability',
+            'level' => $config['level'],
+            'value' => $config['label'],
+            'raw_value' => $employmentStatus,
+            'description' => $config['description'],
+            'icon' => 'currency-pound',
+            'components' => [
+                'employment_status' => $employmentStatus,
+                'stability_level' => $config['label'],
             ],
         ];
     }

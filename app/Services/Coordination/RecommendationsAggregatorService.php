@@ -19,7 +19,8 @@ class RecommendationsAggregatorService
         private readonly SavingsAgent $savingsCalculator,
         private readonly PortfolioAnalyzer $investmentAnalyzer,
         private readonly RetirementAgent $retirementAgent,
-        private readonly ComprehensiveEstatePlanService $estatePlanService
+        private readonly ComprehensiveEstatePlanService $estatePlanService,
+        private readonly RecommendationPersonaliser $personaliser
     ) {}
 
     /**
@@ -119,6 +120,9 @@ class RecommendationsAggregatorService
         } catch (\Exception $e) {
             Log::warning("Failed to get estate recommendations for user {$userId}: ".$e->getMessage());
         }
+
+        // Personalise recommendations with user-specific context
+        $allRecommendations = $this->personaliser->personaliseRecommendations($allRecommendations, $user);
 
         // Sort by priority score descending (highest priority first)
         usort($allRecommendations, function ($a, $b) {

@@ -59,13 +59,22 @@ class DecumulationController extends Controller
         $retirementAge = $profile->target_retirement_age;
         $currentAge = $profile->current_age;
         $yearsToRetirement = max(0, $retirementAge - $currentAge);
-        $lifeExpectancy = $profile->life_expectancy ?? 85;
+        $lifeExpectancy = $user->life_expectancy_override ?? $profile->life_expectancy ?? 85;
         $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
         $hasSpouse = $profile->spouse_life_expectancy !== null;
 
+        // Care cost parameters
+        $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
+        $careStartAge = $profile->care_start_age ?? 0;
+        $careStartsAfterYear = $careStartAge > $retirementAge ? $careStartAge - $retirementAge : 0;
+
         $withdrawalRates = $this->planner->calculateSustainableWithdrawalRate(
             $totalDcValue,
-            $yearsInRetirement
+            $yearsInRetirement,
+            0.05,
+            0.025,
+            $careCostAnnual,
+            $careStartsAfterYear
         );
 
         $annuityVsDrawdown = $this->planner->compareAnnuityVsDrawdown(

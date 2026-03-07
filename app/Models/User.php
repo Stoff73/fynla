@@ -80,6 +80,7 @@ class User extends Authenticatable
         'locked_until' => 'datetime',
         'last_failed_login_at' => 'datetime',
         'date_of_birth' => 'date',
+        'life_expectancy_override' => 'integer',
         'retirement_date' => 'date',
         'is_primary_account' => 'boolean',
         'annual_employment_income' => 'float',

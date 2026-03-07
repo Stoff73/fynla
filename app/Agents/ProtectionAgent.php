@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\Protection\RecommendationEngine;
@@ -22,7 +23,8 @@ class ProtectionAgent extends BaseAgent
         private readonly AdequacyScorer $adequacyScorer,
         private readonly RecommendationEngine $recommendationEngine,
         private readonly ScenarioBuilder $scenarioBuilder,
-        private readonly ProfileCompletenessChecker $completenessChecker
+        private readonly ProfileCompletenessChecker $completenessChecker,
+        private readonly RecommendationPersonaliser $personaliser
     ) {}
 
     /**
@@ -77,8 +79,9 @@ class ProtectionAgent extends BaseAgent
 
             $scoreInsights = $this->adequacyScorer->generateScoreInsights($adequacyScore, $gaps, $needs, $hasDependants);
 
-            // Generate recommendations
+            // Generate recommendations and personalise
             $recommendations = $this->recommendationEngine->generateRecommendations($gaps, $profile);
+            $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
 
             // Build scenarios
             $scenarios = [

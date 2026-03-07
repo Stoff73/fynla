@@ -31,6 +31,7 @@ class StoreWillRequest extends FormRequest
             'executor_name' => 'nullable|string|max:255',
             'executor_notes' => 'nullable|string',
             'will_last_updated' => 'nullable|date',
+            'last_reviewed_date' => 'nullable|date',
         ];
     }
 }

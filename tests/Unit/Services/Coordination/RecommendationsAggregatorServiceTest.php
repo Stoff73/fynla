@@ -6,6 +6,7 @@ use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Investment\PortfolioAnalyzer;
@@ -19,13 +20,16 @@ beforeEach(function () {
     $this->investmentAnalyzer = Mockery::mock(PortfolioAnalyzer::class);
     $this->retirementAgent = Mockery::mock(RetirementAgent::class);
     $this->estatePlanService = Mockery::mock(ComprehensiveEstatePlanService::class);
+    $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
+    $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
 
     $this->service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
         $this->investmentAnalyzer,
         $this->retirementAgent,
-        $this->estatePlanService
+        $this->estatePlanService,
+        $this->personaliser
     );
 });
 
@@ -407,12 +411,16 @@ it('handles non-numeric iht_saving gracefully during aggregation', function () {
         ],
     ]);
 
+    $personaliser = Mockery::mock(RecommendationPersonaliser::class);
+    $personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+
     $service = new RecommendationsAggregatorService(
         $this->protectionEngine,
         $this->savingsCalculator,
         $this->investmentAnalyzer,
         $this->retirementAgent,
-        $this->estatePlanService
+        $this->estatePlanService,
+        $personaliser
     );
 
     $recommendations = $service->aggregateRecommendations($this->user->id);

@@ -33,6 +33,20 @@ class FutureValueCalculator
         }
 
         $currentAge = Carbon::parse($user->date_of_birth)->age;
+
+        // User override takes precedence over actuarial lookup
+        if ($user->life_expectancy_override !== null) {
+            $yearsRemaining = max(1, $user->life_expectancy_override - $currentAge);
+
+            return [
+                'years_remaining' => (float) $yearsRemaining,
+                'death_age' => $user->life_expectancy_override,
+                'death_year' => now()->year + $yearsRemaining,
+                'current_age' => $currentAge,
+                'source' => 'user_override',
+            ];
+        }
+
         $gender = strtolower($user->gender ?? 'male');
 
         $lifeExpectancy = $this->lookupLifeExpectancy($currentAge, $gender);

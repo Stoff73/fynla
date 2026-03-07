@@ -67,6 +67,7 @@ class UserProfileService
                 'education_level' => $user->education_level,
                 'good_health' => $user->good_health,
                 'smoker' => $user->smoker,
+                'life_expectancy_override' => $user->life_expectancy_override,
             ],
             'household' => $user->household,
             'spouse' => $user->spouse ? [

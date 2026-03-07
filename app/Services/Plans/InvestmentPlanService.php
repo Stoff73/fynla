@@ -12,6 +12,7 @@ use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\TaxConfigService;
@@ -40,7 +41,8 @@ class InvestmentPlanService extends BasePlanService
         private readonly PlanConfigService $planConfig,
         private readonly DisposableIncomeAccessor $incomeAccessor,
         private readonly TaxConfigService $taxConfig,
-        private readonly InvestmentActionDefinitionService $actionDefinitionService
+        private readonly InvestmentActionDefinitionService $actionDefinitionService,
+        private readonly RecommendationPersonaliser $personaliser
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -147,7 +149,15 @@ class InvestmentPlanService extends BasePlanService
             $accountFeeAnalyses
         );
 
-        return $result['recommendations'] ?? [];
+        $recommendations = $result['recommendations'] ?? [];
+
+        // Add personalised context
+        $user = User::find($userId);
+        if ($user) {
+            $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
+        }
+
+        return $recommendations;
     }
 
     public function checkDataCompleteness(int $userId): array

@@ -379,6 +379,56 @@
           </div>
         </div>
 
+        <!-- Life Expectancy Section -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">Life Expectancy</h2>
+          </div>
+          <p class="section-description">
+            Override the actuarial default used in retirement drawdown, estate planning, and gifting strategy calculations.
+          </p>
+
+          <div class="assumptions-grid">
+            <div class="assumption-field">
+              <label for="life-expectancy">Life Expectancy Assumption</label>
+              <div class="input-group">
+                <input
+                  id="life-expectancy"
+                  v-model.number="lifeExpectancyForm.life_expectancy_override"
+                  type="number"
+                  step="1"
+                  min="60"
+                  max="110"
+                  class="form-input"
+                  placeholder="Use actuarial default"
+                >
+                <span class="input-suffix">years</span>
+              </div>
+              <p class="field-hint">
+                Leave blank to use statistical life expectancy based on your age and gender.
+              </p>
+            </div>
+          </div>
+
+          <div class="section-actions">
+            <button
+              class="btn btn-outline"
+              :disabled="savingLifeExpectancy || !lifeExpectancyHasChanges"
+              @click="clearLifeExpectancy"
+            >
+              Reset to Default
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="savingLifeExpectancy || !lifeExpectancyHasChanges"
+              @click="saveLifeExpectancy"
+            >
+              <span v-if="savingLifeExpectancy">Saving...</span>
+              <span v-else>Save Changes</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Info Section -->
         <div class="settings-section info-section">
           <div class="section-header">
@@ -419,6 +469,7 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import assumptionsService from '@/services/assumptionsService';
+import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -467,6 +518,11 @@ export default {
         investments: false,
         estate_planning: false,
       },
+      lifeExpectancyForm: {
+        life_expectancy_override: null,
+      },
+      originalLifeExpectancy: null,
+      savingLifeExpectancy: false,
     };
   },
 
@@ -482,10 +538,15 @@ export default {
     estatePlanningHasChanges() {
       return this.hasChanges('estate_planning');
     },
+
+    lifeExpectancyHasChanges() {
+      return this.lifeExpectancyForm.life_expectancy_override !== this.originalLifeExpectancy;
+    },
   },
 
   mounted() {
     this.loadAssumptions();
+    this.loadLifeExpectancy();
   },
 
   methods: {
@@ -620,6 +681,38 @@ export default {
       } finally {
         this.saving[type] = false;
       }
+    },
+
+    async loadLifeExpectancy() {
+      try {
+        const response = await api.get('/user/profile');
+        const profile = response.data?.data;
+        this.lifeExpectancyForm.life_expectancy_override = profile?.personal_info?.life_expectancy_override || null;
+        this.originalLifeExpectancy = this.lifeExpectancyForm.life_expectancy_override;
+      } catch (err) {
+        console.error('Failed to load life expectancy:', err);
+      }
+    },
+
+    async saveLifeExpectancy() {
+      this.savingLifeExpectancy = true;
+      try {
+        await api.put('/user/profile/personal', {
+          life_expectancy_override: this.lifeExpectancyForm.life_expectancy_override || null,
+        });
+        this.originalLifeExpectancy = this.lifeExpectancyForm.life_expectancy_override;
+        this.$toast?.success?.('Life expectancy assumption saved successfully.');
+      } catch (err) {
+        console.error('Failed to save life expectancy:', err);
+        this.$toast?.error?.(err.message || 'Failed to save life expectancy.');
+      } finally {
+        this.savingLifeExpectancy = false;
+      }
+    },
+
+    clearLifeExpectancy() {
+      this.lifeExpectancyForm.life_expectancy_override = null;
+      this.saveLifeExpectancy();
     },
 
     formatFees(fees) {
