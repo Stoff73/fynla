@@ -37,7 +37,6 @@ describe('FamilyMembers.vue', () => {
                 date_of_birth: '2015-08-20',
                 gender: 'male',
                 is_dependent: true,
-                education_status: 'primary',
               },
             ],
             loading: false,

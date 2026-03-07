@@ -78,24 +78,6 @@
           </p>
         </div>
 
-        <!-- National Insurance Number -->
-        <div>
-          <label for="national_insurance_number" class="label">
-            National Insurance Number
-          </label>
-          <input
-            id="national_insurance_number"
-            v-model="formData.national_insurance_number"
-            type="text"
-            class="input-field"
-            placeholder="AB123456C"
-            maxlength="9"
-            @input="formatNI"
-          >
-          <p class="mt-1 text-body-sm text-neutral-500">
-            Optional - Format: AB123456C
-          </p>
-        </div>
       </div>
 
       <!-- Address Section -->
@@ -299,7 +281,6 @@ export default {
       date_of_birth: '',
       gender: '',
       marital_status: '',
-      national_insurance_number: '',
       address_line_1: '',
       address_line_2: '',
       city: '',
@@ -342,11 +323,6 @@ export default {
       date.setFullYear(date.getFullYear() - 105);
       return date.toISOString().split('T')[0];
     });
-
-    const formatNI = (event) => {
-      // Simple NI number formatting - uppercase
-      formData.value.national_insurance_number = event.target.value.toUpperCase();
-    };
 
     const formatPostcode = (event) => {
       // Simple postcode formatting - uppercase
@@ -471,9 +447,6 @@ export default {
         if (currentUser.phone) {
           formData.value.phone = currentUser.phone;
         }
-        if (currentUser.national_insurance_number) {
-          formData.value.national_insurance_number = currentUser.national_insurance_number;
-        }
       }
 
       // Fetch step data from backend (will override user data if exists)
@@ -498,7 +471,6 @@ export default {
       fieldErrors,
       maxDob,
       minDob,
-      formatNI,
       formatPostcode,
       handleNext,
       handleAddressSelected,
