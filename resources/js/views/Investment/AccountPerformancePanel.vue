@@ -241,14 +241,6 @@
         </div>
       </div>
 
-      <!-- Account Strategy Card (full-width below chart) -->
-      <AccountStrategyCard
-        :account="account"
-        :rebalancing-data="rebalancingData"
-        @change-tab="$emit('change-tab', $event)"
-        @add-holding="$emit('add-holding')"
-      />
-
       <!-- Tax Status Summary -->
       <div
         v-if="taxInfo"
@@ -305,7 +297,6 @@
 
 <script>
 import VueApexCharts from 'vue3-apexcharts';
-import AccountStrategyCard from '@/components/Investment/AccountStrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import investmentService from '@/services/investmentService';
 import diversificationService from '@/services/diversificationService';
@@ -321,7 +312,6 @@ export default {
 
   components: {
     apexchart: VueApexCharts,
-    AccountStrategyCard,
   },
 
   props: {
