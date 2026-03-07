@@ -15,105 +15,55 @@
         <img :src="logoImage" alt="Fynla" class="h-36 w-auto">
       </div>
 
-      <!-- Why Complete Onboarding -->
+      <!-- Quick Setup Explanation -->
       <div class="bg-raspberry-50 rounded-lg p-4 mb-6 border border-raspberry-100">
         <h3 class="text-body font-semibold text-horizon-500 mb-2 flex items-center">
           <svg class="w-5 h-5 text-raspberry-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
           </svg>
-          Why Complete the Onboarding?
+          Quick Setup - 3 Steps to Get Started
         </h3>
         <p class="text-body-sm text-horizon-500">
-          The more information you provide, the better quality your personalised financial strategies and the more comprehensive your dashboards will be. Our planning tools use your data to generate tailored strategies for protection, savings, investments, retirement, and estate planning.
+          Get to your personalised dashboard in under 2 minutes. We just need some basic information to get started, then you can add detail from your dashboard at your own pace.
         </p>
       </div>
 
-      <!-- What's Involved Section -->
+      <!-- 3-Step Quick Overview -->
       <div class="mb-6">
-        <h3 class="text-body font-semibold text-horizon-500 mb-3 flex items-center">
-          <svg class="w-5 h-5 text-neutral-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-          </svg>
-          What's Involved in Onboarding?
-        </h3>
-        <p class="text-body-sm text-neutral-500 mb-4">
-          The onboarding process collects information to power your financial planning dashboards. Here are the steps:
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">1</span>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="flex items-start p-4 bg-eggshell-500 rounded-lg border border-light-gray">
+            <span class="flex items-center justify-center w-8 h-8 bg-raspberry-500 text-white rounded-full text-sm font-bold mr-3 flex-shrink-0">1</span>
             <div>
-              <p class="text-body-sm font-medium text-horizon-500">Personal Information</p>
-              <p class="text-caption text-neutral-500">Name, date of birth, contact details</p>
+              <p class="text-body-sm font-semibold text-horizon-500">Personal Information</p>
+              <p class="text-caption text-neutral-500">Date of birth, gender, address</p>
             </div>
           </div>
 
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">2</span>
+          <div class="flex items-start p-4 bg-eggshell-500 rounded-lg border border-light-gray">
+            <span class="flex items-center justify-center w-8 h-8 bg-raspberry-500 text-white rounded-full text-sm font-bold mr-3 flex-shrink-0">2</span>
             <div>
-              <p class="text-body-sm font-medium text-horizon-500">Income Details</p>
-              <p class="text-caption text-neutral-500">Employment, salary, other income sources</p>
+              <p class="text-body-sm font-semibold text-horizon-500">Income Details</p>
+              <p class="text-caption text-neutral-500">Employment and salary</p>
             </div>
           </div>
 
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">3</span>
+          <div class="flex items-start p-4 bg-eggshell-500 rounded-lg border border-light-gray">
+            <span class="flex items-center justify-center w-8 h-8 bg-raspberry-500 text-white rounded-full text-sm font-bold mr-3 flex-shrink-0">3</span>
             <div>
-              <p class="text-body-sm font-medium text-horizon-500">Monthly Expenditure</p>
-              <p class="text-caption text-neutral-500">Regular outgoings and commitments</p>
-            </div>
-          </div>
-
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">4</span>
-            <div>
-              <p class="text-body-sm font-medium text-horizon-500">Assets</p>
-              <p class="text-caption text-neutral-500">Properties, savings, investments, pensions</p>
-            </div>
-          </div>
-
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">5</span>
-            <div>
-              <p class="text-body-sm font-medium text-horizon-500">Liabilities</p>
-              <p class="text-caption text-neutral-500">Mortgages, loans, credit cards</p>
-            </div>
-          </div>
-
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">6</span>
-            <div>
-              <p class="text-body-sm font-medium text-horizon-500">Protection Policies</p>
-              <p class="text-caption text-neutral-500">Life insurance, income protection, critical illness</p>
-            </div>
-          </div>
-
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">7</span>
-            <div>
-              <p class="text-body-sm font-medium text-horizon-500">Family Information</p>
-              <p class="text-caption text-neutral-500">Spouse/partner, dependants</p>
-            </div>
-          </div>
-
-          <div class="flex items-start p-3 bg-eggshell-500 rounded-lg">
-            <span class="flex items-center justify-center w-6 h-6 bg-raspberry-100 text-raspberry-700 rounded-full text-sm font-semibold mr-3 flex-shrink-0">8</span>
-            <div>
-              <p class="text-body-sm font-medium text-horizon-500">Estate Planning</p>
-              <p class="text-caption text-neutral-500">Will status, trusts, domicile information</p>
+              <p class="text-body-sm font-semibold text-horizon-500">Financial Overview</p>
+              <p class="text-caption text-neutral-500">What areas apply to you</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Skip Ahead Note -->
+      <!-- What You Get -->
       <div class="bg-eggshell-500 rounded-lg p-4 mb-6 border border-light-gray">
         <p class="text-body-sm text-horizon-500 flex items-start">
-          <svg class="w-5 h-5 text-neutral-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <span><strong>Skip ahead options available:</strong> Each step has a skip option if you don't have certain information to hand. You can always return to complete sections later from your profile or the relevant dashboard.</span>
+          <span>After these 3 steps, your dashboard will show personalised cards guiding you to add more detail for each financial area at your own pace.</span>
         </p>
       </div>
 
@@ -137,7 +87,7 @@
         </ul>
       </div>
 
-      <!-- Continue Button -->
+      <!-- Action Buttons -->
       <div class="text-center space-y-4">
         <button
           @click="selectFocusArea('estate')"
@@ -151,16 +101,24 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {{ loading ? 'Loading...' : 'Start Onboarding' }}
+          {{ loading ? 'Loading...' : 'Quick Setup (2 minutes)' }}
         </button>
 
-        <div>
+        <div class="flex items-center justify-center gap-6">
+          <button
+            @click="startFullOnboarding"
+            :disabled="loading"
+            class="inline-flex items-center text-body-sm font-medium text-horizon-500 hover:text-raspberry-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors underline"
+          >
+            Complete Full Setup Instead
+          </button>
+
           <button
             @click="skipOnboarding"
             :disabled="loading"
             class="inline-flex items-center text-body-sm font-medium text-neutral-500 hover:text-horizon-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Skip onboarding and go to dashboard
+            Skip to dashboard
             <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
@@ -194,7 +152,6 @@ export default {
     const userName = computed(() => {
       const user = store.state.auth.user;
       if (user && user.name) {
-        // Get first name only
         return user.name.split(' ')[0];
       }
       return '';
@@ -214,6 +171,21 @@ export default {
       }
     };
 
+    const startFullOnboarding = async () => {
+      loading.value = true;
+      error.value = null;
+
+      try {
+        await store.dispatch('onboarding/setFocusArea', 'estate');
+        // Navigate to full mode onboarding
+        router.push({ name: 'OnboardingFull' });
+      } catch (err) {
+        error.value = err.message || 'Failed to start. Please try again.';
+      } finally {
+        loading.value = false;
+      }
+    };
+
     const skipOnboarding = () => {
       router.push({ name: 'Dashboard' });
     };
@@ -223,6 +195,7 @@ export default {
       error,
       userName,
       selectFocusArea,
+      startFullOnboarding,
       skipOnboarding,
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
     };

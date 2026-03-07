@@ -1,12 +1,12 @@
 <template>
   <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
     <!-- Progress Indicator -->
-    <div v-if="focusArea && steps.length > 0" class="max-w-5xl mx-auto mb-8">
+    <div v-if="focusArea && displaySteps.length > 0" class="max-w-5xl mx-auto mb-8">
       <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
         <div class="overflow-x-auto">
           <div class="flex items-start justify-between min-w-max px-2">
             <div
-              v-for="(step, index) in steps"
+              v-for="(step, index) in displaySteps"
               :key="step.name"
               class="flex-1 flex flex-col items-center relative min-w-[80px]"
             >
@@ -35,7 +35,7 @@
               </span>
               <!-- Connecting Line -->
               <div
-                v-if="index < steps.length - 1"
+                v-if="index < displaySteps.length - 1"
                 class="absolute h-0.5 top-[18px] left-1/2 -z-10"
                 :style="{ width: 'calc(100% - 20px)' }"
                 :class="getConnectingLineClass(step, index)"
@@ -43,8 +43,8 @@
             </div>
           </div>
         </div>
-        <!-- Skip to Dashboard link -->
-        <div v-if="!isCompletionStep" class="mt-3 text-center">
+        <!-- Skip to Dashboard link (full mode only) -->
+        <div v-if="!isQuickMode && !isCompletionStep" class="mt-3 text-center">
           <button
             type="button"
             class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
@@ -58,7 +58,7 @@
 
     <!-- Main Content -->
     <div class="max-w-5xl mx-auto">
-      <!-- Focus Area Selection -->
+      <!-- Focus Area Selection (welcome screen) -->
       <FocusAreaSelection
         v-if="!focusArea"
         @selected="handleFocusAreaSelected"
@@ -77,7 +77,7 @@
       </Transition>
     </div>
 
-    <!-- Skip Confirmation Modal -->
+    <!-- Skip Confirmation Modal (full mode only) -->
     <ConfirmDialog
       :show="showSkipModal"
       title="This information is important"
@@ -89,7 +89,7 @@
       @cancel="hideSkipModal"
     />
 
-    <!-- Skip to Dashboard Modal -->
+    <!-- Skip to Dashboard Modal (full mode only) -->
     <SkipToDashboardModal
       :show="showSkipToDashboardModal"
       @continue="showSkipToDashboardModal = false"
@@ -99,9 +99,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import FocusAreaSelection from './FocusAreaSelection.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SkipToDashboardModal from './SkipToDashboardModal.vue';
@@ -116,6 +116,7 @@ import FamilyInfoStep from './steps/FamilyInfoStep.vue';
 import WillInfoStep from './steps/WillInfoStep.vue';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
+import QuickAssetsStep from './steps/QuickAssetsStep.vue';
 
 export default {
   name: 'OnboardingWizard',
@@ -135,27 +136,74 @@ export default {
     WillInfoStep,
     TrustInfoStep,
     CompletionStep,
+    QuickAssetsStep,
   },
 
-  setup() {
+  props: {
+    mode: {
+      type: String,
+      default: null,
+      validator: (v) => v === null || ['quick', 'full', 'module'].includes(v),
+    },
+    moduleSteps: {
+      type: Array,
+      default: () => [],
+    },
+  },
+
+  setup(props) {
     const store = useStore();
     const router = useRouter();
+    const route = useRoute();
 
     const showSkipModal = ref(false);
     const skipReason = ref('');
     const pendingSkipStep = ref(null);
     const showSkipToDashboardModal = ref(false);
 
+    // Determine onboarding mode
+    // Module mode: used for mini-onboarding routes
+    // Quick mode: default for new users (3 steps)
+    // Full mode: legacy full onboarding (11 steps)
+    const isModuleMode = computed(() => props.mode === 'module');
+    const isQuickMode = computed(() => {
+      if (props.mode === 'full') return false;
+      if (props.mode === 'module') return false;
+      // Default to quick mode unless explicitly full
+      return props.mode === 'quick' || props.mode === null;
+    });
+
+    // Quick mode steps definition (client-side only, no backend fetch needed)
+    const quickSteps = [
+      { name: 'personal_info', title: 'Personal Information' },
+      { name: 'income', title: 'Employment & Income' },
+      { name: 'quick_assets', title: 'Your Financial Picture' },
+    ];
+
     const focusArea = computed(() => store.state.onboarding.focusArea);
-    const currentStep = computed(() => store.getters['onboarding/currentStep']);
+    const currentStep = computed(() => {
+      if (isQuickMode.value || isModuleMode.value) {
+        const stepsToUse = isModuleMode.value ? props.moduleSteps : quickSteps;
+        return stepsToUse[currentStepIndex.value] || null;
+      }
+      return store.getters['onboarding/currentStep'];
+    });
     const currentStepIndex = computed(() => store.state.onboarding.currentStepIndex);
     const totalSteps = computed(() => store.state.onboarding.totalSteps);
     const progressPercentage = computed(() => store.state.onboarding.progressPercentage);
+
+    // Steps to display in the progress bar
+    const displaySteps = computed(() => {
+      if (isQuickMode.value) return quickSteps;
+      if (isModuleMode.value) return props.moduleSteps;
+      return store.state.onboarding.steps || [];
+    });
+
+    // Full steps from store (for full mode)
     const steps = computed(() => store.state.onboarding.steps || []);
     const skippedSteps = computed(() => store.state.onboarding.skippedSteps || []);
 
     const isStepCompleted = (step, index) => {
-      // Step is completed if we're past it and it wasn't skipped
       return index < currentStepIndex.value && !skippedSteps.value.includes(step.name);
     };
 
@@ -194,7 +242,6 @@ export default {
     };
 
     const getConnectingLineClass = (step, index) => {
-      // Line is green if the next step is completed or current
       if (index < currentStepIndex.value) {
         return 'bg-spring-600';
       }
@@ -202,7 +249,6 @@ export default {
     };
 
     const getStepShortLabel = (step) => {
-      // Shorten labels for mobile/display
       const labelMap = {
         'personal_info': 'Personal',
         'family_info': 'Family',
@@ -215,6 +261,7 @@ export default {
         'will_info': 'Will',
         'trust_info': 'Trusts',
         'completion': 'Complete',
+        'quick_assets': 'Overview',
       };
       return labelMap[step.name] || step.title || step.name;
     };
@@ -238,23 +285,61 @@ export default {
         will_info: 'WillInfoStep',
         trust_info: 'TrustInfoStep',
         completion: 'CompletionStep',
+        quick_assets: 'QuickAssetsStep',
       };
 
       return componentMap[currentStep.value.name] || null;
     });
 
     const handleFocusAreaSelected = async (area) => {
-      // Focus area is set in FocusAreaSelection component
-      // Just fetch the steps
-      await store.dispatch('onboarding/fetchSteps');
+      if (isQuickMode.value) {
+        // In quick mode, set steps locally instead of fetching from backend
+        store.commit('onboarding/SET_STEPS', quickSteps);
+        store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
+        store.commit('onboarding/SET_CURRENT_STEP', quickSteps[0].name);
+      } else {
+        await store.dispatch('onboarding/fetchSteps');
+      }
     };
 
     const handleNext = async () => {
-      await store.dispatch('onboarding/goToNextStep');
+      const stepsToUse = isQuickMode.value ? quickSteps : (isModuleMode.value ? props.moduleSteps : steps.value);
+      const nextIndex = currentStepIndex.value + 1;
+
+      if (isQuickMode.value && nextIndex >= quickSteps.length) {
+        // Quick mode complete - mark onboarding as done and go to dashboard
+        await store.dispatch('onboarding/completeQuickOnboarding');
+        await store.dispatch('auth/fetchUser', null, { root: true });
+        router.push({ name: 'Dashboard' });
+        return;
+      }
+
+      if (isModuleMode.value && nextIndex >= props.moduleSteps.length) {
+        // Module mini-onboarding complete - go back to dashboard
+        router.push({ name: 'Dashboard' });
+        return;
+      }
+
+      if (isQuickMode.value || isModuleMode.value) {
+        // Local step navigation (no backend step fetching)
+        store.commit('onboarding/SET_CURRENT_STEP_INDEX', nextIndex);
+        store.commit('onboarding/SET_CURRENT_STEP', stepsToUse[nextIndex].name);
+      } else {
+        await store.dispatch('onboarding/goToNextStep');
+      }
     };
 
     const handleBack = async () => {
-      await store.dispatch('onboarding/goToPreviousStep');
+      if (isQuickMode.value || isModuleMode.value) {
+        const prevIndex = currentStepIndex.value - 1;
+        if (prevIndex >= 0) {
+          const stepsToUse = isQuickMode.value ? quickSteps : props.moduleSteps;
+          store.commit('onboarding/SET_CURRENT_STEP_INDEX', prevIndex);
+          store.commit('onboarding/SET_CURRENT_STEP', stepsToUse[prevIndex].name);
+        }
+      } else {
+        await store.dispatch('onboarding/goToPreviousStep');
+      }
     };
 
     const handleSkipRequest = async (stepName) => {
@@ -289,14 +374,21 @@ export default {
       // Fetch onboarding status on mount
       await store.dispatch('onboarding/fetchOnboardingStatus');
 
-      // Always reset to welcome screen when user navigates to onboarding
-      // This ensures users see the welcome screen whether:
-      // 1. They just registered (new user)
-      // 2. They clicked "Complete Setup" (returning user)
-      // 3. Onboarding is already completed (revisiting)
-      store.commit('onboarding/SET_FOCUS_AREA', null);
-      store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
-      store.commit('onboarding/SET_CURRENT_STEP', null);
+      if (isModuleMode.value) {
+        // Module mode: set up steps from props
+        store.commit('onboarding/SET_STEPS', props.moduleSteps);
+        store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
+        store.commit('onboarding/SET_CURRENT_STEP', props.moduleSteps[0]?.name);
+        // Auto-set focus area so step components work
+        if (!focusArea.value) {
+          store.commit('onboarding/SET_FOCUS_AREA', 'estate');
+        }
+      } else {
+        // Always reset to welcome screen when user navigates to onboarding
+        store.commit('onboarding/SET_FOCUS_AREA', null);
+        store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
+        store.commit('onboarding/SET_CURRENT_STEP', null);
+      }
     });
 
     return {
@@ -306,12 +398,15 @@ export default {
       totalSteps,
       progressPercentage,
       steps,
+      displaySteps,
       skippedSteps,
       currentStepComponent,
       showSkipModal,
       skipReason,
       showSkipToDashboardModal,
       isCompletionStep,
+      isQuickMode,
+      isModuleMode,
       handleFocusAreaSelected,
       handleNext,
       handleBack,

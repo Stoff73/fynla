@@ -37,6 +37,8 @@ class OnboardingService
             'progress_percentage' => 0,
             'total_steps' => 0,
             'completed_steps' => 0,
+            'onboarding_mode' => $user->onboarding_mode,
+            'asset_flags' => $user->onboarding_asset_flags,
         ];
 
         if ($user->onboarding_focus_area) {
@@ -160,7 +162,9 @@ class OnboardingService
                 $this->processWillInfo($userId, $data);
                 break;
 
-                // Add more cases as we implement other steps
+            case 'quick_assets':
+                $this->processQuickAssets($userId, $data);
+                break;
         }
     }
 
@@ -1027,6 +1031,36 @@ class OnboardingService
         ]);
 
         return $user->fresh();
+    }
+
+    /**
+     * Complete the quick onboarding process (3-step progressive flow)
+     */
+    public function completeQuickOnboarding(int $userId): User
+    {
+        $user = User::findOrFail($userId);
+
+        $user->update([
+            'onboarding_completed' => true,
+            'onboarding_completed_at' => Carbon::now(),
+            'onboarding_mode' => 'quick',
+        ]);
+
+        return $user->fresh();
+    }
+
+    /**
+     * Process quick assets flags from progressive onboarding step 3
+     */
+    protected function processQuickAssets(int $userId, array $data): void
+    {
+        $user = User::findOrFail($userId);
+
+        $assetFlags = $data['asset_flags'] ?? [];
+
+        $user->update([
+            'onboarding_asset_flags' => $assetFlags,
+        ]);
     }
 
     /**

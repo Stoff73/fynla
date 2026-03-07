@@ -134,9 +134,57 @@ const routes = [
       {
         path: ':step',
         name: 'OnboardingStep',
-        component: Onboarding, // Re-use the same component as it handles step rendering internally via store
+        component: Onboarding,
       },
     ],
+  },
+  {
+    path: '/onboarding/full',
+    name: 'OnboardingFull',
+    component: () => import('@/views/Onboarding/OnboardingFullView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/onboarding/protection',
+    name: 'OnboardingProtection',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'protection' },
+  },
+  {
+    path: '/onboarding/estate',
+    name: 'OnboardingEstate',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'estate' },
+  },
+  {
+    path: '/onboarding/investments',
+    name: 'OnboardingInvestments',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'investments' },
+  },
+  {
+    path: '/onboarding/pensions',
+    name: 'OnboardingPensions',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'pensions' },
+  },
+  {
+    path: '/onboarding/family',
+    name: 'OnboardingFamily',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'family' },
+  },
+  {
+    path: '/onboarding/savings',
+    name: 'OnboardingSavings',
+    component: () => import('@/views/Onboarding/OnboardingModuleView.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: { moduleName: 'savings' },
   },
   {
     path: '/checkout',

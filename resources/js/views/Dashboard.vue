@@ -55,6 +55,9 @@
           <AreasToCompleteCard />
         </div>
 
+        <!-- Profile Completion Cards (shown for quick onboarding users) -->
+        <ProfileCompletionCards v-if="isQuickOnboardingUser" />
+
         <!-- Student: Recent Activity Card (replaces Net Worth) -->
         <DashboardCard
           v-if="isStudentPersona"
@@ -559,6 +562,16 @@
         </DashboardCard>
 
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
+
+        <!-- Household Coordination Section (married users only) -->
+        <template v-if="isMarriedWithSpouse && !isStudentPersona">
+          <div class="lg:col-span-3">
+            <h2 class="text-lg font-bold text-horizon-500 mt-2 mb-1">Household Planning</h2>
+          </div>
+          <HouseholdNetWorth />
+          <SpousalOptimisations />
+          <DeathOfSpouseScenario />
+        </template>
       </div>
     </div>
   </AppLayout>
@@ -570,6 +583,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
+import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
+import HouseholdNetWorth from '@/components/Dashboard/HouseholdNetWorth.vue';
+import SpousalOptimisations from '@/components/Dashboard/SpousalOptimisations.vue';
+import DeathOfSpouseScenario from '@/components/Dashboard/DeathOfSpouseScenario.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
@@ -583,6 +600,10 @@ export default {
     DashboardCard,
     GoalsProjectionChartDashboard,
     AreasToCompleteCard,
+    ProfileCompletionCards,
+    HouseholdNetWorth,
+    SpousalOptimisations,
+    DeathOfSpouseScenario,
   },
 
   mixins: [currencyMixin],
@@ -657,6 +678,15 @@ export default {
     hasAreasToComplete() {
       const skippedSteps = this.currentUser?.onboarding_skipped_steps || [];
       return skippedSteps.length > 0;
+    },
+
+    isQuickOnboardingUser() {
+      return this.currentUser?.onboarding_mode === 'quick';
+    },
+
+    isMarriedWithSpouse() {
+      const user = this.currentUser;
+      return user && user.marital_status === 'married' && user.spouse_id;
     },
 
     // Check if the user is currently retired
