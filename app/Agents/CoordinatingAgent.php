@@ -29,6 +29,7 @@ class CoordinatingAgent extends BaseAgent
         private readonly RetirementAgent $retirementAgent,
         private readonly EstateAgent $estateAgent,
         private readonly GoalsAgent $goalsAgent,
+        private readonly TaxOptimisationAgent $taxOptimisationAgent,
         private readonly TaxConfigService $taxConfig
     ) {}
 
@@ -289,6 +290,30 @@ class CoordinatingAgent extends BaseAgent
             return array_merge($goalsResult, ['recommendations' => $goalsRecs]);
         }, fn () => ['has_goals' => false, 'recommendations' => [], 'error' => 'Analysis failed']);
 
+        $analysis['tax_optimisation'] = $this->safeModuleAnalysis('TaxOptimisation', function () use ($userId) {
+            $taxResult = $this->taxOptimisationAgent->analyze($userId);
+            $taxData = $taxResult['data'] ?? $taxResult;
+            $taxRecs = [];
+
+            if ($taxResult['success'] ?? false) {
+                $recsResult = $this->taxOptimisationAgent->generateRecommendations($taxResult);
+                $taxRecs = $recsResult['recommendations'] ?? [];
+            }
+
+            return [
+                'strategies' => $taxData['strategies'] ?? [],
+                'total_estimated_saving' => $taxData['total_estimated_saving'] ?? 0,
+                'allowance_usage' => $taxData['allowance_usage'] ?? [],
+                'recommendations' => $taxRecs,
+            ];
+        }, fn () => [
+            'strategies' => [],
+            'total_estimated_saving' => 0,
+            'allowance_usage' => [],
+            'recommendations' => [],
+            'error' => 'Analysis failed',
+        ]);
+
         // User context
         $user = \App\Models\User::find($userId);
         $analysis['user'] = [
@@ -363,9 +388,10 @@ class CoordinatingAgent extends BaseAgent
                 'protection' => 80,
                 'savings' => 75,
                 'retirement' => 70,
+                'tax_optimisation' => 65,
                 'investment' => 60,
-                'estate' => 50,
                 'goals' => 55,
+                'estate' => 50,
             ],
         ];
     }
@@ -417,6 +443,7 @@ class CoordinatingAgent extends BaseAgent
             'retirement' => 'pension',
             'estate' => 'estate',
             'goals' => 'goals',
+            'tax_optimisation' => 'tax_optimisation',
             default => $module,
         };
     }

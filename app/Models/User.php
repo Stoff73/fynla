@@ -120,6 +120,7 @@ class User extends Authenticatable
         'onboarding_skipped_steps' => 'array',
         'onboarding_started_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
+        'onboarding_asset_flags' => 'array',
         'uk_arrival_date' => 'date',
         'deemed_domicile_date' => 'date',
         // Guidance system casts
