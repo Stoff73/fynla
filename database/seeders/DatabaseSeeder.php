@@ -60,6 +60,9 @@ class DatabaseSeeder extends Seeder
             // Protection action definitions - configurable protection plan action triggers
             ProtectionActionDefinitionSeeder::class,
 
+            // Tax action definitions - configurable tax optimisation action triggers
+            TaxActionDefinitionSeeder::class,
+
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
         ]);
@@ -97,6 +100,7 @@ class DatabaseSeeder extends Seeder
             RetirementActionDefinitionSeeder::class,
             InvestmentActionDefinitionSeeder::class,
             ProtectionActionDefinitionSeeder::class,
+            TaxActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,
         ]);
     }
