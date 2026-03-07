@@ -1,0 +1,135 @@
+---
+name: tech-debt-session
+description: Audit files changed in the current session for technical debt, duplicate code, redundant patterns, and convention violations. Run this after completing any development work — bug fixes, features, refactors — to catch debt before it accumulates. Use when the user says "check for tech debt", "review my changes", "audit this session", or any time you've finished a block of work and want to verify quality. Also trigger proactively when a session involved touching 5+ files.
+---
+
+# Session Tech Debt Auditor
+
+Analyse only the files changed in the current git session (unstaged + staged changes). Produce a focused, actionable report.
+
+## Step 1: Gather Changed Files
+
+```bash
+# Get all files changed since last commit (staged + unstaged + untracked)
+git diff --name-only HEAD 2>/dev/null
+git diff --name-only --cached 2>/dev/null
+git ls-files --others --exclude-standard 2>/dev/null
+```
+
+If there are no changes, check recent commits from today:
+```bash
+git log --since="midnight" --name-only --pretty=format:""
+```
+
+If still nothing, tell the user there are no changed files to audit.
+
+## Step 2: Read and Analyse Each File
+
+For every changed file, read the full contents and check against the categories below. Only report **actual issues found** — skip categories with no findings.
+
+### Category 1: Duplicate Code
+
+- **Within-file duplication**: Blocks of 3+ lines repeated in the same file
+- **Cross-file duplication**: Logic that duplicates an existing utility, mixin, trait, or service elsewhere in the codebase. To check this efficiently, grep for key function names/patterns in the changed code to see if they already exist
+- **Fynla-specific**: Local `formatCurrency()` methods (use `currencyMixin`), local spinner CSS (use global `animate-spin`), local scrollbar styles (use `.scrollbar-hide`/`.scrollbar-thin`), re-implemented ownership calculations (use `CalculatesOwnershipShare` trait or `ownership.js`)
+
+### Category 2: Dead & Redundant Code
+
+- Unused imports, variables, methods, or computed properties
+- Commented-out code blocks (not explanatory comments — actual dead code)
+- Methods that are defined but never called within the file or by any caller
+- Console.log / dd() / dump() left in from debugging
+- Empty catch blocks or error handlers that swallow exceptions silently
+
+### Category 3: Convention Violations
+
+**PHP (check against project CLAUDE.md rules):**
+- Missing `declare(strict_types=1);`
+- Missing type hints on method parameters or return types
+- Using `DB` facade directly in controllers (should use services/models)
+- Hardcoded tax values (should use `TaxConfigService`)
+- Using `sole` instead of `individual` for ownership type
+
+**Vue/JS:**
+- Single-word component names
+- `v-if` and `v-for` on the same element
+- Missing `:key` on `v-for`
+- Hardcoded hex colours in `<style>` blocks (should use Tailwind tokens)
+- Using `amber-*` or `orange-*` colour classes (banned — use `violet-*` for warnings)
+- Acronyms in user-facing text (should be spelled out, except ISA)
+- Scores/ratings in user-facing UI (banned)
+
+**CSS:**
+- Custom `@keyframes spin` (use global `animate-spin`)
+- Duplicated scrollbar/animation/spinner/badge styles that exist in `app.css`
+- Hardcoded hex values in style blocks (use `@apply` with Tailwind tokens)
+- Colours outside the design system palette
+
+### Category 4: Complexity & Maintainability
+
+- Methods longer than 50 lines (candidate for extraction)
+- Files longer than 500 lines (candidate for splitting)
+- Deeply nested conditionals (3+ levels)
+- God methods that do too many things (multiple responsibilities)
+- Magic numbers without named constants
+- Tightly coupled code that reaches into other modules' internals
+
+### Category 5: Security Concerns
+
+- User input used without validation or sanitisation
+- Raw SQL queries or string interpolation in queries
+- Sensitive data logged or exposed in error messages
+- Missing authorisation checks on data access (user A accessing user B's data)
+
+### Category 6: Inconsistency with Existing Patterns
+
+- New patterns introduced where established ones exist (e.g., a new way of handling API errors when `SanitizedErrorResponse` trait exists)
+- Deviating from the Agent -> Service -> Model architecture
+- Creating new utility functions when existing ones in `utils/` cover the need
+- Form modals emitting `submit` instead of `save`
+
+## Step 3: Generate Report
+
+Save the report to the project root as `tech-debt-report.md`. Use this structure:
+
+```markdown
+# Tech Debt Report — Session [date]
+
+**Files analysed:** [count]
+**Issues found:** [count]
+**Severity breakdown:** [critical] critical, [warning] warnings, [info] suggestions
+
+## Critical Issues
+[Issues that will cause bugs, security problems, or break conventions]
+
+## Warnings
+[Issues that increase maintenance burden or violate patterns]
+
+## Suggestions
+[Minor improvements and cleanup opportunities]
+
+---
+*Generated by tech-debt-session skill*
+```
+
+For each issue, include:
+- **File path and line number(s)**
+- **Category** (from the list above)
+- **What's wrong** (1-2 sentences)
+- **Suggested fix** (specific, actionable)
+
+## Step 4: Summary
+
+After saving the report, print a concise summary to the conversation:
+- Total issues by severity
+- The top 3 most impactful issues
+- Whether any critical issues need fixing before commit
+
+If zero issues found, say so — a clean bill of health is valuable feedback too.
+
+## Important
+
+- Do NOT auto-fix anything. This is an audit, not a refactor. The user decides what to act on.
+- Do NOT report stylistic preferences or subjective opinions. Only report concrete, verifiable issues.
+- Do NOT flag things in files that weren't changed — the full codebase auditor handles that.
+- Be specific with line numbers. Vague warnings like "consider refactoring" without pointing to exact code are unhelpful.
