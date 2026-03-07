@@ -48,8 +48,42 @@
         </div>
       </div>
 
+      <!-- Post-Journey Prompt (shown after MFA banner, before grid) -->
+      <PostJourneyPrompt
+        v-if="firstPrompt"
+        :prompt="firstPrompt"
+        @dismissed="onPromptDismissed"
+      />
+
+      <!-- Journey Cards Section -->
+      <div v-if="hasJourneySelections && journeyCards.length > 0" class="mb-6">
+        <h3 class="text-lg font-semibold text-horizon-500 mb-3">Your Planning Journeys</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <JourneyCard
+            v-for="journey in visibleJourneyCards"
+            :key="journey.name"
+            :journey="journey"
+          />
+        </div>
+        <div v-if="hasMoreJourneys" class="mt-3 text-center">
+          <button
+            @click="showAllJourneys = !showAllJourneys"
+            class="text-sm font-medium text-raspberry-500 hover:text-raspberry-700 transition-colors"
+          >
+            {{ showAllJourneys ? 'Show fewer' : `Show all ${journeyCards.length} journeys` }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty Dashboard (no journeys and no financial data) -->
+      <template v-if="showEmptyDashboard">
+        <div class="grid grid-cols-1 gap-3">
+          <EmptyDashboard />
+        </div>
+      </template>
+
       <!-- Three-column dashboard grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <!-- Areas to Complete Card (shown first when user has skipped steps) -->
         <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-6">
           <AreasToCompleteCard />
@@ -598,6 +632,9 @@ import HouseholdNetWorth from '@/components/Dashboard/HouseholdNetWorth.vue';
 import SpousalOptimisations from '@/components/Dashboard/SpousalOptimisations.vue';
 import DeathOfSpouseScenario from '@/components/Dashboard/DeathOfSpouseScenario.vue';
 import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
+import JourneyCard from '@/components/Dashboard/JourneyCard.vue';
+import PostJourneyPrompt from '@/components/Dashboard/PostJourneyPrompt.vue';
+import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import userProfileService from '@/services/userProfileService';
@@ -616,6 +653,9 @@ export default {
     SpousalOptimisations,
     DeathOfSpouseScenario,
     CrossModuleInsights,
+    JourneyCard,
+    PostJourneyPrompt,
+    EmptyDashboard,
   },
 
   mixins: [currencyMixin],
@@ -640,6 +680,7 @@ export default {
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
+      showAllJourneys: false,
     };
   },
 
@@ -694,6 +735,48 @@ export default {
 
     isQuickOnboardingUser() {
       return this.currentUser?.onboarding_mode === 'quick';
+    },
+
+    // Journey system
+    ...mapState('journeys', ['selections', 'journeyStates', 'dashboardPrompts']),
+
+    hasJourneySelections() {
+      return this.currentUser?.journey_selections?.length > 0;
+    },
+
+    journeyCards() {
+      const selections = this.selections || [];
+      const states = this.journeyStates || {};
+      return selections.map((name) => {
+        const stateData = states[name] || {};
+        const status = typeof stateData === 'string' ? stateData : (stateData.status || 'not_started');
+        return {
+          name,
+          status,
+          progress: stateData.progress || null,
+        };
+      });
+    },
+
+    visibleJourneyCards() {
+      if (this.showAllJourneys) return this.journeyCards;
+      return this.journeyCards.slice(0, 3);
+    },
+
+    hasMoreJourneys() {
+      return this.journeyCards.length > 3;
+    },
+
+    firstPrompt() {
+      return (this.dashboardPrompts || [])[0] || null;
+    },
+
+    showEmptyDashboard() {
+      return !this.hasJourneySelections && !this.hasAnyFinancialData;
+    },
+
+    hasAnyFinancialData() {
+      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData;
     },
 
     isMarriedWithSpouse() {
@@ -1280,6 +1363,7 @@ export default {
   methods: {
     ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
     ...mapActions('retirement', ['fetchRequiredCapital']),
+    ...mapActions('journeys', ['fetchSelections', 'fetchDashboardPrompts']),
 
     // Format asset category names for display
     formatAssetCategory(category) {
@@ -1384,6 +1468,22 @@ export default {
       }
     },
 
+    onPromptDismissed() {
+      // Prompt removal is handled by the store mutation; no additional action needed
+    },
+
+    async loadJourneyData() {
+      if (!this.hasJourneySelections) return;
+      try {
+        await Promise.all([
+          this.fetchSelections(),
+          this.fetchDashboardPrompts(),
+        ]);
+      } catch (error) {
+        // Journey data is non-critical; don't block dashboard
+      }
+    },
+
     async loadAllData() {
       const user = this.currentUser;
       const isMarried = user && user.marital_status === 'married';
@@ -1425,6 +1525,9 @@ export default {
 
       // Load financial commitments
       this.loadFinancialCommitments();
+
+      // Load journey data (non-blocking)
+      this.loadJourneyData();
 
       const moduleActionCounts = {};
       moduleLoaders.forEach(loader => {

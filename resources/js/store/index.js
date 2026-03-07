@@ -22,6 +22,7 @@ import aiChat from './modules/aiChat';
 import plans from './modules/plans';
 import taxOptimisation from './modules/taxOptimisation';
 import household from './modules/household';
+import journeys from './modules/journeys';
 
 const store = createStore({
   modules: {
@@ -48,6 +49,7 @@ const store = createStore({
     plans,
     taxOptimisation,
     household,
+    journeys,
   },
   strict: process.env.NODE_ENV !== 'production',
 });

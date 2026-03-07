@@ -1,7 +1,20 @@
 <template>
   <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Journey Context Header (journey mode only) -->
+    <div v-if="isJourneyMode && journeyContextLabel" class="max-w-5xl mx-auto mb-4">
+      <div class="bg-white rounded-lg shadow-sm border border-light-gray px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-body-sm text-neutral-500">Setting up:</span>
+          <span class="text-body font-medium text-horizon-500">{{ journeyContextLabel }}</span>
+        </div>
+        <span v-if="journeyProgressPercentage > 0" class="text-body-sm text-neutral-500">
+          {{ journeyProgressPercentage }}% complete
+        </span>
+      </div>
+    </div>
+
     <!-- Progress Indicator -->
-    <div v-if="focusArea && displaySteps.length > 0" class="max-w-5xl mx-auto mb-8">
+    <div v-if="showProgressBar" class="max-w-5xl mx-auto mb-8">
       <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
         <div class="overflow-x-auto">
           <div class="flex items-start justify-between min-w-max px-2">
@@ -44,7 +57,7 @@
           </div>
         </div>
         <!-- Skip to Dashboard link (full mode only) -->
-        <div v-if="!isQuickMode && !isCompletionStep" class="mt-3 text-center">
+        <div v-if="showSkipToDashboardLink" class="mt-3 text-center">
           <button
             type="button"
             class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
@@ -58,18 +71,26 @@
 
     <!-- Main Content -->
     <div class="max-w-5xl mx-auto">
-      <!-- Focus Area Selection (welcome screen) -->
+      <!-- Focus Area Selection (welcome screen - non-journey modes only) -->
       <FocusAreaSelection
-        v-if="!focusArea"
+        v-if="!focusArea && !isJourneyMode"
         @selected="handleFocusAreaSelected"
+      />
+
+      <!-- Journey Completion Step -->
+      <JourneyCompletionStep
+        v-if="isJourneyMode && showJourneyCompletion"
+        :journey-name="currentJourneyName"
+        :completed-steps="journeySteps"
+        @next="handleJourneyCompletionNext"
       />
 
       <!-- Step Content -->
       <Transition name="fade" mode="out-in">
         <component
-          v-if="focusArea && currentStep"
+          v-if="showStepContent"
           :is="currentStepComponent"
-          :key="currentStep.name"
+          :key="currentStepKey"
           @next="handleNext"
           @back="handleBack"
           @skip="handleSkipRequest"
@@ -99,7 +120,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import FocusAreaSelection from './FocusAreaSelection.vue';
@@ -117,6 +138,9 @@ import WillInfoStep from './steps/WillInfoStep.vue';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
 import QuickAssetsStep from './steps/QuickAssetsStep.vue';
+import BudgetingSteps from './steps/BudgetingSteps.vue';
+import GoalSetupStep from './steps/GoalSetupStep.vue';
+import JourneyCompletionStep from './steps/JourneyCompletionStep.vue';
 
 export default {
   name: 'OnboardingWizard',
@@ -137,17 +161,24 @@ export default {
     TrustInfoStep,
     CompletionStep,
     QuickAssetsStep,
+    BudgetingSteps,
+    GoalSetupStep,
+    JourneyCompletionStep,
   },
 
   props: {
     mode: {
       type: String,
       default: null,
-      validator: (v) => v === null || ['quick', 'full', 'module'].includes(v),
+      validator: (v) => v === null || ['quick', 'full', 'module', 'journey'].includes(v),
     },
     moduleSteps: {
       type: Array,
       default: () => [],
+    },
+    journeyName: {
+      type: String,
+      default: null,
     },
   },
 
@@ -160,16 +191,15 @@ export default {
     const skipReason = ref('');
     const pendingSkipStep = ref(null);
     const showSkipToDashboardModal = ref(false);
+    const showJourneyCompletion = ref(false);
 
-    // Determine onboarding mode
-    // Module mode: used for mini-onboarding routes
-    // Quick mode: default for new users (3 steps)
-    // Full mode: legacy full onboarding (11 steps)
+    // Mode flags
+    const isJourneyMode = computed(() => props.mode === 'journey');
     const isModuleMode = computed(() => props.mode === 'module');
     const isQuickMode = computed(() => {
       if (props.mode === 'full') return false;
       if (props.mode === 'module') return false;
-      // Default to quick mode unless explicitly full
+      if (props.mode === 'journey') return false;
       return props.mode === 'quick' || props.mode === null;
     });
 
@@ -180,23 +210,106 @@ export default {
       { name: 'quick_assets', title: 'Your Financial Picture' },
     ];
 
+    // Journey mode state
+    const currentJourneyName = computed(() => {
+      if (isJourneyMode.value) {
+        return props.journeyName || route.params?.journey || store.state.journeys.currentJourney;
+      }
+      return null;
+    });
+
+    const journeySteps = computed(() => {
+      return store.state.journeys.currentSteps || [];
+    });
+
+    const journeyStepIndex = computed(() => {
+      return store.state.journeys.currentStepIndex;
+    });
+
+    const journeyProgressPercentage = computed(() => {
+      return store.getters['journeys/progressPercentage'];
+    });
+
+    const journeyLabels = {
+      budgeting: 'Budgeting',
+      protection: 'Protection',
+      investment: 'Investment',
+      retirement: 'Retirement',
+      estate: 'Estate Planning',
+      family: 'Family Planning',
+      business: 'Business Planning',
+      goals: 'Goal Tracking',
+    };
+
+    const journeyContextLabel = computed(() => {
+      if (!isJourneyMode.value) return '';
+
+      const selections = store.state.journeys.selections;
+      if (selections.length === 0 && currentJourneyName.value) {
+        return journeyLabels[currentJourneyName.value] || currentJourneyName.value;
+      }
+
+      return selections
+        .map((j) => journeyLabels[j] || j)
+        .join(', ');
+    });
+
+    // Existing onboarding state
     const focusArea = computed(() => store.state.onboarding.focusArea);
+
+    const currentStepIndex = computed(() => {
+      if (isJourneyMode.value) return journeyStepIndex.value;
+      return store.state.onboarding.currentStepIndex;
+    });
+
     const currentStep = computed(() => {
+      if (isJourneyMode.value) {
+        if (showJourneyCompletion.value) return null;
+        return store.getters['journeys/currentStep'];
+      }
       if (isQuickMode.value || isModuleMode.value) {
         const stepsToUse = isModuleMode.value ? props.moduleSteps : quickSteps;
         return stepsToUse[currentStepIndex.value] || null;
       }
       return store.getters['onboarding/currentStep'];
     });
-    const currentStepIndex = computed(() => store.state.onboarding.currentStepIndex);
+
+    const currentStepKey = computed(() => {
+      if (!currentStep.value) return null;
+      if (isJourneyMode.value) {
+        return `journey-${currentJourneyName.value}-${journeyStepIndex.value}`;
+      }
+      return currentStep.value.name;
+    });
+
     const totalSteps = computed(() => store.state.onboarding.totalSteps);
     const progressPercentage = computed(() => store.state.onboarding.progressPercentage);
 
     // Steps to display in the progress bar
     const displaySteps = computed(() => {
+      if (isJourneyMode.value) return journeySteps.value;
       if (isQuickMode.value) return quickSteps;
       if (isModuleMode.value) return props.moduleSteps;
       return store.state.onboarding.steps || [];
+    });
+
+    const showProgressBar = computed(() => {
+      if (isJourneyMode.value) {
+        return !showJourneyCompletion.value && journeySteps.value.length > 0;
+      }
+      return focusArea.value && displaySteps.value.length > 0;
+    });
+
+    const showStepContent = computed(() => {
+      if (isJourneyMode.value) {
+        return !showJourneyCompletion.value && currentStep.value;
+      }
+      return focusArea.value && currentStep.value;
+    });
+
+    const showSkipToDashboardLink = computed(() => {
+      if (isJourneyMode.value) return !showJourneyCompletion.value;
+      return !isQuickMode.value && !isCompletionStep.value;
     });
 
     // Full steps from store (for full mode)
@@ -262,6 +375,8 @@ export default {
         'trust_info': 'Trusts',
         'completion': 'Complete',
         'quick_assets': 'Overview',
+        'budgeting': 'Budget',
+        'goals': 'Goals',
       };
       return labelMap[step.name] || step.title || step.name;
     };
@@ -270,8 +385,68 @@ export default {
       return currentStep.value?.name === 'completion';
     });
 
+    // Map journey backend steps to actual Vue components
+    const resolveJourneyComponent = (step) => {
+      if (!step) return null;
+
+      const componentName = step.component;
+      const fields = step.fields || [];
+
+      // Direct component mappings
+      if (componentName === 'JourneyPersonalStep') {
+        return 'PersonalInfoStep';
+      }
+
+      if (componentName === 'BudgetingStep') {
+        return 'BudgetingSteps';
+      }
+
+      // Financial steps mapped by field
+      if (componentName === 'JourneyFinancialStep') {
+        if (fields.includes('family_members') || fields.includes('spouse')) {
+          return 'FamilyInfoStep';
+        }
+        if (fields.includes('protection_policies')) {
+          return 'ProtectionPoliciesStep';
+        }
+        if (fields.includes('mortgages') || fields.includes('properties')) {
+          return 'AssetsStep';
+        }
+        if (fields.includes('liabilities')) {
+          return 'LiabilitiesStep';
+        }
+        if (fields.includes('savings_accounts')) {
+          return 'QuickAssetsStep';
+        }
+        if (fields.includes('wills')) {
+          return 'WillInfoStep';
+        }
+        if (fields.includes('trusts')) {
+          return 'TrustInfoStep';
+        }
+        if (fields.includes('pensions') || fields.includes('dc_pensions') || fields.includes('db_pensions') || fields.includes('state_pension')) {
+          return 'AssetsStep';
+        }
+        if (fields.includes('investment_accounts') || fields.includes('investments')) {
+          return 'AssetsStep';
+        }
+        if (fields.includes('business_interests')) {
+          return 'AssetsStep';
+        }
+        if (fields.includes('goals')) {
+          return 'GoalSetupStep';
+        }
+      }
+
+      return null;
+    };
+
     const currentStepComponent = computed(() => {
       if (!currentStep.value) return null;
+
+      if (isJourneyMode.value) {
+        return resolveJourneyComponent(currentStep.value);
+      }
 
       const componentMap = {
         personal_info: 'PersonalInfoStep',
@@ -303,6 +478,10 @@ export default {
     };
 
     const handleNext = async () => {
+      if (isJourneyMode.value) {
+        return handleJourneyNext();
+      }
+
       const stepsToUse = isQuickMode.value ? quickSteps : (isModuleMode.value ? props.moduleSteps : steps.value);
       const nextIndex = currentStepIndex.value + 1;
 
@@ -329,7 +508,31 @@ export default {
       }
     };
 
+    const handleJourneyNext = async () => {
+      const isLast = store.getters['journeys/isLastStep'];
+
+      if (isLast) {
+        // Complete the journey and show completion screen
+        await store.dispatch('journeys/completeJourney', currentJourneyName.value);
+        showJourneyCompletion.value = true;
+      } else {
+        store.dispatch('journeys/nextStep');
+      }
+    };
+
+    const handleJourneyCompletionNext = async () => {
+      // This is called when user clicks "Continue to next journey" from completion
+      // The JourneyCompletionStep handles its own navigation
+    };
+
     const handleBack = async () => {
+      if (isJourneyMode.value) {
+        if (journeyStepIndex.value > 0) {
+          store.dispatch('journeys/previousStep');
+        }
+        return;
+      }
+
       if (isQuickMode.value || isModuleMode.value) {
         const prevIndex = currentStepIndex.value - 1;
         if (prevIndex >= 0) {
@@ -343,6 +546,12 @@ export default {
     };
 
     const handleSkipRequest = async (stepName) => {
+      if (isJourneyMode.value) {
+        // In journey mode, skip just advances to next step
+        handleNext();
+        return;
+      }
+
       pendingSkipStep.value = stepName || currentStep.value?.name;
       await store.dispatch('onboarding/showSkipConfirmation', pendingSkipStep.value);
       showSkipModal.value = true;
@@ -366,11 +575,37 @@ export default {
 
     const handleSkipToDashboard = async () => {
       showSkipToDashboardModal.value = false;
-      await store.dispatch('onboarding/skipToDashboard');
-      router.push('/dashboard');
+      if (isJourneyMode.value) {
+        await store.dispatch('auth/fetchUser', null, { root: true });
+        router.push({ name: 'Dashboard' });
+      } else {
+        await store.dispatch('onboarding/skipToDashboard');
+        router.push('/dashboard');
+      }
     };
 
     onMounted(async () => {
+      if (isJourneyMode.value) {
+        // Journey mode: load steps from journey API
+        const journey = currentJourneyName.value;
+        if (journey) {
+          // Set focus area for compatibility with existing step components
+          store.commit('onboarding/SET_FOCUS_AREA', journey);
+
+          // Fetch journey steps if not already loaded
+          if (store.state.journeys.currentSteps.length === 0 || store.state.journeys.currentJourney !== journey) {
+            await store.dispatch('journeys/fetchSteps', journey);
+          }
+
+          // Start the journey if not already in progress
+          const journeyState = store.state.journeys.journeyStates[journey];
+          if (!journeyState || journeyState === 'not_started') {
+            await store.dispatch('journeys/startJourney', journey);
+          }
+        }
+        return;
+      }
+
       // Fetch onboarding status on mount
       await store.dispatch('onboarding/fetchOnboardingStatus');
 
@@ -391,10 +626,20 @@ export default {
       }
     });
 
+    // Watch for route changes in journey mode
+    watch(() => route.params?.journey, async (newJourney) => {
+      if (isJourneyMode.value && newJourney) {
+        showJourneyCompletion.value = false;
+        store.commit('onboarding/SET_FOCUS_AREA', newJourney);
+        await store.dispatch('journeys/fetchSteps', newJourney);
+      }
+    });
+
     return {
       focusArea,
       currentStep,
       currentStepIndex,
+      currentStepKey,
       totalSteps,
       progressPercentage,
       steps,
@@ -404,13 +649,23 @@ export default {
       showSkipModal,
       skipReason,
       showSkipToDashboardModal,
+      showJourneyCompletion,
       isCompletionStep,
       isQuickMode,
       isModuleMode,
+      isJourneyMode,
+      currentJourneyName,
+      journeySteps,
+      journeyContextLabel,
+      journeyProgressPercentage,
+      showProgressBar,
+      showStepContent,
+      showSkipToDashboardLink,
       handleFocusAreaSelected,
       handleNext,
       handleBack,
       handleSkipRequest,
+      handleJourneyCompletionNext,
       hideSkipModal,
       confirmSkip,
       handleSkipToDashboard,

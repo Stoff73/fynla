@@ -81,13 +81,18 @@ export default {
       return this.onboardingMode === 'quick';
     },
 
+    hasJourneySelections() {
+      return (this.currentUser?.journey_selections || []).length > 0;
+    },
+
     allCards() {
+      const useJourneyRoutes = this.hasJourneySelections;
       return [
         {
           id: 'properties',
           title: 'Add Your Properties',
           description: 'Add details to unlock estate planning insights and net worth tracking.',
-          route: '/net-worth/property',
+          route: useJourneyRoutes ? '/onboarding/journey/estate' : '/net-worth/property',
           actionText: 'Add Properties',
           flagKey: 'properties',
           dataCheck: 'hasProperties',
@@ -99,7 +104,7 @@ export default {
           id: 'savings',
           title: 'Add Your Savings',
           description: 'Add account details to track balances and optimise your ISA usage.',
-          route: '/savings',
+          route: useJourneyRoutes ? '/onboarding/journey/budgeting' : '/savings',
           actionText: 'Add Savings',
           flagKey: 'savings',
           dataCheck: 'hasSavings',
@@ -111,7 +116,7 @@ export default {
           id: 'investments',
           title: 'Add Your Investments',
           description: 'Add account details to see portfolio analysis and performance tracking.',
-          route: '/net-worth/investments',
+          route: useJourneyRoutes ? '/onboarding/journey/investment' : '/net-worth/investments',
           actionText: 'Add Investments',
           flagKey: 'investments',
           dataCheck: 'hasInvestments',
@@ -123,7 +128,7 @@ export default {
           id: 'pensions',
           title: 'Add Your Pensions',
           description: 'Add details to see retirement projections and contribution analysis.',
-          route: '/net-worth/retirement',
+          route: useJourneyRoutes ? '/onboarding/journey/retirement' : '/net-worth/retirement',
           actionText: 'Add Pensions',
           flagKey: 'pensions',
           dataCheck: 'hasPensions',
@@ -135,7 +140,7 @@ export default {
           id: 'protection',
           title: 'Add Your Protection Policies',
           description: 'Add details to see coverage analysis and gap identification.',
-          route: '/protection',
+          route: useJourneyRoutes ? '/onboarding/journey/protection' : '/protection',
           actionText: 'Add Policies',
           flagKey: 'protection',
           dataCheck: 'hasProtection',

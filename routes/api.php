@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
+use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
@@ -173,6 +174,18 @@ Route::middleware('auth:sanctum')->prefix('onboarding')->group(function () {
     Route::post('/complete', [OnboardingController::class, 'completeOnboarding']);
     Route::post('/complete-quick', [OnboardingController::class, 'completeQuickOnboarding']);
     Route::post('/restart', [OnboardingController::class, 'restartOnboarding']);
+});
+
+// Journey onboarding routes
+Route::middleware('auth:sanctum')->prefix('journeys')->group(function () {
+    Route::get('/selections', [JourneyController::class, 'getSelections']);
+    Route::post('/selections', [JourneyController::class, 'saveSelections']);
+    Route::get('/preview', [JourneyController::class, 'preview']);
+    Route::get('/dashboard-prompts', [JourneyController::class, 'getDashboardPrompts']);
+    Route::post('/dismiss-prompt', [JourneyController::class, 'dismissPrompt']);
+    Route::get('/{journey}/steps', [JourneyController::class, 'getSteps']);
+    Route::post('/{journey}/start', [JourneyController::class, 'startJourney']);
+    Route::post('/{journey}/complete', [JourneyController::class, 'completeJourney']);
 });
 
 // User Profile routes (Phase 2)

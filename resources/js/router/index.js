@@ -126,6 +126,19 @@ const routes = [
     meta: { requiresGuest: true },
   },
   {
+    path: '/onboarding/welcome',
+    name: 'OnboardingWelcome',
+    component: Onboarding,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/onboarding/journey/:journey',
+    name: 'OnboardingJourney',
+    component: Onboarding,
+    meta: { requiresAuth: true, hideNavbar: true },
+    props: route => ({ mode: 'journey', journeyName: route.params.journey }),
+  },
+  {
     path: '/onboarding',
     name: 'Onboarding',
     component: Onboarding,
