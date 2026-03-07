@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Traits\SanitizedErrorResponse;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\VerificationCode;
 use App\Models\AuditLog;
 use App\Models\EmailVerificationCode;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
-use App\Models\User;
 use App\Constants\TaxDefaults;
+use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
