@@ -6,13 +6,23 @@
 
 ## What's New
 
-### Faster Onboarding
+### Choose Your Own Journey
 
-Getting started with Fynla is now much quicker. New users can choose between a **Quick Setup** (3 steps) or the existing **Full Setup** (11 steps).
+Onboarding is now built around **you**. Instead of answering every question upfront, you pick the areas that matter most — Budgeting, Protection, Investment, Retirement, Estate Planning, Family, Business, or Goal Tracking — and Fynla asks only the questions relevant to your choices.
+
+- **Focus Area Selection** — Choose from 8 planning areas in a visual grid; select one or all eight
+- **Tailored Questions** — Each journey asks only the fields it needs; when you pick multiple areas, overlapping questions are deduplicated so you never answer the same thing twice
+- **Info Tooltips** — Every field explains why it's asked and how it's used in your financial plan
+- **Journey Dashboard** — Your dashboard shows progress cards for each journey, with clear "Start" and "Continue" buttons; completed journeys link directly to their module dashboard
+- **Post-Journey Prompts** — After completing a journey, a prompt guides you to explore the results (e.g., "Your portfolio is set up. Review your asset allocation and fee analysis.")
+- **Pick Up Where You Left Off** — Journeys save your progress; return any time to continue
+
+### Faster Onboarding (Quick Setup)
+
+For users who prefer a simpler start, **Quick Setup** (3 steps) remains available alongside the journey-based approach.
 
 - **Quick Setup** asks only for your personal details, planning focus areas, and a quick summary of your assets — you're on your dashboard in under 2 minutes
 - **Profile Completion Cards** appear on your dashboard after Quick Setup, guiding you to add detail to each module at your own pace
-- You can still choose Full Setup if you prefer to enter everything upfront
 
 ### Tax Strategies
 
@@ -97,8 +107,9 @@ Several form fields that weren't contributing to your financial analysis have be
 
 ## Technical Details
 
-- 120 files changed across backend and frontend
-- 5 new database migrations (non-destructive — adds columns and one new table)
-- 8 new API endpoints
-- 13 new Vue components, 7 new PHP services, 1 new agent
+- 154 files changed across backend and frontend
+- 7 new database migrations (non-destructive — adds columns, one new table, enum expansions)
+- 16 new API endpoints (8 existing + 8 journey endpoints)
+- 21 new Vue components, 10 new PHP services, 1 new agent
+- 39 new onboarding tests (174 assertions)
 - All existing functionality preserved — no breaking changes

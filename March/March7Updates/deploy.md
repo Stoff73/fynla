@@ -1,9 +1,9 @@
-# Deploy — March 7 (Information Journey Improvements)
+# Deploy — March 7 (Information Journey Improvements + Onboarding Redesign)
 
 **Date:** 7 March 2026
 **Branch:** `onboarding` (PR #112)
-**Commits:** 12 commits (`0c41369` through `1d467ce`)
-**Scope:** 10 workstreams from userJourney.md analysis — 120 files changed, 14,490 insertions
+**Commits:** 13 commits (`0c41369` through `ca37158`)
+**Scope:** 10 workstreams from userJourney.md analysis + 8 workstreams from userJourneyTasks.md — 154 files changed, 18,744 insertions
 
 ---
 
@@ -66,9 +66,51 @@
 - Will review date tracking with 3-year stale warning
 - Goal dependencies via pivot table
 
+### Onboarding Redesign — Focus-Area-Driven User Journeys
+
+Replaced single-path onboarding (Quick/Full Setup) with 8 selectable focus areas. Users choose which modules matter to them and complete tailored journeys with deduplicated fields.
+
+#### WS1-OB: Journey State Management
+- `JourneyStateService` — manages 8 journey states (not_started/in_progress/completed)
+- `JourneyFieldResolver` — field deduplication across journey selections, step generation
+- `DashboardPromptService` — post-journey dashboard prompts with dismissal tracking
+- Migration adding `journey_states`, `journey_selections`, `dismissed_prompts` JSON columns to users
+- Migration expanding `onboarding_focus_area` enum on users and `focus_area` on onboarding_progress
+
+#### WS2-OB: Journey API Endpoints
+- `JourneyController` with 8 endpoints (selections CRUD, steps, start/complete, prompts, dismiss)
+- `StoreJourneySelectionsRequest` form request validation
+
+#### WS3-OB: Welcome Page Redesign
+- `FocusAreaGrid.vue` — 4×2 responsive grid (2-col mobile, 3 tablet, 4 desktop) with animated checkmarks
+- `JourneyPreview.vue` — collapsible preview panel showing field counts, estimated minutes, InfoTooltips
+
+#### WS4-OB: Journey Step Flow
+- Journey mode added to `OnboardingWizard.vue` alongside quick/full/module modes
+- `BudgetingSteps.vue`, `GoalSetupStep.vue`, `JourneyCompletionStep.vue` step components
+- `journeys` Vuex store module with full state management
+- `journeyService.js` API wrapper
+- Routes: `/onboarding/welcome`, `/onboarding/journey/:journey`
+
+#### WS5-OB: Info Tooltips
+- `InfoTooltip.vue` — accessible tooltip (desktop hover, mobile tap, first-encounter pulse)
+- `ModuleDataRequirementsService` updated with 4 new modules and `how_used` field
+
+#### WS6-OB: Dashboard Integration
+- `JourneyCard.vue` — 3-state journey cards (not_started/in_progress/completed) with progress bar
+- `PostJourneyPrompt.vue` — dismissible prompt banners guiding next steps
+- `EmptyDashboard.vue` — welcome card for users with no data
+- `ProfileCompletionCards.vue` updated with journey-aware routing
+
+#### WS7-OB: Preview Personas
+- `PreviewUserSeeder` updated with persona-specific journey states and selections
+
+#### WS8-OB: Testing
+- 39 onboarding-specific tests (174 assertions) covering services, API, and full flow
+
 ---
 
-## Database Migrations (5 new)
+## Database Migrations (7 new)
 
 Run in this order:
 
@@ -83,6 +125,8 @@ php artisan migrate
 | `2026_03_07_120002_add_care_cost_fields_to_retirement_profiles_table` | care_cost_annual, care_start_age |
 | `2026_03_07_120003_add_last_reviewed_date_to_wills_table` | last_reviewed_date |
 | `2026_03_07_150001_create_tax_action_definitions_table` | New table for tax action definitions |
+| `2026_03_07_200001_add_journey_fields_to_users_table` | journey_states, journey_selections, dismissed_prompts JSON columns |
+| `2026_03_07_200002_expand_onboarding_focus_area_enum` | Expands focus_area enums on users + onboarding_progress |
 
 After migrations, reseed:
 
@@ -92,7 +136,7 @@ php artisan db:seed
 
 ---
 
-## New API Routes (8)
+## New API Routes (16)
 
 | Method | Route | Controller | Purpose |
 |--------|-------|------------|---------|
@@ -104,6 +148,14 @@ php artisan db:seed
 | GET | `/api/household/death-scenario` | HouseholdController | Death-of-spouse scenario |
 | GET | `/api/tax/optimisation-analysis` | TaxOptimisationController | Tax allowance analysis |
 | GET | `/api/tax/strategies` | TaxOptimisationController | Tax optimisation strategies |
+| GET | `/api/journeys/selections` | JourneyController | Get journey selections + states |
+| POST | `/api/journeys/selections` | JourneyController | Save journey selections |
+| GET | `/api/journeys/steps` | JourneyController | Get steps for selected journeys |
+| POST | `/api/journeys/{journey}/start` | JourneyController | Start a journey |
+| POST | `/api/journeys/{journey}/complete` | JourneyController | Complete a journey |
+| POST | `/api/journeys/preview` | JourneyController | Preview fields for journey combo |
+| GET | `/api/journeys/dashboard-prompts` | JourneyController | Get dashboard prompts |
+| POST | `/api/journeys/dismiss-prompt` | JourneyController | Dismiss a dashboard prompt |
 
 ---
 
@@ -126,6 +178,7 @@ app/Http/Controllers/Api/AuthController.php
 app/Http/Controllers/Api/ChattelController.php
 app/Http/Controllers/Api/Estate/LetterValidationController.php   (NEW)
 app/Http/Controllers/Api/HouseholdController.php                 (NEW)
+app/Http/Controllers/Api/JourneyController.php                      (NEW)
 app/Http/Controllers/Api/OnboardingController.php
 app/Http/Controllers/Api/PersonalAccountsController.php
 app/Http/Controllers/Api/Retirement/DecumulationController.php   (NEW)
@@ -151,6 +204,9 @@ app/Services/Coordination/RecommendationPersonaliser.php         (NEW)
 app/Services/Coordination/RecommendationsAggregatorService.php
 app/Services/Estate/FutureValueCalculator.php
 app/Services/Estate/LetterEstateValidationService.php            (NEW)
+app/Services/Onboarding/DashboardPromptService.php                   (NEW)
+app/Services/Onboarding/JourneyFieldResolver.php                     (NEW)
+app/Services/Onboarding/JourneyStateService.php                      (NEW)
 app/Services/Onboarding/OnboardingService.php
 app/Services/Plans/EstatePlanService.php
 app/Services/Plans/InvestmentPlanService.php
@@ -170,6 +226,7 @@ app/Http/Requests/Investment/StoreRiskProfileRequest.php
 app/Http/Requests/StoreInvestmentAccountRequest.php
 app/Http/Requests/UpdateInvestmentAccountRequest.php
 app/Http/Requests/UpdatePersonalInfoRequest.php
+app/Http/Requests/Onboarding/StoreJourneySelectionsRequest.php       (NEW)
 ```
 
 ### PHP Other (upload to `~/www/fynla.org/public_html/`)
@@ -188,6 +245,8 @@ database/migrations/2026_03_07_120001_add_life_expectancy_override_to_users_tabl
 database/migrations/2026_03_07_120002_add_care_cost_fields_to_retirement_profiles_table.php   (NEW)
 database/migrations/2026_03_07_120003_add_last_reviewed_date_to_wills_table.php               (NEW)
 database/migrations/2026_03_07_150001_create_tax_action_definitions_table.php                  (NEW)
+database/migrations/2026_03_07_200001_add_journey_fields_to_users_table.php                   (NEW)
+database/migrations/2026_03_07_200002_expand_onboarding_focus_area_enum.php                   (NEW)
 database/seeders/DatabaseSeeder.php
 database/seeders/TaxActionDefinitionSeeder.php                                                (NEW)
 database/factories/LetterToSpouseFactory.php                                                  (NEW)
@@ -199,7 +258,10 @@ database/factories/TaxActionDefinitionFactory.php                               
 ```
 resources/js/components/Dashboard/CrossModuleInsights.vue        (NEW)
 resources/js/components/Dashboard/DeathOfSpouseScenario.vue      (NEW)
+resources/js/components/Dashboard/EmptyDashboard.vue             (NEW)
 resources/js/components/Dashboard/HouseholdNetWorth.vue          (NEW)
+resources/js/components/Dashboard/JourneyCard.vue                (NEW)
+resources/js/components/Dashboard/PostJourneyPrompt.vue          (NEW)
 resources/js/components/Dashboard/ProfileCompletionCards.vue     (NEW)
 resources/js/components/Dashboard/SpousalOptimisations.vue      (NEW)
 resources/js/components/Estate/IHTPlanning.vue
@@ -210,10 +272,16 @@ resources/js/components/Investment/PrivateInvestmentFields.vue
 resources/js/components/Investment/RiskMismatchWarning.vue      (NEW)
 resources/js/components/NetWorth/InvestmentList.vue
 resources/js/components/NetWorth/PensionList.vue
+resources/js/components/Onboarding/FocusAreaGrid.vue             (NEW)
 resources/js/components/Onboarding/FocusAreaSelection.vue
+resources/js/components/Onboarding/JourneyPreview.vue            (NEW)
 resources/js/components/Onboarding/OnboardingWizard.vue
+resources/js/components/Onboarding/steps/BudgetingSteps.vue      (NEW)
+resources/js/components/Onboarding/steps/GoalSetupStep.vue       (NEW)
+resources/js/components/Onboarding/steps/JourneyCompletionStep.vue (NEW)
 resources/js/components/Onboarding/steps/PersonalInfoStep.vue
 resources/js/components/Onboarding/steps/QuickAssetsStep.vue    (NEW)
+resources/js/components/Shared/InfoTooltip.vue                   (NEW)
 resources/js/components/Plans/Shared/PlanActionCard.vue
 resources/js/components/Protection/RecommendationCard.vue
 resources/js/components/Retirement/DecumulationStrategyCard.vue (NEW)
@@ -222,6 +290,7 @@ resources/js/components/UserProfile/FamilyMembers.vue
 resources/js/components/UserProfile/LetterToSpouse.vue
 resources/js/components/UserProfile/PersonalInformation.vue
 resources/js/router/index.js
+resources/js/services/journeyService.js                         (NEW)
 resources/js/services/householdService.js                       (NEW)
 resources/js/services/investmentService.js
 resources/js/services/onboardingService.js
@@ -229,6 +298,7 @@ resources/js/services/retirementService.js
 resources/js/services/riskService.js
 resources/js/services/taxOptimisationService.js                 (NEW)
 resources/js/store/index.js
+resources/js/store/modules/journeys.js                          (NEW)
 resources/js/store/modules/household.js                         (NEW)
 resources/js/store/modules/onboarding.js
 resources/js/store/modules/retirement.js
@@ -283,8 +353,10 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 After deploy, verify:
 
-1. **Onboarding** — New user registration offers "Quick Setup" (3 steps) and "Full Setup" options
-2. **Dashboard** — Profile completion cards appear for quick-onboarded users with missing data
+1. **Onboarding (Journey Mode)** — New user registration shows 4×2 focus area grid; selecting areas reveals field preview with info tooltips; starting journeys loads tailored step flow
+2. **Dashboard (Journeys)** — Journey cards show correct states (not_started/in_progress/completed); post-journey prompts appear after completion; empty dashboard shows for new users with no data
+3. **Onboarding (Legacy)** — Quick Setup and Full Setup still work for users who don't select focus areas
+4. **Dashboard** — Profile completion cards appear for quick-onboarded users with missing data
 3. **Dashboard (married)** — Household net worth, spousal optimisations, death scenario cards visible for `peak_earners`
 4. **Dashboard** — Cross-module insights card shows strategy recommendations
 5. **Retirement** — Decumulation strategy card appears on retirement dashboard with drawdown projections
@@ -304,19 +376,19 @@ After deploy, verify:
 | Category | New | Modified | Total |
 |----------|-----|----------|-------|
 | PHP Agents | 1 | 4 | 5 |
-| PHP Controllers | 4 | 4 | 8 |
+| PHP Controllers | 5 | 4 | 9 |
 | PHP Models | 1 | 3 | 4 |
-| PHP Services | 7 | 9 | 16 |
-| PHP Requests | 0 | 5 | 5 |
+| PHP Services | 10 | 9 | 19 |
+| PHP Requests | 1 | 5 | 6 |
 | PHP Other | 1 | 1 | 2 |
 | Routes | 0 | 1 | 1 |
-| Migrations | 5 | 0 | 5 |
+| Migrations | 7 | 0 | 7 |
 | Seeders | 1 | 1 | 2 |
 | Factories | 2 | 0 | 2 |
-| Vue Components | 13 | 14 | 27 |
-| Vue Views | 3 | 5 | 8 |
-| JS Services | 2 | 4 | 6 |
-| JS Stores | 2 | 4 | 6 |
+| Vue Components | 21 | 15 | 36 |
+| Vue Views | 3 | 6 | 9 |
+| JS Services | 3 | 4 | 7 |
+| JS Stores | 3 | 4 | 7 |
 | JS Router | 0 | 1 | 1 |
-| **Total PHP to upload** | | | **50** |
-| **Total frontend (in build)** | | | **48** |
+| **Total PHP to upload** | | | **55** |
+| **Total frontend (in build)** | | | **60** |
