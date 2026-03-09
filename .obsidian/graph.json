@@ -6,7 +6,14 @@
   "hideUnresolved": false,
   "showOrphans": true,
   "collapse-color-groups": true,
-  "colorGroups": [],
+  "colorGroups": [
+    { "query": "path:March", "color": { "a": 1, "rgb": 14827118 } },
+    { "query": "path:Feb", "color": { "a": 1, "rgb": 5765350 } },
+    { "query": "path:appMapping/currentState", "color": { "a": 1, "rgb": 2143590 } },
+    { "query": "path:revolut", "color": { "a": 1, "rgb": 15228525 } },
+    { "query": "path:plugins", "color": { "a": 1, "rgb": 5722854 } },
+    { "query": "file:Home OR file:\"March Sessions\" OR file:\"February Sessions\" OR file:\"System Map\"", "color": { "a": 1, "rgb": 15228269 } }
+  ],
   "collapse-display": true,
   "showArrow": false,
   "textFadeMultiplier": 0,
