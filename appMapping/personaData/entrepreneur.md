@@ -28,7 +28,7 @@
 | Health Status | Yes |
 | Smoking Status | Never |
 | Education Level | Postgraduate |
-| Has Will | No |
+| Has Will | Yes |
 | Has LPA | No |
 
 ### Address
@@ -466,20 +466,20 @@ None
 |-------|-------|
 | Has Will | Yes |
 | Spouse Primary Beneficiary | No |
-| Executor | David Chen (Father) & Pannone Corporate LLP |
+| Executor | Wei Chen (Father) & Pannone Corporate LLP |
 | Last Updated | 2024-06-15 |
 
-**Executor Notes:** Will drafted to account for business interests. DataFlow Analytics shares held via SeedLegals shareholder agreement. Business partner Tom has first refusal on shares. Consider updating after any funding round.
+**Executor Notes:** Will drafted to account for business interests. Chen Tech Consulting Ltd shares held via shareholder agreement. Business partner Marcus Wong has first refusal on shares. Consider updating after any funding round.
 
 ### Bequests
 
 | Beneficiary | Type | Amount/% | Priority | Conditions |
 |-------------|------|----------|----------|------------|
-| David Chen (Father) | Percentage | 40% | 2 | - |
-| Lin Chen (Mother) | Percentage | 40% | 2 | - |
+| Wei Chen (Father) | Percentage | 40% | 2 | - |
+| Mei Chen (Mother) | Percentage | 40% | 2 | - |
 | Manchester Tech Foundation | Percentage | 10% | 2 | To support young entrepreneurs from underrepresented backgrounds |
-| Cancer Research UK | Specific Amount | £25,000 | 1 | In memory of grandmother Li Chen |
-| Tom Harrison (Business Partner) | Specific Asset | First refusal on DataFlow Analytics shares at fair market value | 1 | Per shareholder agreement dated March 2022 |
+| Cancer Research UK | Specific Amount | £25,000 | 1 | In memory of grandmother |
+| Marcus Wong (Business Partner) | Specific Asset | First refusal on Chen Tech Consulting Ltd shares at fair market value | 1 | Per shareholder agreement |
 
 ---
 

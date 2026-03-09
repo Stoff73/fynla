@@ -581,19 +581,19 @@
     "has_will": true,
     "spouse_primary_beneficiary": false,
     "spouse_bequest_percentage": 0,
-    "executor_name": "David Chen (Father) & Pannone Corporate LLP",
-    "executor_notes": "Will drafted to account for business interests. DataFlow Analytics shares held via SeedLegals shareholder agreement. Business partner Tom has first refusal on shares. Consider updating after any funding round.",
+    "executor_name": "Wei Chen (Father) & Pannone Corporate LLP",
+    "executor_notes": "Will drafted to account for business interests. Chen Tech Consulting Ltd shares held via shareholder agreement. Business partner Marcus Wong has first refusal on shares. Consider updating after any funding round.",
     "will_last_updated": "2024-06-15",
     "bequests": [
       {
-        "beneficiary_name": "David Chen (Father)",
+        "beneficiary_name": "Wei Chen (Father)",
         "bequest_type": "percentage",
         "percentage_of_estate": 40,
         "priority_order": 2,
         "conditions": null
       },
       {
-        "beneficiary_name": "Lin Chen (Mother)",
+        "beneficiary_name": "Mei Chen (Mother)",
         "bequest_type": "percentage",
         "percentage_of_estate": 40,
         "priority_order": 2,
@@ -611,14 +611,14 @@
         "bequest_type": "specific_amount",
         "specific_amount": 25000,
         "priority_order": 1,
-        "conditions": "In memory of grandmother Li Chen"
+        "conditions": "In memory of grandmother"
       },
       {
-        "beneficiary_name": "Tom Harrison (Business Partner)",
+        "beneficiary_name": "Marcus Wong (Business Partner)",
         "bequest_type": "specific_asset",
-        "specific_asset_description": "First refusal on DataFlow Analytics shares at fair market value",
+        "specific_asset_description": "First refusal on Chen Tech Consulting Ltd shares at fair market value",
         "priority_order": 1,
-        "conditions": "Per shareholder agreement dated March 2022"
+        "conditions": "Per shareholder agreement"
       }
     ]
   },
@@ -740,7 +740,7 @@
     "additional_boxes": [
       {
         "title": "Chen Tech Consulting - Business Succession",
-        "content": "60% shareholding in Chen Tech Consulting Ltd\nMarc Wong owns 40%\n\nShareholder Agreement provisions:\n- Marcus has right of first refusal on my shares\n- Valuation: 3x trailing earnings multiple\n- Key person insurance (£500k) to fund buyout\n\nCompany Number: 12345678\nContact: Pannone Corporate for share transfer\n\nCRITICAL: Business must continue - 8 employees depend on it"
+        "content": "60% shareholding in Chen Tech Consulting Ltd\nMarcus Wong owns 40%\n\nShareholder Agreement provisions:\n- Marcus has right of first refusal on my shares\n- Valuation: 3x trailing earnings multiple\n- Key person insurance (£500k) to fund buyout\n\nCompany Number: 12345678\nContact: Pannone Corporate for share transfer\n\nCRITICAL: Business must continue - 8 employees depend on it"
       },
       {
         "title": "TechAngel Ventures LLP - Investment Holding",

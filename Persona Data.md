@@ -13,4 +13,5 @@ Preview user personas for testing. Access via the landing page persona selector 
 | Widow | Margaret Thompson | Estate planning | [[appMapping/personaData/widow]] |
 | Entrepreneur | Alex Chen | SIPP, business interests | [[appMapping/personaData/entrepreneur]] |
 | Young Saver | John Morgan | Emergency fund, first-time savings | [[appMapping/personaData/young_saver]] |
-| Retired Couple | Robert & Patricia Williams | Decumulation, estate planning | [[appMapping/personaData/retired_couple]] |
+| Retired Couple | Patricia & Harold Bennett | Decumulation, estate planning | [[appMapping/personaData/retired_couple]] |
+| Student | Janice Taylor | Student budgeting, first savings | [[appMapping/personaData/student]] |

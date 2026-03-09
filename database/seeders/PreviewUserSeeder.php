@@ -1029,6 +1029,8 @@ class PreviewUserSeeder extends Seeder
                 'normal_retirement_age' => $pension['normal_retirement_age'] ?? 65,
                 'lump_sum_entitlement' => $pension['lump_sum_entitlement'] ?? $pension['lump_sum_option'] ?? null,
                 'inflation_protection' => $pension['inflation_protection'] ?? 'cpi',
+                'spouse_pension_percent' => $pension['spouse_benefit_percentage'] ?? null,
+                'pensionable_service_years' => $pension['years_of_service'] ?? null,
             ]);
         }
     }

@@ -206,7 +206,7 @@
 |-------|-------|
 | Provider | HSBC |
 | Type | Current Account |
-| Balance | £8,450 |
+| Balance | £25,000 |
 | Ownership | Individual |
 | Notes | Main salary account |
 

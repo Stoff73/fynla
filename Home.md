@@ -32,6 +32,9 @@ Module-by-module system documentation with controllers, services, models, and Vu
 - [[appMapping/v083/00-TABLE-OF-CONTENTS|v0.8.3 Architecture]] — Current version
 - [[appMapping/v07/00-TABLE-OF-CONTENTS|v0.7 Architecture]] — Previous version
 
+### Wireframes
+- [[appMapping/wireframe/index|v0.8.3 Wireframes]] — Complete app wireframes (63 screens, 18 modals, all 8 modules)
+
 ### [[Persona Data]]
 Preview user personas and test data.
 

@@ -4,12 +4,15 @@
 
 ---
 
-## March 9 — Marketplace & Onboarding Journey
+## March 9 — Marketplace, Onboarding Journey & Persona Audit
 
 | Doc | Topic |
 |-----|-------|
 | [[March/March9Update/marketplaceDeploy]] | Fynla Marketplace setup — 4 plugins, git-subdir sources |
 | [[March/March9Update/march9Session1]] | Session 1 notes |
+| [[March/March9Update/march9Session2]] | Session 2 — Marketplace, vault organisation, branch cleanup |
+| [[March/March9Update/seederPersonaDeploy]] | Session 3 — Persona audit, seeder fixes, student persona |
+| [[March/March9Update/wireframeGeneration]] | Session 4 — Full app wireframe generation (14 files, 63 screens) |
 | [[March/March9Update/journeyDeploy]] | Onboarding journey deployment |
 | [[March/March9Update/journeyMappingUpdates]] | Journey mapping updates |
 | [[March/March9Update/formComponents]] | Form component inventory |
