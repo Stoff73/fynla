@@ -6,13 +6,16 @@
   },
   "metadata": {
     "description": "Official marketplace for Fynla financial planning application — skills, agents, and tools for the development team",
-    "version": "1.0.0",
-    "pluginRoot": "./plugins"
+    "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "fynla-dev-skills",
-      "source": "fynla-dev-skills",
+      "source": {
+        "source": "git-subdir",
+        "url": "Stoff73/fynla",
+        "path": "plugins/fynla-dev-skills"
+      },
       "description": "Core development skills: systematic debugging, feature scaffolding, tech debt auditing, deployment checklists, cost estimation, and skill creation",
       "version": "1.0.0",
       "author": {
@@ -23,7 +26,11 @@
     },
     {
       "name": "fynla-compliance",
-      "source": "fynla-compliance",
+      "source": {
+        "source": "git-subdir",
+        "url": "Stoff73/fynla",
+        "path": "plugins/fynla-compliance"
+      },
       "description": "UK tax compliance and security review agents — HMRC tax calculation verification and financial data security auditing",
       "version": "1.0.0",
       "author": {
@@ -34,7 +41,11 @@
     },
     {
       "name": "fynla-design",
-      "source": "fynla-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "Stoff73/fynla",
+        "path": "plugins/fynla-design"
+      },
       "description": "Premium UI design and UX writing agents — elevate interfaces and craft user-centred microcopy",
       "version": "1.0.0",
       "author": {
@@ -45,7 +56,11 @@
     },
     {
       "name": "fynla-ops",
-      "source": "fynla-ops",
+      "source": {
+        "source": "git-subdir",
+        "url": "Stoff73/fynla",
+        "path": "plugins/fynla-ops"
+      },
       "description": "Operations agents: Laravel deployment, MySQL optimisation, and product management",
       "version": "1.0.0",
       "author": {
