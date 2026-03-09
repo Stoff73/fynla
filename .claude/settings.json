@@ -34,7 +34,7 @@
     "fynla-marketplace": {
       "source": {
         "source": "github",
-        "repo": "your-org/fynla"
+        "repo": "Stoff73/fynla"
       }
     }
   },
