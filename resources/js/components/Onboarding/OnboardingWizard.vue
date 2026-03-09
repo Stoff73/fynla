@@ -141,6 +141,12 @@ import QuickAssetsStep from './steps/QuickAssetsStep.vue';
 import BudgetingSteps from './steps/BudgetingSteps.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
 import JourneyCompletionStep from './steps/JourneyCompletionStep.vue';
+import SimplePersonalInfoStep from './steps/SimplePersonalInfoStep.vue';
+import SimpleIncomeStep from './steps/SimpleIncomeStep.vue';
+import SimpleExpenditureStep from './steps/SimpleExpenditureStep.vue';
+import SimpleSavingsAccountStep from './steps/SimpleSavingsAccountStep.vue';
+import SimplePropertyMortgageStep from './steps/SimplePropertyMortgageStep.vue';
+import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 
 export default {
   name: 'OnboardingWizard',
@@ -164,6 +170,12 @@ export default {
     BudgetingSteps,
     GoalSetupStep,
     JourneyCompletionStep,
+    SimplePersonalInfoStep,
+    SimpleIncomeStep,
+    SimpleExpenditureStep,
+    SimpleSavingsAccountStep,
+    SimplePropertyMortgageStep,
+    BudgetingCompletionStep,
   },
 
   props: {
@@ -377,6 +389,14 @@ export default {
         'quick_assets': 'Overview',
         'budgeting': 'Budget',
         'goals': 'Goals',
+        'Personal Information': 'Personal',
+        'Your Income': 'Income',
+        'Your Monthly Outgoings': 'Spending',
+        'Your Savings Accounts': 'Savings',
+        'Your Property & Mortgage': 'Property',
+        'Your Family & Dependants': 'Family',
+        'Your Debts & Loans': 'Debts',
+        'Your Existing Protection': 'Protection',
       };
       return labelMap[step.name] || step.title || step.name;
     };
@@ -392,7 +412,41 @@ export default {
       const componentName = step.component;
       const fields = step.fields || [];
 
-      // Direct component mappings
+      // Direct component mappings for simplified journey steps
+      if (componentName === 'SimplePersonalInfoStep') {
+        return 'SimplePersonalInfoStep';
+      }
+
+      if (componentName === 'SimpleIncomeStep') {
+        return 'SimpleIncomeStep';
+      }
+
+      if (componentName === 'SimpleExpenditureStep') {
+        return 'SimpleExpenditureStep';
+      }
+
+      if (componentName === 'SimpleSavingsAccountStep') {
+        return 'SimpleSavingsAccountStep';
+      }
+
+      if (componentName === 'SimplePropertyMortgageStep') {
+        return 'SimplePropertyMortgageStep';
+      }
+
+      // Reused existing components (referenced directly by name from step overrides)
+      if (componentName === 'FamilyInfoStep') {
+        return 'FamilyInfoStep';
+      }
+
+      if (componentName === 'LiabilitiesStep') {
+        return 'LiabilitiesStep';
+      }
+
+      if (componentName === 'ProtectionPoliciesStep') {
+        return 'ProtectionPoliciesStep';
+      }
+
+      // Standard component mappings
       if (componentName === 'JourneyPersonalStep') {
         return 'PersonalInfoStep';
       }

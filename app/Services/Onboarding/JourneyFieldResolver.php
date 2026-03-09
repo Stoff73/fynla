@@ -10,6 +10,45 @@ class JourneyFieldResolver
 {
     use StructuredLogging;
 
+    /**
+     * Step overrides for journeys that need explicit step definitions
+     * instead of the default personal-fields-collapsed behaviour.
+     */
+    private const JOURNEY_STEP_OVERRIDES = [
+        'budgeting' => [
+            ['name' => 'Personal Information', 'component' => 'SimplePersonalInfoStep', 'fields' => []],
+            ['name' => 'Your Income', 'component' => 'SimpleIncomeStep', 'fields' => ['annual_employment_income']],
+            ['name' => 'Your Monthly Outgoings', 'component' => 'SimpleExpenditureStep', 'fields' => ['monthly_expenditure']],
+            ['name' => 'Your Savings Accounts', 'component' => 'SimpleSavingsAccountStep', 'fields' => ['savings_accounts']],
+        ],
+        'protection' => [
+            ['name' => 'Personal Information', 'component' => 'SimplePersonalInfoStep', 'fields' => ['date_of_birth', 'marital_status', 'health_status', 'smoking_status']],
+            ['name' => 'Your Income', 'component' => 'SimpleIncomeStep', 'fields' => ['annual_employment_income', 'occupation']],
+            ['name' => 'Your Monthly Outgoings', 'component' => 'SimpleExpenditureStep', 'fields' => ['monthly_expenditure']],
+            ['name' => 'Your Property & Mortgage', 'component' => 'SimplePropertyMortgageStep', 'fields' => ['mortgages']],
+            ['name' => 'Your Family & Dependants', 'component' => 'FamilyInfoStep', 'fields' => ['family_members']],
+            ['name' => 'Your Debts & Loans', 'component' => 'LiabilitiesStep', 'fields' => ['liabilities']],
+            ['name' => 'Your Existing Protection', 'component' => 'ProtectionPoliciesStep', 'fields' => ['protection_policies']],
+        ],
+    ];
+
+    /**
+     * Multi-journey step overrides for specific combinations.
+     * Key is a sorted comma-separated list of journey names.
+     */
+    private const MULTI_JOURNEY_STEP_OVERRIDES = [
+        'budgeting,protection' => [
+            ['name' => 'Personal Information', 'component' => 'SimplePersonalInfoStep', 'fields' => ['date_of_birth', 'marital_status', 'health_status', 'smoking_status']],
+            ['name' => 'Your Income', 'component' => 'SimpleIncomeStep', 'fields' => ['annual_employment_income', 'occupation']],
+            ['name' => 'Your Monthly Outgoings', 'component' => 'SimpleExpenditureStep', 'fields' => ['monthly_expenditure']],
+            ['name' => 'Your Property & Mortgage', 'component' => 'SimplePropertyMortgageStep', 'fields' => ['mortgages']],
+            ['name' => 'Your Family & Dependants', 'component' => 'FamilyInfoStep', 'fields' => ['family_members']],
+            ['name' => 'Your Debts & Loans', 'component' => 'LiabilitiesStep', 'fields' => ['liabilities']],
+            ['name' => 'Your Savings Accounts', 'component' => 'SimpleSavingsAccountStep', 'fields' => ['savings_accounts']],
+            ['name' => 'Your Existing Protection', 'component' => 'ProtectionPoliciesStep', 'fields' => ['protection_policies']],
+        ],
+    ];
+
     private const JOURNEY_FIELDS = [
         'budgeting' => [
             'personal' => ['annual_employment_income', 'monthly_expenditure'],
@@ -279,6 +318,11 @@ class JourneyFieldResolver
     {
         $this->validateJourneyNames([$journey]);
 
+        // Use explicit step overrides if defined for this journey
+        if (isset(self::JOURNEY_STEP_OVERRIDES[$journey])) {
+            return self::JOURNEY_STEP_OVERRIDES[$journey];
+        }
+
         $steps = [];
         $config = self::JOURNEY_FIELDS[$journey];
 
@@ -309,6 +353,19 @@ class JourneyFieldResolver
     public function getStepsForJourneys(array $journeys): array
     {
         $this->validateJourneyNames($journeys);
+
+        // If only one journey and it has step overrides, use those directly
+        if (count($journeys) === 1 && isset(self::JOURNEY_STEP_OVERRIDES[$journeys[0]])) {
+            return self::JOURNEY_STEP_OVERRIDES[$journeys[0]];
+        }
+
+        // Check for explicit multi-journey combination overrides
+        $sortedKey = $journeys;
+        sort($sortedKey);
+        $combinationKey = implode(',', $sortedKey);
+        if (isset(self::MULTI_JOURNEY_STEP_OVERRIDES[$combinationKey])) {
+            return self::MULTI_JOURNEY_STEP_OVERRIDES[$combinationKey];
+        }
 
         $mergedPersonalFields = [];
         $financialSteps = [];
