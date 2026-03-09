@@ -9,6 +9,7 @@ use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\GiftingStrategyOptimizer;
@@ -33,7 +34,8 @@ class EstateAgent extends BaseAgent
         private readonly GiftingStrategyOptimizer $giftingOptimizer,
         private readonly PersonalizedTrustStrategyService $trustStrategyService,
         private readonly WillAnalysisService $willAnalysisService,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RecommendationPersonaliser $personaliser
     ) {}
 
     /**
@@ -116,7 +118,8 @@ class EstateAgent extends BaseAgent
                 $currentAge = $user->date_of_birth
                     ? (int) $user->date_of_birth->diffInYears(now())
                     : EstateDefaults::DEFAULT_CURRENT_AGE;
-                $yearsUntilDeath = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
+                $lifeExpectancy = $user->life_expectancy_override ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY;
+                $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
                 $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
                 $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
 
@@ -152,6 +155,17 @@ class EstateAgent extends BaseAgent
                 // Continue without charitable analysis
             }
 
+            // Will review status
+            $willReviewStatus = null;
+            if (isset($will) && $will) {
+                $lastReviewed = $will->last_reviewed_date ?? $will->will_last_updated;
+                $willReviewStatus = [
+                    'has_will' => (bool) $will->has_will,
+                    'last_reviewed_date' => $lastReviewed?->format('Y-m-d'),
+                    'is_stale' => $lastReviewed ? $lastReviewed->lt(now()->subYears(3)) : true,
+                ];
+            }
+
             // Calculate current age and life expectancy context
             $currentAge = $user->date_of_birth ?
                 (int) $user->date_of_birth->diffInYears(now()) : EstateDefaults::DEFAULT_CURRENT_AGE;
@@ -173,6 +187,7 @@ class EstateAgent extends BaseAgent
                     'gifting_opportunities' => $giftingOpportunities,
                     'trust_wish_triggers' => $trustWishTriggers,
                     'charitable_analysis' => $charitableAnalysis,
+                    'will_review_status' => $willReviewStatus,
                     'life_cover' => [
                         'user_cover_in_trust' => (float) $lifePoliciesInTrust->sum('sum_assured'),
                         'spouse_cover_in_trust' => (float) $spouseLifeCoverInTrust,
@@ -183,6 +198,7 @@ class EstateAgent extends BaseAgent
                     ],
                     'profile' => [
                         'current_age' => $currentAge,
+                        'life_expectancy' => $user->life_expectancy_override ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY,
                         'marital_status' => $user->marital_status,
                         'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
                         'has_spouse' => $user->spouse !== null,
@@ -219,6 +235,7 @@ class EstateAgent extends BaseAgent
         $ihtLiability = $data['summary']['iht_liability'] ?? 0;
         $netEstate = $data['summary']['net_estate'] ?? 0;
         $currentAge = $data['profile']['current_age'] ?? 50;
+        $lifeExpectancy = $data['profile']['life_expectancy'] ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY;
         $charitableAnalysis = $data['charitable_analysis'] ?? [];
         $trustWishTriggers = $data['trust_wish_triggers'] ?? [];
 
@@ -252,7 +269,7 @@ class EstateAgent extends BaseAgent
 
             // STEP 4: Annual Gifting Strategy (First Resort)
             if ($remainingLiability > 0) {
-                $annualGiftingResult = $this->step4AnnualGiftingStrategy($currentAge, $remainingLiability);
+                $annualGiftingResult = $this->step4AnnualGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy);
                 if ($annualGiftingResult['recommendation']) {
                     $recommendations[] = $annualGiftingResult['recommendation'];
                 }
@@ -270,7 +287,7 @@ class EstateAgent extends BaseAgent
 
             // STEP 6: PET Gifting Strategy (Third Resort)
             if ($remainingLiability > 0) {
-                $petResult = $this->step6PETGiftingStrategy($currentAge, $remainingLiability);
+                $petResult = $this->step6PETGiftingStrategy($currentAge, $remainingLiability, $lifeExpectancy);
                 if ($petResult['recommendation']) {
                     $recommendations[] = $petResult['recommendation'];
                 }
@@ -296,6 +313,24 @@ class EstateAgent extends BaseAgent
                 'description' => count($trustWishTriggers).' wishes in your will may require trust arrangements',
                 'actions' => array_map(fn ($t) => $t['recommendation'], array_slice($trustWishTriggers, 0, 3)),
                 'details' => $trustWishTriggers,
+            ];
+        }
+
+        // Stale will warning
+        $willReviewStatus = $data['will_review_status'] ?? null;
+        if ($willReviewStatus && $willReviewStatus['has_will'] && ($willReviewStatus['is_stale'] ?? false)) {
+            $recommendations[] = [
+                'category' => 'will_review',
+                'priority' => 'medium',
+                'step' => 0,
+                'title' => 'Will Review Recommended',
+                'description' => 'Your will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
+                'actions' => [
+                    'Schedule a review with your solicitor',
+                    'Check that your executor details are still correct',
+                    'Ensure your beneficiaries reflect your current wishes',
+                ],
+                'last_reviewed_date' => $willReviewStatus['last_reviewed_date'],
             ];
         }
 
@@ -464,13 +499,13 @@ class EstateAgent extends BaseAgent
      * Step 4: Annual Gifting Strategy (First Resort)
      * Immediately exempt gifts - no 7-year wait, no tax risk
      */
-    private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability): array
+    private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = EstateDefaults::DEFAULT_LIFE_EXPECTANCY): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $annualExemption = $ihtConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
 
         // Estimate years to life expectancy
-        $yearsToLifeExpectancy = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
+        $yearsToLifeExpectancy = max(1, $lifeExpectancy - $currentAge);
 
         // Annual exemption potential (including carry forward from unused previous year)
         $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
@@ -540,13 +575,13 @@ class EstateAgent extends BaseAgent
      * Step 6: PET Gifting Strategy (Third Resort)
      * Potentially Exempt Transfers - exempt if donor survives 7 years
      */
-    private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability): array
+    private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = EstateDefaults::DEFAULT_LIFE_EXPECTANCY): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
 
         // Calculate years to life expectancy
-        $yearsToLifeExpectancy = max(1, EstateDefaults::DEFAULT_LIFE_EXPECTANCY - $currentAge);
+        $yearsToLifeExpectancy = max(1, $lifeExpectancy - $currentAge);
 
         // Calculate 7-year cycles available
         $sevenYearCycles = floor($yearsToLifeExpectancy / 7);

@@ -26,7 +26,6 @@ describe('PersonalInformation.vue', () => {
               date_of_birth: '1990-01-01',
               gender: 'male',
               marital_status: 'single',
-              national_insurance_number: 'AB123456C',
               address: {
                 line_1: '123 Main St',
                 line_2: 'Apt 4',

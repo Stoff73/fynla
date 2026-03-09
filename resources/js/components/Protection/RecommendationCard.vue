@@ -84,6 +84,21 @@
         </p>
       </div>
 
+      <!-- Personalised Context -->
+      <div v-if="hasPersonalisedContext" class="mb-4 bg-savannah-100 rounded-lg p-3">
+        <h5 class="text-sm font-semibold text-horizon-500 mb-2">Why this matters for you</h5>
+        <ul class="space-y-1">
+          <li
+            v-for="(item, index) in recommendation.personalised_context"
+            :key="index"
+            class="text-sm text-neutral-500 flex items-start gap-2"
+          >
+            <span class="text-violet-500 mt-0.5 flex-shrink-0">&bull;</span>
+            <span>{{ item }}</span>
+          </li>
+        </ul>
+      </div>
+
       <!-- Additional Details -->
       <div v-if="recommendation.details" class="mb-4">
         <h5 class="text-sm font-semibold text-neutral-500 mb-2">Additional Details</h5>
@@ -153,6 +168,11 @@ export default {
         low: 'border-spring-300',
       };
       return classes[this.recommendation.priority] || 'border-light-gray';
+    },
+
+    hasPersonalisedContext() {
+      return Array.isArray(this.recommendation.personalised_context)
+        && this.recommendation.personalised_context.length > 0;
     },
   },
 

@@ -116,10 +116,6 @@
                 <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
               </div>
 
-              <div v-if="member.education_status">
-                <p class="text-body-xs text-neutral-500">Education</p>
-                <p class="text-body-sm text-horizon-500 capitalize">{{ member.education_status.replace('_', ' ') }}</p>
-              </div>
             </div>
 
             <div v-if="member.notes" class="mt-3">

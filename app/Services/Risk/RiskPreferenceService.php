@@ -169,12 +169,16 @@ class RiskPreferenceService
             'factor_count' => count($result['factor_breakdown']),
         ]);
 
+        // Check for risk mismatch
+        $mismatch = $calculator->detectRiskMismatch($riskProfile);
+
         return [
             'risk_level' => $result['risk_level'],
             'factor_breakdown' => $result['factor_breakdown'],
             'risk_assessed_at' => $riskProfile->risk_assessed_at?->toIso8601String(),
             'is_self_assessed' => false,
             'config' => $this->getRiskLevelConfig($result['risk_level']),
+            'risk_mismatch' => $mismatch,
         ];
     }
 
@@ -196,6 +200,7 @@ class RiskPreferenceService
      * Get user's complete risk profile
      *
      * Always recalculates factor_breakdown to ensure current values and components.
+     * Includes risk mismatch detection when user has a stated tolerance.
      */
     public function getRiskProfile(int $userId): ?array
     {
@@ -212,12 +217,16 @@ class RiskPreferenceService
         $user = User::findOrFail($userId);
         $calculated = $calculator->calculateRiskProfile($user);
 
+        // Check for risk mismatch
+        $mismatch = $calculator->detectRiskMismatch($profile);
+
         return [
             'risk_level' => $profile->risk_level,
             'risk_assessed_at' => $profile->risk_assessed_at?->toIso8601String(),
             'is_self_assessed' => $profile->is_self_assessed,
             'factor_breakdown' => $calculated['factor_breakdown'],
             'config' => $config,
+            'risk_mismatch' => $mismatch,
         ];
     }
 

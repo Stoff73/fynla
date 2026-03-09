@@ -237,8 +237,6 @@ describe('Risk Profile Management', function () {
             'capacity_for_loss_percent' => 25,
             'time_horizon_years' => 20,
             'knowledge_level' => 'intermediate',
-            'attitude_to_volatility' => 'Comfortable with moderate fluctuations',
-            'esg_preference' => true,
         ]);
 
         $response->assertStatus(200)

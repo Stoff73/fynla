@@ -94,6 +94,13 @@
                 <p class="text-sm text-horizon-500">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
               </div>
               <div>
+                <div class="text-sm font-medium text-neutral-500 mb-1">Last Reviewed</div>
+                <p class="text-sm text-horizon-500">{{ form.last_reviewed_date ? formatDate(form.last_reviewed_date) : 'Not reviewed' }}</p>
+                <p v-if="isWillStale" class="text-xs text-violet-600 mt-1">
+                  Your will has not been reviewed recently. It is recommended to review your will every 3-5 years.
+                </p>
+              </div>
+              <div>
                 <div class="text-sm font-medium text-neutral-500 mb-1">Executor</div>
                 <p class="text-sm text-horizon-500">{{ form.executor_name || 'Not specified' }}</p>
               </div>
@@ -165,6 +172,23 @@
               />
               <p class="mt-1 text-xs text-neutral-500">
                 It's recommended to review your will every 5 years or after major life events
+              </p>
+            </div>
+
+            <!-- Last Reviewed Date -->
+            <div>
+              <label for="last_reviewed_date" class="block text-sm font-medium text-neutral-500 mb-2">
+                When was your will last reviewed?
+              </label>
+              <input
+                id="last_reviewed_date"
+                v-model="form.last_reviewed_date"
+                type="date"
+                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
+                :max="today"
+              />
+              <p class="mt-1 text-xs text-neutral-500">
+                It is recommended to review your will every 3-5 years or after significant life events
               </p>
             </div>
 
@@ -374,6 +398,7 @@ export default {
       form: {
         has_will: null,
         will_last_updated: '',
+        last_reviewed_date: '',
         executor_name: '',
         spouse_primary_beneficiary: true,
         spouse_bequest_percentage: 100,
@@ -411,6 +436,15 @@ export default {
 
     today() {
       return new Date().toISOString().split('T')[0];
+    },
+
+    isWillStale() {
+      const reviewDate = this.form.last_reviewed_date || this.form.will_last_updated;
+      if (!reviewDate) return true;
+      const date = new Date(reviewDate);
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      return date < threeYearsAgo;
     },
   },
 
@@ -455,6 +489,7 @@ export default {
         this.form = {
           has_will: this.will.has_will,
           will_last_updated: this.formatDateForInput(this.will.will_last_updated),
+          last_reviewed_date: this.formatDateForInput(this.will.last_reviewed_date),
           executor_name: this.will.executor_name || '',
           spouse_primary_beneficiary: this.will.spouse_primary_beneficiary,
           spouse_bequest_percentage: parseFloat(this.will.spouse_bequest_percentage),

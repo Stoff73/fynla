@@ -75,10 +75,6 @@
           <span class="detail-label">Company Number</span>
           <span class="detail-value">{{ account.company_registration_number }}</span>
         </div>
-        <div v-if="account.company_sector" class="detail-item">
-          <span class="detail-label">Sector</span>
-          <span class="detail-value">{{ sectorLabel }}</span>
-        </div>
         <div v-if="account.company_website" class="detail-item">
           <span class="detail-label">Website</span>
           <a :href="formatUrl(account.company_website)" target="_blank" rel="noopener noreferrer" class="detail-value text-violet-600 hover:underline">
@@ -146,14 +142,6 @@
         <div v-if="account.nominee_name" class="detail-item">
           <span class="detail-label">Nominee</span>
           <span class="detail-value">{{ account.nominee_name }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Voting Rights</span>
-          <span class="detail-value">{{ account.has_voting_rights !== false ? 'Yes' : 'No' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Dividend Rights</span>
-          <span class="detail-value">{{ account.has_dividend_rights !== false ? 'Yes' : 'No' }}</span>
         </div>
         <div v-if="account.current_ownership_percent" class="detail-item">
           <span class="detail-label">Ownership %</span>
@@ -532,19 +520,6 @@ export default {
         'fund_nominee_interest': 'Fund/Nominee Interest',
       };
       return types[this.account.instrument_type] || this.account.instrument_type || '--';
-    },
-
-    sectorLabel() {
-      const sectors = {
-        'technology': 'Technology',
-        'healthcare': 'Healthcare',
-        'fintech': 'Fintech',
-        'consumer': 'Consumer',
-        'energy': 'Energy',
-        'real_estate': 'Real Estate',
-        'other': 'Other',
-      };
-      return sectors[this.account.company_sector] || this.account.company_sector || '--';
     },
 
     exitTypeLabel() {

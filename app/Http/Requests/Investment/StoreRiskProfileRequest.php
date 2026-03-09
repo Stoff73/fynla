@@ -30,8 +30,6 @@ class StoreRiskProfileRequest extends FormRequest
             'capacity_for_loss_percent' => 'required|numeric|min:0|max:100',
             'time_horizon_years' => 'required|integer|min:0|max:100',
             'knowledge_level' => ['required', Rule::in(['novice', 'intermediate', 'experienced'])],
-            'attitude_to_volatility' => 'nullable|string|max:255',
-            'esg_preference' => 'nullable|boolean',
         ];
     }
 }

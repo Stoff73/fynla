@@ -32,6 +32,8 @@ class RetirementProfile extends Model
         'lifestyle_expenditure',
         'life_expectancy',
         'spouse_life_expectancy',
+        'care_cost_annual',
+        'care_start_age',
         'prior_year_unused_allowance',
     ];
 
@@ -44,6 +46,8 @@ class RetirementProfile extends Model
         'lifestyle_expenditure' => 'decimal:2',
         'life_expectancy' => 'integer',
         'spouse_life_expectancy' => 'integer',
+        'care_cost_annual' => 'decimal:2',
+        'care_start_age' => 'integer',
         'prior_year_unused_allowance' => 'array',
     ];
 

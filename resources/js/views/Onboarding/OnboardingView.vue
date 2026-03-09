@@ -1,5 +1,8 @@
 <template>
-  <OnboardingWizard />
+  <OnboardingWizard
+    :mode="mode"
+    :journey-name="journeyName"
+  />
 </template>
 
 <script>
@@ -10,6 +13,17 @@ export default {
 
   components: {
     OnboardingWizard,
+  },
+
+  props: {
+    mode: {
+      type: String,
+      default: null,
+    },
+    journeyName: {
+      type: String,
+      default: null,
+    },
   },
 };
 </script>

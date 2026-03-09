@@ -41,11 +41,11 @@ describe('AutoRiskCalculator', function () {
             $result = $this->calculator->calculateRiskProfile($user);
 
             expect($result)->toHaveKeys(['risk_level', 'factor_breakdown']);
-            expect($result['factor_breakdown'])->toHaveCount(7);
+            expect($result['factor_breakdown'])->toHaveCount(9);
             expect($result['risk_level'])->toBeIn(['low', 'lower_medium', 'medium', 'upper_medium', 'high']);
         });
 
-        it('returns 7 factors with correct structure', function () {
+        it('returns 9 factors with correct structure', function () {
             $user = User::factory()->create([
                 'date_of_birth' => now()->subYears(35),
                 'target_retirement_age' => 67,

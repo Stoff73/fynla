@@ -189,6 +189,29 @@ class OnboardingController extends Controller
     }
 
     /**
+     * Complete the quick onboarding process (3-step progressive flow)
+     */
+    public function completeQuickOnboarding(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->onboardingService->completeQuickOnboarding($request->user()->id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'onboarding_completed' => $user->onboarding_completed,
+                    'onboarding_mode' => $user->onboarding_mode,
+                    'asset_flags' => $user->onboarding_asset_flags,
+                    'completed_at' => $user->onboarding_completed_at?->toISOString(),
+                ],
+                'message' => 'Quick onboarding completed successfully',
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse($e, 'Quick onboarding completion');
+        }
+    }
+
+    /**
      * Complete the onboarding process
      */
     public function completeOnboarding(Request $request): JsonResponse

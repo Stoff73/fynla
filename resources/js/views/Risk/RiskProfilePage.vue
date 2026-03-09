@@ -28,6 +28,12 @@
       </div>
 
       <template v-else>
+        <!-- Risk Mismatch Warning -->
+        <RiskMismatchWarning
+          v-if="riskMismatch"
+          :mismatch="riskMismatch"
+        />
+
         <!-- Section 1: Calculated Risk Level -->
         <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
           <h2 class="text-lg font-semibold text-horizon-500 mb-4">Your Risk Level</h2>
@@ -73,7 +79,7 @@
         <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
           <h3 class="text-lg font-semibold text-horizon-500 mb-2">How Your Risk Level is Calculated</h3>
           <p class="text-sm text-neutral-500 mb-4">
-            Your risk profile is determined by analyzing 7 financial factors. The most common risk level across all factors becomes your overall risk level.
+            Your risk profile is determined by analysing 9 financial factors. The most common risk level across all factors becomes your overall risk level.
           </p>
 
           <!-- Factor Level Summary -->
@@ -203,6 +209,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import RiskBadge from '@/components/Shared/RiskBadge.vue';
 import FactorBreakdownCard from '@/components/Risk/FactorBreakdownCard.vue';
 import InvestmentTypesAccordion from '@/components/Risk/InvestmentTypesAccordion.vue';
+import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import riskService from '@/services/riskService';
 
 export default {
@@ -213,6 +220,7 @@ export default {
     RiskBadge,
     FactorBreakdownCard,
     InvestmentTypesAccordion,
+    RiskMismatchWarning,
   },
 
   data() {
@@ -223,6 +231,7 @@ export default {
       factorBreakdown: [],
       riskAssessedAt: null,
       isSelfAssessed: false,
+      riskMismatch: null,
       productsWithCustomRisk: [],
     };
   },
@@ -290,6 +299,7 @@ export default {
           this.factorBreakdown = response.data.factor_breakdown || [];
           this.riskAssessedAt = response.data.risk_assessed_at;
           this.isSelfAssessed = response.data.is_self_assessed;
+          this.riskMismatch = response.data.risk_mismatch || null;
         }
 
         // Load products with custom risk

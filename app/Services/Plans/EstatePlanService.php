@@ -9,6 +9,7 @@ use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\IHTFormattingService;
@@ -23,7 +24,8 @@ class EstatePlanService extends BasePlanService
         private readonly PlanConfigService $planConfig,
         private readonly DisposableIncomeAccessor $disposableIncome,
         private readonly EstateAssetAggregatorService $assetAggregator,
-        private readonly IHTFormattingService $formattingService
+        private readonly IHTFormattingService $formattingService,
+        private readonly RecommendationPersonaliser $personaliser
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -127,6 +129,9 @@ class EstatePlanService extends BasePlanService
      */
     private function enrichRecommendations(array $recommendations, User $user, array $data): array
     {
+        // Add personalised context before enrichment
+        $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
+
         $monthlyDisposable = $this->disposableIncome->getMonthlyForUser($user);
         $liquidAssets = (float) ($data['asset_breakdown']['liquid'] ?? 0);
 

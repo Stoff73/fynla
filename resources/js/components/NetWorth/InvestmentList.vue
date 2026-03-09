@@ -52,6 +52,12 @@
         </div>
       </div>
 
+      <!-- Risk Mismatch Warning -->
+      <RiskMismatchWarning
+        v-if="riskMismatch"
+        :mismatch="riskMismatch"
+      />
+
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
         <p class="mt-3">Loading investments...</p>
@@ -230,6 +236,8 @@ import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimiz
 import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
+import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
+import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -248,6 +256,7 @@ export default {
     WrapperOptimizer,
     FeeBreakdown,
     TaxEfficiencyPanel,
+    RiskMismatchWarning,
   },
 
   data() {
@@ -260,6 +269,7 @@ export default {
       errorMessage: null,
       successTimeout: null,
       errorTimeout: null,
+      riskMismatch: null,
       activePortfolioTab: 'holdings',
       portfolioTabs: [
         { id: 'holdings', label: 'Holdings' },
@@ -451,8 +461,21 @@ export default {
         await this.fetchInvestmentData();
         // Fetch recommendations separately (same pattern as Retirement StrategiesTab)
         await this.fetchRecommendations();
+        // Check for risk mismatch
+        await this.loadRiskMismatch();
       } catch (error) {
         console.error('Failed to load investment data:', error);
+      }
+    },
+
+    async loadRiskMismatch() {
+      try {
+        const response = await riskService.getProfile();
+        if (response.data?.risk_mismatch) {
+          this.riskMismatch = response.data.risk_mismatch;
+        }
+      } catch {
+        // Non-critical - silently ignore
       }
     },
 

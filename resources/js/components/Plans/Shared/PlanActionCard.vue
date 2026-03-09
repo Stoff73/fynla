@@ -20,6 +20,21 @@
           Estimated impact: {{ formatCurrency(action.estimated_impact) }}
         </p>
 
+        <!-- Personalised context -->
+        <div v-if="hasPersonalisedContext" class="mt-2 bg-savannah-100 rounded p-2">
+          <p class="text-xs font-semibold text-horizon-500 mb-1">Why this matters for you</p>
+          <ul class="space-y-0.5">
+            <li
+              v-for="(item, index) in action.personalised_context"
+              :key="index"
+              class="text-xs text-neutral-500 flex items-start gap-1.5"
+            >
+              <span class="text-violet-500 mt-px flex-shrink-0">&bull;</span>
+              <span>{{ item }}</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- Funding source -->
         <div v-if="hasFundingSource" class="mt-3 pt-3 border-t border-savannah-100">
           <div class="flex items-center gap-2 flex-wrap">
@@ -85,6 +100,11 @@ export default {
   emits: ['toggle', 'update-funding-source'],
 
   computed: {
+    hasPersonalisedContext() {
+      return Array.isArray(this.action.personalised_context)
+        && this.action.personalised_context.length > 0;
+    },
+
     hasFundingSource() {
       return this.action.funding_source && this.action.funding_source.eligible_accounts;
     },

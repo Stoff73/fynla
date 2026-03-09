@@ -69,10 +69,6 @@
                 <span class="text-body-sm text-horizon-500 text-right capitalize">{{ form.marital_status || '—' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">NI Number:</span>
-                <span class="text-body-sm text-horizon-500 text-right uppercase">{{ form.national_insurance_number || '—' }}</span>
-              </div>
-              <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Phone:</span>
                 <span class="text-body-sm text-horizon-500 text-right">{{ form.phone || '—' }}</span>
               </div>
@@ -253,21 +249,6 @@
               <option value="divorced">Divorced</option>
               <option value="widowed">Widowed</option>
             </select>
-          </div>
-
-          <!-- National Insurance Number -->
-          <div>
-            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
-              National Insurance Number
-            </label>
-            <input
-              id="national_insurance_number"
-              v-model="form.national_insurance_number"
-              type="text"
-              placeholder="AB123456C"
-              maxlength="9"
-              class="input-field uppercase"
-            />
           </div>
 
           <!-- Phone -->
@@ -579,7 +560,6 @@ export default {
       date_of_birth: '',
       gender: '',
       marital_status: '',
-      national_insurance_number: '',
       phone: '',
       address_line_1: '',
       address_line_2: '',
@@ -709,7 +689,6 @@ export default {
         form.value.date_of_birth = formatDateForInput(personalInfo.value.date_of_birth);
         form.value.gender = personalInfo.value.gender || '';
         form.value.marital_status = personalInfo.value.marital_status || '';
-        form.value.national_insurance_number = personalInfo.value.national_insurance_number || '';
         form.value.phone = personalInfo.value.phone || '';
         form.value.address_line_1 = personalInfo.value.address?.line_1 || '';
         form.value.address_line_2 = personalInfo.value.address?.line_2 || '';
@@ -794,7 +773,6 @@ export default {
           date_of_birth: form.value.date_of_birth || null,
           gender: form.value.gender || null,
           marital_status: form.value.marital_status || null,
-          national_insurance_number: form.value.national_insurance_number || null,
           phone: form.value.phone || null,
           address_line_1: form.value.address_line_1 || null,
           address_line_2: form.value.address_line_2 || null,

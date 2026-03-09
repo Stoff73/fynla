@@ -171,6 +171,9 @@ class PreviewUserSeeder extends Seeder
         // Create letters to spouse
         $this->createLetterToSpouse($user, $spouse, $data['letter_to_spouse'] ?? null, $data['chattels'] ?? []);
 
+        // Set journey states and selections
+        $this->setJourneyData($user, $personaId);
+
         $this->command->info("  Created user: {$user->name} ({$user->email})");
         if ($spouse) {
             $this->command->info("  Created spouse: {$spouse->name} ({$spouse->email})");
@@ -1825,5 +1828,91 @@ class PreviewUserSeeder extends Seeder
         }
 
         return trim($info);
+    }
+
+    /**
+     * Set journey states and selections for a preview persona.
+     */
+    private function setJourneyData(User $user, string $personaId): void
+    {
+        $journeyData = $this->getPersonaJourneyData($personaId);
+
+        if ($journeyData === null) {
+            return;
+        }
+
+        $user->update([
+            'journey_states' => $journeyData['states'],
+            'journey_selections' => $journeyData['selections'],
+        ]);
+    }
+
+    /**
+     * Get journey states and selections configuration for each persona.
+     */
+    private function getPersonaJourneyData(string $personaId): ?array
+    {
+        $allJourneys = ['budgeting', 'protection', 'investment', 'retirement', 'estate', 'family', 'business', 'goals'];
+
+        $buildStates = function (array $completed, array $inProgress = []) use ($allJourneys): array {
+            $states = [];
+            foreach ($allJourneys as $journey) {
+                if (in_array($journey, $completed, true)) {
+                    $states[$journey] = [
+                        'status' => 'completed',
+                        'started_at' => '2026-01-15T10:00:00',
+                        'completed_at' => '2026-01-15T10:30:00',
+                    ];
+                } elseif (in_array($journey, $inProgress, true)) {
+                    $states[$journey] = [
+                        'status' => 'in_progress',
+                        'started_at' => '2026-02-01T09:00:00',
+                        'completed_at' => null,
+                    ];
+                } else {
+                    $states[$journey] = [
+                        'status' => 'not_started',
+                        'started_at' => null,
+                        'completed_at' => null,
+                    ];
+                }
+            }
+
+            return $states;
+        };
+
+        return match ($personaId) {
+            'young_family' => [
+                'selections' => ['protection', 'budgeting', 'goals'],
+                'states' => $buildStates(
+                    completed: ['protection', 'budgeting'],
+                    inProgress: ['goals']
+                ),
+            ],
+            'peak_earners' => [
+                'selections' => $allJourneys,
+                'states' => $buildStates(completed: $allJourneys),
+            ],
+            'widow' => [
+                'selections' => ['estate', 'protection'],
+                'states' => $buildStates(completed: ['estate', 'protection']),
+            ],
+            'entrepreneur' => [
+                'selections' => ['business', 'investment', 'retirement'],
+                'states' => $buildStates(
+                    completed: ['business', 'investment'],
+                    inProgress: ['retirement']
+                ),
+            ],
+            'young_saver' => [
+                'selections' => ['budgeting', 'goals'],
+                'states' => $buildStates(completed: ['budgeting', 'goals']),
+            ],
+            'retired_couple' => [
+                'selections' => ['retirement', 'estate', 'protection'],
+                'states' => $buildStates(completed: ['retirement', 'estate', 'protection']),
+            ],
+            default => null,
+        };
     }
 }

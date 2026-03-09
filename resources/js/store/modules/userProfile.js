@@ -158,7 +158,6 @@ const actions = {
           date_of_birth: formattedDateOfBirth,
           gender: user.gender,
           marital_status: user.marital_status,
-          national_insurance_number: user.national_insurance_number,
           phone: user.phone,
           education_level: user.education_level,
           good_health: user.good_health,

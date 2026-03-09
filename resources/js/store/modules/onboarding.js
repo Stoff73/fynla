@@ -17,6 +17,8 @@ const state = {
   skippedSteps: [],
   hasSkippedSteps: false,
   fullyCompleted: false,
+  onboardingMode: null, // 'quick' | 'full'
+  assetFlags: null, // { properties, savings, investments, pensions, protection }
 };
 
 const getters = {
@@ -25,6 +27,8 @@ const getters = {
   isFullyCompleted: (state) => state.fullyCompleted,
   hasSkippedSteps: (state) => state.hasSkippedSteps,
   skippedSteps: (state) => state.skippedSteps,
+  onboardingMode: (state) => state.onboardingMode,
+  assetFlags: (state) => state.assetFlags,
   currentStep: (state) => {
     return state.steps[state.currentStepIndex] || null;
   },
@@ -64,6 +68,14 @@ const actions = {
         hasSkippedSteps: data.has_skipped_steps || false,
         fullyCompleted: data.fully_completed || false,
       });
+
+      // Store onboarding mode and asset flags from response
+      if (data.onboarding_mode) {
+        commit('SET_ONBOARDING_MODE', data.onboarding_mode);
+      }
+      if (data.asset_flags) {
+        commit('SET_ASSET_FLAGS', data.asset_flags);
+      }
 
       // If user has a focus area, fetch the steps
       if (data.focus_area) {
@@ -166,7 +178,9 @@ const actions = {
       const result = response.data;
 
       commit('UPDATE_STEP_DATA', { stepName, data });
-      commit('SET_PROGRESS_PERCENTAGE', result.progress_percentage);
+      if (result.progress_percentage !== undefined) {
+        commit('SET_PROGRESS_PERCENTAGE', result.progress_percentage);
+      }
       // If step was previously skipped, mark it as completed now
       commit('REMOVE_SKIPPED_STEP', stepName);
 
@@ -313,6 +327,33 @@ const actions = {
     }
   },
 
+  async completeQuickOnboarding({ commit, dispatch }) {
+    commit('SET_LOADING', true);
+    commit('SET_ERROR', null);
+
+    try {
+      const response = await onboardingService.completeQuickOnboarding();
+      const data = response.data;
+
+      commit('SET_STATUS', { completed: true });
+      commit('SET_ONBOARDING_MODE', 'quick');
+      if (data.asset_flags) {
+        commit('SET_ASSET_FLAGS', data.asset_flags);
+      }
+
+      // Refresh user data
+      await dispatch('auth/fetchUser', null, { root: true });
+
+      return data;
+    } catch (error) {
+      const errorMessage = error.message || 'Failed to complete onboarding';
+      commit('SET_ERROR', errorMessage);
+      throw error;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+
   async restartOnboarding({ commit }) {
     commit('SET_LOADING', true);
     commit('SET_ERROR', null);
@@ -383,6 +424,14 @@ const mutations = {
     state.error = error;
   },
 
+  SET_ONBOARDING_MODE(state, mode) {
+    state.onboardingMode = mode;
+  },
+
+  SET_ASSET_FLAGS(state, flags) {
+    state.assetFlags = flags;
+  },
+
   ADD_SKIPPED_STEP(state, stepName) {
     if (!state.skippedSteps.includes(stepName)) {
       state.skippedSteps.push(stepName);
@@ -425,6 +474,8 @@ const mutations = {
     state.skippedSteps = [];
     state.hasSkippedSteps = false;
     state.fullyCompleted = false;
+    state.onboardingMode = null;
+    state.assetFlags = null;
   },
 };
 

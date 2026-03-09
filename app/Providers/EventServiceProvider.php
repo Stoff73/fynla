@@ -16,6 +16,7 @@ use App\Observers\FamilyMemberRiskObserver;
 use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
 use App\Observers\LifeEventMonteCarloObserver;
+use App\Observers\LifeEventRiskObserver;
 use App\Observers\PropertyRiskObserver;
 use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
@@ -50,7 +51,7 @@ class EventServiceProvider extends ServiceProvider
         InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class],
         DCPension::class => [DCPensionRiskObserver::class],
         Property::class => [PropertyRiskObserver::class],
-        LifeEvent::class => [LifeEventMonteCarloObserver::class],
+        LifeEvent::class => [LifeEventMonteCarloObserver::class, LifeEventRiskObserver::class],
     ];
 
     /**

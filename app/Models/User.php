@@ -80,6 +80,7 @@ class User extends Authenticatable
         'locked_until' => 'datetime',
         'last_failed_login_at' => 'datetime',
         'date_of_birth' => 'date',
+        'life_expectancy_override' => 'integer',
         'retirement_date' => 'date',
         'is_primary_account' => 'boolean',
         'annual_employment_income' => 'float',
@@ -120,6 +121,10 @@ class User extends Authenticatable
         'onboarding_skipped_steps' => 'array',
         'onboarding_started_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
+        'onboarding_asset_flags' => 'array',
+        'journey_states' => 'array',
+        'journey_selections' => 'array',
+        'dismissed_prompts' => 'array',
         'uk_arrival_date' => 'date',
         'deemed_domicile_date' => 'date',
         // Guidance system casts

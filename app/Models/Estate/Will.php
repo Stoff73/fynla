@@ -23,6 +23,7 @@ class Will extends Model
         'executor_name',
         'executor_notes',
         'will_last_updated',
+        'last_reviewed_date',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Will extends Model
         'spouse_primary_beneficiary' => 'boolean',
         'spouse_bequest_percentage' => 'decimal:2',
         'will_last_updated' => 'date',
+        'last_reviewed_date' => 'date',
     ];
 
     /**

@@ -28,7 +28,9 @@ class DecumulationPlanner
         float $portfolioValue,
         int $yearsInRetirement,
         float $growthRate = 0.05,
-        float $inflationRate = 0.025
+        float $inflationRate = 0.025,
+        float $careCostAnnual = 0,
+        int $careStartsAfterYear = 0
     ): array {
         $scenarios = [];
         $withdrawalRates = [0.03, 0.04, 0.05]; // 3%, 4%, 5%
@@ -40,7 +42,9 @@ class DecumulationPlanner
                 $initialWithdrawal,
                 $yearsInRetirement,
                 $growthRate,
-                $inflationRate
+                $inflationRate,
+                $careCostAnnual,
+                $careStartsAfterYear
             );
 
             $scenarios[] = [
@@ -56,6 +60,7 @@ class DecumulationPlanner
         return [
             'scenarios' => $scenarios,
             'recommended_rate' => $this->determineRecommendedRate($scenarios),
+            'care_costs_included' => $careCostAnnual > 0,
         ];
     }
 
@@ -214,15 +219,23 @@ class DecumulationPlanner
         float $initialWithdrawal,
         int $years,
         float $growthRate,
-        float $inflationRate
+        float $inflationRate,
+        float $careCostAnnual = 0,
+        int $careStartsAfterYear = 0
     ): array {
         $balance = $startingBalance;
         $withdrawal = $initialWithdrawal;
+        $careCost = $careCostAnnual;
         $yearsSurvived = 0;
 
         for ($year = 1; $year <= $years; $year++) {
             // Withdraw at start of year
             $balance -= $withdrawal;
+
+            // Add care costs if applicable
+            if ($careCost > 0 && $year > $careStartsAfterYear) {
+                $balance -= $careCost;
+            }
 
             if ($balance <= 0) {
                 return [
@@ -235,8 +248,11 @@ class DecumulationPlanner
             // Apply growth
             $balance *= (1 + $growthRate);
 
-            // Increase withdrawal for inflation
+            // Increase withdrawal and care costs for inflation
             $withdrawal *= (1 + $inflationRate);
+            if ($careCost > 0) {
+                $careCost *= (1 + $inflationRate);
+            }
 
             $yearsSurvived++;
         }

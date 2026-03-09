@@ -81,6 +81,14 @@ const onboardingService = {
   },
 
   /**
+   * Complete quick onboarding (3-step progressive flow)
+   */
+  async completeQuickOnboarding() {
+    const response = await api.post('/onboarding/complete-quick');
+    return response.data;
+  },
+
+  /**
    * Restart the onboarding process
    */
   async restartOnboarding() {

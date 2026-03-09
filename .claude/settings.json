@@ -24,7 +24,19 @@
     ]
   },
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "fynla-dev-skills@fynla-marketplace": true,
+    "fynla-compliance@fynla-marketplace": true,
+    "fynla-design@fynla-marketplace": true,
+    "fynla-ops@fynla-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "fynla-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "your-org/fynla"
+      }
+    }
   },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"

@@ -50,7 +50,7 @@ describe('GET /api/investment/risk/profile', function () {
 
         expect($response->json('success'))->toBe(true);
         expect($response->json('data.is_self_assessed'))->toBe(false);
-        expect($response->json('data.factor_breakdown'))->toHaveCount(7);
+        expect($response->json('data.factor_breakdown'))->toHaveCount(9);
     });
 
     it('returns existing risk profile with factor breakdown', function () {
@@ -126,7 +126,7 @@ describe('POST /api/investment/risk/recalculate', function () {
             ]);
 
         expect($response->json('data.is_self_assessed'))->toBe(false);
-        expect($response->json('data.factor_breakdown'))->toHaveCount(7);
+        expect($response->json('data.factor_breakdown'))->toHaveCount(9);
 
         // Verify it was saved to database
         $profile = RiskProfile::where('user_id', $this->user->id)->first();
@@ -134,13 +134,13 @@ describe('POST /api/investment/risk/recalculate', function () {
         expect($profile->risk_level)->toBe($response->json('data.risk_level'));
     });
 
-    it('returns 7 factors in breakdown', function () {
+    it('returns 9 factors in breakdown', function () {
         $response = $this->postJson('/api/investment/risk/recalculate');
 
         $response->assertStatus(200);
 
         $factors = $response->json('data.factor_breakdown');
-        expect($factors)->toHaveCount(7);
+        expect($factors)->toHaveCount(9);
 
         $factorNames = collect($factors)->pluck('factor')->toArray();
         expect($factorNames)->toContain('capacity_for_loss');

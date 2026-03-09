@@ -76,6 +76,9 @@
       </div>
     </div>
 
+    <!-- Letter Estate Warnings -->
+    <LetterEstateWarnings v-if="!loading && !isEditing" :summary-only="false" :show-view-action="false" />
+
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
@@ -754,9 +757,11 @@
 import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import LetterEstateWarnings from '@/components/Estate/LetterEstateWarnings.vue';
 
 export default {
   name: 'LetterToSpouse',
+  components: { LetterEstateWarnings },
   mixins: [currencyMixin],
   emits: ['success', 'error'],
 

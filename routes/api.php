@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
 use App\Http\Controllers\Api\Estate\IHTController;
+use App\Http\Controllers\Api\Estate\LetterValidationController;
 use App\Http\Controllers\Api\Estate\LifePolicyController;
 use App\Http\Controllers\Api\Estate\TrustController;
 use App\Http\Controllers\Api\Estate\WillController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\FamilyMembersController;
 use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
+use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\InfoGuideController;
 use App\Http\Controllers\Api\Investment\AssetLocationController;
 use App\Http\Controllers\Api\Investment\ContributionOptimizerController;
@@ -33,6 +35,7 @@ use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
+use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
@@ -49,12 +52,14 @@ use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
+use App\Http\Controllers\Api\Retirement\DecumulationController;
 use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
+use App\Http\Controllers\Api\Tax\TaxOptimisationController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
 use Illuminate\Support\Facades\Route;
@@ -167,7 +172,20 @@ Route::middleware('auth:sanctum')->prefix('onboarding')->group(function () {
     Route::get('/skip-reason/{step}', [OnboardingController::class, 'getSkipReason']);
     Route::post('/skip-to-dashboard', [OnboardingController::class, 'skipToDashboard']);
     Route::post('/complete', [OnboardingController::class, 'completeOnboarding']);
+    Route::post('/complete-quick', [OnboardingController::class, 'completeQuickOnboarding']);
     Route::post('/restart', [OnboardingController::class, 'restartOnboarding']);
+});
+
+// Journey onboarding routes
+Route::middleware('auth:sanctum')->prefix('journeys')->group(function () {
+    Route::get('/selections', [JourneyController::class, 'getSelections']);
+    Route::post('/selections', [JourneyController::class, 'saveSelections']);
+    Route::get('/preview', [JourneyController::class, 'preview']);
+    Route::get('/dashboard-prompts', [JourneyController::class, 'getDashboardPrompts']);
+    Route::post('/dismiss-prompt', [JourneyController::class, 'dismissPrompt']);
+    Route::get('/{journey}/steps', [JourneyController::class, 'getSteps']);
+    Route::post('/{journey}/start', [JourneyController::class, 'startJourney']);
+    Route::post('/{journey}/complete', [JourneyController::class, 'completeJourney']);
 });
 
 // User Profile routes (Phase 2)
@@ -792,6 +810,9 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
         Route::delete('/{id}', [WillController::class, 'deleteBequest']);
     });
     Route::post('/calculate-discount', [GiftingController::class, 'calculateDiscountedGiftDiscount']);
+
+    // Letter to Spouse cross-validation
+    Route::get('/letter-validation', [LetterValidationController::class, 'checkConsistency']);
 });
 
 // Retirement module routes
@@ -820,6 +841,9 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
     Route::get('/income', [RetirementController::class, 'getRetirementIncome']);
     Route::post('/income/calculate', [RetirementController::class, 'calculateRetirementIncome']);
     Route::get('/income/accounts', [RetirementController::class, 'getIncomeAccounts']);
+
+    // Decumulation analysis (drawdown strategies)
+    Route::get('/decumulation-analysis', [DecumulationController::class, 'analysis']);
 
     // DC pensions
     Route::prefix('pensions/dc')->group(function () {
@@ -863,6 +887,13 @@ Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
         ->where('type', 'investment|protection|retirement|estate');
 });
 
+// Household coordination routes (spousal planning)
+Route::middleware('auth:sanctum')->prefix('household')->group(function () {
+    Route::get('/net-worth', [HouseholdController::class, 'getNetWorth']);
+    Route::get('/optimisations', [HouseholdController::class, 'getOptimisations']);
+    Route::get('/death-scenario', [HouseholdController::class, 'getDeathScenario']);
+});
+
 // Holistic Planning routes (coordinating agent)
 Route::middleware('auth:sanctum')->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
@@ -899,6 +930,12 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
     Route::get('/investment/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getInvestmentTaxInfo']);
     Route::get('/savings/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getSavingsTaxInfo']);
     Route::get('/summary', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getTaxSummary']);
+});
+
+// Tax Optimisation routes (cross-module tax strategies)
+Route::middleware('auth:sanctum')->prefix('tax')->group(function () {
+    Route::get('/optimisation-analysis', [TaxOptimisationController::class, 'getAnalysis']);
+    Route::get('/strategies', [TaxOptimisationController::class, 'getStrategies']);
 });
 
 // Payment routes
