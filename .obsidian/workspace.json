@@ -4,17 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "1f903f53f84b7334",
+        "id": "b8af96cc3f7627a1",
         "type": "tabs",
         "children": [
           {
-            "id": "702ac824512cbc16",
+            "id": "42eb5d4b44882b0f",
             "type": "leaf",
             "state": {
-              "type": "graph",
+              "type": "empty",
               "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -176,20 +176,22 @@
       "bases:Create new base": false
     }
   },
-  "active": "702ac824512cbc16",
+  "active": "42eb5d4b44882b0f",
   "lastOpenFiles": [
-    "storage/framework/sessions/upsLUt2V3YWtMPFqqdRrup1acZ79ytu8yYxLzbub",
-    "storage/framework/cache/data/f8/ef/f8efc90b51c85f635de84e8c302eca731c29037d",
-    "storage/framework/cache/data/f8/ef",
-    "storage/framework/cache/data/a0/06/a0063da9e1ffe13cd53c69d1ab7ed1356e59edee",
-    "storage/framework/cache/data/a0/06",
-    "storage/framework/sessions/ogMC9c1CL1hFvmCtbUycWw1ZNwHPuCmAuBTHt9sp",
-    "storage/framework/sessions/ErspqEMYfZbqhCvlON8foFEbVNPjqnU7x5gW1qSB",
+    "tech-debt-report.md",
+    "app/Http/Controllers/Api/Tax/TaxOptimisationController.php",
+    "app/Http/Controllers/Api/Settings/AssumptionsController.php",
+    "app/Http/Controllers/Api/Retirement/DecumulationController.php",
+    "app/Http/Controllers/Api/Retirement/DCPensionHoldingsController.php",
+    "app/Http/Controllers/Api/Plans/PlanController.php",
+    "app/Http/Controllers/Api/Investment/TaxOptimizationController.php",
+    "app/Http/Controllers/Api/Investment/RebalancingStrategiesController.php",
+    "app/Http/Controllers/Api/Investment/RebalancingCalculationController.php",
+    "app/Http/Controllers/Api/Investment/RebalancingActionsController.php",
+    "app/Http/Controllers/Api/Investment/PortfolioStrategyController.php",
+    "app/Services/CLAUDE.md",
+    "app/Http/CLAUDE.md",
     "March3Updates/deployPDF.md",
-    "storage/framework/sessions/6T7tNo0erEbgcIMuU8DheUhZeSFNKMxPmkifGLI0",
-    "storage/framework/sessions/cnqNTAcjgxeRugz0FmyFytgWaGzakQISSPpKgtNz",
-    "storage/framework/sessions/2wfe0xQvuHme3F3ZKieugsYXwEQuU0WSSkIZw4g1",
-    "vite.config.js.timestamp-1772556879416-3470d0382216c.mjs",
     "March3Updates/savePDFPlan.md",
     "peak_earners_iht_table_expanded.png",
     "vendor/mockery/mockery/CONTRIBUTING.md",
