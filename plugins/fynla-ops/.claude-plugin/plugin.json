@@ -1,0 +1,11 @@
+{
+  "name": "fynla-ops",
+  "description": "Operations agents for Fynla: Laravel + Vue.js + Vite deployment to SiteGround, MySQL query optimisation and schema design, and product management with structured requirements documentation",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fynla Development Team",
+    "email": "chris@fynla.org"
+  },
+  "homepage": "https://fynla.org",
+  "license": "UNLICENSED"
+}

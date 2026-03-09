@@ -1,0 +1,11 @@
+{
+  "name": "fynla-compliance",
+  "description": "UK tax compliance and security review agents for Fynla. Verifies HMRC tax calculations use TaxConfigService, audits authentication flows, input validation, and financial data protection",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fynla Development Team",
+    "email": "chris@fynla.org"
+  },
+  "homepage": "https://fynla.org",
+  "license": "UNLICENSED"
+}
