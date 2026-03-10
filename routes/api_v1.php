@@ -32,6 +32,11 @@ Route::get('/health', function () {
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
+    // Auth token refresh
+    Route::post('/auth/refresh-token', [\App\Http\Controllers\Api\V1\Auth\TokenRefreshController::class, 'refresh'])
+        ->middleware('throttle:device-registration')
+        ->name('api.v1.auth.refresh-token');
+
     // Mobile dashboard — aggregated summary of all modules
     Route::get('/mobile/dashboard', [\App\Http\Controllers\Api\V1\Mobile\MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
