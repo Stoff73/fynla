@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Mobile API v1 Routes
+|--------------------------------------------------------------------------
+|
+| Routes registered here are loaded by the RouteServiceProvider within
+| the "api" middleware group and prefixed with "/api/v1". These routes
+| serve the Fynla mobile application (iOS, Android, PWA).
+|
+| The IdentifyMobileClient middleware is applied to all routes in this
+| file, setting request attributes for mobile platform detection.
+|
+*/
+
+// Health check endpoint (no auth required)
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Fynla Mobile API v1 is operational.',
+        'data' => [
+            'version' => 'v1',
+            'status' => 'healthy',
+        ],
+    ]);
+})->name('api.v1.health');
+
+// Authenticated mobile endpoints
+Route::middleware('auth:sanctum')->group(function () {
+    // Future mobile-specific endpoints will be registered here:
+    // - Mobile dashboard summary
+    // - Module summaries
+    // - Device registration
+    // - Push notification preferences
+});

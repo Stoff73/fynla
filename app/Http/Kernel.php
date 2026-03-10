@@ -74,5 +74,6 @@ class Kernel extends HttpKernel
         'mfa.verified' => \App\Http\Middleware\EnsureMFAVerified::class,
         'role' => \App\Http\Middleware\HasRole::class,
         'permission' => \App\Http\Middleware\HasPermission::class,
+        'identify.mobile' => \App\Http\Middleware\IdentifyMobileClient::class,
     ];
 }
