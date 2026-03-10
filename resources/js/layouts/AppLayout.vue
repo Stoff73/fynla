@@ -18,6 +18,9 @@
     >
       <Navbar />
 
+      <!-- Offline Indicator Banner -->
+      <OfflineBanner />
+
       <!-- Trial Countdown Banner (non-preview users only) -->
       <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
 
@@ -59,6 +62,7 @@ import AiChatButton from '@/components/Shared/AiChatButton.vue';
 import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
+import OfflineBanner from '@/mobile/OfflineBanner.vue';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
 
@@ -77,6 +81,7 @@ export default {
     AiChatPanel,
     SideMenu,
     SideMenuMobileToggle,
+    OfflineBanner,
   },
 
   data() {
