@@ -257,7 +257,7 @@ describe('net worth calculation', function () {
         $user = User::factory()->create();
 
         // Create a property owned individually
-        Property::factory()->create([
+        $property = Property::factory()->create([
             'user_id' => $user->id,
             'current_value' => 300000,
             'ownership_type' => 'individual',
@@ -272,9 +272,10 @@ describe('net worth calculation', function () {
             'ownership_percentage' => 100,
         ]);
 
-        // Create a mortgage
+        // Create a mortgage linked to the property
         Mortgage::factory()->create([
             'user_id' => $user->id,
+            'property_id' => $property->id,
             'outstanding_balance' => 200000,
             'ownership_type' => 'individual',
             'ownership_percentage' => 100,

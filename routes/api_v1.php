@@ -36,4 +36,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/dashboard', [\App\Http\Controllers\Api\V1\Mobile\MobileDashboardController::class, 'index'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.dashboard');
+
+    // Module summaries — individual module analysis
+    Route::get('/mobile/modules/{module}', [\App\Http\Controllers\Api\V1\Mobile\ModuleSummaryController::class, 'show'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.modules.show');
+
+    // Daily insights — Fyn contextual insight
+    Route::get('/mobile/insights/daily', [\App\Http\Controllers\Api\V1\Mobile\InsightsController::class, 'daily'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.insights.daily');
 });
