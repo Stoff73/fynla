@@ -51,4 +51,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mobile/insights/daily', [\App\Http\Controllers\Api\V1\Mobile\InsightsController::class, 'daily'])
         ->middleware(['etag', 'throttle:mobile-dashboard'])
         ->name('api.v1.mobile.insights.daily');
+
+    // Device registration
+    Route::post('/mobile/devices', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'store'])
+        ->middleware('throttle:device-registration')
+        ->name('api.v1.mobile.devices.store');
+    Route::get('/mobile/devices', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'index'])
+        ->name('api.v1.mobile.devices.index');
+    Route::delete('/mobile/devices/{deviceId}', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'destroy'])
+        ->name('api.v1.mobile.devices.destroy');
 });

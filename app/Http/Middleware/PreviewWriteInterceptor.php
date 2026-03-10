@@ -51,6 +51,7 @@ class PreviewWriteInterceptor
         'api/documents/upload-only', // Allow document upload without extraction
         'api/ai-chat/conversations', // Allow AI chat in preview — tool executor handles write blocking
         'api/v1/auth/refresh-token', // Allow mobile token refresh in preview mode
+        'api/v1/mobile/devices',     // Allow device registration in preview mode
     ];
 
     /**
