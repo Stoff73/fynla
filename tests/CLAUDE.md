@@ -6,11 +6,11 @@ This file supplements the root `CLAUDE.md` with testing-specific patterns.
 
 ```
 tests/
-  Unit/           69 tests - Isolated service/agent/model tests
+  Unit/           81 tests - Isolated service/agent/model tests
     Agents/       Agent orchestration tests
     Models/       Model domain logic
     Services/     Service calculations (organised by module)
-  Feature/        40 tests - API endpoint integration tests
+  Feature/        46 tests - API endpoint integration tests
     Api/          General API tests
     Auth/         Authentication flow
     Estate/       Estate module endpoints

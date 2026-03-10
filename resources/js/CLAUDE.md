@@ -7,7 +7,7 @@ This file supplements the root `CLAUDE.md` with frontend-specific patterns.
 - `app.js` - Bootstraps Vue app with Router, Vuex, VueApexCharts, `v-preview-disabled` directive
 - `App.vue` - Root component, renders `<router-view />`, fetches user data on mount
 - `router/index.js` - All routes with lazy loading (`() => import(...)`)
-- `store/index.js` - 21 namespaced Vuex modules
+- `store/index.js` - 24 namespaced Vuex modules
 
 ## Router
 

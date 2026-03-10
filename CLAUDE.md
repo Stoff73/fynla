@@ -8,12 +8,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 378 |
-| PHP Services | 174 |
-| Controllers | 70 |
-| Models | 77 |
-| Vuex Stores | 21 |
-| Agents | 8 |
+| Vue Components | 403 |
+| PHP Services | 183 |
+| Controllers | 75 |
+| Models | 78 |
+| Vuex Stores | 24 |
+| Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v0.8.3
 
@@ -69,20 +69,20 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (174 services across 30 module directories)
-- `Http/Controllers/Api/` - API endpoints (70 controllers)
-- `Http/Requests/` - Form request validation (73 classes)
+- `Services/{Module}/` - Domain calculations (183 services across 38 module directories)
+- `Http/Controllers/Api/` - API endpoints (75 controllers)
+- `Http/Requests/` - Form request validation (74 classes)
 - `Http/Resources/` - API response transformation
 - `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`, `ResolvesIncome`, `TracksGoalContributions`)
 - `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
-- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (10 observers)
+- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (11 observers)
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (378 across 27 modules)
-- `views/` - Page-level route components (58 views)
+- `components/{Module}/` - Vue components (403 across 39 module directories)
+- `views/` - Page-level route components (60 views)
 - `store/modules/` - Vuex state management (21 namespaced modules)
-- `services/` - API wrappers (33 services)
+- `services/` - API wrappers (36 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -249,10 +249,10 @@ Check routes: `php artisan route:list --path=endpoint`
 ```
 
 - **Framework**: Pest (PHPUnit-compatible) with `it()` / `describe()` syntax
-- **Suites**: Unit (69), Feature (40), Architecture (6), Integration (2)
+- **Suites**: Unit (81), Feature (46), Architecture (6), Integration (2)
 - **Database**: `RefreshDatabase` trait resets between tests; TaxConfiguration auto-seeded in `beforeEach()`
 - **Auth**: `$this->actingAs($user)` or `Sanctum::actingAs($user)`
-- **Factories**: 44 factories in `database/factories/` with state methods
+- **Factories**: 46 factories in `database/factories/` with state methods
 - **Mocking**: Mockery for service dependencies; always `Mockery::close()` in `afterEach()`
 - See `tests/CLAUDE.md` for full conventions
 
