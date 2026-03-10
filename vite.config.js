@@ -193,6 +193,9 @@ export default defineConfig({
                 app: 'resources/js/app.js',
                 css: 'resources/css/app.css',
             },
+            external: [
+                /^\/images\//,
+            ],
         },
     },
 });

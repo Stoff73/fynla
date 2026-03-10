@@ -12,7 +12,44 @@ export VITE_PLATFORM=ios
 echo "1. Building web assets..."
 npm run build
 
-echo "2. Syncing to iOS project..."
+echo "2. Generating index.html for Capacitor..."
+# Read the Vite manifest to find entry file names
+APP_JS=$(python3 -c "
+import json
+with open('public/build/manifest.json') as f:
+    m = json.load(f)
+print(m['resources/js/app.js']['file'])
+")
+APP_CSS=$(python3 -c "
+import json
+with open('public/build/manifest.json') as f:
+    m = json.load(f)
+print(m['resources/css/app.css']['file'])
+")
+
+cat > public/build/index.html << HTMLEOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1F2A44">
+    <title>Fynla</title>
+    <link rel="stylesheet" href="/${APP_CSS}">
+</head>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/${APP_JS}"></script>
+</body>
+</html>
+HTMLEOF
+
+echo "3. Copying public assets for Capacitor..."
+# Copy images and icons so they're available in the native app
+cp -R public/images public/build/images 2>/dev/null || true
+cp -R public/icons public/build/icons 2>/dev/null || true
+
+echo "4. Syncing to iOS project..."
 npx cap sync ios
 
 echo ""
