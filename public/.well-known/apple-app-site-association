@@ -1,0 +1,9 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [{
+            "appID": "TEAMID.org.fynla.app",
+            "paths": ["/protection", "/savings", "/investments", "/retirement", "/estate", "/goals", "/net-worth", "/tax", "/dashboard"]
+        }]
+    }
+}
