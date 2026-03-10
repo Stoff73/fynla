@@ -144,7 +144,7 @@ export default {
         const response = await authService.verifyCode({
           email: this.$route.query.email,
           code: this.code,
-          mfa_token: this.$route.query.mfa_token || undefined,
+          mfa_token: window.history.state?.mfa_token || undefined,
         });
 
         const data = response.data || response;

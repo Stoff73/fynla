@@ -88,7 +88,6 @@ const store = createStore({
       key: 'fynla-state',
       paths: [
         'auth.user',
-        'auth.token',
         'dashboard',
         'aiChat.conversations',
         'goals.goals',

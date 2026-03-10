@@ -9,7 +9,7 @@ export VITE_BASE_PATH=/
 export VITE_API_BASE_URL=https://fynla.org
 export VITE_PLATFORM=ios
 
-echo "1. Building web assets..."
+echo "1. Building web assets (env vars set above for iOS production)..."
 npm run build
 
 echo "2. Generating index.html for Capacitor..."

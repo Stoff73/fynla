@@ -252,24 +252,22 @@ export default {
       }
     },
 
-    setupKeyboardListeners() {
+    async setupKeyboardListeners() {
       if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.Keyboard) {
         const { Keyboard } = window.Capacitor.Plugins;
-        Keyboard.addListener('keyboardWillShow', (info) => {
+        this._keyboardShowHandle = await Keyboard.addListener('keyboardWillShow', (info) => {
           this.keyboardOffset = info.keyboardHeight || 0;
           this.$nextTick(() => this.scrollToBottom());
         });
-        Keyboard.addListener('keyboardWillHide', () => {
+        this._keyboardHideHandle = await Keyboard.addListener('keyboardWillHide', () => {
           this.keyboardOffset = 0;
         });
       }
     },
 
-    removeKeyboardListeners() {
-      if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.Keyboard) {
-        const { Keyboard } = window.Capacitor.Plugins;
-        Keyboard.removeAllListeners();
-      }
+    async removeKeyboardListeners() {
+      await this._keyboardShowHandle?.remove();
+      await this._keyboardHideHandle?.remove();
     },
   },
 };

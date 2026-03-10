@@ -110,7 +110,7 @@ export default {
     },
 
     confettiStyle(index) {
-      const colors = ['#E83E6D', '#5854E6', '#20B486', '#F5C542', '#1F2A44'];
+      const colors = ['#E83E6D', '#5854E6', '#20B486', '#FDFAF7', '#1F2A44'];
       const color = colors[index % colors.length];
       const left = Math.random() * 100;
       const delay = Math.random() * 0.5;

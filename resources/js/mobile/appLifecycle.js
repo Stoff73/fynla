@@ -6,7 +6,7 @@
  */
 
 import { platform } from '@/utils/platform';
-import { getToken } from '@/services/tokenStorage';
+import { getToken, setToken } from '@/services/tokenStorage';
 import api from '@/services/api';
 
 let appListenerRegistered = false;
@@ -67,10 +67,11 @@ export async function attemptBiometricLogin(store) {
       title: 'Fynla',
     });
 
-    // Retrieve stored credentials
+    // Retrieve stored credentials and hydrate token into storage/store
     const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
     if (credentials?.password) {
-      // Validate stored token is still good
+      await setToken(credentials.password);
+      store.commit('auth/setToken', credentials.password);
       try {
         await api.get('/auth/user');
         return true;

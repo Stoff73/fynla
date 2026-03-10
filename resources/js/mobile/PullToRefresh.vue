@@ -89,9 +89,9 @@ export default {
           this.refreshing = false;
           this.pullDistance = 0;
         }, 3000);
+      } else {
+        this.pullDistance = 0;
       }
-
-      this.pullDistance = 0;
     },
 
     done() {

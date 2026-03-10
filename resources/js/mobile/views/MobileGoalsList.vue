@@ -67,8 +67,11 @@ export default {
     ...mapGetters('goals', {
       goals: 'activeGoals',
       completedGoals: 'completedGoals',
-      loading: () => false,
     }),
+
+    loading() {
+      return this.$store.state.goals.loading;
+    },
 
     allGoals() {
       return this.$store.state.goals.goals || [];
@@ -83,10 +86,6 @@ export default {
         default:
           return this.allGoals;
       }
-    },
-
-    loading() {
-      return this.$store.state.goals.loading;
     },
   },
 

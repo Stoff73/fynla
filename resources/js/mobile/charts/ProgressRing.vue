@@ -46,6 +46,8 @@
 </template>
 
 <script>
+import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'ProgressRing',
 
@@ -93,9 +95,9 @@ export default {
 
     strokeColor() {
       const colours = {
-        'on-track': '#20B486',   // spring-500
-        'behind': '#5854E6',     // violet-500
-        'at-risk': '#E83E6D',    // raspberry-500
+        'on-track': SUCCESS_COLORS[500],
+        'behind': WARNING_COLORS[500],
+        'at-risk': PRIMARY_COLORS[500],
       };
       return colours[this.status] || colours['on-track'];
     },

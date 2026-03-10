@@ -170,6 +170,7 @@ export default {
   animation: voice-pulse 1.5s infinite;
 }
 
+/* raspberry-500 (#E83E6D) in rgba — CSS vars unavailable in scoped keyframes */
 @keyframes voice-pulse {
   0%, 100% {
     box-shadow: 0 0 0 0 rgba(232, 62, 109, 0.4);

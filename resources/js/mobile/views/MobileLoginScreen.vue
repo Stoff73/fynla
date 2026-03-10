@@ -111,6 +111,8 @@ export default {
             query: {
               email: this.email,
               mfa: data.requires_mfa ? '1' : '0',
+            },
+            state: {
               mfa_token: data.mfa_token || '',
             },
           });
