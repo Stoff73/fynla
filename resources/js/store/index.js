@@ -1,5 +1,6 @@
 import { createStore } from 'vuex';
 import createPersistedState from 'vuex-persistedstate';
+import { Capacitor } from '@capacitor/core';
 import auth from './modules/auth';
 import dashboard from './modules/dashboard';
 import protection from './modules/protection';
@@ -25,6 +26,33 @@ import taxOptimisation from './modules/taxOptimisation';
 import household from './modules/household';
 import journeys from './modules/journeys';
 import mobileDashboard from './modules/mobileDashboard';
+import mobileNotifications from './modules/mobileNotifications';
+
+/**
+ * Create a storage backend that uses Capacitor Preferences on native
+ * and localStorage on web. vuex-persistedstate requires sync getItem/setItem,
+ * so on native we use a sync in-memory cache that's hydrated on app start.
+ */
+const nativeCache = {};
+
+const storageBackend = Capacitor.isNativePlatform()
+  ? {
+      getItem: (key) => nativeCache[key] || null,
+      setItem: (key, value) => {
+        nativeCache[key] = value;
+        // Async persist to native storage (fire-and-forget)
+        import('@capacitor/preferences').then(({ Preferences }) => {
+          Preferences.set({ key, value });
+        });
+      },
+      removeItem: (key) => {
+        delete nativeCache[key];
+        import('@capacitor/preferences').then(({ Preferences }) => {
+          Preferences.remove({ key });
+        });
+      },
+    }
+  : window.localStorage;
 
 const store = createStore({
   modules: {
@@ -53,6 +81,7 @@ const store = createStore({
     household,
     journeys,
     mobileDashboard,
+    mobileNotifications,
   },
   plugins: [
     createPersistedState({
@@ -64,8 +93,9 @@ const store = createStore({
         'aiChat.conversations',
         'goals.goals',
         'mobileDashboard',
+        'mobileNotifications.permissionStatus',
       ],
-      storage: window.localStorage,
+      storage: storageBackend,
     }),
   ],
   strict: process.env.NODE_ENV !== 'production',
