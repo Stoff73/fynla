@@ -40,7 +40,7 @@ const aiChatService = {
      * Send a message and return a ReadableStream reader for SSE.
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
-    async sendMessageStream(conversationId, message, currentRoute = null) {
+    async sendMessageStream(conversationId, message, currentRoute = null, { signal } = {}) {
         const token = await getToken();
 
         const response = await fetch(`/api/ai-chat/conversations/${conversationId}/messages`, {
@@ -54,6 +54,7 @@ const aiChatService = {
                 message,
                 current_route: currentRoute,
             }),
+            signal,
         });
 
         if (!response.ok) {
