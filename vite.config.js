@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import fs from 'fs';
 
@@ -51,6 +52,54 @@ export default defineConfig({
             buildDirectory: 'build',
         }),
         vue(),
+        VitePWA({
+            registerType: 'autoUpdate',
+            includeAssets: ['favicon.ico'],
+            manifest: {
+                name: 'Fynla — Your Financial Companion',
+                short_name: 'Fynla',
+                description: 'UK financial planning made simple',
+                theme_color: '#1F2A44',
+                background_color: '#F7F6F4',
+                display: 'standalone',
+                orientation: 'portrait',
+                start_url: '/dashboard',
+                categories: ['finance', 'lifestyle'],
+                icons: [],
+                shortcuts: [
+                    {
+                        name: 'Ask Fyn',
+                        url: '/dashboard',
+                        description: 'Open Fyn chat assistant',
+                    },
+                    {
+                        name: 'Goals',
+                        url: '/goals',
+                        description: 'View your financial goals',
+                    },
+                ],
+            },
+            workbox: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                navigateFallback: null,
+                runtimeCaching: [
+                    {
+                        urlPattern: /^https:\/\/fonts\.googleapis\.com/,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'google-fonts-stylesheets',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 60 * 60 * 24 * 365,
+                            },
+                        },
+                    },
+                ],
+            },
+            devOptions: {
+                enabled: false,
+            },
+        }),
     ],
     resolve: {
         alias: {
