@@ -29,7 +29,7 @@ class TokenRefreshController extends Controller
                 'success' => true,
                 'data' => [
                     'token' => $newToken->plainTextToken,
-                    'expires_at' => now()->addDays(30)->toIso8601String(),
+                    'expires_at' => $newToken->accessToken->expires_at->toIso8601String(),
                     'token_age_days' => 0,
                 ],
             ]);
