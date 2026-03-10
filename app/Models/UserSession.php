@@ -19,6 +19,7 @@ class UserSession extends Model
         'ip_address',
         'user_agent',
         'device_name',
+        'device_id',
         'last_activity_at',
     ];
 
