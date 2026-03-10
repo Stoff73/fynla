@@ -1,4 +1,5 @@
 import { createStore } from 'vuex';
+import createPersistedState from 'vuex-persistedstate';
 import auth from './modules/auth';
 import dashboard from './modules/dashboard';
 import protection from './modules/protection';
@@ -23,6 +24,7 @@ import plans from './modules/plans';
 import taxOptimisation from './modules/taxOptimisation';
 import household from './modules/household';
 import journeys from './modules/journeys';
+import mobileDashboard from './modules/mobileDashboard';
 
 const store = createStore({
   modules: {
@@ -50,7 +52,22 @@ const store = createStore({
     taxOptimisation,
     household,
     journeys,
+    mobileDashboard,
   },
+  plugins: [
+    createPersistedState({
+      key: 'fynla-state',
+      paths: [
+        'auth.user',
+        'auth.token',
+        'dashboard',
+        'aiChat.conversations',
+        'goals.goals',
+        'mobileDashboard',
+      ],
+      storage: window.localStorage,
+    }),
+  ],
   strict: process.env.NODE_ENV !== 'production',
 });
 
