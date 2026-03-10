@@ -1,4 +1,5 @@
 import api from './api';
+import { getTokenSync, setToken as storageSetToken, removeToken } from './tokenStorage';
 
 const authService = {
   /**
@@ -75,28 +76,28 @@ const authService = {
   },
 
   /**
-   * Set authentication token in sessionStorage
+   * Set authentication token in storage
    * @param {string} token
    */
   setToken(token) {
-    sessionStorage.setItem('auth_token', token);
+    storageSetToken(token);
   },
 
   /**
-   * Get authentication token from sessionStorage
+   * Get authentication token from storage (synchronous for backward compatibility)
    * @returns {string|null}
    */
   getToken() {
-    return sessionStorage.getItem('auth_token');
+    return getTokenSync();
   },
 
   /**
-   * Clear all authentication data from both sessionStorage and localStorage
+   * Clear all authentication data from both token storage and localStorage
    * Comprehensive cleanup to prevent any data leakage between sessions
    */
   clearAuth() {
-    // Clear sessionStorage (primary location)
-    sessionStorage.removeItem('auth_token');
+    // Clear token storage (primary location)
+    removeToken();
 
     // Clear any legacy localStorage data
     localStorage.removeItem('auth_token');

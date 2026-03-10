@@ -1,5 +1,6 @@
 import axios from 'axios';
 import store from '@/store';
+import { getToken, removeToken } from '@/services/tokenStorage';
 
 // Retry configuration for transient failures
 const RETRY_CONFIG = {
@@ -60,10 +61,10 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (async to support native storage in Phase 2)
 api.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem('auth_token');
+  async (config) => {
+    const token = await getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -98,8 +99,8 @@ api.interceptors.response.use(
 
         if (!isAuthEndpoint && !isPreviewMode) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
-          // Clear token from both sessionStorage and localStorage, then redirect
-          sessionStorage.removeItem('auth_token');
+          // Clear token from both tokenStorage and localStorage, then redirect
+          removeToken();
           localStorage.removeItem('auth_token');
           // Get the base path from the current location to handle subfolder deployments
           const basePath = window.location.pathname.includes('/fps/') ? '/fps' : '';

@@ -20,6 +20,8 @@
  * avoids false logouts on page refresh while maintaining security.
  */
 
+import { getTokenSync, removeToken } from './tokenStorage';
+
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 let inactivityTimer = null;
 let isInitialized = false;
@@ -48,7 +50,7 @@ export function initSessionLifecycle(store, router) {
       clearTimeout(inactivityTimer);
     }
 
-    const token = sessionStorage.getItem('auth_token');
+    const token = getTokenSync();
     if (token) {
       inactivityTimer = setTimeout(() => {
         handleInactivityLogout(store, router);
@@ -76,6 +78,7 @@ export function initSessionLifecycle(store, router) {
   resetInactivityTimer();
 
   // Also reset timer when token changes (login/logout)
+  // Monitor sessionStorage.setItem for auth_token changes to reset inactivity timer
   const originalSetItem = sessionStorage.setItem.bind(sessionStorage);
   sessionStorage.setItem = function(key, value) {
     originalSetItem(key, value);
@@ -96,7 +99,7 @@ async function handleInactivityLogout(store, router) {
     await store.dispatch('auth/logout');
   } catch (error) {
     // Ensure cleanup happens even if API call fails
-    sessionStorage.removeItem('auth_token');
+    removeToken();
     localStorage.removeItem('auth_token');
   }
 

@@ -16,7 +16,7 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-// One-time cleanup: remove legacy auth_token from localStorage (now sessionStorage only)
+// One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
 
 // Create Vue app instance
@@ -30,7 +30,7 @@ app.use(VueApexCharts);
 // Register custom directives
 app.directive('preview-disabled', previewDisabled);
 
-// Initialize preview mode from sessionStorage if available
+// Initialize preview mode from token storage if available
 // This allows preview mode to survive page reloads
 store.dispatch('preview/initFromStorage').catch(() => {
     // Preview mode restoration failed silently

@@ -102,7 +102,7 @@ const myService = {
 };
 ```
 
-The base `api.js` provides: CSRF injection, auth token from sessionStorage, automatic retry with exponential backoff (5xx, 429), and preview mode detection.
+The base `api.js` provides: CSRF injection, auth token from `tokenStorage` (async-ready abstraction over sessionStorage/native storage), automatic retry with exponential backoff (5xx, 429), and preview mode detection.
 
 ## Component Conventions
 

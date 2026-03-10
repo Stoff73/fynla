@@ -1,4 +1,5 @@
 import api from './api';
+import { getToken } from './tokenStorage';
 
 const aiChatService = {
     /**
@@ -40,7 +41,7 @@ const aiChatService = {
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
     async sendMessageStream(conversationId, message, currentRoute = null) {
-        const token = sessionStorage.getItem('auth_token');
+        const token = await getToken();
 
         const response = await fetch(`/api/ai-chat/conversations/${conversationId}/messages`, {
             method: 'POST',
