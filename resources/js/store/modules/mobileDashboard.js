@@ -76,7 +76,7 @@ const actions = {
         commit('SET_ERROR', null);
 
         try {
-            const response = await api.get('/mobile/dashboard');
+            const response = await api.get('/v1/mobile/dashboard');
             commit('SET_DASHBOARD', response.data.data);
         } catch (error) {
             commit('SET_ERROR', error.message || 'Failed to load dashboard');
@@ -93,7 +93,7 @@ const actions = {
         commit('SET_ERROR', null);
 
         try {
-            const response = await api.get('/mobile/dashboard');
+            const response = await api.get('/v1/mobile/dashboard');
             commit('SET_DASHBOARD', response.data.data);
         } catch (error) {
             commit('SET_ERROR', error.message || 'Failed to refresh dashboard');
