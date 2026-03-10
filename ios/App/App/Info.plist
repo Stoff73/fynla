@@ -45,5 +45,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fynla uses your microphone for voice input when chatting with Fyn</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Fynla uses speech recognition to convert your voice to text when chatting with Fyn</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Fynla uses Face ID for quick, secure login</string>
 </dict>
 </plist>
