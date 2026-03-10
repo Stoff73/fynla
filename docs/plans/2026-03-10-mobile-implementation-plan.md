@@ -239,6 +239,8 @@ PWA security relies on TLS + server-side controls. Native security features requ
 
 **Gate:** Phase 1 metrics show mobile engagement (or strategic decision to proceed).
 
+**Execution strategy:** Split into **Phase 2a** (backend infrastructure, no Capacitor required) and **Phase 2b** (Capacitor + native UI, requires Xcode/Android Studio). Phase 2a is fully testable in the current Laravel + Vue environment. See `docs/plans/2026-03-10-phase2a-design.md` for the detailed 2a specification.
+
 ### 2.1 Capacitor Setup
 
 **Version:** Capacitor 6.x
@@ -623,14 +625,33 @@ await Share.share({
 
 ### Phase 2 Implementation Order
 
+**Phase 2a — Backend Infrastructure (no Capacitor required):**
+
+| Task | Focus | Deliverable |
+|------|-------|-------------|
+| 2a-01 | Database migrations | device_tokens, notification_preferences tables, user_sessions device_id |
+| 2a-02 | Models + factories | DeviceToken, NotificationPreference with factories |
+| 2a-03 | Auth token refresh | POST /api/v1/auth/refresh-token endpoint |
+| 2a-04 | Device registration API | CRUD endpoints for device tokens |
+| 2a-05 | Notification preferences API | GET/PUT preference endpoints |
+| 2a-06 | Push notification service | FCM integration, 6 notification classes |
+| 2a-07 | Scheduled commands | Daily insight + policy renewal crons |
+| 2a-08 | Deep link configuration | .well-known/apple-app-site-association + assetlinks.json |
+| 2a-09 | CORS + middleware updates | Capacitor origins, CSP, PreviewWriteInterceptor |
+| 2a-10 | Vuex persistence + platform | vuex-persistedstate, mobileDashboard store, platform.js |
+| 2a-11 | Social share backend | ShareController, ShareContentGenerator (no PII) |
+| 2a-12 | Integration testing + review | Full test suite, code review, deploy notes |
+
+**Phase 2b — Capacitor + Native UI (requires Xcode/Android Studio):**
+
 | Week | Focus | Deliverable |
 |------|-------|-------------|
 | 7-8 | Capacitor setup + auth | Config, native projects, biometric auth, token persistence |
-| 8-9 | Mobile layout + navigation | MobileLayout, BottomTabBar, MobileHeader, platform detection |
+| 8-9 | Mobile layout + navigation | MobileLayout, BottomTabBar, MobileHeader |
 | 9-10 | Dashboard + module summaries | MobileDashboard, 7 module summary screens, net worth card |
-| 10-11 | Full-screen AI chat | MobileFynChat, voice input, quick replies, SSE lifecycle |
-| 11-12 | Push notifications + social share | Device registration, FCM integration, 6 notification types, share sheet |
-| 12-13 | Goals + deep links | Mobile goals list/detail, milestone celebrations, AASA/assetlinks |
+| 10-11 | Full-screen AI chat | MobileFynChat, voice input, SSE lifecycle |
+| 11-12 | Push + social share frontend | Native push handling, ShareButton.vue |
+| 12-13 | Goals + deep links | Mobile goals list/detail, milestone celebrations |
 | 13-14 | Basic Learn hub + More menu | Topic grid with external links, settings, profile |
 
 ---
