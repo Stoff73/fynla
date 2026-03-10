@@ -66,4 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('api.v1.mobile.notifications.preferences.show');
     Route::put('/mobile/notifications/preferences', [\App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController::class, 'update'])
         ->name('api.v1.mobile.notifications.preferences.update');
+
+    // Social share
+    Route::get('/mobile/share/{type}/{id?}', [\App\Http\Controllers\Api\V1\Mobile\ShareController::class, 'show'])
+        ->name('api.v1.mobile.share');
 });
