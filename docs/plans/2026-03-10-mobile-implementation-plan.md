@@ -1,7 +1,7 @@
 # Fynla Mobile App — Technical Implementation Plan
 
 **Date:** 10 March 2026
-**Status:** Approved for development
+**Status:** Phase 0 + Phase 1 COMPLETE — Ready for Phase 2
 **Based on:** [Mobile App Exploration](2026-03-06-mobile-app-exploration.md) + team review
 **Team:** Technical lead, UX/UI designer, integration expert, devil's advocate
 
@@ -24,7 +24,11 @@ This plan covers the phased implementation of a Fynla mobile app, starting with 
 
 ---
 
-## Phase 0: Instrument & Measure (Weeks 1-2)
+## Phase 0: Instrument & Measure (Weeks 1-2) — COMPLETE
+
+**Status:** All tasks implemented and deployed. Branch: `feature/mobile-app-phase0`
+**Completed:** 10 March 2026
+**Deploy notes:** `docs/plans/phase0-deploy-notes.md`
 
 **Rationale (devil's advocate):** Zero user data currently backs any mobile assumption. Before writing mobile code, measure actual mobile web usage.
 
@@ -72,7 +76,11 @@ This plan covers the phased implementation of a Fynla mobile app, starting with 
 
 ---
 
-## Phase 1: PWA Foundation (Weeks 3-6)
+## Phase 1: PWA Foundation (Weeks 3-6) — COMPLETE
+
+**Status:** All tasks implemented, tested (1820 tests, 47 mobile-specific), and code reviewed.
+**Completed:** 10 March 2026
+**Deploy notes:** `docs/plans/phase1-deploy-notes.md`
 
 **Scope (rescoped from original):** Service worker + manifest for installability, responsive AI chat, one aggregated dashboard endpoint. No Learn hub, no push notifications, no offline sync.
 
