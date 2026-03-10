@@ -30,6 +30,9 @@
       <!-- Preview Mode Banner -->
       <PreviewBanner v-if="isPreviewMode" />
 
+      <!-- Mobile App Survey Banner (authenticated non-preview users only) -->
+      <MobileSurveyBanner v-if="isAuthenticated && !isPreviewMode" />
+
       <main class="flex-grow bg-eggshell-500">
         <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
@@ -63,6 +66,7 @@ import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
+import MobileSurveyBanner from '@/components/Shared/MobileSurveyBanner.vue';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
 
@@ -82,6 +86,7 @@ export default {
     SideMenu,
     SideMenuMobileToggle,
     OfflineBanner,
+    MobileSurveyBanner,
   },
 
   data() {
