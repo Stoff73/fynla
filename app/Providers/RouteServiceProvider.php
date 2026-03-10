@@ -75,6 +75,36 @@ class RouteServiceProvider extends ServiceProvider
             });
         });
 
+        // Mobile dashboard rate limit (30 requests per minute per user)
+        RateLimiter::for('mobile-dashboard', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many dashboard requests. Please try again shortly.',
+                ], 429);
+            });
+        });
+
+        // AI chat rate limit (20 requests per minute per user)
+        RateLimiter::for('ai-chat', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many chat requests. Please wait a moment before sending another message.',
+                ], 429);
+            });
+        });
+
+        // Device registration rate limit (5 requests per minute per user)
+        RateLimiter::for('device-registration', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Too many device registration attempts. Please try again later.',
+                ], 429);
+            });
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
