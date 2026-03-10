@@ -113,7 +113,7 @@ describe('JourneyFieldResolver', function () {
         expect($steps)->not->toBeEmpty();
         // First step should be personal information
         expect($steps[0]['name'])->toBe('Personal Information')
-            ->and($steps[0]['component'])->toBe('JourneyPersonalStep');
+            ->and($steps[0]['component'])->toBe('SimplePersonalInfoStep');
         // Remaining steps are financial
         expect(count($steps))->toBeGreaterThan(1);
     });
