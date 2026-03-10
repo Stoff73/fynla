@@ -2,47 +2,75 @@
   <Teleport to="body">
     <Transition
       enter-active-class="transition ease-out duration-200"
-      enter-from-class="translate-y-4 opacity-0"
-      enter-to-class="translate-y-0 opacity-100"
+      :enter-from-class="isMobile ? 'translate-y-full opacity-0' : 'translate-y-4 opacity-0'"
+      :enter-to-class="isMobile ? 'translate-y-0 opacity-100' : 'translate-y-0 opacity-100'"
       leave-active-class="transition ease-in duration-150"
-      leave-from-class="translate-y-0 opacity-100"
-      leave-to-class="translate-y-4 opacity-0"
+      :leave-from-class="isMobile ? 'translate-y-0 opacity-100' : 'translate-y-0 opacity-100'"
+      :leave-to-class="isMobile ? 'translate-y-full opacity-0' : 'translate-y-4 opacity-0'"
     >
       <div
         v-if="isOpen"
-        class="fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2rem)] z-[70]
-               bg-white rounded-lg border border-light-gray shadow-md
-               flex flex-col transition-all duration-200"
-        style="max-height: calc(100vh - 8rem);"
+        :class="[
+          isMobile
+            ? 'fixed inset-0 z-[70] flex flex-col bg-white chat-mobile-container'
+            : 'fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2rem)] z-[70] bg-white rounded-lg border border-light-gray shadow-md flex flex-col transition-all duration-200'
+        ]"
+        :style="isMobile ? {} : { maxHeight: 'calc(100vh - 8rem)' }"
       >
         <!-- Card Header -->
-        <div class="px-6 py-4 border-b border-light-gray">
+        <div :class="[
+          'border-b border-light-gray',
+          isMobile ? 'px-4 py-3' : 'px-6 py-4'
+        ]">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-horizon-500">Fynla Assistant</h3>
+            <!-- Mobile: close button on the left -->
+            <button
+              v-if="isMobile"
+              @click="closePanel"
+              class="p-2 -ml-2 text-neutral-500 hover:text-horizon-500 rounded-full transition-colors"
+              title="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 :class="[
+              'font-semibold text-horizon-500',
+              isMobile ? 'text-base flex-1 text-center' : 'text-lg'
+            ]">Fynla Assistant</h3>
+
             <div class="flex items-center gap-1">
               <!-- New conversation -->
               <button
                 @click="startNew"
-                class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+                :class="[
+                  'text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors',
+                  isMobile ? 'p-2' : 'p-1.5'
+                ]"
                 title="New conversation"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" :class="isMobile ? 'w-5 h-5' : 'w-4 h-4'">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
               </button>
               <!-- History toggle -->
               <button
                 @click="toggleHistory"
-                class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
-                :class="{ 'bg-savannah-100 text-neutral-500': showHistory }"
+                :class="[
+                  'text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors',
+                  isMobile ? 'p-2' : 'p-1.5',
+                  { 'bg-savannah-100 text-neutral-500': showHistory }
+                ]"
                 title="Conversation history"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" :class="isMobile ? 'w-5 h-5' : 'w-4 h-4'">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
-              <!-- Close -->
+              <!-- Close (desktop only) -->
               <button
+                v-if="!isMobile"
                 @click="closePanel"
                 class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
                 title="Close"
@@ -103,7 +131,14 @@
         </Transition>
 
         <!-- Card Body - Messages area -->
-        <div ref="messagesContainer" class="flex-1 overflow-y-auto p-6 space-y-4" style="min-height: 200px; max-height: 400px;">
+        <div
+          ref="messagesContainer"
+          :class="[
+            'flex-1 overflow-y-auto space-y-4',
+            isMobile ? 'p-4' : 'p-6'
+          ]"
+          :style="isMobile ? { minHeight: '0' } : { minHeight: '200px', maxHeight: '400px' }"
+        >
           <!-- Loading state -->
           <div v-if="loading" class="flex items-center justify-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
@@ -173,7 +208,10 @@
         </div>
 
         <!-- Card Footer - Input area -->
-        <div class="px-6 py-4 border-t border-light-gray bg-savannah-100 rounded-b-lg">
+        <div :class="[
+          'border-t border-light-gray bg-savannah-100',
+          isMobile ? 'px-4 py-3' : 'px-6 py-4 rounded-b-lg'
+        ]">
           <div class="flex gap-2">
             <textarea
               ref="inputField"
@@ -223,6 +261,7 @@ export default {
     data() {
         return {
             inputMessage: '',
+            windowWidth: window.innerWidth,
         };
     },
 
@@ -240,6 +279,10 @@ export default {
             'showHistory',
             'pendingNavigation',
         ]),
+
+        isMobile() {
+            return this.windowWidth < 768;
+        },
 
         canSend() {
             return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading;
@@ -303,6 +346,17 @@ export default {
 
             return prompts['/dashboard'];
         },
+    },
+
+    mounted() {
+        this.handleResize = () => { this.windowWidth = window.innerWidth; };
+        window.addEventListener('resize', this.handleResize);
+    },
+
+    beforeUnmount() {
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+        }
     },
 
     watch: {
@@ -419,3 +473,12 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+/* Use dynamic viewport height for mobile to stay above the virtual keyboard */
+@supports (height: 100dvh) {
+    .chat-mobile-container {
+        height: 100dvh;
+    }
+}
+</style>
