@@ -14,6 +14,11 @@
     <!-- Vite CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    <!-- Plausible Analytics (privacy-first, no cookies, GDPR-compliant) -->
+    @if(config('analytics.enabled') && config('analytics.plausible_domain'))
+        <script defer data-domain="{{ config('analytics.plausible_domain') }}" src="https://plausible.io/js/script.js"></script>
+    @endif
+
 </head>
 <body class="antialiased" style="background-color: #F7F6F4;">
     <div id="app"></div>
