@@ -1,6 +1,6 @@
 <template>
   <div role="alert" aria-live="assertive">
-    <transition name="offline-slide">
+    <transition name="expand">
       <div
         v-if="isOffline"
         class="bg-savannah-200 border-b border-savannah-300 px-4 sm:px-6 lg:px-8 py-2.5"
@@ -91,25 +91,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.offline-slide-enter-active,
-.offline-slide-leave-active {
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.offline-slide-enter-from,
-.offline-slide-leave-to {
-  max-height: 0;
-  opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.offline-slide-enter-to,
-.offline-slide-leave-from {
-  max-height: 60px;
-  opacity: 1;
-}
-</style>
