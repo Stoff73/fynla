@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
@@ -20,6 +21,7 @@ class NotificationPreference extends Model
         'fyn_daily_insight',
         'security_alerts',
         'payment_alerts',
+        'mortgage_rate_alerts',
     ];
 
     protected $casts = [
@@ -30,6 +32,7 @@ class NotificationPreference extends Model
         'fyn_daily_insight' => 'boolean',
         'security_alerts' => 'boolean',
         'payment_alerts' => 'boolean',
+        'mortgage_rate_alerts' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -49,6 +52,7 @@ class NotificationPreference extends Model
                 'fyn_daily_insight' => true,
                 'security_alerts' => true,
                 'payment_alerts' => true,
+                'mortgage_rate_alerts' => true,
             ]
         );
     }

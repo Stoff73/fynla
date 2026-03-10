@@ -30,6 +30,7 @@ class NotificationPreferenceController extends Controller
                     'fyn_daily_insight' => $prefs->fyn_daily_insight,
                     'security_alerts' => $prefs->security_alerts,
                     'payment_alerts' => $prefs->payment_alerts,
+                    'mortgage_rate_alerts' => $prefs->mortgage_rate_alerts,
                 ],
             ]);
         } catch (\Exception $e) {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
@@ -22,6 +23,7 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'fyn_daily_insight' => ['nullable', 'boolean'],
             'security_alerts' => ['nullable', 'boolean'],
             'payment_alerts' => ['nullable', 'boolean'],
+            'mortgage_rate_alerts' => ['nullable', 'boolean'],
         ];
     }
 }
