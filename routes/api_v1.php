@@ -60,4 +60,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('api.v1.mobile.devices.index');
     Route::delete('/mobile/devices/{deviceId}', [\App\Http\Controllers\Api\V1\Mobile\DeviceController::class, 'destroy'])
         ->name('api.v1.mobile.devices.destroy');
+
+    // Notification preferences
+    Route::get('/mobile/notifications/preferences', [\App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController::class, 'show'])
+        ->name('api.v1.mobile.notifications.preferences.show');
+    Route::put('/mobile/notifications/preferences', [\App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController::class, 'update'])
+        ->name('api.v1.mobile.notifications.preferences.update');
 });
