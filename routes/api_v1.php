@@ -32,9 +32,8 @@ Route::get('/health', function () {
 
 // Authenticated mobile endpoints
 Route::middleware('auth:sanctum')->group(function () {
-    // Future mobile-specific endpoints will be registered here:
-    // - Mobile dashboard summary
-    // - Module summaries
-    // - Device registration
-    // - Push notification preferences
+    // Mobile dashboard — aggregated summary of all modules
+    Route::get('/mobile/dashboard', [\App\Http\Controllers\Api\V1\Mobile\MobileDashboardController::class, 'index'])
+        ->middleware(['etag', 'throttle:mobile-dashboard'])
+        ->name('api.v1.mobile.dashboard');
 });
