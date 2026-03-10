@@ -261,7 +261,7 @@ export default {
 
         // No verification needed (preview user) - proceed with token
         if (response.data.data?.access_token) {
-          authService.setToken(response.data.data.access_token);
+          await authService.setToken(response.data.data.access_token);
           store.commit('auth/setToken', response.data.data.access_token);
           await store.dispatch('auth/fetchUser');
 
@@ -287,7 +287,7 @@ export default {
       showVerificationModal.value = false;
 
       // Store the token
-      authService.setToken(data.access_token);
+      await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
 
       // Fetch user data fresh from API (sets user, role, and permissions)
@@ -311,7 +311,7 @@ export default {
       showMFAModal.value = false;
 
       // Store the token
-      authService.setToken(data.access_token);
+      await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
 
       // Fetch user data fresh from API (sets user, role, and permissions)

@@ -310,7 +310,7 @@ export default {
 
     const completeRegistration = async (data) => {
       // Store the token
-      authService.setToken(data.access_token);
+      await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
 
       // Fetch user data fresh from API (sets user, role, and permissions)

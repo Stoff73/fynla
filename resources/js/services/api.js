@@ -86,7 +86,7 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.response) {
       // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
@@ -100,7 +100,7 @@ api.interceptors.response.use(
         if (!isAuthEndpoint && !isPreviewMode) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
           // Clear token from both tokenStorage and localStorage, then redirect
-          removeToken();
+          await removeToken();
           localStorage.removeItem('auth_token');
           // Get the base path from the current location to handle subfolder deployments
           const basePath = window.location.pathname.includes('/fps/') ? '/fps' : '';

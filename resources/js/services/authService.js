@@ -9,12 +9,12 @@ const authService = {
    */
   async register(userData) {
     // Clear any existing auth data to prevent data leakage between users
-    this.clearAuth();
+    await this.clearAuth();
 
     const response = await api.post('/auth/register', userData);
     if (response.data.success && response.data.data.access_token) {
       // ONLY store token - user data will be fetched fresh from API
-      this.setToken(response.data.data.access_token);
+      await this.setToken(response.data.data.access_token);
     }
     return response.data;
   },
@@ -26,12 +26,12 @@ const authService = {
    */
   async login(credentials) {
     // Clear any existing auth data to prevent data leakage between users
-    this.clearAuth();
+    await this.clearAuth();
 
     const response = await api.post('/auth/login', credentials);
     if (response.data.success && response.data.data.access_token) {
       // ONLY store token - user data will be fetched fresh from API
-      this.setToken(response.data.data.access_token);
+      await this.setToken(response.data.data.access_token);
     }
     return response.data;
   },
@@ -46,7 +46,7 @@ const authService = {
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
-      this.clearAuth();
+      await this.clearAuth();
     }
   },
 
@@ -79,8 +79,8 @@ const authService = {
    * Set authentication token in storage
    * @param {string} token
    */
-  setToken(token) {
-    storageSetToken(token);
+  async setToken(token) {
+    await storageSetToken(token);
   },
 
   /**
@@ -95,9 +95,9 @@ const authService = {
    * Clear all authentication data from both token storage and localStorage
    * Comprehensive cleanup to prevent any data leakage between sessions
    */
-  clearAuth() {
+  async clearAuth() {
     // Clear token storage (primary location)
-    removeToken();
+    await removeToken();
 
     // Clear any legacy localStorage data
     localStorage.removeItem('auth_token');
