@@ -62,21 +62,22 @@ class ModuleSummaryController extends Controller
             $userId = $request->user()->id;
             $cacheKey = "mobile_module_{$module}_{$userId}";
 
-            $cachedAt = now()->toIso8601String();
-
-            $summary = Cache::remember($cacheKey, 300, function () use ($module, $userId) {
-                return $this->getModuleSummary($module, $userId);
+            $data = Cache::remember($cacheKey, 300, function () use ($module, $userId) {
+                return [
+                    'summary' => $this->getModuleSummary($module, $userId),
+                    'cached_at' => now()->toIso8601String(),
+                ];
             });
 
             // Strip any score-related keys from the summary (rule #13)
-            $summary = $this->removeScores($summary);
+            $data['summary'] = $this->removeScores($data['summary']);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'module' => $module,
-                    'summary' => $summary,
-                    'cached_at' => $cachedAt,
+                    'summary' => $data['summary'],
+                    'cached_at' => $data['cached_at'],
                 ],
             ]);
         } catch (\Exception $e) {

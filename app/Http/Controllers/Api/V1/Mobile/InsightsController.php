@@ -16,19 +16,6 @@ class InsightsController extends Controller
 {
     use SanitizedErrorResponse;
 
-    /**
-     * Module categories for insights, weighted by typical relevance.
-     */
-    private const INSIGHT_CATEGORIES = [
-        'savings',
-        'protection',
-        'investment',
-        'retirement',
-        'estate',
-        'goals',
-        'tax',
-    ];
-
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
     ) {}

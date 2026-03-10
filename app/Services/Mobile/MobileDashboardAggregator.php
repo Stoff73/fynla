@@ -10,6 +10,12 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Traits\CalculatesOwnershipShare;
@@ -296,19 +302,19 @@ class MobileDashboardAggregator
             $investmentValue = $this->sumUserShares($user->investmentAccounts, $userId);
 
             // Also include joint assets where user is the joint_owner_id
-            $propertyValue += $this->sumJointOwnerShares('App\Models\Property', $userId);
-            $savingsValue += $this->sumJointOwnerShares('App\Models\SavingsAccount', $userId);
-            $investmentValue += $this->sumJointOwnerShares('App\Models\Investment\InvestmentAccount', $userId);
+            $propertyValue += $this->sumJointOwnerShares(Property::class, $userId);
+            $savingsValue += $this->sumJointOwnerShares(SavingsAccount::class, $userId);
+            $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
             $dcPensionValue = (float) $user->dcPensions->sum('current_fund_value');
             $dbPensionValue = (float) $user->dbPensions->sum('transfer_value');
             $pensionValue = round($dcPensionValue + $dbPensionValue, 2);
 
             $businessValue = $this->sumUserShares($user->businessInterests, $userId);
-            $businessValue += $this->sumJointOwnerShares('App\Models\BusinessInterest', $userId);
+            $businessValue += $this->sumJointOwnerShares(BusinessInterest::class, $userId);
 
             $chattelValue = $this->sumUserShares($user->chattels, $userId);
-            $chattelValue += $this->sumJointOwnerShares('App\Models\Chattel', $userId);
+            $chattelValue += $this->sumJointOwnerShares(Chattel::class, $userId);
 
             $cashValue = (float) $user->cashAccounts->sum('current_balance');
 
@@ -414,7 +420,7 @@ class MobileDashboardAggregator
      */
     private function sumJointMortgageShares(int $userId): float
     {
-        $mortgages = \App\Models\Mortgage::where('joint_owner_id', $userId)->get();
+        $mortgages = Mortgage::where('joint_owner_id', $userId)->get();
         $total = 0.0;
 
         foreach ($mortgages as $mortgage) {
