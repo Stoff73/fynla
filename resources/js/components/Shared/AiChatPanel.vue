@@ -211,6 +211,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
+import analyticsService from '@/services/analyticsService';
 
 export default {
     name: 'AiChatPanel',
@@ -340,6 +341,8 @@ export default {
         ]),
 
         async onOpen() {
+            analyticsService.trackChatOpened();
+
             await this.fetchConversations();
 
             if (!this.currentConversation) {
@@ -368,6 +371,7 @@ export default {
             const message = this.inputMessage.trim();
             this.inputMessage = '';
 
+            analyticsService.trackChatMessageSent(message.length);
             await this.sendMessage(message);
         },
 

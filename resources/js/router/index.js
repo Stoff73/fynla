@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
+import analyticsService from '@/services/analyticsService';
 
 // Lazy load components
 // Public pages
@@ -943,6 +944,11 @@ router.afterEach((to) => {
 
   // Fetch requirements for this module
   store.dispatch('infoGuide/fetchRequirements', module);
+});
+
+// Analytics: track page views on every route change
+router.afterEach((to) => {
+  analyticsService.trackPageView(to.name, to.path);
 });
 
 export default router;
