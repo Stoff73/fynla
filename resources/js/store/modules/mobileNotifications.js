@@ -2,14 +2,18 @@
  * Mobile Notifications Store Module
  *
  * Manages push notification permission state, unread counts,
- * and in-app notification display. Full implementation in Task 17.
+ * in-app notification display, and @capacitor/push-notifications integration.
  */
+
+import { platform } from '@/utils/platform';
+import api from '@/services/api';
 
 const state = {
     permissionStatus: 'unknown', // 'unknown', 'granted', 'denied', 'prompt'
     unreadCount: 0,
     inAppNotification: null,
     promptDismissals: {}, // { triggerType: dismissedAt }
+    listenersRegistered: false,
 };
 
 const getters = {
@@ -34,18 +38,92 @@ const mutations = {
         state.inAppNotification = null;
     },
     SET_PROMPT_DISMISSAL(state, triggerType) {
-        state.promptDismissals[triggerType] = Date.now();
+        state.promptDismissals = { ...state.promptDismissals, [triggerType]: Date.now() };
+    },
+    SET_LISTENERS_REGISTERED(state) {
+        state.listenersRegistered = true;
     },
 };
 
 const actions = {
-    async requestPermission({ commit }) {
-        // Full implementation in Task 17
-        commit('SET_PERMISSION_STATUS', 'unknown');
+    async requestPermission({ commit, dispatch }) {
+        if (!platform.canUsePushNotifications()) {
+            commit('SET_PERMISSION_STATUS', 'denied');
+            return;
+        }
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.requestPermissions();
+
+        if (result.receive === 'granted') {
+            commit('SET_PERMISSION_STATUS', 'granted');
+            await PushNotifications.register();
+            await dispatch('initListeners');
+        } else {
+            commit('SET_PERMISSION_STATUS', 'denied');
+        }
     },
 
-    async registerToken() {
-        // Full implementation in Task 17
+    async checkPermission({ commit }) {
+        if (!platform.canUsePushNotifications()) {
+            commit('SET_PERMISSION_STATUS', 'denied');
+            return;
+        }
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.checkPermissions();
+        commit('SET_PERMISSION_STATUS', result.receive);
+    },
+
+    async initListeners({ commit, dispatch, state }) {
+        if (!platform.canUsePushNotifications() || state.listenersRegistered) {
+            return;
+        }
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+
+        PushNotifications.addListener('registration', async (token) => {
+            await dispatch('registerToken', token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+            // eslint-disable-next-line no-console
+            console.warn('Push registration failed:', error);
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            dispatch('showInAppNotification', {
+                title: notification.title || 'Fynla',
+                body: notification.body || '',
+                deepLink: notification.data?.deepLink || null,
+            });
+        });
+
+        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const deepLink = action.notification?.data?.deepLink;
+            if (deepLink) {
+                // Navigation handled by the component watching inAppNotification
+                dispatch('showInAppNotification', {
+                    title: action.notification.title || 'Fynla',
+                    body: action.notification.body || '',
+                    deepLink,
+                    navigate: true,
+                });
+            }
+        });
+
+        commit('SET_LISTENERS_REGISTERED');
+    },
+
+    async registerToken(_, token) {
+        try {
+            await api.post('/v1/mobile/devices', {
+                token,
+                platform: platform.isIOS() ? 'ios' : 'android',
+            });
+        } catch {
+            // Silent fail — token registration is best-effort
+        }
     },
 
     showInAppNotification({ commit }, notification) {
