@@ -3,19 +3,27 @@
  *
  * Detects whether the app is running as a native Capacitor app,
  * on iOS/Android, or in a standard web browser.
+ * Uses @capacitor/core for reliable detection.
  */
 
+import { Capacitor } from '@capacitor/core';
+
 export const platform = {
-    isNative: () =>
-        typeof window !== 'undefined' &&
-        typeof window.Capacitor !== 'undefined' &&
-        window.Capacitor.isNativePlatform(),
+    isNative: () => Capacitor.isNativePlatform(),
 
-    isIOS: () => platform.isNative() && window.Capacitor.getPlatform() === 'ios',
+    isIOS: () => Capacitor.getPlatform() === 'ios',
 
-    isAndroid: () => platform.isNative() && window.Capacitor.getPlatform() === 'android',
+    isAndroid: () => Capacitor.getPlatform() === 'android',
 
-    isWeb: () => !platform.isNative(),
+    isWeb: () => Capacitor.getPlatform() === 'web',
 
     isMobileViewport: () => typeof window !== 'undefined' && window.innerWidth < 768,
+
+    canUseBiometrics: () => Capacitor.isNativePlatform(),
+
+    canUsePushNotifications: () => Capacitor.isNativePlatform(),
+
+    canUseHaptics: () => Capacitor.isNativePlatform(),
+
+    canUseVoiceInput: () => Capacitor.isNativePlatform(),
 };
