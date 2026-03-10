@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'org.fynla.app',
   appName: 'Fynla',
-  webDir: 'public',
+  webDir: 'public/build',
   server: {
     url: process.env.CAPACITOR_DEV ? 'http://localhost:5173' : undefined,
     androidScheme: 'https',

@@ -8,6 +8,7 @@
         "test:run": "vitest run"
     },
     "devDependencies": {
+        "@capacitor/cli": "^6.2.1",
         "@playwright/test": "^1.56.0",
         "@vue/test-utils": "^2.4.6",
         "autoprefixer": "^10.4.21",
@@ -29,7 +30,6 @@
         "@capacitor-community/speech-recognition": "^6.0.1",
         "@capacitor/app": "^6.0.3",
         "@capacitor/browser": "^6.0.6",
-        "@capacitor/cli": "^6.2.1",
         "@capacitor/core": "^6.2.1",
         "@capacitor/device": "^6.0.3",
         "@capacitor/haptics": "^6.0.3",
