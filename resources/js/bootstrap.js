@@ -11,16 +11,25 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 /**
  * Laravel Sanctum SPA Authentication Configuration
- * This ensures cookies (including the session cookie) are sent with every request
+ * Capacitor uses Bearer tokens — withCredentials causes WKWebView to block cross-origin requests
  */
-window.axios.defaults.withCredentials = true;
+const isCapacitorBoot = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+window.axios.defaults.withCredentials = !isCapacitorBoot;
 
 // Use environment-specific base URL (production or local development)
 // In production with subfolder deployment, VITE_API_BASE_URL should be set to the full path (e.g., https://csjones.co/fps)
 // In local development, it defaults to window.location.origin, but we force specific local port if on localhost
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const apiBaseURL = isLocal ? 'http://127.0.0.1:8000' : (import.meta.env.VITE_API_BASE_URL || window.location.origin);
+// Capacitor apps load at capacitor://localhost — detect this so it doesn't match local dev
+const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+const isLocal = !isCapacitor && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const apiBaseURL = isCapacitor
+  ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org')
+  : isLocal ? 'http://127.0.0.1:8000' : (import.meta.env.VITE_API_BASE_URL || window.location.origin);
 window.axios.defaults.baseURL = apiBaseURL;
+
+if (isCapacitor) {
+  console.log('[Capacitor] API base URL:', apiBaseURL);
+}
 
 // Add CSRF token from meta tag to all requests
 const csrfToken = document.head.querySelector('meta[name="csrf-token"]');

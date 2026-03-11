@@ -2,10 +2,13 @@
  * Token Storage Abstraction Layer
  *
  * Web: sessionStorage (sync, wrapped in Promises).
- * Native (Capacitor): @capacitor/preferences (encrypted iOS Keychain / Android Keystore).
+ * Native (Capacitor): @capacitor/preferences (iOS Keychain / Android Keystore).
  */
 
 import { Capacitor } from '@capacitor/core';
+// Static import — dynamic import('@capacitor/preferences') hangs on iOS WKWebView.
+// The Preferences plugin has a web fallback (localStorage) so this is safe on all platforms.
+import { Preferences } from '@capacitor/preferences';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 
@@ -15,15 +18,8 @@ export function isNativePlatform() {
   return Capacitor.isNativePlatform();
 }
 
-// Lazy-load Preferences only on native to avoid bundling issues on web
-async function getPreferences() {
-  const { Preferences } = await import('@capacitor/preferences');
-  return Preferences;
-}
-
 export async function getToken() {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     const { value } = await Preferences.get({ key: AUTH_TOKEN_KEY });
     _cachedToken = value;
     return value;
@@ -33,7 +29,6 @@ export async function getToken() {
 
 export async function setToken(token) {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     await Preferences.set({ key: AUTH_TOKEN_KEY, value: token });
     _cachedToken = token;
     return;
@@ -43,7 +38,6 @@ export async function setToken(token) {
 
 export async function removeToken() {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     await Preferences.remove({ key: AUTH_TOKEN_KEY });
     _cachedToken = null;
     return;
@@ -53,7 +47,6 @@ export async function removeToken() {
 
 export async function getItem(key) {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     const { value } = await Preferences.get({ key });
     return value;
   }
@@ -62,7 +55,6 @@ export async function getItem(key) {
 
 export async function setItem(key, value) {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     await Preferences.set({ key, value });
     return;
   }
@@ -71,7 +63,6 @@ export async function setItem(key, value) {
 
 export async function removeItem(key) {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     await Preferences.remove({ key });
     return;
   }
@@ -80,7 +71,6 @@ export async function removeItem(key) {
 
 export async function clear() {
   if (isNativePlatform()) {
-    const Preferences = await getPreferences();
     await Preferences.clear();
     _cachedToken = null;
     return;

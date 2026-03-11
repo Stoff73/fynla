@@ -12,7 +12,7 @@
  */
 
 import api from '../../services/api';
-import { removeToken, setToken as storageSetToken } from '../../services/tokenStorage';
+import { removeToken, setToken as storageSetToken, isNativePlatform } from '../../services/tokenStorage';
 
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
@@ -230,33 +230,45 @@ const actions = {
     async enterPreviewMode({ commit, dispatch }, personaId) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
+        console.log('[Preview] Step 1: Entering preview mode for:', personaId);
 
         try {
-            // CRITICAL: Clear ALL auth and data state to prevent data leakage
+            console.log('[Preview] Step 2: Removing token...');
             await removeToken();
+            console.log('[Preview] Step 3: Token removed, clearing auth...');
             commit('auth/clearAuth', null, { root: true });
 
-            // CRITICAL: Reset all module states to prevent previous user's data from showing
+            console.log('[Preview] Step 4: Resetting module states...');
             commit('userProfile/resetState', null, { root: true });
             dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
+            console.log('[Preview] Step 5: Calling API /preview/login/' + personaId);
             const response = await api.post(`/preview/login/${personaId}`);
+            console.log('[Preview] Step 6: API response success:', response.data?.success);
 
             if (response.data.success) {
                 const token = response.data.token;
+                console.log('[Preview] Step 7: Storing token, length:', token?.length);
                 await storageSetToken(token);
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
 
-                // CRITICAL: Reload the page to ensure ALL state is fresh
-                // This prevents any possibility of previous user data showing
-                window.location.href = '/dashboard';
+                // On native, use SPA navigation to avoid page reload (which loses in-memory state)
+                const router = window.__appRouter;
+                if (router && isNativePlatform()) {
+                    console.log('[Preview] Step 8: SPA navigate to /m/home');
+                    router.push('/m/home');
+                } else {
+                    console.log('[Preview] Step 8: Navigating to /dashboard');
+                    window.location.href = '/dashboard';
+                }
 
                 return response.data;
             } else {
                 throw new Error(response.data.message || 'Failed to enter preview mode');
             }
         } catch (error) {
+            console.log('[Preview] ERROR:', error?.message || 'unknown', JSON.stringify(error));
             const message = error.response?.data?.message || error.message;
             commit('SET_ERROR', message);
             throw error;
@@ -291,8 +303,13 @@ const actions = {
                 commit('auth/setUser', response.data.user, { root: true });
                 commit('auth/setToken', token, { root: true });
 
-                // Reload the page to fetch fresh data for the new persona
-                window.location.reload();
+                // On native, use SPA navigation; on web, reload for fresh state
+                const router = window.__appRouter;
+                if (router && isNativePlatform()) {
+                    router.replace({ path: '/m/home', query: { _t: Date.now() } });
+                } else {
+                    window.location.reload();
+                }
 
                 return response.data;
             } else {
@@ -362,8 +379,13 @@ const actions = {
         commit('auth/setUser', null, { root: true });
         commit('auth/setToken', null, { root: true });
 
-        // Redirect to landing page
-        window.location.href = '/';
+        // On native, use SPA navigation; on web, full redirect
+        const router = window.__appRouter;
+        if (router && isNativePlatform()) {
+            router.push('/m/login');
+        } else {
+            window.location.href = '/';
+        }
     },
 };
 

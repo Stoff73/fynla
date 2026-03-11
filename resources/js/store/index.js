@@ -1,6 +1,7 @@
 import { createStore } from 'vuex';
 import createPersistedState from 'vuex-persistedstate';
 import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import auth from './modules/auth';
 import dashboard from './modules/dashboard';
 import protection from './modules/protection';
@@ -41,15 +42,11 @@ const storageBackend = Capacitor.isNativePlatform()
       setItem: (key, value) => {
         nativeCache[key] = value;
         // Async persist to native storage (fire-and-forget)
-        import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.set({ key, value });
-        });
+        Preferences.set({ key, value });
       },
       removeItem: (key) => {
         delete nativeCache[key];
-        import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.remove({ key });
-        });
+        Preferences.remove({ key });
       },
     }
   : window.localStorage;

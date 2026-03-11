@@ -141,23 +141,23 @@ export default {
       this.error = null;
 
       try {
-        const response = await authService.verifyCode({
-          email: this.$route.query.email,
-          code: this.code,
-          mfa_token: window.history.state?.mfa_token || undefined,
-        });
+        const userId = this.$route.query.userId;
 
-        const data = response.data || response;
-        if (data.access_token) {
-          await setToken(data.access_token);
-          this.$store.commit('auth/setToken', data.access_token);
+        // authService.verifyCode() returns response.data (the API body)
+        // Shape: { success, data: { access_token, user, ... } }
+        const result = await authService.verifyCode(userId, this.code, 'login');
+
+        const token = result.data?.access_token;
+        if (token) {
+          await setToken(token);
+          this.$store.commit('auth/setToken', token);
           await this.$store.dispatch('auth/fetchUser');
 
           // Navigate to biometric prompt (or dashboard if biometrics unavailable)
           this.$router.push('/m/biometric-setup');
         }
       } catch (error) {
-        this.error = error.response?.data?.message || 'Invalid code. Please try again.';
+        this.error = error.message || 'Invalid code. Please try again.';
         this.codeDigits = ['', '', '', '', '', ''];
         this.$nextTick(() => {
           if (this.digitRefs[0]) this.digitRefs[0].focus();
@@ -169,7 +169,8 @@ export default {
 
     async handleResend() {
       try {
-        await authService.resendVerificationCode({ email: this.$route.query.email });
+        const userId = this.$route.query.userId;
+        await authService.resendCode(userId, 'login');
         this.resendCooldown = 60;
         this.startResendTimer();
       } catch (error) {

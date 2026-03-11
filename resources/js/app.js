@@ -16,6 +16,8 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
+import { isNativePlatform, getToken } from './services/tokenStorage';
+
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
 
@@ -30,15 +32,58 @@ app.use(VueApexCharts);
 // Register custom directives
 app.directive('preview-disabled', previewDisabled);
 
-// Initialize preview mode from token storage if available
-// This allows preview mode to survive page reloads
-store.dispatch('preview/initFromStorage').catch(() => {
-    // Preview mode restoration failed silently
+// Expose router globally so Vuex store actions can navigate on native
+// without creating circular imports (store -> router -> store)
+window.__appRouter = router;
+
+// Global Vue error handler — catches rendering and lifecycle errors
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[Vue Error]', err?.message || err, '| info:', info);
+};
+
+console.log('[App] Module init complete, calling initAndMount');
+
+async function initAndMount() {
+  console.log('[App Init] Step 1: isNative =', isNativePlatform());
+
+  // On native (Capacitor), try to restore token but don't block app mount.
+  // Preferences.get() hangs on some iOS builds, so we use a short timeout.
+  if (isNativePlatform()) {
+    try {
+      console.log('[App Init] Step 2: Calling getToken...');
+      const tokenPromise = getToken();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Token restore timeout (3s)')), 3000)
+      );
+      const token = await Promise.race([tokenPromise, timeoutPromise]);
+      console.log('[App Init] Step 3: Token result:', token ? 'yes (' + token.length + ' chars)' : 'none');
+      if (token) {
+        store.commit('auth/setToken', token);
+      }
+    } catch (e) {
+      console.log('[App Init] Step 3-ERR: Token failed:', e?.message || 'unknown');
+    }
+  }
+
+  console.log('[App Init] Step 4: Dispatching preview/initFromStorage');
+  store.dispatch('preview/initFromStorage').catch(() => {});
+
+  console.log('[App Init] Step 5: initSessionLifecycle');
+  initSessionLifecycle(store, router);
+
+  console.log('[App Init] Step 6: Mounting app');
+  app.mount('#app');
+  console.log('[App Init] Step 7: App mounted');
+
+  // Wait for router initial navigation to complete
+  try {
+    await router.isReady();
+    console.log('[App Init] Step 8: Router ready, current route:', router.currentRoute.value.path);
+  } catch (e) {
+    console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
+  }
+}
+
+initAndMount().catch(e => {
+  console.error('[App Init] FATAL:', e?.message || e);
 });
-
-// Initialize session lifecycle management for security
-// Handles: browser/tab close logout, inactivity timeout
-initSessionLifecycle(store, router);
-
-// Mount app
-app.mount('#app');

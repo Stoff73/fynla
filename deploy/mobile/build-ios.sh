@@ -8,6 +8,7 @@ echo ""
 export VITE_BASE_PATH=/
 export VITE_API_BASE_URL=https://fynla.org
 export VITE_PLATFORM=ios
+export VITE_DISABLE_PWA=true
 
 echo "1. Building web assets (env vars set above for iOS production)..."
 npm run build
@@ -44,12 +45,15 @@ cat > public/build/index.html << HTMLEOF
 </html>
 HTMLEOF
 
-echo "3. Copying public assets for Capacitor..."
+echo "3. Removing service worker files (not needed in native app)..."
+rm -f public/build/sw.js public/build/registerSW.js public/build/manifest.webmanifest
+
+echo "4. Copying public assets for Capacitor..."
 # Copy images and icons so they're available in the native app
 cp -R public/images public/build/images 2>/dev/null || true
 cp -R public/icons public/build/icons 2>/dev/null || true
 
-echo "4. Syncing to iOS project..."
+echo "5. Syncing to iOS project..."
 npx cap sync ios
 
 echo ""

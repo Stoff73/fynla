@@ -95,38 +95,48 @@ export default {
     async handleLogin() {
       this.loading = true;
       this.error = null;
+      console.log('[MobileLogin] Starting login for:', this.email);
 
       try {
-        const response = await authService.login({
+        const result = await authService.login({
           email: this.email,
           password: this.password,
         });
+        console.log('[MobileLogin] Login result:', JSON.stringify(result));
 
-        const data = response.data || response;
-
-        // Check if MFA or verification required
-        if (data.requires_mfa || data.requires_verification) {
+        // Check if MFA or verification required (flags are on top-level result)
+        if (result.requires_mfa || result.requires_verification) {
+          console.log('[MobileLogin] Verification required, navigating to /m/verify');
           this.$router.push({
             path: '/m/verify',
             query: {
               email: this.email,
-              mfa: data.requires_mfa ? '1' : '0',
+              userId: result.data?.user_id?.toString() || '',
+              mfa: result.requires_mfa ? '1' : '0',
             },
             state: {
-              mfa_token: data.mfa_token || '',
+              challenge_token: result.data?.challenge_token || '',
+              mfa_token: result.data?.mfa_token || '',
             },
           });
           return;
         }
 
-        // Direct login (no verification needed)
-        if (data.access_token) {
-          await setToken(data.access_token);
-          this.$store.commit('auth/setToken', data.access_token);
+        // Direct login (no verification needed — e.g. preview users)
+        const token = result.data?.access_token;
+        console.log('[MobileLogin] Direct login, token present:', !!token);
+        if (token) {
+          await setToken(token);
+          this.$store.commit('auth/setToken', token);
+          console.log('[MobileLogin] Fetching user...');
           await this.$store.dispatch('auth/fetchUser');
+          console.log('[MobileLogin] Navigating to /m/home');
           this.$router.push('/m/home');
+        } else {
+          console.log('[MobileLogin] No token and no verification required — unexpected response');
         }
       } catch (error) {
+        console.log('[MobileLogin] Error caught:', JSON.stringify(error));
         this.error = error.response?.data?.message || error.message || 'Login failed. Please try again.';
       } finally {
         this.loading = false;

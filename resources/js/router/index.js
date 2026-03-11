@@ -916,6 +916,14 @@ router.beforeEach(async (to, from, next) => {
 
   // Redirect native app users to mobile routes
   if (platform.isNative() && !to.path.startsWith('/m/')) {
+    if (to.path === '/' && !isAuthenticated) {
+      next('/m/login');
+      return;
+    }
+    if (to.path === '/' && isAuthenticated) {
+      next('/m/home');
+      return;
+    }
     if (to.path === '/dashboard') {
       next('/m/home');
       return;

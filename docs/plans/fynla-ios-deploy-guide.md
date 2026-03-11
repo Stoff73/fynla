@@ -104,30 +104,131 @@ File:      AuthKey_XXXXXXXXXX.p8
 
 ## 3. Deploy Backend to Production
 
-The iOS app talks to `https://fynla.org`. Backend changes must be live before the app can work.
+The iOS app talks to `https://fynla.org`. **ALL** backend changes must be live before the app can work — this includes CORS config, routes, controllers, middleware, models, and migrations.
 
-### 3a. Upload PHP Files via SiteGround File Manager
+### 3a. Upload New Files via SiteGround File Manager
 
-Upload to `~/www/fynla.org/public_html/`:
+Upload to `~/www/fynla.org/public_html/`. Create directories where they don't exist.
 
-**New files (create directories if needed):**
+**Routes:**
 
-| Local Path | Server Path |
-|-----------|-------------|
-| `database/migrations/2026_03_10_200004_add_mortgage_rate_alerts_to_notification_preferences.php` | Same relative path |
-| `app/Console/Commands/SendMortgageRateAlerts.php` | Same relative path |
-| `app/Notifications/MortgageRateAlertNotification.php` | Same relative path |
+| Local Path | Purpose |
+|-----------|---------|
+| `routes/api_v1.php` | All mobile API v1 endpoints |
 
-**Modified files (replace existing):**
+**Controllers (create `app/Http/Controllers/Api/V1/Mobile/` and `Auth/` directories):**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Http/Controllers/Api/V1/Mobile/MobileDashboardController.php` | Aggregated mobile dashboard |
+| `app/Http/Controllers/Api/V1/Mobile/ModuleSummaryController.php` | Individual module analysis |
+| `app/Http/Controllers/Api/V1/Mobile/InsightsController.php` | Daily Fyn insight |
+| `app/Http/Controllers/Api/V1/Mobile/DeviceController.php` | Device token registration for push |
+| `app/Http/Controllers/Api/V1/Mobile/NotificationPreferenceController.php` | Notification settings |
+| `app/Http/Controllers/Api/V1/Mobile/ShareController.php` | Shareable content generation |
+| `app/Http/Controllers/Api/V1/Auth/TokenRefreshController.php` | Auth token refresh |
+
+**Middleware:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Http/Middleware/IdentifyMobileClient.php` | Detects iOS/Android/PWA clients |
+| `app/Http/Middleware/ETagResponse.php` | HTTP caching via ETags |
+
+**Models:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Models/DeviceToken.php` | FCM device tokens |
+| `app/Models/NotificationPreference.php` | User notification settings |
+
+**Services (create `app/Services/Mobile/` directory):**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Services/Mobile/MobileDashboardAggregator.php` | Orchestrates module agents for mobile |
+| `app/Services/Mobile/PushNotificationService.php` | Sends push via FCM |
+| `app/Services/Mobile/ShareContentGenerator.php` | Generates share text/URLs |
+
+**Console Commands:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Console/Commands/SendDailyInsightNotifications.php` | Daily Fyn insight push (08:00) |
+| `app/Console/Commands/SendPolicyRenewalReminders.php` | Policy renewal reminders (09:00) |
+| `app/Console/Commands/SendMortgageRateAlerts.php` | Mortgage rate alerts (09:30) |
+
+**Form Requests (create `app/Http/Requests/V1/` directory if needed):**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Http/Requests/V1/RegisterDeviceRequest.php` | Device registration validation |
+| `app/Http/Requests/V1/UpdateNotificationPreferencesRequest.php` | Notification prefs validation |
+
+**Notifications:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `app/Notifications/DailyInsightNotification.php` | Fyn daily insight push |
+| `app/Notifications/MortgageRateAlertNotification.php` | Mortgage rate warnings |
+| `app/Notifications/PolicyRenewalNotification.php` | Policy renewal reminders |
+| `app/Notifications/GoalMilestoneNotification.php` | Goal milestone alerts |
+| `app/Notifications/ContributionReminderNotification.php` | Contribution reminders |
+| `app/Notifications/SecurityAlertNotification.php` | Security alerts |
+| `app/Notifications/SubscriptionExpiringNotification.php` | Subscription expiry warnings |
+
+**Migrations:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `database/migrations/2026_03_10_200001_create_device_tokens_table.php` | Device tokens table |
+| `database/migrations/2026_03_10_200002_create_notification_preferences_table.php` | Notification prefs table |
+| `database/migrations/2026_03_10_200003_add_device_id_to_user_sessions_table.php` | Device ID on sessions |
+| `database/migrations/2026_03_10_200004_add_mortgage_rate_alerts_to_notification_preferences.php` | Mortgage alerts column |
+
+**Config:**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `config/analytics.php` | Plausible analytics config |
+
+**Public files (deep links):**
+
+| Local Path | Purpose |
+|-----------|---------|
+| `public/.well-known/apple-app-site-association` | iOS Universal Links |
+| `public/.well-known/assetlinks.json` | Android App Links |
+
+**PWA icons (create `public/icons/` directory):**
+
+| Local Path |
+|-----------|
+| `public/icons/icon-72x72.png` |
+| `public/icons/icon-96x96.png` |
+| `public/icons/icon-128x128.png` |
+| `public/icons/icon-144x144.png` |
+| `public/icons/icon-152x152.png` |
+| `public/icons/icon-192x192.png` |
+| `public/icons/icon-384x384.png` |
+| `public/icons/icon-512x512.png` |
+
+### 3b. Upload Modified Files (replace existing)
+
+These files already exist on the server — upload the updated versions:
 
 | Local Path | What Changed |
 |-----------|-------------|
-| `app/Models/NotificationPreference.php` | Added `mortgage_rate_alerts` |
-| `app/Http/Requests/V1/UpdateNotificationPreferencesRequest.php` | Added validation |
-| `app/Http/Controllers/Api/V1/Mobile/NotificationPreferenceController.php` | Added to response |
-| `app/Console/Kernel.php` | Scheduled at 09:30 daily |
+| `config/cors.php` | **CRITICAL:** Added `capacitor://localhost` to allowed origins for iOS app |
+| `config/services.php` | Added FCM config section for push notifications |
+| `app/Http/Kernel.php` | Added `identify.mobile` and `etag` middleware aliases |
+| `app/Console/Kernel.php` | Added 3 scheduled notification commands |
+| `app/Providers/RouteServiceProvider.php` | Registers `api_v1.php` routes with mobile middleware |
+| `app/Http/Middleware/SecurityHeaders.php` | Added Capacitor origins to CSP headers |
+| `app/Http/Middleware/PreviewWriteInterceptor.php` | Added mobile API exclusions |
+| `app/Models/UserSession.php` | Added device tracking fields |
+| `resources/views/app.blade.php` | Capacitor app shell support |
 
-### 3b. Build and Upload Frontend
+### 3c. Build and Upload Frontend
 
 ```bash
 # Build for fynla.org (web)
@@ -136,13 +237,13 @@ Upload to `~/www/fynla.org/public_html/`:
 
 Upload entire `public/build/` directory to `~/www/fynla.org/public_html/public/build/` via SiteGround File Manager.
 
-### 3c. SSH Post-Deploy Commands
+### 3d. SSH Post-Deploy Commands
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 
-# Run migration
+# Run migrations (creates device_tokens, notification_preferences tables, adds columns)
 php artisan migrate
 
 # Clear and optimise
@@ -152,9 +253,18 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 php artisan db:seed
 ```
 
-### 3d. Update AASA File for Deep Links
+### 3e. Add Environment Variables
 
-The `apple-app-site-association` file needs your real Team ID. Upload the corrected file:
+Add to `~/www/fynla.org/public_html/.env` (required for push notifications — can be added later if not setting up push immediately):
+
+```
+FCM_SERVER_KEY=your_firebase_server_key
+FCM_PROJECT_ID=your_firebase_project_id
+```
+
+### 3f. Update AASA File for Deep Links
+
+The `apple-app-site-association` file needs your real Team ID. After uploading, edit on the server:
 
 ```bash
 # On the server, edit the AASA file
@@ -174,11 +284,20 @@ Replace `TEAMID` with your actual Apple Developer Team ID:
 }
 ```
 
-### 3e. Verify Backend is Live
+### 3g. Verify Backend is Live
 
 ```bash
-# Test from local machine
-curl -s https://fynla.org/api/v1/mobile/notifications/preferences -H "Authorization: Bearer YOUR_TOKEN" | head -20
+# Test CORS — should return Access-Control-Allow-Origin: capacitor://localhost
+curl -sI -X OPTIONS https://fynla.org/api/v1/health \
+  -H "Origin: capacitor://localhost" \
+  -H "Access-Control-Request-Method: GET" | grep -i access-control
+
+# Test health endpoint (no auth required)
+curl -s https://fynla.org/api/v1/health
+
+# Test authenticated endpoint
+curl -s https://fynla.org/api/v1/mobile/notifications/preferences \
+  -H "Authorization: Bearer YOUR_TOKEN" | head -20
 ```
 
 ---
@@ -347,9 +466,12 @@ After adding all capabilities, your Signing & Capabilities tab should show:
 ### 9a. Connect Device
 
 1. Connect iPhone via USB
-2. On the iPhone: **Settings → Privacy & Security → Developer Mode** → Enable
-3. Trust the computer when prompted
-4. In Xcode, select your physical device from the device dropdown
+2. Trust the computer when prompted on the iPhone
+3. In Xcode, select your physical device from the device dropdown
+4. **Enable Developer Mode** (iOS 16+ only):
+   - Go to **Settings → Privacy & Security → Developer Mode** → Enable
+   - If you don't see the toggle, build the app from Xcode first (Cmd+R) — the toggle appears after Xcode attempts to run on the device
+   - On iOS 15 or earlier, Developer Mode doesn't exist — skip this step and proceed directly to building
 
 ### 9b. Build and Run on Device
 

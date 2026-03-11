@@ -9,6 +9,7 @@ import fs from 'fs';
 // Set VITE_LOCAL_DOMAIN=true to serve on local.fynla.org with HTTPS instead of 127.0.0.1
 // Requires: /etc/hosts entry (127.0.0.1 local.fynla.org) and mkcert certs in .certs/
 const useLocalDomain = process.env.VITE_LOCAL_DOMAIN === 'true';
+const disablePWA = process.env.VITE_DISABLE_PWA === 'true';
 const localCertPath = path.resolve(__dirname, '.certs/local.fynla.org.pem');
 const localKeyPath = path.resolve(__dirname, '.certs/local.fynla.org-key.pem');
 const hasLocalCerts = fs.existsSync(localCertPath) && fs.existsSync(localKeyPath);
@@ -52,7 +53,7 @@ export default defineConfig({
             buildDirectory: 'build',
         }),
         vue(),
-        VitePWA({
+        !disablePWA && VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico'],
             manifest: {
