@@ -26,6 +26,8 @@ return [
         [
             env('FRONTEND_URL', ''),
             env('APP_URL', ''),
+            'capacitor://localhost',
+            'http://localhost',
         ]
     )), fn ($origin) => ! empty($origin) && (env('APP_ENV') === 'local' || ! str_contains($origin, '*'))),
 

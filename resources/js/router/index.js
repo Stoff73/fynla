@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
+import analyticsService from '@/services/analyticsService';
+import { platform } from '@/utils/platform';
 
 // Lazy load components
 // Public pages
@@ -54,6 +56,21 @@ const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
 const ValuableInfo = () => import('@/views/ValuableInfo.vue');
+
+// Mobile views
+const MobileLoginScreen = () => import('@/mobile/views/MobileLoginScreen.vue');
+const VerificationCodeScreen = () => import('@/mobile/views/VerificationCodeScreen.vue');
+const BiometricPrompt = () => import('@/mobile/BiometricPrompt.vue');
+const MobileLayout = () => import('@/mobile/layouts/MobileLayout.vue');
+const MobileDashboard = () => import('@/mobile/views/MobileDashboard.vue');
+const MobileFynChat = () => import('@/mobile/views/MobileFynChat.vue');
+const LearnHub = () => import('@/mobile/views/LearnHub.vue');
+const LearnTopicDetail = () => import('@/mobile/views/LearnTopicDetail.vue');
+const MobileGoalsList = () => import('@/mobile/views/MobileGoalsList.vue');
+const MobileGoalDetail = () => import('@/mobile/views/MobileGoalDetail.vue');
+const MoreMenu = () => import('@/mobile/views/MoreMenu.vue');
+const ModuleSummary = () => import('@/mobile/views/ModuleSummary.vue');
+const NotificationSettings = () => import('@/mobile/views/NotificationSettings.vue');
 
 const routes = [
   // Public routes
@@ -819,6 +836,44 @@ const routes = [
     component: UserProfile,
     meta: { public: true, previewMode: true },
   },
+
+  // Mobile auth routes (no layout)
+  {
+    path: '/m/login',
+    name: 'MobileLogin',
+    component: MobileLoginScreen,
+    meta: { public: true },
+  },
+  {
+    path: '/m/verify',
+    name: 'MobileVerify',
+    component: VerificationCodeScreen,
+    meta: { public: true },
+  },
+  {
+    path: '/m/biometric-setup',
+    name: 'BiometricSetup',
+    component: BiometricPrompt,
+    meta: { requiresAuth: true },
+  },
+
+  // Mobile app routes (with MobileLayout)
+  {
+    path: '/m',
+    component: MobileLayout,
+    meta: { requiresAuth: true },
+    children: [
+      { path: 'home', name: 'MobileHome', component: MobileDashboard, meta: { title: 'Home' } },
+      { path: 'fyn', name: 'MobileFyn', component: MobileFynChat, meta: { title: 'Fyn' } },
+      { path: 'learn', name: 'MobileLearn', component: LearnHub, meta: { title: 'Learn' } },
+      { path: 'learn/:topic', name: 'MobileLearnTopic', component: LearnTopicDetail, meta: { title: 'Learn' } },
+      { path: 'goals', name: 'MobileGoals', component: MobileGoalsList, meta: { title: 'Goals' } },
+      { path: 'goals/:id', name: 'MobileGoalDetail', component: MobileGoalDetail, meta: { title: 'Goal' } },
+      { path: 'more', name: 'MobileMore', component: MoreMenu, meta: { title: 'More' } },
+      { path: 'more/summary/:module', name: 'MobileModuleSummary', component: ModuleSummary },
+      { path: 'more/notifications', name: 'MobileNotificationSettings', component: NotificationSettings, meta: { title: 'Notifications' } },
+    ],
+  },
 ];
 
 // Router base path is configurable via environment variable
@@ -859,6 +914,26 @@ router.beforeEach(async (to, from, next) => {
     });
   }
 
+  // Redirect native app users to mobile routes
+  if (platform.isNative() && !to.path.startsWith('/m/')) {
+    if (to.path === '/' && !isAuthenticated) {
+      next('/m/login');
+      return;
+    }
+    if (to.path === '/' && isAuthenticated) {
+      next('/m/home');
+      return;
+    }
+    if (to.path === '/dashboard') {
+      next('/m/home');
+      return;
+    }
+    if (to.path === '/login') {
+      next('/m/login');
+      return;
+    }
+  }
+
   // Handle preview route access
   if (isPreviewRoute) {
     // If authenticated user tries to access preview, redirect to authenticated version
@@ -884,9 +959,14 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Allow access to authenticated routes when in preview mode
-  if (to.meta.requiresAuth && !isAuthenticated && !isPreviewMode) {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  if (requiresAuth && !isAuthenticated && !isPreviewMode) {
     // Redirect to login if route requires authentication and not in preview mode
-    next({ name: 'Login' });
+    if (platform.isNative()) {
+      next({ name: 'MobileLogin' });
+    } else {
+      next({ name: 'Login' });
+    }
   } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
     // Redirect to dashboard if already authenticated (but allow preview users to register)
     next({ name: 'Dashboard' });
@@ -943,6 +1023,11 @@ router.afterEach((to) => {
 
   // Fetch requirements for this module
   store.dispatch('infoGuide/fetchRequirements', module);
+});
+
+// Analytics: track page views on every route change
+router.afterEach((to) => {
+  analyticsService.trackPageView(to.name, to.path);
 });
 
 export default router;

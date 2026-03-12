@@ -1,7 +1,7 @@
 # Fynla Mobile App — Technical Implementation Plan
 
 **Date:** 10 March 2026
-**Status:** Approved for development
+**Status:** Phase 0 + Phase 1 COMPLETE — Ready for Phase 2
 **Based on:** [Mobile App Exploration](2026-03-06-mobile-app-exploration.md) + team review
 **Team:** Technical lead, UX/UI designer, integration expert, devil's advocate
 
@@ -18,13 +18,17 @@ This plan covers the phased implementation of a Fynla mobile app, starting with 
 4. **Auth token migration is a prerequisite** — Must abstract `sessionStorage` before any mobile work
 5. **Learn Hub deferred** — Phase 1 links to MoneyHelper/HMRC; Phase 2 builds basic hub; Phase 3 adds personalisation
 6. **Simple caching, not sync architecture** — ETags + Cache-Control in Phase 1; Vuex persistence in Phase 2; no full sync manager
-7. **~53 new/variant components** — 35 new mobile-specific + 18 mobile variants of existing web components
-8. **~30 new backend files + ~14 modified** — New mobile controllers, services, middleware, migrations
+7. **~54 new/variant components** — 36 new mobile-specific + 18 mobile variants of existing web components
+8. **~34 new backend files + ~14 modified** — New mobile controllers, services, middleware, migrations
 9. **Total timeline: 18-22 weeks** (including Phase 0 analytics and app store compliance buffer)
 
 ---
 
-## Phase 0: Instrument & Measure (Weeks 1-2)
+## Phase 0: Instrument & Measure (Weeks 1-2) — COMPLETE
+
+**Status:** All tasks implemented and deployed. Branch: `feature/mobile-app-phase0`
+**Completed:** 10 March 2026
+**Deploy notes:** `docs/plans/phase0-deploy-notes.md`
 
 **Rationale (devil's advocate):** Zero user data currently backs any mobile assumption. Before writing mobile code, measure actual mobile web usage.
 
@@ -72,7 +76,11 @@ This plan covers the phased implementation of a Fynla mobile app, starting with 
 
 ---
 
-## Phase 1: PWA Foundation (Weeks 3-6)
+## Phase 1: PWA Foundation (Weeks 3-6) — COMPLETE
+
+**Status:** All tasks implemented, tested (1820 tests, 47 mobile-specific), and code reviewed.
+**Completed:** 10 March 2026
+**Deploy notes:** `docs/plans/phase1-deploy-notes.md`
 
 **Scope (rescoped from original):** Service worker + manifest for installability, responsive AI chat, one aggregated dashboard endpoint. No Learn hub, no push notifications, no offline sync.
 
@@ -231,6 +239,8 @@ PWA security relies on TLS + server-side controls. Native security features requ
 
 **Gate:** Phase 1 metrics show mobile engagement (or strategic decision to proceed).
 
+**Execution strategy:** Split into **Phase 2a** (backend infrastructure, no Capacitor required) and **Phase 2b** (Capacitor + native UI, requires Xcode/Android Studio). Phase 2a is fully testable in the current Laravel + Vue environment. See `docs/plans/2026-03-10-phase2a-design.md` for the detailed 2a specification.
+
 ### 2.1 Capacitor Setup
 
 **Version:** Capacitor 6.x
@@ -280,6 +290,7 @@ fynla/
 | Splash Screen | `@capacitor/splash-screen` | Medium |
 | Device Info | `@capacitor/device` | Medium |
 | Local Notifications | `@capacitor/local-notifications` | Medium |
+| Share | `@capacitor/share` | Medium |
 
 ### 2.3 Platform Detection
 
@@ -542,16 +553,105 @@ App.addListener('appStateChange', ({ isActive }) => {
 });
 ```
 
+### 2.13 Social Share
+
+**Plugin:** `@capacitor/share` (native share sheet on iOS/Android, Web Share API fallback on PWA)
+
+**Shareable Content:**
+
+| Content | Trigger | Share Text | Privacy |
+|---------|---------|------------|---------|
+| Goal milestone | Milestone celebration overlay | "I just hit {milestone}% of my {goalName} goal with Fynla!" | No amounts — percentage only |
+| Net worth milestone | Dashboard (manual tap) | "I've reached a new financial milestone with Fynla!" | No figures — generic message |
+| Fyn insight | Insight card share icon | "{sanitised insight text} — via Fynla" | AI strips any personal data before share text is generated |
+| Learn article | Article detail share icon | "{article title} — {url}" | Public content, no privacy concern |
+| App referral | More menu → "Invite friends" | "I use Fynla to plan my finances. Check it out: https://fynla.org" | No user data |
+
+**Privacy rules (CRITICAL for a financial app):**
+- **Never** include monetary values, account balances, or portfolio figures in share text
+- **Never** include full names of other joint owners or beneficiaries
+- Goal names are user-defined — warn if goal name contains sensitive info (e.g., "Divorce fund")
+- All share text is generated server-side via a dedicated endpoint to enforce sanitisation
+- User must explicitly tap share — no auto-sharing, no pre-populated social posts
+
+**Frontend component:**
+
+```
+resources/js/mobile/ShareButton.vue
+```
+
+- Renders a share icon (arrow-up-from-bracket)
+- Accepts `shareType` and `entityId` props
+- Calls `GET /api/v1/mobile/share/{type}/{id}` to get sanitised share payload
+- Invokes native share sheet:
+
+```javascript
+import { Share } from '@capacitor/share';
+
+await Share.share({
+  title: payload.title,
+  text: payload.text,
+  url: payload.url,
+  dialogTitle: 'Share via',  // Android only
+});
+```
+
+- Web fallback: `navigator.share()` if available, otherwise copy-to-clipboard with toast
+
+**Backend:**
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `app/Http/Controllers/Api/V1/Mobile/ShareController.php` | CREATE | Generates sanitised share payloads |
+| `app/Services/Mobile/ShareContentGenerator.php` | CREATE | Builds share text per type, strips PII |
+| `app/Http/Requests/V1/ShareContentRequest.php` | CREATE | Validates share type + entity ID |
+
+**Share payload response:**
+```json
+{
+  "success": true,
+  "data": {
+    "title": "Fynla - Financial Planning",
+    "text": "I just hit 50% of my House Deposit goal with Fynla!",
+    "url": "https://fynla.org?ref=share&type=goal_milestone"
+  }
+}
+```
+
+**Referral tracking (lightweight):**
+- Share URLs include `?ref=share&type={shareType}` query params
+- Tracked in analytics (Phase 0 instrumentation) — no separate referral system in Phase 2
+- Full referral programme (credits, rewards) deferred to Phase 4 if share metrics justify it
+
 ### Phase 2 Implementation Order
+
+**Phase 2a — Backend Infrastructure (no Capacitor required):**
+
+| Task | Focus | Deliverable |
+|------|-------|-------------|
+| 2a-01 | Database migrations | device_tokens, notification_preferences tables, user_sessions device_id |
+| 2a-02 | Models + factories | DeviceToken, NotificationPreference with factories |
+| 2a-03 | Auth token refresh | POST /api/v1/auth/refresh-token endpoint |
+| 2a-04 | Device registration API | CRUD endpoints for device tokens |
+| 2a-05 | Notification preferences API | GET/PUT preference endpoints |
+| 2a-06 | Push notification service | FCM integration, 6 notification classes |
+| 2a-07 | Scheduled commands | Daily insight + policy renewal crons |
+| 2a-08 | Deep link configuration | .well-known/apple-app-site-association + assetlinks.json |
+| 2a-09 | CORS + middleware updates | Capacitor origins, CSP, PreviewWriteInterceptor |
+| 2a-10 | Vuex persistence + platform | vuex-persistedstate, mobileDashboard store, platform.js |
+| 2a-11 | Social share backend | ShareController, ShareContentGenerator (no PII) |
+| 2a-12 | Integration testing + review | Full test suite, code review, deploy notes |
+
+**Phase 2b — Capacitor + Native UI (requires Xcode/Android Studio):**
 
 | Week | Focus | Deliverable |
 |------|-------|-------------|
 | 7-8 | Capacitor setup + auth | Config, native projects, biometric auth, token persistence |
-| 8-9 | Mobile layout + navigation | MobileLayout, BottomTabBar, MobileHeader, platform detection |
+| 8-9 | Mobile layout + navigation | MobileLayout, BottomTabBar, MobileHeader |
 | 9-10 | Dashboard + module summaries | MobileDashboard, 7 module summary screens, net worth card |
-| 10-11 | Full-screen AI chat | MobileFynChat, voice input, quick replies, SSE lifecycle |
-| 11-12 | Push notifications | Device registration, FCM integration, 6 notification types |
-| 12-13 | Goals + deep links | Mobile goals list/detail, milestone celebrations, AASA/assetlinks |
+| 10-11 | Full-screen AI chat | MobileFynChat, voice input, SSE lifecycle |
+| 11-12 | Push + social share frontend | Native push handling, ShareButton.vue |
+| 12-13 | Goals + deep links | Mobile goals list/detail, milestone celebrations |
 | 13-14 | Basic Learn hub + More menu | Topic grid with external links, settings, profile |
 
 ---
@@ -621,6 +721,10 @@ Only if Phase 2-3 metrics justify:
 - Conversational onboarding experiment
 - Full offline sync (if user research shows demand)
 - Advanced voice input for financial queries
+- Full referral programme (credits, rewards) — requires share metrics from Phase 2
+- **Shared goals (exploration)** — two tiers requiring separate product discovery:
+  - *Tier 1 — Goal sharing (lightweight):* Share goal progress with contacts (percentage only, no financial data exposed), receive encouragement/reactions, follow friends' progress. Builds on Phase 2 social share infrastructure. Requires: contacts/friends system, privacy-safe goal visibility toggle, activity feed.
+  - *Tier 2 — Collaborative goals (heavyweight):* Multiple users contributing toward a shared goal (group holiday, shared gift). Requires: contribution tracking across separate accounts, goal ownership model, leave/join flows, dispute resolution, GDPR assessment for sharing financial data between users, FCA review of facilitating group financial activity. Consider whether Open Banking integration is needed for accurate cross-user contribution tracking. **Do not build without dedicated product discovery and legal review.**
 
 ---
 
@@ -670,6 +774,7 @@ Only if Phase 2-3 metrics justify:
 | `DeepLinkButton.vue` | `resources/js/mobile/DeepLinkButton.vue` | Low |
 | `OfflineBanner.vue` | `resources/js/mobile/OfflineBanner.vue` | Low |
 | `PullToRefresh.vue` | `resources/js/mobile/PullToRefresh.vue` | Low |
+| `ShareButton.vue` | `resources/js/mobile/ShareButton.vue` | Low |
 
 ### Mobile Variants of Existing Components (~18)
 
@@ -704,23 +809,26 @@ All API services (36), Vuex stores (24), mixins, utils, small UI elements (InfoT
 
 ### New Files (~30)
 
-**Controllers (6):**
+**Controllers (7):**
 - `app/Http/Controllers/Api/V1/Mobile/MobileDashboardController.php`
 - `app/Http/Controllers/Api/V1/Mobile/InsightsController.php`
 - `app/Http/Controllers/Api/V1/Mobile/DeviceController.php`
 - `app/Http/Controllers/Api/V1/Mobile/EducationController.php`
 - `app/Http/Controllers/Api/V1/Mobile/ModuleSummaryController.php`
 - `app/Http/Controllers/Api/V1/Mobile/NotificationPreferenceController.php`
+- `app/Http/Controllers/Api/V1/Mobile/ShareController.php`
 
-**Request Validation (3):**
+**Request Validation (4):**
 - `app/Http/Requests/V1/RegisterDeviceRequest.php`
 - `app/Http/Requests/V1/UpdateNotificationPreferencesRequest.php`
 - `app/Http/Requests/V1/MobileLoginRequest.php`
+- `app/Http/Requests/V1/ShareContentRequest.php`
 
-**Services (3):**
+**Services (4):**
 - `app/Services/Mobile/MobileDashboardAggregator.php`
 - `app/Services/Mobile/DailyInsightGenerator.php`
 - `app/Services/Mobile/PushNotificationService.php`
+- `app/Services/Mobile/ShareContentGenerator.php`
 
 **Middleware (3):**
 - `app/Http/Middleware/IdentifyMobileClient.php`

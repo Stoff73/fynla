@@ -19,6 +19,8 @@ const state = {
     error: null,
     showHistory: false,
     pendingNavigation: null,
+    prefilledPrompt: null,
+    abortController: null,
 };
 
 const getters = {
@@ -33,6 +35,7 @@ const getters = {
     error: (state) => state.error,
     showHistory: (state) => state.showHistory,
     pendingNavigation: (state) => state.pendingNavigation,
+    prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
 };
 
@@ -89,6 +92,14 @@ const mutations = {
         state.pendingNavigation = routePath;
     },
 
+    SET_PREFILLED_PROMPT(state, prompt) {
+        state.prefilledPrompt = prompt;
+    },
+
+    SET_ABORT_CONTROLLER(state, controller) {
+        state.abortController = controller;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -119,6 +130,8 @@ const mutations = {
         state.error = null;
         state.showHistory = false;
         state.pendingNavigation = null;
+        state.prefilledPrompt = null;
+        state.abortController = null;
     },
 };
 
@@ -339,6 +352,25 @@ const actions = {
             commit('SET_STREAMING', false);
             commit('SET_STREAMING_TEXT', '');
         }
+    },
+
+    /**
+     * Abort an in-progress streaming response.
+     */
+    abortStreaming({ commit, state }) {
+        if (state.abortController) {
+            state.abortController.abort();
+        }
+        commit('SET_STREAMING', false);
+        commit('SET_STREAMING_TEXT', '');
+        commit('SET_ABORT_CONTROLLER', null);
+    },
+
+    /**
+     * Pre-fill the chat input with a prompt (e.g. from Learn Hub).
+     */
+    prefillPrompt({ commit }, prompt) {
+        commit('SET_PREFILLED_PROMPT', prompt);
     },
 
     /**

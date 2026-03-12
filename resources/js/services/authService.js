@@ -1,4 +1,5 @@
 import api from './api';
+import { getTokenSync, setToken as storageSetToken, removeToken } from './tokenStorage';
 
 const authService = {
   /**
@@ -8,12 +9,12 @@ const authService = {
    */
   async register(userData) {
     // Clear any existing auth data to prevent data leakage between users
-    this.clearAuth();
+    await this.clearAuth();
 
     const response = await api.post('/auth/register', userData);
     if (response.data.success && response.data.data.access_token) {
       // ONLY store token - user data will be fetched fresh from API
-      this.setToken(response.data.data.access_token);
+      await this.setToken(response.data.data.access_token);
     }
     return response.data;
   },
@@ -25,12 +26,12 @@ const authService = {
    */
   async login(credentials) {
     // Clear any existing auth data to prevent data leakage between users
-    this.clearAuth();
+    await this.clearAuth();
 
     const response = await api.post('/auth/login', credentials);
     if (response.data.success && response.data.data.access_token) {
       // ONLY store token - user data will be fetched fresh from API
-      this.setToken(response.data.data.access_token);
+      await this.setToken(response.data.data.access_token);
     }
     return response.data;
   },
@@ -45,7 +46,7 @@ const authService = {
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
-      this.clearAuth();
+      await this.clearAuth();
     }
   },
 
@@ -75,28 +76,28 @@ const authService = {
   },
 
   /**
-   * Set authentication token in sessionStorage
+   * Set authentication token in storage
    * @param {string} token
    */
-  setToken(token) {
-    sessionStorage.setItem('auth_token', token);
+  async setToken(token) {
+    await storageSetToken(token);
   },
 
   /**
-   * Get authentication token from sessionStorage
+   * Get authentication token from storage (synchronous for backward compatibility)
    * @returns {string|null}
    */
   getToken() {
-    return sessionStorage.getItem('auth_token');
+    return getTokenSync();
   },
 
   /**
-   * Clear all authentication data from both sessionStorage and localStorage
+   * Clear all authentication data from both token storage and localStorage
    * Comprehensive cleanup to prevent any data leakage between sessions
    */
-  clearAuth() {
-    // Clear sessionStorage (primary location)
-    sessionStorage.removeItem('auth_token');
+  async clearAuth() {
+    // Clear token storage (primary location)
+    await removeToken();
 
     // Clear any legacy localStorage data
     localStorage.removeItem('auth_token');

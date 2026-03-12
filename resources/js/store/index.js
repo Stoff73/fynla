@@ -1,4 +1,7 @@
 import { createStore } from 'vuex';
+import createPersistedState from 'vuex-persistedstate';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import auth from './modules/auth';
 import dashboard from './modules/dashboard';
 import protection from './modules/protection';
@@ -23,6 +26,30 @@ import plans from './modules/plans';
 import taxOptimisation from './modules/taxOptimisation';
 import household from './modules/household';
 import journeys from './modules/journeys';
+import mobileDashboard from './modules/mobileDashboard';
+import mobileNotifications from './modules/mobileNotifications';
+
+/**
+ * Create a storage backend that uses Capacitor Preferences on native
+ * and localStorage on web. vuex-persistedstate requires sync getItem/setItem,
+ * so on native we use a sync in-memory cache that's hydrated on app start.
+ */
+const nativeCache = {};
+
+const storageBackend = Capacitor.isNativePlatform()
+  ? {
+      getItem: (key) => nativeCache[key] || null,
+      setItem: (key, value) => {
+        nativeCache[key] = value;
+        // Async persist to native storage (fire-and-forget)
+        Preferences.set({ key, value });
+      },
+      removeItem: (key) => {
+        delete nativeCache[key];
+        Preferences.remove({ key });
+      },
+    }
+  : window.localStorage;
 
 const store = createStore({
   modules: {
@@ -50,7 +77,23 @@ const store = createStore({
     taxOptimisation,
     household,
     journeys,
+    mobileDashboard,
+    mobileNotifications,
   },
+  plugins: [
+    createPersistedState({
+      key: 'fynla-state',
+      paths: [
+        'auth.user',
+        'dashboard',
+        'aiChat.conversations',
+        'goals.goals',
+        'mobileDashboard',
+        'mobileNotifications.permissionStatus',
+      ],
+      storage: storageBackend,
+    }),
+  ],
   strict: process.env.NODE_ENV !== 'production',
 });
 

@@ -1,4 +1,5 @@
 import authService from '@/services/authService';
+import { removeToken } from '@/services/tokenStorage';
 
 const state = {
   token: authService.getToken(),
@@ -38,7 +39,7 @@ const actions = {
 
     // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
-      sessionStorage.removeItem('auth_token');
+      await removeToken();
       localStorage.removeItem('auth_token');
     }
 
@@ -75,7 +76,7 @@ const actions = {
 
     // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
-      sessionStorage.removeItem('auth_token');
+      await removeToken();
       localStorage.removeItem('auth_token');
     }
 

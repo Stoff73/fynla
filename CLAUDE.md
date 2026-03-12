@@ -183,6 +183,34 @@ cd ~/www/fynla.org/public_html
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
+## Mobile App (Capacitor iOS)
+
+**Build:** `./deploy/mobile/build-ios.sh` (builds web assets + `npx cap sync ios`). NEVER use `npx vite build` alone for mobile — changes won't reach the iOS app.
+
+**After any mobile change:** Clear server cache (`php artisan cache:clear`) — mobile dashboard is cached 5 min per user.
+
+**Capacitor gotchas:**
+- `window.location.origin` = `capacitor://localhost` — use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'` for Browser.open() and fetch() URLs
+- Vue Router child routes do NOT inherit parent `meta` — use `to.matched.some(r => r.meta.requiresAuth)` not `to.meta.requiresAuth`
+- `fetch()` cross-origin needs `credentials: 'omit'` to avoid CORS cookie issues
+- WKWebView may not support `response.body` for streaming — always add a fallback reader
+- API returns `fyn_insight` (snake_case), not `insight` — watch for key name mismatches
+
+**Mobile dashboard data flow:**
+```
+Backend (MobileDashboardAggregator) → raw module fields (total_coverage, portfolio_value, etc.)
+→ Vuex store normaliseModule() → normalised shape (metric_type, metric_value, hero_metric, details)
+→ ModuleSummaryCard + ModuleSummary components
+```
+
+**Key mobile files:**
+- `resources/js/mobile/` — All mobile Vue components
+- `resources/js/store/modules/mobileDashboard.js` — Dashboard state + normaliseModule()
+- `resources/js/store/modules/mobileNotifications.js` — Push notification state
+- `app/Services/Mobile/MobileDashboardAggregator.php` — Backend aggregator
+- `deploy/mobile/build-ios.sh` — iOS build script
+- `ios/` — Capacitor iOS project (open `ios/App/App.xcworkspace` in Xcode)
+
 ## Preview Mode
 
 Test via landing page persona selector at http://localhost:8000, not direct URLs.

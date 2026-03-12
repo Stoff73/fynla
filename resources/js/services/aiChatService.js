@@ -1,4 +1,5 @@
-import api from './api';
+import api, { apiBaseURL } from './api';
+import { getToken } from './tokenStorage';
 
 const aiChatService = {
     /**
@@ -39,10 +40,11 @@ const aiChatService = {
      * Send a message and return a ReadableStream reader for SSE.
      * Uses fetch() instead of axios because axios doesn't support streaming.
      */
-    async sendMessageStream(conversationId, message, currentRoute = null) {
-        const token = sessionStorage.getItem('auth_token');
+    async sendMessageStream(conversationId, message, currentRoute = null, { signal } = {}) {
+        const token = await getToken();
+        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
-        const response = await fetch(`/api/ai-chat/conversations/${conversationId}/messages`, {
+        const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -53,10 +55,28 @@ const aiChatService = {
                 message,
                 current_route: currentRoute,
             }),
+            // Capacitor cross-origin: omit credentials to avoid CORS cookie issues
+            credentials: isCapacitor ? 'omit' : 'same-origin',
+            signal,
         });
 
         if (!response.ok) {
-            throw new Error(`Chat request failed: ${response.status}`);
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Chat request failed: ${response.status} ${errorText}`);
+        }
+
+        // WKWebView may not support ReadableStream — fall back to text parsing
+        if (!response.body) {
+            const text = await response.text();
+            // Create a synthetic reader from the full response
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(encoder.encode(text));
+                    controller.close();
+                },
+            });
+            return stream.getReader();
         }
 
         return response.body.getReader();

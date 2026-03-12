@@ -1,5 +1,6 @@
 import axios from 'axios';
 import store from '@/store';
+import { getToken, removeToken } from '@/services/tokenStorage';
 
 // Retry configuration for transient failures
 const RETRY_CONFIG = {
@@ -48,22 +49,30 @@ function sleep(ms) {
 // Use environment-specific base URL (production or local development)
 // For production, always use window.location.origin to avoid CORS issues when users
 // access via www.fynla.org vs fynla.org (the hardcoded VITE_API_BASE_URL may not match)
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+// Capacitor apps load at capacitor://localhost — detect this so it doesn't match local dev
+const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+const isLocal = !isCapacitor && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const localHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const apiBaseURL = isLocal ? `http://${localHost}:8000` : (window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
+const apiBaseURL = isCapacitor
+  ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org')
+  : isLocal ? `http://${localHost}:8000` : (window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
+if (isCapacitor) {
+  console.log('[Capacitor] API service base URL:', `${apiBaseURL}/api`);
+}
 const api = axios.create({
   baseURL: `${apiBaseURL}/api`,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: true,
+  // Capacitor uses Bearer tokens, not cookies — withCredentials causes WKWebView to block cross-origin requests
+  withCredentials: !isCapacitor,
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (async to support native storage in Phase 2)
 api.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem('auth_token');
+  async (config) => {
+    const token = await getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -85,7 +94,7 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.response) {
       // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
@@ -98,12 +107,16 @@ api.interceptors.response.use(
 
         if (!isAuthEndpoint && !isPreviewMode) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
-          // Clear token from both sessionStorage and localStorage, then redirect
-          sessionStorage.removeItem('auth_token');
+          // Clear token from both tokenStorage and localStorage, then redirect
+          await removeToken();
           localStorage.removeItem('auth_token');
-          // Get the base path from the current location to handle subfolder deployments
-          const basePath = window.location.pathname.includes('/fps/') ? '/fps' : '';
-          window.location.href = `${basePath}/login`;
+          // On native (Capacitor), use SPA navigation to avoid page reload
+          if (isCapacitor && window.__appRouter) {
+            window.__appRouter.push('/m/login');
+          } else {
+            const basePath = window.location.pathname.includes('/fps/') ? '/fps' : '';
+            window.location.href = `${basePath}/login`;
+          }
         } else {
           // For auth endpoints, return the error to be handled by the component
           return Promise.reject({
@@ -135,6 +148,9 @@ api.interceptors.response.use(
     }
 
     // Network errors or other issues
+    if (isCapacitor) {
+      console.error('[API] Network error:', error.config?.method?.toUpperCase(), error.config?.url, error.message || 'unknown');
+    }
     return Promise.reject({
       message: 'Network error. Please check your connection.',
       errors: null,
@@ -190,4 +206,5 @@ api.interceptors.response.use(
   }
 );
 
+export { apiBaseURL };
 export default api;
