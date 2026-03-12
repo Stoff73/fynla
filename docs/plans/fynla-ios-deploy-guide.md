@@ -836,6 +836,27 @@ open ios/App/App.xcworkspace
 # Archive (via Xcode: Product → Archive)
 ```
 
+### Troubleshooting: Blank Screen / MIME Type Errors
+
+**Error:** `'image/png' is not a valid JavaScript MIME type'` in Xcode console → app shows blank screen.
+
+**Root cause:** Something in `vite.config.js` is making Rollup treat image file paths as JavaScript module imports. WKWebView then serves the PNG file with `image/png` MIME type, but the browser expects `application/javascript` and rejects it.
+
+**Diagnostic steps:**
+1. Search built JS for image imports: `grep -r 'import("/images' public/build/assets/` — if this returns results, Rollup is externalising images
+2. Check `vite.config.js` for `external` in `rollupOptions` — **remove it if present**
+3. Verify `vue()` plugin has `template: { transformAssetUrls: false }` — this prevents Vue template compiler from converting `<img src>` into JS imports
+4. Check for `sw.js`, `registerSW.js`, `manifest.webmanifest` in `public/build/` — these should NOT exist (stale PWA service worker)
+5. Delete the app from simulator/device to clear WKWebView storage, clean build in Xcode (Cmd+Shift+K), and run (Cmd+R)
+
+**History:** This error occurred three times (2026-03-10 to 2026-03-12). The final fix was commit `e81066d`: removed `external: [/^\/images\//]` from rollupOptions and added `transformAssetUrls: false` to the Vue plugin.
+
+**Rules to prevent recurrence:**
+- NEVER add `external` to `rollupOptions` for image/asset paths
+- ALWAYS keep `transformAssetUrls: false` in the Vue plugin
+- ALWAYS keep PWA conditionally disabled (`!disablePWA && VitePWA(...)`)
+- NEVER re-enable VitePWA for iOS builds — `capacitor://` protocol is incompatible with workbox
+
 ### Capacitor Plugins (14)
 
 | Plugin | Capability |

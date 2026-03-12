@@ -160,3 +160,8 @@ Mobile views live in `mobile/` with their own layout (`MobileLayout.vue`) and ro
 **External URLs in mobile:** Never use `window.location.origin` (returns `capacitor://localhost`). Use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'`.
 
 **SSE streaming:** `aiChatService.sendMessageStream()` uses raw `fetch()` (not axios) for streaming. On Capacitor, needs `credentials: 'omit'` and fallback for `response.body` being null.
+
+**CRITICAL — vite.config.js rules for iOS:**
+- **NEVER** add `external` to `rollupOptions` for image/asset paths — this makes Rollup leave `/images/*` as JS module imports, causing WKWebView to reject PNGs with `'image/png' is not a valid JavaScript MIME type'` → blank screen.
+- **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config — prevents Vue template compiler from converting `<img src="/images/...">` into JS `import()` calls.
+- **ALWAYS** keep `!disablePWA && VitePWA(...)` — PWA must be conditionally disabled for iOS builds via `VITE_DISABLE_PWA=true`.
