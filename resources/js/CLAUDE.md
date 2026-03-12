@@ -146,3 +146,17 @@ Blocks element interaction in preview mode. Adds disabled state, tooltip, and cl
 
 - **AppLayout** - Authenticated pages: Navbar, TrialCountdownBanner, PreviewBanner, content slot (`max-w-7xl`), Footer, InfoGuidePanel
 - **PublicLayout** - Public pages: navigation, login/register buttons, footer
+
+## Mobile App (Capacitor)
+
+Mobile views live in `mobile/` with their own layout (`MobileLayout.vue`) and routes under `/m/`.
+
+**Store modules:** `mobileDashboard`, `mobileNotifications`, `aiChat` (shared with web)
+
+**Data normalisation:** Backend returns raw module fields. The `normaliseModule()` function in `mobileDashboard.js` transforms them into the shape expected by `ModuleSummaryCard` (`metric_type`, `metric_value`, `status`, `subtitle`) and `ModuleSummary` (`hero_metric.formatted`, `hero_metric.value`, `fyn_summary`, `details[]`).
+
+**Platform detection:** `import { platform } from '@/utils/platform'` — `platform.isNative()`, `platform.isIOS()`, `platform.canUseBiometrics()`
+
+**External URLs in mobile:** Never use `window.location.origin` (returns `capacitor://localhost`). Use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'`.
+
+**SSE streaming:** `aiChatService.sendMessageStream()` uses raw `fetch()` (not axios) for streaming. On Capacitor, needs `credentials: 'omit'` and fallback for `response.body` being null.

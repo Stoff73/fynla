@@ -118,7 +118,8 @@ const actions = {
     async registerToken(_, token) {
         try {
             await api.post('/v1/mobile/devices', {
-                token,
+                device_token: token,
+                device_id: `${platform.isIOS() ? 'ios' : 'android'}_${Date.now()}`,
                 platform: platform.isIOS() ? 'ios' : 'android',
             });
         } catch {

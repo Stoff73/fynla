@@ -22,7 +22,7 @@
       <!-- Fyn one-liner -->
       <div v-if="fynSummary" class="bg-horizon-500 rounded-xl p-4 mb-4 flex items-start gap-3">
         <img
-          src="/images/logos/favicon.png"
+          :src="'/images/logos/favicon.png'"
           alt="Fyn"
           class="w-8 h-8 rounded-full flex-shrink-0"
         />
@@ -167,9 +167,16 @@ export default {
 
       try {
         // Try to load from the mobileDashboard store which has module summaries
-        const dashboard = this.$store.state.mobileDashboard?.dashboard;
-        if (dashboard?.modules) {
-          const mod = dashboard.modules.find(m => m.name === this.moduleId);
+        let modules = this.$store.state.mobileDashboard?.modules;
+
+        // If modules aren't loaded yet (direct navigation), fetch dashboard first
+        if (!modules?.length) {
+          await this.$store.dispatch('mobileDashboard/fetchDashboard');
+          modules = this.$store.state.mobileDashboard?.modules;
+        }
+
+        if (modules?.length) {
+          const mod = modules.find(m => m.name === this.moduleId);
           if (mod) {
             this.summaryData = {
               heroMetric: mod.hero_metric ? {
@@ -193,7 +200,8 @@ export default {
 
     async openOnWeb() {
       if (!this.moduleConfig?.webPath) return;
-      const url = window.location.origin + this.moduleConfig.webPath;
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://fynla.org';
+      const url = baseUrl + this.moduleConfig.webPath;
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.open({ url });

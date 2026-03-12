@@ -89,9 +89,10 @@ export default {
         return;
       }
 
-      // External web path
+      // External web path — open in browser on the production site
       if (item.webPath) {
-        const url = window.location.origin + item.webPath;
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://fynla.org';
+        const url = baseUrl + item.webPath;
         try {
           const { Browser } = await import('@capacitor/browser');
           await Browser.open({ url });

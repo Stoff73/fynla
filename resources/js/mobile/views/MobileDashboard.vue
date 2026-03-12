@@ -8,7 +8,7 @@
       </div>
 
       <!-- Loading skeleton -->
-      <template v-if="loading && !dashboard">
+      <template v-if="loading && !hasData">
         <div class="bg-savannah-100 animate-pulse rounded-xl h-32"></div>
         <div class="bg-savannah-100 animate-pulse rounded-xl h-20"></div>
         <div class="grid grid-cols-2 gap-3">
@@ -17,26 +17,24 @@
       </template>
 
       <!-- Content -->
-      <template v-else-if="dashboard">
+      <template v-else-if="hasData">
         <MobileNetWorthCard
-          :net-worth="dashboard.net_worth"
-          :change="dashboard.net_worth_change"
-          :history="dashboard.net_worth_history"
+          :net-worth="netWorth?.total || 0"
         />
 
         <FynInsightCard
-          v-if="dashboard.fyn_insight"
-          :insight="dashboard.fyn_insight"
+          v-if="insight"
+          :insight="insight"
         />
 
         <MobileAlertsList
-          v-if="dashboard.alerts && dashboard.alerts.length"
-          :alerts="dashboard.alerts"
+          v-if="alerts && alerts.length"
+          :alerts="alerts"
         />
 
         <div class="grid grid-cols-2 gap-3">
           <ModuleSummaryCard
-            v-for="mod in dashboard.modules"
+            v-for="mod in modules"
             :key="mod.name"
             :module-data="mod"
             @click="navigateToModule(mod.name)"
@@ -46,7 +44,7 @@
 
       <!-- Empty state -->
       <div v-else class="text-center py-12">
-        <img src="/images/logos/favicon.png" alt="Fynla" class="w-16 h-16 mx-auto mb-4 opacity-50" />
+        <img :src="'/images/logos/favicon.png'" alt="Fynla" class="w-16 h-16 mx-auto mb-4 opacity-50" />
         <p class="text-neutral-500">Welcome to Fynla! Start by adding your financial details on the web app.</p>
       </div>
     </div>
@@ -73,8 +71,12 @@ export default {
   },
 
   computed: {
-    ...mapState('mobileDashboard', ['dashboard', 'loading']),
+    ...mapState('mobileDashboard', ['netWorth', 'modules', 'alerts', 'insight', 'loading']),
     ...mapState('auth', ['user']),
+
+    hasData() {
+      return !!(this.netWorth || (this.modules && this.modules.length) || this.insight);
+    },
 
     firstName() {
       return this.user?.first_name || 'there';
@@ -89,7 +91,7 @@ export default {
   },
 
   mounted() {
-    if (!this.dashboard) {
+    if (!this.hasData) {
       this.fetchDashboard();
     }
   },

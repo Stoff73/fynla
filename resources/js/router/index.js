@@ -959,9 +959,14 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Allow access to authenticated routes when in preview mode
-  if (to.meta.requiresAuth && !isAuthenticated && !isPreviewMode) {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  if (requiresAuth && !isAuthenticated && !isPreviewMode) {
     // Redirect to login if route requires authentication and not in preview mode
-    next({ name: 'Login' });
+    if (platform.isNative()) {
+      next({ name: 'MobileLogin' });
+    } else {
+      next({ name: 'Login' });
+    }
   } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
     // Redirect to dashboard if already authenticated (but allow preview users to register)
     next({ name: 'Dashboard' });

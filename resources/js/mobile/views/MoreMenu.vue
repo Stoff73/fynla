@@ -82,7 +82,8 @@ export default {
     },
 
     async openWebApp() {
-      const url = window.location.origin + '/dashboard';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://fynla.org';
+      const url = baseUrl + '/dashboard';
       try {
         const { Browser } = await import('@capacitor/browser');
         await Browser.open({ url });
