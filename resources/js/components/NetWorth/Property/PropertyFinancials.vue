@@ -430,16 +430,15 @@ export default {
     },
 
     userMonthlyMortgagePayments() {
-      // User's share of mortgage payments, respecting each mortgage's ownership_type
-      return this.mortgageList.reduce((total, mortgage) => {
-        const payment = parseFloat(mortgage.monthly_payment) || 0;
-        // Only apply ownership split if mortgage is jointly owned
-        if (mortgage.ownership_type === 'joint' && this.property?.ownership_percentage) {
-          return total + (payment * (this.property.ownership_percentage / 100));
-        }
-        // Individual mortgage - full payment belongs to this owner
-        return total + payment;
+      // User's share of mortgage payments, based on property ownership type
+      const total = this.mortgageList.reduce((sum, mortgage) => {
+        return sum + (parseFloat(mortgage.monthly_payment) || 0);
       }, 0);
+      // Apply ownership split for shared ownership (joint or tenants in common)
+      if (this.isSharedOwnership && this.property?.ownership_percentage) {
+        return total * (this.property.ownership_percentage / 100);
+      }
+      return total;
     },
 
     isSharedOwnership() {
