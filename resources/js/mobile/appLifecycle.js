@@ -61,14 +61,23 @@ export async function attemptBiometricLogin(store) {
     const { isAvailable } = await NativeBiometric.isAvailable();
     if (!isAvailable) return false;
 
-    // Verify biometrics
+    // Check for stored credentials FIRST — if none exist, skip silently
+    let credentials;
+    try {
+      credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
+    } catch {
+      // No stored credentials — user has never set up biometric login
+      return false;
+    }
+    if (!credentials?.password) return false;
+
+    // Credentials exist — now prompt for biometric verification
     await NativeBiometric.verifyIdentity({
       reason: 'Sign in to Fynla',
       title: 'Fynla',
     });
 
-    // Retrieve stored credentials and hydrate token into storage/store
-    const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
+    // Hydrate token into storage/store
     if (credentials?.password) {
       await setToken(credentials.password);
       store.commit('auth/setToken', credentials.password);
