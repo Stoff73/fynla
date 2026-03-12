@@ -161,6 +161,14 @@ Mobile views live in `mobile/` with their own layout (`MobileLayout.vue`) and ro
 
 **SSE streaming:** `aiChatService.sendMessageStream()` uses raw `fetch()` (not axios) for streaming. On Capacitor, needs `credentials: 'omit'` and fallback for `response.body` being null.
 
+**Biometric (Face ID) login:**
+- Credentials stored in iOS Keychain via `@capgo/capacitor-native-biometric` (token as `password`, email as `username`, server `fynla.org`)
+- Mobile logout uses `auth/mobileLogout` (clears local state, keeps server token valid) — NEVER use `auth/logout` on mobile or biometric breaks
+- `app.js` calls `attemptBiometricLogin()` on startup when no token in Preferences
+- `BiometricPrompt.vue` is a bottom-sheet modal shown on dashboard via `?biometricSetup=1` query param
+- `SettingsList.vue` has a Face ID toggle at the top of the settings list
+- Key files: `appLifecycle.js` (biometric login + app lifecycle), `BiometricPrompt.vue` (setup modal), `SettingsList.vue` (toggle), `MobileLoginScreen.vue` (fallback Face ID button)
+
 **CRITICAL — vite.config.js rules for iOS:**
 - **NEVER** add `external` to `rollupOptions` for image/asset paths — this makes Rollup leave `/images/*` as JS module imports, causing WKWebView to reject PNGs with `'image/png' is not a valid JavaScript MIME type'` → blank screen.
 - **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config — prevents Vue template compiler from converting `<img src="/images/...">` into JS `import()` calls.

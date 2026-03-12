@@ -194,6 +194,11 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config
 - **ALWAYS** keep `!disablePWA && VitePWA(...)` — PWA must be conditionally disabled for iOS
 
+**Biometric (Face ID) login:**
+- Mobile logout MUST use `auth/mobileLogout` (clears local state only) — NEVER `auth/logout` (revokes server token, breaks Face ID)
+- Token stored in iOS Keychain via `@capgo/capacitor-native-biometric`, separate from `@capacitor/preferences`
+- `app.js` calls `attemptBiometricLogin()` on startup; `SettingsList.vue` has the toggle; `BiometricPrompt.vue` is the setup modal
+
 **Capacitor gotchas:**
 - `window.location.origin` = `capacitor://localhost` — use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'` for Browser.open() and fetch() URLs
 - Vue Router child routes do NOT inherit parent `meta` — use `to.matched.some(r => r.meta.requiresAuth)` not `to.meta.requiresAuth`
