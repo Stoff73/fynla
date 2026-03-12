@@ -67,6 +67,28 @@
       </button>
     </form>
 
+    <!-- Biometric login -->
+    <div v-if="hasBiometricCredentials" class="mt-6">
+      <div class="relative flex items-center mb-4">
+        <div class="flex-grow border-t border-light-gray"></div>
+        <span class="px-3 text-neutral-500 text-xs">or</span>
+        <div class="flex-grow border-t border-light-gray"></div>
+      </div>
+      <button
+        :disabled="loading"
+        class="w-full py-3 rounded-xl border-2 border-horizon-500 text-horizon-500 font-bold text-base
+               active:bg-horizon-500 active:text-white disabled:opacity-50 transition-colors
+               flex items-center justify-center gap-2"
+        @click="handleBiometricLogin"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        Sign in with {{ biometricName }}
+      </button>
+    </div>
+
     <!-- Footer -->
     <p class="text-center text-neutral-500 text-xs mt-8">
       Don't have an account?
@@ -78,6 +100,7 @@
 <script>
 import authService from '@/services/authService';
 import { setToken } from '@/services/tokenStorage';
+import { platform } from '@/utils/platform';
 
 export default {
   name: 'MobileLoginScreen',
@@ -88,10 +111,81 @@ export default {
       password: '',
       loading: false,
       error: null,
+      hasBiometricCredentials: false,
+      biometricName: 'Face ID',
     };
   },
 
+  async mounted() {
+    await this.checkBiometricCredentials();
+  },
+
   methods: {
+    async checkBiometricCredentials() {
+      if (!platform.canUseBiometrics()) return;
+      try {
+        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+        const { isAvailable, biometryType } = await NativeBiometric.isAvailable();
+        if (!isAvailable) return;
+
+        this.biometricName = biometryType === 2 ? 'Face ID' : 'Touch ID';
+
+        // Check if credentials are stored
+        const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
+        this.hasBiometricCredentials = !!(credentials?.password);
+      } catch {
+        // No stored credentials or biometric not available
+        this.hasBiometricCredentials = false;
+      }
+    },
+
+    async handleBiometricLogin() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+
+        // Prompt for biometric verification
+        await NativeBiometric.verifyIdentity({
+          reason: 'Sign in to Fynla',
+          title: 'Fynla',
+        });
+
+        // Retrieve stored token
+        const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
+        if (!credentials?.password) {
+          this.error = 'No saved credentials found. Please sign in with your email and password.';
+          this.hasBiometricCredentials = false;
+          return;
+        }
+
+        // Restore token and validate with server
+        await setToken(credentials.password);
+        this.$store.commit('auth/setToken', credentials.password);
+
+        try {
+          await this.$store.dispatch('auth/fetchUser');
+          this.$router.push('/m/home');
+        } catch {
+          // Token expired — clear and ask user to login manually
+          this.$store.commit('auth/clearAuth');
+          // Clear the stale biometric credentials
+          await NativeBiometric.deleteCredentials({ server: 'fynla.org' }).catch(() => {});
+          this.hasBiometricCredentials = false;
+          this.error = 'Your session has expired. Please sign in again.';
+        }
+      } catch (e) {
+        // User cancelled biometric or it failed
+        if (e?.message?.includes('cancel') || e?.code === 'userCancel') {
+          // User cancelled — no error message needed
+        } else {
+          this.error = 'Biometric authentication failed. Please sign in with your email and password.';
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async handleLogin() {
       this.loading = true;
       this.error = null;
@@ -130,8 +224,14 @@ export default {
           this.$store.commit('auth/setToken', token);
           console.log('[MobileLogin] Fetching user...');
           await this.$store.dispatch('auth/fetchUser');
-          console.log('[MobileLogin] Navigating to /m/home');
-          this.$router.push('/m/home');
+          // Offer biometric setup if available and not already stored
+          if (platform.canUseBiometrics() && !this.hasBiometricCredentials) {
+            console.log('[MobileLogin] Navigating to biometric setup');
+            this.$router.push('/m/biometric-setup');
+          } else {
+            console.log('[MobileLogin] Navigating to /m/home');
+            this.$router.push('/m/home');
+          }
         } else {
           console.log('[MobileLogin] No token and no verification required — unexpected response');
         }

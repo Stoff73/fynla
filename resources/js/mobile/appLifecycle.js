@@ -73,9 +73,12 @@ export async function attemptBiometricLogin(store) {
       await setToken(credentials.password);
       store.commit('auth/setToken', credentials.password);
       try {
-        await api.get('/auth/user');
+        // Validate token and fetch user data into the auth store
+        await store.dispatch('auth/fetchUser');
         return true;
       } catch {
+        // Token expired or invalid — clear it so user sees login screen
+        store.commit('auth/clearAuth');
         return false;
       }
     }
