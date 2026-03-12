@@ -181,7 +181,7 @@
 
         <div class="border-t border-light-gray mt-8 pt-8">
           <p class="text-sm text-neutral-500">
-            Copyright 2026 Fynla - Financial freedom mapping
+            &copy; Fynla 2026
           </p>
         </div>
       </div>
