@@ -50,9 +50,9 @@ export default {
     },
 
     primaryValue() {
-      if (this.pensionType === 'dc') return this.formatCurrency(this.pension.fund_value || this.pension.current_value || 0);
-      if (this.pensionType === 'db') return this.formatCurrency(this.pension.annual_income || this.pension.annual_pension || 0);
-      return this.formatCurrency((this.pension.weekly_amount || 0) * 52);
+      if (this.pensionType === 'dc') return this.formatCurrency(this.pension.current_fund_value || this.pension.fund_value || this.pension.current_value || 0);
+      if (this.pensionType === 'db') return this.formatCurrency(this.pension.accrued_annual_pension || this.pension.annual_income || this.pension.annual_pension || 0);
+      return this.formatCurrency(this.pension.state_pension_forecast_annual || (this.pension.weekly_amount || 0) * 52);
     },
 
     primaryLabel() {
@@ -88,9 +88,12 @@ export default {
 
       // State pension
       const items = [];
-      if (this.pension.weekly_amount) items.push({ label: 'Weekly', value: this.formatCurrency(this.pension.weekly_amount) });
-      if (this.pension.qualifying_years != null) items.push({ label: 'Qualifying years', value: `${this.pension.qualifying_years} of 35` });
+      const annualForecast = this.pension.state_pension_forecast_annual || (this.pension.weekly_amount || 0) * 52;
+      if (annualForecast) items.push({ label: 'Weekly', value: this.formatCurrency(annualForecast / 52) });
+      const niYears = this.pension.ni_years_completed ?? this.pension.qualifying_years;
+      if (niYears != null) items.push({ label: 'Qualifying years', value: `${niYears} of ${this.pension.ni_years_required || 35}` });
       if (this.pension.state_pension_age) items.push({ label: 'Pension age', value: String(this.pension.state_pension_age) });
+      if (this.pension.already_receiving) items.push({ label: 'Status', value: 'Receiving' });
       return items;
     },
   },

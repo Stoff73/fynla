@@ -18,7 +18,7 @@
         <p class="text-xs text-neutral-500 mt-1">Net estate value</p>
         <div v-if="ihtLiability > 0" class="mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-500">
-            IHT: {{ formatCurrency(ihtLiability) }}
+            Inheritance tax: {{ formatCurrency(ihtLiability) }}
           </span>
         </div>
       </div>
@@ -29,28 +29,12 @@
         <p class="text-white text-sm leading-relaxed">{{ fynSummary }}</p>
       </div>
 
-      <!-- Estate Assets -->
-      <MobileAccordionSection
-        title="Estate assets"
-        icon="🏘️"
-        :badge="assets.length || null"
-        :default-open="true"
-        class="mb-3"
-      >
-        <template v-if="assets.length">
-          <div class="divide-y divide-light-gray">
-            <MobileEstateAssetCard v-for="asset in assets" :key="asset.id" :asset="asset" />
-          </div>
-        </template>
-        <p v-else class="px-4 py-6 text-sm text-neutral-500 text-center">No estate assets added yet</p>
-      </MobileAccordionSection>
-
       <!-- IHT Analysis -->
-      <MobileAccordionSection title="Inheritance tax analysis" icon="📊" class="mb-3">
+      <MobileAccordionSection title="Inheritance tax analysis" icon="📊" :default-open="true" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Gross estate" :value="grossEstate" type="currency" />
-          <MobileDataRow label="Nil-rate band" :value="325000" type="currency" />
-          <MobileDataRow label="Residence nil-rate band" :value="175000" type="currency" />
+          <MobileDataRow label="Nil-rate band" :value="nrb" type="currency" />
+          <MobileDataRow label="Residence nil-rate band" :value="rnrb" type="currency" />
           <MobileDataRow label="Taxable estate" :value="taxableEstate" type="currency" />
           <MobileDataRow
             label="Inheritance tax liability"
@@ -90,6 +74,36 @@
         </template>
         <p v-else class="px-4 py-6 text-sm text-neutral-500 text-center">No trusts set up yet</p>
       </MobileAccordionSection>
+
+      <!-- Protection -->
+      <MobileAccordionSection
+        title="Protection"
+        icon="🛡️"
+        :badge="protectionPolicies.length || null"
+        class="mb-3"
+      >
+        <template v-if="protectionPolicies.length">
+          <div class="divide-y divide-light-gray">
+            <MobilePolicyCard
+              v-for="policy in protectionPolicies"
+              :key="policy.id"
+              :policy="policy"
+              :policy-type="policy.policy_type"
+            />
+          </div>
+          <div class="px-4 py-3 border-t border-light-gray">
+            <div class="flex justify-between text-xs">
+              <span class="text-neutral-500">Total cover</span>
+              <span class="text-horizon-500 font-semibold">{{ formatCurrency(totalProtectionCoverage) }}</span>
+            </div>
+            <div class="flex justify-between text-xs mt-1">
+              <span class="text-neutral-500">Monthly premiums</span>
+              <span class="text-horizon-500 font-semibold">{{ formatCurrency(totalProtectionPremium) }}/mo</span>
+            </div>
+          </div>
+        </template>
+        <p v-else class="px-4 py-6 text-sm text-neutral-500 text-center">No protection policies added yet</p>
+      </MobileAccordionSection>
     </template>
 
     <div v-else class="text-center py-16">
@@ -105,14 +119,14 @@ import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import MobileAccordionSection from '@/mobile/components/MobileAccordionSection.vue';
 import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
-import MobileEstateAssetCard from '@/mobile/components/MobileEstateAssetCard.vue';
 import MobileGiftCard from '@/mobile/components/MobileGiftCard.vue';
 import MobileTrustCard from '@/mobile/components/MobileTrustCard.vue';
+import MobilePolicyCard from '@/mobile/components/MobilePolicyCard.vue';
 
 export default {
   name: 'EstateDetail',
 
-  components: { MobileAccordionSection, MobileDataRow, MobileEstateAssetCard, MobileGiftCard, MobileTrustCard },
+  components: { MobileAccordionSection, MobileDataRow, MobileGiftCard, MobileTrustCard, MobilePolicyCard },
 
   mixins: [currencyMixin],
 
@@ -123,21 +137,35 @@ export default {
   computed: {
     ...mapState('estate', ['trusts']),
     ...mapGetters('estate', [
-      'allAssets',
       'netWorthValue',
       'ihtLiability',
       'grossEstate',
       'taxableEstate',
       'giftsWithin7Years',
     ]),
+    ...mapGetters('protection', {
+      protectionPolicies: 'allPolicies',
+      totalProtectionCoverage: 'totalCoverage',
+      totalProtectionPremium: 'totalPremium',
+    }),
 
-    // Use allAssets (manual + investment accounts) for display
-    assets() {
-      return this.allAssets || [];
+    // IHT allowances from the calculation response or defaults
+    nrb() {
+      const planning = this.$store.state.estate.secondDeathPlanning;
+      return planning?.iht_summary?.current?.nil_rate_band
+        || planning?.user_iht_calculation?.nil_rate_band
+        || 325000;
+    },
+
+    rnrb() {
+      const planning = this.$store.state.estate.secondDeathPlanning;
+      return planning?.iht_summary?.current?.residence_nil_rate_band
+        || planning?.user_iht_calculation?.residence_nil_rate_band
+        || 175000;
     },
 
     hasData() {
-      return this.assets?.length > 0 || this.trusts?.length > 0 || this.netWorthValue > 0;
+      return this.trusts?.length > 0 || this.netWorthValue > 0 || this.ihtLiability > 0;
     },
 
     fynSummary() {
@@ -151,7 +179,10 @@ export default {
   async created() {
     this.loading = true;
     try {
-      await this.$store.dispatch('estate/fetchEstateData');
+      await Promise.all([
+        this.$store.dispatch('estate/fetchEstateData'),
+        this.$store.dispatch('protection/fetchProtectionData').catch(() => {}),
+      ]);
       // Fetch IHT calculation to populate ihtLiability, taxableEstate, grossEstate
       await this.$store.dispatch('estate/calculateIHTPlanning').catch(() => {});
     } catch {
