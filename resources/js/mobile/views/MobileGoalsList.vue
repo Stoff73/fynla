@@ -35,7 +35,7 @@
       <span class="text-4xl block mb-3">&#127919;</span>
       <h3 class="text-base font-bold text-horizon-500 mb-1">No goals yet</h3>
       <p class="text-sm text-neutral-500">
-        Set up your financial goals on the web app to track them here
+        Your financial goals will appear here once added
       </p>
     </div>
   </div>

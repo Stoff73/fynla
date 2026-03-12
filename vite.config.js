@@ -52,7 +52,15 @@ export default defineConfig({
             refresh: true,
             buildDirectory: 'build',
         }),
-        vue(),
+        vue({
+            template: {
+                // Disable asset URL transformation so <img src="/images/..."> stays
+                // as a static string instead of becoming a JS import. Without this,
+                // Capacitor iOS WKWebView rejects the import with 'image/png is not
+                // a valid JavaScript MIME type' because it serves the PNG file.
+                transformAssetUrls: false,
+            },
+        }),
         !disablePWA && VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico'],
@@ -194,9 +202,6 @@ export default defineConfig({
                 app: 'resources/js/app.js',
                 css: 'resources/css/app.css',
             },
-            external: [
-                /^\/images\//,
-            ],
         },
     },
 });

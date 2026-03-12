@@ -69,8 +69,14 @@ const LearnTopicDetail = () => import('@/mobile/views/LearnTopicDetail.vue');
 const MobileGoalsList = () => import('@/mobile/views/MobileGoalsList.vue');
 const MobileGoalDetail = () => import('@/mobile/views/MobileGoalDetail.vue');
 const MoreMenu = () => import('@/mobile/views/MoreMenu.vue');
-const ModuleSummary = () => import('@/mobile/views/ModuleSummary.vue');
 const NotificationSettings = () => import('@/mobile/views/NotificationSettings.vue');
+const ProtectionDetail = () => import('@/mobile/views/ProtectionDetail.vue');
+const SavingsDetail = () => import('@/mobile/views/SavingsDetail.vue');
+const InvestmentDetail = () => import('@/mobile/views/InvestmentDetail.vue');
+const RetirementDetail = () => import('@/mobile/views/RetirementDetail.vue');
+const EstateDetail = () => import('@/mobile/views/EstateDetail.vue');
+const GoalsDetail = () => import('@/mobile/views/GoalsDetail.vue');
+const CoordinationDetail = () => import('@/mobile/views/CoordinationDetail.vue');
 
 const routes = [
   // Public routes
@@ -870,8 +876,14 @@ const routes = [
       { path: 'goals', name: 'MobileGoals', component: MobileGoalsList, meta: { title: 'Goals' } },
       { path: 'goals/:id', name: 'MobileGoalDetail', component: MobileGoalDetail, meta: { title: 'Goal' } },
       { path: 'more', name: 'MobileMore', component: MoreMenu, meta: { title: 'More' } },
-      { path: 'more/summary/:module', name: 'MobileModuleSummary', component: ModuleSummary },
       { path: 'more/notifications', name: 'MobileNotificationSettings', component: NotificationSettings, meta: { title: 'Notifications' } },
+      { path: 'module/protection', name: 'MobileProtectionDetail', component: ProtectionDetail, meta: { title: 'Protection' } },
+      { path: 'module/savings', name: 'MobileSavingsDetail', component: SavingsDetail, meta: { title: 'Savings' } },
+      { path: 'module/investment', name: 'MobileInvestmentDetail', component: InvestmentDetail, meta: { title: 'Investment' } },
+      { path: 'module/retirement', name: 'MobileRetirementDetail', component: RetirementDetail, meta: { title: 'Retirement' } },
+      { path: 'module/estate', name: 'MobileEstateDetail', component: EstateDetail, meta: { title: 'Estate Planning' } },
+      { path: 'module/goals', name: 'MobileGoalsDetail', component: GoalsDetail, meta: { title: 'Goals' } },
+      { path: 'module/coordination', name: 'MobileCoordinationDetail', component: CoordinationDetail, meta: { title: 'Coordination' } },
     ],
   },
 ];

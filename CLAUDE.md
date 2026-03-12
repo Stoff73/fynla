@@ -189,6 +189,16 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 **After any mobile change:** Clear server cache (`php artisan cache:clear`) — mobile dashboard is cached 5 min per user.
 
+**CRITICAL — vite.config.js rules for iOS (blank screen prevention):**
+- **NEVER** add `external` to `rollupOptions` for image/asset paths — causes `'image/png' is not a valid JavaScript MIME type'` → blank screen. Rollup leaves `/images/*` as JS module imports, WKWebView rejects PNGs served as JavaScript.
+- **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config
+- **ALWAYS** keep `!disablePWA && VitePWA(...)` — PWA must be conditionally disabled for iOS
+
+**Biometric (Face ID) login:**
+- Mobile logout MUST use `auth/mobileLogout` (clears local state only) — NEVER `auth/logout` (revokes server token, breaks Face ID)
+- Token stored in iOS Keychain via `@capgo/capacitor-native-biometric`, separate from `@capacitor/preferences`
+- `app.js` calls `attemptBiometricLogin()` on startup; `SettingsList.vue` has the toggle; `BiometricPrompt.vue` is the setup modal
+
 **Capacitor gotchas:**
 - `window.location.origin` = `capacitor://localhost` — use `import.meta.env.VITE_API_BASE_URL || 'https://fynla.org'` for Browser.open() and fetch() URLs
 - Vue Router child routes do NOT inherit parent `meta` — use `to.matched.some(r => r.meta.requiresAuth)` not `to.meta.requiresAuth`
@@ -245,7 +255,8 @@ Don't suggest browser cache clearing - user tests in incognito.
 | Error | Fix |
 |-------|-----|
 | Blank page with 127.0.0.1:5173 | `rm public/hot` on server |
-| MIME type errors | Rebuild with `./deploy/fynla-org/build.sh` |
+| MIME type errors (web) | Rebuild with `./deploy/fynla-org/build.sh` |
+| iOS blank screen / `'image/png' is not a valid JavaScript MIME type'` | Check `vite.config.js`: remove any `external` from `rollupOptions`, ensure `transformAssetUrls: false` in vue() plugin. Run `grep -r 'import("/images' public/build/assets/` to verify no image imports in built JS. Delete app from device, clean build in Xcode. |
 | 500 DirectoryMatch error | Upload `deploy/fynla-org/.htaccess` |
 | 429 Too Many Requests | `php artisan cache:clear` |
 

@@ -1,5 +1,20 @@
 import './bootstrap';
 
+// Unregister any stale service workers from previous PWA-enabled builds.
+// A cached SW can intercept asset requests and serve them with wrong MIME types
+// (e.g., 'image/png' for JS files), causing blank screens on iOS WKWebView.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(r => r.unregister());
+  }).catch(() => {});
+  // Also clear all caches left by workbox
+  if (typeof caches !== 'undefined') {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    }).catch(() => {});
+  }
+}
+
 // Start console capture early to capture any initialization errors
 import consoleCapture from './services/consoleCapture';
 consoleCapture.startCapture();
@@ -17,6 +32,7 @@ import { previewDisabled } from './directives/previewDisabled';
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
 import { isNativePlatform, getToken } from './services/tokenStorage';
+import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
 
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
@@ -81,6 +97,26 @@ async function initAndMount() {
     console.log('[App Init] Step 8: Router ready, current route:', router.currentRoute.value.path);
   } catch (e) {
     console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
+  }
+
+  // On native, initialise app lifecycle (background/foreground handling)
+  // and attempt biometric login if no token was restored from storage
+  if (isNativePlatform()) {
+    console.log('[App Init] Step 9: Initialising native app lifecycle');
+    initAppLifecycle(store, router);
+
+    if (!store.getters['auth/isAuthenticated']) {
+      console.log('[App Init] Step 10: No token — attempting biometric login');
+      try {
+        const biometricSuccess = await attemptBiometricLogin(store);
+        console.log('[App Init] Step 10: Biometric result:', biometricSuccess);
+        if (biometricSuccess) {
+          router.push('/m/home');
+        }
+      } catch (e) {
+        console.log('[App Init] Step 10-ERR: Biometric failed:', e?.message || 'unknown');
+      }
+    }
   }
 }
 

@@ -23,18 +23,6 @@
     <!-- Settings list -->
     <SettingsList />
 
-    <!-- Open full web app -->
-    <button
-      class="w-full py-3 bg-white rounded-xl border border-light-gray text-sm font-medium
-             text-horizon-500 flex items-center justify-center gap-2"
-      @click="openWebApp"
-    >
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-      </svg>
-      Open full web app
-    </button>
-
     <!-- Logout -->
     <button
       class="w-full py-3 text-sm font-medium text-raspberry-500"
@@ -78,22 +66,13 @@ export default {
 
   methods: {
     navigateToModule(moduleId) {
-      this.$router.push(`/m/more/summary/${moduleId}`);
-    },
-
-    async openWebApp() {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://fynla.org';
-      const url = baseUrl + '/dashboard';
-      try {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url });
-      } catch {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+      this.$router.push(`/m/module/${moduleId}`);
     },
 
     async handleLogout() {
-      await this.$store.dispatch('auth/logout');
+      // Mobile logout clears local state but keeps the server token valid
+      // so biometric (Face ID) credentials in the iOS Keychain still work
+      await this.$store.dispatch('auth/mobileLogout');
       this.$router.push('/m/login');
     },
   },
