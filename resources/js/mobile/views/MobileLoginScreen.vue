@@ -224,10 +224,10 @@ export default {
           this.$store.commit('auth/setToken', token);
           console.log('[MobileLogin] Fetching user...');
           await this.$store.dispatch('auth/fetchUser');
-          // Offer biometric setup if available and not already stored
+          // Navigate to dashboard — biometric setup modal will appear if needed
           if (platform.canUseBiometrics() && !this.hasBiometricCredentials) {
-            console.log('[MobileLogin] Navigating to biometric setup');
-            this.$router.push('/m/biometric-setup');
+            console.log('[MobileLogin] Navigating to /m/home with biometric setup');
+            this.$router.push('/m/home?biometricSetup=1');
           } else {
             console.log('[MobileLogin] Navigating to /m/home');
             this.$router.push('/m/home');

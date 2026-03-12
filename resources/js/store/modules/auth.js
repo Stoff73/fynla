@@ -1,5 +1,5 @@
 import authService from '@/services/authService';
-import { removeToken } from '@/services/tokenStorage';
+import { removeToken, isNativePlatform } from '@/services/tokenStorage';
 
 const state = {
   token: authService.getToken(),
@@ -111,6 +111,27 @@ const actions = {
     } catch (error) {
       console.error('Logout error:', error);
       commit('clearAuth');
+    } finally {
+      commit('setLoading', false);
+    }
+  },
+
+  /**
+   * Mobile-specific logout: clears local state but does NOT revoke the
+   * server token. This keeps the biometric credential (stored in iOS
+   * Keychain) valid so Face ID can auto-login on next launch.
+   */
+  async mobileLogout({ commit, dispatch }) {
+    commit('setLoading', true);
+    try {
+      // Clear local token storage (Preferences) but skip server revocation
+      await removeToken();
+      commit('clearAuth');
+
+      // Reset module states to prevent data leakage
+      commit('userProfile/resetState', null, { root: true });
+      dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
+      dispatch('mobileDashboard/clearCache', null, { root: true }).catch(() => {});
     } finally {
       commit('setLoading', false);
     }

@@ -70,7 +70,9 @@ export default {
     },
 
     async handleLogout() {
-      await this.$store.dispatch('auth/logout');
+      // Mobile logout clears local state but keeps the server token valid
+      // so biometric (Face ID) credentials in the iOS Keychain still work
+      await this.$store.dispatch('auth/mobileLogout');
       this.$router.push('/m/login');
     },
   },
