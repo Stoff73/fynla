@@ -1,42 +1,42 @@
-# Tech Debt Report — Session 11 March 2026
+# Tech Debt Report — Session 12 March 2026 (Evening)
 
-**Files analysed:** 12
+**Files analysed:** 7 (module detail views + card components changed today)
 **Issues found:** 5
-**Severity breakdown:** 0 critical, 3 warnings, 2 suggestions
+**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
 
 ## Warnings
 
-### 1. Excessive diagnostic console.log statements (debugging artifacts)
-**Files:** `resources/js/app.js` (lines 44, 47, 53, 59, 64, 68, 71, 74, 76, 81, 83, 88), `resources/js/store/modules/preview.js` (lines 233-234, 236-238, 245, 247, 251, 259, 262, 271), `resources/js/mobile/views/MobileLoginScreen.vue` (lines 98, 105, 109, 127, 131, 133, 136, 139)
-**Category:** Dead & Redundant Code
-**What's wrong:** 30+ diagnostic console.log/console.error calls added during iOS debugging. These are labelled with step numbers like `[App Init] Step 1:`, `[Preview] Step 2:`, `[MobileLogin] Starting login for:` — clearly debugging artifacts, not production logging.
-**Suggested fix:** Remove all `[App Init]`, `[Preview] Step`, and `[MobileLogin]` console.log lines once iOS app is confirmed working. Keep the `app.config.errorHandler` (that's useful) and the `[Capacitor]` API base URL log (useful for diagnostics).
-
-### 2. Duplicate Capacitor detection logic across bootstrap.js and api.js
-**Files:** `resources/js/bootstrap.js` (lines 16-27), `resources/js/services/api.js` (lines 53-58)
+### 1. Repeated Fyn summary card markup across 5 detail views
+**Files:** `resources/js/mobile/views/SavingsDetail.vue:22-25`, `RetirementDetail.vue:22-25`, `InvestmentDetail.vue:22-25`, `EstateDetail.vue:27-30`, `ProtectionDetail.vue:29-32`
 **Category:** Duplicate Code
-**What's wrong:** Both files independently compute `isCapacitor`, `isLocal`, and `apiBaseURL` with nearly identical logic. `bootstrap.js` sets `window.axios.defaults.baseURL` while `api.js` creates its own axios instance with the same base URL calculation. The two can diverge if one is updated but not the other.
-**Suggested fix:** Centralise the base URL and Capacitor detection into a shared utility (e.g., `utils/platform.js` already has `isNative()`). Both files should import from one source.
+**What's wrong:** The identical Fyn summary card (horizon-500 background, favicon image, white text) is copy-pasted across all 5 module detail views. Any design change requires editing 5 files.
+**Suggested fix:** Extract to a `MobileFynCard.vue` component that takes a `summary` string prop.
 
-### 3. `isCapacitorBoot` vs `isCapacitor` naming inconsistency in bootstrap.js
-**File:** `resources/js/bootstrap.js` (lines 16, 23)
-**Category:** Inconsistency
-**What's wrong:** Line 16 declares `isCapacitorBoot` (used for `withCredentials`), then line 23 declares `isCapacitor` (used for base URL). Both check the same condition (`window.location.protocol === 'capacitor:'`). Two variables for the same thing.
-**Suggested fix:** Use a single `isCapacitor` const for both.
+### 2. Repeated hero card markup across 5 detail views
+**Files:** `resources/js/mobile/views/SavingsDetail.vue:14-19`, `RetirementDetail.vue:14-20`, `InvestmentDetail.vue:14-19`, `EstateDetail.vue:14-24`, `ProtectionDetail.vue:16-26`
+**Category:** Duplicate Code
+**What's wrong:** All 5 detail views have a nearly identical hero card (white bg, rounded-xl, border, centered text, emoji, title, currency value, subtitle). Minor variations exist (badges, extra rows) but the core pattern is duplicated.
+**Suggested fix:** Extract to a `MobileHeroCard.vue` component with props for `icon`, `title`, `value`, `subtitle`, and an optional slot for badges/extras.
 
 ## Suggestions
 
-### 4. Commented-out Echo/Pusher configuration block
-**File:** `resources/js/bootstrap.js` (lines 51-65)
-**Category:** Dead & Redundant Code
-**What's wrong:** Large block of commented-out Laravel Echo/Pusher code. Pre-existing, not part of this session's changes.
-**Suggested fix:** Remove if real-time features aren't planned soon.
+### 3. Hardcoded IHT allowance fallbacks in EstateDetail.vue
+**File:** `resources/js/mobile/views/EstateDetail.vue:157,164`
+**Category:** Convention Violations (Rule 3 — no hardcoded tax values)
+**What's wrong:** NRB defaults to `325000` and RNRB to `175000` as fallback values. While the actual calculation uses backend data, these magic numbers could drift from real values if allowances change.
+**Suggested fix:** Consider importing from `constants/taxConfig.js` or relying solely on the backend response without frontend fallbacks.
 
-### 5. `localStorage.removeItem('auth_token')` legacy cleanup still running
-**File:** `resources/js/app.js` (line 22)
-**Category:** Dead & Redundant Code
-**What's wrong:** One-time cleanup of legacy `localStorage` auth_token runs on every page load. All users should have migrated by now.
-**Suggested fix:** Remove after confirming no users have `auth_token` in localStorage.
+### 4. Repeated loading skeleton pattern
+**Files:** All 5 detail views (`SavingsDetail.vue:3-10`, `RetirementDetail.vue:3-10`, `InvestmentDetail.vue:3-10`, `EstateDetail.vue:3-10`, `ProtectionDetail.vue:4-12`)
+**Category:** Duplicate Code
+**What's wrong:** Similar loading skeleton markup (animate-pulse divs with savannah-100 placeholders) is repeated in every detail view. Not identical (varying row counts), but structurally the same.
+**Suggested fix:** Extract to a `MobileDetailSkeleton.vue` component with a `rows` prop.
+
+### 5. Repeated empty state pattern
+**Files:** All 5 detail views (e.g. `SavingsDetail.vue:83-87`, `RetirementDetail.vue:110-114`)
+**Category:** Duplicate Code
+**What's wrong:** The empty state block (emoji, title, subtitle) follows the same structure across all views. Only the text content differs.
+**Suggested fix:** Extract to a `MobileEmptyState.vue` component with `icon`, `title`, `subtitle` props.
 
 ---
 *Generated by tech-debt-session skill*

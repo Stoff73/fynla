@@ -1,33 +1,16 @@
 <template>
   <div class="px-4 pt-4 pb-6">
-    <div v-if="loading" class="space-y-3">
-      <div class="bg-white rounded-xl p-6 animate-pulse">
-        <div class="w-24 h-8 bg-savannah-100 rounded mx-auto"></div>
-      </div>
-      <div v-for="n in 4" :key="n" class="bg-white rounded-xl p-4 animate-pulse">
-        <div class="w-40 h-4 bg-savannah-100 rounded"></div>
-      </div>
-    </div>
+    <MobileDetailSkeleton v-if="loading" :rows="4" />
 
     <template v-else-if="hasData">
-      <!-- Hero -->
-      <div class="bg-white rounded-xl border border-light-gray p-6 text-center mb-4">
-        <span class="text-3xl block mb-2">{{'🏠'}}</span>
-        <h2 class="text-lg font-bold text-horizon-500">Estate Planning</h2>
-        <p class="text-2xl font-black text-horizon-500 mt-3">{{ formatCurrency(netWorthValue) }}</p>
-        <p class="text-xs text-neutral-500 mt-1">Net estate value</p>
+      <MobileHeroCard icon="🏠" title="Estate Planning" :value="formatCurrency(netWorthValue)" subtitle="Net estate value">
         <div v-if="ihtLiability > 0" class="mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-500">
             Inheritance tax: {{ formatCurrency(ihtLiability) }}
           </span>
         </div>
-      </div>
-
-      <!-- Fyn -->
-      <div class="bg-horizon-500 rounded-xl p-4 flex items-start gap-3 mb-4">
-        <img src="/images/logos/favicon.png" alt="Fyn" class="w-8 h-8 rounded-full flex-shrink-0" />
-        <p class="text-white text-sm leading-relaxed">{{ fynSummary }}</p>
-      </div>
+      </MobileHeroCard>
+      <MobileFynCard :summary="fynSummary" />
 
       <!-- IHT Analysis -->
       <MobileAccordionSection title="Inheritance tax analysis" icon="📊" :default-open="true" class="mb-3">
@@ -106,11 +89,7 @@
       </MobileAccordionSection>
     </template>
 
-    <div v-else class="text-center py-16">
-      <span class="text-4xl block mb-3">{{'🏠'}}</span>
-      <h3 class="text-base font-bold text-horizon-500 mb-1">No estate data yet</h3>
-      <p class="text-sm text-neutral-500">Your estate planning details will appear here</p>
-    </div>
+    <MobileEmptyState v-else icon="🏠" title="No estate data yet" subtitle="Your estate planning details will appear here" />
   </div>
 </template>
 
@@ -122,11 +101,15 @@ import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
 import MobileGiftCard from '@/mobile/components/MobileGiftCard.vue';
 import MobileTrustCard from '@/mobile/components/MobileTrustCard.vue';
 import MobilePolicyCard from '@/mobile/components/MobilePolicyCard.vue';
+import MobileHeroCard from '@/mobile/components/MobileHeroCard.vue';
+import MobileFynCard from '@/mobile/components/MobileFynCard.vue';
+import MobileDetailSkeleton from '@/mobile/components/MobileDetailSkeleton.vue';
+import MobileEmptyState from '@/mobile/components/MobileEmptyState.vue';
 
 export default {
   name: 'EstateDetail',
 
-  components: { MobileAccordionSection, MobileDataRow, MobileGiftCard, MobileTrustCard, MobilePolicyCard },
+  components: { MobileAccordionSection, MobileDataRow, MobileGiftCard, MobileTrustCard, MobilePolicyCard, MobileHeroCard, MobileFynCard, MobileDetailSkeleton, MobileEmptyState },
 
   mixins: [currencyMixin],
 

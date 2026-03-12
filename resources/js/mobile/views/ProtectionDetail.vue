@@ -1,35 +1,16 @@
 <template>
   <div class="px-4 pt-4 pb-6">
-    <!-- Loading -->
-    <div v-if="loading" class="space-y-3">
-      <div class="bg-white rounded-xl p-6 animate-pulse">
-        <div class="w-24 h-8 bg-savannah-100 rounded mx-auto"></div>
-        <div class="w-32 h-4 bg-savannah-100 rounded mx-auto mt-2"></div>
-      </div>
-      <div v-for="n in 3" :key="n" class="bg-white rounded-xl p-4 animate-pulse">
-        <div class="w-40 h-4 bg-savannah-100 rounded"></div>
-      </div>
-    </div>
+    <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <!-- Hero card -->
-      <div class="bg-white rounded-xl border border-light-gray p-6 text-center mb-4">
-        <span class="text-3xl block mb-2">{{'🛡️'}}</span>
-        <h2 class="text-lg font-bold text-horizon-500">Protection</h2>
-        <p class="text-2xl font-black text-horizon-500 mt-3">{{ formatCurrency(totalCoverage) }}</p>
-        <p class="text-xs text-neutral-500 mt-1">Total cover</p>
+      <MobileHeroCard icon="🛡️" title="Protection" :value="formatCurrency(totalCoverage)" subtitle="Total cover">
         <div v-if="coverageGaps.length" class="mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-500">
             {{ coverageGaps.length }} gap{{ coverageGaps.length > 1 ? 's' : '' }} identified
           </span>
         </div>
-      </div>
-
-      <!-- Fyn summary -->
-      <div class="bg-horizon-500 rounded-xl p-4 flex items-start gap-3 mb-4">
-        <img src="/images/logos/favicon.png" alt="Fyn" class="w-8 h-8 rounded-full flex-shrink-0" />
-        <p class="text-white text-sm leading-relaxed">{{ fynSummary }}</p>
-      </div>
+      </MobileHeroCard>
+      <MobileFynCard :summary="fynSummary" />
 
       <!-- Policies -->
       <MobileAccordionSection
@@ -102,12 +83,7 @@
       </MobileAccordionSection>
     </template>
 
-    <!-- Empty state -->
-    <div v-else class="text-center py-16">
-      <span class="text-4xl block mb-3">{{'🛡️'}}</span>
-      <h3 class="text-base font-bold text-horizon-500 mb-1">No protection data yet</h3>
-      <p class="text-sm text-neutral-500">Your protection policies will appear here</p>
-    </div>
+    <MobileEmptyState v-else icon="🛡️" title="No protection data yet" subtitle="Your protection policies will appear here" />
   </div>
 </template>
 
@@ -117,11 +93,15 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import MobileAccordionSection from '@/mobile/components/MobileAccordionSection.vue';
 import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
 import MobilePolicyCard from '@/mobile/components/MobilePolicyCard.vue';
+import MobileHeroCard from '@/mobile/components/MobileHeroCard.vue';
+import MobileFynCard from '@/mobile/components/MobileFynCard.vue';
+import MobileDetailSkeleton from '@/mobile/components/MobileDetailSkeleton.vue';
+import MobileEmptyState from '@/mobile/components/MobileEmptyState.vue';
 
 export default {
   name: 'ProtectionDetail',
 
-  components: { MobileAccordionSection, MobileDataRow, MobilePolicyCard },
+  components: { MobileAccordionSection, MobileDataRow, MobilePolicyCard, MobileHeroCard, MobileFynCard, MobileDetailSkeleton, MobileEmptyState },
 
   mixins: [currencyMixin],
 

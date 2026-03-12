@@ -1,28 +1,10 @@
 <template>
   <div class="px-4 pt-4 pb-6">
-    <div v-if="loading" class="space-y-3">
-      <div class="bg-white rounded-xl p-6 animate-pulse">
-        <div class="w-24 h-8 bg-savannah-100 rounded mx-auto"></div>
-      </div>
-      <div v-for="n in 3" :key="n" class="bg-white rounded-xl p-4 animate-pulse">
-        <div class="w-40 h-4 bg-savannah-100 rounded"></div>
-      </div>
-    </div>
+    <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <!-- Hero -->
-      <div class="bg-white rounded-xl border border-light-gray p-6 text-center mb-4">
-        <span class="text-3xl block mb-2">{{'🔗'}}</span>
-        <h2 class="text-lg font-bold text-horizon-500">Coordination</h2>
-        <p class="text-2xl font-black text-horizon-500 mt-3">{{ formatCurrency(netWorthTotal) }}</p>
-        <p class="text-xs text-neutral-500 mt-1">Net worth</p>
-      </div>
-
-      <!-- Fyn -->
-      <div class="bg-horizon-500 rounded-xl p-4 flex items-start gap-3 mb-4">
-        <img src="/images/logos/favicon.png" alt="Fyn" class="w-8 h-8 rounded-full flex-shrink-0" />
-        <p class="text-white text-sm leading-relaxed">{{ fynSummary }}</p>
-      </div>
+      <MobileHeroCard icon="🔗" title="Coordination" :value="formatCurrency(netWorthTotal)" subtitle="Net worth" />
+      <MobileFynCard :summary="fynSummary" />
 
       <!-- Financial Plans -->
       <MobileAccordionSection
@@ -104,11 +86,7 @@
       </MobileAccordionSection>
     </template>
 
-    <div v-else class="text-center py-16">
-      <span class="text-4xl block mb-3">{{'🔗'}}</span>
-      <h3 class="text-base font-bold text-horizon-500 mb-1">No coordination data yet</h3>
-      <p class="text-sm text-neutral-500">Your holistic financial picture will appear here</p>
-    </div>
+    <MobileEmptyState v-else icon="🔗" title="No coordination data yet" subtitle="Your holistic financial picture will appear here" />
   </div>
 </template>
 
@@ -117,11 +95,15 @@ import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import MobileAccordionSection from '@/mobile/components/MobileAccordionSection.vue';
 import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
+import MobileHeroCard from '@/mobile/components/MobileHeroCard.vue';
+import MobileFynCard from '@/mobile/components/MobileFynCard.vue';
+import MobileDetailSkeleton from '@/mobile/components/MobileDetailSkeleton.vue';
+import MobileEmptyState from '@/mobile/components/MobileEmptyState.vue';
 
 export default {
   name: 'CoordinationDetail',
 
-  components: { MobileAccordionSection, MobileDataRow },
+  components: { MobileAccordionSection, MobileDataRow, MobileHeroCard, MobileFynCard, MobileDetailSkeleton, MobileEmptyState },
 
   mixins: [currencyMixin],
 
