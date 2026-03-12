@@ -1,5 +1,20 @@
 import './bootstrap';
 
+// Unregister any stale service workers from previous PWA-enabled builds.
+// A cached SW can intercept asset requests and serve them with wrong MIME types
+// (e.g., 'image/png' for JS files), causing blank screens on iOS WKWebView.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(r => r.unregister());
+  }).catch(() => {});
+  // Also clear all caches left by workbox
+  if (typeof caches !== 'undefined') {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    }).catch(() => {});
+  }
+}
+
 // Start console capture early to capture any initialization errors
 import consoleCapture from './services/consoleCapture';
 consoleCapture.startCapture();
