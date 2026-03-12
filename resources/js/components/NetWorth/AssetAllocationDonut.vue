@@ -24,6 +24,8 @@ export default {
   name: 'AssetAllocationDonut',
   mixins: [currencyMixin],
 
+  emits: ['highlight', 'clear-highlight'],
+
   props: {
     breakdown: {
       type: Object,
@@ -78,11 +80,36 @@ export default {
       return this.filteredCategories.map(cat => cat.color);
     },
 
+    // Map label back to breakdown key for highlight events
+    filteredCategoryKeys() {
+      const labelToKey = {
+        'Pensions': 'pensions',
+        'Property': 'property',
+        'Investments': 'investments',
+        'Cash & Savings': 'cash',
+        'Business': 'business',
+        'Chattels': 'chattels',
+      };
+      return this.filteredCategories.map(cat => labelToKey[cat.label]);
+    },
+
     chartOptions() {
+      const vm = this;
       return {
         chart: {
           type: 'donut',
           fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
+          events: {
+            dataPointMouseEnter(event, chartContext, config) {
+              const idx = config.dataPointIndex;
+              const key = vm.filteredCategoryKeys[idx];
+              const color = vm.filteredColors[idx];
+              if (key) vm.$emit('highlight', { category: key, color });
+            },
+            dataPointMouseLeave() {
+              vm.$emit('clear-highlight');
+            },
+          },
         },
         labels: this.filteredLabels,
         colors: this.filteredColors,

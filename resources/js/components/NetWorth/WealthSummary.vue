@@ -28,7 +28,7 @@
       <!-- Pensions row: show DC values with per-user DB note inline -->
       <router-link v-if="showAssetRow('pensions') || anyDbPensions" :to="getAssetLink('pensions')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Pensions</div>
-        <div class="column-value">
+        <div class="column-value" :style="highlightStyle('pensions', 'user')">
           <template v-if="userBreakdown.pensions > 0">
             {{ formatCurrency(userBreakdown.pensions) }}
             <span v-if="hasDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
@@ -38,7 +38,7 @@
           </template>
           <template v-else>{{ formatCurrency(0) }}</template>
         </div>
-        <div v-if="hasSpouse" class="column-value">
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('pensions', 'spouse')">
           <template v-if="(spouseBreakdown.pensions || 0) > 0">
             {{ formatCurrency(spouseBreakdown.pensions) }}
             <span v-if="spouseHasDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
@@ -48,7 +48,7 @@
           </template>
           <template v-else>{{ formatCurrency(0) }}</template>
         </div>
-        <div v-if="hasSpouse" class="column-value total-column">
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('pensions', 'total')">
           <template v-if="pensionsHaveDcValue">
             {{ formatCurrency(userBreakdown.pensions + (spouseBreakdown.pensions || 0)) }}
             <span v-if="anyDbPensions" class="db-pension-note">(not incl. Defined Benefit pensions)</span>
@@ -60,33 +60,33 @@
       </router-link>
       <router-link v-if="showAssetRow('property')" :to="getAssetLink('property')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Property</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.property) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.property) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.property + (spouseBreakdown.property || 0)) }}</div>
+        <div class="column-value" :style="highlightStyle('property', 'user')">{{ formatCurrency(userBreakdown.property) }}</div>
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('property', 'spouse')">{{ formatCurrency(spouseBreakdown.property) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('property', 'total')">{{ formatCurrency(userBreakdown.property + (spouseBreakdown.property || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('investments')" :to="getAssetLink('investments')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Investments</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.investments) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.investments) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.investments + (spouseBreakdown.investments || 0)) }}</div>
+        <div class="column-value" :style="highlightStyle('investments', 'user')">{{ formatCurrency(userBreakdown.investments) }}</div>
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('investments', 'spouse')">{{ formatCurrency(spouseBreakdown.investments) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('investments', 'total')">{{ formatCurrency(userBreakdown.investments + (spouseBreakdown.investments || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('cash')" :to="getAssetLink('cash')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Cash & Savings</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.cash) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.cash) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.cash + (spouseBreakdown.cash || 0)) }}</div>
+        <div class="column-value" :style="highlightStyle('cash', 'user')">{{ formatCurrency(userBreakdown.cash) }}</div>
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('cash', 'spouse')">{{ formatCurrency(spouseBreakdown.cash) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('cash', 'total')">{{ formatCurrency(userBreakdown.cash + (spouseBreakdown.cash || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('business')" :to="getAssetLink('business')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Business</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.business) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.business) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.business + (spouseBreakdown.business || 0)) }}</div>
+        <div class="column-value" :style="highlightStyle('business', 'user')">{{ formatCurrency(userBreakdown.business) }}</div>
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('business', 'spouse')">{{ formatCurrency(spouseBreakdown.business) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('business', 'total')">{{ formatCurrency(userBreakdown.business + (spouseBreakdown.business || 0)) }}</div>
       </router-link>
       <router-link v-if="showAssetRow('chattels')" :to="getAssetLink('chattels')" class="summary-row breakdown-row clickable-row">
         <div class="row-label">Personal Valuables</div>
-        <div class="column-value">{{ formatCurrency(userBreakdown.chattels) }}</div>
-        <div v-if="hasSpouse" class="column-value">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
-        <div v-if="hasSpouse" class="column-value total-column">{{ formatCurrency(userBreakdown.chattels + (spouseBreakdown.chattels || 0)) }}</div>
+        <div class="column-value" :style="highlightStyle('chattels', 'user')">{{ formatCurrency(userBreakdown.chattels) }}</div>
+        <div v-if="hasSpouse" class="column-value" :style="highlightStyle('chattels', 'spouse')">{{ formatCurrency(spouseBreakdown.chattels) }}</div>
+        <div v-if="hasSpouse" class="column-value total-column" :style="highlightStyle('chattels', 'total')">{{ formatCurrency(userBreakdown.chattels + (spouseBreakdown.chattels || 0)) }}</div>
       </router-link>
 
       <!-- Total Assets Row -->
@@ -203,6 +203,10 @@ export default {
     spouseHasDbPensions: {
       type: Boolean,
       default: false,
+    },
+    highlightedCell: {
+      type: Object,
+      default: null,
     },
   },
 
@@ -332,6 +336,21 @@ export default {
   },
 
   methods: {
+    isCellHighlighted(category, column) {
+      if (!this.highlightedCell) return false;
+      return this.highlightedCell.category === category && this.highlightedCell.column === column;
+    },
+
+    highlightStyle(category, column) {
+      if (!this.isCellHighlighted(category, column)) return {};
+      const color = this.highlightedCell.color;
+      return {
+        backgroundColor: `${color}20`,
+        boxShadow: `inset 0 0 0 2px ${color}`,
+        borderRadius: '6px',
+      };
+    },
+
     showAssetRow(key) {
       // Show row if either user or spouse has a value > 0
       const userValue = this.userBreakdown[key] || 0;
@@ -530,13 +549,11 @@ export default {
 /* Assets total row styling */
 .assets-total-row .column-value.total-value {
   @apply bg-spring-100;
-  @apply border border-spring-500;
 }
 
 /* Liabilities total row styling */
 .liabilities-total-row .column-value.total-value {
   @apply bg-raspberry-100;
-  @apply border border-raspberry-500;
 }
 
 /* Net worth row styling */
@@ -552,7 +569,6 @@ export default {
 
 .net-worth-row .column-value.net-worth-value {
   background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
-  @apply border-2 border-raspberry-500;
 }
 
 .net-worth-value.positive {
