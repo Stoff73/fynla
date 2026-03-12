@@ -129,7 +129,7 @@ First accordion section opens by default. Others collapsed.
 | Coverage Analysis | Data rows: income multiple covered, recommended multiple, shortfall amount, income protection status | `MobileDataRow` |
 | Gaps & Recommendations | List of identified gaps with priority badges (high/medium/low), recommendation text | `MobileDataRow` |
 
-**Store:** `protection` — actions: `fetchPolicies`, `fetchAnalysis`
+**Store:** `protection` — actions: `fetchProtectionData` (loads policies + life events), `analyseProtection`
 
 ### Savings Detail
 
@@ -140,9 +140,9 @@ First accordion section opens by default. Others collapsed.
 |---------|---------|-----------|
 | Accounts | Card per account: provider, balance, account type badge (ISA/GIA/etc.), interest rate, ownership type | `MobileAccountCard` |
 | Emergency Fund | Data rows: total emergency savings, months covered, target months, status, adequacy | `MobileDataRow` |
-| ISA Allowance | Data rows: current year contributions, remaining allowance (£20,000 limit), breakdown by account | `MobileDataRow` |
+| ISA Allowance | Data rows: current year contributions, remaining allowance (from store ISA allowance data), breakdown by account | `MobileDataRow` |
 
-**Store:** `savings` — actions: `fetchAccounts`, `fetchAnalysis`
+**Store:** `savings` — actions: `fetchSavingsData` (loads accounts, ISA allowance, analysis, expenditure profile), `analyseSavings`
 
 ### Investment Detail
 
@@ -157,7 +157,7 @@ First accordion section opens by default. Others collapsed.
 | Performance | Data rows: total return (£ and %), annualised return, benchmark comparison, YTD return | `MobileDataRow` |
 | Fees | Data rows: total annual fees, fee drag %, per-account fee breakdown | `MobileDataRow` |
 
-**Store:** `investment` — actions: `fetchAccounts`, `fetchAnalysis`
+**Store:** `investment` — actions: `fetchAccounts`, `analyseInvestment`
 
 ### Retirement Detail
 
@@ -172,7 +172,7 @@ First accordion section opens by default. Others collapsed.
 | Projections | Line chart (income by source over time) + key metrics: projected annual income, income replacement %, target income, income gap | `MobileProjectionChart` + `MobileDataRow` |
 | Annual Allowance | Data rows: current usage, remaining allowance, standard vs tapered, carry forward available | `MobileDataRow` |
 
-**Store:** `retirement` — actions: `fetchPensions`, `fetchProjections`, `fetchAnalysis`
+**Store:** `retirement` — actions: `fetchRetirementData` (loads DC, DB, State pensions), `fetchProjections`, `analyseRetirement`
 
 ### Estate Detail
 
@@ -186,7 +186,7 @@ First accordion section opens by default. Others collapsed.
 | Gifts | Card per gift: recipient, value, date, type (PET/exempt), years since gift, taper relief % | `MobileGiftCard` |
 | Trusts | Card per trust: name, type, value, settlor, trustees, beneficiaries | `MobileTrustCard` |
 
-**Store:** `estate` — actions: `fetchAssets`, `fetchAnalysis`, `fetchGifts`, `fetchTrusts`
+**Store:** `estate` — actions: `fetchEstateData` (loads assets, liabilities, gifts, trusts, IHT profile), `analyseEstate`, `fetchTrusts`
 
 ### Goals Detail
 
@@ -195,8 +195,8 @@ First accordion section opens by default. Others collapsed.
 
 | Section | Content | Component |
 |---------|---------|-----------|
-| Active Goals | Card per goal: progress ring, name, current/target amounts, deadline, status badge, linked module | Existing `MobileGoalCard` |
-| Completed Goals | Same card style, completed state | Existing `MobileGoalCard` |
+| Active Goals | Card per goal: progress ring, name, current/target amounts, deadline, status badge, linked module | Existing `MobileGoalCard` (at `mobile/goals/MobileGoalCard.vue`) |
+| Completed Goals | Same card style, completed state | Existing `MobileGoalCard` (at `mobile/goals/MobileGoalCard.vue`) |
 | Life Events | Card per event: type icon, name, date, priority badge, description, linked goals count | New event card rows |
 
 **Store:** `goals` — actions: `fetchGoals`, `fetchLifeEvents`
@@ -214,7 +214,10 @@ First accordion section opens by default. Others collapsed.
 | Cross-Module Insights | List of key recommendations spanning multiple modules, priority-ordered | `MobileDataRow` |
 | Net Worth Breakdown | Asset/liability breakdown rows: property, pensions, investments, savings, liabilities | `MobileDataRow` |
 
-**Store:** `coordination` (if exists) or aggregate from other stores
+**Stores:** No `coordination` store exists. Data aggregated from:
+- `plans` store — actions: `fetchPlan`, `planStatuses` (Financial Plans section)
+- `recommendations` store — actions: `fetchRecommendations`, `fetchTopRecommendations` (Cross-Module Insights)
+- `netWorth` store — actions: `fetchNetWorth` (Net Worth Breakdown)
 
 ---
 
@@ -281,7 +284,7 @@ Uses currencyMixin for formatting
 | "View full detail on web" button | Was in `ModuleSummary.vue` | Gone with file deletion |
 | "Open full web app" button | `MoreMenu.vue` | Remove |
 | "add your financial details on the web app" | `MobileDashboard.vue` empty state | Replace with "No data yet" |
-| "Set up your financial goals on the web app" | `MobileGoalsList.vue` empty state | Replace with "No goals yet" |
+| "Set up your financial goals on the web app to track them here" | `MobileGoalsList.vue` empty state subtitle | Remove web app reference from both heading and subtitle paragraph |
 | `Browser.open()` calls for module paths | `ModuleSummary.vue`, `MoreMenu.vue` | Remove |
 
 Settings links in `SettingsList.vue` (Account, Security, Subscription, Privacy, Help, About) **stay as web links** — these are admin functions.
