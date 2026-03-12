@@ -45,7 +45,7 @@
       <!-- Empty state -->
       <div v-else class="text-center py-12">
         <img :src="'/images/logos/favicon.png'" alt="Fynla" class="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p class="text-neutral-500">Welcome to Fynla! Start by adding your financial details on the web app.</p>
+        <p class="text-neutral-500">Welcome to Fynla! Your financial data will appear here once added.</p>
       </div>
     </div>
   </PullToRefresh>
@@ -100,7 +100,7 @@ export default {
     ...mapActions('mobileDashboard', ['fetchDashboard', 'refreshDashboard']),
 
     navigateToModule(moduleName) {
-      this.$router.push(`/m/more/summary/${moduleName}`);
+      this.$router.push(`/m/module/${moduleName}`);
     },
   },
 };
