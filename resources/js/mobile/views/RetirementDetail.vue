@@ -168,7 +168,11 @@ export default {
     this.loading = true;
     try {
       await this.$store.dispatch('retirement/fetchRetirementData');
-      await this.$store.dispatch('retirement/fetchAnnualAllowance').catch(() => {});
+      // Fetch analysis (projected income, target, gap) and annual allowance in parallel
+      await Promise.all([
+        this.$store.dispatch('retirement/analyseRetirement', {}).catch(() => {}),
+        this.$store.dispatch('retirement/fetchAnnualAllowance').catch(() => {}),
+      ]);
     } catch {
       // Data unavailable
     } finally {

@@ -45,7 +45,7 @@
               v-for="policy in allPolicies"
               :key="policy.id"
               :policy="policy"
-              :policy-type="policy._type"
+              :policy-type="policy.policy_type"
             />
           </div>
         </template>
@@ -136,7 +136,6 @@ export default {
       'allPolicies',
       'totalCoverage',
       'totalPremium',
-      'coverageGaps',
       'hasIncomeProtection',
       'hasCriticalIllness',
       'priorityRecommendations',
@@ -144,6 +143,16 @@ export default {
 
     recommendations() {
       return this.priorityRecommendations || [];
+    },
+
+    // coverageGaps getter returns object — convert to array for template
+    coverageGaps() {
+      const gaps = this.$store.getters['protection/coverageGaps'];
+      if (!gaps || typeof gaps !== 'object') return [];
+      if (Array.isArray(gaps)) return gaps;
+      return Object.entries(gaps)
+        .filter(([, data]) => data.gap > 0)
+        .map(([type, data]) => ({ type, ...data }));
     },
 
     hasData() {

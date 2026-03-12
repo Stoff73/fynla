@@ -162,6 +162,8 @@ export default {
     this.loading = true;
     try {
       await this.$store.dispatch('investment/fetchAccounts');
+      // Fetch analysis (fees, allocation, gains) in parallel
+      await this.$store.dispatch('investment/analyseInvestment').catch(() => {});
     } catch {
       // Data unavailable
     } finally {

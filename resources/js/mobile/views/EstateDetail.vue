@@ -121,14 +121,20 @@ export default {
   },
 
   computed: {
-    ...mapState('estate', ['assets', 'trusts']),
+    ...mapState('estate', ['trusts']),
     ...mapGetters('estate', [
+      'allAssets',
       'netWorthValue',
       'ihtLiability',
       'grossEstate',
       'taxableEstate',
       'giftsWithin7Years',
     ]),
+
+    // Use allAssets (manual + investment accounts) for display
+    assets() {
+      return this.allAssets || [];
+    },
 
     hasData() {
       return this.assets?.length > 0 || this.trusts?.length > 0 || this.netWorthValue > 0;
@@ -146,6 +152,8 @@ export default {
     this.loading = true;
     try {
       await this.$store.dispatch('estate/fetchEstateData');
+      // Fetch IHT calculation to populate ihtLiability, taxableEstate, grossEstate
+      await this.$store.dispatch('estate/calculateIHTPlanning').catch(() => {});
     } catch {
       // Data unavailable
     } finally {

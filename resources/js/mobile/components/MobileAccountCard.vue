@@ -17,7 +17,7 @@
         </p>
       </div>
       <div class="text-right ml-3">
-        <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(account.balance || account.current_value || account.value || 0) }}</p>
+        <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(account.current_balance || account.balance || account.current_value || account.value || 0) }}</p>
         <p v-if="secondaryMetric" class="text-xs text-neutral-500 mt-0.5">{{ secondaryMetric }}</p>
       </div>
     </div>

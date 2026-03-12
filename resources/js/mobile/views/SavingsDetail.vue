@@ -132,7 +132,9 @@ export default {
     },
 
     isaUsed() {
-      return this.currentYearISASubscription || 0;
+      const allowance = this.$store.state.savings.isaAllowance;
+      if (!allowance) return 0;
+      return (allowance.cash_isa_used || 0) + (allowance.stocks_shares_isa_used || 0);
     },
 
     isaRemaining() {
