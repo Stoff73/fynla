@@ -22,8 +22,7 @@ class LifeEventService
      */
     public function getEvents(int $userId, bool $includeHousehold = false): Collection
     {
-        $query = LifeEvent::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId);
+        $query = LifeEvent::forUserOrJoint($userId);
 
         if ($includeHousehold) {
             $user = User::find($userId);

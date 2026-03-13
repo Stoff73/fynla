@@ -49,8 +49,7 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
-        $query = Goal::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id);
+        $query = Goal::forUserOrJoint($user->id);
 
         // Filter by module
         if ($request->has('module')) {

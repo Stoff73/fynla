@@ -73,10 +73,14 @@ export default {
               },
               value: {
                 formatter: (val) => {
-                  return parseInt(val) + '%';
+                  const v = parseInt(val);
+                  if (v >= 80) return 'Adequate';
+                  if (v >= 60) return 'Partial';
+                  if (v >= 30) return 'Limited';
+                  return 'Insufficient';
                 },
                 color: TEXT_COLORS.primary,
-                fontSize: '36px',
+                fontSize: '24px',
                 fontWeight: 700,
                 show: true,
                 offsetY: 10,
@@ -91,7 +95,7 @@ export default {
         stroke: {
           lineCap: 'round',
         },
-        labels: ['Adequacy Score'],
+        labels: ['Coverage Status'],
       };
     },
   },

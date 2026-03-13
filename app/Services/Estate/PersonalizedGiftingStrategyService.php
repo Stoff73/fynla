@@ -277,7 +277,7 @@ class PersonalizedGiftingStrategyService
             'risk_level' => 'Medium',
             'implementation_steps' => [
                 'Properties can be gifted outright or in stages (e.g., 10% per year)',
-                'Consider Capital Gains Tax (CGT) on disposal (28% for residential property)',
+                'Consider Capital Gains Tax (CGT) on disposal (24% for residential property)',
                 'Stamp Duty Land Tax (SDLT) may apply to recipient',
                 'Gift becomes PET - exempt after 7 years',
                 'Consider setting up a trust for flexibility',
@@ -286,7 +286,7 @@ class PersonalizedGiftingStrategyService
                 'Properties available: '.$propertyNames,
             ],
             'tax_considerations' => [
-                'cgt_rate' => '28% on gains (residential property)',
+                'cgt_rate' => '24% on gains (residential property)',
                 'sdlt' => 'May apply to recipient (varies by property value)',
                 'iht_treatment' => 'PET - exempt after 7 years',
             ],

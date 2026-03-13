@@ -64,11 +64,14 @@ class RetirementAgent extends BaseAgent
         $cacheTags = ['retirement', 'user_'.$userId];
 
         return $this->remember($cacheKey, function () use ($userId) {
-            // Get all retirement data
-            $profile = RetirementProfile::where('user_id', $userId)->first();
-            $dcPensions = DCPension::where('user_id', $userId)->get();
-            $dbPensions = DBPension::where('user_id', $userId)->get();
-            $statePension = StatePension::where('user_id', $userId)->first();
+            // Get all retirement data (single query with eager loading)
+            $user = User::with(['retirementProfile', 'dcPensions', 'dbPensions', 'statePension'])
+                ->find($userId);
+
+            $profile = $user?->retirementProfile;
+            $dcPensions = $user?->dcPensions ?? collect();
+            $dbPensions = $user?->dbPensions ?? collect();
+            $statePension = $user?->statePension;
 
             if (! $profile) {
                 return $this->response(false, 'No retirement profile found', []);

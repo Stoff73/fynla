@@ -1061,7 +1061,7 @@ Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
 
 // AI Chat routes
-Route::middleware('auth:sanctum')->prefix('ai-chat')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);

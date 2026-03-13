@@ -665,8 +665,7 @@ export default {
     async function loadProperties() {
       try {
         const response = await propertyService.getProperties();
-        // propertyService already returns response.data, so response is the properties array
-        properties.value = Array.isArray(response) ? response : [];
+        properties.value = Array.isArray(response) ? response : (response.data?.properties || response.data || []);
       } catch (err) {
         // Properties loading failed silently - will show empty list
       }

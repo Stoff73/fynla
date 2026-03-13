@@ -21,7 +21,7 @@ class AdminController extends Controller
 {
     use SanitizedErrorResponse;
 
-    public function __construct(private DatabaseMetricsService $databaseMetrics)
+    public function __construct(private readonly DatabaseMetricsService $databaseMetrics)
     {
         // Defence-in-depth: explicit admin check in addition to route middleware
         $this->middleware(function ($request, $next) {

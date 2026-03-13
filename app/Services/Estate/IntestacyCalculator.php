@@ -9,7 +9,7 @@ use App\Models\User;
 
 class IntestacyCalculator
 {
-    private const THRESHOLD_SPOUSE_CHILDREN = 250000;
+    private const THRESHOLD_SPOUSE_CHILDREN = 322000;
 
     /**
      * Calculate how estate would be distributed under UK intestacy rules
@@ -68,15 +68,15 @@ class IntestacyCalculator
                     $childrenAmount = ($estateValue - self::THRESHOLD_SPOUSE_CHILDREN) / 2;
                     $perChildAmount = $childrenAmount / $children;
 
-                    $scenario = 'Married with Children - Estate over £250,000';
-                    $explanation = 'Your spouse/civil partner receives the first £250,000 plus half of the remaining estate. Your children share the other half equally.';
+                    $scenario = 'Married with Children - Estate over £322,000';
+                    $explanation = 'Your spouse/civil partner receives the first £322,000 plus half of the remaining estate. Your children share the other half equally.';
 
                     $beneficiaries[] = [
                         'relationship' => 'Spouse/Civil Partner',
                         'name' => null,
                         'amount' => $spouseAmount,
                         'percentage' => round(($spouseAmount / $estateValue) * 100, 2),
-                        'share_description' => 'First £250,000 + half of remaining (£'.number_format($estateValue - self::THRESHOLD_SPOUSE_CHILDREN).')',
+                        'share_description' => 'First £322,000 + half of remaining (£'.number_format($estateValue - self::THRESHOLD_SPOUSE_CHILDREN).')',
                         'count' => 1,
                     ];
 
@@ -90,8 +90,8 @@ class IntestacyCalculator
                     ];
                 } else {
                     // Estate <= £250k, spouse gets all
-                    $scenario = 'Married with Children - Estate under £250,000';
-                    $explanation = 'Because your estate is worth less than £250,000, your spouse/civil partner inherits everything.';
+                    $scenario = 'Married with Children - Estate under £322,000';
+                    $explanation = 'Because your estate is worth less than £322,000, your spouse/civil partner inherits everything.';
 
                     $beneficiaries[] = [
                         'relationship' => 'Spouse/Civil Partner',

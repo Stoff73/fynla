@@ -46,8 +46,7 @@ class EstateAssetAggregatorService
         $assets = Asset::where('user_id', $user->id)->get();
 
         // Investment accounts - Single-record pattern
-        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $investmentAccounts = InvestmentAccount::forUserOrJoint($user->id)
             ->get();
         $investmentAssets = $investmentAccounts->map(function ($account) use ($user) {
             return (object) [
@@ -64,8 +63,7 @@ class EstateAssetAggregatorService
         });
 
         // Properties - Single-record pattern
-        $properties = Property::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $properties = Property::forUserOrJoint($user->id)
             ->get();
         $propertyAssets = $properties->map(function ($property) use ($user) {
             return (object) [
@@ -83,8 +81,7 @@ class EstateAssetAggregatorService
         });
 
         // Savings/Cash - Single-record pattern
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $savingsAccounts = SavingsAccount::forUserOrJoint($user->id)
             ->get();
         $savingsAssets = $savingsAccounts->map(function ($account) use ($user) {
             return (object) [
@@ -101,8 +98,7 @@ class EstateAssetAggregatorService
         });
 
         // Business Interests - Single-record pattern with joint ownership support
-        $businessInterests = BusinessInterest::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $businessInterests = BusinessInterest::forUserOrJoint($user->id)
             ->get();
         $businessAssets = $businessInterests->map(function ($business) use ($user) {
             // Use trait to calculate user's share based on ownership_percentage
@@ -138,8 +134,7 @@ class EstateAssetAggregatorService
         });
 
         // Chattels (personal property) - Single-record pattern with joint ownership support
-        $chattels = Chattel::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $chattels = Chattel::forUserOrJoint($user->id)
             ->get();
         $chattelAssets = $chattels->map(function ($chattel) use ($user) {
             // Use trait to calculate user's share based on ownership_percentage
@@ -210,8 +205,7 @@ class EstateAssetAggregatorService
     public function calculateUserLiabilities(User $user): float
     {
         // Get liabilities - single-record pattern
-        $liabilitiesCollection = Liability::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $liabilitiesCollection = Liability::forUserOrJoint($user->id)
             ->get();
         $liabilities = $liabilitiesCollection->sum(function ($liability) use ($user) {
             // Calculate user's share using the trait
@@ -222,8 +216,7 @@ class EstateAssetAggregatorService
         });
 
         // Get mortgages - single-record pattern
-        $mortgages = Mortgage::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $mortgages = Mortgage::forUserOrJoint($user->id)
             ->get()
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
 
@@ -237,8 +230,7 @@ class EstateAssetAggregatorService
      */
     public function getUserMortgages(User $user): Collection
     {
-        return Mortgage::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        return Mortgage::forUserOrJoint($user->id)
             ->get();
     }
 
@@ -249,8 +241,7 @@ class EstateAssetAggregatorService
      */
     public function getUserLiabilities(User $user): Collection
     {
-        return Liability::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        return Liability::forUserOrJoint($user->id)
             ->get();
     }
 

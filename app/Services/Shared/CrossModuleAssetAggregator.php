@@ -73,8 +73,7 @@ class CrossModuleAssetAggregator
      */
     public function getPropertyAssets(int $userId): Collection
     {
-        return Property::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return Property::forUserOrJoint($userId)
             ->get()
             ->map(function ($property) use ($userId) {
                 $userShare = $this->calculateUserShare($property, $userId);
@@ -104,8 +103,7 @@ class CrossModuleAssetAggregator
      */
     public function getInvestmentAssets(int $userId): Collection
     {
-        return InvestmentAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return InvestmentAccount::forUserOrJoint($userId)
             ->get()
             ->map(function ($account) use ($userId) {
                 $userShare = $this->calculateUserShare($account, $userId);
@@ -136,8 +134,7 @@ class CrossModuleAssetAggregator
      */
     public function getSavingsAssets(int $userId): Collection
     {
-        return SavingsAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return SavingsAccount::forUserOrJoint($userId)
             ->get()
             ->map(function ($account) use ($userId) {
                 $userShare = $this->calculateUserShare($account, $userId);
@@ -180,8 +177,7 @@ class CrossModuleAssetAggregator
      */
     public function calculatePropertyTotal(int $userId): float
     {
-        return Property::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return Property::forUserOrJoint($userId)
             ->get()
             ->sum(fn ($property) => $this->calculateUserShare($property, $userId));
     }
@@ -194,8 +190,7 @@ class CrossModuleAssetAggregator
      */
     public function calculateInvestmentTotal(int $userId): float
     {
-        return InvestmentAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return InvestmentAccount::forUserOrJoint($userId)
             ->get()
             ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
@@ -208,8 +203,7 @@ class CrossModuleAssetAggregator
      */
     public function calculateCashTotal(int $userId): float
     {
-        return SavingsAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return SavingsAccount::forUserOrJoint($userId)
             ->get()
             ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
@@ -221,8 +215,7 @@ class CrossModuleAssetAggregator
      */
     public function getMortgages(int $userId): Collection
     {
-        return Mortgage::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return Mortgage::forUserOrJoint($userId)
             ->get();
     }
 
@@ -234,8 +227,7 @@ class CrossModuleAssetAggregator
      */
     public function calculateMortgageTotal(int $userId): float
     {
-        return Mortgage::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        return Mortgage::forUserOrJoint($userId)
             ->get()
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $userId));
     }
@@ -249,27 +241,19 @@ class CrossModuleAssetAggregator
     {
         return [
             'property' => [
-                'count' => Property::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)
-                    ->count(),
+                'count' => Property::forUserOrJoint($userId)->count(),
                 'total' => $this->calculatePropertyTotal($userId),
             ],
             'investment' => [
-                'count' => InvestmentAccount::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)
-                    ->count(),
+                'count' => InvestmentAccount::forUserOrJoint($userId)->count(),
                 'total' => $this->calculateInvestmentTotal($userId),
             ],
             'cash' => [
-                'count' => SavingsAccount::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)
-                    ->count(),
+                'count' => SavingsAccount::forUserOrJoint($userId)->count(),
                 'total' => $this->calculateCashTotal($userId),
             ],
             'mortgages' => [
-                'count' => Mortgage::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)
-                    ->count(),
+                'count' => Mortgage::forUserOrJoint($userId)->count(),
                 'total' => $this->calculateMortgageTotal($userId),
             ],
         ];

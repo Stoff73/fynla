@@ -373,17 +373,17 @@ export default {
 .guidance-highlight {
     position: relative;
     z-index: 40;
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 0 8px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 4px rgba(88, 84, 230, 0.3), 0 0 0 8px rgba(88, 84, 230, 0.1);
     border-radius: 8px;
     animation: guidance-pulse 2s ease-in-out infinite;
 }
 
 @keyframes guidance-pulse {
     0%, 100% {
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 0 8px rgba(79, 70, 229, 0.1);
+        box-shadow: 0 0 0 4px rgba(88, 84, 230, 0.3), 0 0 0 8px rgba(88, 84, 230, 0.1);
     }
     50% {
-        box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.4), 0 0 0 12px rgba(79, 70, 229, 0.15);
+        box-shadow: 0 0 0 6px rgba(88, 84, 230, 0.4), 0 0 0 12px rgba(88, 84, 230, 0.15);
     }
 }
 </style>

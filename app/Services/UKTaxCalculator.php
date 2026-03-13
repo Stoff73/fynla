@@ -605,6 +605,15 @@ class UKTaxCalculator
         $personalAllowance = $incomeTax['personal_allowance'];
         $dividendAllowance = $dividendTax['allowance'];
 
+        // Apply Personal Allowance taper for incomes above £100,000
+        $totalIncomePre = $nonDividendNonInterestIncome + $interestIncome + $dividendIncome;
+        $taperThreshold = $incomeTax['personal_allowance_taper_threshold'] ?? 100000;
+        if ($totalIncomePre > $taperThreshold) {
+            $excess = $totalIncomePre - $taperThreshold;
+            $reduction = floor($excess / 2);
+            $personalAllowance = max(0, $personalAllowance - $reduction);
+        }
+
         // Get income tax bands (stored as array in seeder)
         $bands = $incomeTax['bands'];
 

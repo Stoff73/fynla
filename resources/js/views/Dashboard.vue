@@ -595,6 +595,7 @@ import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue'
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
 
@@ -629,7 +630,7 @@ export default {
         estate: null,
       },
       dataLoaded: false,
-      mfaBannerDismissed: localStorage.getItem('mfaBannerDismissed') === 'true',
+      mfaBannerDismissed: storage.get('mfaBannerDismissed') === 'true',
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
@@ -1350,7 +1351,7 @@ export default {
 
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
-      localStorage.setItem('mfaBannerDismissed', 'true');
+      storage.set('mfaBannerDismissed', 'true');
     },
 
     navigateTo(path) {

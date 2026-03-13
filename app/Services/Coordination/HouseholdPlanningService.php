@@ -384,20 +384,17 @@ class HouseholdPlanningService
         $userId = $user->id;
 
         // Properties
-        $properties = Property::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $properties = Property::forUserOrJoint($userId)
             ->get();
         $propertyValue = $properties->sum(fn ($p) => $this->calculateUserShare($p, $userId));
 
         // Savings accounts
-        $savings = SavingsAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $savings = SavingsAccount::forUserOrJoint($userId)
             ->get();
         $savingsValue = $savings->sum(fn ($s) => $this->calculateUserShare($s, $userId));
 
         // Investment accounts
-        $investments = InvestmentAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $investments = InvestmentAccount::forUserOrJoint($userId)
             ->get();
         $investmentValue = $investments->sum(fn ($i) => $this->calculateUserShare($i, $userId));
 
@@ -406,20 +403,17 @@ class HouseholdPlanningService
         $pensionValue = $dcPensions->sum('current_fund_value');
 
         // Business interests
-        $businesses = BusinessInterest::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $businesses = BusinessInterest::forUserOrJoint($userId)
             ->get();
         $businessValue = $businesses->sum(fn ($b) => $this->calculateUserShare($b, $userId));
 
         // Cash accounts
-        $cashAccounts = CashAccount::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $cashAccounts = CashAccount::forUserOrJoint($userId)
             ->get();
         $cashValue = $cashAccounts->sum(fn ($c) => $this->calculateUserShare($c, $userId));
 
         // Chattels
-        $chattels = Chattel::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $chattels = Chattel::forUserOrJoint($userId)
             ->get();
         $chattelValue = $chattels->sum(fn ($ch) => $this->calculateUserShare($ch, $userId));
 
@@ -450,14 +444,12 @@ class HouseholdPlanningService
         $userId = $user->id;
 
         // Mortgages
-        $mortgages = Mortgage::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $mortgages = Mortgage::forUserOrJoint($userId)
             ->get();
         $mortgageTotal = $mortgages->sum(fn ($m) => $this->calculateUserMortgageShare($m, $userId));
 
         // Other liabilities (loans, credit cards, etc.)
-        $liabilities = Liability::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $liabilities = Liability::forUserOrJoint($userId)
             ->get();
         $otherTotal = $liabilities->sum(fn ($l) => $this->calculateUserShare($l, $userId));
 
@@ -489,15 +481,19 @@ class HouseholdPlanningService
      */
     private function determineTaxBand(float $income, float $personalAllowance): string
     {
+        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
+        $additionalRateThreshold = (float) ($incomeTaxConfig['bands'][1]['upper_limit'] ?? 125140);
+
         $taxable = max(0, $income - $personalAllowance);
 
         if ($taxable === 0.0) {
             return 'none';
         }
-        if ($taxable <= 37700) {
+        if ($taxable <= $basicRateBand) {
             return 'basic';
         }
-        if ($taxable <= 125140) {
+        if ($income <= $additionalRateThreshold) {
             return 'higher';
         }
 
@@ -645,8 +641,10 @@ class HouseholdPlanningService
         }
 
         // How much can be transferred before lower earner enters higher band
+        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
         $lowerTaxable = max(0, $lowerIncome - $personalAllowance);
-        $headroom = max(0, 37700 - $lowerTaxable); // Headroom before higher rate
+        $headroom = max(0, $basicRateBand - $lowerTaxable); // Headroom before higher rate
 
         $transferAmount = min($transferableIncome, $headroom);
         $savingPerPound = $higherRate - $lowerRate;
@@ -683,10 +681,13 @@ class HouseholdPlanningService
         $nonTaxpayer = null;
         $basicRate = null;
 
-        if ($userIncome <= $personalAllowance && $spouseIncome > $personalAllowance && $spouseIncome <= ($personalAllowance + 37700)) {
+        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
+
+        if ($userIncome <= $personalAllowance && $spouseIncome > $personalAllowance && $spouseIncome <= ($personalAllowance + $basicRateBand)) {
             $nonTaxpayer = $user;
             $basicRate = $spouse;
-        } elseif ($spouseIncome <= $personalAllowance && $userIncome > $personalAllowance && $userIncome <= ($personalAllowance + 37700)) {
+        } elseif ($spouseIncome <= $personalAllowance && $userIncome > $personalAllowance && $userIncome <= ($personalAllowance + $basicRateBand)) {
             $nonTaxpayer = $spouse;
             $basicRate = $user;
         }
@@ -858,8 +859,7 @@ class HouseholdPlanningService
         }
 
         // Mortgage protection
-        $mortgages = Mortgage::where('user_id', $deceased->id)
-            ->orWhere('joint_owner_id', $deceased->id)
+        $mortgages = Mortgage::forUserOrJoint($deceased->id)
             ->get();
         $totalMortgage = $mortgages->sum('outstanding_balance');
 

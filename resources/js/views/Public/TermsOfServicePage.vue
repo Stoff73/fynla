@@ -89,7 +89,7 @@
                   <th class="text-left py-3 font-semibold text-horizon-500">Yearly</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
+              <tbody class="divide-y divide-savannah-100">
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Student</td>
                   <td class="py-3 pr-4 text-neutral-500">&pound;3.99</td>

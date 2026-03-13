@@ -81,12 +81,12 @@
         </div>
 
         <div class="bg-white rounded-lg border border-light-gray p-4">
-          <p class="text-xs text-neutral-500 mb-1">Diversification Score</p>
-          <p class="text-2xl font-bold text-violet-600">
-            {{ diversificationScore }}/100
+          <p class="text-xs text-neutral-500 mb-1">Diversification</p>
+          <p class="text-2xl font-bold" :class="getDiversificationColour">
+            {{ diversificationLabel }}
           </p>
           <p class="text-xs text-neutral-500 mt-1">
-            {{ diversificationLabel }}
+            {{ getDiversificationSummary }}
           </p>
         </div>
       </div>
@@ -333,6 +333,22 @@ export default {
       if (score >= 40) return 'Moderate';
       if (score >= 20) return 'Limited';
       return 'Poor';
+    },
+
+    getDiversificationColour() {
+      const score = this.diversificationScore;
+      if (score >= 80) return 'text-spring-600';
+      if (score >= 60) return 'text-spring-600';
+      if (score >= 40) return 'text-violet-600';
+      return 'text-raspberry-600';
+    },
+
+    getDiversificationSummary() {
+      const score = this.diversificationScore;
+      if (score >= 80) return 'Low average correlation';
+      if (score >= 60) return 'Moderate average correlation';
+      if (score >= 40) return 'Elevated average correlation';
+      return 'High average correlation';
     },
 
     highCorrelations() {

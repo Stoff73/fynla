@@ -144,7 +144,7 @@ class CrossModuleStrategyService
         $taxOptimisation = $moduleAnalysis['tax_optimisation'] ?? [];
 
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = ($incomeTax['personal_allowance'] ?? 12570) + ($incomeTax['basic_rate_limit'] ?? 37700);
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
 
         // Determine if higher-rate taxpayer
         $annualIncome = $this->getUserAnnualIncome($moduleAnalysis);

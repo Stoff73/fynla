@@ -57,8 +57,7 @@ class SavingsController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
-        $accounts = SavingsAccount::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $accounts = SavingsAccount::forUserOrJoint($user->id)
             ->get();
 
         // Transform accounts using resource and add calculated fields

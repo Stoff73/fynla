@@ -98,8 +98,7 @@ class NetWorthService
      */
     private function calculateBusinessValue(int $userId): float
     {
-        $businesses = BusinessInterest::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $businesses = BusinessInterest::forUserOrJoint($userId)
             ->get();
 
         $total = 0.0;
@@ -120,8 +119,7 @@ class NetWorthService
      */
     private function calculateChattelValue(int $userId): float
     {
-        $chattels = Chattel::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $chattels = Chattel::forUserOrJoint($userId)
             ->get();
 
         $total = 0.0;
@@ -277,13 +275,11 @@ class NetWorthService
                 'total_value' => $breakdown['cash']['total'],
             ],
             'business' => [
-                'count' => BusinessInterest::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)->count(),
+                'count' => BusinessInterest::forUserOrJoint($userId)->count(),
                 'total_value' => $this->calculateBusinessValue($userId),
             ],
             'chattels' => [
-                'count' => Chattel::where('user_id', $userId)
-                    ->orWhere('joint_owner_id', $userId)->count(),
+                'count' => Chattel::forUserOrJoint($userId)->count(),
                 'total_value' => $this->calculateChattelValue($userId),
             ],
         ];
@@ -380,8 +376,7 @@ class NetWorthService
         })->toArray();
 
         // Get business interest items (include joint-owned)
-        $businesses = BusinessInterest::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $businesses = BusinessInterest::forUserOrJoint($userId)
             ->get();
         $businessItems = $businesses->map(function ($business) use ($userId) {
             return [
@@ -399,8 +394,7 @@ class NetWorthService
         })->toArray();
 
         // Get chattel items (include joint-owned)
-        $chattels = Chattel::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $chattels = Chattel::forUserOrJoint($userId)
             ->get();
         $chattelItems = $chattels->map(function ($chattel) use ($userId) {
             return [

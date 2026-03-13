@@ -267,8 +267,7 @@ export default {
 
 /* -- Goal action block -- */
 .goal-action-block {
-  @apply mt-3 pt-3 border-t border-violet-100 bg-violet-50 rounded-lg p-3 -mx-1;
-  border: 1px solid rgba(88, 84, 230, 0.15);
+  @apply mt-3 pt-3 bg-violet-50 rounded-lg p-3 -mx-1 border border-violet-200;
 }
 
 /* -- Unlinked goals prompt -- */

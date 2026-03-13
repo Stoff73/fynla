@@ -36,88 +36,58 @@
       <h4 class="text-sm font-semibold text-horizon-500 mb-3">Area Breakdown</h4>
 
       <!-- Protection -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-neutral-500">Protection Coverage</span>
-          <span class="font-semibold" :class="getScoreClass(protectionScore)">
-            {{ getStatusLabel(protectionScore) }}
-          </span>
+      <div class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <div class="w-2 h-2 rounded-full" :class="getDotClass(protectionScore)"></div>
+          <span class="text-sm text-horizon-500">Protection Coverage</span>
         </div>
-        <div class="w-full bg-savannah-200 rounded-full h-2">
-          <div
-            class="h-2 rounded-full"
-            :class="getBarClass(protectionScore)"
-            :style="{ width: protectionScore + '%' }"
-          ></div>
-        </div>
+        <span class="text-sm font-semibold" :class="getScoreClass(protectionScore)">
+          {{ getStatusLabel(protectionScore) }}
+        </span>
       </div>
 
       <!-- Emergency Fund -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-neutral-500">Emergency Fund</span>
-          <span class="font-semibold" :class="getScoreClass(emergencyFundScore)">
-            {{ getStatusLabel(emergencyFundScore) }}
-          </span>
+      <div class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <div class="w-2 h-2 rounded-full" :class="getDotClass(emergencyFundScore)"></div>
+          <span class="text-sm text-horizon-500">Emergency Fund</span>
         </div>
-        <div class="w-full bg-savannah-200 rounded-full h-2">
-          <div
-            class="h-2 rounded-full"
-            :class="getBarClass(emergencyFundScore)"
-            :style="{ width: emergencyFundScore + '%' }"
-          ></div>
-        </div>
+        <span class="text-sm font-semibold" :class="getScoreClass(emergencyFundScore)">
+          {{ emergencyFundMonths }}
+        </span>
       </div>
 
       <!-- Retirement Readiness -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-neutral-500">Retirement Readiness</span>
-          <span class="font-semibold" :class="getScoreClass(retirementScore)">
-            {{ getStatusLabel(retirementScore) }}
-          </span>
+      <div class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <div class="w-2 h-2 rounded-full" :class="getDotClass(retirementScore)"></div>
+          <span class="text-sm text-horizon-500">Retirement Readiness</span>
         </div>
-        <div class="w-full bg-savannah-200 rounded-full h-2">
-          <div
-            class="h-2 rounded-full"
-            :class="getBarClass(retirementScore)"
-            :style="{ width: retirementScore + '%' }"
-          ></div>
-        </div>
+        <span class="text-sm font-semibold" :class="getScoreClass(retirementScore)">
+          {{ getStatusLabel(retirementScore) }}
+        </span>
       </div>
 
       <!-- Investment Diversification -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-neutral-500">Investment Diversification</span>
-          <span class="font-semibold" :class="getScoreClass(investmentScore)">
-            {{ getStatusLabel(investmentScore) }}
-          </span>
+      <div class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <div class="w-2 h-2 rounded-full" :class="getDotClass(investmentScore)"></div>
+          <span class="text-sm text-horizon-500">Investment Diversification</span>
         </div>
-        <div class="w-full bg-savannah-200 rounded-full h-2">
-          <div
-            class="h-2 rounded-full"
-            :class="getBarClass(investmentScore)"
-            :style="{ width: investmentScore + '%' }"
-          ></div>
-        </div>
+        <span class="text-sm font-semibold" :class="getScoreClass(investmentScore)">
+          {{ getStatusLabel(investmentScore) }}
+        </span>
       </div>
 
       <!-- Estate Planning -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-neutral-500">Estate Planning</span>
-          <span class="font-semibold" :class="getScoreClass(estateScore)">
-            {{ getStatusLabel(estateScore) }}
-          </span>
+      <div class="flex items-center justify-between p-3 bg-eggshell-500 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <div class="w-2 h-2 rounded-full" :class="getDotClass(estateScore)"></div>
+          <span class="text-sm text-horizon-500">Estate Planning</span>
         </div>
-        <div class="w-full bg-savannah-200 rounded-full h-2">
-          <div
-            class="h-2 rounded-full"
-            :class="getBarClass(estateScore)"
-            :style="{ width: estateScore + '%' }"
-          ></div>
-        </div>
+        <span class="text-sm font-semibold" :class="getScoreClass(estateScore)">
+          {{ getStatusLabel(estateScore) }}
+        </span>
       </div>
     </div>
 
@@ -178,6 +148,14 @@ export default {
       return this.estateProbateReadiness || 0;
     },
 
+    emergencyFundMonths() {
+      const runway = this.emergencyFundRunway || 0;
+      if (runway >= 6) return `${Math.round(runway)} months runway`;
+      if (runway >= 3) return `${Math.round(runway)} months runway`;
+      if (runway > 0) return `${Math.round(runway)} month${runway >= 1.5 ? 's' : ''} runway`;
+      return 'No emergency fund';
+    },
+
     compositeScore() {
       return (
         this.protectionScore * 0.20 +
@@ -232,10 +210,10 @@ export default {
       return 'text-raspberry-600';
     },
 
-    getBarClass(score) {
-      if (score >= 80) return 'bg-spring-600';
+    getDotClass(score) {
+      if (score >= 80) return 'bg-spring-500';
       if (score >= 60) return 'bg-violet-500';
-      return 'bg-raspberry-600';
+      return 'bg-raspberry-500';
     },
   },
 };

@@ -111,7 +111,7 @@
               <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Closing Balance</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
+          <tbody class="divide-y divide-neutral-200">
             <tr
               v-for="payment in paginatedSchedule"
               :key="payment.month"

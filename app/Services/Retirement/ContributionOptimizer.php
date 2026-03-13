@@ -240,8 +240,8 @@ class ContributionOptimizer
         $incomeTax = $this->taxConfig->getIncomeTax();
         $pensionConfig = $this->taxConfig->getPensionAllowances();
 
-        $basicRateThreshold = $incomeTax['higher_rate_threshold'] ?? 50270;
-        $higherRateThreshold = $incomeTax['additional_rate_threshold'] ?? 125140;
+        $basicRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
 
         $basicRate = $pensionConfig['tax_relief']['basic_rate'] ?? 0.20;
         $higherRate = $pensionConfig['tax_relief']['higher_rate'] ?? 0.40;
@@ -251,7 +251,7 @@ class ContributionOptimizer
 
         if ($income <= $basicRateThreshold) {
             $taxRelief = $contribution * $basicRate;
-        } elseif ($income <= $higherRateThreshold) {
+        } elseif ($income <= $additionalRateThreshold) {
             $taxRelief = $contribution * $higherRate;
         } else {
             $taxRelief = $contribution * $additionalRate;
@@ -270,7 +270,7 @@ class ContributionOptimizer
 
         // Check if user is a higher rate taxpayer
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = $incomeTax['higher_rate_threshold'] ?? 50270;
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
         $isHigherRateTaxpayer = $income > $higherRateThreshold;
 
         $optimizationAvailable = false;

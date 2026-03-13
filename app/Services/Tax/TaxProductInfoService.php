@@ -149,7 +149,7 @@ class TaxProductInfoService
             'dividend_allowance' => $dividendConfig['allowance'] ?? 500,
             'psa_basic' => 1000,  // Personal Savings Allowance for basic rate taxpayers
             'psa_higher' => 500,  // Personal Savings Allowance for higher rate taxpayers
-            'personal_allowance' => $incomeTaxConfig['personal_allowance'] ?? 12570,
+            'personal_allowance' => $incomeTaxConfig['personal_allowance'],
         ];
     }
 

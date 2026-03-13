@@ -75,8 +75,9 @@ class TaxEfficiencyCalculator
 
         // Determine rate based on income
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTaxConfig['personal_allowance'] ?? 12570;
-        $higherRateThreshold = $personalAllowance + 37700;
+        $personalAllowance = $incomeTaxConfig['personal_allowance'];
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
+        $higherRateThreshold = $personalAllowance + $basicRateBand;
 
         $rate = $totalIncome > $higherRateThreshold
             ? $cgtConfig['higher_rate']

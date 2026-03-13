@@ -41,18 +41,24 @@ class PropertyControllerTest extends TestCase
         $response = $this->withToken($this->token)
             ->getJson('/api/properties');
 
-        // Controller returns array of properties directly
+        // Controller returns envelope with properties array
         $response->assertStatus(200)
+            ->assertJson(['success' => true])
             ->assertJsonStructure([
-                '*' => [
-                    'id',
-                    'property_type',
-                    'current_value',
+                'success',
+                'data' => [
+                    'properties' => [
+                        '*' => [
+                            'id',
+                            'property_type',
+                            'current_value',
+                        ],
+                    ],
                 ],
             ]);
 
         // Should only return 3 properties (user's own)
-        expect($response->json())->toHaveCount(3);
+        expect($response->json('data.properties'))->toHaveCount(3);
     }
 
     public function test_can_create_property(): void

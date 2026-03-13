@@ -142,7 +142,7 @@
                   <th class="text-left py-3 font-semibold text-horizon-500">Retention Period</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
+              <tbody class="divide-y divide-savannah-100">
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Account and profile data</td>
                   <td class="py-3 text-neutral-500">Duration of account plus 30 days</td>
@@ -209,7 +209,7 @@
                   <th class="text-left py-3 font-semibold text-horizon-500">Duration</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
+              <tbody class="divide-y divide-savannah-100">
                 <tr>
                   <td class="py-3 pr-4 text-neutral-500">Session cookie</td>
                   <td class="py-3 pr-4 text-neutral-500">Maintains your authenticated session</td>

@@ -132,6 +132,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import ProfitAndLossView from './ProfitAndLossView.vue';
+import storage from '@/utils/storage';
 import CashflowView from './CashflowView.vue';
 import BalanceSheetView from './BalanceSheetView.vue';
 
@@ -184,7 +185,7 @@ export default {
       try {
         await store.dispatch('userProfile/calculatePersonalAccounts', period.value);
         // Save period to localStorage after successful calculation
-        localStorage.setItem('personalAccounts_period', JSON.stringify(period.value));
+        storage.set('personalAccounts_period', JSON.stringify(period.value));
       } catch (error) {
         console.error('Failed to calculate personal accounts:', error);
       }
@@ -192,7 +193,7 @@ export default {
 
     onMounted(async () => {
       // Restore saved period from localStorage if available
-      const savedPeriod = localStorage.getItem('personalAccounts_period');
+      const savedPeriod = storage.get('personalAccounts_period');
       if (savedPeriod) {
         try {
           period.value = JSON.parse(savedPeriod);

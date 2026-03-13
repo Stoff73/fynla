@@ -544,8 +544,8 @@ class PortfolioStrategyService
 
         // Get tax bands from config
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = $incomeTax['higher_rate_threshold'] ?? 50270;
-        $additionalRateThreshold = $incomeTax['additional_rate_threshold'] ?? 125140;
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
 
         if ($totalIncome >= $additionalRateThreshold) {
             return 'additional';

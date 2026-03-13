@@ -462,8 +462,7 @@ export default {
       // Properties are loaded fresh to ensure we have the latest rental income data
       try {
         const response = await propertyService.getProperties();
-        // API returns array directly, not wrapped in {success, data}
-        const properties = Array.isArray(response) ? response : (response.data || []);
+        const properties = Array.isArray(response) ? response : (response.data?.properties || response.data || []);
 
         if (properties.length > 0) {
           const totalRentalIncome = properties.reduce((total, property) => {

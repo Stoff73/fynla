@@ -32,9 +32,8 @@ class DividendTaxCalculator
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
 
         $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? 12570);
-        $basicRateLimit = (float) ($incomeTaxConfig['basic_rate_limit'] ?? 37700);
-        $higherRateThreshold = (float) ($incomeTaxConfig['higher_rate_threshold'] ?? 50270);
-        $additionalRateThreshold = (float) ($incomeTaxConfig['additional_rate_threshold'] ?? 125140);
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
+        $additionalRateThreshold = (float) ($incomeTaxConfig['bands'][1]['upper_limit'] ?? 125140);
 
         $dividendAllowance = (float) ($dividendConfig['allowance'] ?? 500);
         $basicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
@@ -50,7 +49,7 @@ class DividendTaxCalculator
         }
 
         // Recalculate band boundaries with tapered PA
-        $basicBandCeiling = $personalAllowance + $basicRateLimit;
+        $basicBandCeiling = $personalAllowance + $basicRateBand;
         $higherBandCeiling = $additionalRateThreshold;
 
         // Subtract dividend allowance from taxable dividends

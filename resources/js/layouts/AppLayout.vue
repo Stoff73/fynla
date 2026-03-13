@@ -63,6 +63,7 @@ import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
+import storage from '@/utils/storage';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
 
@@ -86,7 +87,7 @@ export default {
 
   data() {
     return {
-      sideMenuCollapsed: localStorage.getItem(STORAGE_KEY) === 'true',
+      sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
     };
   },
@@ -116,7 +117,7 @@ export default {
 
     toggleSideMenu() {
       this.sideMenuCollapsed = !this.sideMenuCollapsed;
-      localStorage.setItem(STORAGE_KEY, String(this.sideMenuCollapsed));
+      storage.set(STORAGE_KEY, this.sideMenuCollapsed);
     },
   },
 };

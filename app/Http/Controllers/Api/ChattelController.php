@@ -48,8 +48,7 @@ class ChattelController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get chattels where user is owner OR joint_owner
-        $chattels = Chattel::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $chattels = Chattel::forUserOrJoint($user->id)
             ->with(['jointOwner', 'trust'])
             ->orderBy('current_value', 'desc')
             ->get();

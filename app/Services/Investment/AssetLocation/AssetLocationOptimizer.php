@@ -94,7 +94,9 @@ class AssetLocationOptimizer
         $incomeTaxRate = $this->calculateIncomeTaxRate($annualIncome);
 
         // CGT rate (10% basic, 20% higher)
-        $cgtRate = $annualIncome <= 50270 ? 0.10 : 0.20;
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $higherRateThreshold = (float) ($incomeTaxBands['bands'][0]['upper_limit'] ?? 50270);
+        $cgtRate = $annualIncome <= $higherRateThreshold ? 0.10 : 0.20;
 
         // ISA allowance
         $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'];
@@ -132,17 +134,17 @@ class AssetLocationOptimizer
     {
         $incomeTax = $this->taxConfig->getIncomeTax();
         $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
-        $basicRateLimit = (float) ($incomeTax['basic_rate_limit'] ?? 37700);
-        $higherRateLimit = (float) ($incomeTax['higher_rate_limit'] ?? 125140);
-        $basicRate = (float) ($incomeTax['basic_rate'] ?? 0.20);
-        $higherRate = (float) ($incomeTax['higher_rate'] ?? 0.40);
-        $additionalRate = (float) ($incomeTax['additional_rate'] ?? 0.45);
+        $basicRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+        $basicRate = (float) ($incomeTax['bands'][0]['rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTax['bands'][1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTax['bands'][2]['rate'] ?? 0.45);
 
         if ($income <= $personalAllowance) {
             return 0.0;
-        } elseif ($income <= $personalAllowance + $basicRateLimit) {
+        } elseif ($income <= $basicRateThreshold) {
             return $basicRate;
-        } elseif ($income <= $higherRateLimit) {
+        } elseif ($income <= $additionalRateThreshold) {
             return $higherRate;
         } else {
             return $additionalRate;

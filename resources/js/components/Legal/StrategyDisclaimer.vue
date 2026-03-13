@@ -48,6 +48,8 @@
 </template>
 
 <script>
+import storage from '@/utils/storage';
+
 export default {
   name: 'StrategyDisclaimer',
   emits: ['dismissed'],
@@ -114,7 +116,7 @@ export default {
   },
   mounted() {
     if (this.dismissible && !this.alwaysShow) {
-      const dismissed = localStorage.getItem(this.effectiveStorageKey);
+      const dismissed = storage.get(this.effectiveStorageKey);
       if (dismissed) {
         this.visible = false;
       }
@@ -124,13 +126,13 @@ export default {
     dismiss() {
       this.visible = false;
       if (this.dismissible) {
-        localStorage.setItem(this.effectiveStorageKey, 'true');
+        storage.set(this.effectiveStorageKey, 'true');
       }
       this.$emit('dismissed');
     },
     show() {
       this.visible = true;
-      localStorage.removeItem(this.effectiveStorageKey);
+      storage.remove(this.effectiveStorageKey);
     },
   },
 };

@@ -52,37 +52,36 @@
 
       <!-- Score and HHI Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Diversification Score Card -->
+        <!-- Diversification Status Card -->
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-horizon-500">Diversification Score</h3>
+            <h3 class="text-lg font-semibold text-horizon-500">Diversification Status</h3>
             <div class="relative group">
               <svg class="w-5 h-5 text-horizon-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div class="hidden group-hover:block absolute right-0 top-6 w-64 bg-horizon-500 text-white text-sm p-3 rounded-lg shadow-lg z-10">
-                Score based on concentration, number of holdings, and asset class diversity. Higher is better.
+                Based on concentration, number of holdings, and asset class diversity.
               </div>
             </div>
           </div>
-          <div class="flex items-end space-x-4">
-            <div class="text-5xl font-bold" :class="getScoreColor(data.diversification_score)">
-              {{ data.diversification_score }}
-            </div>
-            <div class="text-neutral-500 text-lg mb-1">/100</div>
-          </div>
-          <div class="mt-3">
-            <span class="px-3 py-1 rounded-full text-sm font-medium" :class="getScoreBadge(data.diversification_label)">
+          <div class="mb-3">
+            <span class="inline-block px-4 py-2 rounded-full text-lg font-semibold" :class="getScoreBadge(data.diversification_label)">
               {{ data.diversification_label }}
             </span>
           </div>
-          <!-- Score Bar -->
-          <div class="mt-4 bg-savannah-200 rounded-full h-3 overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="getScoreBarColor(data.diversification_score)"
-              :style="{ width: `${data.diversification_score}%` }"
-            ></div>
+          <p class="text-sm text-neutral-500">
+            {{ getDiversificationDescription(data.diversification_label) }}
+          </p>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <div class="bg-eggshell-500 rounded-lg p-3">
+              <p class="text-xs text-neutral-500">Holdings</p>
+              <p class="text-lg font-bold text-horizon-500">{{ data.holdings_count }}</p>
+            </div>
+            <div class="bg-eggshell-500 rounded-lg p-3">
+              <p class="text-xs text-neutral-500">Asset Classes</p>
+              <p class="text-lg font-bold text-horizon-500">{{ assetClassCount }}</p>
+            </div>
           </div>
         </div>
 
@@ -270,6 +269,13 @@ export default {
     };
   },
 
+  computed: {
+    assetClassCount() {
+      if (!this.data?.asset_class_breakdown) return 0;
+      return Object.keys(this.data.asset_class_breakdown).length;
+    },
+  },
+
   mounted() {
     this.loadData();
   },
@@ -311,6 +317,16 @@ export default {
         5: 'Aggressive',
       };
       return labels[level] || 'Unknown';
+    },
+
+    getDiversificationDescription(label) {
+      const descriptions = {
+        'Excellent': 'Your portfolio is well spread across multiple holdings and asset classes.',
+        'Good': 'Your portfolio has reasonable diversification with some room for improvement.',
+        'Fair': 'Consider spreading your investments across more holdings or asset classes.',
+        'Poor': 'Your portfolio is heavily concentrated. Diversifying could help manage risk.',
+      };
+      return descriptions[label] || 'Review your portfolio allocation to understand your diversification.';
     },
 
     getScoreColor(score) {

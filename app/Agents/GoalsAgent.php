@@ -32,8 +32,7 @@ class GoalsAgent extends BaseAgent
     {
         return $this->rememberForUser($userId, 'analysis', function () use ($userId) {
             $user = User::findOrFail($userId);
-            $goals = Goal::where('user_id', $userId)
-                ->orWhere('joint_owner_id', $userId)
+            $goals = Goal::forUserOrJoint($userId)
                 ->get();
 
             if ($goals->isEmpty()) {
@@ -272,8 +271,7 @@ class GoalsAgent extends BaseAgent
      */
     public function getDashboardOverview(int $userId): array
     {
-        $goals = Goal::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $goals = Goal::forUserOrJoint($userId)
             ->get();
 
         if ($goals->isEmpty()) {

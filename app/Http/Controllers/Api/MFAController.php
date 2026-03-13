@@ -197,6 +197,9 @@ class MFAController extends Controller
             'method' => 'mfa',
         ]);
 
+        // Invalidate any existing tokens (pre-MFA tokens should not remain valid)
+        $user->tokens()->delete();
+
         // MFA verified - create token
         $token = $user->createToken('auth_token')->plainTextToken;
 

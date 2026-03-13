@@ -52,7 +52,7 @@ describe('IntestacyCalculator', function () {
 
         $result = $this->calculator->calculateDistribution($user->id, 200000);
 
-        expect($result['scenario'])->toBe('Married with Children - Estate under £250,000');
+        expect($result['scenario'])->toBe('Married with Children - Estate under £322,000');
         expect($result['beneficiaries'])->toHaveCount(1);
         expect($result['beneficiaries'][0]['relationship'])->toBe('Spouse/Civil Partner');
         expect($result['beneficiaries'][0]['amount'])->toBe(200000.0);
@@ -82,16 +82,16 @@ describe('IntestacyCalculator', function () {
 
         $result = $this->calculator->calculateDistribution($user->id, 500000);
 
-        expect($result['scenario'])->toBe('Married with Children - Estate over £250,000');
+        expect($result['scenario'])->toBe('Married with Children - Estate over £322,000');
         expect($result['beneficiaries'])->toHaveCount(2);
 
-        // Spouse gets first £250k + half of remaining £250k = £375k
+        // Spouse gets first £322k + half of remaining £178k = £411k
         expect($result['beneficiaries'][0]['relationship'])->toBe('Spouse/Civil Partner');
-        expect($result['beneficiaries'][0]['amount'])->toBe(375000.0);
+        expect($result['beneficiaries'][0]['amount'])->toBe(411000.0);
 
-        // Children share other half of remaining £250k = £125k
+        // Children share other half of remaining £178k = £89k
         expect($result['beneficiaries'][1]['relationship'])->toBe('Children');
-        expect($result['beneficiaries'][1]['amount'])->toBe(125000.0);
+        expect($result['beneficiaries'][1]['amount'])->toBe(89000.0);
     });
 
     it('calculates distribution for single person with children', function () {

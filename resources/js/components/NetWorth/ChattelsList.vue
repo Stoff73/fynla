@@ -249,7 +249,7 @@ export default {
 .filter-select:focus {
   outline: none;
   @apply border-pink-500;
-  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+  box-shadow: 0 0 0 3px rgba(232, 62, 109, 0.1);
 }
 
 .add-button {

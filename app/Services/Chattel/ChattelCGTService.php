@@ -183,8 +183,8 @@ class ChattelCGTService
             (float) ($user->annual_dividend_income ?? 0) +
             (float) ($user->annual_other_income ?? 0);
 
-        $personalAllowance = $incomeTaxConfig['personal_allowance'] ?? 12570;
-        $basicRateBand = $incomeTaxConfig['bands'][0]['max'] ?? 37700;
+        $personalAllowance = $incomeTaxConfig['personal_allowance'];
+        $basicRateBand = (float) ($incomeTaxConfig['bands'][0]['max'] ?? 37700);
         $basicRateThreshold = $personalAllowance + $basicRateBand;
 
         // Use non-residential CGT rates (not property rates)

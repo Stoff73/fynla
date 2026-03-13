@@ -40,10 +40,10 @@ class SavingsAgent extends BaseAgent
     public function analyze(int $userId): array
     {
         return $this->remember("savings_analysis_{$userId}", function () use ($userId) {
-            // Get user data
-            $accounts = SavingsAccount::where('user_id', $userId)->get();
+            // Get user data (eager load savings accounts to avoid N+1)
+            $user = User::with('savingsAccounts')->find($userId);
+            $accounts = $user?->savingsAccounts ?? collect();
             $goals = SavingsGoal::where('user_id', $userId)->get();
-            $user = User::find($userId);
 
             $totalSavings = $accounts->sum('current_balance');
 

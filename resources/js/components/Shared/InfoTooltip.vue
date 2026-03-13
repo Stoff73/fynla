@@ -72,6 +72,8 @@
 </template>
 
 <script>
+import storage from '@/utils/storage';
+
 let tooltipCounter = 0;
 
 export default {
@@ -134,11 +136,11 @@ export default {
     window.addEventListener('resize', this.detectMobile);
     document.addEventListener('click', this.handleClickOutside);
 
-    if (!sessionStorage.getItem('tooltip_pulse_shown')) {
+    if (!storage.session.get('tooltip_pulse_shown')) {
       this.shouldPulse = true;
       setTimeout(() => {
         this.shouldPulse = false;
-        sessionStorage.setItem('tooltip_pulse_shown', '1');
+        storage.session.set('tooltip_pulse_shown', '1');
       }, 2000);
     }
   },

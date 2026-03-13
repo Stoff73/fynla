@@ -193,7 +193,7 @@ export default {
                 retired_couple: 'bg-gradient-to-r from-rose-500 to-rose-600',
             };
             // Use basePersonaId to get consistent colors for both primary and spouse views
-            return colors[this.basePersonaId] || 'bg-gradient-to-r from-gray-500 to-gray-600';
+            return colors[this.basePersonaId] || 'bg-gradient-to-r from-neutral-500 to-neutral-600';
         },
 
         buttonColorClass() {

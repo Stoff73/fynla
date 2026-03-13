@@ -174,10 +174,10 @@ export default {
           type: 'category',
           title: {
             text: 'Age',
-            style: { fontSize: '11px', fontWeight: 500, color: '#6B7280' },
+            style: { fontSize: '11px', fontWeight: 500, color: '#717171' },
           },
           labels: {
-            style: { fontSize: '10px', colors: '#6B7280' },
+            style: { fontSize: '10px', colors: '#717171' },
           },
           axisBorder: { show: false },
           axisTicks: { show: false },
@@ -186,11 +186,11 @@ export default {
         yaxis: {
           title: {
             text: 'Net Worth',
-            style: { fontSize: '11px', fontWeight: 500, color: '#6B7280' },
+            style: { fontSize: '11px', fontWeight: 500, color: '#717171' },
           },
           labels: {
             formatter: (val) => this.formatCompact(val),
-            style: { fontSize: '10px', colors: '#6B7280' },
+            style: { fontSize: '10px', colors: '#717171' },
           },
           min: 0,
           max: this.yAxisMax,
@@ -366,15 +366,15 @@ export default {
 
       let tooltipHtml = `
         <div class="apexcharts-tooltip-custom" style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
-          <div style="font-weight: 600; margin-bottom: 8px; color: #111827; font-size: 14px;">Age ${age}</div>
+          <div style="font-weight: 600; margin-bottom: 8px; color: #0F1729; font-size: 14px;">Age ${age}</div>
       `;
 
       if (yearData) {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${PRIMARY_COLORS[600]}; margin-right: 8px;"></span>
-            <span style="color: #6B7280;">Net Worth:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #111827;">${this.formatCurrency(yearData.net_worth)}</span>
+            <span style="color: #717171;">Net Worth:</span>
+            <span style="font-weight: 600; margin-left: auto; color: #0F1729;">${this.formatCurrency(yearData.net_worth)}</span>
           </div>
         `;
       }
@@ -383,17 +383,17 @@ export default {
         const goals = eventsAtAge.filter(e => e.type === 'goal');
         const lifeEvents = eventsAtAge.filter(e => e.type === 'life_event');
 
-        tooltipHtml += `<div style="border-top: 1px solid #E5E7EB; margin-top: 8px; padding-top: 8px;">`;
+        tooltipHtml += `<div style="border-top: 1px solid #E5E5E5; margin-top: 8px; padding-top: 8px;">`;
 
         if (goals.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px; font-weight: 600;">Goals:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; font-weight: 600;">Goals:</div>`;
           goals.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="color: #2D3A54; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;
@@ -401,14 +401,14 @@ export default {
         }
 
         if (lifeEvents.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #6B7280; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events:</div>`;
           lifeEvents.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #374151; font-size: 12px;">${event.name}</span>
+                <span style="color: #2D3A54; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;

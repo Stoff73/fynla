@@ -70,7 +70,7 @@
                 </p>
               </div>
 
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Band</th>
@@ -78,7 +78,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr v-for="(band, index) in taxConfig.income_tax.bands" :key="index">
                     <td class="px-4 py-3 text-sm text-horizon-500">{{ band.name }}</td>
                     <td class="px-4 py-3 text-sm text-neutral-500">
@@ -92,7 +92,7 @@
 
             <div>
               <h3 class="text-h3 text-horizon-500 mb-4">National Insurance (Class 1 - Employed)</h3>
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Type</th>
@@ -100,7 +100,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Employee (Main Rate)</td>
                     <td class="px-4 py-3 text-sm text-neutral-500">
@@ -135,7 +135,7 @@
                 </p>
               </div>
 
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Asset Type</th>
@@ -143,7 +143,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">General Assets (stocks, funds, etc.)</td>
                     <td class="px-4 py-3 text-sm text-neutral-500">Basic Rate Taxpayer</td>
@@ -178,14 +178,14 @@
                 </p>
               </div>
 
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Tax Band</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Rate</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Basic Rate</td>
                     <td class="px-4 py-3 text-sm font-semibold text-horizon-500">{{ (taxConfig.dividend_tax.rates.basic_rate * 100).toFixed(2) }}%</td>
@@ -248,14 +248,14 @@
               <p class="text-sm text-neutral-500 mb-3">
                 Gifts become fully exempt after 7 years. Taper relief applies if donor dies between years 3-7:
               </p>
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Years Since Gift</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Inheritance Tax Rate</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">0-3 years</td>
                     <td class="px-4 py-3 text-sm font-semibold text-raspberry-600">40%</td>
@@ -274,7 +274,7 @@
 
             <div>
               <h4 class="text-h4 text-horizon-500 mb-3">Inheritance Tax Gifting Exemptions</h4>
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Exemption</th>
@@ -282,7 +282,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Notes</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Annual Exemption</td>
                     <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.gifting_exemptions.annual_exemption) }}</td>
@@ -367,14 +367,14 @@
               <p class="text-sm text-neutral-500 mb-3">
                 High earners face a reduced annual allowance:
               </p>
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Measure</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Threshold Income</td>
                     <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.pension.tapered_annual_allowance.threshold_income) }}</td>
@@ -422,7 +422,7 @@
                 </p>
               </div>
 
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Account Type</th>
@@ -430,7 +430,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Notes</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Cash ISA</td>
                     <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.isa.annual_allowance) }}</td>
@@ -473,7 +473,7 @@
             <div>
               <h3 class="text-h3 text-horizon-500 mb-4">Other Allowances & Rates</h3>
 
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-neutral-200">
                 <thead class="bg-savannah-100">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Allowance</th>
@@ -481,7 +481,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Details</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-neutral-200">
                   <tr>
                     <td class="px-4 py-3 text-sm text-horizon-500">Marriage Allowance</td>
                     <td class="px-4 py-3 text-sm font-semibold text-horizon-500">£{{ formatNumber(taxConfig.other.marriage_allowance.transferable_amount) }}</td>

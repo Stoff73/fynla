@@ -759,7 +759,7 @@ class AuthController extends Controller
             return $data['user_id'] ?? null;
         }
 
-        // Fall back to direct user_id for backwards compatibility
-        return $request->user_id ? (int) $request->user_id : null;
+        // No fallback — challenge_token is the only valid resolution path
+        return null;
     }
 }

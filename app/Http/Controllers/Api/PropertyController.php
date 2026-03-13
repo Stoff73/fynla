@@ -52,8 +52,7 @@ class PropertyController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get properties where user is owner OR joint_owner
-        $properties = Property::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $properties = Property::forUserOrJoint($user->id)
             ->with(['mortgages', 'user', 'jointOwner'])
             ->orderBy('property_type')
             ->orderBy('created_at', 'desc')
@@ -86,7 +85,12 @@ class PropertyController extends Controller
             return $propertyData;
         });
 
-        return response()->json($properties);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'properties' => $properties,
+            ],
+        ]);
     }
 
     /**
@@ -439,8 +443,7 @@ class PropertyController extends Controller
     private function syncUserRentalIncome(\App\Models\User $user): void
     {
         // Get properties where user is owner OR joint_owner
-        $properties = Property::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $properties = Property::forUserOrJoint($user->id)
             ->get();
 
         $annualRentalIncome = $properties->sum(function ($property) use ($user) {

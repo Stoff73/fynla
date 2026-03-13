@@ -72,8 +72,7 @@ class InvestmentController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
-        $accounts = InvestmentAccount::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $accounts = InvestmentAccount::forUserOrJoint($user->id)
             ->with(['holdings', 'user', 'jointOwner'])
             ->get();
 

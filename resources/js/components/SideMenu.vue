@@ -149,6 +149,7 @@ import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
 import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
+import storage from '@/utils/storage';
 
 export default {
   name: 'SideMenu',
@@ -260,7 +261,7 @@ export default {
 
     const loadExpandedState = () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = storage.get(STORAGE_KEY);
         if (stored) {
           expandedSections.value = JSON.parse(stored);
         }
@@ -271,7 +272,7 @@ export default {
 
     const saveExpandedState = () => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(expandedSections.value));
+        storage.set(STORAGE_KEY, JSON.stringify(expandedSections.value));
       } catch {
         // Silently fail
       }

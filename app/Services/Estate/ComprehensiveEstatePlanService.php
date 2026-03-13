@@ -522,8 +522,7 @@ class ComprehensiveEstatePlanService
         $liabilities = [];
 
         // Get mortgages where user is owner OR joint_owner, with property addresses
-        $mortgages = \App\Models\Mortgage::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $mortgages = \App\Models\Mortgage::forUserOrJoint($userId)
             ->with('property:id,address_line_1')
             ->get();
 
@@ -544,8 +543,7 @@ class ComprehensiveEstatePlanService
         }
 
         // Get other liabilities where user is owner OR joint_owner
-        $otherLiabilities = \App\Models\Estate\Liability::where('user_id', $userId)
-            ->orWhere('joint_owner_id', $userId)
+        $otherLiabilities = \App\Models\Estate\Liability::forUserOrJoint($userId)
             ->get();
 
         foreach ($otherLiabilities as $liability) {

@@ -543,7 +543,7 @@ export default {
 }
 
 .badge-neutral {
-  @apply bg-gray-100 text-horizon-500;
+  @apply bg-savannah-100 text-horizon-500;
 }
 
 .pros-cons {

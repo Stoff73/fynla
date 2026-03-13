@@ -603,21 +603,21 @@ class LifeEventAllocationService
         $bands = $incomeTax['bands'] ?? [];
 
         // Basic rate upper limit
-        $basicRateMax = $personalAllowance;
-        if (! empty($bands)) {
-            $basicRateMax = $personalAllowance + (float) ($bands[0]['max'] ?? 37700);
-        }
+        $basicRateMax = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
 
         if ($income <= $basicRateMax) {
             return 'basic';
         }
 
         // Check for additional rate
-        $additionalThreshold = 0;
-        foreach ($bands as $band) {
-            if (isset($band['rate']) && $band['rate'] >= 0.45) {
-                $additionalThreshold = $personalAllowance + (float) ($band['min'] ?? 125140);
-                break;
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+        $additionalThreshold = $additionalRateThreshold;
+        if ($additionalThreshold === 0.0) {
+            foreach ($bands as $band) {
+                if (isset($band['rate']) && $band['rate'] >= 0.45) {
+                    $additionalThreshold = $personalAllowance + (float) ($band['min']);
+                    break;
+                }
             }
         }
 

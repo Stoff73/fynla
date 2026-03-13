@@ -481,8 +481,7 @@ class GoalsProjectionService
      */
     private function getGoalsForProjection(User $user, bool $household): Collection
     {
-        $query = Goal::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id);
+        $query = Goal::forUserOrJoint($user->id);
 
         if ($household && $user->spouse_user_id) {
             $query->orWhere(function ($q) use ($user) {

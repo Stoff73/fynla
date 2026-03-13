@@ -43,6 +43,8 @@ class SecurityHeaders
             $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173';
             $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor}; frame-src 'self' {$revolut}";
         } else {
+            // Production CSP — 'unsafe-inline' required for Revolut checkout SDK and Plausible analytics.
+            // TODO: Migrate to nonce-based CSP when Revolut SDK supports it (tracks Revolut SDK changelog).
             $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' {$revolut} {$plausible}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: {$revolut}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$revolut} {$plausible} {$capacitor}; frame-src 'self' {$revolut}";
         }
 

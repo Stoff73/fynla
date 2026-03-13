@@ -959,7 +959,7 @@ class RetirementIncomeService
         // Extract guaranteed taxable income (State Pension, DB Pension) that uses PA first
         // =============================================================================
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTax['personal_allowance'] ?? 12570;
+        $personalAllowance = $incomeTax['personal_allowance'];
         $basicRate = $incomeTax['basic_rate'] ?? 0.20;
 
         // Get State Pension and DB Pension amounts from allocations
@@ -1444,7 +1444,7 @@ class RetirementIncomeService
     {
         $allocations = [];
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = $incomeTax['personal_allowance'] ?? 12570;
+        $personalAllowance = $incomeTax['personal_allowance'];
 
         // Calculate years in retirement for depletion calculations
         $yearsInRetirement = max(1, self::PROJECTION_END_AGE - $retirementAge);

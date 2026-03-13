@@ -9,6 +9,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\AssetLocation\AccountTypeRecommender;
 use App\Services\Investment\AssetLocation\AssetLocationOptimizer;
 use App\Services\Investment\AssetLocation\TaxDragCalculator;
+use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,8 @@ class AssetLocationController extends Controller
     public function __construct(
         private AssetLocationOptimizer $optimizer,
         private TaxDragCalculator $taxDragCalculator,
-        private AccountTypeRecommender $recommender
+        private AccountTypeRecommender $recommender,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -274,10 +276,13 @@ class AssetLocationController extends Controller
             ? \Carbon\Carbon::parse($user->date_of_birth)->age
             : 45;
 
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+
         return [
             'annual_income' => $annualIncome,
             'income_tax_rate' => $this->calculateIncomeTaxRate($annualIncome),
-            'cgt_rate' => $annualIncome <= 50270 ? 0.10 : 0.20,
+            'cgt_rate' => $annualIncome <= $higherRateThreshold ? 0.10 : 0.20,
             'isa_allowance_remaining' => 20000,
             'cgt_allowance_used' => 0,
             'dividend_allowance_used' => 0,
@@ -297,11 +302,16 @@ class AssetLocationController extends Controller
      */
     private function calculateIncomeTaxRate(float $income): float
     {
-        if ($income <= 12570) {
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+
+        if ($income <= $personalAllowance) {
             return 0.0;
-        } elseif ($income <= 50270) {
+        } elseif ($income <= $higherRateThreshold) {
             return 0.20;
-        } elseif ($income <= 125140) {
+        } elseif ($income <= $additionalRateThreshold) {
             return 0.40;
         } else {
             return 0.45;

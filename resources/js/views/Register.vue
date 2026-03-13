@@ -204,6 +204,7 @@ import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
+import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
 
@@ -317,8 +318,8 @@ export default {
       await store.dispatch('auth/fetchUser');
 
       // Clear preview-related localStorage (user is now a real registered user)
-      localStorage.removeItem('preview_persona_id');
-      localStorage.removeItem('preview_mode');
+      storage.remove('preview_persona_id');
+      storage.remove('preview_mode');
 
       // Go to onboarding
       router.push({ name: 'Onboarding' });

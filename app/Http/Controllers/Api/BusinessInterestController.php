@@ -48,8 +48,7 @@ class BusinessInterestController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get businesses where user is owner OR joint_owner
-        $businesses = BusinessInterest::where('user_id', $user->id)
-            ->orWhere('joint_owner_id', $user->id)
+        $businesses = BusinessInterest::forUserOrJoint($user->id)
             ->orderBy('current_valuation', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();

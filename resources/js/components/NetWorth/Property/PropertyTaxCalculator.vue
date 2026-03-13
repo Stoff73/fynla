@@ -112,7 +112,7 @@
                 <th class="px-4 py-3 text-right text-sm font-medium text-horizon-500">Tax</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-neutral-200">
               <tr v-for="(band, index) in sdltResult.bands" :key="index">
                 <td class="px-4 py-3 text-sm text-horizon-500">{{ band.description }}</td>
                 <td class="px-4 py-3 text-sm text-right text-neutral-500">{{ band.rate }}%</td>
