@@ -216,11 +216,9 @@ export default {
             query: {
               email: this.email,
               userId: result.data?.user_id?.toString() || '',
+              challengeToken: result.data?.challenge_token || '',
+              mfaToken: result.data?.mfa_token || '',
               mfa: result.requires_mfa ? '1' : '0',
-            },
-            state: {
-              challenge_token: result.data?.challenge_token || '',
-              mfa_token: result.data?.mfa_token || '',
             },
           });
           return;

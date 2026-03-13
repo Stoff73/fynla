@@ -11,7 +11,7 @@
     <VerificationCodeModal
       :is-open="showVerificationModal"
       :user-email="pendingEmail"
-      :user-id="pendingUserId"
+      :challenge-token="pendingChallengeToken"
       type="login"
       @verified="handleVerified"
       @close="handleVerificationClose"
@@ -209,6 +209,7 @@ export default {
     const showMFAModal = ref(false);
     const showForgotPasswordModal = ref(false);
     const pendingUserId = ref(null);
+    const pendingChallengeToken = ref(null);
     const pendingMfaToken = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
@@ -254,6 +255,7 @@ export default {
         // Check if email verification is required
         if (response.data.requires_verification) {
           pendingUserId.value = response.data.data.user_id;
+          pendingChallengeToken.value = response.data.data.challenge_token;
           pendingEmail.value = response.data.data.email;
           showVerificationModal.value = true;
           return;
@@ -304,6 +306,7 @@ export default {
     const handleVerificationClose = () => {
       showVerificationModal.value = false;
       pendingUserId.value = null;
+      pendingChallengeToken.value = null;
       pendingEmail.value = '';
     };
 
@@ -360,6 +363,7 @@ export default {
       showMFAModal,
       showForgotPasswordModal,
       pendingUserId,
+      pendingChallengeToken,
       pendingMfaToken,
       pendingEmail,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',

@@ -139,14 +139,14 @@ const authService = {
 
   /**
    * Verify email code and get auth token
-   * @param {number} userId - User ID
+   * @param {string} challengeToken - Challenge token from login response
    * @param {string} code - 6-digit verification code
    * @param {string} type - 'login' or 'registration'
    * @returns {Promise}
    */
-  async verifyCode(userId, code, type) {
+  async verifyCode(challengeToken, code, type) {
     const response = await api.post('/auth/verify-code', {
-      user_id: userId,
+      challenge_token: challengeToken,
       code,
       type,
     });
@@ -155,13 +155,13 @@ const authService = {
 
   /**
    * Resend verification code
-   * @param {number} userId - User ID
+   * @param {string} challengeToken - Challenge token from login response
    * @param {string} type - 'login' or 'registration'
    * @returns {Promise}
    */
-  async resendCode(userId, type) {
+  async resendCode(challengeToken, type) {
     const response = await api.post('/auth/resend-code', {
-      user_id: userId,
+      challenge_token: challengeToken,
       type,
     });
     return response.data;

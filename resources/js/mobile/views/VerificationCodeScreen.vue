@@ -141,11 +141,11 @@ export default {
       this.error = null;
 
       try {
-        const userId = this.$route.query.userId;
+        const challengeToken = this.$route.query.challengeToken;
 
         // authService.verifyCode() returns response.data (the API body)
         // Shape: { success, data: { access_token, user, ... } }
-        const result = await authService.verifyCode(userId, this.code, 'login');
+        const result = await authService.verifyCode(challengeToken, this.code, 'login');
 
         const token = result.data?.access_token;
         if (token) {
@@ -168,8 +168,8 @@ export default {
 
     async handleResend() {
       try {
-        const userId = this.$route.query.userId;
-        await authService.resendCode(userId, 'login');
+        const challengeToken = this.$route.query.challengeToken;
+        await authService.resendCode(challengeToken, 'login');
         this.resendCooldown = 60;
         this.startResendTimer();
       } catch (error) {

@@ -107,9 +107,9 @@ export default {
             type: String,
             required: true
         },
-        // For login verification
-        userId: {
-            type: Number,
+        // For login verification (challenge token from login response)
+        challengeToken: {
+            type: String,
             default: null
         },
         // For registration verification
@@ -203,7 +203,7 @@ export default {
                 if (props.type === 'registration') {
                     requestData.pending_id = props.pendingId;
                 } else {
-                    requestData.user_id = props.userId;
+                    requestData.challenge_token = props.challengeToken;
                 }
 
                 const response = await api.post('/auth/verify-code', requestData);
@@ -233,7 +233,7 @@ export default {
                 if (props.type === 'registration') {
                     requestData.pending_id = props.pendingId;
                 } else {
-                    requestData.user_id = props.userId;
+                    requestData.challenge_token = props.challengeToken;
                 }
 
                 const response = await api.post('/auth/resend-code', requestData);
