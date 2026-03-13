@@ -199,14 +199,24 @@
             </div>
           </div>
         </div>
+
+        <!-- Spousal Optimisations Section (married users only) -->
+        <section v-if="isMarriedWithSpouse" class="mt-8">
+          <h2 class="text-xl font-bold text-horizon-500 mb-2">Spousal Optimisations</h2>
+          <p class="text-sm text-neutral-500 mb-4">
+            Strategies to optimise your household's financial position through asset transfers, allowance sharing, and tax-efficient arrangements between you and your partner.
+          </p>
+          <SpousalOptimisations />
+        </section>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
+import SpousalOptimisations from '@/components/Dashboard/SpousalOptimisations.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -214,6 +224,7 @@ export default {
 
   components: {
     AppLayout,
+    SpousalOptimisations,
   },
 
   mixins: [currencyMixin],
@@ -230,6 +241,12 @@ export default {
 
   computed: {
     ...mapState('recommendations', ['recommendations', 'summary', 'loading', 'error']),
+    ...mapGetters('auth', ['currentUser']),
+
+    isMarriedWithSpouse() {
+      const user = this.currentUser;
+      return user && user.marital_status === 'married' && user.spouse_id;
+    },
 
     filteredRecommendations() {
       return this.recommendations.filter(rec => {

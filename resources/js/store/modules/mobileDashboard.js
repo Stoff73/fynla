@@ -41,10 +41,11 @@ function normaliseModule(name, raw) {
     switch (name) {
     case 'protection': {
         const gaps = raw.critical_gaps || 0;
+        const policyCount = raw.policy_count || 0;
         return {
             ...base,
-            metric_type: 'currency',
-            metric_value: raw.total_coverage || 0,
+            metric_type: 'text',
+            metric_value: `${policyCount} ${policyCount === 1 ? 'policy' : 'policies'}`,
             subtitle: gaps > 0 ? `${gaps} gap${gaps > 1 ? 's' : ''} to review` : 'No gaps identified',
             status: gaps > 0 ? 'action_needed' : 'good',
             hero_metric: {
@@ -56,6 +57,7 @@ function normaliseModule(name, raw) {
                 ? `You have ${gaps} protection gap${gaps > 1 ? 's' : ''} that may need attention.`
                 : 'Your protection cover looks solid.',
             details: [
+                { label: 'Policies', value: String(policyCount) },
                 { label: 'Total life cover', value: formatCurrency(raw.total_coverage || 0) },
                 { label: 'Critical gaps', value: String(gaps) },
                 { label: 'Income protection', value: raw.has_income_protection ? 'Yes' : 'No' },

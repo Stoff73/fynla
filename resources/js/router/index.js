@@ -574,6 +574,30 @@ const routes = [
     },
   },
   {
+    path: '/planning/journeys',
+    name: 'PlanningJourneys',
+    component: () => import('@/views/Planning/PlanningJourneys.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Journeys', path: '/planning/journeys' },
+      ],
+    },
+  },
+  {
+    path: '/planning/what-if',
+    name: 'WhatIfScenarios',
+    component: () => import('@/views/Planning/WhatIfScenarios.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'What If Scenarios', path: '/planning/what-if' },
+      ],
+    },
+  },
+  {
     path: '/plans',
     name: 'Plans',
     component: () => import('@/views/Plans/PlansDashboard.vue'),

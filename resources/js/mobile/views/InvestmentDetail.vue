@@ -3,13 +3,12 @@
     <MobileDetailSkeleton v-if="loading" :rows="5" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="📈" title="Investment" :value="formatCurrency(totalPortfolioValue)" subtitle="Portfolio value" />
+      <MobileHeroCard title="Investment" :value="formatCurrency(totalPortfolioValue)" subtitle="Portfolio value" />
       <MobileFynCard :summary="fynSummary" />
 
       <!-- Accounts -->
       <MobileAccordionSection
         title="Accounts"
-        icon="🏦"
         :badge="accounts.length || null"
         :default-open="true"
         class="mb-3"
@@ -30,7 +29,6 @@
       <!-- Holdings -->
       <MobileAccordionSection
         title="Holdings"
-        icon="📄"
         :badge="holdingsCount || null"
         class="mb-3"
       >
@@ -48,13 +46,13 @@
       </MobileAccordionSection>
 
       <!-- Allocation -->
-      <MobileAccordionSection title="Allocation" icon="🎯" class="mb-3">
+      <MobileAccordionSection title="Allocation" class="mb-3">
         <MobileAllocationChart v-if="allocationItems.length" :items="allocationItems" />
         <p v-else class="px-4 py-6 text-sm text-neutral-500 text-center">No allocation data</p>
       </MobileAccordionSection>
 
       <!-- Performance -->
-      <MobileAccordionSection title="Performance" icon="📊" class="mb-3">
+      <MobileAccordionSection title="Performance" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Portfolio value" :value="totalPortfolioValue" type="currency" />
           <MobileDataRow label="Unrealised gains" :value="unrealisedGains" type="currency" :status="unrealisedGains >= 0 ? 'good' : 'danger'" />
@@ -64,7 +62,7 @@
       </MobileAccordionSection>
 
       <!-- Fees -->
-      <MobileAccordionSection title="Fees" icon="💷" class="mb-3">
+      <MobileAccordionSection title="Fees" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Total annual fees" :value="totalFees" type="currency" />
           <MobileDataRow label="Fee drag" :value="feeDragPercent" type="percentage" :status="feeDragPercent > 1 ? 'warning' : 'good'" />
@@ -72,7 +70,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="📈" title="No investment data yet" subtitle="Your investment portfolio will appear here" />
+    <MobileEmptyState v-else title="No investment data yet" subtitle="Your investment portfolio will appear here" />
   </div>
 </template>
 

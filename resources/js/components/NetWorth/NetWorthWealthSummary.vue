@@ -1,42 +1,47 @@
 <template>
   <div class="net-worth-wealth-summary">
-    <div class="main-layout">
-      <!-- Wealth Summary Card - Left Side -->
-      <div class="wealth-summary-column">
-        <WealthSummary
+    <!-- Asset Allocation Charts - Horizontal Row Above Table -->
+    <div class="allocation-charts-row">
+      <div class="chart-item">
+        <AssetAllocationDonut
           :breakdown="overview.breakdown"
-          :liabilities-breakdown="overview.liabilitiesBreakdown"
-          :total-assets="overview.totalAssets"
-          :total-liabilities="overview.totalLiabilities"
-          :spouse-data="filteredSpouseOverview"
-          :user-name="currentUserName"
-          :spouse-name="filteredSpouseName"
-          :has-db-pensions="overview.hasDbPensions"
-          :spouse-has-db-pensions="filteredSpouseOverview?.hasDbPensions || false"
+          :title="`${currentUserName}'s Asset Allocation`"
+          @highlight="onChartHighlight('user', $event)"
+          @clear-highlight="onChartClearHighlight"
         />
       </div>
-
-      <!-- Asset Allocation Cards - Right Side (Stacked Vertically) -->
-      <div class="allocation-cards-column">
-        <div class="chart-item">
-          <AssetAllocationDonut
-            :breakdown="overview.breakdown"
-            :title="`${currentUserName}'s Asset Allocation`"
-          />
-        </div>
-        <div v-if="filteredSpouseOverview" class="chart-item">
-          <AssetAllocationDonut
-            :breakdown="filteredSpouseOverview.breakdown || {}"
-            :title="`${filteredSpouseName}'s Asset Allocation`"
-          />
-        </div>
-        <div v-if="filteredSpouseOverview" class="chart-item">
-          <AssetAllocationDonut
-            :breakdown="combinedBreakdown"
-            title="Combined Asset Allocation"
-          />
-        </div>
+      <div v-if="filteredSpouseOverview" class="chart-item">
+        <AssetAllocationDonut
+          :breakdown="filteredSpouseOverview.breakdown || {}"
+          :title="`${filteredSpouseName}'s Asset Allocation`"
+          @highlight="onChartHighlight('spouse', $event)"
+          @clear-highlight="onChartClearHighlight"
+        />
       </div>
+      <div v-if="filteredSpouseOverview" class="chart-item">
+        <AssetAllocationDonut
+          :breakdown="combinedBreakdown"
+          title="Combined Asset Allocation"
+          @highlight="onChartHighlight('total', $event)"
+          @clear-highlight="onChartClearHighlight"
+        />
+      </div>
+    </div>
+
+    <!-- Wealth Summary Table -->
+    <div class="wealth-summary-column">
+      <WealthSummary
+        :breakdown="overview.breakdown"
+        :liabilities-breakdown="overview.liabilitiesBreakdown"
+        :total-assets="overview.totalAssets"
+        :total-liabilities="overview.totalLiabilities"
+        :spouse-data="filteredSpouseOverview"
+        :user-name="currentUserName"
+        :spouse-name="filteredSpouseName"
+        :has-db-pensions="overview.hasDbPensions"
+        :spouse-has-db-pensions="filteredSpouseOverview?.hasDbPensions || false"
+        :highlighted-cell="highlightedCell"
+      />
     </div>
 
     <div v-if="asOfDate" class="last-updated">
@@ -56,6 +61,12 @@ export default {
   components: {
     AssetAllocationDonut,
     WealthSummary,
+  },
+
+  data() {
+    return {
+      highlightedCell: null, // { category: 'pensions', column: 'user' | 'spouse' | 'total' }
+    };
   },
 
   computed: {
@@ -128,6 +139,14 @@ export default {
   methods: {
     ...mapActions('netWorth', ['loadAllData']),
 
+    onChartHighlight(column, { category, color }) {
+      this.highlightedCell = { category, column, color };
+    },
+
+    onChartClearHighlight() {
+      this.highlightedCell = null;
+    },
+
     formatDate(dateString) {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-GB', {
@@ -156,26 +175,19 @@ export default {
   overflow: visible;
 }
 
-.main-layout {
+.allocation-charts-row {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
-  align-items: start;
-}
-
-.wealth-summary-column {
-  min-width: 0;
-}
-
-.allocation-cards-column {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
 }
 
 .chart-item {
   min-width: 0;
   overflow: visible;
+}
+
+.wealth-summary-column {
+  min-width: 0;
 }
 
 .last-updated {
@@ -191,27 +203,8 @@ export default {
   @apply text-neutral-500;
 }
 
-/* Tablet responsive - stack layout */
-@media (max-width: 1200px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .allocation-cards-column {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 900px) {
-  .allocation-cards-column {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 640px) {
-  .allocation-cards-column {
+  .allocation-charts-row {
     grid-template-columns: 1fr;
   }
 }

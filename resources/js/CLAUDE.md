@@ -169,6 +169,14 @@ Mobile views live in `mobile/` with their own layout (`MobileLayout.vue`) and ro
 - `SettingsList.vue` has a Face ID toggle at the top of the settings list
 - Key files: `appLifecycle.js` (biometric login + app lifecycle), `BiometricPrompt.vue` (setup modal), `SettingsList.vue` (toggle), `MobileLoginScreen.vue` (fallback Face ID button)
 
+**Voice Input (`VoiceInputButton.vue`):**
+- Uses `@capacitor-community/speech-recognition` v6.0.1 for native iOS, Web Speech API fallback for browser
+- **Continuous listening mode** — mic stays active until user explicitly taps again
+- **NEVER call `stop()` then `start()`** — causes fatal Swift crash (nil unwrap at Plugin.swift:81)
+- `start()` with `partialResults: true` resolves IMMEDIATELY — use `partialResults` + `listeningState` listeners for results
+- `listeningState` `{status: "stopped"}` is the ONLY safe restart point for continuous listening
+- `forceStop()` must remove listeners FIRST to prevent ghost restart loops
+
 **CRITICAL — vite.config.js rules for iOS:**
 - **NEVER** add `external` to `rollupOptions` for image/asset paths — this makes Rollup leave `/images/*` as JS module imports, causing WKWebView to reject PNGs with `'image/png' is not a valid JavaScript MIME type'` → blank screen.
 - **ALWAYS** keep `transformAssetUrls: false` in the `vue()` plugin template config — prevents Vue template compiler from converting `<img src="/images/...">` into JS `import()` calls.

@@ -51,7 +51,9 @@ export function initSessionLifecycle(store, router) {
     }
 
     const token = getTokenSync();
-    if (token) {
+    // Skip inactivity timeout for preview users (demo personas)
+    const isPreview = store?.getters?.['preview/isPreviewMode'];
+    if (token && !isPreview) {
       inactivityTimer = setTimeout(() => {
         handleInactivityLogout(store, router);
       }, INACTIVITY_TIMEOUT);

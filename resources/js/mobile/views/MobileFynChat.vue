@@ -53,6 +53,20 @@
       <!-- Tool execution indicator -->
       <ToolExecutionStatus v-if="loading && !streaming" />
 
+      <!-- Error message -->
+      <div v-if="error" class="flex justify-center">
+        <div class="bg-light-pink-100 text-raspberry-500 rounded-xl px-4 py-2.5 text-sm max-w-[85%]">
+          <p class="font-medium">Something went wrong</p>
+          <p class="text-xs mt-1 opacity-80">{{ error }}</p>
+          <button
+            class="mt-2 text-xs font-medium underline"
+            @click="$store.commit('aiChat/SET_ERROR', null)"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+
       <div ref="scrollAnchor"></div>
     </div>
 
@@ -64,7 +78,7 @@
           ref="inputField"
           v-model="inputText"
           :disabled="streaming || loading"
-          placeholder="Ask Fyn anything..."
+          placeholder="How can I help you?"
           rows="1"
           class="flex-1 bg-eggshell-500 rounded-2xl px-4 py-2.5 text-sm text-horizon-500
                  placeholder-neutral-500 resize-none outline-none focus:ring-2 focus:ring-violet-500
@@ -97,6 +111,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from 'vue';
 import { mapGetters, mapActions } from 'vuex';
 import ChatBubble from '@/mobile/ChatBubble.vue';
 import TypingIndicator from '@/mobile/TypingIndicator.vue';
@@ -111,7 +126,7 @@ export default {
     TypingIndicator,
     ToolExecutionStatus,
     SuggestedPrompts,
-    VoiceInputButton: () => import('@/mobile/VoiceInputButton.vue'),
+    VoiceInputButton: defineAsyncComponent(() => import('@/mobile/VoiceInputButton.vue')),
   },
 
   data() {
@@ -154,6 +169,12 @@ export default {
       this.$nextTick(() => this.scrollToBottom());
     },
 
+    error(val) {
+      if (val) {
+        this.$nextTick(() => this.scrollToBottom());
+      }
+    },
+
     prefilledPrompt(prompt) {
       if (prompt) {
         this.inputText = prompt;
@@ -168,11 +189,7 @@ export default {
   },
 
   async mounted() {
-    // Check voice availability
-    this.voiceAvailable = typeof window !== 'undefined' && 'SpeechRecognition' in window
-      || typeof window !== 'undefined' && 'webkitSpeechRecognition' in window;
-
-    // Start conversation if none exists
+    // Start conversation immediately — don't block on voice check
     if (!this.hasConversation) {
       await this.startNewConversation();
     }
@@ -186,6 +203,9 @@ export default {
     // Keyboard handling for Capacitor
     this.setupKeyboardListeners();
     this.scrollToBottom();
+
+    // Check voice availability in background (non-blocking)
+    this.checkVoiceAvailability();
   },
 
   beforeUnmount() {
@@ -194,6 +214,21 @@ export default {
 
   methods: {
     ...mapActions('aiChat', ['sendMessage', 'startNewConversation', 'abortStreaming']),
+
+    async checkVoiceAvailability() {
+      if (typeof window !== 'undefined' && window.Capacitor) {
+        try {
+          const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
+          const { available } = await SpeechRecognition.available();
+          this.voiceAvailable = available;
+        } catch {
+          this.voiceAvailable = false;
+        }
+      } else {
+        this.voiceAvailable = typeof window !== 'undefined'
+          && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+      }
+    },
 
     async handleSend(event) {
       if (event && event.type === 'keydown') {
@@ -220,11 +255,12 @@ export default {
 
     handleVoiceTranscript(transcript) {
       this.inputText = transcript;
-      this.$nextTick(() => this.handleSend());
+      this.$nextTick(() => this.autoResize());
     },
 
     handleVoicePartial(partial) {
       this.inputText = partial;
+      this.$nextTick(() => this.autoResize());
     },
 
     handleNavigation(routePath) {

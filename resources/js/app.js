@@ -31,7 +31,7 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-import { isNativePlatform, getToken } from './services/tokenStorage';
+import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
 import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
 
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
@@ -105,16 +105,18 @@ async function initAndMount() {
     console.log('[App Init] Step 9: Initialising native app lifecycle');
     initAppLifecycle(store, router);
 
+    // Auto-login with Face ID if user has previously set it up
     if (!store.getters['auth/isAuthenticated']) {
-      console.log('[App Init] Step 10: No token — attempting biometric login');
-      try {
-        const biometricSuccess = await attemptBiometricLogin(store);
-        console.log('[App Init] Step 10: Biometric result:', biometricSuccess);
-        if (biometricSuccess) {
-          router.push('/m/home');
+      const biometricFlag = await getItem('biometric_enabled');
+      if (biometricFlag === 'true') {
+        try {
+          const success = await attemptBiometricLogin(store);
+          if (success) {
+            router.push('/m/home');
+          }
+        } catch {
+          // Face ID failed or cancelled — fall through to login screen
         }
-      } catch (e) {
-        console.log('[App Init] Step 10-ERR: Biometric failed:', e?.message || 'unknown');
       }
     }
   }

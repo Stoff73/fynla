@@ -1,6 +1,5 @@
 <template>
   <div class="px-4 py-3 flex items-start gap-3">
-    <span class="text-xl mt-0.5">{{ policyIcon }}</span>
     <div class="flex-1 min-w-0">
       <h4 class="text-sm font-bold text-horizon-500 truncate">{{ policy.provider || policy.policy_name || 'Policy' }}</h4>
       <p class="text-xs text-neutral-500 mt-0.5">{{ policyTypeLabel }}</p>
@@ -41,17 +40,6 @@ export default {
   },
 
   computed: {
-    policyIcon() {
-      const icons = {
-        life: '\uD83D\uDEE1\uFE0F',
-        criticalIllness: '\u2764\uFE0F',
-        incomeProtection: '\uD83D\uDCB8',
-        disability: '\u267F',
-        sicknessIllness: '\uD83E\uDE7A',
-      };
-      return icons[this.policyType] || '\uD83D\uDEE1\uFE0F';
-    },
-
     policyTypeLabel() {
       const labels = {
         life: 'Life insurance',

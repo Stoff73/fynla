@@ -1,6 +1,5 @@
 <template>
   <div class="text-center py-16">
-    <span class="text-4xl block mb-3">{{ icon }}</span>
     <h3 class="text-base font-bold text-horizon-500 mb-1">{{ title }}</h3>
     <p class="text-sm text-neutral-500">{{ subtitle }}</p>
   </div>
@@ -10,7 +9,7 @@
 export default {
   name: 'MobileEmptyState',
   props: {
-    icon: { type: String, required: true },
+    icon: { type: String, default: null },
     title: { type: String, required: true },
     subtitle: { type: String, required: true },
   },

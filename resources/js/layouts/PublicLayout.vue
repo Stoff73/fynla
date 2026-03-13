@@ -24,6 +24,12 @@
               >
                 Features
               </a>
+              <a
+                href="/#solutions"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              >
+                Solutions
+              </a>
               <router-link
                 to="/pricing"
                 class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
@@ -31,22 +37,10 @@
                 Pricing
               </router-link>
               <router-link
-                to="/calculators"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                Calculators
-              </router-link>
-              <router-link
                 to="/learning-centre"
                 class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
               >
                 Learning centre
-              </router-link>
-              <router-link
-                to="/about"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                About
               </router-link>
             </div>
           </div>
@@ -93,6 +87,13 @@
           >
             Features
           </a>
+          <a
+            href="/#solutions"
+            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
+            @click="mobileMenuOpen = false"
+          >
+            Solutions
+          </a>
           <router-link
             to="/pricing"
             class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
@@ -101,25 +102,11 @@
             Pricing
           </router-link>
           <router-link
-            to="/calculators"
-            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-            @click="mobileMenuOpen = false"
-          >
-            Calculators
-          </router-link>
-          <router-link
             to="/learning-centre"
             class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
             @click="mobileMenuOpen = false"
           >
             Learning centre
-          </router-link>
-          <router-link
-            to="/about"
-            class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-            @click="mobileMenuOpen = false"
-          >
-            About
           </router-link>
           <router-link
             to="/login"
@@ -139,51 +126,62 @@
 
 
     <!-- Footer -->
-    <footer class="bg-horizon-500 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer class="bg-savannah-100 pt-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
           <!-- Company Info -->
-          <div class="col-span-1 md:col-span-2">
+          <div class="lg:col-span-2">
             <div class="flex items-center mb-4">
-              <img :src="footerLogoUrl" alt="Fynla" class="h-52 w-auto" />
+              <img :src="logoUrl" alt="Fynla" class="h-16 w-auto" />
             </div>
-            <p class="text-horizon-400 text-sm mb-4">
-              Financial Freedom Mapping - Your comprehensive solution for UK financial freedom.
-              Educational tool for demonstration purposes only.
-            </p>
-            <p class="text-xs text-neutral-500">
-              Not regulated financial advice. Always consult a qualified financial adviser.
+            <p class="text-sm text-neutral-500 leading-relaxed">
+              Financial freedom mapping - your financial companion for life through one single finance platform
             </p>
           </div>
 
-          <!-- Quick Links -->
+          <!-- About Fynla -->
           <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Resources</h3>
+            <h3 class="text-sm font-bold text-horizon-500 mb-4">About Fynla</h3>
             <ul class="space-y-2">
-              <li><router-link to="/calculators" class="text-horizon-400 hover:text-white text-sm">Calculators</router-link></li>
-              <li><router-link to="/learning-centre" class="text-horizon-400 hover:text-white text-sm">Learning Centre</router-link></li>
-              <li><router-link to="/about" class="text-horizon-400 hover:text-white text-sm">About Us</router-link></li>
-              <li><a href="https://www.fca.org.uk" target="_blank" class="text-horizon-400 hover:text-white text-sm">FCA Website</a></li>
+              <li><router-link to="/about" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">About us</router-link></li>
+              <li><router-link to="/about" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Accreditations</router-link></li>
+              <li><a href="https://www.fca.org.uk" target="_blank" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">FCA website</a></li>
             </ul>
           </div>
 
-          <!-- Legal -->
+          <!-- Help Centre -->
           <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Legal</h3>
+            <h3 class="text-sm font-bold text-horizon-500 mb-4">Help centre</h3>
             <ul class="space-y-2">
-              <li><router-link to="/privacy" class="text-horizon-400 hover:text-white text-sm">Privacy Policy</router-link></li>
-              <li><router-link to="/terms" class="text-horizon-400 hover:text-white text-sm">Terms of Service</router-link></li>
-              <li><router-link to="/sitemap" class="text-horizon-400 hover:text-white text-sm">Sitemap</router-link></li>
+              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">FAQs</router-link></li>
+              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Ask Fyn</router-link></li>
+              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Learning Centre</router-link></li>
+            </ul>
+          </div>
+
+          <!-- Terms -->
+          <div>
+            <h3 class="text-sm font-bold text-horizon-500 mb-4">Terms</h3>
+            <ul class="space-y-2">
+              <li><router-link to="/terms" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Terms &amp; conditions</router-link></li>
+              <li><router-link to="/privacy" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Privacy policy</router-link></li>
+            </ul>
+          </div>
+
+          <!-- Tools -->
+          <div>
+            <h3 class="text-sm font-bold text-horizon-500 mb-4">Tools</h3>
+            <ul class="space-y-2">
+              <li><router-link to="/calculators" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Calculators</router-link></li>
+              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Resources</router-link></li>
+              <li><a href="/?demo=true" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">View demo</a></li>
             </ul>
           </div>
         </div>
 
-        <div class="border-t border-horizon-400 mt-8 pt-8 text-center">
-          <p class="text-sm text-horizon-400">
-            &copy; 2026 Fynla - Financial Freedom Mapping.
-            <router-link to="/version" class="ml-2 text-raspberry-400 hover:text-raspberry-300">v0.8.3</router-link>
-            <span class="mx-2">|</span>
-            <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="text-raspberry-400 hover:text-raspberry-300">fynla.org</a>
+        <div class="border-t border-light-gray mt-8 pt-8">
+          <p class="text-sm text-neutral-500">
+            &copy; Fynla 2026
           </p>
         </div>
       </div>
@@ -199,7 +197,6 @@ export default {
     return {
       mobileMenuOpen: false,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',
-      footerLogoUrl: '/images/logos/LogoHiResFynlaLight.png',
     };
   },
 

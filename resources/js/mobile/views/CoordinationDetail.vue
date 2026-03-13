@@ -3,13 +3,12 @@
     <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="🔗" title="Coordination" :value="formatCurrency(netWorthTotal)" subtitle="Net worth" />
+      <MobileHeroCard title="Coordination" :value="formatCurrency(netWorthTotal)" subtitle="Net worth" />
       <MobileFynCard :summary="fynSummary" />
 
       <!-- Financial Plans -->
       <MobileAccordionSection
         title="Financial plans"
-        icon="📋"
         :default-open="true"
         class="mb-3"
       >
@@ -38,7 +37,6 @@
       <!-- Cross-Module Insights -->
       <MobileAccordionSection
         title="Recommendations"
-        icon="💡"
         :badge="topRecommendations.length || null"
         class="mb-3"
       >
@@ -65,7 +63,7 @@
       </MobileAccordionSection>
 
       <!-- Net Worth Breakdown -->
-      <MobileAccordionSection title="Net worth breakdown" icon="📊" class="mb-3">
+      <MobileAccordionSection title="Net worth breakdown" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Total assets" :value="totalAssets" type="currency" />
           <MobileDataRow label="Total liabilities" :value="totalLiabilities" type="currency" />
@@ -86,7 +84,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="🔗" title="No coordination data yet" subtitle="Your holistic financial picture will appear here" />
+    <MobileEmptyState v-else title="No coordination data yet" subtitle="Your holistic financial picture will appear here" />
   </div>
 </template>
 

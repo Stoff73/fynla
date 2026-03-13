@@ -112,12 +112,9 @@ export default {
     },
 
     mortgageLabel() {
-      // Check if any mortgage is jointly owned
-      if (this.property.mortgages && this.property.mortgages.length > 0) {
-        const hasJointMortgage = this.property.mortgages.some(m => m.ownership_type === 'joint');
-        if (hasJointMortgage) {
-          return `Your share of mortgage (${this.property.ownership_percentage}%)`;
-        }
+      // For shared ownership (joint or tenants in common), show user's share label
+      if (this.isSharedOwnership && this.property.ownership_percentage) {
+        return `Your share of mortgage (${this.property.ownership_percentage}%)`;
       }
       return 'Mortgage Outstanding';
     },
@@ -131,18 +128,12 @@ export default {
     },
 
     mortgageAmount() {
-      // Get mortgage balance, respecting each mortgage's ownership_type
+      // Get mortgage balance, applying ownership split based on property ownership type
       if (this.property.mortgages && this.property.mortgages.length > 0) {
-        let total = 0;
-        for (const mortgage of this.property.mortgages) {
-          const balance = mortgage.outstanding_balance || 0;
-          // Only apply ownership split if mortgage is jointly owned
-          if (mortgage.ownership_type === 'joint' && this.property.ownership_percentage) {
-            total += balance * (this.property.ownership_percentage / 100);
-          } else {
-            // Individual mortgage - full amount belongs to this owner
-            total += balance;
-          }
+        const total = this.property.mortgages.reduce((sum, m) => sum + (m.outstanding_balance || 0), 0);
+        // Apply ownership split for shared ownership (joint or tenants in common)
+        if (this.isSharedOwnership && this.property.ownership_percentage) {
+          return total * (this.property.ownership_percentage / 100);
         }
         return total;
       }

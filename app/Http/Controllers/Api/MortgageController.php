@@ -95,7 +95,10 @@ class MortgageController extends Controller
         $validated = $request->validated();
 
         // Set sensible defaults for optional fields
-        $validated['ownership_type'] = $validated['ownership_type'] ?? $property->ownership_type ?? 'individual';
+        // Normalize ownership_type: mortgages only support 'individual' and 'joint'
+        // tenants_in_common is treated as 'joint' for mortgage purposes
+        $rawOwnership = $validated['ownership_type'] ?? $property->ownership_type ?? 'individual';
+        $validated['ownership_type'] = in_array($rawOwnership, ['joint', 'tenants_in_common']) ? 'joint' : 'individual';
         $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? $property->ownership_percentage ?? 100;
         $validated['lender_name'] = $validated['lender_name'] ?? config('mortgage.default_lender_name', 'To be completed');
         $validated['mortgage_type'] = $validated['mortgage_type'] ?? config('mortgage.default_mortgage_type', 'repayment');

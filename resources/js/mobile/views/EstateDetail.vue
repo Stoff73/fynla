@@ -3,7 +3,7 @@
     <MobileDetailSkeleton v-if="loading" :rows="4" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="🏠" title="Estate Planning" :value="formatCurrency(netWorthValue)" subtitle="Net estate value">
+      <MobileHeroCard title="Estate Planning" :value="formatCurrency(netWorthValue)" subtitle="Net estate value">
         <div v-if="ihtLiability > 0" class="mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-500">
             Inheritance tax: {{ formatCurrency(ihtLiability) }}
@@ -13,7 +13,7 @@
       <MobileFynCard :summary="fynSummary" />
 
       <!-- IHT Analysis -->
-      <MobileAccordionSection title="Inheritance tax analysis" icon="📊" :default-open="true" class="mb-3">
+      <MobileAccordionSection title="Inheritance tax analysis" :default-open="true" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Gross estate" :value="grossEstate" type="currency" />
           <MobileDataRow label="Nil-rate band" :value="nrb" type="currency" />
@@ -31,7 +31,6 @@
       <!-- Gifts -->
       <MobileAccordionSection
         title="Gifts (within 7 years)"
-        icon="🎁"
         :badge="giftsWithin7Years.length || null"
         class="mb-3"
       >
@@ -46,7 +45,6 @@
       <!-- Trusts -->
       <MobileAccordionSection
         title="Trusts"
-        icon="📜"
         :badge="trusts.length || null"
         class="mb-3"
       >
@@ -61,7 +59,6 @@
       <!-- Protection -->
       <MobileAccordionSection
         title="Protection"
-        icon="🛡️"
         :badge="protectionPolicies.length || null"
         class="mb-3"
       >
@@ -89,7 +86,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="🏠" title="No estate data yet" subtitle="Your estate planning details will appear here" />
+    <MobileEmptyState v-else title="No estate data yet" subtitle="Your estate planning details will appear here" />
   </div>
 </template>
 

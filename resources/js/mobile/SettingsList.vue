@@ -47,6 +47,7 @@
 
 <script>
 import { platform } from '@/utils/platform';
+import { setItem, removeItem } from '@/services/tokenStorage';
 
 export default {
   name: 'SettingsList',
@@ -147,6 +148,7 @@ export default {
         if (this.biometricEnabled) {
           // Disabling — delete stored credentials and revoke the token
           await NativeBiometric.deleteCredentials({ server: 'fynla.org' });
+          await removeItem('biometric_enabled');
           this.biometricEnabled = false;
         } else {
           // Enabling — verify biometric first, then store current credentials
@@ -164,6 +166,7 @@ export default {
               password: token,
               server: 'fynla.org',
             });
+            await setItem('biometric_enabled', 'true');
             this.biometricEnabled = true;
           }
         }
