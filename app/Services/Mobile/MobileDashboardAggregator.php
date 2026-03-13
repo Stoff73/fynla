@@ -152,9 +152,19 @@ class MobileDashboardAggregator
             }
         }
 
+        // Count total policies across all types
+        $policies = $data['policies'] ?? [];
+        $policyCount = 0;
+        foreach ($policies as $typeGroup) {
+            if (is_countable($typeGroup)) {
+                $policyCount += count($typeGroup);
+            }
+        }
+
         return [
             'status' => 'active',
             'total_coverage' => round((float) ($coverage['total_life_cover'] ?? 0), 2),
+            'policy_count' => $policyCount,
             'critical_gaps' => $criticalGaps,
             'has_income_protection' => (float) ($coverage['income_protection_coverage'] ?? 0) > 0,
         ];
