@@ -1,18 +1,22 @@
-# Deploy All — March 9-13, 2026
+# Deploy All — March 7-13, 2026
 
-**Comprehensive production deployment guide for all changes from March 9 to March 13.**
+**Comprehensive production deployment guide for all changes from March 7 to March 13.**
 
-This covers 133 commits across 12 PRs and 3 feature branches. The deployment is split into phases so you can deploy incrementally and verify at each step.
+This covers 140+ commits across 12 PRs and 3 feature branches. The deployment is split into phases so you can deploy incrementally and verify at each step.
 
 ---
 
+## Deployment Status: COMPLETE (Deployed 13 March 2026)
+
+All phases deployed and verified on production.
+
 ## Pre-Deployment Checklist
 
-- [ ] All branches merged to `main` (currently `aiUpdate` needs merging)
-- [ ] Local `php artisan db:seed` runs clean
-- [ ] All tests pass: `./vendor/bin/pest`
-- [ ] Production database backed up
-- [ ] SSH access confirmed: `ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org`
+- [x] All branches merged to `main`
+- [x] Local `php artisan db:seed` runs clean
+- [x] All tests pass: `./vendor/bin/pest`
+- [x] Production database backed up
+- [x] SSH access confirmed
 
 ---
 
@@ -25,10 +29,11 @@ cd ~/www/fynla.org/public_html
 php artisan migrate
 ```
 
-**4 new migrations:**
+**5 new migrations:**
 
 | Migration | Purpose |
 |-----------|---------|
+| `2026_03_07_200001_add_journey_fields_to_users_table` | Adds `journey_states`, `journey_selections`, `dismissed_prompts` JSON columns to users table |
 | `2026_03_10_200001_create_device_tokens_table` | Mobile push notification device registration |
 | `2026_03_10_200002_create_notification_preferences_table` | User notification preference toggles |
 | `2026_03_10_200003_add_device_id_to_user_sessions_table` | Track which device a session belongs to |
@@ -69,7 +74,18 @@ VITE_PLAUSIBLE_DOMAIN=fynla.org
 
 Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`.
 
-### 3a. AI Chat (Cerebras Migration)
+### 3a. Journey Onboarding (March 7)
+
+| File | Change |
+|------|--------|
+| `app/Http/Controllers/Api/JourneyController.php` | **NEW** — Journey API (selections, steps, preview, dashboard prompts) |
+| `app/Services/Onboarding/JourneyStateService.php` | **NEW** — Journey state persistence and progress tracking |
+| `app/Services/Onboarding/JourneyFieldResolver.php` | **NEW** — Step structure and field definitions for 8 journey types |
+| `app/Services/Onboarding/DashboardPromptService.php` | **NEW** — Post-journey dashboard notifications |
+| `app/Http/Requests/Onboarding/StoreJourneySelectionsRequest.php` | **NEW** — Journey selections validation |
+| `routes/api.php` | Updated — journey routes under `/api/journeys/*` |
+
+### 3b. AI Chat (Cerebras Migration)
 
 | File | Change |
 |------|--------|
@@ -79,7 +95,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Services/AI/AiToolDefinitions.php` | Tool schemas (17 tools, docblock update) |
 | `config/services.php` | Added `cerebras` config block |
 
-### 3b. Mobile API Infrastructure
+### 3c. Mobile API Infrastructure
 
 | File | Change |
 |------|--------|
@@ -93,7 +109,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Http/Requests/V1/RegisterDeviceRequest.php` | **NEW** — Device registration validation |
 | `app/Http/Requests/V1/UpdateNotificationPreferencesRequest.php` | **NEW** — Notification prefs validation |
 
-### 3c. Mobile Services
+### 3d. Mobile Services
 
 | File | Change |
 |------|--------|
@@ -101,15 +117,16 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Services/Mobile/PushNotificationService.php` | **NEW** — FCM push notification sender |
 | `app/Services/Mobile/ShareContentGenerator.php` | **NEW** — PII-safe share text generation |
 
-### 3d. Models
+### 3e. Models
 
 | File | Change |
 |------|--------|
+| `app/Models/User.php` | Updated — journey field casts (`journey_states`, `journey_selections` as array) |
 | `app/Models/DeviceToken.php` | **NEW** — Push notification device tokens |
 | `app/Models/NotificationPreference.php` | **NEW** — User notification preferences |
 | `app/Models/UserSession.php` | Updated — added `device_id` column |
 
-### 3e. Middleware
+### 3f. Middleware
 
 | File | Change |
 |------|--------|
@@ -119,7 +136,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Http/Middleware/PreviewWriteInterceptor.php` | Updated — new route exclusions |
 | `app/Http/Kernel.php` | Updated — registered new middleware |
 
-### 3f. Notifications and Commands
+### 3g. Notifications and Commands
 
 | File | Change |
 |------|--------|
@@ -135,7 +152,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Notifications/SubscriptionExpiringNotification.php` | **NEW** |
 | `app/Notifications/ContributionReminderNotification.php` | **NEW** |
 
-### 3g. Routes and Config
+### 3h. Routes and Config
 
 | File | Change |
 |------|--------|
@@ -145,7 +162,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `config/analytics.php` | **NEW** — Plausible analytics config |
 | `config/cors.php` | Updated — Capacitor origins allowed |
 
-### 3h. Other Backend
+### 3i. Other Backend
 
 | File | Change |
 |------|--------|
@@ -153,7 +170,7 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `database/seeders/PreviewUserSeeder.php` | Updated — preview persona fixes |
 | `resources/views/app.blade.php` | Updated — Plausible analytics script |
 
-### 3i. Deep Linking (Universal Links)
+### 3j. Deep Linking (Universal Links)
 
 | File | Change |
 |------|--------|
@@ -246,7 +263,16 @@ open ios/App/App.xcworkspace
 
 ---
 
-## Summary of All Changes (March 9-13)
+## Summary of All Changes (March 7-13)
+
+### March 7 — Journey Onboarding
+
+| Feature | Description |
+|---------|-------------|
+| Journey API | 8 endpoints for journey selections, steps, preview, progress, dashboard prompts |
+| Journey services | JourneyStateService (state persistence), JourneyFieldResolver (step definitions), DashboardPromptService (notifications) |
+| Journey migration | 3 JSON columns on users table (`journey_states`, `journey_selections`, `dismissed_prompts`) |
+| Frontend | JourneyCard, JourneyPreview, JourneyCompletionStep components, journeyService, journeys Vuex store |
 
 ### March 9 — Marketplace and Vault
 
@@ -332,15 +358,15 @@ If something breaks:
 
 | Category | New | Modified | Total |
 |----------|-----|----------|-------|
-| PHP (Controllers, Services, Models) | 24 | 14 | 38 |
+| PHP (Controllers, Services, Models) | 29 | 15 | 44 |
 | PHP (Notifications, Commands) | 8 | 1 | 9 |
 | PHP (Middleware, Routes, Config) | 5 | 6 | 11 |
-| Migrations | 4 | 0 | 4 |
+| Migrations | 5 | 0 | 5 |
 | Vue/JS (Mobile) | 47 | 0 | 47 |
-| Vue/JS (Web) | 3 | 17 | 20 |
-| Vue/JS (Services, Stores, Utils) | 5 | 10 | 15 |
+| Vue/JS (Web) | 6 | 17 | 23 |
+| Vue/JS (Services, Stores, Utils) | 7 | 10 | 17 |
 | Config/Deploy | 3 | 3 | 6 |
 | Deep Links | 2 | 0 | 2 |
-| **Total** | **101** | **51** | **152** |
+| **Total** | **112** | **52** | **164** |
 
 *Note: `ShareContentRequest.php` was removed — `ShareController` uses base `Request` class.*
