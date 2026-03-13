@@ -12,11 +12,9 @@ use Illuminate\Support\Facades\Log;
 
 class AiChatService
 {
-    private const API_URL = 'https://api.openai.com/v1/chat/completions';
+    private const API_URL = 'https://api.cerebras.ai/v1/chat/completions';
 
     private const TIMEOUT_SECONDS = 180;
-
-    private const MAX_TOOL_CALLS_PER_TURN = 5;
 
     private const MAX_HISTORY_MESSAGES = 20;
 
@@ -46,7 +44,6 @@ class AiChatService
         $messageHistory = $this->buildMessageHistory($conversation);
         $model = $this->modelResolver->getModel($user);
         $maxTokens = $this->modelResolver->getMaxTokens($user);
-        $tools = $this->toolDefinitions->getTools($user->is_preview_user);
 
         // Auto-generate title from first message
         if ($conversation->message_count === 0) {
@@ -55,118 +52,41 @@ class AiChatService
             yield ['type' => 'title', 'title' => $title];
         }
 
-        // Initial API call
-        $fullResponse = '';
-        $toolCallCount = 0;
         $totalInputTokens = 0;
         $totalOutputTokens = 0;
 
-        $messages = $messageHistory;
+        $response = $this->callChatApi($model, $systemPrompt, $messageHistory, $maxTokens);
 
-        while (true) {
-            $response = $this->callOpenAiApi($model, $systemPrompt, $messages, $tools, $maxTokens);
+        if (isset($response['error'])) {
+            Log::error('[AiChatService] Chat API error during conversation', [
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'error' => $response['error'],
+            ]);
 
-            if (isset($response['error'])) {
-                Log::error('[AiChatService] Chat API error during conversation', [
-                    'conversation_id' => $conversation->id,
-                    'user_id' => $user->id,
-                    'error' => $response['error'],
-                ]);
+            $hint = str_contains($response['error'], 'API key')
+                ? 'Configuration issue — please contact support.'
+                : 'I apologise, but I encountered an issue processing your request. Please try again.';
 
-                $hint = str_contains($response['error'], 'API key')
-                    ? 'Configuration issue — please contact support.'
-                    : 'I apologise, but I encountered an issue processing your request. Please try again.';
+            yield ['type' => 'error', 'message' => $hint];
 
-                yield ['type' => 'error', 'message' => $hint];
+            return;
+        }
 
-                return;
-            }
+        $totalInputTokens += $response['usage']['prompt_tokens'] ?? 0;
+        $totalOutputTokens += $response['usage']['completion_tokens'] ?? 0;
 
-            $totalInputTokens += $response['usage']['prompt_tokens'] ?? 0;
-            $totalOutputTokens += $response['usage']['completion_tokens'] ?? 0;
+        // Extract the response
+        $choice = $response['choices'][0] ?? [];
+        $responseMessage = $choice['message'] ?? [];
+        $textContent = $responseMessage['content'] ?? '';
 
-            // Extract the response choice
-            $choice = $response['choices'][0] ?? [];
-            $responseMessage = $choice['message'] ?? [];
-            $finishReason = $choice['finish_reason'] ?? 'stop';
-
-            // Handle text content
-            $textContent = $responseMessage['content'] ?? null;
-            if ($textContent) {
-                $fullResponse .= $textContent;
-                yield ['type' => 'content', 'text' => $textContent];
-            }
-
-            // Handle tool calls
-            $toolCalls = $responseMessage['tool_calls'] ?? [];
-            $hasToolCalls = ! empty($toolCalls);
-
-            if ($hasToolCalls) {
-                // Add the full assistant message (with tool_calls) to history
-                $messages[] = $responseMessage;
-
-                foreach ($toolCalls as $toolCall) {
-                    $toolCallCount++;
-                    $functionName = $toolCall['function']['name'];
-                    $functionArgs = json_decode($toolCall['function']['arguments'], true) ?? [];
-
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'running',
-                    ];
-
-                    // Execute the tool
-                    $toolResult = $this->toolExecutor->execute(
-                        $functionName,
-                        $functionArgs,
-                        $user
-                    );
-
-                    // Handle navigation results
-                    if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
-                        yield [
-                            'type' => 'navigation',
-                            'route_path' => $toolResult['route_path'],
-                            'description' => $toolResult['description'] ?? '',
-                        ];
-                    }
-
-                    // Handle entity creation results
-                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
-                        yield [
-                            'type' => 'entity_created',
-                            'entity_type' => $toolResult['entity_type'],
-                            'entity_id' => $toolResult['entity_id'],
-                            'name' => $toolResult['name'] ?? '',
-                        ];
-                    }
-
-                    // Add tool result message (OpenAI format: role=tool with tool_call_id)
-                    $messages[] = [
-                        'role' => 'tool',
-                        'tool_call_id' => $toolCall['id'],
-                        'content' => json_encode($toolResult),
-                    ];
-
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $functionName,
-                        'status' => 'complete',
-                    ];
-                }
-            }
-
-            // If model wants to continue with tool results, loop
-            if ($hasToolCalls && $finishReason === 'tool_calls' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
-                continue;
-            }
-
-            break;
+        if ($textContent) {
+            yield ['type' => 'content', 'text' => $textContent];
         }
 
         // Save assistant message
-        $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, [
+        $assistantMessage = $this->saveMessage($conversation, 'assistant', $textContent, [
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
@@ -185,19 +105,22 @@ class AiChatService
     }
 
     /**
-     * Call the OpenAI Chat Completions API.
+     * Call the Cerebras Chat Completions API (OpenAI-compatible).
+     *
+     * Tools are not sent because llama3.1-8b outputs tool calls as text
+     * instead of using the structured tool_calls format with tool_choice auto.
+     * Tool support can be re-enabled when using a larger model.
      */
-    private function callOpenAiApi(
+    private function callChatApi(
         string $model,
         string $systemPrompt,
         array $messages,
-        array $tools,
         int $maxTokens
     ): array {
-        $apiKey = config('services.openai.api_key');
+        $apiKey = config('services.cerebras.api_key');
 
         if (! $apiKey) {
-            Log::error('[AiChatService] OpenAI API key not configured');
+            Log::error('[AiChatService] Cerebras API key not configured');
 
             return ['error' => 'API key not configured'];
         }
@@ -213,11 +136,6 @@ class AiChatService
             'max_completion_tokens' => $maxTokens,
             'messages' => $allMessages,
         ];
-
-        if (! empty($tools)) {
-            $payload['tools'] = $tools;
-            $payload['tool_choice'] = 'auto';
-        }
 
         try {
             $response = Http::withHeaders([

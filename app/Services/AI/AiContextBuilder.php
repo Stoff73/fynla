@@ -52,34 +52,15 @@ PROMPT;
             $prompt .= "\n\n## Preview Mode\nThis user is in preview mode exploring the application. You cannot create, update, or delete any records for them. If they ask you to create a goal, account, or other record, explain that this feature is available when they create a real account. You can still analyse their data and answer questions.";
         }
 
-        $prompt .= "\n\n## Available Actions\n";
-        $prompt .= "- You can navigate the user to relevant pages using the navigate_to_page tool\n";
-        $prompt .= "- You can fetch detailed analysis for any financial module using get_module_analysis\n";
-        $prompt .= "- You can run what-if scenarios to show impact of changes using run_what_if_scenario\n";
-        $prompt .= "- You can look up current UK tax information using get_tax_information\n";
-        $prompt .= "- You can generate a comprehensive holistic financial plan using generate_financial_plan\n";
-
-        if (! $isPreview) {
-            $prompt .= "- You can create financial goals using create_goal\n";
-            $prompt .= "- You can create life events using create_life_event\n";
-            $prompt .= "- You can create savings accounts (including Cash Individual Savings Accounts) using create_savings_account\n";
-            $prompt .= "- You can create investment accounts (including Stocks & Shares Individual Savings Accounts) using create_investment_account\n";
-            $prompt .= "- You can create pensions (Defined Contribution and Defined Benefit) using create_pension\n";
-            $prompt .= "- You can create properties (with optional auto-linked mortgage) using create_property\n";
-            $prompt .= "- You can create standalone mortgages linked to existing properties using create_mortgage\n";
-            $prompt .= "- You can create protection policies (life, critical illness, income protection) using create_protection_policy\n";
-            $prompt .= "- You can create estate planning assets using create_estate_asset\n";
-            $prompt .= "- You can create estate planning liabilities using create_estate_liability\n";
-            $prompt .= "- You can record gifts for Inheritance Tax planning using create_estate_gift\n";
-
-            $prompt .= "\n## Data Creation Guidance\n";
-            $prompt .= "When the user tells you about a financial product they hold, create it immediately — do not just acknowledge it.\n";
-            $prompt .= "- Individual Savings Accounts must always have ownership_type 'individual' (UK tax law — one per person)\n";
-            $prompt .= "- Default ownership to 'individual' unless the user specifically mentions joint ownership\n";
-            $prompt .= "- Set sensible defaults for fields the user does not mention\n";
-            $prompt .= "- After creating a record, briefly confirm what was created and suggest what to add next\n";
-            $prompt .= "- If the user mentions a property with a mortgage, use create_property with the outstanding_mortgage field to create both at once\n";
-        }
+        $prompt .= "\n\n## Your Capabilities\n";
+        $prompt .= "You are a text-based financial planning assistant. You can:\n";
+        $prompt .= "- Analyse the user's financial data shown above and answer questions about it\n";
+        $prompt .= "- Explain financial concepts in plain English (pensions, tax, estate planning, etc.)\n";
+        $prompt .= "- Suggest strategies for improving their financial position\n";
+        $prompt .= "- Help them understand their recommendations and action items\n";
+        $prompt .= "- Discuss UK tax rules, allowances, and thresholds\n";
+        $prompt .= "- Compare options (e.g. Individual Savings Account vs pension contributions)\n";
+        $prompt .= "\nYou cannot create, modify, or delete records — guide the user to the relevant page in the app to make changes.\n";
 
         return $prompt;
     }
