@@ -1,11 +1,11 @@
 # Deploy Notes — 13 March 2026
 
-**Branch:** `uiImprovements`
-**Type:** iOS Capacitor App + 2 PHP files to upload
+**Branches:** `uiImprovements` (merged PR #121), `aiUpdate`
+**Type:** iOS Capacitor App + PHP files to upload
 
 ## Summary
 
-Nine changes: app icon redesign, Face ID flow rework, mobile header redesign (centred logo + user avatar), emoji icon removal from all cards, protection dashboard card fix (show policy count), continuous voice input, chat error display, viewport zoom fix, and More menu modules grid removal.
+Ten changes: app icon redesign, Face ID flow rework, mobile header redesign (centred logo + user avatar), emoji icon removal from all cards, protection dashboard card fix (show policy count), continuous voice input, chat error display, viewport zoom fix, More menu modules grid removal, and **Cerebras AI migration with full tool calling**.
 
 ## Build & Deploy
 
@@ -23,16 +23,22 @@ Upload via SiteGround File Manager:
 
 | Local | Remote |
 |-------|--------|
-| `app/Services/Mobile/MobileDashboardAggregator.php` | `~/www/fynla.org/public_html/app/Services/Mobile/MobileDashboardAggregator.php` |
-| `app/Services/AI/AiChatService.php` | `~/www/fynla.org/public_html/app/Services/AI/AiChatService.php` |
+| `app/Services/Mobile/MobileDashboardAggregator.php` | `~/www/fynla.org/public_html/app/Services/Mobile/` |
+| `app/Services/AI/AiChatService.php` | `~/www/fynla.org/public_html/app/Services/AI/` |
+| `app/Services/AI/AiContextBuilder.php` | `~/www/fynla.org/public_html/app/Services/AI/` |
+| `app/Services/AI/AiModelResolver.php` | `~/www/fynla.org/public_html/app/Services/AI/` |
+| `app/Services/AI/AiToolDefinitions.php` | `~/www/fynla.org/public_html/app/Services/AI/` |
+| `config/services.php` | `~/www/fynla.org/public_html/config/` |
+
+### Production .env Update (Required)
+
+Add to production `.env`:
+```
+CEREBRAS_API_KEY=csk-jtjv6mkxyyhttf96mwfck5epyc3rnwyv65whrtxhdxx3y583
+CEREBRAS_CHAT_MODEL=gpt-oss-120b
+```
 
 **Important:** Users should delete the app from their device before installing to clear the icon cache and any stale Keychain credentials from the old Face ID implementation.
-
-**IMPORTANT — Fyn Chat Broken on Production:** Chat returns SSE error events. API key and model work fine locally. After uploading `AiChatService.php`, SSH in and check logs:
-```bash
-grep "AiChatService" storage/logs/laravel.log | tail -20
-grep OPENAI_API_KEY .env
-```
 
 ## Changes Included
 
@@ -75,8 +81,15 @@ grep OPENAI_API_KEY .env
 - Uses native Capacitor `listeningState` listener for safe auto-restart
 - Avoids Plugin.swift race condition (stop/start causes fatal nil unwrap)
 - Chat errors now visible in MobileFynChat (dismissible error box)
-- AiChatService.php logs actual OpenAI error details
 - Viewport meta prevents iOS auto-zoom (`maximum-scale=1.0, user-scalable=no`)
+
+### Cerebras AI Migration ([[cerebrasAiMigration]])
+- Switched Fyn chat from OpenAI GPT to Cerebras `gpt-oss-120b` (120B params, ~3000 tok/s)
+- Full tool calling restored — 17 tools (navigation, analysis, tax lookup, data creation)
+- `llama3.1-8b` tested first but broken with `tool_choice: auto` (outputs JSON as text)
+- `gpt-oss-120b` works perfectly with structured `tool_calls` array
+- System prompt restored with tool-aware "Available Actions" section
+- AiToolDefinitions and AiToolExecutor unchanged
 
 ## Files Changed
 

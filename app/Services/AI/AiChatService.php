@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class AiChatService
 {
-    private const API_URL = 'https://api.openai.com/v1/chat/completions';
+    private const API_URL = 'https://api.cerebras.ai/v1/chat/completions';
 
     private const TIMEOUT_SECONDS = 180;
 
@@ -55,7 +55,7 @@ class AiChatService
             yield ['type' => 'title', 'title' => $title];
         }
 
-        // Initial API call
+        // API call loop — handles tool calls and text responses
         $fullResponse = '';
         $toolCallCount = 0;
         $totalInputTokens = 0;
@@ -64,7 +64,7 @@ class AiChatService
         $messages = $messageHistory;
 
         while (true) {
-            $response = $this->callOpenAiApi($model, $systemPrompt, $messages, $tools, $maxTokens);
+            $response = $this->callChatApi($model, $systemPrompt, $messages, $tools, $maxTokens);
 
             if (isset($response['error'])) {
                 Log::error('[AiChatService] Chat API error during conversation', [
@@ -142,7 +142,7 @@ class AiChatService
                         ];
                     }
 
-                    // Add tool result message (OpenAI format: role=tool with tool_call_id)
+                    // Add tool result message (OpenAI-compatible format: role=tool with tool_call_id)
                     $messages[] = [
                         'role' => 'tool',
                         'tool_call_id' => $toolCall['id'],
@@ -185,19 +185,19 @@ class AiChatService
     }
 
     /**
-     * Call the OpenAI Chat Completions API.
+     * Call the Cerebras Chat Completions API (OpenAI-compatible).
      */
-    private function callOpenAiApi(
+    private function callChatApi(
         string $model,
         string $systemPrompt,
         array $messages,
         array $tools,
         int $maxTokens
     ): array {
-        $apiKey = config('services.openai.api_key');
+        $apiKey = config('services.cerebras.api_key');
 
         if (! $apiKey) {
-            Log::error('[AiChatService] OpenAI API key not configured');
+            Log::error('[AiChatService] Cerebras API key not configured');
 
             return ['error' => 'API key not configured'];
         }

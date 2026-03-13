@@ -7,7 +7,7 @@ namespace App\Services\AI;
 class AiToolDefinitions
 {
     /**
-     * Get all tool definitions for the OpenAI Chat Completions API.
+     * Get all tool definitions for the Cerebras Chat Completions API (OpenAI-compatible).
      */
     public function getTools(bool $isPreviewMode = false): array
     {

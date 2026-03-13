@@ -37,6 +37,11 @@ return [
         'chat_model_standard' => env('OPENAI_CHAT_MODEL_STANDARD', 'gpt-5-mini-2025-08-07'),
     ],
 
+    'cerebras' => [
+        'api_key' => env('CEREBRAS_API_KEY', ''),
+        'chat_model' => env('CEREBRAS_CHAT_MODEL', 'gpt-oss-120b'),
+    ],
+
     'getaddress' => [
         'api_key' => env('GETADDRESS_API_KEY', ''),
     ],
