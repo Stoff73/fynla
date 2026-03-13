@@ -1,11 +1,11 @@
 # Deploy Notes — 13 March 2026
 
 **Branch:** `uiImprovements`
-**Type:** iOS Capacitor App + 1 PHP file to upload
+**Type:** iOS Capacitor App + 2 PHP files to upload
 
 ## Summary
 
-Five changes: app icon redesign, Face ID flow rework, mobile header redesign (centred logo + user avatar), emoji icon removal from all cards, and protection dashboard card fix (show policy count).
+Nine changes: app icon redesign, Face ID flow rework, mobile header redesign (centred logo + user avatar), emoji icon removal from all cards, protection dashboard card fix (show policy count), continuous voice input, chat error display, viewport zoom fix, and More menu modules grid removal.
 
 ## Build & Deploy
 
@@ -24,8 +24,15 @@ Upload via SiteGround File Manager:
 | Local | Remote |
 |-------|--------|
 | `app/Services/Mobile/MobileDashboardAggregator.php` | `~/www/fynla.org/public_html/app/Services/Mobile/MobileDashboardAggregator.php` |
+| `app/Services/AI/AiChatService.php` | `~/www/fynla.org/public_html/app/Services/AI/AiChatService.php` |
 
 **Important:** Users should delete the app from their device before installing to clear the icon cache and any stale Keychain credentials from the old Face ID implementation.
+
+**IMPORTANT — Fyn Chat Broken on Production:** Chat returns SSE error events. API key and model work fine locally. After uploading `AiChatService.php`, SSH in and check logs:
+```bash
+grep "AiChatService" storage/logs/laravel.log | tail -20
+grep OPENAI_API_KEY .env
+```
 
 ## Changes Included
 
@@ -60,6 +67,17 @@ Upload via SiteGround File Manager:
 - Backend: added `policy_count` to `MobileDashboardAggregator`
 - Frontend: changed metric type from currency to text
 
+### More Menu Cleanup ([[moreMenuCleanup]])
+- Removed Modules grid from More/Settings screen (accessible from dashboard)
+
+### Voice Input & Chat Fix ([[voiceInputAndChatFix]])
+- VoiceInputButton.vue rewritten for continuous listening mode
+- Uses native Capacitor `listeningState` listener for safe auto-restart
+- Avoids Plugin.swift race condition (stop/start causes fatal nil unwrap)
+- Chat errors now visible in MobileFynChat (dismissible error box)
+- AiChatService.php logs actual OpenAI error details
+- Viewport meta prevents iOS auto-zoom (`maximum-scale=1.0, user-scalable=no`)
+
 ## Files Changed
 
 | File | Type |
@@ -89,6 +107,11 @@ Upload via SiteGround File Manager:
 | `resources/js/mobile/SettingsList.vue` | Vue |
 | `resources/js/store/modules/mobileDashboard.js` | JS |
 | `app/Services/Mobile/MobileDashboardAggregator.php` | PHP |
+| `app/Services/AI/AiChatService.php` | PHP |
+| `resources/js/mobile/VoiceInputButton.vue` | Vue |
+| `resources/js/mobile/views/MobileFynChat.vue` | Vue |
+| `resources/js/mobile/views/MoreMenu.vue` | Vue |
+| `deploy/mobile/build-ios.sh` | Shell |
 
 ## Post-Deploy
 
