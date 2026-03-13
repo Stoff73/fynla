@@ -103,10 +103,12 @@ Confirm these are present on the **Signing & Capabilities** tab:
 
 | Capability | Configuration |
 |-----------|---------------|
-| Push Notifications | Enabled |
+| Push Notifications | Enabled (the "Console" button links to Apple's developer portal — it may show a different app, that's fine, ignore it) |
 | Associated Domains | `applinks:fynla.org` |
 | Keychain Sharing | `org.fynla.app` |
 | Background Modes | Remote notifications |
+
+> **Note:** Push notifications are not actively wired up yet (no Firebase/APNs server config). The capability is a placeholder for future implementation. Just confirm it's listed — you don't need to configure anything in Apple's Push Notification Console.
 
 ---
 
