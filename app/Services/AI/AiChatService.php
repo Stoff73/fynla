@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Log;
 
 class AiChatService
 {
-    private const API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+    private const API_URL = 'https://api.anthropic.com/v1/messages';
+
+    private const API_VERSION = '2023-06-01';
 
     private const TIMEOUT_SECONDS = 180;
 
@@ -64,16 +66,16 @@ class AiChatService
         $messages = $messageHistory;
 
         while (true) {
-            $response = $this->callChatApi($model, $systemPrompt, $messages, $tools, $maxTokens);
+            $response = $this->callAnthropicApi($model, $systemPrompt, $messages, $tools, $maxTokens);
 
             if (isset($response['error'])) {
-                Log::error('[AiChatService] Chat API error during conversation', [
+                Log::error('[AiChatService] Anthropic API error during conversation', [
                     'conversation_id' => $conversation->id,
                     'user_id' => $user->id,
                     'error' => $response['error'],
                 ]);
 
-                $hint = str_contains($response['error'], 'API key')
+                $hint = str_contains($response['error'], 'api_key') || str_contains($response['error'], 'authentication')
                     ? 'Configuration issue — please contact support.'
                     : 'I apologise, but I encountered an issue processing your request. Please try again.';
 
@@ -82,33 +84,48 @@ class AiChatService
                 return;
             }
 
-            $totalInputTokens += $response['usage']['prompt_tokens'] ?? 0;
-            $totalOutputTokens += $response['usage']['completion_tokens'] ?? 0;
+            $totalInputTokens += $response['usage']['input_tokens'] ?? 0;
+            $totalOutputTokens += $response['usage']['output_tokens'] ?? 0;
 
-            // Extract the response choice
-            $choice = $response['choices'][0] ?? [];
-            $responseMessage = $choice['message'] ?? [];
-            $finishReason = $choice['finish_reason'] ?? 'stop';
+            // Parse Anthropic response content blocks
+            $contentBlocks = $response['content'] ?? [];
+            $stopReason = $response['stop_reason'] ?? 'end_turn';
 
-            // Handle text content
-            $textContent = $responseMessage['content'] ?? null;
+            // Extract text and tool_use blocks
+            $textContent = '';
+            $toolUseBlocks = [];
+
+            foreach ($contentBlocks as $block) {
+                if ($block['type'] === 'text') {
+                    $textContent .= $block['text'];
+                } elseif ($block['type'] === 'tool_use') {
+                    $toolUseBlocks[] = $block;
+                }
+            }
+
+            // Yield text content
             if ($textContent) {
                 $fullResponse .= $textContent;
                 yield ['type' => 'content', 'text' => $textContent];
             }
 
             // Handle tool calls
-            $toolCalls = $responseMessage['tool_calls'] ?? [];
-            $hasToolCalls = ! empty($toolCalls);
+            $hasToolCalls = ! empty($toolUseBlocks);
 
             if ($hasToolCalls) {
-                // Add the full assistant message (with tool_calls) to history
-                $messages[] = $responseMessage;
+                // Add the full assistant message (with all content blocks) to history
+                $messages[] = [
+                    'role' => 'assistant',
+                    'content' => $contentBlocks,
+                ];
 
-                foreach ($toolCalls as $toolCall) {
+                // Collect tool results for a single user message
+                $toolResultBlocks = [];
+
+                foreach ($toolUseBlocks as $toolUseBlock) {
                     $toolCallCount++;
-                    $functionName = $toolCall['function']['name'];
-                    $functionArgs = json_decode($toolCall['function']['arguments'], true) ?? [];
+                    $functionName = $toolUseBlock['name'];
+                    $functionArgs = $toolUseBlock['input'] ?? [];
 
                     yield [
                         'type' => 'tool_use',
@@ -142,10 +159,10 @@ class AiChatService
                         ];
                     }
 
-                    // Add tool result message (OpenAI-compatible format: role=tool with tool_call_id)
-                    $messages[] = [
-                        'role' => 'tool',
-                        'tool_call_id' => $toolCall['id'],
+                    // Collect tool result block (Anthropic format)
+                    $toolResultBlocks[] = [
+                        'type' => 'tool_result',
+                        'tool_use_id' => $toolUseBlock['id'],
                         'content' => json_encode($toolResult),
                     ];
 
@@ -155,10 +172,16 @@ class AiChatService
                         'status' => 'complete',
                     ];
                 }
+
+                // Add all tool results as a single user message (Anthropic requires alternating roles)
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => $toolResultBlocks,
+                ];
             }
 
             // If model wants to continue with tool results, loop
-            if ($hasToolCalls && $finishReason === 'tool_calls' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
                 continue;
             }
 
@@ -185,43 +208,39 @@ class AiChatService
     }
 
     /**
-     * Call the Cerebras Chat Completions API (OpenAI-compatible).
+     * Call the Anthropic Messages API.
      */
-    private function callChatApi(
+    private function callAnthropicApi(
         string $model,
         string $systemPrompt,
         array $messages,
         array $tools,
         int $maxTokens
     ): array {
-        $apiKey = config('services.cerebras.api_key');
+        $apiKey = config('services.anthropic.api_key');
 
         if (! $apiKey) {
-            Log::error('[AiChatService] Cerebras API key not configured');
+            Log::error('[AiChatService] Anthropic API key not configured');
 
             return ['error' => 'API key not configured'];
         }
 
-        // Prepend system message to conversation history
-        $allMessages = array_merge(
-            [['role' => 'system', 'content' => $systemPrompt]],
-            $messages
-        );
-
         $payload = [
             'model' => $model,
-            'max_completion_tokens' => $maxTokens,
-            'messages' => $allMessages,
+            'max_tokens' => $maxTokens,
+            'system' => $systemPrompt,
+            'messages' => $messages,
         ];
 
         if (! empty($tools)) {
             $payload['tools'] = $tools;
-            $payload['tool_choice'] = 'auto';
+            $payload['tool_choice'] = ['type' => 'auto'];
         }
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => "Bearer {$apiKey}",
+                'x-api-key' => $apiKey,
+                'anthropic-version' => self::API_VERSION,
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(self::TIMEOUT_SECONDS)
@@ -230,7 +249,7 @@ class AiChatService
             if (! $response->successful()) {
                 $errorBody = $response->json();
                 $errorMessage = $errorBody['error']['message'] ?? $response->body();
-                Log::error('[AiChatService] API error', [
+                Log::error('[AiChatService] Anthropic API error', [
                     'status' => $response->status(),
                     'error' => $errorMessage,
                 ]);
@@ -240,7 +259,7 @@ class AiChatService
 
             return $response->json();
         } catch (\Exception $e) {
-            Log::error('[AiChatService] API request failed', [
+            Log::error('[AiChatService] Anthropic API request failed', [
                 'error' => $e->getMessage(),
             ]);
 

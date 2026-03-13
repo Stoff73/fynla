@@ -7,7 +7,7 @@ namespace App\Services\AI;
 class AiToolDefinitions
 {
     /**
-     * Get all tool definitions for the Cerebras Chat Completions API (OpenAI-compatible).
+     * Get all tool definitions for the Anthropic Messages API.
      */
     public function getTools(bool $isPreviewMode = false): array
     {
@@ -22,10 +22,11 @@ class AiToolDefinitions
             $tools = array_merge($tools, $this->dataCreationTools());
         }
 
-        // Wrap each tool in OpenAI's { type: 'function', function: { ... } } envelope
+        // Convert each tool to Anthropic format: parameters → input_schema
         return array_map(fn (array $tool) => [
-            'type' => 'function',
-            'function' => $tool,
+            'name' => $tool['name'],
+            'description' => $tool['description'],
+            'input_schema' => $tool['parameters'],
         ], $tools);
     }
 

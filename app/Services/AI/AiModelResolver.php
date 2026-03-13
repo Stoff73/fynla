@@ -8,11 +8,11 @@ use App\Models\User;
 
 class AiModelResolver
 {
-    private const DEFAULT_MODEL = 'gpt-oss-120b';
+    private const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
     public function getModel(User $user): string
     {
-        return config('services.cerebras.chat_model', self::DEFAULT_MODEL);
+        return config('services.anthropic.chat_model', self::DEFAULT_MODEL);
     }
 
     public function getMaxTokens(User $user): int
