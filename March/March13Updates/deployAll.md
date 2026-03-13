@@ -48,7 +48,7 @@ Add to production `.env` via SiteGround File Manager:
 ```env
 # Cerebras AI Chat (replaces OpenAI for chat)
 CEREBRAS_API_KEY=csk-jtjv6mkxyyhttf96mwfck5epyc3rnwyv65whrtxhdxx3y583
-CEREBRAS_CHAT_MODEL=llama3.1-8b
+CEREBRAS_CHAT_MODEL=gpt-oss-120b
 
 # Analytics (Plausible — privacy-first, no cookies)
 ANALYTICS_ENABLED=true
@@ -73,9 +73,10 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 
 | File | Change |
 |------|--------|
-| `app/Services/AI/AiChatService.php` | Switched from OpenAI to Cerebras API, removed tool calling loop |
-| `app/Services/AI/AiContextBuilder.php` | Replaced tool references with text-only capabilities |
-| `app/Services/AI/AiModelResolver.php` | Simplified to single Cerebras model (llama3.1-8b) |
+| `app/Services/AI/AiChatService.php` | Switched from OpenAI to Cerebras API (`gpt-oss-120b`), full tool calling |
+| `app/Services/AI/AiContextBuilder.php` | System prompt with tool-aware "Available Actions" section |
+| `app/Services/AI/AiModelResolver.php` | Cerebras `gpt-oss-120b` model (120B params, 3000 tok/s) |
+| `app/Services/AI/AiToolDefinitions.php` | Tool schemas (17 tools, docblock update) |
 | `config/services.php` | Added `cerebras` config block |
 
 ### 3b. Mobile API Infrastructure
@@ -90,7 +91,6 @@ Upload these files via SiteGround File Manager to `~/www/fynla.org/public_html/`
 | `app/Http/Controllers/Api/V1/Mobile/ShareController.php` | **NEW** — PII-safe social share content |
 | `app/Http/Controllers/Api/V1/Auth/TokenRefreshController.php` | **NEW** — Mobile token refresh |
 | `app/Http/Requests/V1/RegisterDeviceRequest.php` | **NEW** — Device registration validation |
-| `app/Http/Requests/V1/ShareContentRequest.php` | **NEW** — Share content validation |
 | `app/Http/Requests/V1/UpdateNotificationPreferencesRequest.php` | **NEW** — Notification prefs validation |
 
 ### 3c. Mobile Services
@@ -312,8 +312,7 @@ open ios/App/App.xcworkspace
 | Chat error display | Dismissible error box in MobileFynChat |
 | Viewport zoom fix | Prevent iOS auto-zoom on input focus |
 | More menu cleanup | Removed modules grid (accessible from dashboard) |
-| **Cerebras AI migration** | Switched chat from OpenAI to Cerebras llama3.1-8b |
-| **System prompt update** | Removed tool references, added text-only capabilities |
+| **Cerebras AI migration** | Switched chat from OpenAI to Cerebras `gpt-oss-120b` with full tool calling (17 tools) |
 
 ---
 
@@ -343,3 +342,5 @@ If something breaks:
 | Config/Deploy | 3 | 3 | 6 |
 | Deep Links | 2 | 0 | 2 |
 | **Total** | **101** | **51** | **152** |
+
+*Note: `ShareContentRequest.php` was removed — `ShareController` uses base `Request` class.*
