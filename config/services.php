@@ -39,7 +39,7 @@ return [
 
     'cerebras' => [
         'api_key' => env('CEREBRAS_API_KEY', ''),
-        'chat_model' => env('CEREBRAS_CHAT_MODEL', 'llama3.1-8b'),
+        'chat_model' => env('CEREBRAS_CHAT_MODEL', 'gpt-oss-120b'),
     ],
 
     'getaddress' => [

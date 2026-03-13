@@ -8,7 +8,7 @@ use App\Models\User;
 
 class AiModelResolver
 {
-    private const DEFAULT_MODEL = 'llama3.1-8b';
+    private const DEFAULT_MODEL = 'gpt-oss-120b';
 
     public function getModel(User $user): string
     {
