@@ -34,6 +34,7 @@ export default {
       isListening: false,
       recognition: null,
       useNative: false,
+      lastPartial: '',
     };
   },
 
@@ -42,7 +43,7 @@ export default {
   },
 
   beforeUnmount() {
-    this.stopListening();
+    this.forceStop();
   },
 
   methods: {
@@ -62,12 +63,12 @@ export default {
       // Web Speech API fallback
       const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognitionClass) {
-        this.recognition = new SpeechRecognitionClass();
-        this.recognition.lang = 'en-GB';
-        this.recognition.interimResults = true;
-        this.recognition.continuous = false;
+        const recognition = new SpeechRecognitionClass();
+        recognition.lang = 'en-GB';
+        recognition.interimResults = true;
+        recognition.continuous = true;
 
-        this.recognition.onresult = (event) => {
+        recognition.onresult = (event) => {
           let finalTranscript = '';
           let interimTranscript = '';
 
@@ -85,59 +86,62 @@ export default {
           }
           if (finalTranscript) {
             this.$emit('transcript', finalTranscript);
-            this.isListening = false;
           }
         };
 
-        this.recognition.onerror = () => {
-          this.isListening = false;
+        // Auto-restart on end/error if still in listening mode
+        recognition.onend = () => {
+          if (this.isListening) {
+            try { recognition.start(); } catch { /* ignore */ }
+          }
         };
 
-        this.recognition.onend = () => {
-          this.isListening = false;
+        recognition.onerror = () => {
+          if (this.isListening) {
+            setTimeout(() => {
+              if (this.isListening) {
+                try { recognition.start(); } catch { /* ignore */ }
+              }
+            }, 500);
+          }
         };
+
+        this.recognition = recognition;
       }
     },
 
-    async toggleListening() {
+    toggleListening() {
       if (this.isListening) {
-        this.stopListening();
+        this.deactivate();
       } else {
-        await this.startListening();
+        this.activate();
       }
     },
 
-    async startListening() {
+    async activate() {
+      if (this.isListening) return;
       this.isListening = true;
+      this.lastPartial = '';
 
       if (this.useNative) {
         try {
           const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
 
-          // Request permission if needed
-          const { permission } = await SpeechRecognition.checkPermissions();
-          if (permission !== 'granted') {
-            await SpeechRecognition.requestPermissions();
-          }
-
-          SpeechRecognition.addListener('partialResults', (data) => {
-            if (data.matches && data.matches.length > 0) {
-              this.$emit('partial', data.matches[0]);
+          // Check/request permissions
+          const { speechRecognition } = await SpeechRecognition.checkPermissions();
+          if (speechRecognition !== 'granted') {
+            const result = await SpeechRecognition.requestPermissions();
+            if (result.speechRecognition !== 'granted') {
+              this.isListening = false;
+              return;
             }
-          });
-
-          const result = await SpeechRecognition.start({
-            language: 'en-GB',
-            partialResults: true,
-            popup: false,
-          });
-
-          if (result.matches && result.matches.length > 0) {
-            this.$emit('transcript', result.matches[0]);
+            // Give iOS a moment after fresh permission grant
+            await new Promise(r => setTimeout(r, 500));
+            if (!this.isListening) return;
           }
+
+          await this.startNativeSession();
         } catch {
-          // Speech recognition failed
-        } finally {
           this.isListening = false;
         }
       } else if (this.recognition) {
@@ -149,16 +153,75 @@ export default {
       }
     },
 
-    stopListening() {
+    async startNativeSession() {
+      if (!this.isListening) return;
+
+      const { SpeechRecognition } = await import('@capacitor-community/speech-recognition');
+
+      // Remove old listeners before adding new ones
+      await SpeechRecognition.removeAllListeners();
+
+      // Partial results — fires for both interim and final transcriptions
+      SpeechRecognition.addListener('partialResults', (data) => {
+        if (data.matches && data.matches.length > 0) {
+          this.lastPartial = data.matches[0];
+          this.$emit('partial', data.matches[0]);
+        }
+      });
+
+      // Listening state — fires when recognition session ends (silence timeout or error)
+      // This is the ONLY place we restart for continuous listening
+      SpeechRecognition.addListener('listeningState', (data) => {
+        if (data.status === 'stopped' && this.isListening) {
+          // Don't emit transcript here — text is already in input from partial events
+          this.lastPartial = '';
+          // Auto-restart after a delay for continuous listening
+          setTimeout(() => {
+            if (this.isListening) {
+              this.startNativeSession();
+            }
+          }, 500);
+        }
+      });
+
+      // start() resolves immediately when partialResults: true
+      // Results come through the listeners above, NOT from the promise
+      try {
+        await SpeechRecognition.start({
+          language: 'en-GB',
+          partialResults: true,
+          popup: false,
+        });
+      } catch {
+        // "Ongoing speech recognition" — previous session still running
+        // Wait for listeningState "stopped" to fire, or retry after delay
+        setTimeout(() => {
+          if (this.isListening) {
+            this.startNativeSession();
+          }
+        }, 1000);
+      }
+    },
+
+    deactivate() {
+      if (!this.isListening) return;
       this.isListening = false;
 
+      // Don't emit transcript — text is already in input from partial events
+      this.lastPartial = '';
+
+      this.forceStop();
+    },
+
+    forceStop() {
       if (this.useNative) {
         import('@capacitor-community/speech-recognition').then(({ SpeechRecognition }) => {
-          SpeechRecognition.stop();
+          // Remove listeners first to prevent ghost restarts
           SpeechRecognition.removeAllListeners();
+          SpeechRecognition.stop().catch(() => {});
         }).catch(() => {});
       } else if (this.recognition) {
-        this.recognition.stop();
+        try { this.recognition.stop(); } catch { /* ignore */ }
       }
     },
   },

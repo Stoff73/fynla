@@ -67,7 +67,17 @@ class AiChatService
             $response = $this->callOpenAiApi($model, $systemPrompt, $messages, $tools, $maxTokens);
 
             if (isset($response['error'])) {
-                yield ['type' => 'error', 'message' => 'I apologise, but I encountered an issue processing your request. Please try again.'];
+                Log::error('[AiChatService] Chat API error during conversation', [
+                    'conversation_id' => $conversation->id,
+                    'user_id' => $user->id,
+                    'error' => $response['error'],
+                ]);
+
+                $hint = str_contains($response['error'], 'API key')
+                    ? 'Configuration issue — please contact support.'
+                    : 'I apologise, but I encountered an issue processing your request. Please try again.';
+
+                yield ['type' => 'error', 'message' => $hint];
 
                 return;
             }
