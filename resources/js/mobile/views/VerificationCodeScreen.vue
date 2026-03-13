@@ -153,8 +153,7 @@ export default {
           this.$store.commit('auth/setToken', token);
           await this.$store.dispatch('auth/fetchUser');
 
-          // Navigate to dashboard — biometric setup modal will appear there
-          this.$router.push('/m/home?biometricSetup=1');
+          this.$router.push('/m/home');
         }
       } catch (error) {
         this.error = error.message || 'Invalid code. Please try again.';

@@ -99,7 +99,7 @@
 
 <script>
 import authService from '@/services/authService';
-import { setToken } from '@/services/tokenStorage';
+import { setToken, getItem } from '@/services/tokenStorage';
 import { platform } from '@/utils/platform';
 
 export default {
@@ -123,6 +123,12 @@ export default {
   methods: {
     async checkBiometricCredentials() {
       if (!platform.canUseBiometrics()) return;
+
+      // Only check native biometric APIs if the user has previously enabled Face ID.
+      // This avoids triggering the iOS system permission dialog on first app launch.
+      const biometricFlag = await getItem('biometric_enabled');
+      if (biometricFlag !== 'true') return;
+
       try {
         const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
         const { isAvailable, biometryType } = await NativeBiometric.isAvailable();
@@ -133,6 +139,11 @@ export default {
         // Check if credentials are stored
         const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
         this.hasBiometricCredentials = !!(credentials?.password);
+
+        // Auto-trigger Face ID login — skip the login screen entirely
+        if (this.hasBiometricCredentials) {
+          await this.handleBiometricLogin();
+        }
       } catch {
         // No stored credentials or biometric not available
         this.hasBiometricCredentials = false;
@@ -224,14 +235,8 @@ export default {
           this.$store.commit('auth/setToken', token);
           console.log('[MobileLogin] Fetching user...');
           await this.$store.dispatch('auth/fetchUser');
-          // Navigate to dashboard — biometric setup modal will appear if needed
-          if (platform.canUseBiometrics() && !this.hasBiometricCredentials) {
-            console.log('[MobileLogin] Navigating to /m/home with biometric setup');
-            this.$router.push('/m/home?biometricSetup=1');
-          } else {
-            console.log('[MobileLogin] Navigating to /m/home');
-            this.$router.push('/m/home');
-          }
+          console.log('[MobileLogin] Navigating to /m/home');
+          this.$router.push('/m/home');
         } else {
           console.log('[MobileLogin] No token and no verification required — unexpected response');
         }

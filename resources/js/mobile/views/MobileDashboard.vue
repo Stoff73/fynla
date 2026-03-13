@@ -1,6 +1,12 @@
 <template>
   <PullToRefresh @refresh="refreshDashboard">
     <div class="px-4 pt-4 pb-6 space-y-4">
+      <!-- Biometric setup banner (shown until user enables Face ID) -->
+      <BiometricPrompt
+        v-if="showBiometricPrompt"
+        @close="dismissBiometricPrompt"
+      />
+
       <!-- Greeting -->
       <div>
         <h2 class="text-xl font-bold text-horizon-500">{{ greeting }}, {{ firstName }}</h2>
@@ -49,17 +55,13 @@
       </div>
     </div>
 
-    <!-- Biometric setup modal (shown once after first login) -->
-    <BiometricPrompt
-      v-if="showBiometricPrompt"
-      @close="dismissBiometricPrompt"
-    />
   </PullToRefresh>
 </template>
 
 <script>
 import { mapState, mapActions } from 'vuex';
 import { platform } from '@/utils/platform';
+import { getItem } from '@/services/tokenStorage';
 import MobileNetWorthCard from '@/mobile/MobileNetWorthCard.vue';
 import FynInsightCard from '@/mobile/FynInsightCard.vue';
 import MobileAlertsList from '@/mobile/MobileAlertsList.vue';
@@ -122,35 +124,17 @@ export default {
     async checkBiometricSetup() {
       if (!platform.canUseBiometrics()) return;
 
-      // Check if user came from verification (first login) or biometric setup route
-      const fromSetup = this.$route.query.biometricSetup === '1';
-      if (!fromSetup) return;
+      // If already set up, don't show the banner
+      const biometricFlag = await getItem('biometric_enabled');
+      if (biometricFlag === 'true') return;
 
-      try {
-        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
-        const { isAvailable } = await NativeBiometric.isAvailable();
-        if (!isAvailable) return;
-
-        // Check if credentials already stored
-        try {
-          const credentials = await NativeBiometric.getCredentials({ server: 'fynla.org' });
-          if (credentials?.password) return; // Already set up
-        } catch {
-          // No credentials stored — show the prompt
-        }
-
-        this.showBiometricPrompt = true;
-      } catch {
-        // Biometric not available
-      }
+      // Show the setup banner — actual biometric API calls happen
+      // only when the user taps "Set up"
+      this.showBiometricPrompt = true;
     },
 
     dismissBiometricPrompt() {
       this.showBiometricPrompt = false;
-      // Remove the query param so it doesn't show again on refresh
-      if (this.$route.query.biometricSetup) {
-        this.$router.replace({ path: this.$route.path });
-      }
     },
   },
 };
