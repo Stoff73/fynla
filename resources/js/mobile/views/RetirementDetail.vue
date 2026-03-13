@@ -3,7 +3,7 @@
     <MobileDetailSkeleton v-if="loading" :rows="5" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="🏦" title="Retirement" :value="formatCurrency(projectedIncome)" subtitle="Projected retirement income">
+      <MobileHeroCard title="Retirement" :value="formatCurrency(projectedIncome)" subtitle="Projected retirement income">
         <p v-if="yearsToRetirement" class="text-xs text-neutral-400 mt-1">{{ yearsToRetirement }} years to retirement</p>
       </MobileHeroCard>
       <MobileFynCard :summary="fynSummary" />
@@ -12,7 +12,6 @@
       <MobileAccordionSection
         v-if="dcPensions.length"
         title="Defined contribution pensions"
-        icon="💼"
         :badge="dcPensions.length"
         :default-open="true"
         class="mb-3"
@@ -31,7 +30,6 @@
       <MobileAccordionSection
         v-if="dbPensions.length"
         title="Defined benefit pensions"
-        icon="🏛️"
         :badge="dbPensions.length"
         class="mb-3"
       >
@@ -49,7 +47,6 @@
       <MobileAccordionSection
         v-if="statePension"
         title="State pension"
-        icon="🇬🇧"
         class="mb-3"
       >
         <div class="divide-y divide-light-gray">
@@ -58,7 +55,7 @@
       </MobileAccordionSection>
 
       <!-- Projections -->
-      <MobileAccordionSection title="Projections" icon="📊" class="mb-3">
+      <MobileAccordionSection title="Projections" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Projected annual income" :value="projectedIncome" type="currency" />
           <MobileDataRow label="Target income" :value="targetIncome" type="currency" />
@@ -74,7 +71,7 @@
       </MobileAccordionSection>
 
       <!-- Annual Allowance -->
-      <MobileAccordionSection title="Annual allowance" icon="📋" class="mb-3">
+      <MobileAccordionSection title="Annual allowance" class="mb-3">
         <div v-if="annualAllowance" class="divide-y divide-light-gray">
           <MobileDataRow label="Standard allowance" :value="annualAllowance.standard_allowance || 60000" type="currency" />
           <MobileDataRow label="Used this year" :value="annualAllowance.used || 0" type="currency" />
@@ -90,7 +87,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="🏦" title="No retirement data yet" subtitle="Your pensions and projections will appear here" />
+    <MobileEmptyState v-else title="No retirement data yet" subtitle="Your pensions and projections will appear here" />
   </div>
 </template>
 

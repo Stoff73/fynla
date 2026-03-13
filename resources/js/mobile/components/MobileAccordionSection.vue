@@ -5,7 +5,6 @@
       @click="toggle"
     >
       <div class="flex items-center gap-2">
-        <span v-if="icon" class="text-base">{{ icon }}</span>
         <h3 class="text-sm font-bold text-horizon-500">{{ title }}</h3>
         <span
           v-if="badge != null"

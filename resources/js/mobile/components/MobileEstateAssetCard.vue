@@ -1,10 +1,7 @@
 <template>
   <div class="px-4 py-3 flex items-start justify-between">
     <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-2">
-        <span class="text-base">{{ assetIcon }}</span>
-        <h4 class="text-sm font-bold text-horizon-500 truncate">{{ asset.description || asset.name || 'Asset' }}</h4>
-      </div>
+      <h4 class="text-sm font-bold text-horizon-500 truncate">{{ asset.description || asset.name || 'Asset' }}</h4>
       <p class="text-xs text-neutral-500 mt-0.5">{{ assetTypeLabel }}</p>
       <p v-if="ownershipLabel" class="text-xs text-neutral-400 mt-0.5">{{ ownershipLabel }}</p>
     </div>
@@ -25,19 +22,6 @@ export default {
   },
 
   computed: {
-    assetIcon() {
-      const icons = {
-        property: '\uD83C\uDFE0',
-        main_residence: '\uD83C\uDFE0',
-        secondary_residence: '\uD83C\uDFE1',
-        buy_to_let: '\uD83C\uDFE2',
-        collectible: '\uD83C\uDFA8',
-        business: '\uD83C\uDFED',
-        chattels: '\uD83D\uDC8E',
-      };
-      return icons[this.asset.asset_type || this.asset.type] || '\uD83D\uDCE6';
-    },
-
     assetTypeLabel() {
       const labels = {
         property: 'Property',

@@ -3,7 +3,7 @@
     <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="🎯" title="Goals & Life Events" :value="`${completedGoals.length} of ${allGoals.length}`" subtitle="Goals completed">
+      <MobileHeroCard title="Goals & Life Events" :value="`${completedGoals.length} of ${allGoals.length}`" subtitle="Goals completed">
         <p v-if="totalCurrentAmount > 0" class="text-xs text-neutral-400 mt-1">{{ formatCurrency(totalCurrentAmount) }} saved</p>
       </MobileHeroCard>
       <MobileFynCard :summary="fynSummary" />
@@ -11,7 +11,6 @@
       <!-- Active Goals -->
       <MobileAccordionSection
         title="Active goals"
-        icon="🏃"
         :badge="activeGoals.length || null"
         :default-open="true"
         class="mb-3"
@@ -33,7 +32,6 @@
       <MobileAccordionSection
         v-if="completedGoals.length"
         title="Completed goals"
-        icon="✅"
         :badge="completedGoals.length"
         class="mb-3"
       >
@@ -50,7 +48,6 @@
       <!-- Life Events -->
       <MobileAccordionSection
         title="Life events"
-        icon="📅"
         :badge="lifeEvents.length || null"
         class="mb-3"
       >
@@ -78,7 +75,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="🎯" title="No goals yet" subtitle="Your financial goals and life events will appear here" />
+    <MobileEmptyState v-else title="No goals yet" subtitle="Your financial goals and life events will appear here" />
   </div>
 </template>
 

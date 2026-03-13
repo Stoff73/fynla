@@ -3,13 +3,12 @@
     <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="💰" title="Savings" :value="formatCurrency(totalSavings)" subtitle="Total savings" />
+      <MobileHeroCard title="Savings" :value="formatCurrency(totalSavings)" subtitle="Total savings" />
       <MobileFynCard :summary="fynSummary" />
 
       <!-- Accounts -->
       <MobileAccordionSection
         title="Accounts"
-        icon="🏦"
         :badge="accounts.length || null"
         :default-open="true"
         class="mb-3"
@@ -28,7 +27,7 @@
       </MobileAccordionSection>
 
       <!-- Emergency Fund -->
-      <MobileAccordionSection title="Emergency fund" icon="🆘" class="mb-3">
+      <MobileAccordionSection title="Emergency fund" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Emergency savings" :value="emergencyFundTotal" type="currency" />
           <MobileDataRow
@@ -47,7 +46,7 @@
       </MobileAccordionSection>
 
       <!-- ISA Allowance -->
-      <MobileAccordionSection title="ISA allowance" icon="📊" class="mb-3">
+      <MobileAccordionSection title="ISA allowance" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Total allowance" :value="isaTotal" type="currency" />
           <MobileDataRow label="Used this year" :value="isaUsed" type="currency" />
@@ -62,7 +61,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="💰" title="No savings data yet" subtitle="Your savings accounts will appear here" />
+    <MobileEmptyState v-else title="No savings data yet" subtitle="Your savings accounts will appear here" />
   </div>
 </template>
 

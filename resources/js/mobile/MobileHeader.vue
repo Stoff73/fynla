@@ -1,7 +1,7 @@
 <template>
   <header class="mobile-header bg-white border-b border-light-gray flex items-center px-4"
-          style="min-height: 44px;">
-    <!-- Left: Back button -->
+          style="min-height: 48px;">
+    <!-- Left: Back button on sub-pages, user avatar on root pages -->
     <div class="w-10">
       <button
         v-if="showBack"
@@ -12,39 +12,48 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
-    </div>
-
-    <!-- Centre: Title -->
-    <h1 class="flex-1 text-center text-base font-bold text-horizon-500 truncate">
-      {{ title }}
-    </h1>
-
-    <!-- Right: Action -->
-    <div class="w-10 flex justify-end">
       <button
-        v-if="rightAction"
-        class="p-1 text-horizon-500"
-        @click="$emit('action')"
+        v-else
+        class="w-8 h-8 rounded-full bg-horizon-500 flex items-center justify-center"
+        @click="$emit('profile')"
       >
-        <slot name="right-action">
-          <svg v-if="rightAction === 'share'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-        </slot>
+        <span class="text-white font-bold text-xs">{{ initials }}</span>
       </button>
     </div>
+
+    <!-- Centre: Fynla logo -->
+    <div class="flex-1 flex justify-center">
+      <img
+        src="/images/logos/LogoHiResFynlaDark.png"
+        alt="Fynla"
+        class="h-8"
+      />
+    </div>
+
+    <!-- Right: spacer to balance layout -->
+    <div class="w-10"></div>
   </header>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'MobileHeader',
   props: {
-    title: { type: String, default: '' },
     showBack: { type: Boolean, default: false },
-    rightAction: { type: String, default: null },
   },
-  emits: ['back', 'action'],
+  emits: ['back', 'profile'],
+
+  computed: {
+    ...mapGetters('auth', ['currentUser']),
+
+    initials() {
+      if (!this.currentUser) return '?';
+      const first = (this.currentUser.first_name || '')[0] || '';
+      const last = (this.currentUser.last_name || '')[0] || '';
+      return (first + last).toUpperCase() || '?';
+    },
+  },
 };
 </script>

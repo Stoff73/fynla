@@ -2,11 +2,9 @@
   <div class="mobile-layout flex flex-col h-screen bg-eggshell-500">
     <!-- Header -->
     <MobileHeader
-      :title="currentTitle"
       :show-back="canGoBack"
-      :right-action="rightAction"
       @back="handleBack"
-      @action="handleAction"
+      @profile="navigateToSettings"
     />
 
     <!-- Content -->
@@ -74,25 +72,10 @@ export default {
       return 'home';
     },
 
-    currentTitle() {
-      const titles = {
-        home: 'Home',
-        fyn: 'Fyn',
-        learn: 'Learn',
-        goals: 'Goals',
-        more: 'More',
-      };
-      return this.$route.meta?.title || titles[this.activeTab] || 'Fynla';
-    },
-
     canGoBack() {
       // Show back button if deeper than tab root
       const tabRoots = ['/m/home', '/m/fyn', '/m/learn', '/m/goals', '/m/more'];
       return !tabRoots.includes(this.$route.path);
-    },
-
-    rightAction() {
-      return this.$route.meta?.rightAction || null;
     },
 
     alertCount() {
@@ -109,8 +92,8 @@ export default {
       this.$router.back();
     },
 
-    handleAction() {
-      this.$emit('header-action');
+    navigateToSettings() {
+      this.$router.push('/m/more');
     },
 
     handleTabChange(tab) {

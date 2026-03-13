@@ -3,7 +3,7 @@
     <MobileDetailSkeleton v-if="loading" :rows="3" />
 
     <template v-else-if="hasData">
-      <MobileHeroCard icon="🛡️" title="Protection" :value="formatCurrency(totalCoverage)" subtitle="Total cover">
+      <MobileHeroCard title="Protection" :value="formatCurrency(totalCoverage)" subtitle="Total cover">
         <div v-if="coverageGaps.length" class="mt-2">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-500">
             {{ coverageGaps.length }} gap{{ coverageGaps.length > 1 ? 's' : '' }} identified
@@ -15,7 +15,6 @@
       <!-- Policies -->
       <MobileAccordionSection
         title="Policies"
-        icon="📋"
         :badge="allPolicies.length || null"
         :default-open="true"
         class="mb-3"
@@ -34,7 +33,7 @@
       </MobileAccordionSection>
 
       <!-- Coverage Analysis -->
-      <MobileAccordionSection title="Coverage analysis" icon="📊" class="mb-3">
+      <MobileAccordionSection title="Coverage analysis" class="mb-3">
         <div class="divide-y divide-light-gray">
           <MobileDataRow label="Total cover" :value="totalCoverage" type="currency" />
           <MobileDataRow label="Monthly premiums" :value="totalPremium" type="currency" />
@@ -55,7 +54,6 @@
       <MobileAccordionSection
         v-if="coverageGaps.length || recommendations.length"
         title="Gaps & recommendations"
-        icon="⚠️"
         :badge="coverageGaps.length + recommendations.length || null"
         class="mb-3"
       >
@@ -83,7 +81,7 @@
       </MobileAccordionSection>
     </template>
 
-    <MobileEmptyState v-else icon="🛡️" title="No protection data yet" subtitle="Your protection policies will appear here" />
+    <MobileEmptyState v-else title="No protection data yet" subtitle="Your protection policies will appear here" />
   </div>
 </template>
 

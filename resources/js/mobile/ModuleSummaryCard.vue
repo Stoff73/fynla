@@ -4,8 +4,7 @@
     :class="`border-l-4 border-l-${statusColor}`"
     @click="$emit('click')"
   >
-    <div class="flex items-center gap-2 mb-2">
-      <span class="text-lg">{{ moduleIcon }}</span>
+    <div class="mb-2">
       <p class="text-xs font-semibold text-neutral-500 uppercase truncate">{{ moduleData.label || moduleData.name }}</p>
     </div>
     <p class="text-lg font-bold text-horizon-500">{{ metricDisplay }}</p>
@@ -16,16 +15,6 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 
-const MODULE_ICONS = {
-  protection: '🛡️',
-  savings: '💰',
-  investment: '📈',
-  retirement: '🏖️',
-  estate: '🏛️',
-  goals: '🎯',
-  tax: '📋',
-};
-
 export default {
   name: 'ModuleSummaryCard',
   mixins: [currencyMixin],
@@ -34,9 +23,6 @@ export default {
   },
   emits: ['click'],
   computed: {
-    moduleIcon() {
-      return MODULE_ICONS[this.moduleData.name] || '📊';
-    },
     metricDisplay() {
       if (this.moduleData.metric_type === 'currency') {
         return this.formatCurrency(this.moduleData.metric_value);

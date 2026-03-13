@@ -14,7 +14,6 @@
                  active:bg-savannah-100 transition-colors"
           @click="navigateToModule(mod.id)"
         >
-          <span class="text-lg block mb-1">{{ mod.icon }}</span>
           <span class="text-sm font-medium text-horizon-500">{{ mod.label }}</span>
         </button>
       </div>
@@ -53,13 +52,13 @@ export default {
   data() {
     return {
       modules: [
-        { id: 'protection', icon: '\uD83D\uDEE1\uFE0F', label: 'Protection' },
-        { id: 'savings', icon: '\uD83D\uDCB0', label: 'Savings' },
-        { id: 'investment', icon: '\uD83D\uDCC8', label: 'Investment' },
-        { id: 'retirement', icon: '\uD83C\uDFE6', label: 'Retirement' },
-        { id: 'estate', icon: '\uD83C\uDFE0', label: 'Estate' },
-        { id: 'goals', icon: '\uD83C\uDFAF', label: 'Goals' },
-        { id: 'coordination', icon: '\uD83D\uDD17', label: 'Coordination' },
+        { id: 'protection', label: 'Protection' },
+        { id: 'savings', label: 'Savings' },
+        { id: 'investment', label: 'Investment' },
+        { id: 'retirement', label: 'Retirement' },
+        { id: 'estate', label: 'Estate' },
+        { id: 'goals', label: 'Goals' },
+        { id: 'coordination', label: 'Coordination' },
       ],
     };
   },

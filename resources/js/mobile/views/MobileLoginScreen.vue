@@ -3,11 +3,10 @@
     <!-- Logo -->
     <div class="text-center mb-8">
       <img
-        src="/images/logos/favicon.png"
+        src="/images/logos/LogoHiResFynlaDark.png"
         alt="Fynla"
-        class="w-16 h-16 mx-auto mb-3"
+        class="h-20 mx-auto mb-3"
       />
-      <h1 class="text-2xl font-black text-horizon-500">Fynla</h1>
       <p class="text-neutral-500 text-sm mt-1">Your financial planning companion</p>
     </div>
 
