@@ -118,6 +118,27 @@
               <p v-if="errors.asset_type" class="mt-1 text-sm text-raspberry-600">{{ errors.asset_type }}</p>
             </div>
 
+            <!-- Fund Type (sub_type) - shown only when asset type is Fund -->
+            <div v-if="formData.asset_type === 'fund'">
+              <label for="sub_type" class="block text-sm font-medium text-neutral-500 mb-1">
+                Fund Type
+              </label>
+              <select
+                id="sub_type"
+                v-model="formData.sub_type"
+                class="w-full border border-horizon-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <option :value="null">Select fund type</option>
+                <option value="equity_fund">Equity Fund</option>
+                <option value="bond_fund">Bond Fund</option>
+                <option value="mixed_fund">Mixed Fund</option>
+                <option value="income_fund">Income Fund</option>
+                <option value="index_fund">Index Fund</option>
+                <option value="money_market_fund">Money Market Fund</option>
+                <option value="property_fund">Property Fund</option>
+              </select>
+            </div>
+
             <!-- Allocation Percentage and Purchase Price (Optional) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -291,6 +312,7 @@ export default {
         ticker: '',
         isin: '',
         asset_type: '',
+        sub_type: null,
         allocation_percent: null,
         purchase_price: null,
         purchase_date: '',
@@ -340,12 +362,18 @@ export default {
         if (newHolding) {
           this.formData = {
             ...newHolding,
+            sub_type: newHolding.sub_type || null,
             purchase_date: this.formatDateForInput(newHolding.purchase_date),
           };
         } else {
           this.resetForm();
         }
       },
+    },
+    'formData.asset_type'(newVal) {
+      if (newVal !== 'fund') {
+        this.formData.sub_type = null;
+      }
     },
     show(newVal) {
       if (!newVal) {
@@ -440,6 +468,7 @@ export default {
         ticker: '',
         isin: '',
         asset_type: '',
+        sub_type: null,
         allocation_percent: null,
         purchase_price: null,
         purchase_date: '',

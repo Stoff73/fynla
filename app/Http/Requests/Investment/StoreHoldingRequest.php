@@ -28,6 +28,7 @@ class StoreHoldingRequest extends FormRequest
         return [
             'investment_account_id' => 'required|exists:investment_accounts,id',
             'asset_type' => ['required', Rule::in($this->getAssetTypes())],
+            'sub_type' => ['nullable', 'string', 'required_if:asset_type,fund', Rule::in($this->getSubTypes())],
             'security_name' => 'required|string|max:255',
             'ticker' => 'nullable|string|max:50',
             'isin' => 'nullable|string|max:50',
@@ -57,6 +58,22 @@ class StoreHoldingRequest extends FormRequest
             'international_equity',
             'cash',
             'property',
+        ];
+    }
+
+    /**
+     * Get valid sub types for fund holdings.
+     */
+    private function getSubTypes(): array
+    {
+        return [
+            'equity_fund',
+            'bond_fund',
+            'mixed_fund',
+            'income_fund',
+            'index_fund',
+            'money_market_fund',
+            'property_fund',
         ];
     }
 }

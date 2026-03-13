@@ -190,43 +190,44 @@ describe('calculateAssetAllocationWithLookThrough', function () {
 
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
-        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
-        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bond');
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equities');
+        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bonds');
 
         expect($equityAlloc['value'])->toBe(50000.0);
         expect($bondAlloc['value'])->toBe(30000.0);
     });
 
-    it('decomposes balanced fund into underlying asset classes', function () {
+    it('decomposes mixed fund into underlying asset classes', function () {
+        // Fund without sub_type resolves to 'mixed' and gets 60/30/10 split
         $holdings = collect([
             new Holding(['asset_type' => 'fund', 'current_value' => 100000, 'security_name' => 'Vanguard LifeStrategy Balanced Fund']),
         ]);
 
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
-        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
-        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bond');
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equities');
+        $bondAlloc = collect($allocation)->firstWhere('asset_type', 'bonds');
         $cashAlloc = collect($allocation)->firstWhere('asset_type', 'cash');
 
-        // Balanced fund: 60% equity, 30% bond, 10% cash
+        // Mixed fund: 60% equity, 30% bond, 10% cash
         expect($equityAlloc['value'])->toBe(60000.0);
         expect($bondAlloc['value'])->toBe(30000.0);
         expect($cashAlloc['value'])->toBe(10000.0);
     });
 
-    it('classifies bond fund as bond', function () {
+    it('classifies bond fund with sub_type as bonds', function () {
         $holdings = collect([
-            new Holding(['asset_type' => 'fund', 'current_value' => 50000, 'security_name' => 'iShares Corporate Bond Fund']),
+            new Holding(['asset_type' => 'fund', 'sub_type' => 'bond_fund', 'current_value' => 50000, 'security_name' => 'iShares Corporate Bond Fund']),
         ]);
 
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
         expect($allocation)->toHaveCount(1);
-        expect($allocation[0]['asset_type'])->toBe('bond');
+        expect($allocation[0]['asset_type'])->toBe('bonds');
         expect($allocation[0]['value'])->toBe(50000.0);
     });
 
-    it('classifies property REIT ETF as property', function () {
+    it('classifies ETF as equities', function () {
         $holdings = collect([
             new Holding(['asset_type' => 'etf', 'current_value' => 25000, 'security_name' => 'iShares UK Property REIT ETF']),
         ]);
@@ -234,12 +235,12 @@ describe('calculateAssetAllocationWithLookThrough', function () {
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
         expect($allocation)->toHaveCount(1);
-        expect($allocation[0]['asset_type'])->toBe('property');
+        expect($allocation[0]['asset_type'])->toBe('equities');
     });
 
-    it('classifies money market fund as cash', function () {
+    it('classifies money market fund with sub_type as cash', function () {
         $holdings = collect([
-            new Holding(['asset_type' => 'fund', 'current_value' => 20000, 'security_name' => 'Royal London Money Market Fund']),
+            new Holding(['asset_type' => 'fund', 'sub_type' => 'money_market_fund', 'current_value' => 20000, 'security_name' => 'Royal London Money Market Fund']),
         ]);
 
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
@@ -248,15 +249,17 @@ describe('calculateAssetAllocationWithLookThrough', function () {
         expect($allocation[0]['asset_type'])->toBe('cash');
     });
 
-    it('defaults unknown fund to equity', function () {
+    it('defaults unknown fund to mixed split', function () {
+        // Fund without sub_type resolves to 'mixed' → 60/30/10 split
         $holdings = collect([
             new Holding(['asset_type' => 'fund', 'current_value' => 30000, 'security_name' => 'XYZ Unknown Fund']),
         ]);
 
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
-        expect($allocation)->toHaveCount(1);
-        expect($allocation[0]['asset_type'])->toBe('equity');
+        expect($allocation)->toHaveCount(3);
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equities');
+        expect($equityAlloc['value'])->toBe(18000.0);
     });
 
     it('returns empty array for empty holdings', function () {
@@ -276,7 +279,7 @@ describe('calculateAssetAllocationWithLookThrough', function () {
         $allocation = $this->analyzer->calculateAssetAllocationWithLookThrough($holdings);
 
         // Direct equity (40000) + fund equity portion (60000) = 100000
-        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equity');
+        $equityAlloc = collect($allocation)->firstWhere('asset_type', 'equities');
         expect($equityAlloc['value'])->toBe(100000.0);
     });
 });

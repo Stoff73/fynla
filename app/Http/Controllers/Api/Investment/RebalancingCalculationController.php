@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Investment;
 
+use App\Constants\InvestmentDefaults;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\InvestmentAccount;
@@ -563,14 +564,7 @@ class RebalancingCalculationController extends Controller
      */
     private function getTargetAllocationForRiskLevel(int $riskLevel): array
     {
-        return match ($riskLevel) {
-            1 => ['equities' => 10, 'bonds' => 70, 'cash' => 20, 'alternatives' => 0],
-            2 => ['equities' => 30, 'bonds' => 55, 'cash' => 10, 'alternatives' => 5],
-            3 => ['equities' => 50, 'bonds' => 40, 'cash' => 5, 'alternatives' => 5],
-            4 => ['equities' => 75, 'bonds' => 20, 'cash' => 0, 'alternatives' => 5],
-            5 => ['equities' => 90, 'bonds' => 5, 'cash' => 0, 'alternatives' => 5],
-            default => ['equities' => 50, 'bonds' => 40, 'cash' => 5, 'alternatives' => 5],
-        };
+        return InvestmentDefaults::getTargetAllocation($riskLevel);
     }
 
     /**
@@ -624,7 +618,9 @@ class RebalancingCalculationController extends Controller
 
         foreach ($holdings as $holding) {
             $assetClass = strtolower($holding->asset_class ?? 'equities');
-            $targetPercent = $targetAllocation[$assetClass] ?? $targetAllocation['equities'] ?? 50;
+            $targetPercent = $targetAllocation[$assetClass]
+                ?? $targetAllocation['equities']
+                ?? InvestmentDefaults::TARGET_ALLOCATIONS[3]['equities'];
 
             // Calculate this holding's share of its asset class
             $classTotal = $holdings->where('asset_class', $holding->asset_class)->sum('current_value');

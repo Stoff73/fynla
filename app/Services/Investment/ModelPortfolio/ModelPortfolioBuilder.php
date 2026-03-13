@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\ModelPortfolio;
 
+use App\Constants\InvestmentDefaults;
+
 /**
  * Model Portfolio Builder
  * Generates pre-built model portfolios based on risk profiles
@@ -106,12 +108,7 @@ class ModelPortfolioBuilder
             'name' => 'Very Conservative',
             'risk_level' => 1,
             'description' => 'Capital preservation with minimal volatility. Suitable for short-term goals or those who cannot tolerate losses.',
-            'asset_allocation' => [
-                'equities' => 10,
-                'bonds' => 70,
-                'cash' => 20,
-                'alternatives' => 0,
-            ],
+            'asset_allocation' => InvestmentDefaults::TARGET_ALLOCATIONS[1],
             'geographic_allocation' => [
                 'uk' => 60,
                 'developed_ex_uk' => 30,
@@ -173,12 +170,7 @@ class ModelPortfolioBuilder
             'name' => 'Conservative',
             'risk_level' => 2,
             'description' => 'Income generation with capital preservation. Suitable for those nearing retirement or with low risk tolerance.',
-            'asset_allocation' => [
-                'equities' => 30,
-                'bonds' => 55,
-                'cash' => 10,
-                'alternatives' => 5,
-            ],
+            'asset_allocation' => InvestmentDefaults::TARGET_ALLOCATIONS[2],
             'geographic_allocation' => [
                 'uk' => 50,
                 'developed_ex_uk' => 40,
@@ -256,12 +248,7 @@ class ModelPortfolioBuilder
             'name' => 'Moderate',
             'risk_level' => 3,
             'description' => 'Balanced growth and income. Suitable for medium-term goals with moderate risk tolerance.',
-            'asset_allocation' => [
-                'equities' => 50,
-                'bonds' => 40,
-                'cash' => 5,
-                'alternatives' => 5,
-            ],
+            'asset_allocation' => InvestmentDefaults::TARGET_ALLOCATIONS[3],
             'geographic_allocation' => [
                 'uk' => 30,
                 'developed_ex_uk' => 55,
@@ -347,12 +334,7 @@ class ModelPortfolioBuilder
             'name' => 'Growth',
             'risk_level' => 4,
             'description' => 'Long-term capital appreciation. Suitable for those with 10+ year horizon and high risk tolerance.',
-            'asset_allocation' => [
-                'equities' => 75,
-                'bonds' => 20,
-                'cash' => 0,
-                'alternatives' => 5,
-            ],
+            'asset_allocation' => InvestmentDefaults::TARGET_ALLOCATIONS[4],
             'geographic_allocation' => [
                 'uk' => 25,
                 'developed_ex_uk' => 55,
@@ -430,12 +412,7 @@ class ModelPortfolioBuilder
             'name' => 'Aggressive',
             'risk_level' => 5,
             'description' => 'Maximum growth potential. Suitable for those with 15+ year horizon and very high risk tolerance.',
-            'asset_allocation' => [
-                'equities' => 90,
-                'bonds' => 5,
-                'cash' => 0,
-                'alternatives' => 5,
-            ],
+            'asset_allocation' => InvestmentDefaults::TARGET_ALLOCATIONS[5],
             'geographic_allocation' => [
                 'uk' => 20,
                 'developed_ex_uk' => 55,
@@ -529,29 +506,12 @@ class ModelPortfolioBuilder
         ];
 
         foreach ($holdings as $holding) {
-            $assetClass = $this->mapAssetClass($holding['asset_type'] ?? 'unknown');
+            $assetClass = InvestmentDefaults::resolveAssetClass($holding['asset_type'] ?? 'unknown', $holding['sub_type'] ?? null);
             $percentage = ($holding['current_value'] / $totalValue) * 100;
             $allocation[$assetClass] += $percentage;
         }
 
         return array_map(fn ($val) => round($val, 1), $allocation);
-    }
-
-    /**
-     * Map asset type to asset class
-     *
-     * @param  string  $assetType  Asset type
-     * @return string Asset class
-     */
-    private function mapAssetClass(string $assetType): string
-    {
-        return match (strtolower($assetType)) {
-            'equity', 'stock', 'etf' => 'equities',
-            'bond', 'fixed_income', 'gilt' => 'bonds',
-            'cash', 'money_market' => 'cash',
-            'property', 'reit', 'alternative' => 'alternatives',
-            default => 'equities',
-        };
     }
 
     /**

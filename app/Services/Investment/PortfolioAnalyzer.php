@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\InvestmentDefaults;
 use App\Models\Investment\Holding;
 use App\Models\Investment\RiskProfile;
 use Carbon\Carbon;
@@ -124,9 +125,9 @@ class PortfolioAnalyzer
     /**
      * Calculate asset allocation with fund/ETF look-through.
      *
-     * Direct holdings (equity, bond, cash, etc.) pass through at 100%.
-     * Funds and ETFs are decomposed into underlying asset classes using
-     * a name-based heuristic on security_name.
+     * Direct holdings pass through at 100% to their resolved asset class.
+     * Funds resolving to 'mixed' are decomposed into underlying asset classes
+     * (60% equities, 30% bonds, 10% cash) via InvestmentDefaults::resolveAssetClass().
      */
     public function calculateAssetAllocationWithLookThrough(Collection $holdings): array
     {
@@ -171,61 +172,25 @@ class PortfolioAnalyzer
     /**
      * Get the underlying asset breakdown for a holding.
      *
-     * Direct asset types pass through at 100%. Fund/ETF types are
-     * decomposed using a name-based heuristic on security_name.
+     * Uses InvestmentDefaults::resolveAssetClass() for consistent asset class
+     * resolution. Mixed/balanced funds are decomposed into a 60/30/10
+     * equity/bond/cash split; all other classes allocate 100%.
      *
-     * @return array<string, float> Asset type => weight (0.0 to 1.0)
+     * @return array<string, float> Asset class => weight (0.0 to 1.0)
      */
     private function getAssetBreakdown(mixed $holding): array
     {
-        $assetType = strtolower($holding->asset_type ?? 'unknown');
+        $assetType = $holding->asset_type ?? 'unknown';
+        $subType = $holding->sub_type ?? null;
 
-        // Direct asset types pass through at 100%
-        $directTypes = ['equity', 'bond', 'cash', 'commodity', 'property'];
-        if (in_array($assetType, $directTypes)) {
-            return [$assetType => 1.0];
+        $resolvedClass = InvestmentDefaults::resolveAssetClass($assetType, $subType);
+
+        // Mixed/balanced funds: look-through decomposition
+        if ($resolvedClass === 'mixed') {
+            return ['equities' => 0.60, 'bonds' => 0.30, 'cash' => 0.10];
         }
 
-        // Fund/ETF: use security_name heuristic
-        if (in_array($assetType, ['fund', 'etf'])) {
-            $name = strtolower($holding->security_name ?? '');
-
-            // Property/REIT funds
-            if (str_contains($name, 'property') || str_contains($name, 'reit') || str_contains($name, 'real estate')) {
-                return ['property' => 1.0];
-            }
-
-            // Money market / cash funds
-            if (str_contains($name, 'money market') || str_contains($name, 'cash fund') || str_contains($name, 'liquidity')) {
-                return ['cash' => 1.0];
-            }
-
-            // Bond / gilt / fixed income funds
-            if (str_contains($name, 'bond') || str_contains($name, 'gilt') || str_contains($name, 'fixed income') || str_contains($name, 'corporate bond')) {
-                return ['bond' => 1.0];
-            }
-
-            // Balanced / multi-asset funds
-            if (str_contains($name, 'balanced') || str_contains($name, 'multi-asset') || str_contains($name, 'multi asset') || str_contains($name, 'lifestyle')) {
-                return ['equity' => 0.60, 'bond' => 0.30, 'cash' => 0.10];
-            }
-
-            // Global/world equity funds
-            if (str_contains($name, 'global equity') || str_contains($name, 'world equity') || str_contains($name, 'all world') || str_contains($name, 'ftse global')) {
-                return ['equity' => 1.0];
-            }
-
-            // Any other equity-related fund
-            if (str_contains($name, 'equity') || str_contains($name, 'stock') || str_contains($name, 'share') || str_contains($name, 'growth')) {
-                return ['equity' => 1.0];
-            }
-
-            // Default: assume equity-dominant fund
-            return ['equity' => 1.0];
-        }
-
-        // Unknown asset types default to equity
-        return ['equity' => 1.0];
+        return [$resolvedClass => 1.0];
     }
 
     /**

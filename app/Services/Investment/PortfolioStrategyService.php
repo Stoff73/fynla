@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use App\Services\TaxConfigService;
+use App\Constants\InvestmentDefaults;
 use App\Traits\FormatsCurrency;
 
 /**
@@ -381,12 +382,7 @@ class PortfolioStrategyService
             }
 
             // Get target allocation from account or use default balanced allocation
-            $targetAllocation = $account->target_allocation ?? [
-                'equities' => 60,
-                'bonds' => 30,
-                'cash' => 5,
-                'alternatives' => 5,
-            ];
+            $targetAllocation = $account->target_allocation ?? InvestmentDefaults::TARGET_ALLOCATIONS[3];
 
             $driftAnalysis = $this->driftAnalyzer->analyzeDrift(
                 $account->holdings,

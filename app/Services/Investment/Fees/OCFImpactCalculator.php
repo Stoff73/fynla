@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Fees;
 
+use App\Constants\InvestmentDefaults;
 use App\Models\Investment\Holding;
+use App\Traits\CalculatesOCF;
 use Illuminate\Support\Collection;
 
 /**
@@ -19,6 +21,8 @@ use Illuminate\Support\Collection;
  */
 class OCFImpactCalculator
 {
+    use CalculatesOCF;
+
     /**
      * Calculate OCF impact over time
      *
@@ -164,26 +168,6 @@ class OCFImpactCalculator
     }
 
     /**
-     * Calculate weighted average OCF
-     *
-     * @param  Collection  $holdings  Holdings
-     * @param  float  $totalValue  Total value
-     * @return float Weighted OCF
-     */
-    private function calculateWeightedOCF(Collection $holdings, float $totalValue): float
-    {
-        $weightedOCF = 0;
-
-        foreach ($holdings as $holding) {
-            $weight = $holding->current_value / $totalValue;
-            $ocf = $holding->ocf ?? $this->estimateOCF($holding->asset_type);
-            $weightedOCF += $weight * $ocf;
-        }
-
-        return $weightedOCF;
-    }
-
-    /**
      * Project portfolio value with OCF impact
      *
      * @param  float  $initialValue  Initial value
@@ -268,7 +252,7 @@ class OCFImpactCalculator
         foreach ($holdings as $holding) {
             $ocf = $holding->ocf ?? $this->estimateOCF($holding->asset_type);
 
-            if ($ocf > 0.0075) { // More than 0.75%
+            if ($ocf > InvestmentDefaults::HIGH_OCF_THRESHOLD_DECIMAL) {
                 $highCost[] = [
                     'holding_id' => $holding->id,
                     'name' => $holding->security_name ?? $holding->ticker,
@@ -284,24 +268,6 @@ class OCFImpactCalculator
         usort($highCost, fn ($a, $b) => $b['ocf'] <=> $a['ocf']);
 
         return $highCost;
-    }
-
-    /**
-     * Estimate OCF for asset type
-     *
-     * @param  string  $assetType  Asset type
-     * @return float Estimated OCF
-     */
-    private function estimateOCF(string $assetType): float
-    {
-        return match ($assetType) {
-            'index_fund', 'etf' => 0.001,
-            'active_fund' => 0.0075,
-            'equity', 'stock' => 0.0,
-            'bond' => 0.0005,
-            'alternative' => 0.015,
-            default => 0.005,
-        };
     }
 
     /**
@@ -324,26 +290,6 @@ class OCFImpactCalculator
     private function isPassiveFund(Holding $holding): bool
     {
         return in_array($holding->asset_type, ['index_fund', 'etf']) || (($holding->ocf ?? 0) <= 0.0025);
-    }
-
-    /**
-     * Calculate compound savings
-     *
-     * @param  float  $value  Portfolio value
-     * @param  float  $annualSavings  Annual savings
-     * @param  int  $years  Years
-     * @param  float  $returnRate  Return rate
-     * @return float Compound savings
-     */
-    private function calculateCompoundSavings(float $value, float $annualSavings, int $years, float $returnRate): float
-    {
-        if ($annualSavings <= 0 || $value == 0) {
-            return 0;
-        }
-
-        $feePercent = ($annualSavings / $value);
-
-        return $value * (pow(1 + $returnRate, $years) - pow(1 + $returnRate - $feePercent, $years));
     }
 
     /**

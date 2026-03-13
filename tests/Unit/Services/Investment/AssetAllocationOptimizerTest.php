@@ -17,13 +17,16 @@ describe('getTargetAllocation', function () {
 
         $allocation = $this->optimizer->getTargetAllocation($profile);
 
-        expect($allocation)->toHaveCount(3)
-            ->and($allocation[0]['asset_type'])->toBe('equity')
-            ->and($allocation[0]['percentage'])->toBe(20.0)
-            ->and($allocation[1]['asset_type'])->toBe('bond')
-            ->and($allocation[1]['percentage'])->toBe(60.0)
+        // Cautious maps to risk level 1 via InvestmentDefaults
+        expect($allocation)->toHaveCount(4)
+            ->and($allocation[0]['asset_type'])->toBe('equities')
+            ->and($allocation[0]['percentage'])->toBe(10.0)
+            ->and($allocation[1]['asset_type'])->toBe('bonds')
+            ->and($allocation[1]['percentage'])->toBe(70.0)
             ->and($allocation[2]['asset_type'])->toBe('cash')
-            ->and($allocation[2]['percentage'])->toBe(20.0);
+            ->and($allocation[2]['percentage'])->toBe(20.0)
+            ->and($allocation[3]['asset_type'])->toBe('alternatives')
+            ->and($allocation[3]['percentage'])->toBe(0.0);
     });
 
     it('returns balanced allocation for balanced risk profile', function () {
@@ -33,9 +36,11 @@ describe('getTargetAllocation', function () {
 
         $allocation = $this->optimizer->getTargetAllocation($profile);
 
-        expect($allocation[0]['percentage'])->toBe(60.0) // equity
-            ->and($allocation[1]['percentage'])->toBe(30.0) // bond
-            ->and($allocation[2]['percentage'])->toBe(10.0); // cash
+        // Balanced maps to risk level 3 via InvestmentDefaults
+        expect($allocation[0]['percentage'])->toBe(50.0) // equities
+            ->and($allocation[1]['percentage'])->toBe(40.0) // bonds
+            ->and($allocation[2]['percentage'])->toBe(5.0) // cash
+            ->and($allocation[3]['percentage'])->toBe(5.0); // alternatives
     });
 
     it('returns adventurous allocation for adventurous risk profile', function () {
@@ -45,9 +50,11 @@ describe('getTargetAllocation', function () {
 
         $allocation = $this->optimizer->getTargetAllocation($profile);
 
-        expect($allocation[0]['percentage'])->toBe(80.0) // equity
-            ->and($allocation[1]['percentage'])->toBe(15.0) // bond
-            ->and($allocation[2]['percentage'])->toBe(5.0); // cash
+        // Adventurous maps to risk level 5 via InvestmentDefaults
+        expect($allocation[0]['percentage'])->toBe(90.0) // equities
+            ->and($allocation[1]['percentage'])->toBe(5.0) // bonds
+            ->and($allocation[2]['percentage'])->toBe(0.0) // cash
+            ->and($allocation[3]['percentage'])->toBe(5.0); // alternatives
     });
 
     it('total allocation sums to 100%', function () {
@@ -275,8 +282,8 @@ describe('edge cases', function () {
         $cautiousAllocation = $this->optimizer->getTargetAllocation($cautious);
         $adventurousAllocation = $this->optimizer->getTargetAllocation($adventurous);
 
-        $cautiousEquity = collect($cautiousAllocation)->firstWhere('asset_type', 'equity')['percentage'];
-        $adventurousEquity = collect($adventurousAllocation)->firstWhere('asset_type', 'equity')['percentage'];
+        $cautiousEquity = collect($cautiousAllocation)->firstWhere('asset_type', 'equities')['percentage'];
+        $adventurousEquity = collect($adventurousAllocation)->firstWhere('asset_type', 'equities')['percentage'];
 
         expect($adventurousEquity)->toBeGreaterThan($cautiousEquity);
     });

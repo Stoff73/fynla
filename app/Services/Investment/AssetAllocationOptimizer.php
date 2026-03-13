@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\InvestmentDefaults;
 use App\Models\Investment\RiskProfile;
 
 class AssetAllocationOptimizer
@@ -41,58 +42,15 @@ class AssetAllocationOptimizer
     }
 
     /**
-     * Get allocation percentages for a risk level
+     * Get allocation percentages for a risk level.
+     *
+     * Delegates to InvestmentDefaults::getTargetAllocation() which accepts
+     * both string labels and integer levels, and returns plural keys
+     * (equities, bonds, cash, alternatives).
      */
     private function getAllocationForLevel(string $level): array
     {
-        return match ($level) {
-            'low' => [
-                'equity' => 10,
-                'bond' => 70,
-                'cash' => 20,
-            ],
-            'lower_medium' => [
-                'equity' => 30,
-                'bond' => 55,
-                'cash' => 15,
-            ],
-            'medium' => [
-                'equity' => 50,
-                'bond' => 40,
-                'cash' => 10,
-            ],
-            'upper_medium' => [
-                'equity' => 75,
-                'bond' => 20,
-                'cash' => 5,
-            ],
-            'high' => [
-                'equity' => 90,
-                'bond' => 5,
-                'cash' => 5,
-            ],
-            // Legacy values for backwards compatibility
-            'cautious' => [
-                'equity' => 20,
-                'bond' => 60,
-                'cash' => 20,
-            ],
-            'balanced' => [
-                'equity' => 60,
-                'bond' => 30,
-                'cash' => 10,
-            ],
-            'adventurous' => [
-                'equity' => 80,
-                'bond' => 15,
-                'cash' => 5,
-            ],
-            default => [
-                'equity' => 50,
-                'bond' => 40,
-                'cash' => 10,
-            ],
-        };
+        return InvestmentDefaults::getTargetAllocation($level);
     }
 
     /**

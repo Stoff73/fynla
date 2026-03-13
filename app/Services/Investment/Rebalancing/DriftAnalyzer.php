@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Rebalancing;
 
+use App\Constants\InvestmentDefaults;
 use Illuminate\Support\Collection;
 
 /**
@@ -440,12 +441,6 @@ class DriftAnalyzer
      */
     private function normalizeAssetClass(string $assetType): string
     {
-        return match (strtolower($assetType)) {
-            'uk_equity', 'global_equity', 'emerging_markets', 'equity', 'stock' => 'equities',
-            'uk_bonds', 'global_bonds', 'government_bonds', 'corporate_bonds', 'bond' => 'bonds',
-            'cash', 'money_market' => 'cash',
-            'property', 'real_estate', 'commodities', 'alternative' => 'alternatives',
-            default => $assetType,
-        };
+        return InvestmentDefaults::resolveAssetClass($assetType);
     }
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\InvestmentDefaults;
 use App\Models\Investment\InvestmentAccount;
+use App\Traits\CalculatesOCF;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,6 +25,8 @@ use Illuminate\Support\Collection;
  */
 class FeeAnalyzer
 {
+    use CalculatesOCF;
+
     // =========================================================================
     // COLLECTION-BASED METHODS (for use with pre-fetched data)
     // =========================================================================
@@ -159,7 +163,7 @@ class FeeAnalyzer
      */
     public function identifyHighFeeHoldings(Collection $holdings, ?float $advisoryFeePercent = null): array
     {
-        $highFeeThreshold = 0.8; // 0.8% is considered high (excluding advisory fees)
+        $highFeeThreshold = InvestmentDefaults::HIGH_OCF_THRESHOLD_PERCENT; // Excluding advisory fees
 
         $highFeeHoldings = $holdings->filter(function ($holding) use ($highFeeThreshold, $advisoryFeePercent) {
             // Calculate fees excluding advisory fee for threshold comparison
@@ -499,37 +503,6 @@ class FeeAnalyzer
     }
 
     /**
-     * Calculate weighted average OCF across holdings
-     */
-    private function calculateWeightedOCF(Collection $holdings, float $totalValue): float
-    {
-        $weightedOCF = 0;
-
-        foreach ($holdings as $holding) {
-            $weight = $holding->current_value / $totalValue;
-            $ocf = $holding->ocf ?? $this->estimateOCF($holding->asset_type);
-            $weightedOCF += $weight * $ocf;
-        }
-
-        return $weightedOCF;
-    }
-
-    /**
-     * Estimate OCF for asset type if not provided
-     */
-    private function estimateOCF(string $assetType): float
-    {
-        return match ($assetType) {
-            'index_fund', 'etf' => 0.001, // 0.10% for passive
-            'active_fund' => 0.0075, // 0.75% for active
-            'equity', 'stock' => 0.0, // No OCF for direct equities
-            'bond' => 0.0005, // 0.05% for bond funds
-            'alternative' => 0.015, // 1.5% for alternatives
-            default => 0.005, // 0.50% default
-        };
-    }
-
-    /**
      * Estimate annual transaction costs, using platform-specific dealing charges when available.
      */
     private function estimateTransactionCosts(float $portfolioValue, float $turnoverRate, ?string $platform = null): float
@@ -674,17 +647,4 @@ class FeeAnalyzer
         ];
     }
 
-    /**
-     * Calculate compound savings over time
-     */
-    private function calculateCompoundSavings(float $portfolioValue, float $annualSavings, int $years, float $returnRate): float
-    {
-        if ($annualSavings == 0) {
-            return 0;
-        }
-
-        $feePercent = ($annualSavings / $portfolioValue) * 100;
-
-        return $portfolioValue * (pow(1 + $returnRate, $years) - pow(1 + $returnRate - ($feePercent / 100), $years));
-    }
 }

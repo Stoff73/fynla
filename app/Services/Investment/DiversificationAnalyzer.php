@@ -4,33 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\InvestmentDefaults;
 use Illuminate\Support\Collection;
 
 class DiversificationAnalyzer
 {
-    // Map asset types to asset classes
-    private const ASSET_CLASS_MAP = [
-        'uk_equity' => 'equities',
-        'us_equity' => 'equities',
-        'international_equity' => 'equities',
-        'equity' => 'equities',
-        'bond' => 'bonds',
-        'cash' => 'cash',
-        'alternative' => 'alternatives',
-        'property' => 'alternatives',
-        'fund' => 'equities',
-        'etf' => 'equities',
-    ];
-
-    // Target allocations by risk level (1-5 scale)
-    private const TARGET_ALLOCATIONS = [
-        1 => ['equities' => 10, 'bonds' => 70, 'cash' => 20, 'alternatives' => 0],
-        2 => ['equities' => 30, 'bonds' => 55, 'cash' => 10, 'alternatives' => 5],
-        3 => ['equities' => 50, 'bonds' => 35, 'cash' => 10, 'alternatives' => 5],
-        4 => ['equities' => 75, 'bonds' => 15, 'cash' => 5, 'alternatives' => 5],
-        5 => ['equities' => 90, 'bonds' => 0, 'cash' => 5, 'alternatives' => 5],
-    ];
-
     // Map string risk levels to numeric
     private const RISK_LEVEL_MAP = [
         'low' => 1,
@@ -181,11 +159,11 @@ class DiversificationAnalyzer
             'bonds' => 0.0,
             'cash' => 0.0,
             'alternatives' => 0.0,
+            'mixed' => 0.0,
         ];
 
         foreach ($holdings as $holding) {
-            $assetType = strtolower($holding->asset_type ?? 'equity');
-            $assetClass = self::ASSET_CLASS_MAP[$assetType] ?? 'equities';
+            $assetClass = InvestmentDefaults::resolveAssetClass($holding->asset_type ?? 'equity', $holding->sub_type ?? null);
             $percentage = (($holding->current_value ?? 0) / $totalValue) * 100;
             $breakdown[$assetClass] += $percentage;
         }
@@ -204,7 +182,7 @@ class DiversificationAnalyzer
     public function compareToTarget(array $currentAllocation, int $riskLevel): array
     {
         $level = max(1, min(5, $riskLevel));
-        $target = self::TARGET_ALLOCATIONS[$level];
+        $target = InvestmentDefaults::getTargetAllocation($level);
 
         $comparison = [];
         foreach (['equities', 'bonds', 'cash', 'alternatives'] as $class) {

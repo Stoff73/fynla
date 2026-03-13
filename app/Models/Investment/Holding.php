@@ -22,6 +22,7 @@ class Holding extends Model
         'holdable_id',
         'holdable_type',
         'asset_type',
+        'sub_type',
         'allocation_percent',
         'security_name',
         'ticker',

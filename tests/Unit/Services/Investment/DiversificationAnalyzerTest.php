@@ -279,10 +279,10 @@ describe('compareToTarget', function () {
 
         $comparison = $this->analyzer->compareToTarget($currentAllocation, 5);
 
-        // Risk 5 target: equities=90, bonds=0, cash=5, alternatives=5
+        // Risk 5 target: equities=90, bonds=5, cash=0, alternatives=5
         expect($comparison['equities']['deviation'])->toBe(-10.0) // 80 - 90
-            ->and($comparison['bonds']['deviation'])->toBe(10.0)  // 10 - 0
-            ->and($comparison['cash']['deviation'])->toBe(0.0)    // 5 - 5
+            ->and($comparison['bonds']['deviation'])->toBe(5.0)   // 10 - 5
+            ->and($comparison['cash']['deviation'])->toBe(5.0)    // 5 - 0
             ->and($comparison['alternatives']['deviation'])->toBe(0.0); // 5 - 5
     });
 
@@ -298,16 +298,16 @@ describe('compareToTarget', function () {
     });
 
     it('assigns severity correctly', function () {
+        // Risk 3 target: equities=50, bonds=40, cash=5, alternatives=5
         $currentAllocation = [
             'equities' => 50,
-            'bonds' => 35,
-            'cash' => 10,
+            'bonds' => 40,
+            'cash' => 5,
             'alternatives' => 5,
         ];
 
         $comparison = $this->analyzer->compareToTarget($currentAllocation, 3);
 
-        // Risk 3 target: equities=50, bonds=35, cash=10, alternatives=5
         expect($comparison['equities']['severity'])->toBe('aligned')
             ->and($comparison['bonds']['severity'])->toBe('aligned')
             ->and($comparison['cash']['severity'])->toBe('aligned');
