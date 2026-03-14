@@ -8,12 +8,13 @@ use App\Models\Estate\Asset;
 use Illuminate\Support\Collection;
 
 /**
- * Analyzes asset liquidity for gifting strategy purposes
+ * Analyzes asset liquidity for gifting strategy and Inheritance Tax payment purposes
  *
- * Classifies assets based on how easily they can be gifted for IHT planning:
- * - Liquid: Cash, investments, ISAs (can gift immediately up to any amount)
- * - Semi-Liquid: Rental properties, second homes (can be gifted but with planning)
- * - Illiquid: Main residence (cannot be gifted while living in it - gift with reservation of benefit)
+ * Classifies assets based on liquidity and giftability:
+ * - Liquid: Cash accounts, savings accounts, Cash ISAs, Premium Bonds
+ * - Semi-Liquid: Investment accounts (ISAs, General Investment Accounts, bonds),
+ *   rental properties, second homes (can be sold but takes days/weeks, may incur Capital Gains Tax)
+ * - Illiquid: Main residence, business interests, pensions (cannot be used to pay Inheritance Tax)
  */
 class AssetLiquidityAnalyzer
 {
@@ -128,28 +129,29 @@ class AssetLiquidityAnalyzer
                 ],
             ],
             'investment' => [
-                'liquidity' => 'liquid',
+                'liquidity' => 'semi_liquid',
                 'is_giftable' => true,
                 'not_giftable_reason' => null,
                 'gifting_considerations' => [
-                    'Investment assets are highly liquid and easily giftable',
+                    'Investment assets can be sold but this takes days or weeks to settle',
                     'Can gift shares, funds, or cash from sales',
-                    'Consider Capital Gains Tax (CGT) on disposal before gifting',
+                    'Consider Capital Gains Tax on disposal before gifting',
                     'ISAs lose tax-free status when gifted (become normal investments)',
                     'Consider using annual exemption (£3,000) for regular small gifts',
-                    'Large gifts are Potentially Exempt Transfers (PETs) - exempt after 7 years',
+                    'Large gifts are Potentially Exempt Transfers - exempt after 7 years',
                 ],
             ],
             'pension', 'dc_pension', 'db_pension' => [
-                'liquidity' => 'liquid', // Pensions are outside estate anyway
+                'liquidity' => 'illiquid',
                 'is_giftable' => false,
-                'not_giftable_reason' => 'Pensions are already outside your estate (no need to gift)',
+                'not_giftable_reason' => 'Pensions cannot be used to pay Inheritance Tax liabilities',
                 'gifting_considerations' => [
-                    'Pensions are NOT part of your taxable estate for IHT',
-                    'No need to gift - they already pass IHT-free to beneficiaries',
+                    'Pensions are currently NOT part of your taxable estate for Inheritance Tax (this may change from April 2027)',
+                    'Pension funds pass to nominated beneficiaries outside the estate',
                     'Ensure beneficiaries are nominated on all pension schemes',
-                    'Consider maximizing pension contributions instead of gifting',
+                    'Consider maximising pension contributions instead of gifting',
                     'Pension funds pass tax-free if you die before age 75',
+                    'Pensions cannot be accessed to pay Inheritance Tax liabilities on the wider estate',
                 ],
             ],
             'property' => [

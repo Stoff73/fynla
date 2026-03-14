@@ -581,6 +581,14 @@ class InvestmentActionDefinitionService
     /**
      * Calculate surplus amount: total savings minus target months of expenses.
      * Returns 0 if no surplus or if a goal is drawing down the emergency fund.
+     *
+     * NOTE: Investment uses a 6-month universal baseline via
+     * PlanConfigService::getEmergencyFundTargetMonths(). Savings uses
+     * employment-specific targets via EmergencyFundCalculator::getTargetMonths()
+     * (e.g. 9 months for self-employed/contractors, 3 months for retired).
+     * This divergence is intentional — investment surplus calculations use a
+     * conservative universal floor, while savings recommendations personalise
+     * the target based on employment stability.
      */
     private function calculateSurplus(array $savingsAnalysis, int $userId): float
     {

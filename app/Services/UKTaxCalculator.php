@@ -665,17 +665,15 @@ class UKTaxCalculator
         }
 
         // Step 2: Calculate tax on interest income with Personal Savings Allowance
-        // PSA: £1,000 for basic rate taxpayers, £500 for higher rate, £0 for additional rate
+        // PSA rates sourced from TaxConfigService (basic: £1,000, higher: £500, additional: £0)
         if ($interestIncome > 0) {
-            // Determine PSA based on total income
-            $personalSavingsAllowance = 0;
-            if ($totalIncome <= $basicRateLimit) {
-                $personalSavingsAllowance = 1000; // Basic rate taxpayer
-            } elseif ($totalIncome <= $higherRateLimit) {
-                $personalSavingsAllowance = 500;  // Higher rate taxpayer
-            } else {
-                $personalSavingsAllowance = 0;    // Additional rate taxpayer
-            }
+            // Determine PSA based on total income band
+            $psaBand = match (true) {
+                $totalIncome <= $basicRateLimit => 'basic',
+                $totalIncome <= $higherRateLimit => 'higher',
+                default => 'additional',
+            };
+            $personalSavingsAllowance = $this->taxConfig->getPersonalSavingsAllowance($psaBand);
 
             $taxableInterest = max(0, $interestIncome - $personalSavingsAllowance);
 

@@ -22,6 +22,7 @@ class NotificationPreference extends Model
         'security_alerts',
         'payment_alerts',
         'mortgage_rate_alerts',
+        'estate_alerts',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class NotificationPreference extends Model
         'security_alerts' => 'boolean',
         'payment_alerts' => 'boolean',
         'mortgage_rate_alerts' => 'boolean',
+        'estate_alerts' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -53,6 +55,7 @@ class NotificationPreference extends Model
                 'security_alerts' => true,
                 'payment_alerts' => true,
                 'mortgage_rate_alerts' => true,
+                'estate_alerts' => true,
             ]
         );
     }

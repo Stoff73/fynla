@@ -41,6 +41,8 @@ const state = {
     includeSpouseAssets: false, // Toggle for spouse's assets
     customTargetIncome: null, // Custom target income override
     activeTab: 'current', // Current active tab in PensionList
+    canProceed: true,
+    readinessChecks: null,
     lifeEvents: [],
     lifeEventImpact: null,
     goalStrategies: [],
@@ -192,6 +194,12 @@ const mutations = {
     SET_CUSTOM_TARGET_INCOME(state, amount) {
         state.customTargetIncome = amount;
     },
+    SET_CAN_PROCEED(state, canProceed) {
+        state.canProceed = canProceed;
+    },
+    SET_READINESS_CHECKS(state, checks) {
+        state.readinessChecks = checks;
+    },
     SET_ACTIVE_TAB(state, tab) {
         state.activeTab = tab;
     },
@@ -236,8 +244,20 @@ const actions = {
         commit('SET_ERROR', null);
         try {
             const response = await retirementService.analyzeRetirement(data);
-            commit('SET_ANALYSIS', response.data);
-            return response.data;
+            const responseData = response.data || response;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('SET_ANALYSIS', null);
+                return responseData;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('SET_ANALYSIS', responseData);
+            return responseData;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to analyse retirement');
             throw error;
@@ -723,7 +743,12 @@ const getters = {
     },
 
     // Calculate retirement score from income gap (for FinancialHealthScore compatibility)
+    // Returns null when analysis is unavailable or can_proceed is false to avoid false positives
     retirementReadinessScore: (state, getters) => {
+        // Guard: if analysis is null or can_proceed is false, return null (incomplete)
+        if (!state.analysis || state.canProceed === false) {
+            return null;
+        }
         const gap = getters.incomeGap;
         // Score: 100 if no gap, decreases as gap increases
         // Every £500 gap reduces score by 1 point
@@ -827,6 +852,9 @@ const getters = {
     retirementIncomeFundProjections: (state) => state.retirementIncome?.fund_projections || [],
     retirementIncomeDepletionAges: (state) => state.retirementIncome?.depletion_ages || {},
     retirementIncomeAvailableAccounts: (state) => state.retirementIncome?.available_accounts || [],
+
+    canProceed: (state) => state.canProceed,
+    readinessChecks: (state) => state.readinessChecks,
 
     // Life events relevant to retirement module
     upcomingLifeEvents: (state) => state.lifeEvents,

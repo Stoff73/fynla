@@ -6,9 +6,7 @@ use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\User;
-use App\Services\Retirement\ContributionOptimizer;
 use App\Services\Retirement\RetirementActionDefinitionService;
-use App\Services\TaxConfigService;
 use Database\Seeders\RetirementActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,9 +17,7 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(RetirementActionDefinitionSeeder::class);
 
-    $taxConfig = app(TaxConfigService::class);
-    $optimizer = new ContributionOptimizer($taxConfig);
-    $this->service = new RetirementActionDefinitionService($optimizer);
+    $this->service = app(RetirementActionDefinitionService::class);
 
     $this->user = User::factory()->create([
         'annual_employment_income' => 55000,

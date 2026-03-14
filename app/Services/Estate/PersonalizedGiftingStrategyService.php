@@ -7,6 +7,8 @@ namespace App\Services\Estate;
 use App\Models\Estate\IHTProfile;
 use App\Models\User;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Collection;
 
 /**
@@ -17,6 +19,9 @@ use Illuminate\Support\Collection;
  */
 class PersonalizedGiftingStrategyService
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly AssetLiquidityAnalyzer $liquidityAnalyzer,
         private readonly TaxConfigService $taxConfig

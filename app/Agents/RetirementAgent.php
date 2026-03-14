@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\TaxDefaults;
-use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
 use App\Services\Investment\FeeAnalyzer;
@@ -22,6 +20,8 @@ use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
+use App\Services\Retirement\RetirementDataReadinessService;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 
 /**
@@ -42,6 +42,8 @@ class RetirementAgent extends BaseAgent
         private readonly PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
         private readonly TaxConfigService $taxConfig,
         private readonly RetirementActionDefinitionService $actionDefinitionService,
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly RetirementDataReadinessService $readinessService,
         // Portfolio optimization services (shared with Investment module)
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
@@ -60,6 +62,24 @@ class RetirementAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        // Data readiness gate — return early if blocking checks fail
+        $gateUser = User::find($userId);
+        if ($gateUser) {
+            $readiness = $this->readinessService->assess($gateUser);
+            if (! $readiness['can_proceed']) {
+                return $this->response(true, 'Readiness check incomplete', [
+                    'can_proceed' => false,
+                    'readiness_checks' => $readiness,
+                    'summary' => null,
+                    'income_projection' => null,
+                    'breakdown' => null,
+                    'annual_allowance' => null,
+                    'profile' => null,
+                    'decumulation' => null,
+                ]);
+            }
+        }
+
         $cacheKey = "retirement_analysis_{$userId}";
         $cacheTags = ['retirement', 'user_'.$userId];
 
@@ -132,29 +152,46 @@ class RetirementAgent extends BaseAgent
                 'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
             ];
 
-            // Decumulation analysis for users within 10 years of retirement or already retired
+            // Decumulation analysis for users within transition period of retirement or already retired
             $decumulation = null;
-            if ($yearsToRetirement <= 10 && $currentDcValue > 0) {
-                $user = User::find($userId);
-                $lifeExpectancy = $user?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
+            $accumulationToDecumulationYears = (int) $this->taxConfig->get('retirement.accumulation_to_decumulation_years', 10);
+            if ($yearsToRetirement <= $accumulationToDecumulationYears && $currentDcValue > 0) {
+                $decumulationUser = User::with('protectionProfile')->find($userId);
+                $lifeExpectancy = $decumulationUser?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
                 $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
                 $hasSpouse = $profile->spouse_life_expectancy !== null;
+
+                // Wire care costs from RetirementProfile into decumulation planning
+                $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
+                $careStartAge = (int) ($profile->care_start_age ?? 0);
+                $careStartsAfterYear = ($careCostAnnual > 0 && $careStartAge > $retirementAge)
+                    ? max(0, $careStartAge - $retirementAge)
+                    : 0;
 
                 $decumulation = [
                     'withdrawal_rates' => $this->planner->calculateSustainableWithdrawalRate(
                         $currentDcValue,
-                        $yearsInRetirement
+                        $yearsInRetirement,
+                        0.05,
+                        0.025,
+                        $careCostAnnual,
+                        $careStartsAfterYear
                     ),
                     'annuity_vs_drawdown' => $this->planner->compareAnnuityVsDrawdown(
                         $currentDcValue,
                         $profile->current_age,
-                        $hasSpouse
+                        $hasSpouse,
+                        $decumulationUser
                     ),
                     'pcls_strategy' => $this->planner->calculatePCLSStrategy($currentDcValue),
                     'income_phasing' => $this->planner->modelIncomePhasing(
                         $dcPensions,
                         $retirementAge
                     ),
+                    'care_costs_modelled' => $careCostAnnual > 0,
+                    'care_cost_annual' => round($careCostAnnual, 2),
+                    'care_start_age' => $careStartAge > 0 ? $careStartAge : null,
+                    'enhanced_annuity' => $this->planner->assessEnhancedAnnuityEligibility($decumulationUser),
                 ];
             }
 
@@ -259,7 +296,7 @@ class RetirementAgent extends BaseAgent
         // Simulate increased contributions
         $yearsToRetirement = max(0, $profile->target_retirement_age - $profile->current_age);
         $additionalAnnualContribution = $additionalMonthlyContribution * 12;
-        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? TaxDefaults::DEFAULT_GROWTH_RATE;
+        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? $this->getUserGrowthRate($userId);
         $withdrawalRate = $this->planConfig?->getWithdrawalRate() ?? TaxDefaults::SAFE_WITHDRAWAL_RATE;
 
         $additionalValue = 0.0;
@@ -301,7 +338,7 @@ class RetirementAgent extends BaseAgent
         $currentProjection = $this->projector->projectTotalRetirementIncome($userId);
 
         // Rough calculation: additional years of growth on current pot plus new contributions
-        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? TaxDefaults::DEFAULT_GROWTH_RATE;
+        $growthRate = $this->planConfig?->getDefaultGrowthRate() ?? $this->getUserGrowthRate($userId);
         $withdrawalRate = $this->planConfig?->getWithdrawalRate() ?? TaxDefaults::SAFE_WITHDRAWAL_RATE;
         $additionalGrowth = $currentProjection['dc_total_value'] * (pow(1 + $growthRate, $additionalYears) - 1);
         $additionalFromContributions = $additionalContributions * (1 + $growthRate * ($additionalYears / 2)); // Simplified
@@ -362,6 +399,26 @@ class RetirementAgent extends BaseAgent
         }
 
         return $comparison;
+    }
+
+    /**
+     * Get the user's risk-based growth rate, falling back to medium risk config rate.
+     */
+    private function getUserGrowthRate(int $userId): float
+    {
+        $riskLevel = $this->riskPreferenceService->getMainRiskLevel($userId);
+
+        if ($riskLevel) {
+            try {
+                $params = $this->riskPreferenceService->getReturnParameters($riskLevel);
+
+                return $params['expected_return_typical'] / 100; // Convert percentage to decimal
+            } catch (\Exception $e) {
+                // Fall through to config-based fallback
+            }
+        }
+
+        return (float) $this->taxConfig->get('assumptions.growth_by_risk.medium', TaxDefaults::DEFAULT_GROWTH_RATE);
     }
 
     /**

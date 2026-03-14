@@ -8,6 +8,8 @@ use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\AssetLiquidityAnalyzer;
 use App\Services\Estate\PersonalizedTrustStrategyService;
+use App\Services\Risk\RiskPreferenceService;
+use App\Services\Settings\AssumptionsService;
 
 beforeEach(function () {
     // Ensure active tax configuration exists
@@ -17,7 +19,9 @@ beforeEach(function () {
 
     $this->liquidityAnalyzer = new AssetLiquidityAnalyzer;
     $taxConfig = app(\App\Services\TaxConfigService::class);
-    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig);
+    $assumptionsService = app(AssumptionsService::class);
+    $riskPreferenceService = app(RiskPreferenceService::class);
+    $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig, $assumptionsService, $riskPreferenceService);
 
     $this->user = new User([
         'id' => 1,
@@ -72,8 +76,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('calculates lifetime IHT charge correctly for amounts exceeding NRB', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Investment Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Holdings',
                 'current_value' => 500000, // £175k over NRB
             ]),
         ]);
@@ -101,8 +105,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('generates multi-cycle CLT strategy for large estates', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Large Investment Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Large Cash Holdings',
                 'current_value' => 1000000,
             ]),
         ]);
@@ -160,8 +164,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('generates discounted gift trust strategy with discount calculation', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Investment Bond',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Bond',
                 'current_value' => 500000,
             ]),
         ]);
@@ -216,8 +220,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('calculates taper relief correctly for multi-cycle death charge', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Investment Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Portfolio',
                 'current_value' => 650000,
             ]),
         ]);
@@ -240,8 +244,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('calculates overall strategy impact correctly', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Investment Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Holdings',
                 'current_value' => 800000,
             ]),
         ]);
@@ -279,8 +283,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('generates appropriate summary and effectiveness rating', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Portfolio',
                 'current_value' => 500000,
             ]),
         ]);
@@ -384,13 +388,13 @@ describe('PersonalizedTrustStrategyService', function () {
 
         $giftableAmounts = $result['giftable_amounts'];
 
-        // Cash + Investments = Liquid
-        expect($giftableAmounts['immediately_giftable'])->toBe(300000.0);
+        // Cash = Liquid (investments are now semi-liquid)
+        expect($giftableAmounts['immediately_giftable'])->toBe(100000.0);
 
-        // Rental property = Semi-liquid
-        expect($giftableAmounts['giftable_with_planning'])->toBe(300000.0);
+        // Investments + Rental property = Semi-liquid
+        expect($giftableAmounts['giftable_with_planning'])->toBe(500000.0);
 
-        // Main residence = Illiquid
+        // Main residence = Illiquid (pensions also illiquid but none in this test)
         expect($giftableAmounts['not_giftable'])->toBe(500000.0);
 
         expect($giftableAmounts['total_giftable'])->toBe(600000.0);
@@ -399,8 +403,8 @@ describe('PersonalizedTrustStrategyService', function () {
     it('prioritizes strategies correctly', function () {
         $assets = collect([
             new Asset([
-                'asset_type' => 'investment',
-                'asset_name' => 'Portfolio',
+                'asset_type' => 'cash',
+                'asset_name' => 'Cash Portfolio',
                 'current_value' => 800000,
             ]),
         ]);

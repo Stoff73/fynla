@@ -10,6 +10,8 @@ const state = {
     lifeEventImpact: null,
     goalStrategies: [],
     goalsSummary: null,
+    canProceed: true,
+    readinessChecks: null,
     loading: false,
     error: null,
 };
@@ -128,6 +130,9 @@ const getters = {
         return state.goalStrategies.filter(s => s.goal?.is_on_track).length;
     },
 
+    canProceed: (state) => state.canProceed,
+    readinessChecks: (state) => state.readinessChecks,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -141,6 +146,16 @@ const actions = {
         try {
             const response = await savingsService.getSavingsData();
             const data = response.data || response;
+
+            // Guard: handle can_proceed: false
+            if (data?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', data?.readiness_checks || null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
             commit('setAccounts', data.accounts || []);
             commit('setExpenditureProfile', data.expenditure_profile || null);
             commit('setAnalysis', data.analysis || null);
@@ -167,7 +182,19 @@ const actions = {
 
         try {
             const response = await savingsService.analyzeSavings(data);
-            commit('setAnalysis', response.data.analysis);
+            const responseData = response.data || response;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('setAnalysis', responseData.analysis);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Analysis failed';
@@ -339,6 +366,14 @@ const mutations = {
         if (index !== -1) {
             state.accounts.splice(index, 1);
         }
+    },
+
+    SET_CAN_PROCEED(state, canProceed) {
+        state.canProceed = canProceed;
+    },
+
+    SET_READINESS_CHECKS(state, checks) {
+        state.readinessChecks = checks;
     },
 
     setLoading(state, loading) {

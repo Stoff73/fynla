@@ -6,6 +6,7 @@ namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -17,8 +18,17 @@ use Illuminate\Support\Collection;
 class TaxOptimizationAnalyzer
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Analyze complete tax position and identify optimization opportunities
@@ -403,8 +413,7 @@ class TaxOptimizationAnalyzer
 
         $transferableAmount = min($totalTransferable, $currentPosition['isa_remaining']);
 
-        // Estimate annual tax saving (assume 6% growth, 2% dividend)
-        $annualGrowth = $transferableAmount * 0.06;
+        $annualGrowth = $transferableAmount * $this->getDefaultExpectedReturn();
         $annualDividends = $transferableAmount * 0.02;
         $cgtSaving = $annualGrowth * 0.20; // 20% CGT on growth
         $dividendTaxSaving = $annualDividends * 0.0875; // 8.75% dividend tax
@@ -425,8 +434,7 @@ class TaxOptimizationAnalyzer
      */
     private function estimateISATaxSaving(float $amount): float
     {
-        // Assume 6% growth and 2% dividend yield
-        $annualGrowth = $amount * 0.06;
+        $annualGrowth = $amount * $this->getDefaultExpectedReturn();
         $annualDividends = $amount * 0.02;
 
         // Tax savings

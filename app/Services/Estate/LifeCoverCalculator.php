@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class LifeCoverCalculator
 {
@@ -443,5 +445,81 @@ class LifeCoverCalculator
         }
 
         return 0.047;
+    }
+
+    /**
+     * Assess existing life insurance policies for Inheritance Tax planning suitability.
+     *
+     * Checks each policy for:
+     * - Trust status: is the policy written in trust (keeps proceeds outside the estate)?
+     * - Joint life: is it a first-death or second-death policy (second death is more
+     *   Inheritance Tax-efficient for married couples)?
+     * - Policy type: whole of life vs term (term policies expire and may leave gaps)
+     *
+     * @param  Collection  $policies  Collection of LifeInsurancePolicy models
+     * @param  User  $user  The primary user
+     * @return array Assessment with warnings and recommendations
+     */
+    public function assessExistingPolicies(Collection $policies, User $user): array
+    {
+        $warnings = [];
+        $isMarried = in_array($user->marital_status, ['married'], true);
+
+        foreach ($policies as $policy) {
+            // Check trust status
+            if (! $policy->in_trust) {
+                $sumAssured = number_format((float) $policy->sum_assured);
+                $policyName = $policy->provider ?? 'Life Insurance Policy';
+                $warnings[] = [
+                    'type' => 'not_in_trust',
+                    'severity' => 'high',
+                    'policy_id' => $policy->id,
+                    'message' => "{$policyName} (£{$sumAssured}) is not written in trust. Without trust placement, the policy proceeds will form part of your taxable estate and may be subject to Inheritance Tax. Contact your provider to place this policy in trust.",
+                ];
+            }
+
+            // Check joint life status for married users
+            if (! $policy->joint_life && $isMarried) {
+                $warnings[] = [
+                    'type' => 'single_life_married',
+                    'severity' => 'medium',
+                    'policy_id' => $policy->id,
+                    'message' => 'This is a single life policy. For Inheritance Tax planning, a joint life second death policy is typically more cost-effective as it pays out on the second death when the Inheritance Tax liability actually arises.',
+                ];
+            }
+
+            // Check policy type: whole of life vs term
+            if ($policy->policy_type !== 'whole_of_life') {
+                $endDate = $policy->policy_end_date;
+                $expiryWarning = '';
+
+                if ($endDate) {
+                    $yearsUntilExpiry = now()->diffInYears($endDate, false);
+
+                    if ($yearsUntilExpiry <= 0) {
+                        $expiryWarning = ' This policy has already expired.';
+                    } elseif ($yearsUntilExpiry <= 5) {
+                        $expiryWarning = ' This policy expires on '.Carbon::parse($endDate)->format('j F Y').' (within '.(int) ceil($yearsUntilExpiry).' years). Review whether replacement cover is needed.';
+                    }
+                }
+
+                $warnings[] = [
+                    'type' => 'not_whole_of_life',
+                    'severity' => $endDate && now()->diffInYears($endDate, false) <= 5 ? 'high' : 'low',
+                    'policy_id' => $policy->id,
+                    'message' => 'This is a term policy, not whole of life cover. Inheritance Tax cover requires whole of life insurance to guarantee a payout whenever death occurs.'.$expiryWarning,
+                ];
+            }
+        }
+
+        return [
+            'policy_count' => $policies->count(),
+            'warnings' => $warnings,
+            'warning_count' => count($warnings),
+            'has_critical_warnings' => collect($warnings)->contains('severity', 'high'),
+            'summary' => count($warnings) > 0
+                ? count($warnings).' potential issue'.($warnings !== 1 ? 's' : '').' found with your existing life insurance policies for Inheritance Tax planning.'
+                : 'Your existing life insurance policies are well-structured for Inheritance Tax planning.',
+        ];
     }
 }

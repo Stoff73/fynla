@@ -47,7 +47,7 @@ describe('Admin Protection Action Definitions API', function () {
                 ],
             ]);
 
-        expect($response->json('data'))->toHaveCount(10);
+        expect($response->json('data'))->toHaveCount(28);
     });
 
     it('denies access to non-admin users', function () {

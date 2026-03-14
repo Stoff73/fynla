@@ -6,6 +6,7 @@ namespace App\Services\Investment\Goals;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
+use App\Services\Risk\RiskPreferenceService;
 
 /**
  * Goal Progress Analyzer
@@ -22,8 +23,17 @@ use App\Models\Investment\InvestmentGoal;
 class GoalProgressAnalyzer
 {
     public function __construct(
-        private GoalProbabilityCalculator $probabilityCalculator
+        private GoalProbabilityCalculator $probabilityCalculator,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Analyze progress for a single goal
@@ -59,7 +69,7 @@ class GoalProgressAnalyzer
             $currentValue,
             $goal->target_value,
             $goal->monthly_contribution ?? 0,
-            $goal->expected_return ?? 0.06,
+            $goal->expected_return ?? $this->getDefaultExpectedReturn(),
             $goal->volatility ?? 0.15,
             $timeRemaining['years'],
             1000
@@ -78,7 +88,7 @@ class GoalProgressAnalyzer
                 $currentValue,
                 $goal->target_value,
                 $goal->monthly_contribution ?? 0,
-                $goal->expected_return ?? 0.06,
+                $goal->expected_return ?? $this->getDefaultExpectedReturn(),
                 $goal->volatility ?? 0.15,
                 $timeRemaining['years'],
                 0.85
@@ -86,7 +96,7 @@ class GoalProgressAnalyzer
         }
 
         // Calculate trajectory
-        $trajectory = $this->calculateTrajectory($currentValue, $goal->monthly_contribution ?? 0, $goal->expected_return ?? 0.06, $timeRemaining['years']);
+        $trajectory = $this->calculateTrajectory($currentValue, $goal->monthly_contribution ?? 0, $goal->expected_return ?? $this->getDefaultExpectedReturn(), $timeRemaining['years']);
 
         return [
             'success' => true,

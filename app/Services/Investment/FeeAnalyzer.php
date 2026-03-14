@@ -6,6 +6,8 @@ namespace App\Services\Investment;
 
 use App\Constants\InvestmentDefaults;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 use App\Traits\CalculatesOCF;
 use Illuminate\Support\Collection;
 
@@ -26,6 +28,19 @@ use Illuminate\Support\Collection;
 class FeeAnalyzer
 {
     use CalculatesOCF;
+
+    public function __construct(
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     // =========================================================================
     // COLLECTION-BASED METHODS (for use with pre-fetched data)
@@ -133,8 +148,9 @@ class FeeAnalyzer
             return ($holding->current_value / $totalValue) * ($holding->ocf_percent ?? 0);
         });
 
-        // Assume low-cost index funds average 0.15% OCF
-        $lowCostOCF = 0.15;
+        // Low-cost index funds OCF threshold from config
+        $feeBenchmarks = $this->taxConfig->get('investment.fee_benchmarks', []);
+        $lowCostOCF = ($feeBenchmarks['low_cost_ocf'] ?? 0.0015) * 100; // Convert decimal to percent
 
         $currentAnnualCost = $totalValue * ($currentOCF / 100);
         $lowCostAnnualCost = $totalValue * ($lowCostOCF / 100);
@@ -289,7 +305,7 @@ class FeeAnalyzer
         $weightedAverageFeePercent = ($totalAnnualFees / $totalValue) * 100;
 
         // Calculate fee drag over time
-        $feeDrag = $this->calculateFeeDrag($totalValue, $weightedAverageFeePercent, 10, 0.06);
+        $feeDrag = $this->calculateFeeDrag($totalValue, $weightedAverageFeePercent, 10, $this->getDefaultExpectedReturn());
 
         // Industry benchmarks
         $benchmark = $this->getBenchmarkFees($totalValue);
@@ -641,10 +657,9 @@ class FeeAnalyzer
         return [
             'savings_vs_good' => round($savingsVsGood, 2),
             'savings_vs_excellent' => round($savingsVsExcellent, 2),
-            'savings_10_years_good' => round($this->calculateCompoundSavings($portfolioValue, $savingsVsGood, 10, 0.06), 2),
-            'savings_10_years_excellent' => round($this->calculateCompoundSavings($portfolioValue, $savingsVsExcellent, 10, 0.06), 2),
+            'savings_10_years_good' => round($this->calculateCompoundSavings($portfolioValue, $savingsVsGood, 10, $this->getDefaultExpectedReturn()), 2),
+            'savings_10_years_excellent' => round($this->calculateCompoundSavings($portfolioValue, $savingsVsExcellent, 10, $this->getDefaultExpectedReturn()), 2),
             'has_savings_opportunity' => $savingsVsGood > 100,
         ];
     }
-
 }

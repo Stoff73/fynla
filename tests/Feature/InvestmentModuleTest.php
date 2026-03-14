@@ -19,6 +19,9 @@ beforeEach(function () {
         'first_name' => 'Test',
         'surname' => 'Investor',
         'email' => 'investor@example.com',
+        'date_of_birth' => now()->subYears(40),
+        'annual_employment_income' => 60000,
+        'monthly_expenditure' => 3000,
     ]);
 
     Sanctum::actingAs($this->user);
@@ -335,6 +338,9 @@ describe('Portfolio Analysis', function () {
     });
 
     it('returns message when no accounts exist', function () {
+        // Ensure risk profile exists so readiness gate passes
+        RiskProfile::factory()->create(['user_id' => $this->user->id]);
+
         $response = $this->postJson('/api/investment/analyze');
 
         $response->assertStatus(200)

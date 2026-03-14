@@ -4,53 +4,32 @@ declare(strict_types=1);
 
 namespace App\Constants;
 
+use App\Services\TaxConfigService;
+
 /**
- * EstateDefaults - Estimated values used in estate planning calculations.
+ * EstateDefaults - Threshold constants used in estate planning calculations.
  *
- * These values are used when specific data is not available, typically during
- * onboarding or initial estate estimations. They represent conservative
- * UK averages and should be replaced with actual user data when available.
+ * Onboarding estimates (ESTIMATED_PROPERTY_VALUE, ESTIMATED_INVESTMENT_VALUE,
+ * ESTIMATED_SAVINGS_VALUE, ESTIMATED_BUSINESS_VALUE) and default life expectancy/age
+ * constants have been moved to TaxConfigService under 'estate.onboarding_estimates'.
  *
- * Last reviewed: 4 February 2026
+ * Threshold constants are retained for convenience but sourced from TaxConfigService
+ * where possible, with hardcoded fallbacks for when the service is unavailable.
+ *
+ * Last reviewed: 14 March 2026
  *
  * @see https://www.ons.gov.uk/peoplepopulationandcommunity/housing
  */
 final class EstateDefaults
 {
-    // ==================== Property Value Estimates ====================
-
-    /**
-     * Average UK property value estimate.
-     * Based on ONS House Price Index (UK average).
-     * Used when user indicates property ownership but hasn't provided values.
-     */
-    public const ESTIMATED_PROPERTY_VALUE = 300000;
-
-    /**
-     * Conservative investment portfolio estimate.
-     * Used when user indicates investments but hasn't provided values.
-     */
-    public const ESTIMATED_INVESTMENT_VALUE = 100000;
-
-    /**
-     * Conservative savings estimate.
-     * Used when user indicates savings but hasn't provided values.
-     */
-    public const ESTIMATED_SAVINGS_VALUE = 50000;
-
-    /**
-     * Conservative business interest estimate.
-     * Used when user indicates business ownership but hasn't provided values.
-     * Note: Business interests vary wildly; this is very conservative.
-     */
-    public const ESTIMATED_BUSINESS_VALUE = 200000;
-
     // ==================== Thresholds ====================
 
     /**
      * RNRB taper threshold.
      * When estate exceeds this value, Residence Nil Rate Band begins to taper.
      * RNRB is reduced by £1 for every £2 above this threshold.
+     *
+     * Sourced from TaxConfigService inheritance_tax.rnrb_taper_threshold.
      */
     public const RNRB_TAPER_THRESHOLD = 2000000;
 
@@ -72,16 +51,18 @@ final class EstateDefaults
      */
     public const COMBINED_RNRB_THRESHOLD = 350000;
 
-    // ==================== Life Expectancy Estimates ====================
-
     /**
-     * Default life expectancy used for planning calculations.
-     * Conservative estimate based on UK actuarial data.
+     * Get RNRB taper threshold from TaxConfigService, falling back to constant.
      */
-    public const DEFAULT_LIFE_EXPECTANCY = 85;
+    public static function getRnrbTaperThreshold(): int
+    {
+        try {
+            $taxConfig = app(TaxConfigService::class);
+            $ihtConfig = $taxConfig->getInheritanceTax();
 
-    /**
-     * Default current age when user age is unknown.
-     */
-    public const DEFAULT_CURRENT_AGE = 50;
+            return (int) ($ihtConfig['rnrb_taper_threshold'] ?? self::RNRB_TAPER_THRESHOLD);
+        } catch (\Throwable) {
+            return self::RNRB_TAPER_THRESHOLD;
+        }
+    }
 }

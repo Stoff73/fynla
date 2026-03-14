@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\UserProfile\ProfileCompletenessChecker;
@@ -24,7 +25,8 @@ class ProtectionAgent extends BaseAgent
         private readonly RecommendationEngine $recommendationEngine,
         private readonly ScenarioBuilder $scenarioBuilder,
         private readonly ProfileCompletenessChecker $completenessChecker,
-        private readonly RecommendationPersonaliser $personaliser
+        private readonly RecommendationPersonaliser $personaliser,
+        private readonly ProtectionDataReadinessService $readinessService
     ) {}
 
     /**
@@ -32,6 +34,28 @@ class ProtectionAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        // Data readiness gate — return early if blocking checks fail
+        $gateUser = User::find($userId);
+        if ($gateUser) {
+            $readiness = $this->readinessService->assess($gateUser);
+            if (! $readiness['can_proceed']) {
+                return $this->response(true, 'Readiness check incomplete', [
+                    'can_proceed' => false,
+                    'readiness_checks' => $readiness,
+                    'profile' => null,
+                    'needs' => null,
+                    'coverage' => null,
+                    'gaps' => null,
+                    'adequacy_score' => null,
+                    'recommendations' => null,
+                    'scenarios' => null,
+                    'debt_breakdown' => null,
+                    'policies' => null,
+                    'profile_completeness' => null,
+                ]);
+            }
+        }
+
         $cacheKey = "protection_analysis_{$userId}";
         $cacheTags = ['protection', 'user_'.$userId];
 
@@ -58,13 +82,15 @@ class ProtectionAgent extends BaseAgent
             // Calculate protection needs
             $needs = $this->gapAnalyzer->calculateProtectionNeeds($profile);
 
-            // Calculate current coverage
+            // Calculate current coverage (including employer benefits)
             $coverage = $this->gapAnalyzer->calculateTotalCoverage(
                 $user->lifeInsurancePolicies,
                 $user->criticalIllnessPolicies,
                 $user->incomeProtectionPolicies,
                 $user->disabilityPolicies,
-                $user->sicknessIllnessPolicies
+                $user->sicknessIllnessPolicies,
+                $profile,
+                $user
             );
 
             // Calculate gaps
@@ -122,6 +148,14 @@ class ProtectionAgent extends BaseAgent
                         'number_of_dependents' => $profile->number_of_dependents,
                         'retirement_age' => $profile->retirement_age,
                         'current_age' => $currentAge,
+                        'death_in_service_multiple' => $profile->death_in_service_multiple,
+                        'group_ip_benefit_percent' => $profile->group_ip_benefit_percent,
+                        'group_ip_benefit_months' => $profile->group_ip_benefit_months,
+                        'group_ip_definition' => $profile->group_ip_definition,
+                        'group_ci_amount' => $profile->group_ci_amount,
+                        'has_employer_pmi' => (bool) ($profile->has_employer_pmi ?? false),
+                        'employer_name' => $profile->employer_name,
+                        'marital_status' => $user->marital_status,
                     ],
                     'needs' => $needs,
                     'coverage' => $coverage,
@@ -231,7 +265,9 @@ class ProtectionAgent extends BaseAgent
             $user->criticalIllnessPolicies,
             $user->incomeProtectionPolicies,
             $user->disabilityPolicies,
-            $user->sicknessIllnessPolicies
+            $user->sicknessIllnessPolicies,
+            $profile,
+            $user
         );
 
         $scenarios = [];

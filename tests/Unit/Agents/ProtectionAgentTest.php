@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
 use App\Services\Protection\CoverageGapAnalyzer;
+use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\UserProfile\ProfileCompletenessChecker;
@@ -22,6 +23,13 @@ beforeEach(function () {
     $this->completenessChecker = Mockery::mock(ProfileCompletenessChecker::class);
     $this->personaliser = Mockery::mock(RecommendationPersonaliser::class);
     $this->personaliser->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+    $this->readinessService = Mockery::mock(ProtectionDataReadinessService::class);
+    $this->readinessService->shouldReceive('assess')->andReturn([
+        'can_proceed' => true,
+        'blocking' => [],
+        'warnings' => [],
+        'info' => [],
+    ])->byDefault();
 
     // Create agent with mocked dependencies
     $this->agent = new ProtectionAgent(
@@ -30,7 +38,8 @@ beforeEach(function () {
         $this->recommendationEngine,
         $this->scenarioBuilder,
         $this->completenessChecker,
-        $this->personaliser
+        $this->personaliser,
+        $this->readinessService
     );
 });
 
@@ -404,13 +413,21 @@ describe('invalidateCache', function () {
         // Create a fresh agent instance for this test (without mocks interfering)
         $personaliserMock = Mockery::mock(RecommendationPersonaliser::class);
         $personaliserMock->shouldReceive('personaliseRecommendations')->andReturnUsing(fn ($recs, $user) => $recs);
+        $readinessMock = Mockery::mock(ProtectionDataReadinessService::class);
+        $readinessMock->shouldReceive('assess')->andReturn([
+            'can_proceed' => true,
+            'blocking' => [],
+            'warnings' => [],
+            'info' => [],
+        ]);
         $realAgent = new ProtectionAgent(
             Mockery::mock(CoverageGapAnalyzer::class),
             Mockery::mock(AdequacyScorer::class),
             Mockery::mock(RecommendationEngine::class),
             Mockery::mock(ScenarioBuilder::class),
             Mockery::mock(ProfileCompletenessChecker::class),
-            $personaliserMock
+            $personaliserMock,
+            $readinessMock
         );
 
         // Invalidate the cache

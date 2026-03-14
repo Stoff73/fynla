@@ -213,12 +213,7 @@ class TaxOptimisationService
         $grossIncome = $this->resolveGrossAnnualIncome($user);
         $taxBand = $this->determineTaxBand($grossIncome);
 
-        $psaAmount = match ($taxBand) {
-            'basic' => 1000.0,
-            'higher' => 500.0,
-            'additional' => 0.0,
-            default => 1000.0,
-        };
+        $psaAmount = (float) $this->taxConfig->getPersonalSavingsAllowance($taxBand);
 
         return [
             'allowance' => $psaAmount,

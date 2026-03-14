@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Protection;
 
+use App\Services\TaxConfigService;
+
 class AdequacyScorer
 {
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Calculate adequacy score based on coverage gaps.
      */
@@ -62,8 +68,9 @@ class AdequacyScorer
         $lifeGap = ($gapsByCategory['human_capital_gap'] ?? 0) + ($gapsByCategory['debt_protection_gap'] ?? 0) + ($gapsByCategory['final_expenses_gap'] ?? 0);
         $lifeScore = $lifeNeed > 0 ? (int) round((($lifeNeed - $lifeGap) / $lifeNeed) * 100) : 100;
 
-        // Critical illness score: CI need = 3x annual gross income
-        $ciNeed = ($needs['gross_income'] ?? 0) * 3;
+        // Critical illness score: CI need = multiplier x annual gross income
+        $ciMultiplier = (int) $this->taxConfig->get('protection.income_multipliers.critical_illness', 3);
+        $ciNeed = ($needs['gross_income'] ?? 0) * $ciMultiplier;
         $ciCoverage = $needs['critical_illness_coverage'] ?? 0;
         $ciScore = $ciNeed > 0 ? (int) round(min($ciCoverage, $ciNeed) / $ciNeed * 100) : 100;
 

@@ -36,6 +36,7 @@ class LifeInsurancePolicy extends Model
         'in_trust',
         'is_mortgage_protection',
         'beneficiaries',
+        'joint_life',
     ];
 
     /**
@@ -54,6 +55,7 @@ class LifeInsurancePolicy extends Model
         'policy_term_years' => 'integer',
         'in_trust' => 'boolean',
         'is_mortgage_protection' => 'boolean',
+        'joint_life' => 'boolean',
     ];
 
     /**

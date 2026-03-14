@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\DCPension;
+use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Investment\InvestmentAccount;
@@ -108,6 +110,20 @@ class IHTCalculationService
             $nrbMessage = 'Nil Rate Band of £'.number_format($nrbAvailable).' available for single person.';
         }
 
+        // 6b. Deduct primary user's PETs and CLTs from their OWN NRB only
+        // Spouse NRB is handled separately by SpouseNRBTrackerService
+        $nrbDeduction = $this->calculateNRBDeductionForGifts($user, $nrbSingle);
+        $nrbAvailable = max(0, $nrbAvailable - $nrbDeduction['total_nrb_used']);
+
+        if ($nrbDeduction['total_nrb_used'] > 0) {
+            $nrbMessage .= ' Reduced by £'.number_format($nrbDeduction['total_nrb_used'])
+                .' due to gifts made within the last 7 years'
+                .($nrbDeduction['clts_7_to_14_years'] > 0
+                    ? ' (including the 14-year rule for historical Chargeable Lifetime Transfers)'
+                    : '')
+                .'.';
+        }
+
         // 7. Calculate RNRB with message (ALWAYS calculate, even if £0)
         $rnrbData = $this->calculateRNRB($totalNetEstate, $user, $spouse, $ihtConfig, $isMarried, $isWidowed, $ihtProfile);
 
@@ -186,7 +202,14 @@ class IHTCalculationService
             'is_married' => $isMarried,
             'is_widowed' => $isWidowed,
             'data_sharing_enabled' => $dataSharingEnabled,
+
+            // NRB gift deduction breakdown
+            'nrb_deduction' => $nrbDeduction,
         ];
+
+        // 9b. Calculate 2027 pension Inheritance Tax dual-scenario projection
+        $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result);
+        $result['pension_amendment'] = $pensionAmendment;
 
         // 10. Save to database
         $this->saveCalculation($user, $result, $userAssets, $spouseAssets, $userLiabilities, $spouseLiabilities);
@@ -1034,7 +1057,7 @@ class IHTCalculationService
                 'rnrb_individual' => 0,
                 'rnrb_transferred' => 0,
                 'rnrb_status' => 'none',
-                'rnrb_message' => 'Residence Nil Rate Band not available. You need to own a main residence and leave it to direct descendants to qualify for RNRB of up to £'.number_format($potentialMax).'.',
+                'rnrb_message' => 'Residence Nil Rate Band not available. You need to own a main residence and leave it to direct descendants (children, grandchildren, step-children) to qualify for Residence Nil Rate Band of up to £'.number_format($potentialMax).'. Nieces, nephews, cousins, siblings, and other relatives are not direct descendants and do not qualify.',
             ];
         }
 
@@ -1354,6 +1377,151 @@ class IHTCalculationService
         }
 
         return $impacts;
+    }
+
+    /**
+     * Calculate NRB deduction for the primary user's gifts (PETs and CLTs).
+     *
+     * Implements the 14-year rule (Direction B): historical CLTs made 7-14 years
+     * before death reduce the NRB available for PETs in the final 7 years.
+     *
+     * Only deducts from the PRIMARY user's own NRB. Spouse NRB is tracked
+     * separately by SpouseNRBTrackerService.
+     *
+     * @param  User  $user  The primary user
+     * @param  float  $nrbSingle  The individual NRB amount
+     * @return array NRB deduction breakdown
+     */
+    private function calculateNRBDeductionForGifts(User $user, float $nrbSingle): array
+    {
+        // PETs within 7 years of today (assumed death date for calculation)
+        $petsIn7Years = Gift::where('user_id', $user->id)
+            ->where('gift_type', 'pet')
+            ->where('gift_date', '>', today()->subYears(7))
+            ->sum('gift_value');
+
+        // CLTs within 7 years
+        $cltsIn7Years = Gift::where('user_id', $user->id)
+            ->where('gift_type', 'clt')
+            ->where('gift_date', '>', today()->subYears(7))
+            ->sum('gift_value');
+
+        // 14-year rule (Direction B): CLTs made 7-14 years before death
+        // These CLTs don't incur IHT themselves (outside 7-year window),
+        // but they DO reduce the NRB available for PETs in the final 7 years
+        $clts7to14Years = Gift::where('user_id', $user->id)
+            ->where('gift_type', 'clt')
+            ->where('gift_date', '>', today()->subYears(14))
+            ->where('gift_date', '<=', today()->subYears(7))
+            ->sum('gift_value');
+
+        // CLTs (both recent and historical) consume NRB first
+        $nrbUsedByCLTs = min($nrbSingle, (float) $cltsIn7Years + (float) $clts7to14Years);
+
+        // Remaining NRB available for PETs after CLT consumption
+        $nrbRemainingForPETs = max(0, $nrbSingle - $nrbUsedByCLTs);
+        $nrbUsedByPETs = min($nrbRemainingForPETs, (float) $petsIn7Years);
+
+        $totalNRBUsed = $nrbUsedByCLTs + $nrbUsedByPETs;
+
+        return [
+            'pets_in_7_years' => round((float) $petsIn7Years, 2),
+            'clts_in_7_years' => round((float) $cltsIn7Years, 2),
+            'clts_7_to_14_years' => round((float) $clts7to14Years, 2),
+            'nrb_used_by_clts' => round($nrbUsedByCLTs, 2),
+            'nrb_used_by_pets' => round($nrbUsedByPETs, 2),
+            'total_nrb_used' => round($totalNRBUsed, 2),
+            'fourteen_year_rule_applied' => $clts7to14Years > 0,
+        ];
+    }
+
+    /**
+     * Calculate the 2027 pension Inheritance Tax amendment dual-scenario projection.
+     *
+     * From April 2027, unused defined contribution pension pots will be included
+     * in the taxable estate for Inheritance Tax purposes (Autumn Budget 2024).
+     *
+     * Returns both the current rules scenario and the post-2027 scenario,
+     * allowing users to understand the potential impact.
+     *
+     * @param  User  $user  The primary user
+     * @param  User|null  $spouse  The spouse
+     * @param  bool  $dataSharingEnabled  Whether spouse data sharing is enabled
+     * @param  array  $baseCalc  The base IHT calculation result
+     * @return array Dual-scenario pension amendment data
+     */
+    private function calculatePensionAmendmentScenario(
+        User $user,
+        ?User $spouse,
+        bool $dataSharingEnabled,
+        array $baseCalc
+    ): array {
+        $pensionInclusion = $this->taxConfig->get('inheritance_tax.pension_iht_inclusion');
+
+        // If pension IHT inclusion config not set, return no amendment
+        if (! $pensionInclusion || ! isset($pensionInclusion['effective_date'])) {
+            return [
+                'amendment_warning' => false,
+                'message' => 'No pension Inheritance Tax amendment configuration found.',
+            ];
+        }
+
+        $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
+
+        // Get total DC pension values
+        $userPensionValue = (float) DCPension::where('user_id', $user->id)
+            ->sum('current_fund_value');
+        $spousePensionValue = 0;
+        if ($dataSharingEnabled && $spouse) {
+            $spousePensionValue = (float) DCPension::where('user_id', $spouse->id)
+                ->sum('current_fund_value');
+        }
+        $totalPensionValue = $userPensionValue + $spousePensionValue;
+
+        // If no pension value, no impact
+        if ($totalPensionValue <= 0) {
+            return [
+                'amendment_warning' => false,
+                'message' => 'No defined contribution pension values to include.',
+            ];
+        }
+
+        // Calculate the post-2027 scenario: pensions included in estate
+        $currentNetEstate = $baseCalc['total_net_estate'] ?? 0;
+        $postAmendmentNetEstate = $currentNetEstate + $totalPensionValue;
+        $totalAllowances = $baseCalc['total_allowances'] ?? 0;
+        $ihtRate = $baseCalc['iht_rate'] ?? 0.40;
+
+        $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances);
+        $postAmendmentIHTLiability = $postAmendmentTaxableEstate * $ihtRate;
+
+        $currentIHTLiability = $baseCalc['iht_liability'] ?? 0;
+        $additionalIHT = $postAmendmentIHTLiability - $currentIHTLiability;
+
+        return [
+            'amendment_warning' => true,
+            'effective_date' => $effectiveDate->format('Y-m-d'),
+            'announced' => $pensionInclusion['announced'] ?? 'Autumn Budget 2024',
+            'current_rules' => [
+                'net_estate' => round($currentNetEstate, 2),
+                'iht_liability' => round($currentIHTLiability, 2),
+                'pensions_included' => false,
+                'description' => 'Under current rules, defined contribution pensions pass outside the estate and are not subject to Inheritance Tax.',
+            ],
+            'post_2027_rules' => [
+                'net_estate' => round($postAmendmentNetEstate, 2),
+                'pension_value_included' => round($totalPensionValue, 2),
+                'user_pension_value' => round($userPensionValue, 2),
+                'spouse_pension_value' => round($spousePensionValue, 2),
+                'iht_liability' => round($postAmendmentIHTLiability, 2),
+                'additional_iht' => round($additionalIHT, 2),
+                'pensions_included' => true,
+                'description' => 'From April 2027, unused defined contribution pension pots will be included in the taxable estate for Inheritance Tax purposes.',
+            ],
+            'impact_summary' => $additionalIHT > 0
+                ? 'The 2027 pension amendment could increase your Inheritance Tax liability by £'.number_format($additionalIHT).' if your defined contribution pension pots (£'.number_format($totalPensionValue).') are included in your estate.'
+                : 'The 2027 pension amendment would not increase your Inheritance Tax liability based on current pension values.',
+        ];
     }
 
     /**

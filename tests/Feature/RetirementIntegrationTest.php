@@ -16,7 +16,10 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(\Database\Seeders\RetirementActionDefinitionSeeder::class);
-    $this->user = User::factory()->create();
+    $this->user = User::factory()->create([
+        'date_of_birth' => now()->subYears(45),
+        'annual_employment_income' => 50000,
+    ]);
     $this->actingAs($this->user, 'sanctum');
 });
 

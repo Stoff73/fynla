@@ -5,9 +5,19 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
+use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 
 class RecommendationEngine
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Generate recommendations based on coverage gaps.
      */
@@ -54,7 +64,10 @@ class RecommendationEngine
                 action: 'Consider critical illness cover',
                 rationale: 'Critical illness cover would provide a lump sum if you are diagnosed with a serious condition.',
                 impact: 'Medium',
-                estimatedCost: $this->estimateCriticalIllnessPremium($profile->annual_income * 3, $profile)
+                estimatedCost: $this->estimateCriticalIllnessPremium(
+                    $profile->annual_income * (int) $this->taxConfig->get('protection.income_multipliers.critical_illness', 3),
+                    $profile
+                )
             );
         }
 
@@ -163,12 +176,14 @@ class RecommendationEngine
      */
     private function estimateLifePremium(float $sumAssured, ProtectionProfile $profile): float
     {
-        // Simplified premium estimation: £0.50 per £1,000 sum assured per year
-        // Adjust for smoker status (+50%) and age
-        $basePremium = ($sumAssured / 1000) * 0.50;
+        // Simplified premium estimation: base rate per £1,000 sum assured per year
+        // Adjust for smoker status (smoker loading) and age
+        $baseRate = (float) $this->taxConfig->get('protection.premium_factors.base_rate', 0.50);
+        $smokerLoading = (float) $this->taxConfig->get('protection.premium_factors.smoker_loading', 1.5);
+        $basePremium = ($sumAssured / 1000) * $baseRate;
 
         if ($profile->smoker_status) {
-            $basePremium *= 1.5;
+            $basePremium *= $smokerLoading;
         }
 
         // Adjust for age (very simplified)
@@ -200,7 +215,9 @@ class RecommendationEngine
     private function estimateCriticalIllnessPremium(float $sumAssured, ProtectionProfile $profile): float
     {
         // Critical illness is typically 2-3x more expensive than life insurance
-        return $this->estimateLifePremium($sumAssured, $profile) * 2.5;
+        $ciRatio = (float) $this->taxConfig->get('protection.premium_factors.ci_ratio', 2.5);
+
+        return $this->estimateLifePremium($sumAssured, $profile) * $ciRatio;
     }
 
     /**
@@ -209,7 +226,8 @@ class RecommendationEngine
     private function estimateIncomeProtectionPremium(float $annualBenefit, ProtectionProfile $profile): float
     {
         // Typically 1-3% of annual benefit
-        $basePremium = $annualBenefit * 0.02;
+        $ipRate = (float) $this->taxConfig->get('protection.premium_factors.ip_rate', 0.02);
+        $basePremium = $annualBenefit * $ipRate;
 
         if ($profile->smoker_status) {
             $basePremium *= 1.3;
@@ -226,7 +244,9 @@ class RecommendationEngine
         // FIB is typically cheaper than level term
         $annualIncome = $profile->monthly_expenditure * 12;
 
-        return $this->estimateLifePremium($annualIncome * 10, $profile) * 0.7;
+        $lifeCoverMultiplier = (int) $this->taxConfig->get('protection.income_multipliers.life_cover', 10);
+
+        return $this->estimateLifePremium($annualIncome * $lifeCoverMultiplier, $profile) * 0.7;
     }
 
     /**

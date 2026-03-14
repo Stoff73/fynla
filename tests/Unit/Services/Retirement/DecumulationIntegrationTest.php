@@ -11,11 +11,16 @@ use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // Default user attributes to pass retirement data readiness blocking checks
+    $this->readyUserAttrs = [
+        'date_of_birth' => now()->subYears(60),
+        'annual_employment_income' => 50000,
+    ];
 });
 
 describe('DecumulationPlanner Integration with RetirementAgent', function () {
     it('includes decumulation data when user is within 10 years of retirement', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create($this->readyUserAttrs);
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 60,
@@ -46,7 +51,7 @@ describe('DecumulationPlanner Integration with RetirementAgent', function () {
     });
 
     it('includes decumulation data when user is already retired', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create($this->readyUserAttrs);
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 68,
@@ -71,7 +76,7 @@ describe('DecumulationPlanner Integration with RetirementAgent', function () {
     });
 
     it('excludes decumulation data when user is far from retirement', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(array_merge($this->readyUserAttrs, ['date_of_birth' => now()->subYears(30)]));
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 30,
@@ -94,7 +99,7 @@ describe('DecumulationPlanner Integration with RetirementAgent', function () {
     });
 
     it('excludes decumulation data when user has no DC pension value', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create($this->readyUserAttrs);
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 62,
@@ -117,7 +122,7 @@ describe('DecumulationPlanner Integration with RetirementAgent', function () {
     });
 
     it('calculates safe withdrawal rate within decumulation analysis', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create($this->readyUserAttrs);
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 63,
@@ -145,7 +150,7 @@ describe('DecumulationPlanner Integration with RetirementAgent', function () {
     });
 
     it('includes PCLS strategy in decumulation analysis', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create($this->readyUserAttrs);
         RetirementProfile::factory()->create([
             'user_id' => $user->id,
             'current_age' => 65,

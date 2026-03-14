@@ -151,21 +151,20 @@ class ComprehensiveProtectionPlanService
 
         return [
             'title' => 'Comprehensive Protection Plan',
-            'adequacy_score' => [
-                'overall' => $adequacyScore['overall_score'] ?? 0,
-                'life' => $adequacyScore['life_insurance_score'] ?? 0,
-                'critical_illness' => $adequacyScore['critical_illness_score'] ?? 0,
-                'income_protection' => $adequacyScore['income_protection_score'] ?? 0,
-                'rating' => $adequacyScore['rating'] ?? 'N/A',
+            'adequacy_rating' => [
+                'overall' => $adequacyScore['rating'] ?? 'N/A',
+                'life' => $this->getCoverageStatus($adequacyScore['life_insurance_score'] ?? 0),
+                'critical_illness' => $this->getCoverageStatus($adequacyScore['critical_illness_score'] ?? 0),
+                'income_protection' => $this->getCoverageStatus($adequacyScore['income_protection_score'] ?? 0),
             ],
             'critical_gaps' => $criticalGaps,
             'total_gap_amount' => $totalGap,
             'monthly_income_gap' => ($gapsByCategory['income_protection_gap'] ?? 0) / 12,
             'recommended_action' => $this->getRecommendedAction(
-                $adequacyScore['overall_score'] ?? 0,
-                $adequacyScore['life_insurance_score'] ?? 0,
-                $adequacyScore['critical_illness_score'] ?? 0,
-                $adequacyScore['income_protection_score'] ?? 0,
+                $adequacyScore['rating'] ?? 'N/A',
+                $this->getCoverageStatus($adequacyScore['life_insurance_score'] ?? 0),
+                $this->getCoverageStatus($adequacyScore['critical_illness_score'] ?? 0),
+                $this->getCoverageStatus($adequacyScore['income_protection_score'] ?? 0),
                 ($profile->number_of_dependents ?? 0) > 0
             ),
         ];
@@ -223,6 +222,13 @@ class ComprehensiveProtectionPlanService
             'number_of_dependents' => \App\Models\FamilyMember::where('user_id', $user->id)->where('is_dependent', true)->count(),
             'dependents_ages' => $profile->dependents_ages ?? [],
             'retirement_age' => $profile->retirement_age ?? 65,
+            'death_in_service_multiple' => $profile->death_in_service_multiple,
+            'group_ip_benefit_percent' => $profile->group_ip_benefit_percent,
+            'group_ip_benefit_months' => $profile->group_ip_benefit_months,
+            'group_ip_definition' => $profile->group_ip_definition,
+            'group_ci_amount' => $profile->group_ci_amount,
+            'has_employer_pmi' => (bool) ($profile->has_employer_pmi ?? false),
+            'employer_name' => $profile->employer_name,
         ];
     }
 
@@ -361,6 +367,7 @@ class ComprehensiveProtectionPlanService
                 'spouse_net_income' => $needs['spouse_net_income'] ?? 0,
                 'spouse_continuing_income' => $needs['spouse_continuing_income'] ?? 0,
             ],
+            'state_benefits' => $needs['state_benefits'] ?? [],
         ];
     }
 
@@ -398,7 +405,6 @@ class ComprehensiveProtectionPlanService
                 'gap' => $lifeGap,
                 'coverage_percentage' => $lifeNeed > 0 ?
                     round(($lifeCoverage / $lifeNeed) * 100, 1) : 100,
-                'score' => $adequacyScore['life_insurance_score'] ?? 0,
                 'status' => $this->getCoverageStatus($adequacyScore['life_insurance_score'] ?? 0),
             ],
             'critical_illness' => [
@@ -407,7 +413,6 @@ class ComprehensiveProtectionPlanService
                 'gap' => $ciGap,
                 'coverage_percentage' => $ciNeed > 0 ?
                     round(($ciCoverage / $ciNeed) * 100, 1) : 100,
-                'score' => $adequacyScore['critical_illness_score'] ?? 0,
                 'status' => $this->getCoverageStatus($adequacyScore['critical_illness_score'] ?? 0),
             ],
             'income_protection' => [
@@ -416,10 +421,8 @@ class ComprehensiveProtectionPlanService
                 'gap' => $ipMonthlyGap,
                 'coverage_percentage' => $ipMonthlyNeed > 0 ?
                     round(($ipMonthlyCoverage / $ipMonthlyNeed) * 100, 1) : 100,
-                'score' => $adequacyScore['income_protection_score'] ?? 0,
                 'status' => $this->getCoverageStatus($adequacyScore['income_protection_score'] ?? 0),
             ],
-            'overall_score' => $adequacyScore['overall_score'] ?? 0,
             'overall_rating' => $adequacyScore['rating'] ?? 'N/A',
         ];
     }
@@ -656,28 +659,28 @@ class ComprehensiveProtectionPlanService
 
     // Helper methods
 
-    private function getRecommendedAction(float $overallScore, float $lifeScore, float $ciScore, float $ipScore, bool $hasDependants = false): string
+    private function getRecommendedAction(string $overallRating, string $lifeRating, string $ciRating, string $ipRating, bool $hasDependants = false): string
     {
         $missingCoverage = [];
 
-        // Check for missing policy types (score of 0 means no coverage)
-        if ($ciScore === 0) {
+        // Check for missing policy types (Critical rating with no coverage)
+        if ($ciRating === 'Critical') {
             $missingCoverage[] = 'Critical Illness';
         }
 
-        if ($ipScore === 0) {
+        if ($ipRating === 'Critical') {
             $missingCoverage[] = 'Income Protection';
         }
 
-        // If life coverage is good but other types are missing, recommend them
-        if ($lifeScore >= 80 && ! empty($missingCoverage)) {
+        // If life coverage is excellent but other types are missing, recommend them
+        if ($lifeRating === 'Excellent' && ! empty($missingCoverage)) {
             $types = implode(' and ', $missingCoverage);
 
             return "Your life insurance coverage is excellent. Consider adding {$types} to provide comprehensive protection.";
         }
 
-        // If life coverage has gaps, prioritize that
-        if ($lifeScore < 80 && $lifeScore > 0) {
+        // If life coverage has gaps (Good or Fair), prioritise that
+        if (in_array($lifeRating, ['Good', 'Fair'], true)) {
             $recommendation = 'Priority: Increase life insurance coverage to adequate levels.';
             if (! empty($missingCoverage)) {
                 $types = implode(' and ', $missingCoverage);
@@ -687,22 +690,22 @@ class ComprehensiveProtectionPlanService
             return $recommendation;
         }
 
-        // If no life coverage at all (score = 0)
-        if ($lifeScore === 0) {
+        // If life coverage is critical (no or very low coverage)
+        if ($lifeRating === 'Critical') {
             return $hasDependants
                 ? 'Critical: No life insurance coverage detected. Immediate action required to protect your family\'s financial future.'
                 : 'Critical: No life insurance coverage detected. Consider adding cover to protect your loved ones and cover outstanding debts.';
         }
 
         // All coverage types present and adequate
-        if ($overallScore >= 80 && empty($missingCoverage)) {
+        if ($overallRating === 'Excellent' && empty($missingCoverage)) {
             return 'Your protection coverage is comprehensive. Review annually to ensure it remains adequate.';
         }
 
-        // Fallback to overall score-based recommendations
-        if ($overallScore >= 60) {
+        // Fallback to overall rating-based recommendations
+        if ($overallRating === 'Good') {
             return 'Your protection coverage is adequate but could be improved. Consider addressing the gaps identified.';
-        } elseif ($overallScore >= 40) {
+        } elseif ($overallRating === 'Fair') {
             return $hasDependants
                 ? 'Your protection coverage has significant gaps. Priority action required to protect your family.'
                 : 'Your protection coverage has significant gaps. Priority action recommended to address these.';
@@ -725,7 +728,7 @@ class ComprehensiveProtectionPlanService
             return 'Fair';
         }
 
-        return 'Poor';
+        return 'Critical';
     }
 
     private function convertToAnnualPremium(float $amount, string $frequency): float

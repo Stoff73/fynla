@@ -9,6 +9,7 @@ use App\Models\Investment\InvestmentGoal;
 use App\Models\User;
 use App\Services\Investment\Goals\GoalProbabilityCalculator;
 use App\Services\Investment\Tax\ISAAllowanceOptimizer;
+use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,7 +30,8 @@ class ContributionOptimizer
     public function __construct(
         private ISAAllowanceOptimizer $isaOptimizer,
         private GoalProbabilityCalculator $probabilityCalculator,
-        private \App\Services\TaxConfigService $taxConfig
+        private \App\Services\TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -506,17 +508,17 @@ class ContributionOptimizer
 
     private function getExpectedReturnByRisk(string $riskTolerance): float
     {
-        $assumptions = $this->taxConfig->get('assumptions', []);
-
-        return match ($riskTolerance) {
-            'conservative' => 0.045,  // 4.5%
-            'moderately_conservative' => 0.055,  // 5.5%
-            // Use config assumption for 'balanced' as pivot
-            'balanced' => $assumptions['investment_growth_rate'] ?? 0.065,
-            'moderately_aggressive' => 0.075,  // 7.5%
-            'aggressive' => 0.085,  // 8.5%
-            default => $assumptions['investment_growth_rate'] ?? 0.065,
+        // Map legacy risk tolerance labels to RiskPreferenceService 5-level system
+        $riskLevel = match ($riskTolerance) {
+            'conservative' => 'low',
+            'moderately_conservative' => 'lower_medium',
+            'balanced' => 'medium',
+            'moderately_aggressive' => 'upper_medium',
+            'aggressive' => 'high',
+            default => 'medium',
         };
+
+        return $this->riskPreferenceService->getReturnParameters($riskLevel)['expected_return_typical'] / 100;
     }
 
     private function getVolatilityByRisk(string $riskTolerance): float

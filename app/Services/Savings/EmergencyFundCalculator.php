@@ -51,18 +51,18 @@ class EmergencyFundCalculator
     /**
      * Categorize adequacy level based on runway
      *
-     * 6+ months: Excellent
-     * 3-6 months: Good
-     * 1-3 months: Fair
+     * target+ months: Excellent
+     * target/2 to target: Good
+     * 1 to target/2: Fair
      * <1 month: Critical
      */
-    public function categorizeAdequacy(float $runway): string
+    public function categorizeAdequacy(float $runway, int $targetMonths = 6): string
     {
-        if ($runway >= 6) {
+        if ($runway >= $targetMonths) {
             return 'Excellent';
         }
 
-        if ($runway >= 3) {
+        if ($runway >= ($targetMonths / 2)) {
             return 'Good';
         }
 
@@ -71,5 +71,26 @@ class EmergencyFundCalculator
         }
 
         return 'Critical';
+    }
+
+    /**
+     * Get target emergency fund months based on employment status
+     *
+     * Employment-based targets:
+     * - employed: 6 months
+     * - self_employed: 9 months (irregular income)
+     * - contractor: 9 months (contract gaps)
+     * - retired: 3 months (stable pension income)
+     * - unemployed: 6 months
+     */
+    public function getTargetMonths(?string $employmentStatus): int
+    {
+        return match ($employmentStatus) {
+            'employed', 'part_time' => 6,
+            'self_employed', 'freelance' => 9,
+            'contractor' => 9,
+            'retired' => 3,
+            default => 6,
+        };
     }
 }

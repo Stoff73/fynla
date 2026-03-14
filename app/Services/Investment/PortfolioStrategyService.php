@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\InvestmentDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
-use App\Constants\InvestmentDefaults;
 use App\Traits\FormatsCurrency;
 
 /**
@@ -39,7 +40,8 @@ class PortfolioStrategyService
         private readonly TaxOptimizationAnalyzer $taxAnalyzer,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly DriftAnalyzer $driftAnalyzer,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -197,7 +199,8 @@ class PortfolioStrategyService
             }
 
             // Calculate tax deferral benefit
-            $estimatedReturn = 0.06; // 6% assumed return
+            $riskLevel = $this->riskPreferenceService->getMainRiskLevel($user->id) ?? 'medium';
+            $estimatedReturn = $this->riskPreferenceService->getReturnParameters($riskLevel)['expected_return_typical'] / 100;
             $annualGrowth = $totalValue * $estimatedReturn;
 
             // Tax savings: difference between income tax and effective bond rate
@@ -333,7 +336,9 @@ class PortfolioStrategyService
             foreach ($highFeeHoldings['holdings'] ?? [] as $holding) {
                 // Calculate potential saving by switching to low-cost alternative
                 $currentCost = $holding['annual_cost'];
-                $lowCostCost = $holding['current_value'] * 0.0015; // Assume 0.15% low-cost alternative
+                $feeBenchmarks = $this->taxConfig->get('investment.fee_benchmarks', []);
+                $lowCostOCF = $feeBenchmarks['low_cost_ocf'] ?? 0.0015;
+                $lowCostCost = $holding['current_value'] * $lowCostOCF;
                 $potentialSaving = max(0, $currentCost - $lowCostCost);
 
                 if ($potentialSaving < 50) {

@@ -347,11 +347,102 @@ class TaxConfigService
     /**
      * Get Investment/Financial Planning Assumptions
      *
-     * @return array Contains investment_growth, inflation, salary_growth
+     * @return array Contains investment_growth, inflation, salary_growth, growth_by_risk
      */
     public function getAssumptions(): array
     {
         return $this->get('assumptions', []);
+    }
+
+    /**
+     * Get Personal Savings Allowance by tax band
+     *
+     * @param  string|null  $taxBand  'basic', 'higher', or 'additional'. Null returns all bands.
+     * @return int|array Returns the PSA amount for the band, or all bands if null
+     */
+    public function getPersonalSavingsAllowance(?string $taxBand = null): int|array
+    {
+        $psa = $this->get('income_tax.personal_savings_allowance', [
+            'basic' => 1000,
+            'higher' => 500,
+            'additional' => 0,
+        ]);
+
+        if ($taxBand === null) {
+            return $psa;
+        }
+
+        return $psa[$taxBand] ?? 0;
+    }
+
+    /**
+     * Get Savings-specific configuration (FSCS, Premium Bonds, etc.)
+     *
+     * @param  string|null  $key  Optional dot-notation sub-key (e.g., 'fscs_deposit_protection')
+     * @return mixed Full savings config array, or specific value if key provided
+     */
+    public function getSavingsConfig(?string $key = null): mixed
+    {
+        if ($key === null) {
+            return $this->get('savings', []);
+        }
+
+        return $this->get("savings.{$key}");
+    }
+
+    /**
+     * Get Protection module configuration
+     *
+     * @return array Contains income_multipliers, affordability, premium_factors, etc.
+     */
+    public function getProtectionConfig(): array
+    {
+        return $this->get('protection', []);
+    }
+
+    /**
+     * Get Retirement module configuration
+     *
+     * @return array Contains withdrawal_rates, target_income_percent, annuity_rate_estimates, etc.
+     */
+    public function getRetirementConfig(): array
+    {
+        return $this->get('retirement', []);
+    }
+
+    /**
+     * Get Investment module configuration
+     *
+     * @return array Contains fee_benchmarks, waterfall limits, venture_capital, safety thresholds
+     */
+    public function getInvestmentConfig(): array
+    {
+        return $this->get('investment', []);
+    }
+
+    /**
+     * Get Estate planning configuration
+     *
+     * @return array Contains onboarding_estimates, insurance_premium_estimates
+     */
+    public function getEstateConfig(): array
+    {
+        return $this->get('estate', []);
+    }
+
+    /**
+     * Get Benefits configuration (SSP, ESA, UC, PIP, bereavement)
+     *
+     * @param  string|null  $key  Optional sub-key (e.g., 'ssp', 'universal_credit')
+     * @return mixed Full benefits config or specific benefit section
+     */
+    public function getBenefits(?string $key = null): mixed
+    {
+        if ($key === null) {
+            return $this->get('benefits', []);
+        }
+
+        return $this->get("benefits.{$key}", []);
     }
 
     /**

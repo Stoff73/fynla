@@ -7,6 +7,7 @@ namespace App\Services\Investment\Tax;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -26,8 +27,17 @@ use Illuminate\Support\Collection;
 class ISAAllowanceOptimizer
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Calculate optimal ISA contribution strategy
@@ -218,7 +228,7 @@ class ISAAllowanceOptimizer
             );
 
             $annualDividend = ($holding->dividend_yield ?? 0) * $transferValue;
-            $estimatedAnnualGrowth = $transferValue * 0.06; // Assume 6% growth
+            $estimatedAnnualGrowth = $transferValue * $this->getDefaultExpectedReturn();
 
             // Tax savings
             $dividendTaxSaving = $annualDividend * 0.0875; // 8.75% basic rate
@@ -443,7 +453,7 @@ class ISAAllowanceOptimizer
         }
 
         // Assumptions
-        $annualReturn = $options['expected_return'] ?? 0.06; // 6% average return
+        $annualReturn = $options['expected_return'] ?? $this->getDefaultExpectedReturn();
         $dividendYield = $options['dividend_yield'] ?? 0.02; // 2% dividend yield
         $taxRate = $options['tax_rate'] ?? 0.20; // 20% CGT / higher rate income tax
 

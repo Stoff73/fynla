@@ -11,6 +11,7 @@ use App\Services\Savings\GoalProgressCalculator;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\LiquidityAnalyzer;
 use App\Services\Savings\RateComparator;
+use App\Services\Savings\SavingsDataReadinessService;
 
 beforeEach(function () {
     $this->emergencyFundCalculator = Mockery::mock(EmergencyFundCalculator::class);
@@ -18,13 +19,21 @@ beforeEach(function () {
     $this->goalProgressCalculator = Mockery::mock(GoalProgressCalculator::class);
     $this->liquidityAnalyzer = Mockery::mock(LiquidityAnalyzer::class);
     $this->rateComparator = Mockery::mock(RateComparator::class);
+    $this->readinessService = Mockery::mock(SavingsDataReadinessService::class);
+    $this->readinessService->shouldReceive('assess')->andReturn([
+        'can_proceed' => true,
+        'blocking' => [],
+        'warnings' => [],
+        'info' => [],
+    ])->byDefault();
 
     $this->agent = new SavingsAgent(
         $this->emergencyFundCalculator,
         $this->isaTracker,
         $this->goalProgressCalculator,
         $this->liquidityAnalyzer,
-        $this->rateComparator
+        $this->rateComparator,
+        $this->readinessService
     );
 });
 
@@ -437,8 +446,8 @@ describe('generateRecommendations', function () {
         $isaRec = collect($result)->first(fn ($r) => $r['category'] === 'isa_allowance');
         expect($isaRec)->not->toBeNull();
         expect($isaRec['priority'])->toBe('medium');
-        expect($isaRec['title'])->toBe('Utilize ISA Allowance');
-        expect($isaRec['description'])->toContain('15000.00');
+        expect($isaRec['title'])->toBe('Use ISA Allowance');
+        expect($isaRec['description'])->toContain('15,000');
         expect($isaRec['description'])->toContain('2025/26');
     });
 
@@ -479,7 +488,7 @@ describe('generateRecommendations', function () {
         expect($rateRec['priority'])->toBe('medium');
         expect($rateRec['title'])->toBe('Switch to Better Rate');
         expect($rateRec['description'])->toContain('Old Bank');
-        expect($rateRec['description'])->toContain('250.00');
+        expect($rateRec['description'])->toContain('250');
     });
 
     it('generates liquidity recommendations', function () {

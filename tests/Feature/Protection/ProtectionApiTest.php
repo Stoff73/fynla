@@ -318,7 +318,10 @@ describe('Protection Analysis', function () {
     });
 
     it('requires protection profile for analysis', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'date_of_birth' => now()->subYears(35),
+            'annual_employment_income' => 50000,
+        ]);
 
         $response = $this->actingAs($user)->postJson('/api/protection/analyze');
 

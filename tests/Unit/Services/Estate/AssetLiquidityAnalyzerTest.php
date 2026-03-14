@@ -11,7 +11,7 @@ beforeEach(function () {
 
 describe('AssetLiquidityAnalyzer', function () {
     describe('analyzeAssetLiquidity', function () {
-        it('classifies liquid assets correctly', function () {
+        it('classifies liquid and semi-liquid assets correctly', function () {
             $assets = collect([
                 new Asset([
                     'id' => 1,
@@ -29,9 +29,11 @@ describe('AssetLiquidityAnalyzer', function () {
 
             $result = $this->analyzer->analyzeAssetLiquidity($assets);
 
-            expect($result['liquid']['count'])->toBe(2);
-            expect($result['liquid']['total_value'])->toBe(170000.0);
-            expect($result['semi_liquid']['count'])->toBe(0);
+            // Cash/other = liquid, investments = semi-liquid
+            expect($result['liquid']['count'])->toBe(1);
+            expect($result['liquid']['total_value'])->toBe(50000.0);
+            expect($result['semi_liquid']['count'])->toBe(1);
+            expect($result['semi_liquid']['total_value'])->toBe(120000.0);
             expect($result['illiquid']['count'])->toBe(0);
         });
 
@@ -105,7 +107,7 @@ describe('AssetLiquidityAnalyzer', function () {
     });
 
     describe('classifyAsset', function () {
-        it('classifies investment assets as liquid', function () {
+        it('classifies investment assets as semi-liquid', function () {
             $asset = new Asset([
                 'asset_type' => 'investment',
                 'asset_name' => 'Stocks & Shares ISA',
@@ -113,12 +115,12 @@ describe('AssetLiquidityAnalyzer', function () {
 
             $result = $this->analyzer->classifyAsset($asset);
 
-            expect($result['liquidity'])->toBe('liquid');
+            expect($result['liquidity'])->toBe('semi_liquid');
             expect($result['is_giftable'])->toBe(true);
             expect($result['gifting_considerations'])->toBeArray();
         });
 
-        it('classifies pension as liquid but not giftable', function () {
+        it('classifies pension as illiquid and not giftable', function () {
             $asset = new Asset([
                 'asset_type' => 'pension',
                 'asset_name' => 'Company Pension',
@@ -126,10 +128,10 @@ describe('AssetLiquidityAnalyzer', function () {
 
             $result = $this->analyzer->classifyAsset($asset);
 
-            expect($result['liquidity'])->toBe('liquid');
+            expect($result['liquidity'])->toBe('illiquid');
             expect($result['is_giftable'])->toBe(false);
             expect($result['not_giftable_reason'])
-                ->toContain('already outside your estate');
+                ->toContain('cannot be used to pay Inheritance Tax');
         });
 
         it('classifies rental property as semi-liquid', function () {
@@ -189,8 +191,11 @@ describe('AssetLiquidityAnalyzer', function () {
 
             $result = $this->analyzer->calculateMaximumGiftableAmount($assets);
 
-            expect($result['immediately_giftable'])->toBe(170000.0);
-            expect($result['liquid_asset_count'])->toBe(2);
+            // Only cash/other is liquid; investments are semi-liquid
+            expect($result['immediately_giftable'])->toBe(50000.0);
+            expect($result['giftable_with_planning'])->toBe(120000.0);
+            expect($result['liquid_asset_count'])->toBe(1);
+            expect($result['semi_liquid_asset_count'])->toBe(1);
         });
 
         it('calculates giftable with planning correctly', function () {

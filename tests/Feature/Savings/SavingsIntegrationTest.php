@@ -71,7 +71,10 @@ describe('Savings Integration Tests', function () {
 
     describe('Analyze savings flow', function () {
         it('analyzes user savings and returns recommendations', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create([
+                'date_of_birth' => now()->subYears(35),
+                'annual_employment_income' => 50000,
+            ]);
 
             // Create savings account with some balance
             SavingsAccount::factory()->create([
@@ -187,7 +190,10 @@ describe('Savings Integration Tests', function () {
 
     describe('Update account flow', function () {
         it('updates account balance and reflects in analysis', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create([
+                'date_of_birth' => now()->subYears(35),
+                'annual_employment_income' => 50000,
+            ]);
 
             $account = SavingsAccount::factory()->create([
                 'user_id' => $user->id,
@@ -287,7 +293,10 @@ describe('Savings Integration Tests', function () {
 
     describe('Complete user journey', function () {
         it('handles complete savings management workflow', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create([
+                'date_of_birth' => now()->subYears(35),
+                'annual_employment_income' => 50000,
+            ]);
 
             // Step 1: Create expenditure profile
             $expenditure = ExpenditureProfile::create([

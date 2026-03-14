@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 use App\Services\UserProfile\UserProfileService;
 
 /**
@@ -21,19 +22,10 @@ class RetirementProjectionService
 {
     private const DEFAULT_RETIREMENT_AGE = 67;
 
-    private const SUSTAINABLE_WITHDRAWAL_RATE = 0.047; // 4.7%
-
-    private const INFLATION_RATE = 0.02; // 2%
-
-    private const TARGET_INCOME_PERCENT = 0.75; // 75% of current net income
-
-    private const END_AGE = 100;
-
-    private const MONTE_CARLO_ITERATIONS = 1000;
-
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
         private readonly RiskPreferenceService $riskService,
+        private readonly TaxConfigService $taxConfig,
         private readonly UserProfileService $userProfileService,
         private readonly LifeEventCashFlowService $lifeEventCashFlowService
     ) {}
@@ -53,7 +45,8 @@ class RetirementProjectionService
 
         // Get life events applied to projections (cover both accumulation and decumulation)
         $currentAge = $potProjection['current_age'];
-        $totalProjectionYears = self::END_AGE - $currentAge;
+        $endAge = (int) $this->taxConfig->get('retirement.projection_end_age', 100);
+        $totalProjectionYears = $endAge - $currentAge;
         $appliedEvents = $this->lifeEventCashFlowService->getAppliedEvents(
             $userId,
             'retirement',
@@ -118,7 +111,7 @@ class RetirementProjectionService
             $expectedReturn,
             $volatility,
             $yearsToRetirement,
-            self::MONTE_CARLO_ITERATIONS,
+            (int) $this->taxConfig->get('retirement.monte_carlo_iterations', 1000),
             $cacheKey,
             $scheduledInjections
         );
@@ -190,7 +183,7 @@ class RetirementProjectionService
             $expectedReturn,
             $volatility,
             $yearsToRetirement,
-            self::MONTE_CARLO_ITERATIONS,
+            (int) $this->taxConfig->get('retirement.monte_carlo_iterations', 1000),
             $cacheKey
         );
 
@@ -253,14 +246,18 @@ class RetirementProjectionService
         $currentNetIncome = $this->getCurrentNetIncome($user);
         $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
+        $endAge = (int) $this->taxConfig->get('retirement.projection_end_age', 100);
+        $sustainableWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
+        $inflationRate = (float) $this->taxConfig->get('assumptions.inflation', 0.025);
+
         // Get life event cash flows for the drawdown period (age-indexed)
         $drawdownCashFlows = $this->lifeEventCashFlowService->buildDrawdownCashFlowMap(
             $user->id,
             $retirementAge,
-            self::END_AGE
+            $endAge
         );
 
-        // Calculate year-by-year income from retirement to age 100
+        // Calculate year-by-year income from retirement to end age
         $yearlyIncome = [];
         $remainingFund = $potAtRetirement;
         $yearsAboveTarget = 0;
@@ -268,7 +265,7 @@ class RetirementProjectionService
         $fundDepletionAge = null;
         $currentTargetIncome = $targetIncome;
 
-        for ($age = $retirementAge; $age <= self::END_AGE; $age++) {
+        for ($age = $retirementAge; $age <= $endAge; $age++) {
             // Apply life event cash flows for this age
             $lifeEventImpact = $drawdownCashFlows[$age] ?? 0;
             if ($lifeEventImpact != 0) {
@@ -276,8 +273,8 @@ class RetirementProjectionService
                 $remainingFund = max(0, $remainingFund);
             }
 
-            // Calculate DC drawdown (4.7% of remaining fund)
-            $dcDrawdown = $remainingFund > 0 ? $remainingFund * self::SUSTAINABLE_WITHDRAWAL_RATE : 0;
+            // Calculate DC drawdown using sustainable withdrawal rate
+            $dcDrawdown = $remainingFund > 0 ? $remainingFund * $sustainableWithdrawalRate : 0;
 
             // State pension may start at a different age
             $statePensionThisYear = $age >= ($user->statePension?->state_pension_age ?? 67)
@@ -318,7 +315,7 @@ class RetirementProjectionService
             $remainingFund = max(0, $remainingFund);
 
             // Inflate target for next year
-            $currentTargetIncome *= (1 + self::INFLATION_RATE);
+            $currentTargetIncome *= (1 + $inflationRate);
         }
 
         // Calculate on-track status and probability
@@ -327,7 +324,7 @@ class RetirementProjectionService
             $firstYearIncome,
             $targetIncome,
             $yearsBeforeDepletion,
-            self::END_AGE - $retirementAge + 1
+            $endAge - $retirementAge + 1
         );
         $onTrackStatus = $this->determineOnTrackStatus($probability);
 
@@ -336,8 +333,8 @@ class RetirementProjectionService
             'target_income' => round($targetIncome, 2),
             'current_net_income' => round($currentNetIncome, 2),
             'retirement_age' => $retirementAge,
-            'withdrawal_rate' => self::SUSTAINABLE_WITHDRAWAL_RATE * 100,
-            'inflation_rate' => self::INFLATION_RATE * 100,
+            'withdrawal_rate' => $sustainableWithdrawalRate * 100,
+            'inflation_rate' => $inflationRate * 100,
             'growth_rate' => round($drawdownGrowthRate * 100, 1),
             'on_track_status' => $onTrackStatus,
             'probability' => $probability,
@@ -373,11 +370,14 @@ class RetirementProjectionService
         $currentNetIncome = $this->getCurrentNetIncome($user);
         $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
 
+        $endAge = (int) $this->taxConfig->get('retirement.projection_end_age', 100);
+        $inflationRate = (float) $this->taxConfig->get('assumptions.inflation', 0.025);
+
         // Get life event cash flows for the drawdown period (age-indexed)
         $drawdownCashFlows = $this->lifeEventCashFlowService->buildDrawdownCashFlowMap(
             $user->id,
             $retirementAge,
-            self::END_AGE
+            $endAge
         );
 
         // Calculate year-by-year income drawing target amount
@@ -386,7 +386,7 @@ class RetirementProjectionService
         $fundDepletionAge = null;
         $currentTargetIncome = $targetIncome;
 
-        for ($age = $retirementAge; $age <= self::END_AGE; $age++) {
+        for ($age = $retirementAge; $age <= $endAge; $age++) {
             // Apply life event cash flows for this age
             $lifeEventImpact = $drawdownCashFlows[$age] ?? 0;
             if ($lifeEventImpact != 0) {
@@ -433,17 +433,17 @@ class RetirementProjectionService
             $remainingFund = max(0, $remainingFund);
 
             // Inflate target for next year
-            $currentTargetIncome *= (1 + self::INFLATION_RATE);
+            $currentTargetIncome *= (1 + $inflationRate);
         }
 
         // Calculate years the fund lasts
-        $yearsFunded = $fundDepletionAge ? $fundDepletionAge - $retirementAge : self::END_AGE - $retirementAge + 1;
+        $yearsFunded = $fundDepletionAge ? $fundDepletionAge - $retirementAge : $endAge - $retirementAge + 1;
 
         return [
             'starting_pot' => round($potAtRetirement, 2),
             'target_income' => round($targetIncome, 2),
             'retirement_age' => $retirementAge,
-            'inflation_rate' => self::INFLATION_RATE * 100,
+            'inflation_rate' => $inflationRate * 100,
             'growth_rate' => round($drawdownGrowthRate * 100, 1),
             'fund_depletion_age' => $fundDepletionAge,
             'years_funded' => $yearsFunded,
@@ -563,7 +563,9 @@ class RetirementProjectionService
             return (float) $profile->target_retirement_income;
         }
 
-        return $currentNetIncome * self::TARGET_INCOME_PERCENT;
+        $targetIncomePercent = (float) $this->taxConfig->get('retirement.target_income_percent', 0.75);
+
+        return $currentNetIncome * $targetIncomePercent;
     }
 
     private function getUserRiskLevel(User $user): string

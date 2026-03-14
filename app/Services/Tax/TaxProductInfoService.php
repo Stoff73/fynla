@@ -147,8 +147,8 @@ class TaxProductInfoService
             'lifetime_isa_limit' => $isaAllowances['lifetime_isa']['annual_allowance'] ?? 4000,
             'cgt_allowance' => $cgtConfig['annual_exempt_amount'] ?? 3000,
             'dividend_allowance' => $dividendConfig['allowance'] ?? 500,
-            'psa_basic' => 1000,  // Personal Savings Allowance for basic rate taxpayers
-            'psa_higher' => 500,  // Personal Savings Allowance for higher rate taxpayers
+            'psa_basic' => $this->taxConfig->getPersonalSavingsAllowance('basic'),
+            'psa_higher' => $this->taxConfig->getPersonalSavingsAllowance('higher'),
             'personal_allowance' => $incomeTaxConfig['personal_allowance'],
         ];
     }

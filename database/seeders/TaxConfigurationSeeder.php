@@ -100,6 +100,19 @@ class TaxConfigurationSeeder extends Seeder
                     'enabled' => false,
                     'bands' => [],
                 ],
+
+                // Personal Savings Allowance (PSA) — tax-free savings interest
+                'personal_savings_allowance' => [
+                    'basic' => 1000,        // Basic rate taxpayers: £1,000
+                    'higher' => 500,        // Higher rate taxpayers: £500
+                    'additional' => 0,      // Additional rate taxpayers: £0
+                ],
+
+                // Starting Rate for Savings — 0% band for low earners
+                'starting_rate_for_savings' => [
+                    'band' => 5000,         // £5,000 starting rate band
+                    'rate' => 0,            // 0% rate
+                ],
             ],
 
             'national_insurance' => [
@@ -183,6 +196,19 @@ class TaxConfigurationSeeder extends Seeder
                 ],
             ],
 
+            // Savings-specific constants (FSCS, Premium Bonds, etc.)
+            'savings' => [
+                'fscs_deposit_protection' => 85000,              // £85,000 per eligible person per institution
+                'fscs_joint_protection' => 170000,               // £170,000 for joint accounts
+                'fscs_temporary_high_balance' => 1000000,        // £1,000,000 temporary high balance protection
+                'fscs_temporary_high_balance_months' => 6,       // 6-month protection period
+                'premium_bonds_max_holding' => 50000,            // £50,000 maximum holding
+                'premium_bonds_min_purchase' => 25,              // £25 minimum purchase
+                'premium_bonds_min_age_self' => 16,              // Must be 16+ to buy for self
+                'premium_bonds_prize_fund_rate' => 0.044,        // 4.4% prize fund rate
+                'parental_settlement_threshold' => 100,          // £100/year threshold for parental gifts
+            ],
+
             'pension' => [
                 'annual_allowance' => 60000,
                 'money_purchase_annual_allowance' => 10000,
@@ -205,6 +231,30 @@ class TaxConfigurationSeeder extends Seeder
                     'full_new_state_pension' => 11973.00,
                     'qualifying_years' => 35,
                     'minimum_qualifying_years' => 10,
+                    'current_spa' => 66,                         // Current State Pension Age
+                    'future_spa' => 67,                          // Rising to 67 (2028-2046)
+                ],
+
+                // Salary sacrifice configuration
+                'salary_sacrifice' => [
+                    'nlw_hourly' => 12.21,                       // National Living Wage (21+) 2025/26
+                    'nmw_hourly' => [
+                        '21_plus' => 12.21,                      // National Living Wage
+                        '18_to_20' => 10.00,
+                        'under_18' => 7.55,
+                        'apprentice' => 7.55,
+                    ],
+                    'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
+                ],
+
+                // Auto-enrolment thresholds
+                'auto_enrolment' => [
+                    'earnings_trigger' => 10000,                 // £10,000 — must auto-enrol above this
+                    'lower_qualifying_earnings' => 6240,         // £6,240 — lower limit of qualifying earnings band
+                    'upper_qualifying_earnings' => 50270,        // £50,270 — upper limit of qualifying earnings band
+                    'minimum_total_contribution' => 0.08,        // 8% minimum total contribution
+                    'minimum_employer_contribution' => 0.03,     // 3% minimum employer contribution
+                    'minimum_employee_contribution' => 0.05,     // 5% minimum employee contribution
                 ],
             ],
 
@@ -405,6 +455,14 @@ class TaxConfigurationSeeder extends Seeder
                         ['max_years' => 5, 'relief' => 0.2],     // 20% relief
                     ],
                 ],
+
+                // 2027 Pension IHT Inclusion (Budget 2024 amendment)
+                'pension_iht_inclusion' => [
+                    'effective_date' => '2027-04-06',            // From April 2027
+                    'description' => 'Unused pension funds and death benefits will be included in the estate for IHT purposes',
+                    'applies_to' => ['defined_contribution', 'death_benefits'],
+                    'notes' => 'Major change from Budget 2024. Currently pension funds pass outside the estate. From April 2027, they will be subject to IHT.',
+                ],
             ],
 
             'gifting_exemptions' => [
@@ -518,8 +576,20 @@ class TaxConfigurationSeeder extends Seeder
                     'property' => 0.03,
                     'balanced_portfolio' => 0.04,
                 ],
-                'inflation' => 0.025,  // 2.5% - updated per specification
+                'inflation' => 0.025,  // 2.5% — single source of truth
                 'salary_growth' => 0.03,
+
+                // Growth rates mapped to risk profile levels
+                'growth_by_risk' => [
+                    'very_low' => 0.02,      // Cash-like: 2%
+                    'low' => 0.035,          // Conservative: 3.5%
+                    'low_medium' => 0.04,    // Cautious: 4%
+                    'medium' => 0.05,        // Balanced: 5%
+                    'medium_high' => 0.06,   // Growth: 6%
+                    'high' => 0.07,          // Aggressive: 7%
+                ],
+
+                'property_growth' => 0.03,   // Long-term UK property growth assumption
             ],
 
             // Benefits and allowances
@@ -533,6 +603,235 @@ class TaxConfigurationSeeder extends Seeder
                     'high_income_full_clawback' => 80000,        // HICBC claws back 100% at this level
                     'clawback_increment' => 200,                 // 1% clawed back per £200 over threshold
                     'notes' => 'Child Benefit is claimed for children under 16, or under 20 if in approved education/training. High Income Child Benefit Charge (HICBC) applies when either parent earns over £60,000.',
+                ],
+
+                // Statutory Sick Pay
+                'ssp' => [
+                    'weekly_rate' => 116.75,                     // £116.75 per week (2025/26)
+                    'max_weeks' => 28,                           // Maximum 28 weeks
+                    'qualifying_days' => 4,                      // Payable from 4th qualifying day
+                    'lower_earnings_limit' => 125,               // Must earn at least £125/week
+                    'not_available_for' => ['self_employed'],     // Self-employed get no SSP
+                ],
+
+                // Employment and Support Allowance
+                'esa' => [
+                    'assessment_rate_under_25' => 71.70,         // Weekly during assessment
+                    'assessment_rate_25_plus' => 90.50,          // Weekly during assessment
+                    'support_group_supplement' => 44.70,         // Weekly supplement for support group
+                    'wrag_supplement' => 33.70,                  // Work-related activity group (legacy claims)
+                ],
+
+                // Universal Credit (monthly rates)
+                'universal_credit' => [
+                    'standard_allowance_single_under_25' => 316.98,
+                    'standard_allowance_single_25_plus' => 400.14,
+                    'standard_allowance_couple_both_under_25' => 497.55,
+                    'standard_allowance_couple_one_25_plus' => 628.15,
+                    'child_element_first' => 333.33,
+                    'child_element_subsequent' => 287.92,
+                    'disabled_child_lower' => 156.11,
+                    'disabled_child_higher' => 487.58,
+                    'lcwra_element' => 416.19,                   // Limited capability for work-related activity
+                    'carer_element' => 198.31,
+                    'childcare_max_one_child' => 1014.63,
+                    'childcare_max_two_plus' => 1739.37,
+                    'work_allowance_housing' => 404.00,          // If receiving housing element
+                    'work_allowance_no_housing' => 673.00,       // If not receiving housing element
+                    'taper_rate' => 0.55,                        // 55p reduction per £1 earned
+                ],
+
+                // Personal Independence Payment (weekly)
+                'pip' => [
+                    'daily_living_standard' => 72.65,
+                    'daily_living_enhanced' => 108.55,
+                    'mobility_standard' => 28.70,
+                    'mobility_enhanced' => 75.75,
+                ],
+
+                // Bereavement Support Payment
+                'bereavement_support' => [
+                    'higher_rate_lump_sum' => 3500,              // If partner died leaving dependent children
+                    'higher_rate_monthly' => 350,                // Monthly for 18 months
+                    'lower_rate_lump_sum' => 2500,               // If no dependent children
+                    'lower_rate_monthly' => 100,                 // Monthly for 18 months
+                    'payment_months' => 18,                      // Paid for up to 18 months
+                ],
+            ],
+
+            // Estate planning constants
+            'estate' => [
+                'onboarding_estimates' => [
+                    'property' => 300000,                        // Default property estimate
+                    'investment' => 50000,                       // Default investment estimate
+                    'savings' => 25000,                          // Default savings estimate
+                    'business' => 100000,                        // Default business estimate
+                ],
+                'insurance_premium_estimates' => [
+                    // Per £1,000 cover per month — by age band and gender
+                    'per_thousand_monthly' => [
+                        '30_male' => 0.30,
+                        '30_female' => 0.25,
+                        '40_male' => 0.50,
+                        '40_female' => 0.40,
+                        '50_male' => 1.00,
+                        '50_female' => 0.80,
+                        '60_male' => 2.50,
+                        '60_female' => 2.00,
+                        '70_male' => 6.00,
+                        '70_female' => 5.00,
+                    ],
+                ],
+            ],
+
+            // Investment engine constants
+            'investment' => [
+                // Asset class expected yields for tax drag calculations
+                'asset_class_yields' => [
+                    'uk_equity' => ['income_yield' => 0.035, 'growth' => 0.04],
+                    'global_equity' => ['income_yield' => 0.02, 'growth' => 0.05],
+                    'bonds' => ['income_yield' => 0.04, 'growth' => 0.005],
+                    'property' => ['income_yield' => 0.03, 'growth' => 0.03],
+                    'cash' => ['income_yield' => 0.04, 'growth' => 0.0],
+                ],
+
+                // Fee benchmarks
+                'fee_benchmarks' => [
+                    'low_cost_ocf' => 0.0015,                   // 0.15% — below this is low-cost
+                    'high_cost_ocf' => 0.0075,                  // 0.75% — above this is high-cost
+                    'platform_fee_typical' => 0.0025,            // 0.25% typical platform fee
+                ],
+
+                // Portfolio thresholds
+                'portfolio_thresholds' => [
+                    'rebalancing_drift_percent' => 5,            // Rebalance when >5% drift
+                    'concentration_warning_percent' => 25,       // Warn if single holding >25%
+                    'minimum_diversification_holdings' => 5,     // Minimum number of holdings
+                ],
+
+                // Contribution waterfall limits
+                'waterfall' => [
+                    'premium_bonds_max' => 50000,                // £50,000 NS&I Premium Bonds cap
+                    'offshore_bond_minimum' => 5000,             // Minimum for offshore bond recommendation
+                    'onshore_bond_minimum' => 5000,              // Minimum for onshore bond recommendation
+                    'ns_i_income_bonds_max' => 1000000,          // £1,000,000 NS&I Income Bonds cap
+                    'ns_i_direct_saver_max' => 2000000,          // £2,000,000 NS&I Direct Saver cap
+                ],
+
+                // Venture capital schemes
+                'venture_capital' => [
+                    'seis' => [
+                        'annual_limit' => 200000,                // £200,000 SEIS annual limit
+                        'income_tax_relief' => 0.50,             // 50% income tax relief
+                        'cgt_exempt_after_years' => 3,           // CGT exempt after 3 years
+                    ],
+                    'eis' => [
+                        'annual_limit' => 1000000,               // £1,000,000 EIS annual limit (£2m for knowledge-intensive)
+                        'knowledge_intensive_limit' => 2000000,
+                        'income_tax_relief' => 0.30,             // 30% income tax relief
+                        'cgt_exempt_after_years' => 3,
+                        'loss_relief' => true,                   // Loss relief available
+                        'carry_back_years' => 1,                 // Can carry back to previous tax year
+                    ],
+                    'vct' => [
+                        'annual_limit' => 200000,                // £200,000 VCT annual limit
+                        'income_tax_relief' => 0.30,             // 30% income tax relief
+                        'dividend_exempt' => true,               // Dividends tax-free
+                        'cgt_exempt' => true,                    // No CGT on disposal
+                        'min_holding_years' => 5,                // Must hold for 5 years for relief
+                    ],
+                ],
+
+                // Safety check thresholds
+                'safety' => [
+                    'critical_debt_rate' => 0.15,                // Debts above 15% APR are critical
+                    'emergency_fund_months' => 6,                // Universal baseline for investment surplus calc
+                    'emergency_fund_minimum' => 1000,            // Minimum emergency fund before investing
+                ],
+
+                // Transfer scan thresholds
+                'transfers' => [
+                    'cash_excess_buffer' => 1000,                // Buffer above emergency fund before suggesting transfer
+                    'consolidation_min_accounts' => 3,           // Suggest consolidation if 3+ accounts of same type
+                    'bed_and_isa_min_gain' => 500,               // Minimum CGT saving to recommend bed and ISA
+                ],
+            ],
+
+            // Protection module constants
+            'protection' => [
+                // Income replacement multipliers
+                'income_multipliers' => [
+                    'life_cover' => 10,                          // 10x annual income for life cover
+                    'critical_illness' => 3,                     // 3x annual income for CI
+                    'income_protection_max_benefit' => 0.60,     // 60% of gross income cap
+                ],
+
+                // Cost estimates
+                'education_cost_per_year' => 9000,               // £9,000 university tuition per year
+                'final_expenses' => 7500,                        // £7,500 funeral + admin costs
+
+                // Affordability thresholds
+                'affordability' => [
+                    'max_premium_percent_of_income' => 0.10,     // Max 10% of gross income on premiums
+                    'comfortable_premium_percent' => 0.05,       // 5% is comfortable
+                ],
+
+                // Premium estimation factors
+                'premium_factors' => [
+                    'base_rate' => 0.50,                         // Base rate per £1,000 cover per month
+                    'smoker_loading' => 1.5,                     // 50% loading for smokers
+                    'ci_ratio' => 2.5,                           // CI costs 2.5x life cover
+                    'ip_rate' => 0.02,                           // IP rate as % of benefit per month
+                ],
+
+                // Withdrawal rates for capital calculations
+                'withdrawal_rates' => [
+                    'human_capital' => 0.047,                    // Sustainable withdrawal rate for lump sum needs
+                    'scenario' => 0.03,                          // Conservative rate for scenario projections
+                ],
+
+                // Insurance Premium Tax
+                'ipt' => [
+                    'standard_rate' => 0.12,                     // 12% standard IPT rate
+                    'higher_rate' => 0.20,                       // 20% higher rate (travel, electrical goods)
+                    'exempt' => ['life', 'critical_illness', 'income_protection', 'pmi'],
+                ],
+            ],
+
+            // Retirement module constants
+            'retirement' => [
+                'accumulation_to_decumulation_years' => 10,      // Transition period years
+                'withdrawal_rates' => [
+                    'sustainable' => 0.047,                      // 4.7% sustainable withdrawal rate
+                    'safe' => 0.04,                              // 4.0% safe withdrawal rate (Trinity study)
+                    'gia' => 0.04,                               // 4.0% for GIA decumulation
+                ],
+                'target_income_percent' => 0.75,                 // Target 75% of pre-retirement income
+                'projection_end_age' => 100,                     // Project to age 100
+                'monte_carlo_iterations' => 1000,                // Monte Carlo simulation iterations
+                'compounding_periods' => 4,                      // Quarterly compounding
+                'employer_match_threshold' => 0.05,              // 5% employer match threshold
+
+                // Annuity rate estimates by age (single life, level, no guarantee)
+                'annuity_rate_estimates' => [
+                    '55' => ['single' => 0.048, 'joint' => 0.042],
+                    '60' => ['single' => 0.053, 'joint' => 0.047],
+                    '65' => ['single' => 0.060, 'joint' => 0.053],
+                    '70' => ['single' => 0.069, 'joint' => 0.061],
+                    '75' => ['single' => 0.081, 'joint' => 0.072],
+                ],
+            ],
+
+            // Domicile rules
+            'domicile' => [
+                'uk_domiciled' => [
+                    'worldwide_assets_subject_to_iht' => true,
+                    'spouse_exemption_unlimited' => true,
+                ],
+                'non_uk_domiciled' => [
+                    'uk_assets_only_subject_to_iht' => true,
+                    'spouse_exemption_limit' => 325000,          // £325,000 limit for non-dom spouse
+                    'deemed_domicile_years' => 15,               // Deemed UK domiciled after 15 of last 20 years
                 ],
             ],
 

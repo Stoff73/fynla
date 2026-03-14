@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
+use App\Services\TaxConfigService;
 
 class ScenarioBuilder
 {
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Model death scenario.
      */
@@ -17,7 +22,8 @@ class ScenarioBuilder
         $debtAmount = $profile->mortgage_balance + $profile->other_debts;
         $remainingFunds = $lifeCoverage - $debtAmount;
 
-        $monthlyIncome = $remainingFunds > 0 ? ($remainingFunds * 0.03) / 12 : 0; // 3% withdrawal rate
+        $scenarioWithdrawalRate = (float) $this->taxConfig->get('protection.withdrawal_rates.scenario', 0.03);
+        $monthlyIncome = $remainingFunds > 0 ? ($remainingFunds * $scenarioWithdrawalRate) / 12 : 0;
         $monthsOfSupport = $profile->monthly_expenditure > 0 ?
                           $remainingFunds / $profile->monthly_expenditure : 0;
 
@@ -89,8 +95,9 @@ class ScenarioBuilder
         $coverageIncreasePercent = $currentCoverage > 0 ?
                                   ($coverageIncrease / $currentCoverage) * 100 : 0;
 
-        // Simplified premium estimation: £0.50 per £1,000 per year
-        $estimatedPremiumIncrease = ($coverageIncrease / 1000) * 0.50 / 12;
+        // Simplified premium estimation: base rate per £1,000 per year
+        $baseRate = (float) $this->taxConfig->get('protection.premium_factors.base_rate', 0.50);
+        $estimatedPremiumIncrease = ($coverageIncrease / 1000) * $baseRate / 12;
 
         return [
             'scenario_type' => 'Premium Change',

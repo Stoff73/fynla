@@ -17,6 +17,7 @@ use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\Investment\Recommendation\DataReadinessService;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
@@ -31,7 +32,8 @@ class InvestmentAgent extends BaseAgent
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly TaxEfficiencyCalculator $taxCalculator,
         private readonly TaxConfigService $taxConfig,
-        private readonly InvestmentActionDefinitionService $actionDefinitionService
+        private readonly InvestmentActionDefinitionService $actionDefinitionService,
+        private readonly DataReadinessService $readinessService
     ) {}
 
     /**
@@ -39,6 +41,29 @@ class InvestmentAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        // Data readiness gate — return early if blocking checks fail
+        $gateUser = User::find($userId);
+        if ($gateUser) {
+            $readiness = $this->readinessService->assess($gateUser);
+            if (! $readiness['can_proceed']) {
+                return [
+                    'can_proceed' => false,
+                    'readiness_checks' => $readiness,
+                    'portfolio_summary' => null,
+                    'returns' => null,
+                    'asset_allocation' => null,
+                    'diversification_score' => null,
+                    'risk_metrics' => null,
+                    'fee_analysis' => null,
+                    'low_cost_comparison' => null,
+                    'tax_efficiency' => null,
+                    'tax_wrappers' => null,
+                    'allocation_deviation' => null,
+                    'goals' => null,
+                ];
+            }
+        }
+
         return $this->remember("investment_analysis_{$userId}", function () use ($userId) {
             // Get all user data (eager load holdings to avoid lazy loading)
             $accounts = InvestmentAccount::where('user_id', $userId)->with('holdings')->get();

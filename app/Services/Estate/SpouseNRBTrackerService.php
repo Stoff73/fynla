@@ -34,18 +34,28 @@ class SpouseNRBTrackerService
         // Get spouse's IHT profile
         $spouseIHTProfile = IHTProfile::where('user_id', $spouse->id)->first();
 
-        // Get spouse's gifts within 7 years of death
+        // Get spouse's gifts within 7 years of death (both PETs and CLTs consume NRB)
         $spouseGifts = Gift::where('user_id', $spouse->id)->get();
 
         // Filter gifts within 7 years (assuming death is now for calculation purposes)
+        // Both PETs and CLTs consume the Nil Rate Band
         $recentGifts = $spouseGifts->filter(function ($gift) {
             $yearsAgo = Carbon::now()->diffInYears($gift->gift_date);
 
-            return $yearsAgo < 7 && $gift->gift_type === 'pet';
+            return $yearsAgo < 7 && in_array($gift->gift_type, ['pet', 'clt'], true);
         })->sortBy('gift_date');
 
+        // 14-year rule: CLTs made 7-14 years before death also reduce available NRB
+        $historicalCLTs = $spouseGifts->filter(function ($gift) {
+            $yearsAgo = Carbon::now()->diffInYears($gift->gift_date);
+
+            return $yearsAgo >= 7 && $yearsAgo < 14 && $gift->gift_type === 'clt';
+        });
+        $historicalCLTValue = $historicalCLTs->sum('gift_value');
+
         // Calculate cumulative gift value that would use NRB
-        $totalGiftValue = $recentGifts->sum('gift_value');
+        // Historical CLTs (7-14 years) consume NRB first, then recent gifts
+        $totalGiftValue = $recentGifts->sum('gift_value') + $historicalCLTValue;
         $nrbUsedByGifts = min($nrb, $totalGiftValue);
 
         // Get spouse's estate assets (would need to check all assets)

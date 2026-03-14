@@ -44,7 +44,7 @@ class GoalPlanService extends BasePlanService
         $strategy = $this->strategyService->getStrategyForGoal($goalId);
 
         $currentSituation = $this->buildCurrentSituation($goal, $progress, $affordability);
-        $recommendations = $this->getRecommendations($userId, $goalId);
+        $recommendations = $this->getRecommendations($userId, ['goal_id' => $goalId]);
         ['actions' => $actions, 'enabledActions' => $enabledActions] = $this->prepareActions($recommendations, 'goal', $options);
 
         $whatIf = $this->buildWhatIfData($user, $goal, $progress, $affordability, $enabledActions);
@@ -69,8 +69,10 @@ class GoalPlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId, ?int $goalId = null): array
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
+        $goalId = $preComputedData['goal_id'] ?? null;
+
         $analysis = $this->goalsAgent->analyze($userId);
         $recs = $this->goalsAgent->generateRecommendations($analysis);
         $allRecommendations = $recs['recommendations'] ?? [];

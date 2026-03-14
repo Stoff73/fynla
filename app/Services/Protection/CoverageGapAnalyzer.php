@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Models\ProtectionProfile;
+use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Collection;
 
 class CoverageGapAnalyzer
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
-        private UKTaxCalculator $taxCalculator
+        private UKTaxCalculator $taxCalculator,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -28,7 +35,9 @@ class CoverageGapAnalyzer
             return 0.0;
         }
 
-        return $annualIncomeNeed / 0.047;
+        $withdrawalRate = (float) $this->taxConfig->get('protection.withdrawal_rates.human_capital', 0.047);
+
+        return $annualIncomeNeed / $withdrawalRate;
     }
 
     /**
@@ -64,7 +73,7 @@ class CoverageGapAnalyzer
      */
     public function calculateEducationFunding(int $numChildren, array $ages): float
     {
-        $annualCostPerChild = 9000;
+        $annualCostPerChild = (int) $this->taxConfig->get('protection.education_cost_per_year', 9000);
         $educationEndAge = 21;
         $totalFunding = 0.0;
 
@@ -81,18 +90,20 @@ class CoverageGapAnalyzer
      */
     public function calculateFinalExpenses(): float
     {
-        return 7500; // Fixed amount for funeral and final expenses
+        return (float) $this->taxConfig->get('protection.final_expenses', 7500);
     }
 
     /**
-     * Calculate total coverage from policies.
+     * Calculate total coverage from policies, including employer benefits.
      */
     public function calculateTotalCoverage(
         Collection $lifePolicies,
         Collection $criticalIllnessPolicies,
         Collection $incomeProtectionPolicies,
         Collection $disabilityPolicies,
-        Collection $sicknessIllnessPolicies
+        Collection $sicknessIllnessPolicies,
+        ?ProtectionProfile $profile = null,
+        ?\App\Models\User $user = null
     ): array {
         $lifeCoverage = $lifePolicies->sum('sum_assured');
         $criticalIllnessCoverage = $criticalIllnessPolicies->sum('sum_assured');
@@ -129,6 +140,44 @@ class CoverageGapAnalyzer
             }
         }
 
+        // Employer benefits integration
+        $deathInServiceCoverage = 0.0;
+        $groupIpCoverage = 0.0;
+        $groupCiCoverage = 0.0;
+        $employerWarnings = [];
+
+        if ($profile !== null) {
+            // Death in service: multiple x gross employment salary
+            // Use User.annual_employment_income (primary source), fall back to profile
+            $salary = ($user?->annual_employment_income ?? 0) > 0
+                ? (float) $user->annual_employment_income
+                : (float) ($profile->annual_income ?? 0);
+
+            if ($profile->death_in_service_multiple !== null && $profile->death_in_service_multiple > 0) {
+                $deathInServiceCoverage = (float) $profile->death_in_service_multiple * $salary;
+                $lifeCoverage += $deathInServiceCoverage;
+            }
+
+            // Employer reliance warning: if death in service exceeds configured threshold of total life cover
+            $disRelianceThreshold = (float) $this->taxConfig->get('protection.dis_reliance_percent', 0.50);
+            if ($deathInServiceCoverage > 0 && $lifeCoverage > 0
+                && ($deathInServiceCoverage / $lifeCoverage) > $disRelianceThreshold) {
+                $employerWarnings[] = 'Over half your life cover comes from death in service. This cover is lost if you leave employment.';
+            }
+
+            // Group income protection: percent of salary, annualised
+            if ($profile->group_ip_benefit_percent !== null && $profile->group_ip_benefit_percent > 0) {
+                $groupIpCoverage = ($salary * (float) $profile->group_ip_benefit_percent / 100);
+                $incomeProtectionCoverage += $groupIpCoverage;
+            }
+
+            // Group critical illness
+            if ($profile->group_ci_amount !== null && $profile->group_ci_amount > 0) {
+                $groupCiCoverage = (float) $profile->group_ci_amount;
+                $criticalIllnessCoverage += $groupCiCoverage;
+            }
+        }
+
         return [
             'life_coverage' => $lifeCoverage,
             'critical_illness_coverage' => $criticalIllnessCoverage,
@@ -137,6 +186,13 @@ class CoverageGapAnalyzer
             'sickness_illness_coverage' => $sicknessIllnessCoverage,
             'total_coverage' => $lifeCoverage + $criticalIllnessCoverage,
             'total_income_coverage' => $incomeProtectionCoverage + $disabilityCoverage + $sicknessIllnessCoverage,
+            'employer_benefits' => [
+                'death_in_service' => $deathInServiceCoverage,
+                'group_income_protection' => $groupIpCoverage,
+                'group_critical_illness' => $groupCiCoverage,
+                'has_employer_pmi' => (bool) ($profile?->has_employer_pmi ?? false),
+            ],
+            'employer_warnings' => $employerWarnings,
         ];
     }
 
@@ -341,8 +397,37 @@ class CoverageGapAnalyzer
         // Total need = Human capital (income difference) + debt + education + final expenses
         $totalNeed = $humanCapital + $debtProtection + $educationFunding + $finalExpenses;
 
-        // Income protection need = 60% of gross income (standard IP recommendation)
-        $incomeProtectionNeed = $userGrossIncome * 0.6;
+        // Income protection need = max benefit ratio of gross income (standard IP recommendation)
+        $ipMaxBenefit = (float) $this->taxConfig->get('protection.income_multipliers.income_protection_max_benefit', 0.60);
+        $incomeProtectionNeed = $userGrossIncome * $ipMaxBenefit;
+
+        // State benefit offset for income protection assessment
+        // SSP is only available to employed users earning above the lower earnings limit
+        $sspWeekly = (float) $this->taxConfig->get('benefits.ssp.weekly_rate', 116.75);
+        $sspMaxWeeks = (int) $this->taxConfig->get('benefits.ssp.max_weeks', 28);
+        $sspLowerEarningsLimit = (float) $this->taxConfig->get('benefits.ssp.lower_earnings_limit', 125);
+        $notAvailableFor = (array) $this->taxConfig->get('benefits.ssp.not_available_for', ['self_employed']);
+
+        // Determine if the user is employed (earns employment income) or self-employed
+        $hasEmploymentIncome = ((float) ($user->annual_employment_income ?? 0)) > 0;
+        $hasSelfEmploymentIncome = ((float) ($user->annual_self_employment_income ?? 0)) > 0;
+        $isSelfEmployed = $hasSelfEmploymentIncome && ! $hasEmploymentIncome;
+
+        // SSP: total entitlement for the limited 28-week period (NOT annualised)
+        $totalSspEntitlement = 0.0;
+        $sspEligible = false;
+        if ($hasEmploymentIncome && ! $isSelfEmployed) {
+            // Check weekly earnings exceed lower earnings limit
+            $weeklyEarnings = (float) ($user->annual_employment_income ?? 0) / 52;
+            if ($weeklyEarnings >= $sspLowerEarningsLimit) {
+                $totalSspEntitlement = $sspWeekly * $sspMaxWeeks;
+                $sspEligible = true;
+            }
+        }
+
+        // ESA support rate (noted as potential, not guaranteed — subject to National Insurance contributions)
+        $esaSupportRate = (float) $this->taxConfig->get('benefits.esa.assessment_rate_25_plus', 90.50);
+        $esaMonthlyEquivalent = ($esaSupportRate * 52) / 12;
 
         return [
             'human_capital' => $humanCapital,
@@ -364,6 +449,15 @@ class CoverageGapAnalyzer
             'spouse_net_income' => $spouseNetIncome,
             'spouse_continuing_income' => $spouseContinuingIncome,
             'spouse_permission_denied' => $spousePermissionDenied,
+            'state_benefits' => [
+                'ssp_eligible' => $sspEligible,
+                'ssp_weekly_rate' => $sspWeekly,
+                'ssp_max_weeks' => $sspMaxWeeks,
+                'ssp_total_entitlement' => $totalSspEntitlement,
+                'is_self_employed' => $isSelfEmployed,
+                'esa_monthly_equivalent' => $esaMonthlyEquivalent,
+                'esa_note' => 'Employment and Support Allowance is subject to National Insurance contribution eligibility',
+            ],
         ];
     }
 }

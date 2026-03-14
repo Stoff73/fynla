@@ -7,9 +7,14 @@ namespace App\Services\Estate;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 
 class GiftingStrategyOptimizer
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly FutureValueCalculator $fvCalculator,
         private readonly TaxConfigService $taxConfig,

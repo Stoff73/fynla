@@ -316,15 +316,17 @@ class FutureValueCalculator
     {
         $assumptions = $this->taxConfig->getAssumptions();
 
+        $propertyGrowth = $assumptions['property_growth'] ?? 0.03;
+
         return [
-            'property' => 0.03, // 3% property appreciation
+            'property' => $propertyGrowth,
             'investment' => $assumptions['investment_growth_rate'] ?? 0.05, // 5%
             'cash' => $assumptions['cash_savings_rate'] ?? 0.04, // 4%
             'savings' => $assumptions['cash_savings_rate'] ?? 0.04, // 4%
             'pension' => $assumptions['investment_growth_rate'] ?? 0.05, // 5%
             'business' => 0.04, // 4% conservative business growth
-            'other' => 0.03, // 3% default
-            'default' => 0.03, // 3% fallback
+            'other' => $propertyGrowth, // Match property growth as baseline
+            'default' => $propertyGrowth, // Match property growth as fallback
         ];
     }
 

@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Constants\EstateDefaults;
+use App\Services\TaxConfigService;
 
 class EstateOnboardingFlow
 {
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Get the estate planning onboarding steps with configuration
      */
@@ -251,26 +256,33 @@ class EstateOnboardingFlow
      */
     private function calculateEstimatedEstateValue(array $userData): float
     {
+        $estimates = $this->taxConfig->get('estate.onboarding_estimates', [
+            'property' => 300000,
+            'investment' => 50000,
+            'savings' => 25000,
+            'business' => 100000,
+        ]);
+
         $estimatedValue = 0.0;
 
         // Add property values (uses average UK property price as rough estimate)
         if (isset($userData['has_properties']) && $userData['has_properties']) {
-            $estimatedValue += EstateDefaults::ESTIMATED_PROPERTY_VALUE;
+            $estimatedValue += (float) ($estimates['property'] ?? 300000);
         }
 
         // Add investment values (conservative estimate)
         if (isset($userData['has_investments']) && $userData['has_investments']) {
-            $estimatedValue += EstateDefaults::ESTIMATED_INVESTMENT_VALUE;
+            $estimatedValue += (float) ($estimates['investment'] ?? 50000);
         }
 
         // Add savings (conservative estimate)
         if (isset($userData['has_savings']) && $userData['has_savings']) {
-            $estimatedValue += EstateDefaults::ESTIMATED_SAVINGS_VALUE;
+            $estimatedValue += (float) ($estimates['savings'] ?? 25000);
         }
 
         // Add business interests (conservative estimate)
         if (isset($userData['has_business_interests']) && $userData['has_business_interests']) {
-            $estimatedValue += EstateDefaults::ESTIMATED_BUSINESS_VALUE;
+            $estimatedValue += (float) ($estimates['business'] ?? 100000);
         }
 
         return $estimatedValue;

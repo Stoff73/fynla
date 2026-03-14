@@ -5,9 +5,18 @@ declare(strict_types=1);
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\ScenarioBuilder;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->builder = new ScenarioBuilder;
+    $mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.withdrawal_rates.scenario', Mockery::any())
+        ->andReturn(0.03);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.premium_factors.base_rate', Mockery::any())
+        ->andReturn(0.50);
+
+    $this->builder = new ScenarioBuilder($mockTaxConfig);
 });
 
 describe('modelDeathScenario', function () {

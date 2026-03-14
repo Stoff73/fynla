@@ -24,6 +24,8 @@ const state = {
     lifeEventImpact: null,
     goalStrategies: [],
     goalsSummary: null,
+    canProceed: true,
+    readinessChecks: null,
     loading: false,
     error: null,
 };
@@ -255,6 +257,9 @@ const getters = {
     analysis: (state) => state.analysis,
     recommendations: (state) => state.recommendations,
 
+    canProceed: (state) => state.canProceed,
+    readinessChecks: (state) => state.readinessChecks,
+
     loading: (state) => state.loading,
     // Life events relevant to investment module
     upcomingLifeEvents: (state) => state.lifeEvents,
@@ -298,8 +303,21 @@ const actions = {
 
         try {
             const response = await investmentService.analyzeInvestment();
-            commit('setAnalysis', response.data.analysis);
-            commit('setRecommendations', response.data.recommendations);
+            const responseData = response.data || response;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                commit('setRecommendations', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('setAnalysis', responseData.analysis);
+            commit('setRecommendations', responseData.recommendations);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Analysis failed';
@@ -319,9 +337,22 @@ const actions = {
             // Use analyzeInvestment endpoint which returns { success, data: { analysis, recommendations } }
             // Service already returns response.data, so we access .data.analysis and .data.recommendations
             const response = await investmentService.analyzeInvestment();
-            commit('setAnalysis', response.data?.analysis);
+            const responseData = response.data || response;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                commit('setRecommendations', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('setAnalysis', responseData?.analysis);
             // Store full recommendations object { recommendation_count, recommendations: [] }
-            commit('setRecommendations', response.data?.recommendations);
+            commit('setRecommendations', responseData?.recommendations);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch recommendations';
@@ -827,6 +858,14 @@ const mutations = {
                 }
             }
         }
+    },
+
+    SET_CAN_PROCEED(state, canProceed) {
+        state.canProceed = canProceed;
+    },
+
+    SET_READINESS_CHECKS(state, checks) {
+        state.readinessChecks = checks;
     },
 
     setLoading(state, loading) {

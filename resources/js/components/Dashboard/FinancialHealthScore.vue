@@ -42,7 +42,7 @@
           <span class="text-sm text-horizon-500">Protection Coverage</span>
         </div>
         <span class="text-sm font-semibold" :class="getScoreClass(protectionScore)">
-          {{ getStatusLabel(protectionScore) }}
+          {{ protectionScore === null ? 'Incomplete' : getStatusLabel(protectionScore) }}
         </span>
       </div>
 
@@ -64,7 +64,7 @@
           <span class="text-sm text-horizon-500">Retirement Readiness</span>
         </div>
         <span class="text-sm font-semibold" :class="getScoreClass(retirementScore)">
-          {{ getStatusLabel(retirementScore) }}
+          {{ retirementScore === null ? 'Incomplete' : getStatusLabel(retirementScore) }}
         </span>
       </div>
 
@@ -128,7 +128,11 @@ export default {
     }),
 
     protectionScore() {
-      return this.protectionAdequacyScore || 0;
+      // adequacyScore now returns a rating string (Excellent/Good/Fair/Critical/Incomplete)
+      const rating = this.protectionAdequacyScore;
+      if (!rating || rating === 'Incomplete') return null;
+      const ratingMap = { 'Excellent': 90, 'Good': 70, 'Fair': 50, 'Critical': 20 };
+      return ratingMap[rating] ?? null;
     },
 
     emergencyFundScore() {
@@ -137,7 +141,8 @@ export default {
     },
 
     retirementScore() {
-      return this.retirementReadinessScore || 0;
+      // retirementReadinessScore now returns null when analysis is unavailable
+      return this.retirementReadinessScore;
     },
 
     investmentScore() {
@@ -157,13 +162,23 @@ export default {
     },
 
     compositeScore() {
-      return (
-        this.protectionScore * 0.20 +
-        this.emergencyFundScore * 0.15 +
-        this.retirementScore * 0.25 +
-        this.investmentScore * 0.20 +
-        this.estateScore * 0.20
-      );
+      // Build weighted components, excluding null (incomplete) scores
+      const components = [
+        { score: this.protectionScore, weight: 0.20 },
+        { score: this.emergencyFundScore, weight: 0.15 },
+        { score: this.retirementScore, weight: 0.25 },
+        { score: this.investmentScore, weight: 0.20 },
+        { score: this.estateScore, weight: 0.20 },
+      ];
+
+      const available = components.filter(c => c.score !== null && c.score !== undefined);
+      if (available.length === 0) return 0;
+
+      const totalWeight = available.reduce((sum, c) => sum + c.weight, 0);
+      const weightedSum = available.reduce((sum, c) => sum + (c.score * c.weight), 0);
+
+      // Re-normalise to account for excluded modules
+      return totalWeight > 0 ? weightedSum / totalWeight : 0;
     },
 
     overallBgClass() {
@@ -198,6 +213,7 @@ export default {
 
   methods: {
     getStatusLabel(score) {
+      if (score === null || score === undefined) return 'Incomplete';
       if (score >= 80) return 'Good';
       if (score >= 60) return 'Fair';
       if (score >= 30) return 'Needs attention';
@@ -205,12 +221,14 @@ export default {
     },
 
     getScoreClass(score) {
+      if (score === null || score === undefined) return 'text-neutral-500';
       if (score >= 80) return 'text-spring-600';
       if (score >= 60) return 'text-violet-600';
       return 'text-raspberry-600';
     },
 
     getDotClass(score) {
+      if (score === null || score === undefined) return 'bg-neutral-400';
       if (score >= 80) return 'bg-spring-500';
       if (score >= 60) return 'bg-violet-500';
       return 'bg-raspberry-500';

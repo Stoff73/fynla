@@ -5,9 +5,30 @@ declare(strict_types=1);
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Protection\RecommendationEngine;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->engine = new RecommendationEngine;
+    $mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.premium_factors.base_rate', Mockery::any())
+        ->andReturn(0.50);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.premium_factors.smoker_loading', Mockery::any())
+        ->andReturn(1.5);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.premium_factors.ci_ratio', Mockery::any())
+        ->andReturn(2.5);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.premium_factors.ip_rate', Mockery::any())
+        ->andReturn(0.02);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.income_multipliers.critical_illness', Mockery::any())
+        ->andReturn(3);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.income_multipliers.life_cover', Mockery::any())
+        ->andReturn(10);
+
+    $this->engine = new RecommendationEngine($mockTaxConfig);
 });
 
 describe('generateRecommendations', function () {

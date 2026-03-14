@@ -8,6 +8,7 @@ use App\Models\Investment\Holding;
 use App\Models\User;
 use App\Models\UserAssumption;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -30,7 +31,8 @@ class AssumptionsService
     private const VALID_ASSUMPTION_TYPES = ['pensions', 'investments', 'estate_planning'];
 
     public function __construct(
-        private readonly RiskPreferenceService $riskService
+        private readonly RiskPreferenceService $riskService,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -409,7 +411,7 @@ class AssumptionsService
             }
         }
 
-        return self::DEFAULT_RETIREMENT_AGE;
+        return (int) $this->taxConfig->get('pension.state_pension.current_spa', self::DEFAULT_RETIREMENT_AGE);
     }
 
     /**

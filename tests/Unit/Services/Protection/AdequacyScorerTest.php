@@ -3,9 +3,15 @@
 declare(strict_types=1);
 
 use App\Services\Protection\AdequacyScorer;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->scorer = new AdequacyScorer;
+    $mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.income_multipliers.critical_illness', Mockery::any())
+        ->andReturn(3);
+
+    $this->scorer = new AdequacyScorer($mockTaxConfig);
 });
 
 describe('calculateAdequacyScore', function () {

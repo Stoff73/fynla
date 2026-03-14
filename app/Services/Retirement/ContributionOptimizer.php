@@ -7,6 +7,7 @@ namespace App\Services\Retirement;
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Models\User;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -139,8 +140,9 @@ class ContributionOptimizer
         }
         $dcTargetIncome = max(0, $targetIncome - $statePensionIncome);
 
-        // Required DC pot using 4% withdrawal rate
-        $requiredPot = $dcTargetIncome / 0.04;
+        // Required DC pot using safe withdrawal rate
+        $safeWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
+        $requiredPot = $dcTargetIncome / $safeWithdrawalRate;
 
         // Project future value of existing pots + existing contributions
         $projectedValue = 0;
@@ -199,8 +201,8 @@ class ContributionOptimizer
         $employerContribution = (float) $pension->employer_contribution_percent ?? 0.0;
 
         // Common employer match scenarios
-        // Assume employer matches up to 5% if employee contributes 5%
-        $typicalMatchThreshold = 5.0;
+        // Use configured employer match threshold
+        $typicalMatchThreshold = (float) $this->taxConfig->get('retirement.employer_match_threshold', 0.05) * 100;
         $isMaximized = $employeeContribution >= $typicalMatchThreshold;
 
         $message = '';
@@ -258,6 +260,144 @@ class ContributionOptimizer
         }
 
         return round($taxRelief, 2);
+    }
+
+    /**
+     * Check auto-enrolment compliance for the user.
+     *
+     * Verifies:
+     * - Whether the user earns above the auto-enrolment earnings trigger
+     * - Whether total contributions meet the minimum 8% of qualifying earnings
+     * - Whether employer contributions meet the minimum 3%
+     * - Whether employee contributions meet the minimum 5%
+     *
+     * Qualifying earnings are the portion of earnings between the lower (£6,240) and
+     * upper (£50,270) qualifying earnings limits.
+     *
+     * @return array{
+     *     eligible: bool,
+     *     earnings_above_trigger: bool,
+     *     qualifying_earnings: float,
+     *     total_contribution_percent: float,
+     *     employer_contribution_percent: float,
+     *     employee_contribution_percent: float,
+     *     meets_minimum_total: bool,
+     *     meets_minimum_employer: bool,
+     *     meets_minimum_employee: bool,
+     *     shortfall_percent: float,
+     *     shortfall_annual: float,
+     *     warnings: array<int, array{type: string, message: string}>
+     * }
+     */
+    public function checkAutoEnrolmentCompliance(User $user, Collection $pensions): array
+    {
+        $aeConfig = $this->taxConfig->get('pension.auto_enrolment', []);
+        $earningsTrigger = (float) ($aeConfig['earnings_trigger'] ?? 10000);
+        $lowerQE = (float) ($aeConfig['lower_qualifying_earnings'] ?? 6240);
+        $upperQE = (float) ($aeConfig['upper_qualifying_earnings'] ?? 50270);
+        $minTotal = (float) ($aeConfig['minimum_total_contribution'] ?? 0.08);
+        $minEmployer = (float) ($aeConfig['minimum_employer_contribution'] ?? 0.03);
+        $minEmployee = (float) ($aeConfig['minimum_employee_contribution'] ?? 0.05);
+
+        $annualIncome = (float) ($user->annual_employment_income ?? 0);
+        $earningsAboveTrigger = $annualIncome >= $earningsTrigger;
+
+        // Calculate qualifying earnings: earnings between lower and upper limits
+        $qualifyingEarnings = max(0, min($annualIncome, $upperQE) - $lowerQE);
+
+        // Aggregate contribution percentages across workplace pensions
+        $totalEmployeePercent = 0.0;
+        $totalEmployerPercent = 0.0;
+        $workplacePensionCount = 0;
+
+        foreach ($pensions as $pension) {
+            if ($pension->scheme_type !== 'workplace') {
+                continue;
+            }
+
+            $workplacePensionCount++;
+            $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
+            $employerPercent = (float) ($pension->employer_contribution_percent ?? 0);
+
+            // Use highest contribution across workplace pensions (most typical scenario)
+            $totalEmployeePercent = max($totalEmployeePercent, $employeePercent);
+            $totalEmployerPercent = max($totalEmployerPercent, $employerPercent);
+        }
+
+        // Convert to decimal for comparison with config thresholds
+        $employeeDecimal = $totalEmployeePercent / 100;
+        $employerDecimal = $totalEmployerPercent / 100;
+        $totalDecimal = $employeeDecimal + $employerDecimal;
+
+        $meetsMinTotal = $totalDecimal >= $minTotal;
+        $meetsMinEmployer = $employerDecimal >= $minEmployer;
+        $meetsMinEmployee = $employeeDecimal >= $minEmployee;
+
+        // Calculate shortfall
+        $shortfallPercent = max(0, $minTotal - $totalDecimal);
+        $shortfallAnnual = $qualifyingEarnings * $shortfallPercent;
+
+        $warnings = [];
+
+        if (! $earningsAboveTrigger && $annualIncome > 0) {
+            $warnings[] = [
+                'type' => 'info',
+                'message' => sprintf(
+                    'Your employment income (%s) is below the auto-enrolment earnings trigger (%s). '
+                    .'Your employer is not legally required to auto-enrol you, but you may still opt in.',
+                    '£'.number_format($annualIncome, 0),
+                    '£'.number_format($earningsTrigger, 0)
+                ),
+            ];
+        }
+
+        if ($earningsAboveTrigger && $workplacePensionCount > 0 && ! $meetsMinTotal) {
+            $warnings[] = [
+                'type' => 'warn',
+                'message' => sprintf(
+                    'Your total pension contribution rate (%.1f%%) is below the auto-enrolment minimum of %.0f%% of qualifying earnings. '
+                    .'You may be missing out on %s per year in pension contributions.',
+                    $totalDecimal * 100,
+                    $minTotal * 100,
+                    '£'.number_format($shortfallAnnual, 2)
+                ),
+            ];
+        }
+
+        if ($earningsAboveTrigger && $workplacePensionCount > 0 && ! $meetsMinEmployer) {
+            $warnings[] = [
+                'type' => 'warn',
+                'message' => sprintf(
+                    'Your employer contribution rate (%.1f%%) appears below the minimum %.0f%% required by auto-enrolment regulations. '
+                    .'Check with your employer that they are meeting their legal obligation.',
+                    $employerDecimal * 100,
+                    $minEmployer * 100
+                ),
+            ];
+        }
+
+        if ($earningsAboveTrigger && $workplacePensionCount === 0) {
+            $warnings[] = [
+                'type' => 'warn',
+                'message' => 'You earn above the auto-enrolment earnings trigger but have no workplace pension recorded. '
+                    .'Your employer should have auto-enrolled you into a workplace pension scheme.',
+            ];
+        }
+
+        return [
+            'eligible' => $earningsAboveTrigger,
+            'earnings_above_trigger' => $earningsAboveTrigger,
+            'qualifying_earnings' => round($qualifyingEarnings, 2),
+            'total_contribution_percent' => round($totalDecimal * 100, 2),
+            'employer_contribution_percent' => round($employerDecimal * 100, 2),
+            'employee_contribution_percent' => round($employeeDecimal * 100, 2),
+            'meets_minimum_total' => $meetsMinTotal,
+            'meets_minimum_employer' => $meetsMinEmployer,
+            'meets_minimum_employee' => $meetsMinEmployee,
+            'shortfall_percent' => round($shortfallPercent * 100, 2),
+            'shortfall_annual' => round($shortfallAnnual, 2),
+            'warnings' => $warnings,
+        ];
     }
 
     /**
