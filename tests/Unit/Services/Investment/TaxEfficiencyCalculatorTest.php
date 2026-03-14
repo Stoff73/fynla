@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\DividendTaxCalculator;
+use App\Services\Investment\Tax\CGTHarvestingCalculator;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\TaxConfigService;
 
@@ -38,8 +39,9 @@ beforeEach(function () {
         'additional_rate_threshold' => 125140,
     ]);
 
+    $this->cgtHarvestingCalculator = Mockery::mock(CGTHarvestingCalculator::class);
     $this->dividendTaxCalculator = new DividendTaxCalculator($this->taxConfig);
-    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig, $this->dividendTaxCalculator);
+    $this->taxCalculator = new TaxEfficiencyCalculator($this->taxConfig, $this->dividendTaxCalculator, $this->cgtHarvestingCalculator);
 });
 
 afterEach(function () {
@@ -188,85 +190,72 @@ describe('calculateCGTLiability', function () {
 });
 
 describe('identifyHarvestingOpportunities', function () {
-    it('identifies holdings with significant losses', function () {
-        $holdings = collect([
-            new Holding([
-                'security_name' => 'Loss Stock A',
-                'cost_basis' => 10000,
-                'current_value' => 8500, // -£1,500 loss
-            ]),
-            new Holding([
-                'security_name' => 'Profit Stock',
-                'cost_basis' => 5000,
-                'current_value' => 6000, // £1,000 gain
-            ]),
-            new Holding([
-                'security_name' => 'Small Loss',
-                'cost_basis' => 1000,
-                'current_value' => 950, // -£50 loss (below threshold)
-            ]),
-        ]);
+    it('delegates to CGTHarvestingCalculator and adapts response', function () {
+        $this->cgtHarvestingCalculator->shouldReceive('calculateHarvestingOpportunities')
+            ->once()
+            ->with(1, [])
+            ->andReturn([
+                'success' => true,
+                'opportunities' => [
+                    [
+                        'security_name' => 'Loss Stock A',
+                        'cost_basis' => 10000,
+                        'current_value' => 8500,
+                        'loss_amount' => 1500,
+                        'loss_percent' => 15.0,
+                        'rationale' => 'Realize £1,500 loss (15.0%)',
+                    ],
+                ],
+                'total_harvestable_losses' => 1500,
+                'potential_tax_saving' => 300,
+            ]);
 
-        $result = $this->taxCalculator->identifyHarvestingOpportunities($holdings);
+        $result = $this->taxCalculator->identifyHarvestingOpportunities(1);
 
         expect($result['opportunities_count'])->toBe(1)
             ->and($result['holdings'][0]['security_name'])->toBe('Loss Stock A')
             ->and($result['holdings'][0]['unrealized_loss'])->toBe(-1500.0)
-            ->and($result['total_harvestable_losses'])->toBe(1500.0);
+            ->and($result['total_harvestable_losses'])->toBe(1500.0)
+            ->and($result['potential_tax_saving'])->toBe(300.0);
     });
 
-    it('calculates potential tax saving', function () {
-        $holdings = collect([
-            new Holding([
-                'security_name' => 'Loss Position',
-                'cost_basis' => 10000,
-                'current_value' => 7000, // -£3,000 loss
-            ]),
-        ]);
+    it('returns empty result when no opportunities', function () {
+        $this->cgtHarvestingCalculator->shouldReceive('calculateHarvestingOpportunities')
+            ->once()
+            ->with(1, [])
+            ->andReturn([
+                'success' => true,
+                'opportunities' => [],
+                'total_harvestable_losses' => 0,
+                'potential_tax_saving' => 0,
+            ]);
 
-        $result = $this->taxCalculator->identifyHarvestingOpportunities($holdings);
-
-        // Potential tax saving: 3000 * 0.20 = 600 (assuming 20% CGT rate)
-        expect($result['potential_tax_saving'])->toBe(600.0);
-    });
-
-    it('returns empty result when no harvestable losses', function () {
-        $holdings = collect([
-            new Holding([
-                'security_name' => 'Winner',
-                'cost_basis' => 5000,
-                'current_value' => 6000,
-            ]),
-        ]);
-
-        $result = $this->taxCalculator->identifyHarvestingOpportunities($holdings);
+        $result = $this->taxCalculator->identifyHarvestingOpportunities(1);
 
         expect($result['opportunities_count'])->toBe(0)
             ->and($result['holdings'])->toBeEmpty();
     });
 
-    it('only includes losses greater than £100', function () {
-        $holdings = collect([
-            new Holding([
-                'security_name' => 'Tiny Loss',
-                'cost_basis' => 1000,
-                'current_value' => 950, // -£50 (too small)
-            ]),
-            new Holding([
-                'security_name' => 'Significant Loss',
-                'cost_basis' => 5000,
-                'current_value' => 4500, // -£500 (significant)
-            ]),
-        ]);
+    it('passes options through to CGTHarvestingCalculator', function () {
+        $options = ['expected_gains' => 5000, 'tax_rate' => 0.20];
 
-        $result = $this->taxCalculator->identifyHarvestingOpportunities($holdings);
+        $this->cgtHarvestingCalculator->shouldReceive('calculateHarvestingOpportunities')
+            ->once()
+            ->with(1, $options)
+            ->andReturn([
+                'success' => true,
+                'opportunities' => [],
+                'total_harvestable_losses' => 0,
+                'potential_tax_saving' => 0,
+            ]);
 
-        expect($result['opportunities_count'])->toBe(1)
-            ->and($result['holdings'][0]['security_name'])->toBe('Significant Loss');
+        $result = $this->taxCalculator->identifyHarvestingOpportunities(1, $options);
+
+        expect($result['opportunities_count'])->toBe(0);
     });
 });
 
-describe('calculateTaxEfficiencyScore', function () {
+describe('calculateTaxShelterRatio', function () {
     it('rewards high ISA usage', function () {
         $accounts = collect([
             new InvestmentAccount([
@@ -281,7 +270,7 @@ describe('calculateTaxEfficiencyScore', function () {
 
         $holdings = collect([]);
 
-        $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
+        $score = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
 
         // 60% in ISA = score of 60 (directly reflects tax-sheltered percentage)
         expect($score)->toBe(60);
@@ -301,7 +290,7 @@ describe('calculateTaxEfficiencyScore', function () {
 
         $holdings = collect([]);
 
-        $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
+        $score = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
 
         // Only 20% in ISA = poor usage, should be penalized
         expect($score)->toBeLessThan(90);
@@ -322,7 +311,7 @@ describe('calculateTaxEfficiencyScore', function () {
             new Holding(['cost_basis' => 10000, 'current_value' => 17000]), // 70% gain
         ]);
 
-        $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
+        $score = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
 
         // Score is based on tax-sheltered percentage of accounts only
         // 100% in ISA = score of 100
@@ -339,7 +328,7 @@ describe('calculateTaxEfficiencyScore', function () {
 
         $holdings = collect([]);
 
-        $score = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
+        $score = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
 
         expect($score)->toBeGreaterThanOrEqual(0)
             ->and($score)->toBeLessThanOrEqual(100);

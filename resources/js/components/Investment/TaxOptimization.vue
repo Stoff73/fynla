@@ -133,6 +133,8 @@
 
 <script>
 import investmentService from '@/services/investmentService';
+import { currencyMixin } from '@/mixins/currencyMixin';
+import { getTaxYearStart } from '@/utils/dateFormatter';
 import TaxOptimizationOverview from './TaxOptimizationOverview.vue';
 import ISAOptimizationStrategy from './ISAOptimizationStrategy.vue';
 import CGTHarvestingOpportunities from './CGTHarvestingOpportunities.vue';
@@ -141,6 +143,8 @@ import TaxOptimizationRecommendations from './TaxOptimizationRecommendations.vue
 
 export default {
   name: 'TaxOptimization',
+
+  mixins: [currencyMixin],
 
   components: {
     TaxOptimizationOverview,
@@ -160,7 +164,7 @@ export default {
       cgtHarvesting: null,
       bedAndISA: null,
       recommendations: null,
-      taxYear: this.getCurrentTaxYear(),
+      taxYear: (() => { const y = getTaxYearStart().getFullYear(); return `${y}/${String(y + 1).slice(-2)}`; })(),
       tabs: [
         { id: 'overview', name: 'Overview' },
         { id: 'isa', name: 'ISA Strategy' },
@@ -255,26 +259,6 @@ export default {
       }
     },
 
-    getCurrentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1; // 0-indexed
-      const day = now.getDate();
-
-      // UK tax year runs April 6 - April 5
-      if (month < 4 || (month === 4 && day < 6)) {
-        // Before April 6 - use previous year
-        return `${year - 1}/${String(year).slice(-2)}`;
-      } else {
-        // After April 6 - use current year
-        return `${year}/${String(year + 1).slice(-2)}`;
-      }
-    },
-
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
   },
 };
 </script>

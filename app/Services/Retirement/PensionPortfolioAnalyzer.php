@@ -7,6 +7,7 @@ namespace App\Services\Retirement;
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
 use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\PortfolioAnalyzer;
 use Illuminate\Support\Collection;
 
@@ -23,6 +24,7 @@ class PensionPortfolioAnalyzer
 {
     public function __construct(
         private PortfolioAnalyzer $portfolioAnalyzer,
+        private DiversificationAnalyzer $diversificationAnalyzer,
         private AssetAllocationOptimizer $allocationOptimizer
     ) {}
 
@@ -62,7 +64,7 @@ class PensionPortfolioAnalyzer
         $totalValue = $allHoldings->sum('current_value');
         $returns = $this->portfolioAnalyzer->calculateReturns($allHoldings);
         $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($allHoldings);
-        $diversificationScore = $this->portfolioAnalyzer->calculateDiversificationScore($allocation);
+        $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($allHoldings);
         $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($allHoldings, $riskProfile);
 
         // Fee analysis for pension holdings

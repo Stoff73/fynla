@@ -334,47 +334,6 @@ class PortfolioAnalyzer
     }
 
     /**
-     * Calculate diversification score (0-100)
-     */
-    public function calculateDiversificationScore(array $allocation): int
-    {
-        if (empty($allocation)) {
-            return 0;
-        }
-
-        $score = 100;
-
-        // Penalty for concentration in single asset type
-        foreach ($allocation as $asset) {
-            if ($asset['percentage'] >= 90) {
-                $score -= 70; // Extreme concentration
-            } elseif ($asset['percentage'] >= 80) {
-                $score -= 60; // Heavy concentration
-            } elseif ($asset['percentage'] >= 60) {
-                $score -= 40;
-            } elseif ($asset['percentage'] >= 50) {
-                $score -= 30;
-            } elseif ($asset['percentage'] >= 40) {
-                $score -= 20;
-            } elseif ($asset['percentage'] >= 30) {
-                $score -= 10;
-            }
-        }
-
-        // Bonus for having multiple asset types
-        $assetTypeCount = count($allocation);
-        if ($assetTypeCount >= 4) {
-            $score += 10;
-        } elseif ($assetTypeCount >= 3) {
-            $score += 5;
-        } elseif ($assetTypeCount <= 1) {
-            $score -= 20; // Penalty for being in only one asset type
-        }
-
-        return max(0, min(100, $score));
-    }
-
-    /**
      * Calculate portfolio risk metrics
      */
     public function calculatePortfolioRisk(Collection $holdings, ?RiskProfile $profile): array

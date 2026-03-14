@@ -8,8 +8,10 @@ use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
 use App\Services\Investment\InvestmentProjectionService;
@@ -23,6 +25,7 @@ class InvestmentAgent extends BaseAgent
 {
     public function __construct(
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
+        private readonly DiversificationAnalyzer $diversificationAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
         private readonly AssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
@@ -54,7 +57,7 @@ class InvestmentAgent extends BaseAgent
             $totalValue = $this->portfolioAnalyzer->calculateTotalValue($accounts);
             $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
             $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($holdings);
-            $diversificationScore = $this->portfolioAnalyzer->calculateDiversificationScore($allocation);
+            $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);
             $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($holdings, $riskProfile);
 
             // Fee analysis
@@ -65,8 +68,8 @@ class InvestmentAgent extends BaseAgent
 
             // Tax efficiency
             $unrealizedGains = $this->taxCalculator->calculateUnrealizedGains($holdings);
-            $taxEfficiencyScore = $this->taxCalculator->calculateTaxEfficiencyScore($accounts, $holdings);
-            $harvestingOpportunities = $this->taxCalculator->identifyHarvestingOpportunities($holdings);
+            $taxEfficiencyScore = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
+            $harvestingOpportunities = $this->taxCalculator->identifyHarvestingOpportunities($userId);
 
             // Asset allocation vs target
             $allocationDeviation = null;
@@ -75,10 +78,19 @@ class InvestmentAgent extends BaseAgent
                 $allocationDeviation = $this->allocationOptimizer->calculateDeviation($allocation, $targetAllocation);
             }
 
-            // Tax wrapper summary
+            // Tax wrapper summary — include both investment and savings ISAs
             $isaAccounts = $accounts->where('account_type', 'isa');
             $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-            $isaUsedThisYear = $isaAccounts->sum('isa_subscription_current_year');
+            $investmentIsaUsed = $isaAccounts->sum('isa_subscription_current_year');
+
+            // Include savings ISA subscriptions for accurate allowance remaining
+            $taxYear = $this->taxConfig->getTaxYear();
+            $savingsIsaUsed = SavingsAccount::where('user_id', $userId)
+                ->whereIn('account_type', ['isa', 'cash_isa'])
+                ->where('isa_subscription_year', $taxYear)
+                ->sum('isa_subscription_amount');
+
+            $isaUsedThisYear = $investmentIsaUsed + $savingsIsaUsed;
             $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
 
             $taxWrappers = [

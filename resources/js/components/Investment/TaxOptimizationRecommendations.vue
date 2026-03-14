@@ -188,8 +188,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'TaxOptimizationRecommendations',
+
+  mixins: [currencyMixin],
 
   emits: ['refresh', 'filter'],
 
@@ -225,11 +229,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     filterRecommendations() {
       // Emit filter event to parent
       this.$emit('filter', {

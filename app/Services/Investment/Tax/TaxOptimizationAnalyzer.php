@@ -66,7 +66,7 @@ class TaxOptimizationAnalyzer
         $potentialSavings = $this->calculatePotentialSavings($opportunities);
 
         // Calculate tax efficiency score
-        $efficiencyScore = $this->calculateTaxEfficiencyScore($currentPosition, $opportunities);
+        $efficiencyScore = $this->calculateTaxOptimizationGrade($currentPosition, $opportunities);
 
         return [
             'success' => true,
@@ -509,7 +509,7 @@ class TaxOptimizationAnalyzer
      * @param  array  $opportunities  Optimization opportunities
      * @return array Tax efficiency score and breakdown
      */
-    private function calculateTaxEfficiencyScore(array $currentPosition, array $opportunities): array
+    private function calculateTaxOptimizationGrade(array $currentPosition, array $opportunities): array
     {
         $score = 100;
         $deductions = [];

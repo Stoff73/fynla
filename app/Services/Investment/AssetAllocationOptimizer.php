@@ -113,47 +113,6 @@ class AssetAllocationOptimizer
     }
 
     /**
-     * Generate rebalancing trades
-     */
-    public function generateRebalancingTrades(array $current, array $target, float $portfolioValue): array
-    {
-        if ($portfolioValue == 0) {
-            return [];
-        }
-
-        $trades = [];
-
-        foreach ($target as $targetAsset) {
-            $assetType = $targetAsset['asset_type'];
-            $targetPercent = $targetAsset['percentage'];
-            $targetValue = $portfolioValue * ($targetPercent / 100);
-
-            // Find current value for this asset type
-            $currentValue = 0;
-            foreach ($current as $asset) {
-                if ($asset['asset_type'] === $assetType) {
-                    $currentValue = $asset['value'];
-                    break;
-                }
-            }
-
-            $difference = $targetValue - $currentValue;
-
-            if (abs($difference) > $portfolioValue * 0.05) { // Only trade if difference > 5% of portfolio
-                $trades[] = [
-                    'asset_type' => $assetType,
-                    'action' => $difference > 0 ? 'buy' : 'sell',
-                    'amount' => round(abs($difference), 2),
-                    'current_value' => round($currentValue, 2),
-                    'target_value' => round($targetValue, 2),
-                ];
-            }
-        }
-
-        return $trades;
-    }
-
-    /**
      * Suggest optimal allocation for a new investor
      */
     public function suggestNewInvestorAllocation(int $age, int $retirementAge = 67): array

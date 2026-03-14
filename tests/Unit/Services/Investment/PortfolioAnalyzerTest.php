@@ -134,53 +134,6 @@ describe('calculateAssetAllocation', function () {
     });
 });
 
-describe('calculateDiversificationScore', function () {
-    it('returns high score for well-diversified portfolio', function () {
-        $allocation = [
-            ['asset_type' => 'equity', 'percentage' => 40],
-            ['asset_type' => 'bond', 'percentage' => 35],
-            ['asset_type' => 'cash', 'percentage' => 15],
-            ['asset_type' => 'alternative', 'percentage' => 10],
-        ];
-
-        $score = $this->analyzer->calculateDiversificationScore($allocation);
-
-        expect($score)->toBeGreaterThanOrEqual(70);
-    });
-
-    it('returns low score for concentrated portfolio', function () {
-        $allocation = [
-            ['asset_type' => 'equity', 'percentage' => 95],
-            ['asset_type' => 'cash', 'percentage' => 5],
-        ];
-
-        $score = $this->analyzer->calculateDiversificationScore($allocation);
-
-        expect($score)->toBeLessThan(40);
-    });
-
-    it('returns zero for empty allocation', function () {
-        $allocation = [];
-
-        $score = $this->analyzer->calculateDiversificationScore($allocation);
-
-        expect($score)->toBe(0);
-    });
-
-    it('returns moderate score for moderately diversified portfolio', function () {
-        $allocation = [
-            ['asset_type' => 'equity', 'percentage' => 60],
-            ['asset_type' => 'bond', 'percentage' => 25],
-            ['asset_type' => 'cash', 'percentage' => 15],
-        ];
-
-        $score = $this->analyzer->calculateDiversificationScore($allocation);
-
-        expect($score)->toBeGreaterThan(40)
-            ->and($score)->toBeLessThan(70);
-    });
-});
-
 describe('calculateAssetAllocationWithLookThrough', function () {
     it('passes through direct equity holdings unchanged', function () {
         $holdings = collect([

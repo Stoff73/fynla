@@ -230,9 +230,12 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'InvestmentRecommendationsTracker',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -456,11 +459,6 @@ export default {
         dismissed: 'Dismissed',
       };
       return labels[status] || status;
-    },
-
-    formatNumber(value) {
-      if (!value) return '0';
-      return new Intl.NumberFormat('en-GB').format(value);
     },
 
     formatDate(dateString) {

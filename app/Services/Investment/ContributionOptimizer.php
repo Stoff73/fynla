@@ -99,7 +99,7 @@ class ContributionOptimizer
         );
 
         // Calculate tax efficiency score
-        $taxEfficiencyScore = $this->calculateTaxEfficiencyScore($wrapperAllocation, $incomeTaxBand);
+        $taxEfficiencyScore = $this->calculateContributionEfficiency($wrapperAllocation, $incomeTaxBand);
 
         // Generate recommendations
         $recommendations = $this->generateRecommendations(
@@ -393,7 +393,7 @@ class ContributionOptimizer
      * @param  string  $incomeTaxBand  Income tax band
      * @return int Tax efficiency score (0-100)
      */
-    private function calculateTaxEfficiencyScore(array $allocation, string $incomeTaxBand): int
+    private function calculateContributionEfficiency(array $allocation, string $incomeTaxBand): int
     {
         $totalMonthly = $allocation['total_monthly'] ?? 1;
         if ($totalMonthly <= 0) {

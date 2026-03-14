@@ -14,19 +14,19 @@
 
     <!-- Content -->
     <div class="content">
-      <Recommendations />
+      <InvestmentRecommendationsTracker />
     </div>
   </div>
 </template>
 
 <script>
-import Recommendations from '@/components/Investment/Recommendations.vue';
+import InvestmentRecommendationsTracker from '@/components/Investment/InvestmentRecommendationsTracker.vue';
 
 export default {
   name: 'StrategyDetail',
 
   components: {
-    Recommendations,
+    InvestmentRecommendationsTracker,
   },
 
   computed: {

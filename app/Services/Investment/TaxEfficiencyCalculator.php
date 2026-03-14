@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Services\Investment\Tax\CGTHarvestingCalculator;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -11,7 +12,8 @@ class TaxEfficiencyCalculator
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
-        private readonly DividendTaxCalculator $dividendTaxCalculator
+        private readonly DividendTaxCalculator $dividendTaxCalculator,
+        private readonly CGTHarvestingCalculator $cgtHarvestingCalculator
     ) {}
 
     /**
@@ -89,40 +91,30 @@ class TaxEfficiencyCalculator
     }
 
     /**
-     * Identify tax loss harvesting opportunities
+     * Identify tax loss harvesting opportunities.
+     * Delegates to CGTHarvestingCalculator for consistent analysis.
      */
-    public function identifyHarvestingOpportunities(Collection $holdings): array
+    public function identifyHarvestingOpportunities(int $userId, array $options = []): array
     {
-        // Find holdings with losses that could be harvested
-        $lossHoldings = $holdings->filter(function ($holding) {
-            // Skip holdings without cost_basis
-            if ($holding->cost_basis === null || $holding->cost_basis === 0) {
-                return false;
-            }
+        $result = $this->cgtHarvestingCalculator->calculateHarvestingOpportunities($userId, $options);
 
-            $gain = $holding->current_value - $holding->cost_basis;
-
-            return $gain < -100; // Only significant losses worth harvesting
-        })->map(function ($holding) {
-            $loss = $holding->current_value - $holding->cost_basis;
-
+        // Adapt to the summary format expected by InvestmentAgent
+        $holdings = collect($result['opportunities'] ?? [])->map(function ($opp) {
             return [
-                'security_name' => $holding->security_name,
-                'cost_basis' => round($holding->cost_basis, 2),
-                'current_value' => round($holding->current_value, 2),
-                'unrealized_loss' => round($loss, 2),
-                'loss_percent' => round(($loss / $holding->cost_basis) * 100, 2),
-                'recommendation' => 'Consider selling to realize loss for tax purposes',
+                'security_name' => $opp['security_name'],
+                'cost_basis' => round($opp['cost_basis'], 2),
+                'current_value' => round($opp['current_value'], 2),
+                'unrealized_loss' => round(-$opp['loss_amount'], 2),
+                'loss_percent' => round(-$opp['loss_percent'], 2),
+                'recommendation' => $opp['rationale'] ?? 'Consider selling to realize loss for tax purposes',
             ];
         })->values();
 
-        $totalLosses = abs($lossHoldings->sum('unrealized_loss'));
-
         return [
-            'opportunities_count' => $lossHoldings->count(),
-            'total_harvestable_losses' => round($totalLosses, 2),
-            'potential_tax_saving' => round($totalLosses * $this->taxConfig->getCapitalGainsTax()['higher_rate'], 2),
-            'holdings' => $lossHoldings->toArray(),
+            'opportunities_count' => $holdings->count(),
+            'total_harvestable_losses' => round($result['total_harvestable_losses'] ?? 0, 2),
+            'potential_tax_saving' => round($result['potential_tax_saving'] ?? 0, 2),
+            'holdings' => $holdings->toArray(),
         ];
     }
 
@@ -132,7 +124,7 @@ class TaxEfficiencyCalculator
      * 100% tax-sheltered = 100% efficiency
      * 0% tax-sheltered = 0% efficiency
      */
-    public function calculateTaxEfficiencyScore(Collection $accounts, Collection $holdings): int
+    public function calculateTaxShelterRatio(Collection $accounts, Collection $holdings): int
     {
         $totalValue = $accounts->sum('current_value');
 

@@ -230,6 +230,23 @@ class DiversificationAnalyzer
     }
 
     /**
+     * Calculate diversification score from raw holdings.
+     * Convenience method that computes HHI, concentration and asset class breakdown internally.
+     */
+    public function calculateScoreFromHoldings(Collection $holdings): int
+    {
+        if ($holdings->isEmpty()) {
+            return 0;
+        }
+
+        $hhi = $this->calculateHHI($holdings);
+        $concentration = $this->calculateConcentration($holdings);
+        $assetClassBreakdown = $this->getAssetClassBreakdown($holdings);
+
+        return $this->calculateDiversificationScore($hhi, $concentration, $assetClassBreakdown);
+    }
+
+    /**
      * Calculate diversification score (0-100)
      */
     public function calculateDiversificationScore(float $hhi, array $concentration, array $assetClassBreakdown): int

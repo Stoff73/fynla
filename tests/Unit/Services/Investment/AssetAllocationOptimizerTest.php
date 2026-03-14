@@ -160,70 +160,6 @@ describe('calculateDeviation', function () {
     });
 });
 
-describe('generateRebalancingTrades', function () {
-    it('generates buy and sell recommendations', function () {
-        $current = [
-            ['asset_type' => 'equity', 'value' => 80000, 'percentage' => 80],
-            ['asset_type' => 'bond', 'value' => 20000, 'percentage' => 20],
-        ];
-
-        $target = [
-            ['asset_type' => 'equity', 'percentage' => 60],
-            ['asset_type' => 'bond', 'percentage' => 40],
-        ];
-
-        $portfolioValue = 100000;
-
-        $trades = $this->optimizer->generateRebalancingTrades($current, $target, $portfolioValue);
-
-        expect($trades)->toHaveCount(2)
-            ->and($trades[0]['asset_type'])->toBe('equity')
-            ->and($trades[0]['action'])->toBe('sell')
-            ->and($trades[0]['amount'])->toBe(20000.0) // Sell 20k equity
-            ->and($trades[1]['asset_type'])->toBe('bond')
-            ->and($trades[1]['action'])->toBe('buy')
-            ->and($trades[1]['amount'])->toBe(20000.0); // Buy 20k bonds
-    });
-
-    it('returns empty trades when allocation matches target', function () {
-        $current = [
-            ['asset_type' => 'equity', 'value' => 60000, 'percentage' => 60],
-            ['asset_type' => 'bond', 'value' => 40000, 'percentage' => 40],
-        ];
-
-        $target = [
-            ['asset_type' => 'equity', 'percentage' => 60],
-            ['asset_type' => 'bond', 'percentage' => 40],
-        ];
-
-        $portfolioValue = 100000;
-
-        $trades = $this->optimizer->generateRebalancingTrades($current, $target, $portfolioValue);
-
-        expect($trades)->toBeEmpty();
-    });
-
-    it('handles new asset type additions', function () {
-        $current = [
-            ['asset_type' => 'equity', 'value' => 100000, 'percentage' => 100],
-        ];
-
-        $target = [
-            ['asset_type' => 'equity', 'percentage' => 70],
-            ['asset_type' => 'bond', 'percentage' => 30],
-        ];
-
-        $portfolioValue = 100000;
-
-        $trades = $this->optimizer->generateRebalancingTrades($current, $target, $portfolioValue);
-
-        // Should recommend selling equity and buying bonds
-        expect($trades)->toHaveCount(2)
-            ->and(collect($trades)->firstWhere('action', 'sell')['asset_type'])->toBe('equity')
-            ->and(collect($trades)->firstWhere('action', 'buy')['asset_type'])->toBe('bond');
-    });
-});
-
 describe('suggestNewInvestorAllocation', function () {
     it('calculates age-based equity allocation', function () {
         $age = 30;
@@ -288,15 +224,4 @@ describe('edge cases', function () {
         expect($adventurousEquity)->toBeGreaterThan($cautiousEquity);
     });
 
-    it('handles zero portfolio value', function () {
-        $current = [];
-        $target = [
-            ['asset_type' => 'equity', 'percentage' => 60],
-            ['asset_type' => 'bond', 'percentage' => 40],
-        ];
-
-        $trades = $this->optimizer->generateRebalancingTrades($current, $target, 0);
-
-        expect($trades)->toBeEmpty();
-    });
 });
