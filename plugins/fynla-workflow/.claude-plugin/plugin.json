@@ -1,0 +1,11 @@
+{
+  "name": "fynla-workflow",
+  "description": "Session and workflow management skills for Fynla. Bootstrap sessions (seed, git sync, dev server), wrap up sessions (tech debt check, deploy notes, commit/push/PR), ship code, and generate deployment documentation.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fynla Development Team",
+    "email": "chris@fynla.org"
+  },
+  "homepage": "https://fynla.org",
+  "license": "UNLICENSED"
+}
