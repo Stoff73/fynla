@@ -285,6 +285,7 @@ abstract class BasePlanService
                 'affordability' => $rec['affordability'] ?? null,
                 'affordability_warning' => $rec['affordability_warning'] ?? null,
                 'guidance' => $rec['guidance'] ?? null,
+                'decision_trace' => $rec['decision_trace'] ?? [],
             ];
         }
 
