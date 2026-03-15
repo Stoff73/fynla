@@ -38,7 +38,144 @@
             </div>
           </div>
 
-          <!-- Financial Plans System -->
+          <!-- Decision Engine Upgrade -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Fynla Brain Decision Engine (Complete Upgrade)</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Transformed the Fynla Brain from static rule-based advice to a dynamic, data-aware decision engine across all 5 modules with 107 database-driven recommendation triggers.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Data Readiness Gates:</strong> All 5 modules validate data completeness before analysis. Users see exactly what information is missing with direct links to input forms — no more false results from incomplete data.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Investment Pipeline:</strong> 9-phase sequential engine covering safety checks, life event assessment, goal mapping, contribution waterfall (11 priority steps from Lifetime ISA to General Investment Account), transfer scans (13 types), spouse optimisation (7 strategies), and conflict resolution.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Savings Engine:</strong> 41 database-driven triggers covering emergency fund, ISA optimisation, rate comparison, Personal Savings Allowance breach, Financial Services Compensation Scheme exposure, children's savings, and debt comparison.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Protection Engine:</strong> 28 triggers with employer benefits integration, state benefits offset, and descriptive coverage ratings replacing numeric scores.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Centralised Tax Engine:</strong> Every UK tax value sourced from TaxConfigService. Tax year changes update everywhere automatically — no hardcoded values remain in the codebase.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Module-Specific Enhancements -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Module-Specific Enhancements</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Estate Planning:</strong> 2027 pension Inheritance Tax amendment modelling with dual-scenario projections, 14-year gift rule enforcement, enhanced life insurance checks, liquidity reclassification, and trust Nil Rate Band projections.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Retirement:</strong> Salary sacrifice analysis with National Insurance savings calculator, auto-enrolment compliance checks, enhanced annuity assessment for smokers and health conditions, and 18 recommendation triggers.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Protection:</strong> Employer benefits (death-in-service, group income protection, group critical illness) deducted from coverage gaps. Statutory Sick Pay correctly calculated with self-employed exclusion.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Savings:</strong> Personal Savings Allowance analysis, Financial Services Compensation Scheme exposure warnings, employment-based emergency fund targets (9 months self-employed, 6 employed, 3 retired), and daily maturity/rate expiry alerts.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Plan Isolation:</strong> Individual module plans contain only their own recommendations. Cross-module optimisation (pension contributions, savings allowance, marriage allowance) appears only in the holistic plan.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Security Hardening and Code Quality -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Security Hardening and Code Quality</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Login Security:</strong> Challenge tokens moved from cache to database — eliminates verification failures. User ID removed from pre-authentication API responses to prevent enumeration attacks.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Preview Mode Security:</strong> Sensitive fields (passwords, tokens, API keys) filtered from preview write interceptor responses.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Design System Compliance:</strong> All hardcoded hex colours replaced with design system constants. Hardcoded Inheritance Tax values replaced with tax configuration imports. Score badges replaced with descriptive text labels.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Code Quality:</strong> 97 lines of dead code removed, duplicate CSS keyframes extracted to global stylesheet, architecture tests added for all Models and Controllers, query limits added to all unbounded index endpoints.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Stats -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">420+</div>
+                <div class="text-body-sm text-neutral-500">Files Changed</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">82</div>
+                <div class="text-body-sm text-neutral-500">New Files</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">1,873</div>
+                <div class="text-body-sm text-neutral-500">Tests Passing</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">16</div>
+                <div class="text-body-sm text-neutral-500">Bugs Fixed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-light-gray my-8"></div>
+
+        <!-- Previous Version: v0.8.3 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-horizon-500 mb-4">Previous Release: v0.8.3</h2>
+          <p class="text-body-sm text-neutral-500 mb-4">Released: 5 March 2026</p>
+
           <div class="mb-6">
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Financial Plans System (Complete Rebuild)</h3>
             <p class="text-body-sm text-neutral-500 mb-4">Comprehensive rebuild of the entire financial planning system across 6 phases with 263 implementation tasks and a full code audit fixing 25 issues.</p>
@@ -76,140 +213,16 @@
             </ul>
           </div>
 
-          <!-- Holistic Plan -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Holistic Plan Rewrite</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Frontend-Orchestrated Aggregation:</strong> Fetches individual module plans and displays them together in a unified page with no recalculation or duplication.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Priority Area:</strong> Aggregates all actions across plans and shows priority allocation against the user's monthly disposable income from a single shared pool.</span>
-              </li>
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Also Included</h3>
+            <ul class="space-y-1">
+              <li class="text-body-sm text-neutral-500">• Holistic Plan rewrite with frontend-orchestrated aggregation</li>
+              <li class="text-body-sm text-neutral-500">• AI Chat Assistant with 17 tools</li>
+              <li class="text-body-sm text-neutral-500">• Side navigation menu with collapsible modes</li>
+              <li class="text-body-sm text-neutral-500">• Student preview persona (Janice Taylor)</li>
+              <li class="text-body-sm text-neutral-500">• Design System v1.2.0 overhaul</li>
+              <li class="text-body-sm text-neutral-500">• 3 critical bugs fixed, 6 estate agent fixes, 12 code simplifications</li>
             </ul>
-          </div>
-
-          <!-- AI Chat Assistant -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">AI Chat Assistant</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Fynla Assistant:</strong> AI-powered chat assistant accessible from a floating button on all authenticated pages with 17 tools for navigation, analysis, and data creation.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Simulated AI for Demos:</strong> Preview users get a realistic AI-like experience with pattern-based intent matching and real financial data — zero API cost.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Side Navigation & Student Persona -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Navigation and Preview Personas</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-horizon-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Side Navigation Menu:</strong> Collapsible left-side navigation with expanded (224px) and collapsed (64px) modes, mobile overlay, and persisted state.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-horizon-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Student Preview Persona:</strong> 7th persona — Janice Taylor, 21-year-old university student with optimised student dashboard, Cash ISA, Lifetime ISA, and student loan.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Design System Overhaul -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Design System Overhaul (v1.2.0)</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Complete Visual Rebrand:</strong> Raspberry call-to-actions, Horizon text and navigation, Spring success states, Violet warnings and focus rings, Eggshell page backgrounds, Savannah hover states.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Typography Update:</strong> Segoe UI as primary font with Inter as fallback. Font weights: 900 (display/h1), 700 (h2-h5).</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>CSS Centralisation:</strong> Eliminated 1,110 lines of duplicated CSS across 65 components, established CSS governance rules, standardised back buttons across 18 files.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Code Audit & Bug Fixes -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Code Audit and Bug Fixes</h3>
-            <ul class="space-y-2">
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>3 Critical Bugs Fixed:</strong> Stale retirement age calculation, recommendation overwrite on cached plans, and hardcoded dummy chart data replaced with real user data.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>6 Estate Agent Bug Fixes:</strong> Corrected method names, fixed 17M% effective rate display, proper error handling for TypeErrors.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>12 Code Simplifications:</strong> Consolidated duplicate projection formulas, extracted shared helpers, removed unused variables across all plan services.</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="w-5 h-5 text-spring-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-body-base text-neutral-500"><strong>Print/Save PDF:</strong> Multi-plan print support with type-specific builders, cascading line charts, and SVG rendering for all plan types.</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Stats -->
-          <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">380+</div>
-                <div class="text-body-sm text-neutral-500">Files Changed</div>
-              </div>
-              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">73</div>
-                <div class="text-body-sm text-neutral-500">New Files</div>
-              </div>
-              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">1,603</div>
-                <div class="text-body-sm text-neutral-500">Tests Passing</div>
-              </div>
-              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">25</div>
-                <div class="text-body-sm text-neutral-500">Bugs Fixed</div>
-              </div>
-            </div>
           </div>
         </div>
 
