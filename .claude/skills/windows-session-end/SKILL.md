@@ -1,27 +1,27 @@
 ---
-name: session-end
-description: Wrap up a development session. Runs tech debt check on changed files, reseeds the database, generates deploy notes, updates the Obsidian vault session index, and optionally commits and pushes. Use when the user says "end session", "wrap up", "finish up", "session end", "that's it for today", or when a significant block of work is complete.
+name: windows-session-end
+description: Wrap up a development session on Windows. Runs tech debt check on changed files, reseeds the database, generates deploy notes, updates the Obsidian vault session index, and optionally commits and pushes. Use when the user says "end session", "wrap up", "finish up", "session end", "that's it for today", or when a significant block of work is complete on Windows.
 disable-model-invocation: true
 ---
 
-# Session End - Post-Session Wrap-Up
+# Windows Session End - Post-Session Wrap-Up
 
-Systematically close out a Fynla development session. Ensures nothing is forgotten.
+Systematically close out a Fynla development session on Windows. Ensures nothing is forgotten.
 
 ## Step 1: Gather Session Changes
 
-```bash
+```powershell
 # All changes (staged + unstaged + untracked)
 git status
 git diff --stat HEAD
-git diff --name-only HEAD 2>/dev/null
-git diff --name-only --cached 2>/dev/null
-git ls-files --others --exclude-standard 2>/dev/null
+git diff --name-only HEAD 2>$null
+git diff --name-only --cached 2>$null
+git ls-files --others --exclude-standard 2>$null
 ```
 
 If there are no changes at all, skip to Step 6 (final reseed) and report a clean session.
 
-```bash
+```powershell
 # Today's commits (to summarise what was done)
 git log --since="midnight" --oneline
 ```
@@ -43,8 +43,10 @@ If PHP or Vue files changed, generate deployment documentation.
 
 ### Categorise Changed Files
 
-```bash
-git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~5...HEAD
+```powershell
+git diff --name-only origin/main...HEAD 2>$null
+# Fallback if no remote tracking:
+# git diff --name-only HEAD~5...HEAD
 ```
 
 Sort into categories:
@@ -52,7 +54,7 @@ Sort into categories:
 | Category | Pattern | Action |
 |----------|---------|--------|
 | PHP Backend | `app/**/*.php`, `config/*.php`, `routes/*.php` | Upload via SiteGround File Manager |
-| Frontend | `resources/js/**`, `resources/css/**` | Rebuild with `./deploy/fynla-org/build.sh` then upload `public/build/` |
+| Frontend | `resources/js/**`, `resources/css/**` | Rebuild with `.\deploy\fynla-org\build.sh` (via Git Bash) then upload `public\build\` |
 | Migrations | `database/migrations/*.php` | Upload + SSH `php artisan migrate --force` |
 | Seeders | `database/seeders/*.php` | Upload + SSH `php artisan db:seed --class=XSeeder --force` |
 | Deploy Config | `deploy/**`, `.htaccess` | Upload if changed |
@@ -67,13 +69,17 @@ Create a deploy notes file listing:
 
 Save to both locations:
 1. Project: `March/March[DD]Updates/deploy.md`
-2. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/March[DD]Updates/deploy.md`
+2. Vault: `C:\Users\CSJ\Desktop\fynlaBrain\March\March[DD]Updates\deploy.md`
 
-Create the directories if they don't exist.
+Create the directories if they don't exist:
+```powershell
+New-Item -ItemType Directory -Force -Path "March\March[DD]Updates"
+New-Item -ItemType Directory -Force -Path "C:\Users\CSJ\Desktop\fynlaBrain\March\March[DD]Updates"
+```
 
 ### SSH Commands Template
 
-Always include:
+Always include (run via Git Bash, WSL, or PuTTY):
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
@@ -84,8 +90,8 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 Determine today's date and session count. Read the current March Index:
 
-```bash
-cat "/Users/CSJ/Desktop/fynlaBrain/March/March Index.md"
+```powershell
+Get-Content "C:\Users\CSJ\Desktop\fynlaBrain\March\March Index.md"
 ```
 
 Check if today already has entries. If not, add a new date section. Append the session entry.
@@ -109,7 +115,7 @@ Under `## Update Notes`, add if deploy notes were generated:
 - [[other-notes-if-any]]
 ```
 
-Also update the project copy if one exists at `/Users/CSJ/Desktop/fynla/March/`.
+Also update the project copy if one exists at the project's `March/` directory.
 
 ## Step 5: Commit, Push & PR (Automatic)
 
@@ -120,33 +126,27 @@ Always commit, push, and create a PR at the end of every session if there are ch
 2. Generate a descriptive commit message from the changes
 3. Commit
 
-```bash
+```powershell
 git add <specific-files>
-git commit -m "$(cat <<'EOF'
-Descriptive commit message here.
-
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
-EOF
-)"
+git commit -m "Descriptive commit message here.`n`nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
 
 ### Push
-```bash
-git push -u origin $(git branch --show-current)
+```powershell
+git push -u origin (git branch --show-current)
 ```
 
 ### Create PR
-```bash
-gh pr create --title "Short descriptive title" --body "$(cat <<'EOF'
+```powershell
+gh pr create --title "Short descriptive title" --body @"
 ## Summary
 - Brief description of changes
 
 ## Test plan
 - [ ] Testing steps
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
+Generated with [Claude Code](https://claude.com/claude-code)
+"@
 ```
 
 Report the PR URL to the user.
@@ -161,7 +161,23 @@ php artisan db:seed
 
 This ensures the next session (or any manual testing) starts with clean, complete data.
 
-## Step 7: Session Summary
+## Step 7: Free Ports (Kill Dev Server Processes)
+
+Kill any processes running on ports **8000** (Laravel) and **5173** (Vite) to leave the environment clean:
+
+```powershell
+# Check and kill port 8000
+$pid8000 = (netstat -ano | findstr :8000 | ForEach-Object { ($_ -split '\s+')[-1] } | Select-Object -Unique)
+if ($pid8000) { foreach ($p in $pid8000) { taskkill /PID $p /F 2>$null } }
+
+# Check and kill port 5173
+$pid5173 = (netstat -ano | findstr :5173 | ForEach-Object { ($_ -split '\s+')[-1] } | Select-Object -Unique)
+if ($pid5173) { foreach ($p in $pid5173) { taskkill /PID $p /F 2>$null } }
+```
+
+Confirm both ports are free after killing.
+
+## Step 8: Session Summary
 
 Present a clean wrap-up to the user:
 
@@ -174,6 +190,7 @@ Present a clean wrap-up to the user:
 **Vault index:** Updated March Index.md
 **Git:** Committed and pushed / Uncommitted changes remain
 **Database:** Reseeded successfully
+**Ports:** 8000 and 5173 freed
 
 **What was done this session:**
 - [bullet summary of work from git log/diff]
@@ -190,3 +207,5 @@ Present a clean wrap-up to the user:
 - Do NOT skip the tech debt check — it catches issues before they accumulate.
 - If deploy notes were generated, remind the user to upload files if deploying.
 - Match the exact Obsidian vault index format — use `[[wikilinks]]` for cross-references.
+- ALWAYS kill processes on ports 8000 and 5173 at session end to leave the environment clean.
+- Use PowerShell commands for file operations; use Git Bash or WSL for SSH connections.

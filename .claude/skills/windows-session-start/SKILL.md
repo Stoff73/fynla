@@ -1,12 +1,12 @@
 ---
-name: session-start
-description: Bootstrap a new development session. Seeds the database, checks git status, shows recent activity, and displays context summary. Run this at the start of every session to ensure the environment is ready. Use when the user says "start session", "get ready", "set up", "begin", or at the start of any new conversation.
+name: windows-session-start
+description: Bootstrap a new development session on Windows. Seeds the database, checks git status, shows recent activity, frees occupied ports, starts the dev server, and displays context summary. Run this at the start of every session on a Windows machine. Use when the user says "start session", "get ready", "set up", "begin", or at the start of any new conversation on Windows.
 disable-model-invocation: true
 ---
 
-# Session Start - Pre-Session Bootstrap
+# Windows Session Start - Pre-Session Bootstrap
 
-Prepare the development environment for a new Fynla session. This is the FIRST thing that runs in every session.
+Prepare the development environment for a new Fynla session on Windows. This is the FIRST thing that runs in every session.
 
 ## Step 1: Database Seed (CRITICAL - NEVER SKIP)
 
@@ -22,7 +22,7 @@ If seeding fails, diagnose immediately. Common fixes:
 |-------|-----|
 | Table doesn't exist | `php artisan migrate && php artisan db:seed` |
 | Duplicate key | Safe to ignore — seeders use `updateOrCreate()` |
-| Connection refused | Check MySQL is running: `mysql.server start` or `brew services start mysql` |
+| Connection refused | Check MySQL is running: `net start MySQL` or start it from Services |
 
 ### Complete Seeder Inventory (18 seeders)
 
@@ -72,7 +72,7 @@ If seeding fails, diagnose immediately. Common fixes:
 
 ### 2a: Check current state
 
-```bash
+```powershell
 git status
 git branch --show-current
 git log --oneline -10
@@ -80,14 +80,14 @@ git log --oneline -10
 
 ### 2b: Fetch latest from remote
 
-```bash
+```powershell
 git fetch origin
 ```
 
 ### 2c: Sync based on branch
 
 **If on `main`:**
-```bash
+```powershell
 git pull origin main
 ```
 
@@ -95,7 +95,7 @@ git pull origin main
 
 First, check the branch's relationship with main:
 
-```bash
+```powershell
 # Commits on this branch not in main
 git log --oneline main..HEAD
 
@@ -103,23 +103,23 @@ git log --oneline main..HEAD
 git log --oneline HEAD..origin/main
 
 # Check if branch also has a remote tracking branch
-git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
+git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>$null
 ```
 
 Then sync in this order:
 
 1. **Pull the branch's own remote** (if it has one):
-   ```bash
-   git pull origin $(git branch --show-current)
+   ```powershell
+   git pull origin (git branch --show-current)
    ```
 
 2. **Check divergence from main:**
-   ```bash
-   git log --oneline HEAD..origin/main --count
+   ```powershell
+   git log --oneline HEAD..origin/main
    ```
 
 3. **If main has new commits**, rebase the feature branch onto main:
-   ```bash
+   ```powershell
    git rebase origin/main
    ```
 
@@ -128,7 +128,7 @@ Then sync in this order:
 If rebase or pull produces conflicts:
 
 1. **List conflicted files:**
-   ```bash
+   ```powershell
    git diff --name-only --diff-filter=U
    ```
 
@@ -138,17 +138,17 @@ If rebase or pull produces conflicts:
    - Favours main's version for shared infrastructure (config, routes, seeders)
 
 3. **After resolving each file:**
-   ```bash
+   ```powershell
    git add <resolved-file>
    ```
 
 4. **Continue the rebase:**
-   ```bash
+   ```powershell
    git rebase --continue
    ```
 
 5. **If conflicts are too complex to auto-resolve**, abort and report to the user:
-   ```bash
+   ```powershell
    git rebase --abort
    ```
    Then explain what conflicts exist and ask the user how they want to proceed.
@@ -165,28 +165,44 @@ If rebase or pull produces conflicts:
 
 Check what was worked on recently:
 
-```bash
+```powershell
 # Files changed today
-git log --since="midnight" --name-only --pretty=format:"" | sort -u
+git log --since="midnight" --name-only --pretty=format:"" | Sort-Object -Unique
 
 # Files changed in last 3 days (in case session spans days)
 git log --since="3 days ago" --oneline
 ```
 
-## Step 4: Check & Start Dev Server
+## Step 4: Free Ports & Start Dev Server
 
-Check if the dev server is already running:
+The dev server uses ports **8000** (Laravel) and **5173** (Vite). Before starting, check if these ports are occupied and kill any processes holding them.
 
-```bash
-# Check if Laravel/Vite are running
-lsof -i :8000 2>/dev/null | head -3
-lsof -i :5173 2>/dev/null | head -3
+### Check and free ports (Windows commands):
+
+```powershell
+# Check port 8000
+netstat -ano | findstr :8000
+# If occupied, get the PID from the last column and kill it:
+# taskkill /PID <pid> /F
+
+# Check port 5173
+netstat -ano | findstr :5173
+# If occupied, get the PID from the last column and kill it:
+# taskkill /PID <pid> /F
 ```
 
-If not running, automatically start it in the background:
+For each port (8000 and 5173):
+1. Run `netstat -ano | findstr :<port>` to check if anything is listening
+2. If a process is found, extract the PID from the output (last column)
+3. Kill it with `taskkill /PID <pid> /F`
+4. Confirm the port is now free
 
-```bash
-./dev.sh
+### Start the dev server
+
+Once both ports are confirmed free, automatically start the dev server in the background:
+
+```powershell
+.\dev.ps1
 ```
 
 Run this in the background so the session bootstrap can continue without waiting.
@@ -202,8 +218,9 @@ Present a clean summary to the user:
 **Status:** Clean / X uncommitted changes
 **Last work:** [summary of recent commits]
 
-**Database:** Seeded successfully (17 seeders)
-**Dev server:** Running on :8000/:5173 / Not running
+**Database:** Seeded successfully (18 seeders)
+**Ports:** 8000 and 5173 cleared and available
+**Dev server:** Running on :8000/:5173
 
 **Recent changes:**
 - [list of recently changed files/features]
@@ -213,6 +230,7 @@ Present a clean summary to the user:
 
 - ALWAYS seed first. No exceptions. No "I'll do it later". Seed FIRST.
 - Do NOT run `migrate:fresh` or `migrate:refresh` — these destroy data.
-- Auto-start the dev server (`./dev.sh`) if it's not already running.
+- ALWAYS free ports 8000 and 5173 before starting the dev server — kill any occupying processes.
+- Auto-start the dev server (`.\dev.ps1`) after ports are confirmed free.
 - Do NOT make any code changes — this is a read-only bootstrap.
 - If the user has a specific task in mind, after displaying the summary, proceed to their request.
