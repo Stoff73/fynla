@@ -216,12 +216,26 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user || $user->date_of_birth !== null) {
             return [];
         }
 
-        return [$this->buildRecommendation($definition, [], $priority)];
+        $trace[] = [
+            'question' => 'Has your date of birth been provided?',
+            'data_field' => 'date_of_birth',
+            'data_value' => 'Not set',
+            'threshold' => 'Must be provided',
+            'passed' => true,
+            'explanation' => 'Your date of birth is needed to personalise savings recommendations based on your age and life stage.',
+        ];
+
+        $rec = $this->buildRecommendation($definition, [], $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -232,6 +246,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -242,7 +258,19 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        return [$this->buildRecommendation($definition, [], $priority)];
+        $trace[] = [
+            'question' => 'Has your income been provided?',
+            'data_field' => 'gross_annual_income',
+            'data_value' => '£'.number_format($grossIncome, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => true,
+            'explanation' => 'Your income is needed to calculate tax-efficient savings strategies and Personal Savings Allowance usage.',
+        ];
+
+        $rec = $this->buildRecommendation($definition, [], $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -253,6 +281,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -263,7 +293,19 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        return [$this->buildRecommendation($definition, [], $priority)];
+        $trace[] = [
+            'question' => 'Has your monthly expenditure been provided?',
+            'data_field' => 'monthly_expenditure',
+            'data_value' => '£'.number_format($resolved['amount'], 0),
+            'threshold' => 'Greater than £0',
+            'passed' => true,
+            'explanation' => 'Your expenditure is needed to calculate your emergency fund target and assess savings adequacy.',
+        ];
+
+        $rec = $this->buildRecommendation($definition, [], $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -274,12 +316,26 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user || ! empty($user->employment_status)) {
             return [];
         }
 
-        return [$this->buildRecommendation($definition, [], $priority)];
+        $trace[] = [
+            'question' => 'Has your employment status been provided?',
+            'data_field' => 'employment_status',
+            'data_value' => 'Not set',
+            'threshold' => 'Must be provided',
+            'passed' => true,
+            'explanation' => 'Your employment status determines your recommended emergency fund target — self-employed and contractors need a larger buffer.',
+        ];
+
+        $rec = $this->buildRecommendation($definition, [], $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     // =========================================================================
@@ -298,12 +354,23 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $threshold = (float) ($config['threshold'] ?? 1);
 
         if ($runway >= $threshold) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Is your emergency fund runway below the critical threshold?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => number_format($threshold, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund covers less than '.number_format($threshold, 1).' months of expenses, which is critically low.',
+        ];
 
         // Cannot evaluate without expenditure data
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
@@ -316,6 +383,15 @@ class SavingsActionDefinitionService
         $shortfallMonths = max(0, $targetMonths - $runway);
         $shortfallAmount = $shortfallMonths * $monthlyExpenditure;
 
+        $trace[] = [
+            'question' => 'How large is your emergency fund shortfall?',
+            'data_field' => 'shortfall_amount',
+            'data_value' => '£'.number_format($shortfallAmount, 0),
+            'threshold' => $targetMonths.' months target (£'.number_format($targetMonths * $monthlyExpenditure, 0).')',
+            'passed' => true,
+            'explanation' => 'You need an additional £'.number_format($shortfallAmount, 0).' to reach your '.$targetMonths.'-month emergency fund target.',
+        ];
+
         $vars = [
             'runway_months' => number_format($runway, 1),
             'target_months' => (string) $targetMonths,
@@ -324,6 +400,7 @@ class SavingsActionDefinitionService
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
         $rec['estimated_impact'] = round($shortfallAmount, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -339,6 +416,8 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $low = (float) ($config['low'] ?? 1);
         $high = (float) ($config['high'] ?? 3);
@@ -346,6 +425,15 @@ class SavingsActionDefinitionService
         if ($runway < $low || $runway >= $high) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Is your emergency fund below target but not critical?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => 'Between '.number_format($low, 1).' and '.number_format($high, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund is below the recommended level but not critically low.',
+        ];
 
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
         if ($monthlyExpenditure <= 0) {
@@ -360,13 +448,25 @@ class SavingsActionDefinitionService
             12
         );
 
+        $trace[] = [
+            'question' => 'How much do you need to save each month to reach your target?',
+            'data_field' => 'monthly_top_up',
+            'data_value' => '£'.number_format($monthlyTopUp, 0),
+            'threshold' => $targetMonths.'-month target',
+            'passed' => true,
+            'explanation' => 'Saving £'.number_format($monthlyTopUp, 0).' per month would build your emergency fund to '.$targetMonths.' months within a year.',
+        ];
+
         $vars = [
             'runway_months' => number_format($runway, 1),
             'target_months' => (string) $targetMonths,
             'monthly_top_up' => $this->formatCurrency($monthlyTopUp),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -379,6 +479,8 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $low = (float) ($config['low'] ?? 3);
         $high = (float) ($config['high'] ?? 6);
@@ -389,12 +491,24 @@ class SavingsActionDefinitionService
 
         $adequacy = $savingsAnalysis['emergency_fund']['adequacy']['adequacy_score'] ?? 0;
 
+        $trace[] = [
+            'question' => 'Is your emergency fund progressing towards the target?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => 'Between '.number_format($low, 1).' and '.number_format($high, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund is building well at '.number_format($adequacy, 0).'% adequacy — keep going to reach your full target.',
+        ];
+
         $vars = [
             'runway_months' => number_format($runway, 1),
             'adequacy_percent' => number_format($adequacy, 0),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -405,6 +519,8 @@ class SavingsActionDefinitionService
         Collection $savingsAccounts,
         int $priority
     ): array {
+        $trace = [];
+
         if ($savingsAccounts->isEmpty()) {
             return [];
         }
@@ -414,7 +530,19 @@ class SavingsActionDefinitionService
             return [];
         }
 
-        return [$this->buildRecommendation($definition, [], $priority)];
+        $trace[] = [
+            'question' => 'Do you have a savings account designated as your emergency fund?',
+            'data_field' => 'is_emergency_fund',
+            'data_value' => 'No designated account',
+            'threshold' => 'At least one account flagged',
+            'passed' => true,
+            'explanation' => 'You have '.$savingsAccounts->count().' savings account(s) but none is designated as your emergency fund. Designating one helps track your safety net separately.',
+        ];
+
+        $rec = $this->buildRecommendation($definition, [], $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -427,12 +555,23 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $threshold = (float) ($config['threshold'] ?? 12);
 
         if ($runway < $threshold) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Does your emergency fund significantly exceed the recommended target?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => number_format($threshold, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund covers '.number_format($runway, 1).' months of expenses, which is well above the recommended level.',
+        ];
 
         $monthlyExpenditure = $savingsAnalysis['summary']['monthly_expenditure'] ?? 0;
         if ($monthlyExpenditure <= 0) {
@@ -443,6 +582,15 @@ class SavingsActionDefinitionService
         $excessMonths = $runway - $targetMonths;
         $excessAmount = $excessMonths * $monthlyExpenditure;
 
+        $trace[] = [
+            'question' => 'How much is held above the recommended 6-month target?',
+            'data_field' => 'excess_amount',
+            'data_value' => '£'.number_format($excessAmount, 0),
+            'threshold' => '6-month target (£'.number_format($targetMonths * $monthlyExpenditure, 0).')',
+            'passed' => true,
+            'explanation' => '£'.number_format($excessAmount, 0).' above the target could be deployed into higher-growth assets.',
+        ];
+
         $vars = [
             'runway_months' => number_format($runway, 1),
             'excess_amount' => $this->formatCurrency($excessAmount),
@@ -450,6 +598,7 @@ class SavingsActionDefinitionService
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
         $rec['estimated_impact'] = round($excessAmount, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -466,6 +615,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -476,6 +627,27 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Does your savings interest exceed your Personal Savings Allowance?',
+            'data_field' => 'annual_interest',
+            'data_value' => '£'.number_format($psaPosition['annual_interest'], 0),
+            'threshold' => '£'.number_format($psaPosition['psa_amount'], 0).' ('.$psaPosition['tax_band'].' rate taxpayer)',
+            'passed' => true,
+            'explanation' => 'Your annual savings interest exceeds your Personal Savings Allowance by £'.number_format($psaPosition['breach_amount'], 0).'.',
+        ];
+
+        $taxRate = $psaPosition['tax_band'] === 'higher' ? 0.40 : 0.20;
+        $taxPayable = $psaPosition['breach_amount'] * $taxRate;
+
+        $trace[] = [
+            'question' => 'How much tax is payable on the excess interest?',
+            'data_field' => 'tax_payable',
+            'data_value' => '£'.number_format($taxPayable, 0),
+            'threshold' => round($taxRate * 100, 0).'% tax rate',
+            'passed' => true,
+            'explanation' => 'You will owe approximately £'.number_format($taxPayable, 0).' in tax on the interest above your allowance.',
+        ];
+
         $vars = [
             'breach_amount' => $this->formatCurrency($psaPosition['breach_amount']),
             'psa_amount' => $this->formatCurrency($psaPosition['psa_amount']),
@@ -484,9 +656,8 @@ class SavingsActionDefinitionService
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
-        // Estimated tax payable on the breach
-        $taxRate = $psaPosition['tax_band'] === 'higher' ? 0.40 : 0.20;
-        $rec['estimated_impact'] = round($psaPosition['breach_amount'] * $taxRate, 2);
+        $rec['estimated_impact'] = round($taxPayable, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -499,6 +670,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -509,13 +682,25 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Is your savings interest approaching your Personal Savings Allowance?',
+            'data_field' => 'utilisation_percent',
+            'data_value' => number_format($psaPosition['utilisation_percent'], 0).'%',
+            'threshold' => '£'.number_format($psaPosition['psa_amount'], 0).' allowance',
+            'passed' => true,
+            'explanation' => 'You have used '.number_format($psaPosition['utilisation_percent'], 0).'% of your Personal Savings Allowance with £'.number_format($psaPosition['headroom'], 0).' headroom remaining.',
+        ];
+
         $vars = [
             'utilisation_percent' => number_format($psaPosition['utilisation_percent'], 0),
             'headroom' => $this->formatCurrency($psaPosition['headroom']),
             'psa_amount' => $this->formatCurrency($psaPosition['psa_amount']),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -527,6 +712,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -539,11 +726,29 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you have significant Personal Savings Allowance headroom?',
+            'data_field' => 'utilisation_percent',
+            'data_value' => number_format($psaPosition['utilisation_percent'], 0).'%',
+            'threshold' => 'Below 50% utilisation',
+            'passed' => true,
+            'explanation' => 'You are using only '.number_format($psaPosition['utilisation_percent'], 0).'% of your £'.number_format($psaPosition['psa_amount'], 0).' Personal Savings Allowance.',
+        ];
+
         // Must have some savings to make this useful
         $accounts = $user->savingsAccounts()->where('is_isa', false)->get();
         if ($accounts->isEmpty()) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Do you have non-ISA savings accounts that could earn more interest?',
+            'data_field' => 'non_isa_account_count',
+            'data_value' => (string) $accounts->count(),
+            'threshold' => 'At least 1 account',
+            'passed' => true,
+            'explanation' => 'You have '.$accounts->count().' non-ISA account(s) with £'.number_format($psaPosition['headroom'], 0).' of tax-free interest headroom available.',
+        ];
 
         $vars = [
             'headroom' => $this->formatCurrency($psaPosition['headroom']),
@@ -551,7 +756,10 @@ class SavingsActionDefinitionService
             'utilisation_percent' => number_format($psaPosition['utilisation_percent'], 0),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -564,6 +772,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -573,6 +783,16 @@ class SavingsActionDefinitionService
         if (! $psaPosition['is_breached'] && ! $psaPosition['is_approaching']) {
             return [];
         }
+
+        $psaStatus = $psaPosition['is_breached'] ? 'breached' : 'approaching the limit';
+        $trace[] = [
+            'question' => 'Is your Personal Savings Allowance under pressure?',
+            'data_field' => 'psa_status',
+            'data_value' => ucfirst($psaStatus),
+            'threshold' => 'Breached or approaching',
+            'passed' => true,
+            'explanation' => 'Your Personal Savings Allowance is '.$psaStatus.', making a Cash ISA beneficial for sheltering interest from tax.',
+        ];
 
         // Check if user already has a Cash ISA
         $hasCashIsa = $user->savingsAccounts()
@@ -584,6 +804,15 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you already hold a Cash ISA?',
+            'data_field' => 'has_cash_isa',
+            'data_value' => 'No',
+            'threshold' => 'No existing Cash ISA',
+            'passed' => true,
+            'explanation' => 'You do not currently hold a Cash ISA, so opening one would shelter interest from tax.',
+        ];
+
         $isaAllowances = $this->taxConfig->getISAAllowances();
         $isaAllowance = $isaAllowances['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
 
@@ -592,7 +821,10 @@ class SavingsActionDefinitionService
             'annual_interest' => $this->formatCurrency($psaPosition['annual_interest']),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -605,6 +837,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user) {
             return [];
@@ -617,6 +851,15 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Is your Personal Savings Allowance utilisation very low?',
+            'data_field' => 'utilisation_percent',
+            'data_value' => number_format($psaPosition['utilisation_percent'], 0).'%',
+            'threshold' => 'Below 25%',
+            'passed' => true,
+            'explanation' => 'With only '.number_format($psaPosition['utilisation_percent'], 0).'% of your allowance used, a Cash ISA may not be necessary — non-ISA accounts often offer better rates.',
+        ];
+
         // Only relevant if user actually has a Cash ISA
         $hasCashIsa = $user->savingsAccounts()
             ->where('is_isa', true)
@@ -627,13 +870,25 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you currently hold a Cash ISA?',
+            'data_field' => 'has_cash_isa',
+            'data_value' => 'Yes',
+            'threshold' => 'Has existing Cash ISA',
+            'passed' => true,
+            'explanation' => 'You hold a Cash ISA but may get better rates from a non-ISA savings account given your low allowance usage.',
+        ];
+
         $vars = [
             'utilisation_percent' => number_format($psaPosition['utilisation_percent'], 0),
             'psa_amount' => $this->formatCurrency($psaPosition['psa_amount']),
             'headroom' => $this->formatCurrency($psaPosition['headroom']),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -646,10 +901,21 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
         if ($isaRemaining <= 0) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Do you have unused ISA allowance this tax year?',
+            'data_field' => 'isa_remaining',
+            'data_value' => '£'.number_format($isaRemaining, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => true,
+            'explanation' => 'You have £'.number_format($isaRemaining, 0).' of ISA allowance remaining for the '.$this->taxConfig->getTaxYear().' tax year.',
+        ];
 
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $runwayThreshold = (float) ($config['threshold'] ?? 6);
@@ -658,12 +924,24 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Is your emergency fund adequate enough to consider ISA contributions?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => number_format($runwayThreshold, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund is adequate at '.number_format($runway, 1).' months, so you can consider using your remaining ISA allowance.',
+        ];
+
         $vars = [
             'isa_remaining' => $this->formatCurrency($isaRemaining),
             'tax_year' => $this->taxConfig->getTaxYear(),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     // =========================================================================
@@ -698,10 +976,32 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $currentRate = ((float) $account->interest_rate) * 100;
+            $marketRate = ($comparison['comparison']['market_rate'] ?? 0) * 100;
+
+            $trace[] = [
+                'question' => 'Is your interest rate below the market average?',
+                'data_field' => 'interest_rate',
+                'data_value' => number_format($currentRate, 2).'%',
+                'threshold' => number_format($marketRate, 2).'% market rate',
+                'passed' => true,
+                'explanation' => 'Your rate of '.number_format($currentRate, 2).'% on '.($account->account_name ?? 'this account').' is rated as Fair compared to the market.',
+            ];
+
+            $trace[] = [
+                'question' => 'Would switching to a market-rate account save a meaningful amount?',
+                'data_field' => 'potential_gain',
+                'data_value' => '£'.number_format($potentialGain, 0),
+                'threshold' => '£50 minimum',
+                'passed' => true,
+                'explanation' => 'Switching could earn you an additional £'.number_format($potentialGain, 0).' per year in interest.',
+            ];
+
             $vars = [
                 'account_name' => $account->account_name ?? 'Unknown Account',
-                'current_rate' => number_format(((float) $account->interest_rate) * 100, 2),
-                'market_rate' => number_format(($comparison['comparison']['market_rate'] ?? 0) * 100, 2),
+                'current_rate' => number_format($currentRate, 2),
+                'market_rate' => number_format($marketRate, 2),
                 'potential_gain' => $this->formatCurrency($potentialGain),
             ];
 
@@ -710,6 +1010,7 @@ class SavingsActionDefinitionService
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
             $rec['estimated_impact'] = round($potentialGain, 2);
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -740,12 +1041,33 @@ class SavingsActionDefinitionService
             }
 
             $potentialGain = (float) ($comparison['potential_gain'] ?? 0);
+            $currentRate = ((float) $account->interest_rate) * 100;
+            $marketRate = ($comparison['comparison']['market_rate'] ?? 0) * 100;
+
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your interest rate significantly below the market average?',
+                'data_field' => 'interest_rate',
+                'data_value' => number_format($currentRate, 2).'%',
+                'threshold' => number_format($marketRate, 2).'% market rate',
+                'passed' => true,
+                'explanation' => 'Your rate of '.number_format($currentRate, 2).'% on '.($account->account_name ?? 'this account').' at '.($account->institution ?? 'your provider').' is rated as Poor compared to the market.',
+            ];
+
+            $trace[] = [
+                'question' => 'How much interest are you potentially losing each year?',
+                'data_field' => 'potential_gain',
+                'data_value' => '£'.number_format($potentialGain, 0),
+                'threshold' => 'Any amount',
+                'passed' => true,
+                'explanation' => 'Switching to a competitive rate could earn you an additional £'.number_format($potentialGain, 0).' per year.',
+            ];
 
             $vars = [
                 'account_name' => $account->account_name ?? 'Unknown Account',
                 'institution' => $account->institution ?? 'Unknown',
-                'current_rate' => number_format(((float) $account->interest_rate) * 100, 2),
-                'market_rate' => number_format(($comparison['comparison']['market_rate'] ?? 0) * 100, 2),
+                'current_rate' => number_format($currentRate, 2),
+                'market_rate' => number_format($marketRate, 2),
                 'potential_gain' => $this->formatCurrency($potentialGain),
             ];
 
@@ -754,6 +1076,7 @@ class SavingsActionDefinitionService
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
             $rec['estimated_impact'] = round($potentialGain, 2);
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -784,6 +1107,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your fixed-rate account approaching maturity?',
+                'data_field' => 'days_to_maturity',
+                'data_value' => $daysToMaturity.' days',
+                'threshold' => $windowDays.' days',
+                'passed' => true,
+                'explanation' => 'Your fixed-rate account "'.($account->account_name ?? 'Unknown').'" at '.($account->institution ?? 'your provider').' matures on '.$account->maturity_date->format('d M Y').' — plan ahead to secure the best rate for your £'.number_format((float) $account->current_balance, 0).' balance.',
+            ];
+
             $vars = [
                 'account_name' => $account->account_name ?? 'Unknown Account',
                 'institution' => $account->institution ?? 'Unknown',
@@ -796,6 +1129,7 @@ class SavingsActionDefinitionService
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -826,6 +1160,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your promotional rate about to expire?',
+                'data_field' => 'days_to_expiry',
+                'data_value' => $daysToExpiry.' days',
+                'threshold' => $windowDays.' days',
+                'passed' => true,
+                'explanation' => 'The promotional rate on "'.($account->account_name ?? 'your account').'" at '.($account->institution ?? 'your provider').' expires on '.$account->promo_rate_end_date->format('d M Y').'. Review your options before the rate drops.',
+            ];
+
             $vars = [
                 'account_name' => $account->account_name ?? 'Unknown Account',
                 'institution' => $account->institution ?? 'Unknown',
@@ -838,6 +1182,7 @@ class SavingsActionDefinitionService
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -854,6 +1199,8 @@ class SavingsActionDefinitionService
         Collection $savingsAccounts,
         int $priority
     ): array {
+        $trace = [];
+
         $rateComparisons = $savingsAnalysis['rate_comparisons'] ?? [];
 
         $totalGain = collect($rateComparisons)
@@ -868,6 +1215,15 @@ class SavingsActionDefinitionService
             ->where('comparison.is_competitive', false)
             ->count();
 
+        $trace[] = [
+            'question' => 'Could you earn more by switching to competitive-rate accounts?',
+            'data_field' => 'total_potential_gain',
+            'data_value' => '£'.number_format($totalGain, 0),
+            'threshold' => '£100 minimum total gain',
+            'passed' => true,
+            'explanation' => 'Across '.$uncompetitiveCount.' account(s) with uncompetitive rates, you could earn an additional £'.number_format($totalGain, 0).' per year by switching.',
+        ];
+
         $vars = [
             'total_potential_gain' => $this->formatCurrency($totalGain),
             'account_count' => (string) $uncompetitiveCount,
@@ -875,6 +1231,7 @@ class SavingsActionDefinitionService
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
         $rec['estimated_impact'] = round($totalGain, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -897,6 +1254,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is this account earning 0% interest?',
+                'data_field' => 'interest_rate',
+                'data_value' => '0%',
+                'threshold' => 'Greater than 0%',
+                'passed' => true,
+                'explanation' => 'Your account "'.($account->account_name ?? 'Unknown').'" at '.($account->institution ?? 'your provider').' holds £'.number_format($balance, 0).' earning no interest. Moving this to a competitive account could generate meaningful returns.',
+            ];
+
             $vars = [
                 'account_name' => $account->account_name ?? 'Unknown Account',
                 'institution' => $account->institution ?? 'Unknown',
@@ -907,6 +1274,7 @@ class SavingsActionDefinitionService
             $rec['scope'] = 'account';
             $rec['account_id'] = $account->id;
             $rec['account_name'] = $account->account_name;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -940,6 +1308,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Do your deposits with this institution exceed the Financial Services Compensation Scheme limit?',
+                'data_field' => 'total_balance',
+                'data_value' => '£'.number_format($group['total_balance'], 0),
+                'threshold' => '£'.number_format($group['fscs_limit'], 0).' Financial Services Compensation Scheme limit',
+                'passed' => true,
+                'explanation' => 'Your total deposits of £'.number_format($group['total_balance'], 0).' with '.$group['institution_group'].' exceed the £'.number_format($group['fscs_limit'], 0).' protection limit by £'.number_format($group['excess'], 0).'. The excess is unprotected if the institution fails.',
+            ];
+
             $vars = [
                 'institution' => $group['institution_group'],
                 'total_balance' => $this->formatCurrency($group['total_balance']),
@@ -949,6 +1327,7 @@ class SavingsActionDefinitionService
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['estimated_impact'] = round($group['excess'], 2);
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -978,6 +1357,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Are your deposits approaching the Financial Services Compensation Scheme limit with this institution?',
+                'data_field' => 'total_balance',
+                'data_value' => '£'.number_format($group['total_balance'], 0),
+                'threshold' => '£'.number_format($group['fscs_limit'], 0).' Financial Services Compensation Scheme limit',
+                'passed' => true,
+                'explanation' => 'Your deposits of £'.number_format($group['total_balance'], 0).' with '.$group['institution_group'].' are approaching the £'.number_format($group['fscs_limit'], 0).' limit with £'.number_format($group['headroom'], 0).' headroom remaining.',
+            ];
+
             $vars = [
                 'institution' => $group['institution_group'],
                 'total_balance' => $this->formatCurrency($group['total_balance']),
@@ -985,7 +1374,9 @@ class SavingsActionDefinitionService
                 'headroom' => $this->formatCurrency($group['headroom']),
             ];
 
-            $results[] = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -1005,6 +1396,8 @@ class SavingsActionDefinitionService
         Collection $savingsAccounts,
         int $priority
     ): array {
+        $trace = [];
+
         if ($savingsAccounts->isEmpty()) {
             return [];
         }
@@ -1037,6 +1430,15 @@ class SavingsActionDefinitionService
         $mortgageRate = (float) $highRateMortgage->interest_rate;
         $rateDifference = $mortgageRate - $bestSavingsRate;
 
+        $trace[] = [
+            'question' => 'Is your mortgage rate higher than your best savings rate?',
+            'data_field' => 'mortgage_rate',
+            'data_value' => number_format($mortgageRate * 100, 2).'%',
+            'threshold' => number_format($bestSavingsRate * 100, 2).'% best savings rate',
+            'passed' => true,
+            'explanation' => 'Your mortgage with '.($highRateMortgage->lender_name ?? 'your lender').' charges '.number_format($mortgageRate * 100, 2).'% while your best savings rate is '.number_format($bestSavingsRate * 100, 2).'% — a '.number_format($rateDifference * 100, 2).'% gap.',
+        ];
+
         $vars = [
             'mortgage_rate' => number_format($mortgageRate * 100, 2),
             'savings_rate' => number_format($bestSavingsRate * 100, 2),
@@ -1044,7 +1446,10 @@ class SavingsActionDefinitionService
             'lender' => $highRateMortgage->lender_name ?? 'your mortgage lender',
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -1057,6 +1462,8 @@ class SavingsActionDefinitionService
         Collection $savingsAccounts,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::with('mortgages')->find($userId);
         if (! $user || $user->mortgages->isEmpty()) {
             return [];
@@ -1080,13 +1487,34 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you have non-emergency savings that could be used for mortgage overpayments?',
+            'data_field' => 'non_emergency_balance',
+            'data_value' => '£'.number_format($nonEmergencyBalance, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => true,
+            'explanation' => 'You hold £'.number_format($nonEmergencyBalance, 0).' in non-emergency savings outside your emergency fund.',
+        ];
+
+        $trace[] = [
+            'question' => 'Does your mortgage rate meaningfully exceed your average savings rate?',
+            'data_field' => 'mortgage_rate',
+            'data_value' => number_format($highestMortgageRate * 100, 2).'%',
+            'threshold' => number_format($averageSavingsRate * 100, 2).'% average savings rate + 0.5%',
+            'passed' => true,
+            'explanation' => 'Your highest mortgage rate of '.number_format($highestMortgageRate * 100, 2).'% exceeds your average savings rate of '.number_format($averageSavingsRate * 100, 2).'%. Overpaying the mortgage may deliver a better effective return.',
+        ];
+
         $vars = [
             'mortgage_rate' => number_format($highestMortgageRate * 100, 2),
             'average_savings_rate' => number_format($averageSavingsRate * 100, 2),
             'non_emergency_balance' => $this->formatCurrency($nonEmergencyBalance),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     // =========================================================================
@@ -1103,6 +1531,8 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         $targetMonths = (float) ($config['target_months'] ?? 6);
         $surplusThreshold = (float) ($config['surplus_threshold'] ?? 5000);
@@ -1120,6 +1550,24 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Does your emergency fund exceed the recommended target?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => number_format($targetMonths, 1).' months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund covers '.number_format($runway, 1).' months, exceeding the '.number_format($targetMonths, 1).'-month target.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is your surplus above the emergency fund large enough to consider investing?',
+            'data_field' => 'surplus',
+            'data_value' => '£'.number_format($surplus, 0),
+            'threshold' => '£'.number_format($surplusThreshold, 0).' minimum',
+            'passed' => true,
+            'explanation' => 'You have £'.number_format($surplus, 0).' above your £'.number_format($targetAmount, 0).' emergency fund target that could potentially be invested for higher returns.',
+        ];
+
         $vars = [
             'surplus_amount' => $this->formatCurrency($surplus),
             'target_amount' => $this->formatCurrency($targetAmount),
@@ -1127,6 +1575,7 @@ class SavingsActionDefinitionService
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
         $rec['estimated_impact'] = round($surplus, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -1142,12 +1591,23 @@ class SavingsActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $totalSavings = $savingsAnalysis['summary']['total_savings'] ?? 0;
         $threshold = (float) ($config['threshold'] ?? 50000);
 
         if ($totalSavings < $threshold) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Do you hold a significant amount in cash savings?',
+            'data_field' => 'total_savings',
+            'data_value' => '£'.number_format($totalSavings, 0),
+            'threshold' => '£'.number_format($threshold, 0),
+            'passed' => true,
+            'explanation' => 'You hold £'.number_format($totalSavings, 0).' in cash savings, which exceeds the £'.number_format($threshold, 0).' threshold for potential cash drag.',
+        ];
 
         // Only trigger if user has investment accounts
         $investmentCount = $investmentAnalysis['portfolio_summary']['accounts_count'] ?? 0;
@@ -1163,12 +1623,24 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Is the surplus above your emergency fund target significant?',
+            'data_field' => 'surplus',
+            'data_value' => '£'.number_format($surplus, 0),
+            'threshold' => '£'.number_format($threshold * 0.5, 0),
+            'passed' => true,
+            'explanation' => 'You have £'.number_format($surplus, 0).' above your 6-month emergency fund target. Holding this in cash may create drag on your overall returns compared to investing.',
+        ];
+
         $vars = [
             'surplus_amount' => $this->formatCurrency($surplus),
             'total_savings' => $this->formatCurrency($totalSavings),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -1182,15 +1654,35 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $isaRemaining = $savingsAnalysis['isa_allowance']['remaining'] ?? 0;
         if ($isaRemaining <= 0) {
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you have ISA allowance remaining this tax year?',
+            'data_field' => 'isa_remaining',
+            'data_value' => '£'.number_format($isaRemaining, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => true,
+            'explanation' => 'You have £'.number_format($isaRemaining, 0).' of ISA allowance remaining.',
+        ];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         if ($runway < 6) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Is your emergency fund adequate?',
+            'data_field' => 'runway_months',
+            'data_value' => number_format($runway, 1).' months',
+            'threshold' => '6 months',
+            'passed' => true,
+            'explanation' => 'Your emergency fund covers '.number_format($runway, 1).' months, so you can consider longer-term investment options.',
+        ];
 
         // Check if user already has a Stocks & Shares ISA
         $hasStocksSharesIsa = $investmentAnalysis['tax_wrappers']['has_isa'] ?? false;
@@ -1198,11 +1690,23 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you already hold a Stocks and Shares ISA?',
+            'data_field' => 'has_stocks_shares_isa',
+            'data_value' => 'No',
+            'threshold' => 'No existing Stocks and Shares ISA',
+            'passed' => true,
+            'explanation' => 'You do not currently hold a Stocks and Shares ISA. Opening one could provide tax-efficient growth potential with your surplus savings.',
+        ];
+
         $vars = [
             'isa_remaining' => $this->formatCurrency($isaRemaining),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -1215,6 +1719,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $runway = $savingsAnalysis['emergency_fund']['runway_months'] ?? 0;
         if ($runway < 6) {
             return [];
@@ -1238,9 +1744,28 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you have surplus savings above your emergency fund?',
+            'data_field' => 'surplus',
+            'data_value' => '£'.number_format($surplus, 0),
+            'threshold' => '£5,000 minimum',
+            'passed' => true,
+            'explanation' => 'You have £'.number_format($surplus, 0).' above your 6-month emergency fund target.',
+        ];
+
         $pensionAllowances = $this->taxConfig->getPensionAllowances();
         $annualAllowance = (float) ($pensionAllowances['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE);
         $pensionAmount = min($surplus, $annualAllowance);
+        $taxRelief = $pensionAmount * 0.20;
+
+        $trace[] = [
+            'question' => 'Could a pension contribution provide tax relief on your surplus?',
+            'data_field' => 'pension_amount',
+            'data_value' => '£'.number_format($pensionAmount, 0),
+            'threshold' => '£'.number_format($annualAllowance, 0).' Annual Allowance',
+            'passed' => true,
+            'explanation' => 'Contributing £'.number_format($pensionAmount, 0).' to a pension could provide approximately £'.number_format($taxRelief, 0).' in basic rate tax relief.',
+        ];
 
         $vars = [
             'pension_amount' => $this->formatCurrency($pensionAmount),
@@ -1248,8 +1773,8 @@ class SavingsActionDefinitionService
         ];
 
         $rec = $this->buildRecommendation($definition, $vars, $priority);
-        // Estimate basic rate tax relief
-        $rec['estimated_impact'] = round($pensionAmount * 0.20, 2);
+        $rec['estimated_impact'] = round($taxRelief, 2);
+        $rec['decision_trace'] = $trace;
 
         return [$rec];
     }
@@ -1282,6 +1807,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is this savings goal linked to a savings account?',
+                'data_field' => 'linked_account',
+                'data_value' => 'No linked account',
+                'threshold' => 'At least one linked account',
+                'passed' => true,
+                'explanation' => 'Your goal "'.($goal->goal_name ?? 'Unnamed goal').'" with a target of £'.number_format((float) ($goal->target_amount ?? 0), 0).' is not linked to any savings account, making it harder to track progress.',
+            ];
+
             $vars = [
                 'goal_name' => $goal->goal_name ?? 'Unnamed goal',
                 'target_amount' => $this->formatCurrency((float) ($goal->target_amount ?? 0)),
@@ -1290,6 +1825,7 @@ class SavingsActionDefinitionService
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1323,6 +1859,16 @@ class SavingsActionDefinitionService
             $shortfall = $targetAmount - $currentAmount;
             $progress = $goal->progress_percentage;
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your savings goal significantly underfunded?',
+                'data_field' => 'progress_percentage',
+                'data_value' => number_format($progress, 0).'%',
+                'threshold' => 'Below 50%',
+                'passed' => true,
+                'explanation' => 'Your goal "'.($goal->goal_name ?? 'Unnamed goal').'" is at '.number_format($progress, 0).'% progress with a shortfall of £'.number_format($shortfall, 0).' against a £'.number_format($targetAmount, 0).' target.',
+            ];
+
             $vars = [
                 'goal_name' => $goal->goal_name ?? 'Unnamed goal',
                 'progress' => number_format($progress, 0),
@@ -1334,6 +1880,7 @@ class SavingsActionDefinitionService
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
             $rec['estimated_impact'] = round($shortfall, 2);
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1369,6 +1916,25 @@ class SavingsActionDefinitionService
             $required = $goal->required_monthly_contribution;
             $shortfall = max(0, $required - $monthlyContribution);
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your savings goal on track?',
+                'data_field' => 'is_on_track',
+                'data_value' => 'No',
+                'threshold' => 'On track',
+                'passed' => true,
+                'explanation' => 'Your goal "'.($goal->goal_name ?? 'Unnamed goal').'" is off track at '.number_format($goal->progress_percentage, 0).'% progress.',
+            ];
+
+            $trace[] = [
+                'question' => 'How much more do you need to contribute each month?',
+                'data_field' => 'monthly_shortfall',
+                'data_value' => '£'.number_format($shortfall, 0),
+                'threshold' => '£'.number_format($required, 0).' required monthly',
+                'passed' => true,
+                'explanation' => 'You are currently contributing £'.number_format($monthlyContribution, 0).' per month but need £'.number_format($required, 0).' — a shortfall of £'.number_format($shortfall, 0).'.',
+            ];
+
             $vars = [
                 'goal_name' => $goal->goal_name ?? 'Unnamed goal',
                 'progress' => number_format($goal->progress_percentage, 0),
@@ -1379,6 +1945,7 @@ class SavingsActionDefinitionService
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1412,6 +1979,16 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Does this savings goal have a monthly contribution set?',
+                'data_field' => 'monthly_contribution',
+                'data_value' => '£0',
+                'threshold' => '£'.number_format($required, 0).' required monthly',
+                'passed' => true,
+                'explanation' => 'Your goal "'.($goal->goal_name ?? 'Unnamed goal').'" has no monthly contribution set. To reach your £'.number_format((float) ($goal->target_amount ?? 0), 0).' target, you need to contribute £'.number_format($required, 0).' per month.',
+            ];
+
             $vars = [
                 'goal_name' => $goal->goal_name ?? 'Unnamed goal',
                 'required_monthly' => $this->formatCurrency($required),
@@ -1421,6 +1998,7 @@ class SavingsActionDefinitionService
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1458,6 +2036,25 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your goal deadline approaching with insufficient progress?',
+                'data_field' => 'months_remaining',
+                'data_value' => $monthsRemaining.' months',
+                'threshold' => $monthsThreshold.' months',
+                'passed' => true,
+                'explanation' => 'Your goal "'.($goal->goal_name ?? 'Unnamed goal').'" has only '.$monthsRemaining.' months remaining.',
+            ];
+
+            $trace[] = [
+                'question' => 'Is your progress below the expected level for this deadline?',
+                'data_field' => 'progress_percentage',
+                'data_value' => number_format($progress, 0).'%',
+                'threshold' => number_format($progressThreshold, 0).'%',
+                'passed' => true,
+                'explanation' => 'At '.number_format($progress, 0).'% progress with '.$monthsRemaining.' months to go, you are behind the '.number_format($progressThreshold, 0).'% expected level for your £'.number_format((float) ($goal->target_amount ?? 0), 0).' target.',
+            ];
+
             $vars = [
                 'goal_name' => $goal->goal_name ?? 'Unnamed goal',
                 'months_remaining' => (string) $monthsRemaining,
@@ -1468,6 +2065,7 @@ class SavingsActionDefinitionService
             $rec = $this->buildRecommendation($definition, $vars, $priority);
             $rec['scope'] = 'goal';
             $rec['goal_id'] = $goal->id;
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1500,11 +2098,24 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $childName = $child->first_name ?? $child->name ?? 'your child';
+
+            $trace = [];
+            $trace[] = [
+                'question' => 'Does your child have a savings account?',
+                'data_field' => 'has_savings_account',
+                'data_value' => 'No',
+                'threshold' => 'At least one account',
+                'passed' => true,
+                'explanation' => $childName.' does not have a savings account linked to your plan. Starting savings early benefits from compound growth.',
+            ];
+
             $vars = [
-                'child_name' => $child->first_name ?? $child->name ?? 'your child',
+                'child_name' => $childName,
             ];
 
             $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['decision_trace'] = $trace;
             $results[] = $rec;
         }
 
@@ -1539,13 +2150,26 @@ class SavingsActionDefinitionService
 
             $isaAllowances = $this->taxConfig->getISAAllowances();
             $jisaAllowance = (float) ($isaAllowances['junior_isa']['annual_allowance'] ?? TaxDefaults::JISA_ALLOWANCE);
+            $childName = $child->first_name ?? $child->name ?? 'your child';
+
+            $trace = [];
+            $trace[] = [
+                'question' => 'Does your child have a Junior ISA?',
+                'data_field' => 'has_junior_isa',
+                'data_value' => 'No',
+                'threshold' => 'At least one Junior ISA',
+                'passed' => true,
+                'explanation' => $childName.' does not have a Junior ISA. A Junior ISA allows up to £'.number_format($jisaAllowance, 0).' per year in tax-free savings.',
+            ];
 
             $vars = [
-                'child_name' => $child->first_name ?? $child->name ?? 'your child',
+                'child_name' => $childName,
                 'jisa_allowance' => $this->formatCurrency($jisaAllowance),
             ];
 
-            $results[] = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -1589,14 +2213,28 @@ class SavingsActionDefinitionService
                 continue;
             }
 
+            $childName = $child->first_name ?? $child->name ?? 'your child';
+
+            $trace = [];
+            $trace[] = [
+                'question' => 'Does your child have unused Junior ISA allowance this tax year?',
+                'data_field' => 'jisa_remaining',
+                'data_value' => '£'.number_format($remaining, 0),
+                'threshold' => '£'.number_format($jisaAllowance, 0).' annual allowance ('.$taxYear.')',
+                'passed' => true,
+                'explanation' => $childName.' has £'.number_format($remaining, 0).' of Junior ISA allowance remaining for the '.$taxYear.' tax year out of £'.number_format($jisaAllowance, 0).'.',
+            ];
+
             $vars = [
-                'child_name' => $child->first_name ?? $child->name ?? 'your child',
+                'child_name' => $childName,
                 'jisa_remaining' => $this->formatCurrency($remaining),
                 'jisa_allowance' => $this->formatCurrency($jisaAllowance),
                 'tax_year' => $taxYear,
             ];
 
-            $results[] = $this->buildRecommendation($definition, $vars, $priority);
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -1638,13 +2276,28 @@ class SavingsActionDefinitionService
                 continue;
             }
 
-            $vars = [
-                'child_name' => $child->first_name ?? $child->name ?? 'your child',
-                'months_to_18' => (string) $monthsRemaining,
-                'turning_18_date' => $child->date_of_birth->addYears(18)->format('d M Y'),
+            $childName = $child->first_name ?? $child->name ?? 'your child';
+            $turning18Date = $child->date_of_birth->addYears(18)->format('d M Y');
+
+            $trace = [];
+            $trace[] = [
+                'question' => 'Is your child approaching their 18th birthday?',
+                'data_field' => 'months_to_18',
+                'data_value' => $monthsRemaining.' months',
+                'threshold' => '12 months',
+                'passed' => true,
+                'explanation' => $childName.' turns 18 on '.$turning18Date.' ('.$monthsRemaining.' months away). Review their Junior ISA and children\'s savings arrangements before the transition to adult accounts.',
             ];
 
-            $results[] = $this->buildRecommendation($definition, $vars, $priority);
+            $vars = [
+                'child_name' => $childName,
+                'months_to_18' => (string) $monthsRemaining,
+                'turning_18_date' => $turning18Date,
+            ];
+
+            $rec = $this->buildRecommendation($definition, $vars, $priority);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -1660,6 +2313,8 @@ class SavingsActionDefinitionService
         Collection $savingsAccounts,
         int $priority
     ): array {
+        $trace = [];
+
         $children = $this->getMinorChildren($userId);
         if ($children->isEmpty()) {
             return [];
@@ -1672,12 +2327,24 @@ class SavingsActionDefinitionService
 
         $totalChildSavings = $childAccounts->sum('current_balance');
 
+        $trace[] = [
+            'question' => 'Do you have children\'s savings accounts that could benefit from a review?',
+            'data_field' => 'child_account_count',
+            'data_value' => (string) $childAccounts->count().' account(s)',
+            'threshold' => 'At least 1 account',
+            'passed' => true,
+            'explanation' => 'You have '.$childAccounts->count().' children\'s savings account(s) holding a total of £'.number_format((float) $totalChildSavings, 0).'. A periodic review ensures rates remain competitive and allowances are used.',
+        ];
+
         $vars = [
             'child_account_count' => (string) $childAccounts->count(),
             'total_child_savings' => $this->formatCurrency((float) $totalChildSavings),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     // =========================================================================
@@ -1693,6 +2360,8 @@ class SavingsActionDefinitionService
         int $userId,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user || ! $user->spouse_id) {
             return [];
@@ -1711,9 +2380,27 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Is your Personal Savings Allowance under pressure?',
+            'data_field' => 'user_utilisation',
+            'data_value' => number_format($userPsa['utilisation_percent'], 0).'%',
+            'threshold' => 'Breached or approaching',
+            'passed' => true,
+            'explanation' => 'Your Personal Savings Allowance utilisation is at '.number_format($userPsa['utilisation_percent'], 0).'%, indicating pressure on your tax-free interest.',
+        ];
+
         if ($spousePsa['utilisation_percent'] > 50) {
             return [];
         }
+
+        $trace[] = [
+            'question' => 'Does your spouse have significant Personal Savings Allowance headroom?',
+            'data_field' => 'spouse_utilisation',
+            'data_value' => number_format($spousePsa['utilisation_percent'], 0).'%',
+            'threshold' => 'Below 50%',
+            'passed' => true,
+            'explanation' => 'Your spouse has £'.number_format($spousePsa['headroom'], 0).' of Personal Savings Allowance headroom. Holding savings in their name could reduce your household tax bill.',
+        ];
 
         $vars = [
             'user_utilisation' => number_format($userPsa['utilisation_percent'], 0),
@@ -1721,7 +2408,10 @@ class SavingsActionDefinitionService
             'spouse_psa' => $this->formatCurrency($spousePsa['psa_amount']),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     /**
@@ -1734,6 +2424,8 @@ class SavingsActionDefinitionService
         array $savingsAnalysis,
         int $priority
     ): array {
+        $trace = [];
+
         $user = User::find($userId);
         if (! $user || ! $user->spouse_id) {
             return [];
@@ -1762,6 +2454,15 @@ class SavingsActionDefinitionService
             return [];
         }
 
+        $trace[] = [
+            'question' => 'Do you and your spouse have unused ISA allowance to coordinate?',
+            'data_field' => 'combined_remaining',
+            'data_value' => '£'.number_format($combinedRemaining, 0),
+            'threshold' => '£5,000 combined minimum',
+            'passed' => true,
+            'explanation' => 'Between you (£'.number_format($userIsaRemaining, 0).' remaining) and your spouse (£'.number_format($spouseIsaRemaining, 0).' remaining), you have £'.number_format($combinedRemaining, 0).' of ISA allowance available for the '.$this->taxConfig->getTaxYear().' tax year.',
+        ];
+
         $vars = [
             'user_isa_remaining' => $this->formatCurrency($userIsaRemaining),
             'spouse_isa_remaining' => $this->formatCurrency($spouseIsaRemaining),
@@ -1769,7 +2470,10 @@ class SavingsActionDefinitionService
             'tax_year' => $this->taxConfig->getTaxYear(),
         ];
 
-        return [$this->buildRecommendation($definition, $vars, $priority)];
+        $rec = $this->buildRecommendation($definition, $vars, $priority);
+        $rec['decision_trace'] = $trace;
+
+        return [$rec];
     }
 
     // =========================================================================
@@ -1799,12 +2503,23 @@ class SavingsActionDefinitionService
      */
     private function evaluateLinkedGoalNoContribution(SavingsActionDefinition $definition, array $goal): ?array
     {
+        $trace = [];
+
         $monthlyContribution = $goal['monthly_contribution'] ?? 0;
         $required = $goal['required_monthly_contribution'] ?? 0;
 
         if ($monthlyContribution > 0 || $required <= 0) {
             return null;
         }
+
+        $trace[] = [
+            'question' => 'Does this linked goal have a monthly contribution?',
+            'data_field' => 'monthly_contribution',
+            'data_value' => '£0',
+            'threshold' => '£'.number_format((float) $required, 0).' required monthly',
+            'passed' => true,
+            'explanation' => 'Your goal "'.($goal['name'] ?? 'Unnamed goal').'" has no monthly contribution but needs £'.number_format((float) $required, 0).' per month to reach its £'.number_format((float) ($goal['target_amount'] ?? 0), 0).' target.',
+        ];
 
         $vars = [
             'goal_name' => $goal['name'] ?? 'Unnamed goal',
@@ -1819,6 +2534,7 @@ class SavingsActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -1827,6 +2543,8 @@ class SavingsActionDefinitionService
      */
     private function evaluateLinkedGoalOffTrack(SavingsActionDefinition $definition, array $goal): ?array
     {
+        $trace = [];
+
         $monthlyContribution = $goal['monthly_contribution'] ?? 0;
 
         // Skip if no contribution (caught by no-contribution check)
@@ -1842,6 +2560,15 @@ class SavingsActionDefinitionService
         $shortfall = max(0, $required - $monthlyContribution);
         $progress = $goal['progress_percentage'] ?? 0;
 
+        $trace[] = [
+            'question' => 'Is this linked goal on track?',
+            'data_field' => 'is_on_track',
+            'data_value' => 'No',
+            'threshold' => 'On track',
+            'passed' => true,
+            'explanation' => 'Your goal "'.($goal['name'] ?? 'Unnamed goal').'" is off track at '.number_format((float) $progress, 0).'% progress with a monthly contribution shortfall of £'.number_format((float) $shortfall, 0).'.',
+        ];
+
         $vars = [
             'goal_name' => $goal['name'] ?? 'Unnamed goal',
             'progress' => number_format((float) $progress, 0),
@@ -1855,6 +2582,7 @@ class SavingsActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -1863,6 +2591,8 @@ class SavingsActionDefinitionService
      */
     private function evaluateLinkedGoalDeadline(SavingsActionDefinition $definition, array $goal, array $config): ?array
     {
+        $trace = [];
+
         // Only triggers for goals that are otherwise on-track
         if (! ($goal['is_on_track'] ?? true)) {
             return null;
@@ -1876,6 +2606,15 @@ class SavingsActionDefinitionService
         if ($monthsRemaining > $monthsThreshold || $progress >= $progressThreshold) {
             return null;
         }
+
+        $trace[] = [
+            'question' => 'Is the goal deadline approaching with progress below the expected level?',
+            'data_field' => 'months_remaining',
+            'data_value' => $monthsRemaining.' months',
+            'threshold' => $monthsThreshold.' months / '.number_format($progressThreshold, 0).'% progress',
+            'passed' => true,
+            'explanation' => 'Your goal "'.($goal['name'] ?? 'Unnamed goal').'" has '.$monthsRemaining.' months remaining at '.number_format((float) $progress, 0).'% progress towards £'.number_format((float) ($goal['target_amount'] ?? 0), 0).'.',
+        ];
 
         $vars = [
             'goal_name' => $goal['name'] ?? 'Unnamed goal',
@@ -1891,6 +2630,7 @@ class SavingsActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -1899,6 +2639,8 @@ class SavingsActionDefinitionService
      */
     private function evaluateLinkedGoalUnderfunded(SavingsActionDefinition $definition, array $goal): ?array
     {
+        $trace = [];
+
         $progress = $goal['progress_percentage'] ?? 0;
         $targetAmount = $goal['target_amount'] ?? 0;
 
@@ -1908,6 +2650,15 @@ class SavingsActionDefinitionService
 
         $currentAmount = $goal['current_amount'] ?? 0;
         $shortfall = max(0, $targetAmount - $currentAmount);
+
+        $trace[] = [
+            'question' => 'Is this linked goal significantly underfunded?',
+            'data_field' => 'progress_percentage',
+            'data_value' => number_format((float) $progress, 0).'%',
+            'threshold' => 'Below 25%',
+            'passed' => true,
+            'explanation' => 'Your goal "'.($goal['name'] ?? 'Unnamed goal').'" is at '.number_format((float) $progress, 0).'% progress with a shortfall of £'.number_format((float) $shortfall, 0).' against a £'.number_format((float) $targetAmount, 0).' target.',
+        ];
 
         $vars = [
             'goal_name' => $goal['name'] ?? 'Unnamed goal',
@@ -1923,6 +2674,7 @@ class SavingsActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -1932,6 +2684,8 @@ class SavingsActionDefinitionService
      */
     private function evaluateLinkedGoalNearlyComplete(SavingsActionDefinition $definition, array $goal, array $config): ?array
     {
+        $trace = [];
+
         $progress = $goal['progress_percentage'] ?? 0;
         $threshold = (float) ($config['threshold'] ?? 90);
 
@@ -1942,6 +2696,15 @@ class SavingsActionDefinitionService
         $targetAmount = $goal['target_amount'] ?? 0;
         $currentAmount = $goal['current_amount'] ?? 0;
         $remaining = max(0, $targetAmount - $currentAmount);
+
+        $trace[] = [
+            'question' => 'Is this goal nearly complete?',
+            'data_field' => 'progress_percentage',
+            'data_value' => number_format((float) $progress, 0).'%',
+            'threshold' => number_format($threshold, 0).'% or above',
+            'passed' => true,
+            'explanation' => 'Your goal "'.($goal['name'] ?? 'Unnamed goal').'" is at '.number_format((float) $progress, 0).'% progress with just £'.number_format((float) $remaining, 0).' remaining. You are almost there!',
+        ];
 
         $vars = [
             'goal_name' => $goal['name'] ?? 'Unnamed goal',
@@ -1956,6 +2719,7 @@ class SavingsActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
