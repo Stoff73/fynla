@@ -25,7 +25,7 @@ class ETagResponse
             return $response;
         }
 
-        $etag = '"' . md5($content) . '"';
+        $etag = '"'.md5($content).'"';
         $response->headers->set('ETag', $etag);
 
         // Check If-None-Match header

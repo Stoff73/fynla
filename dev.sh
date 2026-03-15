@@ -57,7 +57,7 @@ export DB_PORT=3306
 export DB_DATABASE=laravel
 export DB_USERNAME=root
 export DB_PASSWORD=""
-export CACHE_DRIVER=array
+export CACHE_DRIVER=file
 export APP_URL=http://localhost:8000
 export VITE_API_BASE_URL=http://localhost:8000
 
