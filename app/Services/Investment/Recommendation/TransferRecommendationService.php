@@ -146,25 +146,49 @@ class TransferRecommendationService
     private function scanBedAndISA(array $context): ?array
     {
         $isaRemaining = $context['allowances']['isa_remaining'] ?? 0;
+        $giaAccounts = collect($context['portfolio']['accounts'] ?? [])
+            ->where('type', 'gia');
+        $totalGiaValue = $giaAccounts->sum('value');
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there remaining ISA allowance this tax year?',
+            'data_field' => 'isa_remaining',
+            'data_value' => '£'.number_format($isaRemaining, 0),
+            'threshold' => 'More than £0',
+            'passed' => $isaRemaining > 0,
+            'explanation' => $isaRemaining > 0
+                ? '£'.number_format($isaRemaining, 0).' of ISA allowance available for Bed and ISA transfer.'
+                : 'ISA allowance fully used — transfer not possible this tax year.',
+        ];
+
+        $trace[] = [
+            'question' => 'Are there General Investment Account holdings to transfer?',
+            'data_field' => 'gia_value',
+            'data_value' => '£'.number_format($totalGiaValue, 0),
+            'threshold' => 'More than £0',
+            'passed' => $giaAccounts->isNotEmpty() && $totalGiaValue > 0,
+            'explanation' => ($giaAccounts->isNotEmpty() && $totalGiaValue > 0)
+                ? '£'.number_format($totalGiaValue, 0).' held across '.$giaAccounts->count().' General Investment Account(s).'
+                : 'No General Investment Account holdings found.',
+        ];
+
         if ($isaRemaining <= 0) {
             return null;
         }
-
-        $giaAccounts = collect($context['portfolio']['accounts'] ?? [])
-            ->where('type', 'gia');
 
         if ($giaAccounts->isEmpty()) {
             return null;
         }
 
-        $totalGiaValue = $giaAccounts->sum('value');
         if ($totalGiaValue <= 0) {
             return null;
         }
 
         $transferAmount = min($totalGiaValue, $isaRemaining);
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'bed_and_isa',
             'Transfer holdings from General Investment Account to ISA',
             sprintf(
@@ -176,6 +200,9 @@ class TransferRecommendationService
             'high',
             $transferAmount
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -191,11 +218,24 @@ class TransferRecommendationService
 
         $excessCash = $totalSavings - $emergencyTarget - $buffer;
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there excess cash above the emergency fund target and buffer?',
+            'data_field' => 'excess_cash',
+            'data_value' => '£'.number_format(max(0, $excessCash), 0),
+            'threshold' => '£1,000',
+            'passed' => $excessCash >= 1000,
+            'explanation' => $excessCash >= 1000
+                ? '£'.number_format($excessCash, 0).' excess after emergency target (£'.number_format($emergencyTarget, 0).') and '.$bufferMonths.'-month buffer (£'.number_format($buffer, 0).').'
+                : 'Cash reserves are within the target and buffer range — no excess to deploy.',
+        ];
+
         if ($excessCash < 1000) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'excess_cash',
             'Deploy excess cash to investment accounts',
             sprintf(
@@ -207,6 +247,9 @@ class TransferRecommendationService
             'medium',
             $excessCash
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -232,20 +275,41 @@ class TransferRecommendationService
     private function scanPSABreach(array $context): ?array
     {
         $taxBand = $context['financial']['tax_band'] ?? 'basic';
+        $psa = $context['allowances']['psa'] ?? 0;
+        $totalSavings = $context['emergency_fund']['total_savings'] ?? 0;
+        $estimatedInterest = $totalSavings * 0.04; // Assume 4% average rate
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the user a taxpayer (Personal Savings Allowance applies)?',
+            'data_field' => 'tax_band',
+            'data_value' => $taxBand,
+            'threshold' => 'Not non_taxpayer',
+            'passed' => $taxBand !== 'non_taxpayer',
+            'explanation' => $taxBand !== 'non_taxpayer'
+                ? ucfirst($taxBand).' rate taxpayer — Personal Savings Allowance of £'.number_format($psa, 0).' applies.'
+                : 'Non-taxpayer — unlimited Personal Savings Allowance via starting rate for savings.',
+        ];
+
+        $trace[] = [
+            'question' => 'Does estimated savings interest exceed the Personal Savings Allowance?',
+            'data_field' => 'estimated_interest',
+            'data_value' => '£'.number_format($estimatedInterest, 0),
+            'threshold' => '£'.number_format($psa, 0),
+            'passed' => $estimatedInterest > $psa,
+            'explanation' => $estimatedInterest > $psa
+                ? 'Estimated interest of £'.number_format($estimatedInterest, 0).' exceeds the £'.number_format($psa, 0).' allowance by £'.number_format($estimatedInterest - $psa, 0).'.'
+                : 'Estimated interest is within the Personal Savings Allowance.',
+        ];
 
         if ($taxBand === 'non_taxpayer') {
             return null; // Non-taxpayers have unlimited PSA via starting rate
         }
 
-        $psa = $context['allowances']['psa'] ?? 0;
         if ($psa <= 0 && $taxBand !== 'additional') {
             return null;
         }
-
-        // Estimate interest income from savings
-        // This is an approximation — in practice would need account-level interest rates
-        $totalSavings = $context['emergency_fund']['total_savings'] ?? 0;
-        $estimatedInterest = $totalSavings * 0.04; // Assume 4% average rate
 
         if ($estimatedInterest <= $psa) {
             return null;
@@ -253,7 +317,7 @@ class TransferRecommendationService
 
         $excess = $estimatedInterest - $psa;
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'psa_breach',
             'Savings interest may exceed Personal Savings Allowance',
             sprintf(
@@ -266,6 +330,9 @@ class TransferRecommendationService
             'medium',
             $excess
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -273,26 +340,47 @@ class TransferRecommendationService
      */
     private function scanDividendAllowanceBreach(array $context): ?array
     {
-        $dividendIncome = $context['financial']['gross_income'] ?? 0; // Would need dividend-specific income
         $dividendTax = $this->taxConfig->getDividendTax();
         $dividendAllowance = $dividendTax['allowance'] ?? 500;
 
-        // Check if GIA accounts are likely generating dividends
         $giaAccounts = collect($context['portfolio']['accounts'] ?? [])
             ->where('type', 'gia');
+        $giaValue = $giaAccounts->sum('value');
+        $estimatedDividends = $giaValue * 0.03; // Assume 3% yield
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there General Investment Account holdings generating dividends?',
+            'data_field' => 'gia_value',
+            'data_value' => '£'.number_format($giaValue, 0),
+            'threshold' => 'More than £0',
+            'passed' => $giaAccounts->isNotEmpty() && $giaValue > 0,
+            'explanation' => ($giaAccounts->isNotEmpty() && $giaValue > 0)
+                ? '£'.number_format($giaValue, 0).' in General Investment Account holdings may generate taxable dividends.'
+                : 'No General Investment Account holdings — dividend allowance not relevant.',
+        ];
+
+        $trace[] = [
+            'question' => 'Do estimated dividends exceed the annual dividend allowance?',
+            'data_field' => 'estimated_dividends',
+            'data_value' => '£'.number_format($estimatedDividends, 0),
+            'threshold' => '£'.number_format($dividendAllowance, 0),
+            'passed' => $estimatedDividends > $dividendAllowance,
+            'explanation' => $estimatedDividends > $dividendAllowance
+                ? 'Estimated dividends of £'.number_format($estimatedDividends, 0).' exceed the £'.number_format($dividendAllowance, 0).' allowance.'
+                : 'Estimated dividends are within the dividend allowance.',
+        ];
 
         if ($giaAccounts->isEmpty()) {
             return null;
         }
 
-        $giaValue = $giaAccounts->sum('value');
-        $estimatedDividends = $giaValue * 0.03; // Assume 3% yield
-
         if ($estimatedDividends <= $dividendAllowance) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'dividend_allowance_breach',
             'General Investment Account dividends may exceed allowance',
             sprintf(
@@ -303,6 +391,9 @@ class TransferRecommendationService
             'Switch to accumulation share classes or transfer holdings to an ISA.',
             'medium'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -311,18 +402,48 @@ class TransferRecommendationService
     private function scanCashIsaToStocksIsa(array $context, array $transferConfig): ?array
     {
         $yearsToRetirement = $context['personal']['years_to_retirement'] ?? null;
+        $age = $context['personal']['age'] ?? null;
+        $riskLevel = $context['risk']['risk_level'] ?? 'medium';
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the investment horizon long enough for equity growth?',
+            'data_field' => 'years_to_retirement',
+            'data_value' => $yearsToRetirement !== null ? $yearsToRetirement.' years' : 'Not set',
+            'threshold' => 'At least 5 years',
+            'passed' => $yearsToRetirement === null || $yearsToRetirement >= 5,
+            'explanation' => ($yearsToRetirement !== null && $yearsToRetirement < 5)
+                ? 'Less than 5 years to retirement — cash may be more appropriate.'
+                : 'Investment horizon supports equity exposure.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the investor young enough to benefit from equity growth?',
+            'data_field' => 'age',
+            'data_value' => $age !== null ? (string) $age : 'Not set',
+            'threshold' => '55 or under',
+            'passed' => $age === null || $age <= 55,
+            'explanation' => ($age !== null && $age > 55)
+                ? 'Age '.$age.' — near retirement, cash ISA may be more suitable.'
+                : 'Age profile supports long-term equity investment.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the risk tolerance suitable for equity investment?',
+            'data_field' => 'risk_level',
+            'data_value' => $riskLevel,
+            'threshold' => 'Not low',
+            'passed' => ! in_array($riskLevel, ['low'], true),
+            'explanation' => in_array($riskLevel, ['low'], true)
+                ? 'Low risk tolerance — Cash ISA transfer not recommended.'
+                : ucfirst($riskLevel).' risk tolerance supports equity exposure.',
+        ];
 
         // Only suggest for medium-to-long-term horizons
         if ($yearsToRetirement !== null && $yearsToRetirement < 5) {
             return null;
         }
-
-        $minimum = (float) ($transferConfig['cash_isa_transfer_minimum'] ?? 1000);
-
-        // We would need to know the Cash ISA balance — approximate from savings accounts
-        // This is a directional recommendation when time horizon supports equity growth
-        $age = $context['personal']['age'] ?? null;
-        $riskLevel = $context['risk']['risk_level'] ?? 'medium';
 
         if ($age !== null && $age > 55) {
             return null; // Near retirement — keep cash
@@ -332,13 +453,16 @@ class TransferRecommendationService
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'cash_isa_to_ss_isa',
             'Consider transferring Cash ISA to Stocks and Shares ISA',
             'If you hold significant balances in Cash ISAs and have a medium-to-long investment horizon, transferring to a Stocks and Shares ISA could improve growth potential while maintaining the tax-free wrapper.',
             'Review Cash ISA balances and consider a phased transfer to manage market timing risk.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -348,23 +472,47 @@ class TransferRecommendationService
     {
         $dcPensions = $context['pensions']['dc_pensions'] ?? [];
 
-        if (count($dcPensions) < 2) {
-            return null;
-        }
-
         // Count pensions that could be consolidated (exclude active workplace schemes)
         $consolidatable = collect($dcPensions)->filter(function ($p) {
             return ($p['scheme_type'] ?? '') !== 'workplace'
                 || ($p['employer_contribution_percent'] ?? 0) === 0.0;
         });
 
+        $totalValue = $consolidatable->sum('current_fund_value');
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there multiple Defined Contribution pension schemes?',
+            'data_field' => 'dc_pensions_count',
+            'data_value' => (string) count($dcPensions),
+            'threshold' => 'At least 2',
+            'passed' => count($dcPensions) >= 2,
+            'explanation' => count($dcPensions) >= 2
+                ? count($dcPensions).' Defined Contribution pension(s) found.'
+                : 'Fewer than 2 pensions — consolidation not applicable.',
+        ];
+
+        $trace[] = [
+            'question' => 'Are there at least 2 pensions eligible for consolidation?',
+            'data_field' => 'consolidatable_count',
+            'data_value' => (string) $consolidatable->count(),
+            'threshold' => 'At least 2',
+            'passed' => $consolidatable->count() >= 2,
+            'explanation' => $consolidatable->count() >= 2
+                ? $consolidatable->count().' pension(s) eligible (excluding active workplace schemes with employer contributions). Total value: £'.number_format($totalValue, 0).'.'
+                : 'Insufficient eligible pensions after excluding active workplace schemes.',
+        ];
+
+        if (count($dcPensions) < 2) {
+            return null;
+        }
+
         if ($consolidatable->count() < 2) {
             return null;
         }
 
-        $totalValue = $consolidatable->sum('current_fund_value');
-
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'pension_consolidation',
             'Consolidate old pension schemes',
             sprintf(
@@ -376,6 +524,9 @@ class TransferRecommendationService
             'medium',
             $totalValue
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -387,14 +538,26 @@ class TransferRecommendationService
             ->where('type', 'isa');
 
         $trigger = (int) ($transferConfig['isa_consolidation_trigger'] ?? 2);
+        $totalValue = $isaAccounts->sum('value');
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there enough ISA accounts to warrant consolidation?',
+            'data_field' => 'isa_accounts_count',
+            'data_value' => (string) $isaAccounts->count(),
+            'threshold' => (string) $trigger,
+            'passed' => $isaAccounts->count() >= $trigger,
+            'explanation' => $isaAccounts->count() >= $trigger
+                ? $isaAccounts->count().' ISA account(s) found with total value of £'.number_format($totalValue, 0).' — consolidation could reduce fees.'
+                : 'Fewer than '.$trigger.' ISA accounts — consolidation not applicable.',
+        ];
 
         if ($isaAccounts->count() < $trigger) {
             return null;
         }
 
-        $totalValue = $isaAccounts->sum('value');
-
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'isa_consolidation',
             'Consolidate ISA accounts',
             sprintf(
@@ -406,6 +569,9 @@ class TransferRecommendationService
             'low',
             $totalValue
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -418,11 +584,24 @@ class TransferRecommendationService
 
         $platforms = $accounts->pluck('provider')->filter()->unique();
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are investments spread across too many platforms?',
+            'data_field' => 'platform_count',
+            'data_value' => (string) $platforms->count(),
+            'threshold' => (string) $platformTrigger,
+            'passed' => $platforms->count() >= $platformTrigger,
+            'explanation' => $platforms->count() >= $platformTrigger
+                ? 'Investments spread across '.$platforms->count().' platforms ('.$platforms->implode(', ').') — consolidation could reduce fees.'
+                : 'Investments are on '.$platforms->count().' platform(s) — within acceptable range.',
+        ];
+
         if ($platforms->count() < $platformTrigger) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'platform_consolidation',
             'Consolidate investment platforms',
             sprintf(
@@ -433,6 +612,9 @@ class TransferRecommendationService
             'Compare platform fees for your portfolio size before transferring.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -443,11 +625,24 @@ class TransferRecommendationService
         $accounts = collect($context['portfolio']['accounts'] ?? []);
         $smallAccounts = $accounts->filter(fn ($a) => ($a['value'] ?? 0) < 1000 && ($a['value'] ?? 0) > 0);
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there investment accounts with small balances at risk of fee erosion?',
+            'data_field' => 'small_balance_accounts',
+            'data_value' => (string) $smallAccounts->count(),
+            'threshold' => 'At least 1',
+            'passed' => $smallAccounts->isNotEmpty(),
+            'explanation' => $smallAccounts->isNotEmpty()
+                ? $smallAccounts->count().' account(s) with balances below £1,000 — platform fees may erode the value.'
+                : 'No accounts with small balances found.',
+        ];
+
         if ($smallAccounts->isEmpty()) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'small_balance_alert',
             'Review small investment account balances',
             sprintf(
@@ -459,6 +654,9 @@ class TransferRecommendationService
             'Review whether these accounts still serve your investment objectives.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -468,10 +666,6 @@ class TransferRecommendationService
     {
         $giaAccounts = collect($context['portfolio']['accounts'] ?? [])
             ->where('type', 'gia');
-
-        if ($giaAccounts->isEmpty()) {
-            return null;
-        }
 
         $cgtExempt = $context['allowances']['cgt_annual_exempt'] ?? TaxDefaults::CGT_ANNUAL_EXEMPT;
 
@@ -483,11 +677,39 @@ class TransferRecommendationService
         }
         $monthsToTaxYearEnd = max(0, (int) $now->diffInMonths($taxYearEnd));
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there General Investment Account holdings with potential gains?',
+            'data_field' => 'gia_accounts',
+            'data_value' => (string) $giaAccounts->count(),
+            'threshold' => 'At least 1',
+            'passed' => $giaAccounts->isNotEmpty(),
+            'explanation' => $giaAccounts->isNotEmpty()
+                ? $giaAccounts->count().' General Investment Account(s) found — Capital Gains Tax exemption may apply.'
+                : 'No General Investment Account holdings — Capital Gains Tax exemption not relevant.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the tax year end approaching (within 6 months)?',
+            'data_field' => 'months_to_tax_year_end',
+            'data_value' => $monthsToTaxYearEnd.' months',
+            'threshold' => '6 months or fewer',
+            'passed' => $monthsToTaxYearEnd <= 6,
+            'explanation' => $monthsToTaxYearEnd <= 6
+                ? $monthsToTaxYearEnd.' months until tax year end — time to consider using the £'.number_format($cgtExempt, 0).' exemption.'
+                : 'Tax year end is '.$monthsToTaxYearEnd.' months away — too early to prompt.',
+        ];
+
+        if ($giaAccounts->isEmpty()) {
+            return null;
+        }
+
         if ($monthsToTaxYearEnd > 6) {
             return null; // Too early in tax year to prompt
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'cgt_allowance_usage',
             'Use your annual Capital Gains Tax exemption before tax year end',
             sprintf(
@@ -499,6 +721,9 @@ class TransferRecommendationService
             'medium',
             (float) $cgtExempt
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -509,18 +734,45 @@ class TransferRecommendationService
         $portfolioValue = $context['portfolio']['total_value'] ?? 0;
         $age = $context['personal']['age'] ?? null;
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the portfolio large enough for AIM share Inheritance Tax planning?',
+            'data_field' => 'portfolio_value',
+            'data_value' => '£'.number_format($portfolioValue, 0),
+            'threshold' => '£100,000',
+            'passed' => $portfolioValue >= 100000,
+            'explanation' => $portfolioValue >= 100000
+                ? 'Portfolio of £'.number_format($portfolioValue, 0).' is significant enough for AIM share planning.'
+                : 'Portfolio below £100,000 — AIM share planning not appropriate at this stage.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the investor old enough for Inheritance Tax planning to be relevant?',
+            'data_field' => 'age',
+            'data_value' => $age !== null ? (string) $age : 'Not set',
+            'threshold' => '50 or over',
+            'passed' => $age === null || $age >= 50,
+            'explanation' => ($age !== null && $age < 50)
+                ? 'Age '.$age.' — Inheritance Tax planning is premature.'
+                : 'Age profile supports Inheritance Tax planning consideration.',
+        ];
+
         // Only relevant for larger portfolios and older investors
         if ($portfolioValue < 100000 || ($age !== null && $age < 50)) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'aim_share_iht',
             'Consider AIM shares for Inheritance Tax planning',
             'Shares listed on the Alternative Investment Market (AIM) can qualify for Business Relief after 2 years, making them exempt from Inheritance Tax. This can be an effective planning tool for investors with larger portfolios.',
             'AIM shares carry higher risk than main market equities. Seek specialist advice.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -531,24 +783,50 @@ class TransferRecommendationService
         // Cash drag detection would need account-level cash allocation data
         // This is a directional recommendation for accounts with known cash positions
         $accounts = collect($context['portfolio']['accounts'] ?? []);
+        $totalValue = $context['portfolio']['total_value'] ?? 0;
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there investment accounts that may hold uninvested cash?',
+            'data_field' => 'accounts_count',
+            'data_value' => (string) $accounts->count(),
+            'threshold' => 'At least 1',
+            'passed' => $accounts->isNotEmpty(),
+            'explanation' => $accounts->isNotEmpty()
+                ? $accounts->count().' investment account(s) found — may hold uninvested cash.'
+                : 'No investment accounts to check for cash drag.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the portfolio large enough for cash drag to matter?',
+            'data_field' => 'total_value',
+            'data_value' => '£'.number_format($totalValue, 0),
+            'threshold' => '£10,000',
+            'passed' => $totalValue >= 10000,
+            'explanation' => $totalValue >= 10000
+                ? 'Portfolio of £'.number_format($totalValue, 0).' — uninvested cash could meaningfully reduce returns.'
+                : 'Portfolio below £10,000 — cash drag impact is minimal.',
+        ];
 
         if ($accounts->isEmpty()) {
             return null;
         }
 
-        // If total portfolio is large enough, flag potential cash drag
-        $totalValue = $context['portfolio']['total_value'] ?? 0;
         if ($totalValue < 10000) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'cash_drag',
             'Review uninvested cash in investment accounts',
             'Investment accounts may hold uninvested cash that reduces long-term returns. Review each account for cash balances that could be deployed into your target asset allocation.',
             'Check your platform for any uninvested cash balances above the minimum required for fees.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // ──────────────────────────────────────────────

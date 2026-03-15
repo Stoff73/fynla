@@ -109,21 +109,43 @@ class SpouseOptimisationService
     {
         $giaAccounts = collect($context['portfolio']['accounts'] ?? [])
             ->where('type', 'gia');
+        $giaValue = $giaAccounts->sum('value');
+        $cgtExempt = $context['allowances']['cgt_annual_exempt'] ?? TaxDefaults::CGT_ANNUAL_EXEMPT;
+        $combinedExempt = $cgtExempt * 2;
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are there General Investment Account holdings to share?',
+            'data_field' => 'gia_value',
+            'data_value' => '£'.number_format($giaValue, 0),
+            'threshold' => 'More than £0',
+            'passed' => $giaAccounts->isNotEmpty(),
+            'explanation' => $giaAccounts->isNotEmpty()
+                ? '£'.number_format($giaValue, 0).' in General Investment Account holdings.'
+                : 'No General Investment Account holdings — Capital Gains Tax sharing not applicable.',
+        ];
+
+        $trace[] = [
+            'question' => 'Are the General Investment Account holdings significant enough for Capital Gains Tax sharing?',
+            'data_field' => 'gia_value',
+            'data_value' => '£'.number_format($giaValue, 0),
+            'threshold' => '£'.number_format($cgtExempt, 0).' (single exemption)',
+            'passed' => $giaValue >= $cgtExempt,
+            'explanation' => $giaValue >= $cgtExempt
+                ? 'Holdings exceed one partner\'s exemption — sharing could double the tax-free amount to £'.number_format($combinedExempt, 0).'.'
+                : 'Holdings below single exemption — sharing provides no additional benefit.',
+        ];
 
         if ($giaAccounts->isEmpty()) {
             return null;
         }
 
-        $cgtExempt = $context['allowances']['cgt_annual_exempt'] ?? TaxDefaults::CGT_ANNUAL_EXEMPT;
-        $combinedExempt = $cgtExempt * 2;
-        $giaValue = $giaAccounts->sum('value');
-
-        // Only suggest if GIA holdings are significant
         if ($giaValue < $cgtExempt) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'cgt_sharing',
             'Share Capital Gains Tax exemptions between partners',
             sprintf(
@@ -136,6 +158,9 @@ class SpouseOptimisationService
             'medium',
             (float) $combinedExempt
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -148,6 +173,19 @@ class SpouseOptimisationService
         $combinedRemaining = $userIsaRemaining + $spouseIsaRemaining;
         $isaAllowance = $context['allowances']['isa_annual'] ?? TaxDefaults::ISA_ALLOWANCE;
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there combined ISA allowance remaining between both partners?',
+            'data_field' => 'combined_isa_remaining',
+            'data_value' => '£'.number_format($combinedRemaining, 0),
+            'threshold' => 'More than £0',
+            'passed' => $combinedRemaining > 0,
+            'explanation' => $combinedRemaining > 0
+                ? '£'.number_format($combinedRemaining, 0).' combined ISA allowance remaining (you: £'.number_format($userIsaRemaining, 0).', partner: £'.number_format($spouseIsaRemaining, 0).').'
+                : 'Both partners have fully used their ISA allowance this tax year.',
+        ];
+
         if ($combinedRemaining <= 0) {
             return null;
         }
@@ -157,7 +195,7 @@ class SpouseOptimisationService
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'isa_coordination',
             'Coordinate ISA contributions between partners',
             sprintf(
@@ -171,6 +209,9 @@ class SpouseOptimisationService
             'high',
             $combinedRemaining
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -180,25 +221,47 @@ class SpouseOptimisationService
     {
         $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
         $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
+        $userPsa = $context['allowances']['psa'] ?? 0;
+        $spousePsa = $spouseContext['psa'] ?? 0;
+
+        $lowerBandPartner = $userPsa >= $spousePsa ? 'you' : 'your partner';
+        $higherPsa = max($userPsa, $spousePsa);
+        $lowerPsa = min($userPsa, $spousePsa);
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Are the partners in different tax bands?',
+            'data_field' => 'tax_bands',
+            'data_value' => 'You: '.$userTaxBand.', Partner: '.$spouseTaxBand,
+            'threshold' => 'Different bands',
+            'passed' => $userTaxBand !== $spouseTaxBand,
+            'explanation' => $userTaxBand !== $spouseTaxBand
+                ? 'Different tax bands ('.$userTaxBand.' vs '.$spouseTaxBand.') — Personal Savings Allowance optimisation possible.'
+                : 'Both partners in the same tax band — no Personal Savings Allowance advantage.',
+        ];
+
+        $trace[] = [
+            'question' => 'Do the partners have different Personal Savings Allowances?',
+            'data_field' => 'psa_difference',
+            'data_value' => 'Higher: £'.number_format($higherPsa, 0).', Lower: £'.number_format($lowerPsa, 0),
+            'threshold' => 'Higher must exceed lower',
+            'passed' => $higherPsa > $lowerPsa,
+            'explanation' => $higherPsa > $lowerPsa
+                ? 'The lower-rate partner ('.$lowerBandPartner.') has a £'.number_format($higherPsa, 0).' Personal Savings Allowance — shift savings interest there.'
+                : 'Personal Savings Allowances are equal — no optimisation benefit.',
+        ];
 
         // Only relevant if partners are in different tax bands
         if ($userTaxBand === $spouseTaxBand) {
             return null;
         }
 
-        $userPsa = $context['allowances']['psa'] ?? 0;
-        $spousePsa = $spouseContext['psa'] ?? 0;
-
-        // Determine who has the higher PSA (lower tax band)
-        $lowerBandPartner = $userPsa >= $spousePsa ? 'you' : 'your partner';
-        $higherPsa = max($userPsa, $spousePsa);
-        $lowerPsa = min($userPsa, $spousePsa);
-
         if ($higherPsa <= $lowerPsa) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'psa_optimisation',
             'Optimise Personal Savings Allowance between partners',
             sprintf(
@@ -211,6 +274,9 @@ class SpouseOptimisationService
             sprintf('Your Personal Savings Allowance: %s. Partner\'s: %s.', number_format($userPsa, 0, '.', ','), number_format($spousePsa, 0, '.', ',')),
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -223,18 +289,9 @@ class SpouseOptimisationService
         $userPensionRemaining = $context['allowances']['pension_remaining'] ?? 0;
         $spousePensionRemaining = $spouseContext['pension_remaining'] ?? 0;
 
-        // Only suggest if both have remaining pension allowance and different bands
-        if ($userPensionRemaining <= 0 && $spousePensionRemaining <= 0) {
-            return null;
-        }
-
         $taxBandOrder = ['non_taxpayer' => 0, 'basic' => 1, 'higher' => 2, 'additional' => 3];
         $userBandRank = $taxBandOrder[$userTaxBand] ?? 1;
         $spouseBandRank = $taxBandOrder[$spouseTaxBand] ?? 1;
-
-        if ($userBandRank === $spouseBandRank) {
-            return null; // Same band — no coordination advantage
-        }
 
         $higherRatePartner = $userBandRank > $spouseBandRank ? 'you' : 'your partner';
         $higherBand = $userBandRank > $spouseBandRank ? $userTaxBand : $spouseTaxBand;
@@ -246,7 +303,40 @@ class SpouseOptimisationService
             default => 20,
         };
 
-        return $this->buildRecommendation(
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Does either partner have remaining pension allowance?',
+            'data_field' => 'pension_remaining',
+            'data_value' => 'You: £'.number_format($userPensionRemaining, 0).', Partner: £'.number_format($spousePensionRemaining, 0),
+            'threshold' => 'At least one above £0',
+            'passed' => $userPensionRemaining > 0 || $spousePensionRemaining > 0,
+            'explanation' => ($userPensionRemaining > 0 || $spousePensionRemaining > 0)
+                ? 'Pension allowance remaining — coordination opportunity exists.'
+                : 'Both partners have fully used their pension allowance.',
+        ];
+
+        $trace[] = [
+            'question' => 'Are the partners in different tax bands for pension coordination?',
+            'data_field' => 'tax_band_comparison',
+            'data_value' => 'You: '.$userTaxBand.' (rank '.$userBandRank.'), Partner: '.$spouseTaxBand.' (rank '.$spouseBandRank.')',
+            'threshold' => 'Different ranks',
+            'passed' => $userBandRank !== $spouseBandRank,
+            'explanation' => $userBandRank !== $spouseBandRank
+                ? 'Higher-rate partner ('.$higherRatePartner.') receives '.$reliefRate.'% tax relief — prioritise their pension.'
+                : 'Same tax band — no coordination advantage.',
+        ];
+
+        // Only suggest if both have remaining pension allowance and different bands
+        if ($userPensionRemaining <= 0 && $spousePensionRemaining <= 0) {
+            return null;
+        }
+
+        if ($userBandRank === $spouseBandRank) {
+            return null; // Same band — no coordination advantage
+        }
+
+        $rec = $this->buildRecommendation(
             'pension_coordination',
             'Prioritise pension contributions for higher-rate partner',
             sprintf(
@@ -260,6 +350,9 @@ class SpouseOptimisationService
             sprintf('%s rate partner has %s pension allowance remaining.', ucfirst($higherBand), number_format($higherRemaining, 0, '.', ',')),
             'high'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -278,6 +371,19 @@ class SpouseOptimisationService
             $nonEarningPartner = 'you';
         }
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is either partner a non-earner who could benefit from a pension contribution?',
+            'data_field' => 'incomes',
+            'data_value' => 'You: £'.number_format($userIncome, 0).', Partner: £'.number_format($spouseIncome, 0),
+            'threshold' => 'One partner earning £0',
+            'passed' => $nonEarningPartner !== null,
+            'explanation' => $nonEarningPartner !== null
+                ? 'Non-earning '.$nonEarningPartner.' can receive pension contributions with government tax relief.'
+                : 'Both partners have income — non-earning pension strategy does not apply.',
+        ];
+
         if ($nonEarningPartner === null) {
             return null;
         }
@@ -287,7 +393,16 @@ class SpouseOptimisationService
         $netCost = 2880;
         $freeRelief = $grossContribution - $netCost;
 
-        return $this->buildRecommendation(
+        $trace[] = [
+            'question' => 'What is the maximum gross pension contribution for a non-earner?',
+            'data_field' => 'gross_contribution',
+            'data_value' => '£'.number_format($grossContribution, 0),
+            'threshold' => '£'.number_format($grossContribution, 0),
+            'passed' => true,
+            'explanation' => 'Net cost of £'.number_format($netCost, 0).' receives £'.number_format($freeRelief, 0).' in government basic rate tax relief.',
+        ];
+
+        $rec = $this->buildRecommendation(
             'non_earning_spouse_pension',
             'Pension contribution for non-earning partner',
             sprintf(
@@ -301,6 +416,9 @@ class SpouseOptimisationService
             'high',
             (float) $netCost
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -310,8 +428,6 @@ class SpouseOptimisationService
     {
         $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
         $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
-        $userIncome = $context['financial']['gross_income'] ?? 0;
-        $spouseIncome = $spouseContext['gross_income'] ?? 0;
 
         // Marriage Allowance: non-taxpayer transfers 10% of PA to basic rate partner
         $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
@@ -328,13 +444,26 @@ class SpouseOptimisationService
             $direction = sprintf('Your partner transfers %s of their Personal Allowance to you.', number_format($transferable, 0, '.', ','));
         }
 
+        $annualSaving = $transferable * 0.20; // 20% basic rate saving
+
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is one partner a non-taxpayer and the other a basic rate taxpayer?',
+            'data_field' => 'tax_bands',
+            'data_value' => 'You: '.$userTaxBand.', Partner: '.$spouseTaxBand,
+            'threshold' => 'One non_taxpayer + one basic',
+            'passed' => $eligible,
+            'explanation' => $eligible
+                ? $direction.' Annual saving: £'.number_format($annualSaving, 0).'.'
+                : 'Marriage Allowance requires one non-taxpayer and one basic rate taxpayer — not eligible.',
+        ];
+
         if (! $eligible) {
             return null;
         }
 
-        $annualSaving = $transferable * 0.20; // 20% basic rate saving
-
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'marriage_allowance',
             'Claim Marriage Allowance',
             sprintf(
@@ -347,6 +476,9 @@ class SpouseOptimisationService
             'high',
             $annualSaving
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -361,12 +493,25 @@ class SpouseOptimisationService
         $rnrb = $this->taxConfig->getInheritanceTax()['residence_nil_rate_band'] ?? TaxDefaults::RNRB;
         $combinedNilRate = ($nrb + $rnrb) * 2; // Both partners' allowances
 
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the investment portfolio significant enough for Inheritance Tax planning?',
+            'data_field' => 'portfolio_value',
+            'data_value' => '£'.number_format($portfolioValue, 0),
+            'threshold' => '£'.number_format($nrb, 0).' (Nil Rate Band)',
+            'passed' => $portfolioValue >= $nrb,
+            'explanation' => $portfolioValue >= $nrb
+                ? 'Portfolio of £'.number_format($portfolioValue, 0).' exceeds the single Nil Rate Band — estate equalisation should be considered. Combined allowance: £'.number_format($combinedNilRate, 0).'.'
+                : 'Portfolio below the Nil Rate Band — Inheritance Tax estate equalisation is premature.',
+        ];
+
         // Only flag if portfolio alone is significant (property not counted here)
         if ($portfolioValue < $nrb) {
             return null;
         }
 
-        return $this->buildRecommendation(
+        $rec = $this->buildRecommendation(
             'iht_estate_equalisation',
             'Consider Inheritance Tax estate equalisation',
             sprintf(
@@ -377,6 +522,9 @@ class SpouseOptimisationService
             'Review your estate planning in the Estate module for a comprehensive Inheritance Tax assessment.',
             'low'
         );
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // ──────────────────────────────────────────────

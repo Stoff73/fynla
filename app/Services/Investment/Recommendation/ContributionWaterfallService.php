@@ -153,7 +153,45 @@ class ContributionWaterfallService
         $lisaLimit = is_array($lisaAllowances) ? ($lisaAllowances['annual_allowance'] ?? TaxDefaults::LISA_ALLOWANCE) : $lisaAllowances;
         $allocation = min($remaining, $lisaLimit);
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there surplus available and is the Lifetime ISA wrapper not blocked?',
+            'data_field' => 'remaining',
+            'data_value' => '£'.number_format($remaining, 0),
+            'threshold' => 'More than £0, not blocked',
+            'passed' => true,
+            'explanation' => '£'.number_format($remaining, 0).' surplus available for Lifetime ISA.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is the user under 40 and eligible for a Lifetime ISA?',
+            'data_field' => 'age',
+            'data_value' => (string) $age,
+            'threshold' => 'Under 40',
+            'passed' => true,
+            'explanation' => 'Age '.$age.' — eligible for '.max(0, 50 - $age).' more years of Lifetime ISA bonus.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is there a first-time buyer goal linked?',
+            'data_field' => 'has_house_purchase_goal',
+            'data_value' => 'Yes',
+            'threshold' => 'Yes',
+            'passed' => true,
+            'explanation' => 'First-time buyer goal found — Lifetime ISA prioritised for 25% government bonus.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much can be allocated to the Lifetime ISA?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($lisaLimit, 0).' annual limit',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated, earning a £'.number_format($allocation * 0.25, 0).' government bonus.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Contribute to Lifetime ISA',
             'explanation' => sprintf(
                 'As a first-time buyer under 40, the Lifetime ISA adds a 25%% government bonus on contributions up to %s per year. On %s that is a %s bonus.',
@@ -168,6 +206,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'lisa',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -195,7 +236,36 @@ class ContributionWaterfallService
         $returnParams = $this->riskPreferenceService->getReturnParameters($riskLevel);
         $expectedReturn = $returnParams['expected_return_typical'];
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the Stocks and Shares ISA wrapper available?',
+            'data_field' => 'remaining',
+            'data_value' => '£'.number_format($remaining, 0),
+            'threshold' => 'More than £0, not blocked',
+            'passed' => true,
+            'explanation' => '£'.number_format($remaining, 0).' surplus available for ISA.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is there remaining ISA allowance this tax year?',
+            'data_field' => 'isa_remaining',
+            'data_value' => '£'.number_format($isaRemaining, 0),
+            'threshold' => 'More than £0',
+            'passed' => true,
+            'explanation' => '£'.number_format($isaRemaining, 0).' ISA allowance available for tax-free growth.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much can be allocated to the ISA?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($isaRemaining, 0).' remaining',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated. Expected typical return at '.$riskLevel.' risk: '.round($expectedReturn, 1).'% per year.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Maximise Stocks and Shares ISA contributions',
             'explanation' => sprintf(
                 'You have %s of ISA allowance remaining this tax year. Contributions grow free of income tax and Capital Gains Tax. At your risk level, typical returns are around %.1f%% per year.',
@@ -210,6 +280,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'stocks_shares_isa',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -267,7 +340,36 @@ class ContributionWaterfallService
             $employerNote = sprintf(' Your employer matches up to %.1f%% — ensure you are maximising this.', $employerMatch['matching_limit'] ?? 0);
         }
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there remaining pension Annual Allowance?',
+            'data_field' => 'pension_remaining',
+            'data_value' => '£'.number_format($pensionRemaining, 0),
+            'threshold' => 'More than £0',
+            'passed' => true,
+            'explanation' => '£'.number_format($pensionRemaining, 0).' of Annual Allowance available.',
+        ];
+
+        $trace[] = [
+            'question' => 'What tax relief rate applies?',
+            'data_field' => 'tax_band',
+            'data_value' => $taxBand,
+            'threshold' => 'N/A',
+            'passed' => true,
+            'explanation' => ucfirst($taxBand).' rate taxpayer — '.round($reliefRate * 100).'% tax relief on pension contributions.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much should be allocated to pension at this step?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($maxContribution, 0).' (capped by income and allowance)',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated ('.round($pensionProportion * 100).'% of surplus for '.$taxBand.' rate). Tax relief: £'.number_format($taxRelief, 0).'.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Contribute to pension',
             'explanation' => sprintf(
                 'As a %s rate taxpayer, pension contributions receive %.0f%% tax relief. A contribution of %s effectively costs you %s after relief.%s',
@@ -285,6 +387,9 @@ class ContributionWaterfallService
             'wrapper' => 'pension',
             'tax_relief' => round($taxRelief, 2),
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -322,7 +427,36 @@ class ContributionWaterfallService
             return $this->skipStep($stepName, 'Allocation too small for Premium Bonds (minimum £25).');
         }
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the user eligible for Premium Bonds?',
+            'data_field' => 'age',
+            'data_value' => $age !== null ? (string) $age : 'Not set',
+            'threshold' => 'At least '.$minAge,
+            'passed' => true,
+            'explanation' => 'Age requirement met for Premium Bonds.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is there headroom within the maximum Premium Bonds holding?',
+            'data_field' => 'headroom',
+            'data_value' => '£'.number_format($headroom, 0),
+            'threshold' => 'More than £0',
+            'passed' => true,
+            'explanation' => '£'.number_format($headroom, 0).' headroom available (maximum: £'.number_format($maxHolding, 0).').',
+        ];
+
+        $trace[] = [
+            'question' => 'How much should be allocated to Premium Bonds?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '20% of remaining or headroom',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated (20% of remaining surplus, capped by headroom).',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Add to Premium Bonds',
             'explanation' => sprintf(
                 'Premium Bonds offer tax-free prizes with a current prize fund rate. You can hold up to %s. They provide capital security with potential upside.',
@@ -335,6 +469,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'premium_bonds',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -359,7 +496,18 @@ class ContributionWaterfallService
 
         $allocation = min($remaining, $allocation);
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'How much should be directed to NS&I products?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($minimum, 0).' minimum, '.round($allocationPercent * 100).'% of surplus',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated ('.round($allocationPercent * 100).'% of £'.number_format($remaining, 0).' remaining). Government-backed capital security.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Consider NS&I savings products',
             'explanation' => 'NS&I products are backed by HM Treasury offering capital security. Income Bonds and Direct Saver provide competitive rates with government backing.',
             'personal_context' => sprintf(
@@ -369,6 +517,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'nsi',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -398,7 +549,36 @@ class ContributionWaterfallService
         $allocation = max($minimum, $allocation);
         $allocation = min($remaining, $allocation);
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the user a higher or additional rate taxpayer?',
+            'data_field' => 'tax_band',
+            'data_value' => $taxBand,
+            'threshold' => 'Higher or additional',
+            'passed' => true,
+            'explanation' => ucfirst($taxBand).' rate taxpayer — offshore bond allows gross roll-up of investment growth.',
+        ];
+
+        $trace[] = [
+            'question' => 'Does the remaining surplus meet the minimum for an offshore bond?',
+            'data_field' => 'remaining',
+            'data_value' => '£'.number_format($remaining, 0),
+            'threshold' => '£'.number_format($minimum, 0),
+            'passed' => true,
+            'explanation' => '£'.number_format($remaining, 0).' surplus exceeds the £'.number_format($minimum, 0).' minimum.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much should be allocated to the offshore bond?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '30% of remaining surplus',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated with 5% annual tax-deferred withdrawal allowance.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Consider an offshore investment bond',
             'explanation' => sprintf(
                 'As a %s rate taxpayer, an offshore bond allows investment growth to roll up gross (no internal tax). The 5%% annual tax-deferred withdrawal allowance provides flexible access.',
@@ -412,6 +592,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'offshore_bond',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -440,7 +623,36 @@ class ContributionWaterfallService
         $allocation = max($minimum, $allocation);
         $allocation = min($remaining, $allocation);
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is the user a higher rate taxpayer who benefits from top-slicing relief?',
+            'data_field' => 'tax_band',
+            'data_value' => $taxBand,
+            'threshold' => 'Higher',
+            'passed' => true,
+            'explanation' => 'Higher rate taxpayer — onshore bond with top-slicing relief can reduce effective tax rate.',
+        ];
+
+        $trace[] = [
+            'question' => 'Does the remaining surplus meet the minimum for an onshore bond?',
+            'data_field' => 'remaining',
+            'data_value' => '£'.number_format($remaining, 0),
+            'threshold' => '£'.number_format($minimum, 0),
+            'passed' => true,
+            'explanation' => '£'.number_format($remaining, 0).' surplus exceeds the £'.number_format($minimum, 0).' minimum.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much should be allocated to the onshore bond?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '25% of remaining surplus',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated with 5% annual tax-deferred withdrawal allowance and top-slicing relief.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Consider an onshore investment bond',
             'explanation' => 'Onshore bonds benefit from top-slicing relief — gains are spread across the years the bond is held, potentially reducing the effective tax rate. The 5% annual tax-deferred withdrawal applies.',
             'personal_context' => sprintf(
@@ -449,6 +661,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'onshore_bond',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -496,7 +711,36 @@ class ContributionWaterfallService
             default => 0.20,
         };
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Has the current year pension allowance been exhausted?',
+            'data_field' => 'pension_remaining',
+            'data_value' => '£'.number_format($pensionRemaining, 0),
+            'threshold' => '£0',
+            'passed' => true,
+            'explanation' => 'Current year allowance is fully used — carry forward from prior years may be available.',
+        ];
+
+        $trace[] = [
+            'question' => 'Is there estimated carry forward from prior tax years?',
+            'data_field' => 'estimated_carry_forward',
+            'data_value' => '£'.number_format($estimatedCarryForward, 0),
+            'threshold' => 'More than £0',
+            'passed' => true,
+            'explanation' => 'Estimated £'.number_format($estimatedCarryForward, 0).' carry forward available (conservative estimate of 50% of one year).',
+        ];
+
+        $trace[] = [
+            'question' => 'How much can be contributed via carry forward?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($maxContribution, 0).' (capped by income)',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' contribution with '.round($reliefRate * 100).'% tax relief. Requires verification against pension statements.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Use pension carry forward',
             'explanation' => sprintf(
                 'You may have unused pension Annual Allowance from the previous 3 tax years. A lump sum contribution of %s would receive %.0f%% tax relief.',
@@ -507,6 +751,9 @@ class ContributionWaterfallService
             'wrapper' => 'pension_carry_forward',
             'requires_verification' => true,
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -552,7 +799,27 @@ class ContributionWaterfallService
         $ventureConfig = $this->taxConfig->get('investment.venture_capital', []);
         $eisRelief = (float) ($ventureConfig['eis']['relief'] ?? 0.30);
 
-        return $this->buildStep($stepName, $allocation, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Does the user have sufficient risk tolerance for venture capital investments?',
+            'data_field' => 'risk_level',
+            'data_value' => $riskLevel,
+            'threshold' => 'Upper-medium or high',
+            'passed' => true,
+            'explanation' => ucfirst(str_replace('_', '-', $riskLevel)).' risk tolerance — suitable for venture capital exposure.',
+        ];
+
+        $trace[] = [
+            'question' => 'How much can be allocated within portfolio and income limits?',
+            'data_field' => 'allocation',
+            'data_value' => '£'.number_format($allocation, 0),
+            'threshold' => '£'.number_format($minAllocation, 0).' minimum, '.round($maxPortfolioPercent * 100).'% of portfolio cap',
+            'passed' => true,
+            'explanation' => '£'.number_format($allocation, 0).' allocated (capped at '.round($maxPortfolioPercent * 100).'% of £'.number_format($portfolioValue, 0).' portfolio). '.round($eisRelief * 100).'% income tax relief applies.',
+        ];
+
+        $step = $this->buildStep($stepName, $allocation, [
             'headline' => 'Consider Venture Capital Trust or Enterprise Investment Scheme',
             'explanation' => sprintf(
                 'With a %s risk profile and portfolio of %s, a small allocation to Venture Capital Trust or Enterprise Investment Scheme investments provides %.0f%% income tax relief. These are illiquid and carry higher risk.',
@@ -568,6 +835,9 @@ class ContributionWaterfallService
             'wrapper' => 'vct_eis_seis',
             'requires_specialist_advice' => true,
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     /**
@@ -589,7 +859,27 @@ class ContributionWaterfallService
             default => TaxDefaults::CGT_BASIC_RATE,
         };
 
-        return $this->buildStep($stepName, $remaining, [
+        $trace = [];
+
+        $trace[] = [
+            'question' => 'Is there remaining surplus after all tax-efficient wrappers?',
+            'data_field' => 'remaining',
+            'data_value' => '£'.number_format($remaining, 0),
+            'threshold' => 'More than £0',
+            'passed' => true,
+            'explanation' => '£'.number_format($remaining, 0).' remains after maximising ISA, pension, and other tax-efficient wrappers.',
+        ];
+
+        $trace[] = [
+            'question' => 'What Capital Gains Tax rate applies to General Investment Account gains?',
+            'data_field' => 'cgt_rate',
+            'data_value' => round($cgtRate * 100).'%',
+            'threshold' => 'N/A',
+            'passed' => true,
+            'explanation' => ucfirst($taxBand).' rate taxpayer — gains above £'.number_format($cgtExempt, 0).' exemption taxed at '.round($cgtRate * 100).'%. Use accumulation units and index trackers to minimise distributions.',
+        ];
+
+        $step = $this->buildStep($stepName, $remaining, [
             'headline' => 'Invest remaining surplus in a General Investment Account',
             'explanation' => sprintf(
                 'After maximising tax-efficient wrappers, the remaining %s can be invested in a General Investment Account. You have a %s annual Capital Gains Tax exemption and gains above this are taxed at %.0f%%.',
@@ -603,6 +893,9 @@ class ContributionWaterfallService
             ),
             'wrapper' => 'gia',
         ]);
+        $step['recommendation']['decision_trace'] = $trace;
+
+        return $step;
     }
 
     // ──────────────────────────────────────────────
