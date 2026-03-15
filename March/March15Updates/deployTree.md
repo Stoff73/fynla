@@ -3,6 +3,7 @@
 **Date:** 2026-03-15
 **Branch:** `decisionView` → merged to `main` (PR #129)
 **Tests:** 1,873 passed, 0 failures
+**Deployed to production:** 2026-03-15
 
 ---
 
