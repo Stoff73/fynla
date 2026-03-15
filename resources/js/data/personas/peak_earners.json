@@ -938,9 +938,9 @@
       "owner": "spouse"
     },
     {
-      "goal_name": "Early Retirement Fund",
+      "goal_name": "Pre-Pension Bridge Fund",
       "goal_type": "wealth_accumulation",
-      "description": "Build bridge fund to retire at 58 before pensions accessible",
+      "description": "Build investment bridge to cover living costs from age 58 until pensions become accessible at 60",
       "target_amount": 200000,
       "current_amount": 95000,
       "target_date": "2033-01-01",

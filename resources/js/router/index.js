@@ -562,6 +562,19 @@ const routes = [
     },
   },
   {
+    path: '/actions/:planType/:actionId',
+    name: 'ActionDetail',
+    component: () => import('@/views/Actions/ActionDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Actions', path: '/actions' },
+        { label: 'Detail', path: '' },
+      ],
+    },
+  },
+  {
     path: '/holistic-plan',
     name: 'HolisticPlan',
     component: HolisticPlan,
