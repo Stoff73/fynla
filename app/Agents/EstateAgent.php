@@ -357,39 +357,93 @@ class EstateAgent extends BaseAgent
 
         // Trust wish triggers from will analysis
         if (! empty($trustWishTriggers)) {
+            $triggerCount = count($trustWishTriggers);
+            $trustWishTrace = [];
+            $trustWishTrace[] = [
+                'question' => 'Do any wishes in your will require trust structures to implement?',
+                'data_field' => 'Trust-triggering wishes identified',
+                'data_value' => (string) $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes'),
+                'threshold' => '0 wishes',
+                'passed' => false,
+                'explanation' => $triggerCount.' '.($triggerCount === 1 ? 'wish' : 'wishes').' in your will may require formal trust arrangements to ensure they are carried out as intended.',
+            ];
+
             $recommendations[] = [
                 'category' => 'will_trust_setup',
                 'priority' => 'medium',
                 'step' => 0,
                 'title' => 'Will Wishes Require Trust Structures',
-                'description' => count($trustWishTriggers).' wishes in your will may require trust arrangements',
+                'description' => $triggerCount.' wishes in your will may require trust arrangements',
                 'actions' => array_map(fn ($t) => $t['recommendation'], array_slice($trustWishTriggers, 0, 3)),
                 'details' => $trustWishTriggers,
+                'decision_trace' => $trustWishTrace,
             ];
         }
 
         // Stale will warning
         $willReviewStatus = $data['will_review_status'] ?? null;
-        if ($willReviewStatus && $willReviewStatus['has_will'] && ($willReviewStatus['is_stale'] ?? false)) {
-            $recommendations[] = [
-                'category' => 'will_review',
-                'priority' => 'medium',
-                'step' => 0,
-                'title' => 'Will Review Recommended',
-                'description' => 'Your will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
-                'actions' => [
-                    'Schedule a review with your solicitor',
-                    'Check that your executor details are still correct',
-                    'Ensure your beneficiaries reflect your current wishes',
-                ],
-                'last_reviewed_date' => $willReviewStatus['last_reviewed_date'],
+        if ($willReviewStatus && $willReviewStatus['has_will']) {
+            $isStale = $willReviewStatus['is_stale'] ?? false;
+            $lastReviewed = $willReviewStatus['last_reviewed_date'] ?? 'Not recorded';
+
+            $staleWillTrace = [];
+            $staleWillTrace[] = [
+                'question' => 'Has your will been reviewed within the last 3 years?',
+                'data_field' => 'Last will review date',
+                'data_value' => $lastReviewed,
+                'threshold' => 'Within the last 3 years',
+                'passed' => ! $isStale,
+                'explanation' => ! $isStale
+                    ? 'Your will has been reviewed recently and is up to date.'
+                    : 'Your will has not been reviewed in over 3 years. It is recommended to review your will every 3-5 years or after significant life events.',
             ];
+
+            if ($isStale) {
+                $recommendations[] = [
+                    'category' => 'will_review',
+                    'priority' => 'medium',
+                    'step' => 0,
+                    'title' => 'Will Review Recommended',
+                    'description' => 'Your will has not been reviewed recently. It is recommended to review your will every 3-5 years or after significant life events.',
+                    'actions' => [
+                        'Schedule a review with your solicitor',
+                        'Check that your executor details are still correct',
+                        'Ensure your beneficiaries reflect your current wishes',
+                    ],
+                    'last_reviewed_date' => $lastReviewed,
+                    'decision_trace' => $staleWillTrace,
+                ];
+            }
         }
 
         // Recommend completing missing data only when we lack essentials for a meaningful calculation
         $grossEstate = (float) ($data['summary']['gross_estate'] ?? 0);
         $hasDob = ($data['profile']['current_age'] ?? self::DEFAULT_CURRENT_AGE) !== self::DEFAULT_CURRENT_AGE;
         if ($grossEstate <= 0 || ! $hasDob) {
+            $missingDataTrace = [];
+
+            $missingDataTrace[] = [
+                'question' => 'Is your date of birth recorded for life expectancy calculations?',
+                'data_field' => 'Date of birth',
+                'data_value' => $hasDob ? 'Recorded' : 'Not recorded',
+                'threshold' => 'Must be recorded',
+                'passed' => $hasDob,
+                'explanation' => $hasDob
+                    ? 'Your date of birth is recorded, enabling accurate life expectancy and gifting strategy calculations.'
+                    : 'Without your date of birth, we cannot calculate life expectancy or determine optimal gifting timelines.',
+            ];
+
+            $missingDataTrace[] = [
+                'question' => 'Do you have at least one asset recorded in your estate?',
+                'data_field' => 'Gross estate value',
+                'data_value' => '£'.number_format($grossEstate, 0),
+                'threshold' => 'Greater than £0',
+                'passed' => $grossEstate > 0,
+                'explanation' => $grossEstate > 0
+                    ? 'Your estate assets are recorded, enabling Inheritance Tax calculations.'
+                    : 'No assets have been recorded. We need at least one asset to calculate your Inheritance Tax position.',
+            ];
+
             $recommendations[] = [
                 'category' => 'planning',
                 'priority' => 'high',
@@ -401,6 +455,7 @@ class EstateAgent extends BaseAgent
                     $grossEstate <= 0 ? 'Add your assets (properties, savings, investments)' : null,
                     'Consider writing or updating your will',
                 ]),
+                'decision_trace' => $missingDataTrace,
             ];
         }
 
@@ -419,6 +474,8 @@ class EstateAgent extends BaseAgent
      */
     private function step1CharitableBequestCheck(array $charitableAnalysis, float $ihtLiability): ?array
     {
+        $trace = [];
+
         if (empty($charitableAnalysis)) {
             return null;
         }
@@ -427,8 +484,29 @@ class EstateAgent extends BaseAgent
         $shortfall = $charitableAnalysis['shortfall'] ?? 0;
         $potentialSaving = $charitableAnalysis['potential_saving'] ?? 0;
         $currentSaving = $charitableAnalysis['current_saving'] ?? 0;
+        $currentPercentage = $charitableAnalysis['current_percentage'] ?? 0;
+
+        $trace[] = [
+            'question' => 'Do your charitable bequests reach the 10% threshold for the reduced Inheritance Tax rate?',
+            'data_field' => 'Charitable bequest percentage',
+            'data_value' => round($currentPercentage, 1).'%',
+            'threshold' => '10% of net estate',
+            'passed' => $status !== 'below',
+            'explanation' => $status !== 'below'
+                ? 'Your charitable giving meets or exceeds the 10% threshold, qualifying for the reduced 36% rate.'
+                : 'Your charitable giving is below the 10% threshold needed for the reduced 36% Inheritance Tax rate.',
+        ];
 
         if ($status === 'below' && $potentialSaving > 0) {
+            $trace[] = [
+                'question' => 'How much additional charitable giving is needed to qualify?',
+                'data_field' => 'Shortfall to 10% threshold',
+                'data_value' => '£'.number_format($shortfall, 0),
+                'threshold' => '£0 (no shortfall)',
+                'passed' => false,
+                'explanation' => 'Increasing charitable bequests by £'.number_format($shortfall, 0).' would save £'.number_format($potentialSaving, 0).' in Inheritance Tax.',
+            ];
+
             return [
                 'category' => 'charitable_bequest',
                 'priority' => 'high',
@@ -441,10 +519,20 @@ class EstateAgent extends BaseAgent
                     'This reduces your IHT rate from 40% to 36%',
                 ],
                 'potential_saving' => $potentialSaving,
+                'decision_trace' => $trace,
             ];
         }
 
         if ($status !== 'below' && $currentSaving > 0) {
+            $trace[] = [
+                'question' => 'How much Inheritance Tax is saved by the reduced charitable rate?',
+                'data_field' => 'Current saving from charitable rate',
+                'data_value' => '£'.number_format($currentSaving, 0),
+                'threshold' => '£0',
+                'passed' => true,
+                'explanation' => 'The reduced 36% rate is already saving you £'.number_format($currentSaving, 0).' in Inheritance Tax.',
+            ];
+
             return [
                 'category' => 'charitable_bequest',
                 'priority' => 'low',
@@ -453,6 +541,7 @@ class EstateAgent extends BaseAgent
                 'description' => "Your charitable giving qualifies for the reduced 36% IHT rate, saving {$this->formatCurrency($currentSaving)}.",
                 'actions' => ['Your current charitable bequests are sufficient for the reduced rate'],
                 'current_saving' => $currentSaving,
+                'decision_trace' => $trace,
             ];
         }
 
@@ -464,6 +553,8 @@ class EstateAgent extends BaseAgent
      */
     private function step2LiquidityAssessment(array $data): array
     {
+        $trace = [];
+
         $assetBreakdown = $data['asset_breakdown'] ?? [];
         $liquidAssets = $assetBreakdown['liquid'] ?? 0;
         $ihtLiability = $data['summary']['iht_liability'] ?? 0;
@@ -471,9 +562,30 @@ class EstateAgent extends BaseAgent
         $liquidityRatio = $ihtLiability > 0 ? $liquidAssets / $ihtLiability : 1;
         $hasLiquidityIssue = $liquidityRatio < 0.5;
 
+        $trace[] = [
+            'question' => 'Do your liquid assets cover at least 50% of your Inheritance Tax liability?',
+            'data_field' => 'Liquidity ratio',
+            'data_value' => round($liquidityRatio * 100, 1).'%',
+            'threshold' => '50% (liquid assets to Inheritance Tax liability)',
+            'passed' => ! $hasLiquidityIssue,
+            'explanation' => ! $hasLiquidityIssue
+                ? 'Your liquid assets of £'.number_format($liquidAssets, 0).' provide adequate coverage for your Inheritance Tax liability.'
+                : 'Your liquid assets of £'.number_format($liquidAssets, 0).' cover only '.round($liquidityRatio * 100, 1).'% of your £'.number_format($ihtLiability, 0).' Inheritance Tax liability.',
+        ];
+
         $recommendation = null;
         if ($hasLiquidityIssue && $ihtLiability > 0) {
             $shortfall = $ihtLiability - $liquidAssets;
+
+            $trace[] = [
+                'question' => 'What is the liquidity shortfall?',
+                'data_field' => 'Liquidity shortfall',
+                'data_value' => '£'.number_format($shortfall, 0),
+                'threshold' => '£0 (no shortfall)',
+                'passed' => false,
+                'explanation' => 'Your beneficiaries may need to sell assets to pay the £'.number_format($shortfall, 0).' shortfall unless alternative liquidity sources are arranged.',
+            ];
+
             $recommendation = [
                 'category' => 'liquidity',
                 'priority' => 'high',
@@ -486,6 +598,7 @@ class EstateAgent extends BaseAgent
                     'Build up liquid savings over time',
                 ],
                 'shortfall' => $shortfall,
+                'decision_trace' => $trace,
             ];
         }
 
@@ -502,11 +615,36 @@ class EstateAgent extends BaseAgent
      */
     private function step3ExistingLifeCover(array $data): array
     {
+        $trace = [];
+
         $lifeCover = $data['life_cover'] ?? [];
         $existingCover = (float) ($lifeCover['total_cover_in_trust'] ?? 0);
         $liabilities = $data['summary']['total_liabilities'] ?? 0;
+        $ihtLiability = $data['summary']['iht_liability'] ?? 0;
 
         $usableCover = max(0, $existingCover - $liabilities);
+
+        $trace[] = [
+            'question' => 'Do you have life insurance policies written in trust?',
+            'data_field' => 'Total life cover in trust',
+            'data_value' => '£'.number_format($existingCover, 0),
+            'threshold' => '£0 (any cover in trust is beneficial)',
+            'passed' => $existingCover > 0,
+            'explanation' => $existingCover > 0
+                ? 'You have £'.number_format($existingCover, 0).' of life cover written in trust, which bypasses your estate for Inheritance Tax purposes.'
+                : 'You have no life insurance policies written in trust. Policies in trust can provide liquidity to pay Inheritance Tax without adding to your estate.',
+        ];
+
+        $trace[] = [
+            'question' => 'After deducting liabilities, is there usable cover to offset Inheritance Tax?',
+            'data_field' => 'Usable cover after liabilities',
+            'data_value' => '£'.number_format($usableCover, 0),
+            'threshold' => '£'.number_format($ihtLiability, 0).' (Inheritance Tax liability)',
+            'passed' => $usableCover >= $ihtLiability,
+            'explanation' => $usableCover > 0
+                ? '£'.number_format($usableCover, 0).' of life cover is available to offset your Inheritance Tax liability.'
+                : 'No usable cover remains after accounting for liabilities.',
+        ];
 
         $recommendation = null;
         if ($usableCover > 0) {
@@ -518,11 +656,26 @@ class EstateAgent extends BaseAgent
                 'description' => "You have {$this->formatCurrency($usableCover)} in life cover that can offset IHT.",
                 'actions' => ['Ensure life policies are written in trust to bypass estate'],
                 'usable_cover' => $usableCover,
+                'decision_trace' => $trace,
             ];
         }
 
-        $trustPlacementRecommendation = null;
+        $trustPlacementTrace = [];
         $notInTrustCount = $lifeCover['policies_not_in_trust_count'] ?? 0;
+        $notInTrustValue = (float) ($lifeCover['total_cover_not_in_trust'] ?? 0);
+
+        $trustPlacementTrace[] = [
+            'question' => 'Do you have life insurance policies not written in trust?',
+            'data_field' => 'Policies not in trust',
+            'data_value' => (string) $notInTrustCount.' '.($notInTrustCount === 1 ? 'policy' : 'policies').' (£'.number_format($notInTrustValue, 0).')',
+            'threshold' => '0 policies (all should be in trust)',
+            'passed' => $notInTrustCount === 0,
+            'explanation' => $notInTrustCount > 0
+                ? $notInTrustCount.' '.($notInTrustCount === 1 ? 'policy' : 'policies').' totalling £'.number_format($notInTrustValue, 0).' could be placed in trust to bypass your estate.'
+                : 'All your life insurance policies are written in trust.',
+        ];
+
+        $trustPlacementRecommendation = null;
         if ($notInTrustCount > 0) {
             $trustPlacementRecommendation = [
                 'category' => 'trust_planning',
@@ -533,9 +686,10 @@ class EstateAgent extends BaseAgent
                     'You have %d life insurance %s totalling %s not written in trust. Policies in trust bypass the estate for Inheritance Tax purposes.',
                     $notInTrustCount,
                     $notInTrustCount === 1 ? 'policy' : 'policies',
-                    $this->formatCurrency($lifeCover['total_cover_not_in_trust'] ?? 0)
+                    $this->formatCurrency($notInTrustValue)
                 ),
                 'actions' => ['Contact your insurance provider to place existing policies in trust'],
+                'decision_trace' => $trustPlacementTrace,
             ];
         }
 
@@ -553,11 +707,22 @@ class EstateAgent extends BaseAgent
      */
     private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = self::DEFAULT_LIFE_EXPECTANCY): array
     {
+        $trace = [];
+
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $annualExemption = $ihtConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
 
         // Estimate years to life expectancy
         $yearsToLifeExpectancy = max(1, $lifeExpectancy - $currentAge);
+
+        $trace[] = [
+            'question' => 'How many years of annual gift exemptions are available based on life expectancy?',
+            'data_field' => 'Years to life expectancy',
+            'data_value' => (string) $yearsToLifeExpectancy.' years',
+            'threshold' => '1 year (minimum for strategy to be worthwhile)',
+            'passed' => $yearsToLifeExpectancy >= 1,
+            'explanation' => 'At age '.$currentAge.' with a life expectancy of '.$lifeExpectancy.', you have approximately '.$yearsToLifeExpectancy.' years of annual exemptions available.',
+        ];
 
         // Annual exemption potential (including carry forward from unused previous year)
         $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
@@ -566,6 +731,17 @@ class EstateAgent extends BaseAgent
         $potentialSavings = min($annualGiftingCapacity * 0.40, $remainingLiability);
 
         $coversLiability = $potentialSavings >= $remainingLiability;
+
+        $trace[] = [
+            'question' => 'Can annual gifting fully offset the remaining Inheritance Tax liability?',
+            'data_field' => 'Potential Inheritance Tax saving from annual gifting',
+            'data_value' => '£'.number_format($potentialSavings, 0),
+            'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability)',
+            'passed' => $coversLiability,
+            'explanation' => $coversLiability
+                ? 'Annual gifting of £'.number_format($annualExemption, 0).'/year over '.$yearsToLifeExpectancy.' years could fully offset the remaining liability.'
+                : 'Annual gifting can reduce the liability by £'.number_format($potentialSavings, 0).', but £'.number_format($remainingLiability - $potentialSavings, 0).' would remain.',
+        ];
 
         $recommendation = [
             'category' => 'annual_gifting',
@@ -583,6 +759,7 @@ class EstateAgent extends BaseAgent
             ],
             'potential_saving' => $potentialSavings,
             'covers_liability' => $coversLiability,
+            'decision_trace' => $trace,
         ];
 
         return [
@@ -598,8 +775,32 @@ class EstateAgent extends BaseAgent
      */
     private function step5LifeCoverStrategy(float $remainingLiability, array $liquidityData): array
     {
+        $trace = [];
+
         // Estimate whole of life premium (simplified calculation)
         $estimatedAnnualPremium = $remainingLiability * 0.02; // ~2% of cover per year
+
+        $trace[] = [
+            'question' => 'Is there a remaining Inheritance Tax liability that life cover could address?',
+            'data_field' => 'Remaining liability after prior strategies',
+            'data_value' => '£'.number_format($remainingLiability, 0),
+            'threshold' => '£0 (no remaining liability)',
+            'passed' => $remainingLiability <= 0,
+            'explanation' => 'A whole of life policy for £'.number_format($remainingLiability, 0).' could cover the remaining Inheritance Tax liability, providing funds outside of the estate.',
+        ];
+
+        $hasLiquidityIssue = $liquidityData['has_issue'] ?? false;
+
+        $trace[] = [
+            'question' => 'Is there a liquidity concern that makes life cover more urgent?',
+            'data_field' => 'Liquidity issue identified',
+            'data_value' => $hasLiquidityIssue ? 'Yes' : 'No',
+            'threshold' => 'No liquidity issue',
+            'passed' => ! $hasLiquidityIssue,
+            'explanation' => $hasLiquidityIssue
+                ? 'A liquidity shortfall has been identified. Life cover written in trust would provide immediate funds to pay the Inheritance Tax bill without requiring asset sales.'
+                : 'No liquidity issue identified, but life cover still provides certainty of funds for Inheritance Tax payment.',
+        ];
 
         $recommendation = [
             'category' => 'new_life_cover',
@@ -615,6 +816,7 @@ class EstateAgent extends BaseAgent
             ],
             'estimated_premium' => $estimatedAnnualPremium,
             'cover_amount' => $remainingLiability,
+            'decision_trace' => $trace,
         ];
 
         return [
@@ -629,6 +831,8 @@ class EstateAgent extends BaseAgent
      */
     private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = self::DEFAULT_LIFE_EXPECTANCY): array
     {
+        $trace = [];
+
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
 
@@ -638,9 +842,31 @@ class EstateAgent extends BaseAgent
         // Calculate 7-year cycles available
         $sevenYearCycles = floor($yearsToLifeExpectancy / 7);
 
+        $trace[] = [
+            'question' => 'How many seven-year cycles are available based on your life expectancy?',
+            'data_field' => 'Seven-year cycles available',
+            'data_value' => (string) $sevenYearCycles.' '.($sevenYearCycles === 1.0 ? 'cycle' : 'cycles'),
+            'threshold' => '1 cycle (minimum for Potentially Exempt Transfer strategy)',
+            'passed' => $sevenYearCycles >= 1,
+            'explanation' => $sevenYearCycles >= 1
+                ? 'With '.$yearsToLifeExpectancy.' years to life expectancy, you have '.$sevenYearCycles.' complete seven-year '.($sevenYearCycles === 1.0 ? 'cycle' : 'cycles').' for Potentially Exempt Transfers.'
+                : 'With only '.$yearsToLifeExpectancy.' years to life expectancy, there is insufficient time for a Potentially Exempt Transfer to become fully exempt.',
+        ];
+
         // Each cycle can gift up to NRB tax-efficiently
         $petCapacity = $sevenYearCycles * $nrb;
         $potentialSavings = min($petCapacity * 0.40, $remainingLiability);
+
+        if ($sevenYearCycles >= 1) {
+            $trace[] = [
+                'question' => 'Can Potentially Exempt Transfers cover the remaining Inheritance Tax liability?',
+                'data_field' => 'Potential Inheritance Tax saving from Potentially Exempt Transfers',
+                'data_value' => '£'.number_format($potentialSavings, 0),
+                'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability)',
+                'passed' => $potentialSavings >= $remainingLiability,
+                'explanation' => 'Each seven-year cycle can shelter up to £'.number_format($nrb, 0).' (the Nil Rate Band). Total capacity: £'.number_format($petCapacity, 0).'.',
+            ];
+        }
 
         $recommendation = null;
         if ($sevenYearCycles >= 1) {
@@ -658,6 +884,7 @@ class EstateAgent extends BaseAgent
                 ],
                 'potential_saving' => $potentialSavings,
                 'seven_year_cycles' => $sevenYearCycles,
+                'decision_trace' => $trace,
             ];
         }
 
@@ -673,13 +900,35 @@ class EstateAgent extends BaseAgent
      */
     private function step7CLTIntoTrust(float $remainingLiability): array
     {
+        $trace = [];
+
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
         $cltRate = $ihtConfig['clt_rate'] ?? TaxDefaults::CLT_RATE;
 
+        $trace[] = [
+            'question' => 'Is there still a remaining Inheritance Tax liability after all prior strategies?',
+            'data_field' => 'Remaining liability',
+            'data_value' => '£'.number_format($remainingLiability, 0),
+            'threshold' => '£0 (no remaining liability)',
+            'passed' => $remainingLiability <= 0,
+            'explanation' => 'Steps 1 to 6 have been unable to fully offset the Inheritance Tax liability. £'.number_format($remainingLiability, 0).' remains, making a Chargeable Lifetime Transfer a last-resort option.',
+        ];
+
         // Calculate immediate charge if CLT exceeds NRB
         $excessOverNRB = max(0, $remainingLiability - $nrb);
         $immediateCharge = $excessOverNRB * $cltRate;
+
+        $trace[] = [
+            'question' => 'Does the transfer amount exceed the Nil Rate Band, triggering an immediate charge?',
+            'data_field' => 'Amount exceeding Nil Rate Band',
+            'data_value' => '£'.number_format($excessOverNRB, 0),
+            'threshold' => '£'.number_format($nrb, 0).' (Nil Rate Band)',
+            'passed' => $excessOverNRB <= 0,
+            'explanation' => $excessOverNRB > 0
+                ? 'A Chargeable Lifetime Transfer of £'.number_format($remainingLiability, 0).' exceeds the Nil Rate Band by £'.number_format($excessOverNRB, 0).', incurring an immediate charge of £'.number_format($immediateCharge, 0).' at '.round($cltRate * 100).'%.'
+                : 'The transfer amount is within the Nil Rate Band, so no immediate charge would apply.',
+        ];
 
         $recommendation = [
             'category' => 'clt_trust',
@@ -697,6 +946,7 @@ class EstateAgent extends BaseAgent
             'immediate_charge' => $immediateCharge,
             'amount' => $remainingLiability,
             'warning' => 'CLTs are complex and should only be considered after exhausting simpler strategies.',
+            'decision_trace' => $trace,
         ];
 
         return [
