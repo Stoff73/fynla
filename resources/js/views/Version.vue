@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.8.3</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.9.0</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">5 March 2026</p>
+              <p class="text-body-base text-horizon-500">15 March 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
