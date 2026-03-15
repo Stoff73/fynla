@@ -75,8 +75,8 @@
           <div class="analysis-card clickable-card" @click="goToDetailPage('tax-efficiency')">
             <div class="analysis-header">
               <h3 class="analysis-title">Tax Efficiency</h3>
-              <span :class="['score-badge', taxEfficiencyScoreClass]">
-                {{ taxEfficiencyScore }}%
+              <span :class="['status-badge', taxEfficiencyStatusClass]">
+                {{ taxEfficiencyLabel }}
               </span>
             </div>
             <div class="analysis-content">
@@ -212,13 +212,20 @@ export default {
       return this.$route.path.startsWith('/preview');
     },
 
-    // Tax Efficiency
-    taxEfficiencyScoreClass() {
+    taxEfficiencyLabel() {
       const score = this.taxEfficiencyScore;
-      if (score >= 80) return 'score-excellent';
-      if (score >= 60) return 'score-good';
-      if (score >= 40) return 'score-fair';
-      return 'score-poor';
+      if (score >= 80) return 'Well Sheltered';
+      if (score >= 60) return 'Partially Sheltered';
+      if (score >= 40) return 'Limited Shelter';
+      return 'Mostly Taxable';
+    },
+
+    taxEfficiencyStatusClass() {
+      const score = this.taxEfficiencyScore;
+      if (score >= 80) return 'status-good';
+      if (score >= 60) return 'status-fair';
+      if (score >= 40) return 'status-fair';
+      return 'status-attention';
     },
 
     taxShelteredValue() {
@@ -651,29 +658,24 @@ export default {
   margin: 0;
 }
 
-.score-badge {
+.status-badge {
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
 }
 
-.score-excellent {
+.status-good {
   @apply bg-spring-100;
   @apply text-spring-800;
 }
 
-.score-good {
+.status-fair {
   @apply bg-violet-100;
   @apply text-violet-800;
 }
 
-.score-fair {
-  @apply bg-violet-100;
-  @apply text-violet-800;
-}
-
-.score-poor {
+.status-attention {
   @apply bg-raspberry-100;
   @apply text-raspberry-800;
 }

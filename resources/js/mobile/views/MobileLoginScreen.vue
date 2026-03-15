@@ -215,7 +215,6 @@ export default {
             path: '/m/verify',
             query: {
               email: this.email,
-              userId: result.data?.user_id?.toString() || '',
               challengeToken: result.data?.challenge_token || '',
               mfaToken: result.data?.mfa_token || '',
               mfa: result.requires_mfa ? '1' : '0',

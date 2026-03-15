@@ -303,7 +303,7 @@ import diversificationService from '@/services/diversificationService';
 import rebalancingService from '@/services/rebalancingService';
 import api from '@/services/api';
 import { mapState } from 'vuex';
-import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS, ASSET_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccountPerformancePanel',
@@ -842,23 +842,7 @@ export default {
     },
 
     getAssetColor(type) {
-      const colors = {
-        equity: '#2563eb',
-        equities: '#2563eb',
-        stock: '#2563eb',
-        fixed_income: '#16a34a',
-        bonds: '#16a34a',
-        bond: '#16a34a',
-        property: '#ea580c',
-        real_estate: '#ea580c',
-        commodities: '#eab308',
-        cash: '#64748b',
-        alternatives: '#db2777',
-        fund: '#7c3aed',
-        etf: '#0891b2',
-        other: '#78716c',
-      };
-      return colors[type] || '#7c3aed';
+      return ASSET_COLORS[type] || ASSET_COLORS.other;
     },
 
     async loadTaxInfo() {

@@ -29,6 +29,19 @@ class PreviewWriteInterceptor
     private const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
     /**
+     * Sensitive fields that must never be echoed back in fake responses.
+     */
+    private const SENSITIVE_FIELDS = [
+        'password',
+        'password_confirmation',
+        'current_password',
+        'mfa_secret',
+        'mfa_recovery_codes',
+        'token',
+        'api_key',
+    ];
+
+    /**
      * Routes that should be excluded from interception (e.g., logout, preview exit).
      */
     private const EXCLUDED_ROUTES = [
@@ -159,7 +172,7 @@ class PreviewWriteInterceptor
 
         // For POST/PUT/PATCH, include the submitted data with a fake ID if needed
         if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            $requestData = $request->all();
+            $requestData = $request->except(self::SENSITIVE_FIELDS);
 
             // Generate a temporary ID for newly created records
             if ($method === 'POST' && ! isset($requestData['id'])) {

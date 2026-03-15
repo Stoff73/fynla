@@ -20,7 +20,6 @@
     <!-- MFA Verification Modal -->
     <MFAVerifyModal
       :is-open="showMFAModal"
-      :user-id="pendingUserId"
       :mfa-token="pendingMfaToken"
       @verified="handleMFAVerified"
       @close="handleMFAClose"
@@ -208,7 +207,6 @@ export default {
     const showVerificationModal = ref(false);
     const showMFAModal = ref(false);
     const showForgotPasswordModal = ref(false);
-    const pendingUserId = ref(null);
     const pendingChallengeToken = ref(null);
     const pendingMfaToken = ref(null);
     const pendingEmail = ref('');
@@ -245,7 +243,6 @@ export default {
 
         // Check if MFA verification is required
         if (response.data.requires_mfa) {
-          pendingUserId.value = response.data.data.user_id;
           pendingMfaToken.value = response.data.data.mfa_token;
           pendingEmail.value = response.data.data.email;
           showMFAModal.value = true;
@@ -254,7 +251,6 @@ export default {
 
         // Check if email verification is required
         if (response.data.requires_verification) {
-          pendingUserId.value = response.data.data.user_id;
           pendingChallengeToken.value = response.data.data.challenge_token;
           pendingEmail.value = response.data.data.email;
           showVerificationModal.value = true;
@@ -305,7 +301,6 @@ export default {
 
     const handleVerificationClose = () => {
       showVerificationModal.value = false;
-      pendingUserId.value = null;
       pendingChallengeToken.value = null;
       pendingEmail.value = '';
     };
@@ -330,7 +325,6 @@ export default {
 
     const handleMFAClose = () => {
       showMFAModal.value = false;
-      pendingUserId.value = null;
       pendingMfaToken.value = null;
       pendingEmail.value = '';
     };
@@ -362,7 +356,6 @@ export default {
       showVerificationModal,
       showMFAModal,
       showForgotPasswordModal,
-      pendingUserId,
       pendingChallengeToken,
       pendingMfaToken,
       pendingEmail,

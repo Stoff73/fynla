@@ -1311,8 +1311,10 @@ class RetirementStrategyService
     private function calculateRefundReinvestmentStrategy(
         float $refundAmount,
         float $remainingPensionAllowance,
-        float $remainingIsaAllowance = 20000
+        ?float $remainingIsaAllowance = null
     ): array {
+        $remainingIsaAllowance = $remainingIsaAllowance ?? $this->taxConfig->getISAAllowances()['annual_allowance'];
+
         if ($refundAmount <= 0) {
             return [
                 'refund_amount' => 0,

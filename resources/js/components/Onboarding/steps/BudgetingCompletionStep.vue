@@ -178,29 +178,9 @@ export default {
   animation: checkmark-scale 0.5s ease-out;
 }
 
-@keyframes checkmark-scale {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 .checkmark-path {
   stroke-dasharray: 30;
   stroke-dashoffset: 30;
   animation: checkmark-draw 0.4s ease-out 0.3s forwards;
-}
-
-@keyframes checkmark-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
 }
 </style>

@@ -45,14 +45,14 @@ class EstateController extends Controller
     {
         $user = $request->user();
 
-        $assets = Asset::where('user_id', $user->id)->get();
-        $liabilities = Liability::where('user_id', $user->id)->get();
-        $gifts = Gift::where('user_id', $user->id)->get();
-        $trusts = Trust::where('user_id', $user->id)->get();
+        $assets = Asset::where('user_id', $user->id)->limit(100)->get();
+        $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
+        $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
+        $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
 
         // Pull investment accounts and categorize for IHT
-        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->get();
+        $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->limit(100)->get();
         $investmentAccountsFormatted = $investmentAccounts->map(function ($account) {
             // Determine IHT exemption status based on account type
             // VCT and EIS may qualify for Business Relief if held 2+ years

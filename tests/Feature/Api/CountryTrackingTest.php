@@ -30,8 +30,7 @@ describe('Country Tracking API', function () {
             ]);
 
             $response->assertStatus(201);
-            // Property store returns property directly (not wrapped in data)
-            expect($response->json('country'))->toBe('France');
+            expect($response->json('data.property.country'))->toBe('France');
 
             $this->assertDatabaseHas('properties', [
                 'user_id' => $user->id,
@@ -54,8 +53,7 @@ describe('Country Tracking API', function () {
             ]);
 
             $response->assertStatus(201);
-            // Property store returns property directly
-            expect($response->json('country'))->toBe('United Kingdom');
+            expect($response->json('data.property.country'))->toBe('United Kingdom');
 
             $this->assertDatabaseHas('properties', [
                 'user_id' => $user->id,
@@ -324,7 +322,7 @@ describe('Country Tracking API', function () {
             ]);
 
             $response->assertStatus(201);
-            expect($response->json('country'))->toBe('United Kingdom');
+            expect($response->json('data.property.country'))->toBe('United Kingdom');
         });
     });
 

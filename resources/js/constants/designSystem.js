@@ -100,11 +100,34 @@ export const CHART_COLORS = [
 export const ASSET_COLORS = {
   pensions: '#1F2A44',      // Horizon 500 - largest category
   property: '#20B486',      // Spring 500 - real assets
+  real_estate: '#20B486',   // Spring 500 - alias for property
   investments: '#5854E6',   // Violet 500 - investment accounts
   cash: '#6C83BC',          // Light Blue 500 - liquid assets
   business: '#E83E6D',      // Raspberry 500 - business interests
   chattels: '#E6C9A8',      // Savannah 500 - personal valuables
+  equity: '#5854E6',        // Violet 500 - equities/stocks
+  equities: '#5854E6',      // Violet 500 - equities
+  stock: '#5854E6',         // Violet 500 - individual stocks
+  fixed_income: '#1F2A44',  // Horizon 500 - bonds/fixed income
+  bonds: '#1F2A44',         // Horizon 500 - bonds
+  bond: '#1F2A44',          // Horizon 500 - single bond
+  commodities: '#E6C9A8',   // Savannah 500 - commodities
+  alternatives: '#DB2777',  // Raspberry 600 - alternatives
+  fund: '#7C3AED',          // Violet 600 - funds
+  etf: '#0D9488',           // Teal - ETFs
+  other: SECONDARY_COLORS[400], // Horizon 400 - other/fallback
 };
+
+/**
+ * Confetti Colors - For celebration overlays
+ */
+export const CONFETTI_COLORS = [
+  PRIMARY_COLORS[500],      // Raspberry 500
+  WARNING_COLORS[500],      // Violet 500
+  SUCCESS_COLORS[500],      // Spring 500
+  '#FDFAF7',                // Savannah 100
+  SECONDARY_COLORS[500],    // Horizon 500
+];
 
 /**
  * Spending Category Colors - For expenditure donut charts

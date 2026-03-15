@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 import { formatCurrency } from '@/utils/currency';
 
 export default {
@@ -63,7 +63,7 @@ export default {
         xaxis: {
           categories: this.categories,
           labels: {
-            style: { colors: '#717171', fontSize: '10px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '10px' },
             rotate: 0,
           },
           axisBorder: { show: false },
@@ -71,13 +71,13 @@ export default {
         },
         yaxis: {
           labels: {
-            style: { colors: '#717171', fontSize: '10px' },
+            style: { colors: TEXT_COLORS.muted, fontSize: '10px' },
             formatter: (val) => formatCurrency(val),
           },
-          title: { text: this.yAxisLabel, style: { color: '#717171', fontSize: '10px' } },
+          title: { text: this.yAxisLabel, style: { color: TEXT_COLORS.muted, fontSize: '10px' } },
         },
         grid: {
-          borderColor: '#EEEEEE',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 3,
           xaxis: { lines: { show: false } },
         },
@@ -85,7 +85,7 @@ export default {
           position: 'bottom',
           fontSize: '11px',
           fontFamily: 'Segoe UI, Inter, sans-serif',
-          labels: { colors: '#717171' },
+          labels: { colors: TEXT_COLORS.muted },
           markers: { size: 4, shape: 'circle' },
         },
         tooltip: {

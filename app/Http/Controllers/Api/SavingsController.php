@@ -64,6 +64,7 @@ class SavingsController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = SavingsAccount::forUserOrJoint($user->id)
+            ->limit(100)
             ->get();
 
         // Transform accounts using resource and add calculated fields
@@ -77,7 +78,7 @@ class SavingsController extends Controller
             return $resourceData;
         });
 
-        $goals = SavingsGoal::where('user_id', $user->id)->get();
+        $goals = SavingsGoal::where('user_id', $user->id)->limit(100)->get();
 
         // Build expenditure profile from user data
         $expenditureProfile = [

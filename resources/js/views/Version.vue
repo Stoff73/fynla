@@ -1252,7 +1252,7 @@
                 <h4 class="font-semibold text-horizon-500 mb-2">Features</h4>
                 <ul class="space-y-1 text-body-sm text-neutral-500">
                   <li>• Comprehensive Protection Plan with professional report generation</li>
-                  <li>• Executive Summary with adequacy scores (0-100)</li>
+                  <li>• Executive Summary with coverage analysis and recommendations</li>
                   <li>• Coverage Gap Analysis for Life/CI/IP</li>
                   <li>• Optimised Strategy with prioritized recommendations</li>
                   <li>• Scenario Analysis (death, critical illness, disability)</li>

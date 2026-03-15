@@ -173,7 +173,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_COLORS, ASSET_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccountHoldingsPanel',
@@ -320,17 +320,7 @@ export default {
     },
 
     getAssetColor(type) {
-      // Use design system colors for asset class charts
-      const colors = {
-        equity: PRIMARY_COLORS[500],
-        fixed_income: SUCCESS_COLORS[500],
-        property: WARNING_COLORS[500],
-        commodities: CHART_COLORS[5], // Purple
-        cash: SECONDARY_COLORS[500],
-        alternatives: '#ec4899',
-        other: '#94a3b8',
-      };
-      return colors[type] || '#94a3b8';
+      return ASSET_COLORS[type] || ASSET_COLORS.other;
     },
 
     getInitialValue(holding) {

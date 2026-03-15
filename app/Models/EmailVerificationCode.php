@@ -17,6 +17,7 @@ class EmailVerificationCode extends Model
         'user_id',
         'code',
         'type',
+        'challenge_token',
         'resend_count',
         'failed_attempts',
         'expires_at',
@@ -25,6 +26,7 @@ class EmailVerificationCode extends Model
 
     protected $hidden = [
         'code',
+        'challenge_token',
     ];
 
     protected $casts = [
@@ -85,7 +87,7 @@ class EmailVerificationCode extends Model
     /**
      * Generate a new 6-digit verification code for a user.
      */
-    public static function generate(int $userId, string $type): self
+    public static function generate(int $userId, string $type, ?string $challengeToken = null): self
     {
         // Invalidate any existing codes for this user and type
         self::where('user_id', $userId)
@@ -100,6 +102,7 @@ class EmailVerificationCode extends Model
             'user_id' => $userId,
             'code' => $code,
             'type' => $type,
+            'challenge_token' => $challengeToken,
             'resend_count' => 0,
             'expires_at' => Carbon::now()->addMinutes(15), // 15 minute expiry
         ]);
@@ -151,6 +154,18 @@ class EmailVerificationCode extends Model
             ->whereNull('verified_at')
             ->where('expires_at', '>', now())
             ->increment('failed_attempts');
+    }
+
+    /**
+     * Find a valid, unverified code by its challenge token.
+     */
+    public static function findByChallengeToken(string $challengeToken): ?self
+    {
+        return self::where('challenge_token', $challengeToken)
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->where('failed_attempts', '<', 5)
+            ->first();
     }
 
     /**

@@ -68,6 +68,7 @@ class GoalsController extends Controller
 
         $goals = $query->orderBy('priority')
             ->orderBy('target_date')
+            ->limit(100)
             ->get();
 
         return response()->json([
