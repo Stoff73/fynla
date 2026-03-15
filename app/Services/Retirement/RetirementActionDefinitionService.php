@@ -203,13 +203,38 @@ class RetirementActionDefinitionService
         $results = [];
 
         foreach ($dcPensions as $pension) {
-            if ($pension->scheme_type !== 'workplace') {
+            $trace = [];
+
+            $isWorkplace = $pension->scheme_type === 'workplace';
+            $trace[] = [
+                'question' => 'Is this a workplace pension?',
+                'data_field' => 'scheme_type',
+                'data_value' => $pension->scheme_type ?? 'not set',
+                'threshold' => 'workplace',
+                'passed' => $isWorkplace,
+                'explanation' => $isWorkplace
+                    ? 'This is a workplace pension, so employer match rules apply.'
+                    : 'This is not a workplace pension, so employer match does not apply.',
+            ];
+
+            if (! $isWorkplace) {
                 continue;
             }
 
             $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
+            $belowThreshold = $employeePercent < $threshold;
+            $trace[] = [
+                'question' => 'Is the employee contribution below the recommended threshold?',
+                'data_field' => 'employee_contribution_percent',
+                'data_value' => round($employeePercent, 1).'%',
+                'threshold' => round($threshold, 1).'%',
+                'passed' => $belowThreshold,
+                'explanation' => $belowThreshold
+                    ? 'Employee contribution of '.round($employeePercent, 1).'% is below the '.round($threshold, 1).'% threshold — additional contributions could unlock more employer matching.'
+                    : 'Employee contribution meets or exceeds the threshold.',
+            ];
 
-            if ($employeePercent >= $threshold) {
+            if (! $belowThreshold) {
                 continue;
             }
 
@@ -219,7 +244,7 @@ class RetirementActionDefinitionService
                 'scheme_name' => $pension->scheme_name ?: 'pension',
             ];
 
-            $results[] = [
+            $rec = [
                 'priority' => $priority,
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
@@ -229,7 +254,10 @@ class RetirementActionDefinitionService
                 'scope' => 'account',
                 'account_id' => $pension->id,
                 'account_name' => $pension->scheme_name,
+                'decision_trace' => $trace,
             ];
+
+            $results[] = $rec;
         }
 
         return $results;
@@ -246,9 +274,36 @@ class RetirementActionDefinitionService
         $results = [];
 
         foreach ($dcPensions as $pension) {
-            $annualContrib = $this->calculateAnnualContribution($pension);
+            $trace = [];
 
-            if ($annualContrib > 0 || (float) $pension->current_fund_value <= 0) {
+            $annualContrib = $this->calculateAnnualContribution($pension);
+            $fundValue = (float) $pension->current_fund_value;
+
+            $hasNoContribution = $annualContrib <= 0;
+            $trace[] = [
+                'question' => 'Are there any active contributions to this pension?',
+                'data_field' => 'annual_contribution',
+                'data_value' => '£'.number_format($annualContrib, 0),
+                'threshold' => '£0',
+                'passed' => $hasNoContribution,
+                'explanation' => $hasNoContribution
+                    ? 'No contributions are being made to this pension.'
+                    : 'This pension has active contributions of £'.number_format($annualContrib, 0).' per year.',
+            ];
+
+            $hasFundValue = $fundValue > 0;
+            $trace[] = [
+                'question' => 'Does this pension have an existing fund value?',
+                'data_field' => 'current_fund_value',
+                'data_value' => '£'.number_format($fundValue, 0),
+                'threshold' => 'Greater than £0',
+                'passed' => $hasFundValue,
+                'explanation' => $hasFundValue
+                    ? 'The pension has a fund value of £'.number_format($fundValue, 0).', which could benefit from additional contributions.'
+                    : 'No existing fund value — this pension may be dormant.',
+            ];
+
+            if ($annualContrib > 0 || $fundValue <= 0) {
                 continue;
             }
 
@@ -256,7 +311,7 @@ class RetirementActionDefinitionService
                 'scheme_name' => $pension->scheme_name ?: 'pension',
             ];
 
-            $results[] = [
+            $rec = [
                 'priority' => $priority,
                 'category' => $definition->category,
                 'title' => $definition->renderTitle($vars),
@@ -266,7 +321,10 @@ class RetirementActionDefinitionService
                 'scope' => 'account',
                 'account_id' => $pension->id,
                 'account_name' => $pension->scheme_name,
+                'decision_trace' => $trace,
             ];
+
+            $results[] = $rec;
         }
 
         return $results;
@@ -284,13 +342,26 @@ class RetirementActionDefinitionService
         $dcPensions,
         int $priority
     ): array {
+        $trace = [];
+
         if (! $profile) {
             return [];
         }
 
         $incomeGap = $analysisData['summary']['income_gap'] ?? 0;
+        $hasIncomeGap = $incomeGap > 0;
+        $trace[] = [
+            'question' => 'Is there a shortfall between projected and target retirement income?',
+            'data_field' => 'income_gap',
+            'data_value' => '£'.number_format($incomeGap, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $hasIncomeGap,
+            'explanation' => $hasIncomeGap
+                ? 'There is a projected income gap of £'.number_format($incomeGap, 0).' per year in retirement.'
+                : 'Projected retirement income meets or exceeds the target.',
+        ];
 
-        if ($incomeGap <= 0) {
+        if (! $hasIncomeGap) {
             return [];
         }
 
@@ -299,7 +370,19 @@ class RetirementActionDefinitionService
         $carryForward = (float) ($analysisData['annual_allowance']['carry_forward_available'] ?? 0);
         $availableHeadroom = $remainingAllowance + $carryForward;
 
-        if ($availableHeadroom <= 0) {
+        $hasHeadroom = $availableHeadroom > 0;
+        $trace[] = [
+            'question' => 'Is there available annual allowance headroom for additional contributions?',
+            'data_field' => 'available_headroom',
+            'data_value' => '£'.number_format($availableHeadroom, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $hasHeadroom,
+            'explanation' => $hasHeadroom
+                ? 'There is £'.number_format($availableHeadroom, 0).' of annual allowance headroom available (including carry forward).'
+                : 'No annual allowance headroom available for additional contributions.',
+        ];
+
+        if (! $hasHeadroom) {
             return [];
         }
 
@@ -317,6 +400,7 @@ class RetirementActionDefinitionService
             'scope' => $definition->scope,
             'available_annual_headroom' => round($availableHeadroom, 2),
             'available_monthly_headroom' => round($availableHeadroom / 12, 2),
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -330,6 +414,8 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         if (! $profile) {
             return [];
         }
@@ -339,13 +425,26 @@ class RetirementActionDefinitionService
         // Find the tax_relief recommendation from the optimizer
         $taxRec = collect($optimization['recommendations'])->firstWhere('type', 'tax_relief');
 
-        if (! $taxRec) {
+        $hasTaxRec = $taxRec !== null;
+        $potentialSaving = $taxRec['potential_saving'] ?? 0;
+        $trace[] = [
+            'question' => 'Is there an opportunity for higher-rate tax relief on pension contributions?',
+            'data_field' => 'tax_relief_recommendation',
+            'data_value' => $hasTaxRec ? '£'.number_format($potentialSaving, 0).' potential saving' : 'Not available',
+            'threshold' => 'Tax relief opportunity exists',
+            'passed' => $hasTaxRec,
+            'explanation' => $hasTaxRec
+                ? 'The contribution optimiser identified a potential tax saving of £'.number_format($potentialSaving, 0).' through higher-rate relief.'
+                : 'No higher-rate tax relief opportunity was identified by the contribution optimiser.',
+        ];
+
+        if (! $hasTaxRec) {
             return [];
         }
 
         $vars = [
-            'tax_saving' => '£'.number_format($taxRec['potential_saving'] ?? 0, 2),
-            'additional_contribution' => '£'.number_format(($taxRec['potential_saving'] ?? 0) / 0.4, 2),
+            'tax_saving' => '£'.number_format($potentialSaving, 2),
+            'additional_contribution' => '£'.number_format($potentialSaving / 0.4, 2),
         ];
 
         return [[
@@ -356,7 +455,8 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'See detailed recommendations',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
-            'potential_saving' => $taxRec['potential_saving'] ?? 0,
+            'potential_saving' => $potentialSaving,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -368,11 +468,26 @@ class RetirementActionDefinitionService
         array $analysisData,
         int $priority
     ): array {
-        if (! ($analysisData['annual_allowance']['has_excess'] ?? false)) {
+        $trace = [];
+
+        $hasExcess = $analysisData['annual_allowance']['has_excess'] ?? false;
+        $excess = $analysisData['annual_allowance']['excess_contributions'] ?? 0;
+
+        $trace[] = [
+            'question' => 'Have pension contributions exceeded the annual allowance?',
+            'data_field' => 'has_excess',
+            'data_value' => $hasExcess ? 'Yes — £'.number_format($excess, 0).' over' : 'No',
+            'threshold' => 'Contributions within annual allowance',
+            'passed' => $hasExcess,
+            'explanation' => $hasExcess
+                ? 'Contributions exceed the annual allowance by £'.number_format($excess, 0).', which may result in a tax charge.'
+                : 'Contributions are within the annual allowance — no tax charge applies.',
+        ];
+
+        if (! $hasExcess) {
             return [];
         }
 
-        $excess = $analysisData['annual_allowance']['excess_contributions'] ?? 0;
         $vars = [
             'excess_amount' => '£'.number_format($excess, 2),
         ];
@@ -385,6 +500,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Consult with a financial adviser to minimise tax charges.',
             'impact' => 'High',
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -397,6 +513,8 @@ class RetirementActionDefinitionService
         ?RetirementProfile $profile,
         int $priority
     ): array {
+        $trace = [];
+
         $userId = $analysisData['profile']['user_id'];
         $statePension = StatePension::where('user_id', $userId)->first();
 
@@ -404,13 +522,39 @@ class RetirementActionDefinitionService
             return [];
         }
 
-        if ($statePension->ni_years_completed >= $statePension->ni_years_required) {
+        $niCompleted = $statePension->ni_years_completed;
+        $niRequired = $statePension->ni_years_required;
+        $isShort = $niCompleted < $niRequired;
+
+        $trace[] = [
+            'question' => 'Are the completed National Insurance years below the required amount?',
+            'data_field' => 'ni_years_completed',
+            'data_value' => $niCompleted.' years completed',
+            'threshold' => $niRequired.' years required',
+            'passed' => $isShort,
+            'explanation' => $isShort
+                ? 'Only '.$niCompleted.' of '.$niRequired.' required National Insurance years have been completed.'
+                : 'National Insurance record meets the requirement of '.$niRequired.' years.',
+        ];
+
+        if (! $isShort) {
             return [];
         }
 
-        $yearsShort = $statePension->ni_years_required - $statePension->ni_years_completed;
+        $yearsShort = $niRequired - $niCompleted;
         $yearsUntilSPA = max(0, ($statePension->state_pension_age ?? 67) - ($profile->current_age ?? 0));
-        $willReachNaturally = ($statePension->ni_years_completed + $yearsUntilSPA) >= $statePension->ni_years_required;
+        $willReachNaturally = ($niCompleted + $yearsUntilSPA) >= $niRequired;
+
+        $trace[] = [
+            'question' => 'Will the shortfall be filled naturally before State Pension age?',
+            'data_field' => 'years_until_spa',
+            'data_value' => $yearsUntilSPA.' years until State Pension age',
+            'threshold' => $yearsShort.' years short',
+            'passed' => ! $willReachNaturally,
+            'explanation' => $willReachNaturally
+                ? 'With '.$yearsUntilSPA.' years until State Pension age, the gap of '.$yearsShort.' years will close naturally.'
+                : 'With only '.$yearsUntilSPA.' years until State Pension age, the gap of '.$yearsShort.' years will not close without voluntary contributions.',
+        ];
 
         if ($willReachNaturally) {
             return [];
@@ -429,6 +573,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Check your NI record and consider making voluntary contributions if cost-effective.',
             'impact' => 'High',
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -441,6 +586,8 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $targetIncome = $analysisData['summary']['target_retirement_income'] ?? 0;
         $incomeGap = $analysisData['summary']['income_gap'] ?? 0;
         $retirementAge = $analysisData['summary']['target_retirement_age'] ?? 0;
@@ -448,7 +595,32 @@ class RetirementActionDefinitionService
         $maxSuggestedAge = (int) ($config['max_suggested_age'] ?? 70);
         $ageIncrease = (int) ($config['age_increase'] ?? 3);
 
-        if ($targetIncome <= 0 || $incomeGap <= ($targetIncome * $threshold) || $retirementAge <= 0) {
+        $hasTargetIncome = $targetIncome > 0;
+        $trace[] = [
+            'question' => 'Has a target retirement income been set?',
+            'data_field' => 'target_retirement_income',
+            'data_value' => '£'.number_format($targetIncome, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $hasTargetIncome,
+            'explanation' => $hasTargetIncome
+                ? 'Target retirement income is £'.number_format($targetIncome, 0).' per year.'
+                : 'No target retirement income has been set.',
+        ];
+
+        $gapThresholdAmount = $targetIncome * $threshold;
+        $gapExceedsThreshold = $hasTargetIncome && $incomeGap > $gapThresholdAmount && $retirementAge > 0;
+        $trace[] = [
+            'question' => 'Does the income gap exceed '.round($threshold * 100, 0).'% of the target income?',
+            'data_field' => 'income_gap',
+            'data_value' => '£'.number_format($incomeGap, 0),
+            'threshold' => '£'.number_format($gapThresholdAmount, 0).' ('.round($threshold * 100, 0).'% of target)',
+            'passed' => $gapExceedsThreshold,
+            'explanation' => $gapExceedsThreshold
+                ? 'The income gap of £'.number_format($incomeGap, 0).' exceeds '.round($threshold * 100, 0).'% of the target — delaying retirement could help close this gap.'
+                : 'The income gap is within acceptable limits relative to the target income.',
+        ];
+
+        if ($targetIncome <= 0 || $incomeGap <= $gapThresholdAmount || $retirementAge <= 0) {
             return [];
         }
 
@@ -467,6 +639,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? sprintf('Review scenarios for retiring at %d.', $suggestedAge),
             'impact' => 'High',
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -489,13 +662,41 @@ class RetirementActionDefinitionService
         $results = [];
 
         foreach ($dcPensions as $pension) {
-            if ($pension->scheme_type !== 'workplace') {
+            $trace = [];
+
+            $isWorkplace = $pension->scheme_type === 'workplace';
+            $trace[] = [
+                'question' => 'Is this a workplace pension?',
+                'data_field' => 'scheme_type',
+                'data_value' => $pension->scheme_type ?? 'not set',
+                'threshold' => 'workplace',
+                'passed' => $isWorkplace,
+                'explanation' => $isWorkplace
+                    ? 'This is a workplace pension — salary sacrifice may be available.'
+                    : 'Salary sacrifice is only available for workplace pensions.',
+            ];
+
+            if (! $isWorkplace) {
                 continue;
             }
 
             $analysis = $this->salarySacrificeAnalyzer->analyzeForPension($user, $pension);
 
-            if (! $analysis['is_available'] || $analysis['employee_ni_saving'] <= 0) {
+            $isAvailable = $analysis['is_available'] && $analysis['employee_ni_saving'] > 0;
+            $trace[] = [
+                'question' => 'Is salary sacrifice available with a meaningful National Insurance saving?',
+                'data_field' => 'employee_ni_saving',
+                'data_value' => $analysis['is_available']
+                    ? '£'.number_format($analysis['employee_ni_saving'], 0).' annual saving'
+                    : 'Not available',
+                'threshold' => 'Available with saving greater than £0',
+                'passed' => $isAvailable,
+                'explanation' => $isAvailable
+                    ? 'Salary sacrifice could save £'.number_format($analysis['employee_ni_saving'], 0).' in employee National Insurance contributions.'
+                    : 'No salary sacrifice opportunity identified for this pension.',
+            ];
+
+            if (! $isAvailable) {
                 continue;
             }
 
@@ -515,6 +716,7 @@ class RetirementActionDefinitionService
                 'scope' => 'account',
                 'account_id' => $pension->id,
                 'account_name' => $pension->scheme_name,
+                'decision_trace' => $trace,
             ];
         }
 
@@ -546,19 +748,62 @@ class RetirementActionDefinitionService
         $results = [];
 
         foreach ($dcPensions as $pension) {
-            if ($pension->scheme_type !== 'workplace') {
+            $trace = [];
+
+            $isWorkplace = $pension->scheme_type === 'workplace';
+            $trace[] = [
+                'question' => 'Is this a workplace pension?',
+                'data_field' => 'scheme_type',
+                'data_value' => $pension->scheme_type ?? 'not set',
+                'threshold' => 'workplace',
+                'passed' => $isWorkplace,
+                'explanation' => $isWorkplace
+                    ? 'This is a workplace pension — salary sacrifice floor check applies.'
+                    : 'Salary sacrifice floor check only applies to workplace pensions.',
+            ];
+
+            if (! $isWorkplace) {
                 continue;
             }
 
             $analysis = $this->salarySacrificeAnalyzer->analyzeForPension($user, $pension);
 
-            if (! $analysis['is_available'] || $analysis['post_sacrifice_salary'] >= $proxyFloor) {
+            $isAvailable = $analysis['is_available'];
+            $trace[] = [
+                'question' => 'Is salary sacrifice available for this pension?',
+                'data_field' => 'is_available',
+                'data_value' => $isAvailable ? 'Yes' : 'No',
+                'threshold' => 'Available',
+                'passed' => $isAvailable,
+                'explanation' => $isAvailable
+                    ? 'Salary sacrifice is available for this workplace pension.'
+                    : 'Salary sacrifice is not available for this pension.',
+            ];
+
+            if (! $isAvailable) {
+                continue;
+            }
+
+            $postSacrifice = $analysis['post_sacrifice_salary'];
+            $belowFloor = $postSacrifice < $proxyFloor;
+            $trace[] = [
+                'question' => 'Would the post-sacrifice salary fall below the safety floor?',
+                'data_field' => 'post_sacrifice_salary',
+                'data_value' => '£'.number_format($postSacrifice, 0),
+                'threshold' => '£'.number_format($proxyFloor, 0),
+                'passed' => $belowFloor,
+                'explanation' => $belowFloor
+                    ? 'Post-sacrifice salary of £'.number_format($postSacrifice, 0).' would fall below the £'.number_format($proxyFloor, 0).' safety floor, which could affect benefits entitlement.'
+                    : 'Post-sacrifice salary remains above the safety floor.',
+            ];
+
+            if (! $belowFloor) {
                 continue;
             }
 
             $vars = [
                 'scheme_name' => $pension->scheme_name ?: 'workplace pension',
-                'post_sacrifice_salary' => '£'.number_format($analysis['post_sacrifice_salary'], 2),
+                'post_sacrifice_salary' => '£'.number_format($postSacrifice, 2),
                 'proxy_floor' => '£'.number_format($proxyFloor, 0),
             ];
 
@@ -572,6 +817,7 @@ class RetirementActionDefinitionService
                 'scope' => 'account',
                 'account_id' => $pension->id,
                 'account_name' => $pension->scheme_name,
+                'decision_trace' => $trace,
             ];
         }
 
@@ -587,6 +833,8 @@ class RetirementActionDefinitionService
         $dcPensions,
         int $priority
     ): array {
+        $trace = [];
+
         $userId = $analysisData['profile']['user_id'];
         $user = User::find($userId);
 
@@ -596,7 +844,36 @@ class RetirementActionDefinitionService
 
         $compliance = $this->optimizer->checkAutoEnrolmentCompliance($user, $dcPensions);
 
-        if (! $compliance['eligible'] || $compliance['meets_minimum_total']) {
+        $isEligible = $compliance['eligible'];
+        $trace[] = [
+            'question' => 'Is the user eligible for auto-enrolment?',
+            'data_field' => 'eligible',
+            'data_value' => $isEligible ? 'Yes' : 'No',
+            'threshold' => 'Eligible',
+            'passed' => $isEligible,
+            'explanation' => $isEligible
+                ? 'The user meets the auto-enrolment eligibility criteria.'
+                : 'The user is not eligible for auto-enrolment.',
+        ];
+
+        if (! $isEligible) {
+            return [];
+        }
+
+        $meetsMinimum = $compliance['meets_minimum_total'];
+        $totalPercent = $compliance['total_contribution_percent'] ?? 0;
+        $trace[] = [
+            'question' => 'Do total contributions meet the auto-enrolment minimum of 8%?',
+            'data_field' => 'total_contribution_percent',
+            'data_value' => round($totalPercent, 1).'%',
+            'threshold' => '8%',
+            'passed' => ! $meetsMinimum,
+            'explanation' => $meetsMinimum
+                ? 'Total contributions of '.round($totalPercent, 1).'% meet the 8% auto-enrolment minimum.'
+                : 'Total contributions of '.round($totalPercent, 1).'% are below the 8% auto-enrolment minimum.',
+        ];
+
+        if ($meetsMinimum) {
             return [];
         }
 
@@ -613,6 +890,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Review your pension contribution levels.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -624,6 +902,8 @@ class RetirementActionDefinitionService
         array $analysisData,
         int $priority
     ): array {
+        $trace = [];
+
         $userId = $analysisData['profile']['user_id'];
         $user = User::with('protectionProfile')->find($userId);
 
@@ -633,7 +913,19 @@ class RetirementActionDefinitionService
 
         $eligibility = $this->decumulationPlanner->assessEnhancedAnnuityEligibility($user);
 
-        if (! $eligibility['is_eligible']) {
+        $isEligible = $eligibility['is_eligible'];
+        $trace[] = [
+            'question' => 'Does the user qualify for an enhanced annuity due to health or lifestyle factors?',
+            'data_field' => 'enhanced_annuity_eligibility',
+            'data_value' => $isEligible ? 'Eligible — '.($eligibility['reason'] ?? 'qualifying factor identified') : 'Not eligible',
+            'threshold' => 'Smoker or health condition present',
+            'passed' => $isEligible,
+            'explanation' => $isEligible
+                ? 'Enhanced annuity rates may be available due to: '.($eligibility['reason'] ?? 'qualifying health or lifestyle factors').'.'
+                : 'No qualifying factors for enhanced annuity rates were identified.',
+        ];
+
+        if (! $isEligible) {
             return [];
         }
 
@@ -647,6 +939,7 @@ class RetirementActionDefinitionService
             'scope' => $definition->scope,
             'enhanced_annuity_reason' => $eligibility['reason'],
             'enhancement_factor' => $eligibility['enhancement_factor'],
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -660,6 +953,8 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         if (! $profile) {
             return [];
         }
@@ -668,7 +963,31 @@ class RetirementActionDefinitionService
         $currentAge = $profile->current_age ?? 0;
         $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
 
-        if ($currentAge < $ageThreshold || $careCostAnnual > 0) {
+        $isOverThreshold = $currentAge >= $ageThreshold;
+        $trace[] = [
+            'question' => 'Is the user aged '.$ageThreshold.' or over?',
+            'data_field' => 'current_age',
+            'data_value' => $currentAge.' years old',
+            'threshold' => $ageThreshold.' years',
+            'passed' => $isOverThreshold,
+            'explanation' => $isOverThreshold
+                ? 'At age '.$currentAge.', care costs should be factored into retirement planning.'
+                : 'At age '.$currentAge.', care cost planning is not yet a priority.',
+        ];
+
+        $noCareCosts = $careCostAnnual <= 0;
+        $trace[] = [
+            'question' => 'Has the user entered any care cost assumptions?',
+            'data_field' => 'care_cost_annual',
+            'data_value' => '£'.number_format($careCostAnnual, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $noCareCosts,
+            'explanation' => $noCareCosts
+                ? 'No care cost assumptions have been entered — this could lead to an underestimate of retirement funding needs.'
+                : 'Care costs of £'.number_format($careCostAnnual, 0).' per year have been included in the plan.',
+        ];
+
+        if (! $isOverThreshold || ! $noCareCosts) {
             return [];
         }
 
@@ -680,6 +999,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction() ?? 'Add care cost assumptions to your retirement profile.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -691,11 +1011,27 @@ class RetirementActionDefinitionService
         array $analysisData,
         int $priority
     ): array {
+        $trace = [];
+
         $userId = $analysisData['profile']['user_id'];
         $statePension = StatePension::where('user_id', $userId)->first();
 
+        $forecastAmount = $statePension ? (float) ($statePension->state_pension_forecast_annual ?? 0) : 0;
+        $hasForecast = $statePension && $forecastAmount > 0;
+
+        $trace[] = [
+            'question' => 'Has the user entered a State Pension forecast?',
+            'data_field' => 'state_pension_forecast_annual',
+            'data_value' => $hasForecast ? '£'.number_format($forecastAmount, 0).' per year' : 'Not entered',
+            'threshold' => 'Forecast entered',
+            'passed' => ! $hasForecast,
+            'explanation' => $hasForecast
+                ? 'A State Pension forecast of £'.number_format($forecastAmount, 0).' per year has been entered.'
+                : 'No State Pension forecast has been entered — retirement projections may be less accurate without this.',
+        ];
+
         // If user has a forecast, no trigger
-        if ($statePension && (float) ($statePension->state_pension_forecast_annual ?? 0) > 0) {
+        if ($hasForecast) {
             return [];
         }
 
@@ -713,6 +1049,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Request your State Pension forecast from gov.uk.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -725,8 +1062,34 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
+        $trace = [];
+
         $yearsToRetirement = $analysisData['summary']['years_to_retirement'] ?? 999;
         $yearsThreshold = (int) ($config['years_threshold'] ?? 10);
+
+        $withinThreshold = $yearsToRetirement <= $yearsThreshold;
+        $trace[] = [
+            'question' => 'Is the user within '.$yearsThreshold.' years of their target retirement age?',
+            'data_field' => 'years_to_retirement',
+            'data_value' => $yearsToRetirement.' years',
+            'threshold' => $yearsThreshold.' years or fewer',
+            'passed' => $withinThreshold,
+            'explanation' => $withinThreshold
+                ? 'With '.$yearsToRetirement.' years until retirement, it is time to plan a decumulation strategy.'
+                : 'Retirement is '.$yearsToRetirement.' years away — decumulation planning is not yet urgent.',
+        ];
+
+        $isPositive = $yearsToRetirement > 0;
+        $trace[] = [
+            'question' => 'Is the user still pre-retirement?',
+            'data_field' => 'years_to_retirement',
+            'data_value' => $yearsToRetirement.' years',
+            'threshold' => 'Greater than 0',
+            'passed' => $isPositive,
+            'explanation' => $isPositive
+                ? 'The user has not yet reached their target retirement age.'
+                : 'The user has already reached or passed their target retirement age.',
+        ];
 
         if ($yearsToRetirement > $yearsThreshold || $yearsToRetirement <= 0) {
             return [];
@@ -744,6 +1107,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Review your decumulation strategy.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -756,14 +1120,29 @@ class RetirementActionDefinitionService
         array $config,
         int $priority
     ): array {
-        $minPensionCount = (int) ($config['min_pension_count'] ?? 3);
+        $trace = [];
 
-        if ($dcPensions->count() < $minPensionCount) {
+        $minPensionCount = (int) ($config['min_pension_count'] ?? 3);
+        $pensionCount = $dcPensions->count();
+
+        $meetsThreshold = $pensionCount >= $minPensionCount;
+        $trace[] = [
+            'question' => 'Does the user have '.$minPensionCount.' or more defined contribution pensions?',
+            'data_field' => 'dc_pension_count',
+            'data_value' => $pensionCount.' pensions',
+            'threshold' => $minPensionCount.' or more',
+            'passed' => $meetsThreshold,
+            'explanation' => $meetsThreshold
+                ? 'The user has '.$pensionCount.' defined contribution pensions — consolidation could reduce fees and simplify management.'
+                : 'The user has '.$pensionCount.' defined contribution pensions, below the consolidation threshold.',
+        ];
+
+        if (! $meetsThreshold) {
             return [];
         }
 
         $vars = [
-            'pension_count' => (string) $dcPensions->count(),
+            'pension_count' => (string) $pensionCount,
         ];
 
         return [[
@@ -774,6 +1153,7 @@ class RetirementActionDefinitionService
             'action' => $definition->renderAction($vars) ?? 'Compare fees and features before consolidating.',
             'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
+            'decision_trace' => $trace,
         ]];
     }
 
@@ -802,9 +1182,35 @@ class RetirementActionDefinitionService
      */
     private function evaluateGoalNoContribution(RetirementActionDefinition $definition, array $goal, float $monthlyPensionContribution = 0): ?array
     {
+        $trace = [];
+
         $monthlyContribution = $goal['monthly_contribution'] ?? 0;
         $effectiveContribution = $monthlyContribution + $monthlyPensionContribution;
         $required = $goal['required_monthly_contribution'] ?? 0;
+
+        $hasNoContribution = $effectiveContribution <= 0;
+        $trace[] = [
+            'question' => 'Are there any contributions towards this goal (including pension contributions)?',
+            'data_field' => 'effective_contribution',
+            'data_value' => '£'.number_format($effectiveContribution, 0).' per month',
+            'threshold' => 'Greater than £0',
+            'passed' => $hasNoContribution,
+            'explanation' => $hasNoContribution
+                ? 'No contributions are being made towards this goal.'
+                : 'Effective contributions of £'.number_format($effectiveContribution, 0).' per month are being made.',
+        ];
+
+        $hasRequirement = $required > 0;
+        $trace[] = [
+            'question' => 'Is a monthly contribution required to meet this goal?',
+            'data_field' => 'required_monthly_contribution',
+            'data_value' => '£'.number_format($required, 0).' per month',
+            'threshold' => 'Greater than £0',
+            'passed' => $hasRequirement,
+            'explanation' => $hasRequirement
+                ? '£'.number_format($required, 0).' per month is needed to stay on track for this goal.'
+                : 'No monthly contribution is required for this goal.',
+        ];
 
         if ($effectiveContribution > 0 || $required <= 0) {
             return null;
@@ -823,6 +1229,7 @@ class RetirementActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -836,24 +1243,62 @@ class RetirementActionDefinitionService
      */
     private function evaluateGoalOffTrack(RetirementActionDefinition $definition, array $goal, float $monthlyPensionContribution = 0): ?array
     {
+        $trace = [];
+
         $monthlyContribution = $goal['monthly_contribution'] ?? 0;
         $effectiveContribution = $monthlyContribution + $monthlyPensionContribution;
 
+        $hasContribution = $effectiveContribution > 0;
+        $trace[] = [
+            'question' => 'Are there any effective contributions towards this goal?',
+            'data_field' => 'effective_contribution',
+            'data_value' => '£'.number_format($effectiveContribution, 0).' per month',
+            'threshold' => 'Greater than £0',
+            'passed' => $hasContribution,
+            'explanation' => $hasContribution
+                ? 'Effective contributions of £'.number_format($effectiveContribution, 0).' per month are being made (including pension contributions).'
+                : 'No effective contributions — this case is handled by the no-contribution check.',
+        ];
+
         // Skip if no effective contribution (caught by no-contribution check)
-        if ($effectiveContribution <= 0) {
+        if (! $hasContribution) {
             return null;
         }
 
         $required = $goal['required_monthly_contribution'] ?? 0;
 
+        $meetsRequired = $required > 0 && $effectiveContribution >= $required;
+        $trace[] = [
+            'question' => 'Do effective contributions meet the required monthly amount?',
+            'data_field' => 'effective_contribution',
+            'data_value' => '£'.number_format($effectiveContribution, 0).' per month',
+            'threshold' => '£'.number_format($required, 0).' per month required',
+            'passed' => ! $meetsRequired,
+            'explanation' => $meetsRequired
+                ? 'Effective contributions of £'.number_format($effectiveContribution, 0).' meet the required £'.number_format($required, 0).' — goal is effectively on track.'
+                : 'Effective contributions of £'.number_format($effectiveContribution, 0).' fall short of the required £'.number_format($required, 0).'.',
+        ];
+
         // If pension contributions bring the effective contribution up to the required
         // amount, treat the goal as on-track regardless of the goal record's is_on_track
-        if ($required > 0 && $effectiveContribution >= $required) {
+        if ($meetsRequired) {
             return null;
         }
 
+        $isOffTrack = ! ($goal['is_on_track'] ?? true);
+        $trace[] = [
+            'question' => 'Is the goal reported as off track?',
+            'data_field' => 'is_on_track',
+            'data_value' => ($goal['is_on_track'] ?? true) ? 'On track' : 'Off track',
+            'threshold' => 'Off track',
+            'passed' => $isOffTrack,
+            'explanation' => $isOffTrack
+                ? 'The goal is currently off track and needs attention.'
+                : 'The goal is reported as on track.',
+        ];
+
         // Also skip if the goal itself reports on-track
-        if ($goal['is_on_track'] ?? true) {
+        if (! $isOffTrack) {
             return null;
         }
 
@@ -873,6 +1318,7 @@ class RetirementActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
@@ -881,8 +1327,22 @@ class RetirementActionDefinitionService
      */
     private function evaluateGoalDeadline(RetirementActionDefinition $definition, array $goal, array $config): ?array
     {
+        $trace = [];
+
+        $isOnTrack = $goal['is_on_track'] ?? true;
+        $trace[] = [
+            'question' => 'Is the goal currently reported as on track?',
+            'data_field' => 'is_on_track',
+            'data_value' => $isOnTrack ? 'On track' : 'Off track',
+            'threshold' => 'On track',
+            'passed' => $isOnTrack,
+            'explanation' => $isOnTrack
+                ? 'The goal is on track — checking whether the deadline is approaching with low progress.'
+                : 'The goal is already off track — this is handled by the off-track check instead.',
+        ];
+
         // Only triggers for goals that are otherwise on-track (not caught by off-track check)
-        if (! ($goal['is_on_track'] ?? true)) {
+        if (! $isOnTrack) {
             return null;
         }
 
@@ -890,6 +1350,30 @@ class RetirementActionDefinitionService
         $progress = $goal['progress_percentage'] ?? 0;
         $monthsThreshold = (int) ($config['months_threshold'] ?? 6);
         $progressThreshold = (float) ($config['progress_threshold'] ?? 75);
+
+        $deadlineApproaching = $monthsRemaining <= $monthsThreshold;
+        $trace[] = [
+            'question' => 'Is the goal deadline approaching (within '.$monthsThreshold.' months)?',
+            'data_field' => 'months_remaining',
+            'data_value' => $monthsRemaining.' months',
+            'threshold' => $monthsThreshold.' months or fewer',
+            'passed' => $deadlineApproaching,
+            'explanation' => $deadlineApproaching
+                ? 'Only '.$monthsRemaining.' months remain until the goal deadline.'
+                : 'The deadline is '.$monthsRemaining.' months away — not yet urgent.',
+        ];
+
+        $progressBelowThreshold = $progress < $progressThreshold;
+        $trace[] = [
+            'question' => 'Is progress below '.round($progressThreshold, 0).'%?',
+            'data_field' => 'progress_percentage',
+            'data_value' => round($progress, 1).'%',
+            'threshold' => round($progressThreshold, 0).'%',
+            'passed' => $progressBelowThreshold,
+            'explanation' => $progressBelowThreshold
+                ? 'Progress of '.round($progress, 1).'% is below the '.round($progressThreshold, 0).'% threshold with the deadline approaching.'
+                : 'Progress of '.round($progress, 1).'% is on track relative to the deadline.',
+        ];
 
         if ($monthsRemaining > $monthsThreshold || $progress >= $progressThreshold) {
             return null;
@@ -909,6 +1393,7 @@ class RetirementActionDefinitionService
             'priority' => $definition->priority,
             'source' => 'goal',
             'goal_id' => $goal['id'] ?? null,
+            'decision_trace' => $trace,
         ];
     }
 
