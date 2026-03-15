@@ -1,8 +1,8 @@
-# Deploy: Login Fix + Code Review Remediation
+# Deploy: Login Fix + Code Review Remediation + Plan Fixes
 
 **Date:** 2026-03-15
 **Branch:** `engineUpgrade`
-**Scope:** Login 422 bug fix, security hardening, full code review remediation (13 issues)
+**Scope:** Login 422 bug fix, security hardening, full code review remediation (13 issues), plan endpoint fixes, investment plan cross-module isolation
 **Tests:** 1,873 passed, 0 failures
 
 ---
@@ -20,6 +20,23 @@
 | Critical | 1 | Hardcoded IHT tax values in 4 Vue components |
 | High | 4 | Scores in UI, hex colors, sensitive data echo, hardcoded ISA allowance |
 | Medium | 7 | Dead code, duplicate CSS, missing arch tests, response format, pagination |
+
+### Plan Endpoint Fixes (3 bugs)
+- **Investment plan 500** for all personas — `ConflictResolutionService::priorityRank()` strict type mismatch (string vs int)
+- **Investment plan 500** for entrepreneur/young_saver — `ContributionWaterfallService::stepLISA()` passed full LISA array to `number_format()` instead of `annual_allowance`
+- **Retirement plan 500** for retired_couple — `RetirementActionDefinitionService` crashed on null profile (no RetirementProfile record for already-retired users)
+
+### Investment Plan Cross-Module Isolation
+- **Problem:** Individual investment plan was including pension contributions, savings allowance, and marriage allowance recommendations from spouse/transfer pipeline — these belong in the holistic plan only
+- **Fix:** Filtered non-investment `strategy_type`/`scan_type` values (`pension_coordination`, `non_earning_spouse_pension`, `psa_optimisation`, `psa_breach`, `marriage_allowance`) from the investment plan output. Reduced peak_earners from 15 mixed actions to 12 investment-only actions.
+
+### Investment Plan Generic Titles
+- **Problem:** Spouse and transfer recommendations displayed as "Recommendation" with empty descriptions in key actions and optional improvements
+- **Fix:** `BasePlanService.structureActions()` now maps `headline` → `title` and `explanation` → `description` from spouse optimisation and transfer services
+
+### Property Page Fix
+- **Problem:** Property page blank — Vue error `this.properties is not iterable` after PropertyController.store() response format change
+- **Fix:** Updated `PropertyList.vue` to handle wrapped `{ success, data: { property } }` response
 
 ---
 
@@ -39,6 +56,11 @@ app/Http/Controllers/Api/PropertyController.php
 app/Http/Controllers/Api/SavingsController.php
 app/Http/Middleware/PreviewWriteInterceptor.php
 app/Models/EmailVerificationCode.php
+app/Services/Investment/Recommendation/ConflictResolutionService.php
+app/Services/Investment/Recommendation/ContributionWaterfallService.php
+app/Services/Plans/BasePlanService.php
+app/Services/Plans/InvestmentPlanService.php
+app/Services/Retirement/RetirementActionDefinitionService.php
 app/Services/Retirement/RetirementStrategyService.php
 ```
 
@@ -50,6 +72,7 @@ resources/js/components/Estate/IHTCalculationTable.vue
 resources/js/components/Estate/IHTPlanning.vue
 resources/js/components/Estate/LifePolicyStrategy.vue
 resources/js/components/NetWorth/InvestmentProjections.vue
+resources/js/components/NetWorth/PropertyList.vue
 resources/js/components/Onboarding/steps/BudgetingCompletionStep.vue
 resources/js/components/Onboarding/steps/JourneyCompletionStep.vue
 resources/js/constants/designSystem.js
@@ -164,6 +187,7 @@ Then upload `public/build/` directory + all PHP files listed above.
 | File | Change |
 |------|--------|
 | `PropertyController.php` | `store()` wrapped in standard `{ success, message, data }` envelope |
+| `PropertyList.vue` | Updated to handle wrapped response format for GET, POST, and PUT |
 | `PropertyControllerTest.php` | Updated assertions for new response structure |
 | `CountryTrackingTest.php` | Updated `json('country')` to `json('data.property.country')` |
 
@@ -179,3 +203,16 @@ Then upload `public/build/` directory + all PHP files listed above.
 | `EstateController.php` | Added `.limit(100)` to 5 queries |
 | `GoalsController.php` | Added `.limit(100)` to goals query |
 | `SavingsController.php` | Added `.limit(100)` to 2 queries |
+
+### Plan Endpoint Fixes
+| File | Change |
+|------|--------|
+| `ConflictResolutionService.php` | `priorityRank()` accepts `string\|int` — some recommendations pass integer priority |
+| `ContributionWaterfallService.php` | LISA allowance correctly accesses `['lifetime_isa']['annual_allowance']` instead of passing full array to `number_format()` |
+| `RetirementActionDefinitionService.php` | Guards against null profile with early return for already-retired users |
+
+### Investment Plan Isolation
+| File | Change |
+|------|--------|
+| `BasePlanService.php` | `structureActions()` maps `headline` → `title`, `explanation` → `description` from spouse/transfer sources |
+| `InvestmentPlanService.php` | Filters out non-investment `strategy_type`/`scan_type` values from pipeline output (pension, savings allowance, marriage allowance → holistic plan only) |
