@@ -112,6 +112,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateGapCondition(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $triggerConfig = $definition->trigger_config;
         $coverageType = $triggerConfig['coverage_type'] ?? '';
         $threshold = (float) ($triggerConfig['threshold'] ?? 0);
@@ -122,9 +124,31 @@ class ProtectionActionDefinitionService
         $coverage = (float) ($typeData['coverage'] ?? 0);
         $need = (float) ($typeData['need'] ?? 0);
 
+        $coverageLabel = str_replace('_', ' ', $coverageType);
+
+        $trace[] = [
+            'question' => 'Is there a gap in your '.$coverageLabel.' cover?',
+            'data_field' => ucfirst($coverageLabel).' gap',
+            'data_value' => '£'.number_format($gap, 0),
+            'threshold' => '£'.number_format($threshold, 0).' (minimum gap to trigger)',
+            'passed' => $gap <= $threshold,
+            'explanation' => $gap <= $threshold
+                ? 'Your '.$coverageLabel.' gap is within acceptable limits.'
+                : 'Your '.$coverageLabel.' has a shortfall of £'.number_format($gap, 0).' against your calculated need of £'.number_format($need, 0).'.',
+        ];
+
         if ($gap <= $threshold) {
             return null;
         }
+
+        $trace[] = [
+            'question' => 'How much '.$coverageLabel.' cover do you currently have?',
+            'data_field' => 'Current '.$coverageLabel.' cover',
+            'data_value' => '£'.number_format($coverage, 0),
+            'threshold' => '£'.number_format($need, 0).' (calculated need)',
+            'passed' => false,
+            'explanation' => 'You need an additional £'.number_format($gap, 0).' of '.$coverageLabel.' cover to meet your calculated need.',
+        ];
 
         // Build description text based on coverage type
         $descriptionText = $this->buildGapDescription($coverageType, $gap, $coverage);
@@ -136,7 +160,10 @@ class ProtectionActionDefinitionService
             'description_text' => $descriptionText,
         ];
 
-        return $this->buildRecommendation($definition, $vars, $gap);
+        $rec = $this->buildRecommendation($definition, $vars, $gap);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -144,6 +171,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateStrategyCondition(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $triggerConfig = $definition->trigger_config;
         $categoryMatch = strtolower($triggerConfig['category_match'] ?? '');
 
@@ -159,6 +188,17 @@ class ProtectionActionDefinitionService
             }
         }
 
+        $trace[] = [
+            'question' => 'Does the optimised strategy include a recommendation for "'.$categoryMatch.'"?',
+            'data_field' => 'Matching strategy recommendations',
+            'data_value' => (string) count($matched).' found',
+            'threshold' => 'At least 1 matching recommendation',
+            'passed' => empty($matched),
+            'explanation' => empty($matched)
+                ? 'No strategy recommendations match the "'.$categoryMatch.'" category.'
+                : count($matched).' strategy recommendation(s) found for "'.$categoryMatch.'".',
+        ];
+
         if (empty($matched)) {
             return null;
         }
@@ -168,6 +208,15 @@ class ProtectionActionDefinitionService
         $coverageAmount = $rec['coverage_amount'] ?? $rec['monthly_benefit'] ?? 0;
         $monthlyCost = $rec['estimated_monthly_cost'] ?? 0;
 
+        $trace[] = [
+            'question' => 'What coverage amount and cost does the strategy recommend?',
+            'data_field' => 'Recommended coverage',
+            'data_value' => '£'.number_format((float) $coverageAmount, 0).' cover, £'.number_format((float) $monthlyCost, 0).' per month',
+            'threshold' => 'N/A',
+            'passed' => false,
+            'explanation' => 'The strategy recommends £'.number_format((float) $coverageAmount, 0).' of coverage at an estimated cost of £'.number_format((float) $monthlyCost, 0).' per month.',
+        ];
+
         $vars = [
             'action_text' => $rec['action'] ?? 'Review coverage',
             'details_text' => $rec['details'] ?? '',
@@ -175,7 +224,7 @@ class ProtectionActionDefinitionService
             'monthly_cost' => $this->formatCurrency($monthlyCost),
         ];
 
-        return [
+        $result = [
             'priority' => $rec['priority'] ?? 3,
             'category' => $definition->category,
             'action' => $definition->renderTitle($vars),
@@ -184,7 +233,10 @@ class ProtectionActionDefinitionService
             'estimated_cost' => round((float) $monthlyCost, 2),
             'impact_parameters' => ['coverage_amount' => $coverageAmount],
             'timeframe' => $rec['timeframe'] ?? 'Within 3 months',
+            'decision_trace' => $trace,
         ];
+
+        return $result;
     }
 
     /**
@@ -192,14 +244,40 @@ class ProtectionActionDefinitionService
      */
     private function evaluatePoliciesExistWithGaps(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $policyCount = $this->countPolicies($currentCoverage);
+
+        $trace[] = [
+            'question' => 'Do you have any existing protection policies?',
+            'data_field' => 'Total policy count',
+            'data_value' => (string) $policyCount.' policies',
+            'threshold' => 'At least 1 policy',
+            'passed' => $policyCount > 0,
+            'explanation' => $policyCount > 0
+                ? 'You have '.$policyCount.' existing protection policies.'
+                : 'You have no existing protection policies.',
+        ];
 
         if ($policyCount === 0) {
             return null;
         }
 
-        if (! $this->hasAnyGap($comprehensivePlan)) {
+        $hasGap = $this->hasAnyGap($comprehensivePlan);
+
+        $trace[] = [
+            'question' => 'Are there any remaining coverage gaps despite your existing policies?',
+            'data_field' => 'Coverage gaps remaining',
+            'data_value' => $hasGap ? 'Yes' : 'No',
+            'threshold' => 'No gaps',
+            'passed' => ! $hasGap,
+            'explanation' => $hasGap
+                ? 'Despite having '.$policyCount.' policies, coverage gaps remain.'
+                : 'Your existing policies fully cover your protection needs.',
+        ];
+
+        if (! $hasGap) {
             return null;
         }
 
@@ -207,7 +285,10 @@ class ProtectionActionDefinitionService
             'policy_count' => (string) $policyCount,
         ];
 
-        return $this->buildRecommendation($definition, $vars, 0);
+        $rec = $this->buildRecommendation($definition, $vars, 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -215,9 +296,22 @@ class ProtectionActionDefinitionService
      */
     private function evaluateMultiplePolicies(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $threshold = (int) ($definition->trigger_config['threshold'] ?? 3);
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $policyCount = $this->countPolicies($currentCoverage);
+
+        $trace[] = [
+            'question' => 'Do you have a large number of separate protection policies?',
+            'data_field' => 'Total policy count',
+            'data_value' => (string) $policyCount.' policies',
+            'threshold' => (string) $threshold.' or more policies',
+            'passed' => $policyCount < $threshold,
+            'explanation' => $policyCount < $threshold
+                ? 'You have '.$policyCount.' policies, which is manageable.'
+                : 'You have '.$policyCount.' policies. Consolidating could simplify your cover and potentially reduce costs.',
+        ];
 
         if ($policyCount < $threshold) {
             return null;
@@ -227,7 +321,10 @@ class ProtectionActionDefinitionService
             'policy_count' => (string) $policyCount,
         ];
 
-        return $this->buildRecommendation($definition, $vars, 0);
+        $rec = $this->buildRecommendation($definition, $vars, 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -235,14 +332,31 @@ class ProtectionActionDefinitionService
      */
     private function evaluateProfileMissing(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userProfile = $comprehensivePlan['user_profile'] ?? [];
+        $hasProfile = ! empty($userProfile) && isset($userProfile['age']);
+
+        $trace[] = [
+            'question' => 'Have you completed your protection profile?',
+            'data_field' => 'Protection profile',
+            'data_value' => $hasProfile ? 'Complete' : 'Missing',
+            'threshold' => 'Profile must exist with age data',
+            'passed' => $hasProfile,
+            'explanation' => $hasProfile
+                ? 'Your protection profile is set up with the information needed for analysis.'
+                : 'Your protection profile is incomplete. We need your personal details to calculate your cover requirements.',
+        ];
 
         // If user profile has meaningful data, profile exists
-        if (! empty($userProfile) && isset($userProfile['age'])) {
+        if ($hasProfile) {
             return null;
         }
 
-        return $this->buildRecommendation($definition, [], 0);
+        $rec = $this->buildRecommendation($definition, [], 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -250,14 +364,40 @@ class ProtectionActionDefinitionService
      */
     private function evaluateNoPoliciesWithGaps(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $policyCount = $this->countPolicies($currentCoverage);
+
+        $trace[] = [
+            'question' => 'Do you have any existing protection policies?',
+            'data_field' => 'Total policy count',
+            'data_value' => (string) $policyCount.' policies',
+            'threshold' => '0 policies (no cover at all)',
+            'passed' => $policyCount > 0,
+            'explanation' => $policyCount > 0
+                ? 'You have '.$policyCount.' existing protection policies.'
+                : 'You have no protection policies in place.',
+        ];
 
         if ($policyCount > 0) {
             return null;
         }
 
-        if (! $this->hasAnyGap($comprehensivePlan)) {
+        $hasGap = $this->hasAnyGap($comprehensivePlan);
+
+        $trace[] = [
+            'question' => 'Do you have any protection needs that are not being met?',
+            'data_field' => 'Coverage gaps exist',
+            'data_value' => $hasGap ? 'Yes' : 'No',
+            'threshold' => 'No gaps',
+            'passed' => ! $hasGap,
+            'explanation' => $hasGap
+                ? 'You have unmet protection needs with no policies in place to cover them.'
+                : 'No coverage gaps identified based on your circumstances.',
+        ];
+
+        if (! $hasGap) {
             return null;
         }
 
@@ -267,11 +407,23 @@ class ProtectionActionDefinitionService
         $ipGap = (float) ($coverageAnalysis['income_protection']['gap'] ?? 0);
         $totalGap = $lifeGap + $ciGap + ($ipGap * 12);
 
+        $trace[] = [
+            'question' => 'What is the total protection shortfall across all cover types?',
+            'data_field' => 'Total protection gap',
+            'data_value' => '£'.number_format($totalGap, 0),
+            'threshold' => '£0 (fully covered)',
+            'passed' => false,
+            'explanation' => 'Your total protection shortfall is £'.number_format($totalGap, 0).', comprising life insurance (£'.number_format($lifeGap, 0).'), critical illness (£'.number_format($ciGap, 0).'), and income protection (£'.number_format($ipGap * 12, 0).' annualised).',
+        ];
+
         $vars = [
             'total_gap' => $this->formatCurrency($totalGap),
         ];
 
-        return $this->buildRecommendation($definition, $vars, 0);
+        $rec = $this->buildRecommendation($definition, $vars, 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // =============================================
@@ -283,6 +435,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateDisReliance(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $protectionNeeds = $comprehensivePlan['protection_needs'] ?? [];
         $financialSummary = $comprehensivePlan['financial_summary'] ?? [];
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
@@ -293,6 +447,17 @@ class ProtectionActionDefinitionService
         // Access profile data from the plan — employer benefit data is surfaced here
         $userProfile = $comprehensivePlan['user_profile'] ?? [];
         $disMultiple = $this->getProfileValue($comprehensivePlan, 'death_in_service_multiple');
+
+        $trace[] = [
+            'question' => 'Do you have a death in service benefit through your employer?',
+            'data_field' => 'Death in service multiple',
+            'data_value' => $disMultiple !== null && $disMultiple > 0 ? $disMultiple.'x salary' : 'None',
+            'threshold' => 'Must have death in service benefit and life cover',
+            'passed' => ! ($disMultiple !== null && $disMultiple > 0 && $lifeCoverage > 0),
+            'explanation' => $disMultiple !== null && $disMultiple > 0
+                ? 'You have a death in service benefit of '.$disMultiple.' times your salary.'
+                : 'No death in service benefit recorded.',
+        ];
 
         if ($disMultiple === null || $disMultiple <= 0 || $lifeCoverage <= 0) {
             return null;
@@ -310,8 +475,25 @@ class ProtectionActionDefinitionService
         // Death in service + personal life cover = total life cover
         // Check if DIS portion exceeds threshold of total
         $totalLifeIncludingDis = $lifeCoverage;
-        if ($totalLifeIncludingDis > 0 && ($deathInService / $totalLifeIncludingDis) > $disRelianceThreshold) {
-            return $this->buildRecommendation($definition, [], 0);
+        $disRatio = $totalLifeIncludingDis > 0 ? ($deathInService / $totalLifeIncludingDis) : 0;
+        $overReliant = $totalLifeIncludingDis > 0 && $disRatio > $disRelianceThreshold;
+
+        $trace[] = [
+            'question' => 'Are you over-reliant on your employer death in service benefit?',
+            'data_field' => 'Death in service as proportion of total life cover',
+            'data_value' => round($disRatio * 100, 1).'% (£'.number_format($deathInService, 0).' of £'.number_format($totalLifeIncludingDis, 0).')',
+            'threshold' => round($disRelianceThreshold * 100, 0).'% maximum reliance',
+            'passed' => ! $overReliant,
+            'explanation' => $overReliant
+                ? 'Your death in service benefit makes up '.round($disRatio * 100, 1).'% of your total life cover. If you changed employer, you could lose a significant portion of your protection.'
+                : 'Your death in service benefit is a reasonable proportion of your total life cover.',
+        ];
+
+        if ($overReliant) {
+            $rec = $this->buildRecommendation($definition, [], 0);
+            $rec['decision_trace'] = $trace;
+
+            return $rec;
         }
 
         return null;
@@ -322,8 +504,21 @@ class ProtectionActionDefinitionService
      */
     private function evaluateNoEmployerBenefits(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $financialSummary = $comprehensivePlan['financial_summary'] ?? [];
         $employmentIncome = (float) ($financialSummary['income_breakdown']['employment_income'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Are you currently employed?',
+            'data_field' => 'Employment income',
+            'data_value' => '£'.number_format($employmentIncome, 0).' per year',
+            'threshold' => 'Greater than £0',
+            'passed' => $employmentIncome <= 0,
+            'explanation' => $employmentIncome > 0
+                ? 'You have employment income of £'.number_format($employmentIncome, 0).' per year, so you may have employer benefits to record.'
+                : 'No employment income recorded, so employer benefits do not apply.',
+        ];
 
         // Only triggers for employed users
         if ($employmentIncome <= 0) {
@@ -341,11 +536,25 @@ class ProtectionActionDefinitionService
             || ($groupCi !== null && $groupCi > 0)
             || ($hasPmi === true);
 
+        $trace[] = [
+            'question' => 'Have you recorded any employer protection benefits?',
+            'data_field' => 'Employer benefits recorded',
+            'data_value' => $hasAnyBenefit ? 'Yes' : 'None recorded',
+            'threshold' => 'At least 1 employer benefit',
+            'passed' => $hasAnyBenefit,
+            'explanation' => $hasAnyBenefit
+                ? 'You have recorded employer protection benefits.'
+                : 'No employer benefits have been recorded. Many employers provide death in service, group income protection, or private medical insurance. Recording these ensures your analysis is accurate.',
+        ];
+
         if ($hasAnyBenefit) {
             return null;
         }
 
-        return $this->buildRecommendation($definition, [], 0);
+        $rec = $this->buildRecommendation($definition, [], 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -353,13 +562,30 @@ class ProtectionActionDefinitionService
      */
     private function evaluateGroupIpDefinition(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
-        $groupIpDefinition = $this->getProfileValue($comprehensivePlan, 'group_ip_definition');
+        $trace = [];
 
-        if ($groupIpDefinition === null || strtolower((string) $groupIpDefinition) !== 'any') {
+        $groupIpDefinition = $this->getProfileValue($comprehensivePlan, 'group_ip_definition');
+        $isAnyOccupation = $groupIpDefinition !== null && strtolower((string) $groupIpDefinition) === 'any';
+
+        $trace[] = [
+            'question' => 'Does your employer group income protection use an "any occupation" definition?',
+            'data_field' => 'Group income protection definition',
+            'data_value' => $groupIpDefinition !== null ? ucfirst((string) $groupIpDefinition).' occupation' : 'Not recorded',
+            'threshold' => 'Not "any occupation"',
+            'passed' => ! $isAnyOccupation,
+            'explanation' => $isAnyOccupation
+                ? 'Your employer group income protection uses an "any occupation" definition, which means it only pays out if you cannot do any job at all. This is a weaker form of protection than "own occupation".'
+                : 'Your employer group income protection does not use an "any occupation" definition, or no group scheme is recorded.',
+        ];
+
+        if (! $isAnyOccupation) {
             return null;
         }
 
-        return $this->buildRecommendation($definition, [], 0);
+        $rec = $this->buildRecommendation($definition, [], 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // =============================================
@@ -371,9 +597,22 @@ class ProtectionActionDefinitionService
      */
     private function evaluateIpGapAfterStateBenefits(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $coverageAnalysis = $comprehensivePlan['coverage_analysis'] ?? [];
         $ipData = $coverageAnalysis['income_protection'] ?? [];
         $ipGap = (float) ($ipData['gap'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have an income protection gap?',
+            'data_field' => 'Income protection gap',
+            'data_value' => '£'.number_format($ipGap, 0).' per month',
+            'threshold' => '£0 (no gap)',
+            'passed' => $ipGap <= 0,
+            'explanation' => $ipGap > 0
+                ? 'You have an income protection shortfall of £'.number_format($ipGap, 0).' per month.'
+                : 'Your income protection cover meets your needs.',
+        ];
 
         if ($ipGap <= 0) {
             return null;
@@ -394,11 +633,23 @@ class ProtectionActionDefinitionService
             $sspTotal = $sspWeekly * $sspMaxWeeks;
         }
 
+        $trace[] = [
+            'question' => 'Does the income protection gap persist even after accounting for Statutory Sick Pay?',
+            'data_field' => 'Total Statutory Sick Pay entitlement',
+            'data_value' => '£'.number_format($sspTotal, 0),
+            'threshold' => 'Statutory Sick Pay is time-limited and may not cover the full gap',
+            'passed' => false,
+            'explanation' => 'Your total Statutory Sick Pay entitlement is £'.number_format($sspTotal, 0).'. This is a time-limited benefit that would not replace your income long-term. Your monthly gap of £'.number_format($ipGap, 0).' would remain after Statutory Sick Pay ends.',
+        ];
+
         $vars = [
             'ssp_total' => $this->formatCurrency($sspTotal),
         ];
 
-        return $this->buildRecommendation($definition, $vars, $ipGap);
+        $rec = $this->buildRecommendation($definition, $vars, $ipGap);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -406,12 +657,26 @@ class ProtectionActionDefinitionService
      */
     private function evaluateSelfEmployedNoIp(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $financialSummary = $comprehensivePlan['financial_summary'] ?? [];
         $employmentIncome = (float) ($financialSummary['income_breakdown']['employment_income'] ?? 0);
         $selfEmploymentIncome = (float) ($financialSummary['income_breakdown']['self_employment_income'] ?? 0);
 
         // Must be self-employed (has self-employment income, no employment income)
         $isSelfEmployed = $selfEmploymentIncome > 0 && $employmentIncome <= 0;
+
+        $trace[] = [
+            'question' => 'Are you self-employed?',
+            'data_field' => 'Employment status',
+            'data_value' => $isSelfEmployed ? 'Self-employed (£'.number_format($selfEmploymentIncome, 0).' per year)' : 'Not self-employed',
+            'threshold' => 'Self-employment income with no employment income',
+            'passed' => ! $isSelfEmployed,
+            'explanation' => $isSelfEmployed
+                ? 'You are self-employed with no employer to provide sick pay or group income protection.'
+                : 'You are not solely self-employed, so this check does not apply.',
+        ];
+
         if (! $isSelfEmployed) {
             return null;
         }
@@ -419,12 +684,27 @@ class ProtectionActionDefinitionService
         // Check if user has any income protection policies
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $ipPolicies = $currentCoverage['income_protection']['policies'] ?? [];
+        $ipCount = count($ipPolicies);
 
-        if (count($ipPolicies) > 0) {
+        $trace[] = [
+            'question' => 'Do you have any personal income protection policies?',
+            'data_field' => 'Income protection policies',
+            'data_value' => (string) $ipCount.' policies',
+            'threshold' => 'At least 1 policy',
+            'passed' => $ipCount > 0,
+            'explanation' => $ipCount > 0
+                ? 'You have '.$ipCount.' income protection policies in place.'
+                : 'You have no income protection policies. As a self-employed person, you have no employer sick pay to fall back on if you are unable to work.',
+        ];
+
+        if ($ipCount > 0) {
             return null;
         }
 
-        return $this->buildRecommendation($definition, [], 0);
+        $rec = $this->buildRecommendation($definition, [], 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // =============================================
@@ -437,6 +717,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluatePolicyNotInTrust(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $lifePolicies = $currentCoverage['life_insurance']['policies'] ?? [];
 
@@ -457,6 +739,20 @@ class ProtectionActionDefinitionService
             })
             ->get();
 
+        $totalLifePolicies = count($lifePolicies);
+        $untrustedCount = $untrustedPolicies->count();
+
+        $trace[] = [
+            'question' => 'Are any of your life insurance policies not held in trust?',
+            'data_field' => 'Policies not in trust',
+            'data_value' => (string) $untrustedCount.' of '.(string) $totalLifePolicies.' policies',
+            'threshold' => '0 policies outside trust',
+            'passed' => $untrustedCount === 0,
+            'explanation' => $untrustedCount > 0
+                ? $untrustedCount.' of your life insurance policies are not held in trust. Placing policies in trust can help ensure the proceeds are paid quickly to your beneficiaries and may reduce your inheritance tax liability.'
+                : 'All your life insurance policies are held in trust.',
+        ];
+
         if ($untrustedPolicies->isEmpty()) {
             return null;
         }
@@ -466,7 +762,9 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -477,10 +775,24 @@ class ProtectionActionDefinitionService
      */
     private function evaluatePolicyNotJoint(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userProfile = $comprehensivePlan['user_profile'] ?? [];
         $maritalStatus = strtolower((string) ($userProfile['marital_status'] ?? ''));
+        $isMarriedOrCp = $maritalStatus === 'married' || $maritalStatus === 'civil partnership';
 
-        if ($maritalStatus !== 'married' && $maritalStatus !== 'civil partnership') {
+        $trace[] = [
+            'question' => 'Are you married or in a civil partnership?',
+            'data_field' => 'Marital status',
+            'data_value' => ucfirst($maritalStatus ?: 'Not recorded'),
+            'threshold' => 'Married or civil partnership',
+            'passed' => ! $isMarriedOrCp,
+            'explanation' => $isMarriedOrCp
+                ? 'You are '.$maritalStatus.', so joint life cover may be worth considering.'
+                : 'This check only applies to those who are married or in a civil partnership.',
+        ];
+
+        if (! $isMarriedOrCp) {
             return null;
         }
 
@@ -496,6 +808,19 @@ class ProtectionActionDefinitionService
             })
             ->get();
 
+        $nonJointCount = $nonJointPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do you have any life insurance policies that are not joint life?',
+            'data_field' => 'Non-joint life policies',
+            'data_value' => (string) $nonJointCount.' policies',
+            'threshold' => '0 non-joint policies',
+            'passed' => $nonJointCount === 0,
+            'explanation' => $nonJointCount > 0
+                ? $nonJointCount.' of your life insurance policies are single life rather than joint. As you are '.$maritalStatus.', a joint life policy may offer better value or more appropriate cover.'
+                : 'All your life insurance policies are joint life.',
+        ];
+
         if ($nonJointPolicies->isEmpty()) {
             return null;
         }
@@ -505,7 +830,9 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -516,6 +843,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluatePolicyExpiringSoon(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -531,6 +860,19 @@ class ProtectionActionDefinitionService
             ->where('policy_end_date', '<=', $thresholdDate)
             ->get();
 
+        $expiringCount = $expiringPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do you have any life insurance policies expiring within the next '.$monthsThreshold.' months?',
+            'data_field' => 'Policies expiring soon',
+            'data_value' => (string) $expiringCount.' policies',
+            'threshold' => 'Expiry within '.$monthsThreshold.' months',
+            'passed' => $expiringCount === 0,
+            'explanation' => $expiringCount > 0
+                ? $expiringCount.' of your life insurance policies will expire within the next '.$monthsThreshold.' months. You should review your cover before it lapses.'
+                : 'None of your life insurance policies are due to expire within the next '.$monthsThreshold.' months.',
+        ];
+
         if ($expiringPolicies->isEmpty()) {
             return null;
         }
@@ -541,7 +883,9 @@ class ProtectionActionDefinitionService
                 'provider' => $policy->provider ?? 'your insurer',
                 'end_date' => $policy->policy_end_date->format('j F Y'),
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -552,6 +896,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluatePolicyExpired(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -563,6 +909,19 @@ class ProtectionActionDefinitionService
             ->where('policy_end_date', '<', now())
             ->get();
 
+        $expiredCount = $expiredPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do you have any life insurance policies that have already expired?',
+            'data_field' => 'Expired policies',
+            'data_value' => (string) $expiredCount.' policies',
+            'threshold' => '0 expired policies',
+            'passed' => $expiredCount === 0,
+            'explanation' => $expiredCount > 0
+                ? $expiredCount.' of your life insurance policies have expired. You are no longer covered by these policies and should review whether replacement cover is needed.'
+                : 'None of your life insurance policies have expired.',
+        ];
+
         if ($expiredPolicies->isEmpty()) {
             return null;
         }
@@ -573,7 +932,9 @@ class ProtectionActionDefinitionService
                 'provider' => $policy->provider ?? 'your insurer',
                 'end_date' => $policy->policy_end_date->format('j F Y'),
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -584,10 +945,23 @@ class ProtectionActionDefinitionService
      */
     private function evaluateMortgageNoDecreasingTerm(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $financialSummary = $comprehensivePlan['financial_summary'] ?? [];
         $totalDebt = (float) ($financialSummary['total_debt'] ?? 0);
         $debtBreakdown = $financialSummary['debt_breakdown'] ?? [];
         $mortgageDebt = (float) ($debtBreakdown['mortgage'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have a mortgage?',
+            'data_field' => 'Outstanding mortgage balance',
+            'data_value' => '£'.number_format($mortgageDebt, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $mortgageDebt <= 0,
+            'explanation' => $mortgageDebt > 0
+                ? 'You have an outstanding mortgage balance of £'.number_format($mortgageDebt, 0).'.'
+                : 'No mortgage debt recorded.',
+        ];
 
         if ($mortgageDebt <= 0) {
             return null;
@@ -607,6 +981,17 @@ class ProtectionActionDefinitionService
             })
             ->exists();
 
+        $trace[] = [
+            'question' => 'Do you have a decreasing term or mortgage protection policy?',
+            'data_field' => 'Mortgage protection cover',
+            'data_value' => $hasMortgageProtection ? 'Yes' : 'No',
+            'threshold' => 'At least 1 decreasing term or mortgage protection policy',
+            'passed' => $hasMortgageProtection,
+            'explanation' => $hasMortgageProtection
+                ? 'You have a decreasing term or mortgage protection policy in place to cover your mortgage.'
+                : 'You have no decreasing term or mortgage protection policy. A decreasing term policy is designed to cover your mortgage balance and typically costs less than level term cover.',
+        ];
+
         if ($hasMortgageProtection) {
             return null;
         }
@@ -615,7 +1000,10 @@ class ProtectionActionDefinitionService
             'mortgage_amount' => $this->formatCurrency($mortgageDebt),
         ];
 
-        return $this->buildRecommendation($definition, $vars, $mortgageDebt);
+        $rec = $this->buildRecommendation($definition, $vars, $mortgageDebt);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     // =============================================
@@ -627,6 +1015,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateIpAnyOccupation(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -637,6 +1027,19 @@ class ProtectionActionDefinitionService
             ->where('occupation_class', 'any')
             ->get();
 
+        $anyOccCount = $anyOccupationPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do any of your income protection policies use an "any occupation" definition?',
+            'data_field' => 'Policies with "any occupation" definition',
+            'data_value' => (string) $anyOccCount.' policies',
+            'threshold' => '0 policies with "any occupation"',
+            'passed' => $anyOccCount === 0,
+            'explanation' => $anyOccCount > 0
+                ? $anyOccCount.' of your income protection policies use an "any occupation" definition. This means you would only receive a payout if you are unable to perform any job at all, not just your current occupation.'
+                : 'None of your income protection policies use the weaker "any occupation" definition.',
+        ];
+
         if ($anyOccupationPolicies->isEmpty()) {
             return null;
         }
@@ -646,7 +1049,9 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -657,6 +1062,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateIpShortBenefitPeriod(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -671,6 +1078,19 @@ class ProtectionActionDefinitionService
             ->where('benefit_period_months', '<', $monthsThreshold)
             ->get();
 
+        $shortCount = $shortPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do any of your income protection policies have a short benefit period?',
+            'data_field' => 'Policies with benefit period under '.$monthsThreshold.' months',
+            'data_value' => (string) $shortCount.' policies',
+            'threshold' => 'Benefit period of at least '.$monthsThreshold.' months',
+            'passed' => $shortCount === 0,
+            'explanation' => $shortCount > 0
+                ? $shortCount.' of your income protection policies have a benefit period shorter than '.$monthsThreshold.' months. A longer benefit period provides more sustained protection during extended illness or injury.'
+                : 'All your income protection policies have a benefit period of at least '.$monthsThreshold.' months.',
+        ];
+
         if ($shortPolicies->isEmpty()) {
             return null;
         }
@@ -681,7 +1101,9 @@ class ProtectionActionDefinitionService
                 'benefit_months' => (string) $policy->benefit_period_months,
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -693,6 +1115,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateIpLongDeferredPeriod(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -704,6 +1128,17 @@ class ProtectionActionDefinitionService
         $groupIpPercent = $this->getProfileValue($comprehensivePlan, 'group_ip_benefit_percent');
         $hasEmployerSickPay = $groupIpPercent !== null && $groupIpPercent > 0;
 
+        $trace[] = [
+            'question' => 'Does your employer provide group income protection or sick pay to bridge the deferred period?',
+            'data_field' => 'Employer group income protection',
+            'data_value' => $hasEmployerSickPay ? round((float) $groupIpPercent, 1).'% of salary' : 'None',
+            'threshold' => 'Any employer sick pay provision',
+            'passed' => $hasEmployerSickPay,
+            'explanation' => $hasEmployerSickPay
+                ? 'Your employer provides group income protection at '.round((float) $groupIpPercent, 1).'% of salary, which can bridge the deferred period.'
+                : 'You have no employer sick pay or group income protection to cover you during the deferred period.',
+        ];
+
         if ($hasEmployerSickPay) {
             return null;
         }
@@ -713,6 +1148,19 @@ class ProtectionActionDefinitionService
             ->whereNotNull('deferred_period_weeks')
             ->where('deferred_period_weeks', '>', $weeksThreshold)
             ->get();
+
+        $longDeferredCount = $longDeferredPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do any of your income protection policies have a long deferred period?',
+            'data_field' => 'Policies with deferred period over '.$weeksThreshold.' weeks',
+            'data_value' => (string) $longDeferredCount.' policies',
+            'threshold' => 'Deferred period of '.$weeksThreshold.' weeks or less',
+            'passed' => $longDeferredCount === 0,
+            'explanation' => $longDeferredCount > 0
+                ? $longDeferredCount.' of your income protection policies have a deferred period longer than '.$weeksThreshold.' weeks. Without employer sick pay, you would have no income during this waiting period.'
+                : 'None of your income protection policies have an excessively long deferred period.',
+        ];
 
         if ($longDeferredPolicies->isEmpty()) {
             return null;
@@ -724,7 +1172,9 @@ class ProtectionActionDefinitionService
                 'deferred_weeks' => (string) $policy->deferred_period_weeks,
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -739,9 +1189,22 @@ class ProtectionActionDefinitionService
      */
     private function evaluateNoCiWithMortgage(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $financialSummary = $comprehensivePlan['financial_summary'] ?? [];
         $debtBreakdown = $financialSummary['debt_breakdown'] ?? [];
         $mortgageDebt = (float) ($debtBreakdown['mortgage'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have a mortgage?',
+            'data_field' => 'Outstanding mortgage balance',
+            'data_value' => '£'.number_format($mortgageDebt, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $mortgageDebt <= 0,
+            'explanation' => $mortgageDebt > 0
+                ? 'You have an outstanding mortgage balance of £'.number_format($mortgageDebt, 0).'.'
+                : 'No mortgage debt recorded.',
+        ];
 
         if ($mortgageDebt <= 0) {
             return null;
@@ -749,6 +1212,17 @@ class ProtectionActionDefinitionService
 
         $coverageAnalysis = $comprehensivePlan['coverage_analysis'] ?? [];
         $ciCoverage = (float) ($coverageAnalysis['critical_illness']['coverage'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have any critical illness cover?',
+            'data_field' => 'Critical illness coverage',
+            'data_value' => '£'.number_format($ciCoverage, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $ciCoverage > 0,
+            'explanation' => $ciCoverage > 0
+                ? 'You have £'.number_format($ciCoverage, 0).' of critical illness cover.'
+                : 'You have no critical illness cover. A serious diagnosis could leave you unable to meet your mortgage repayments of £'.number_format($mortgageDebt, 0).'.',
+        ];
 
         if ($ciCoverage > 0) {
             return null;
@@ -758,7 +1232,10 @@ class ProtectionActionDefinitionService
             'mortgage_amount' => $this->formatCurrency($mortgageDebt),
         ];
 
-        return $this->buildRecommendation($definition, $vars, $mortgageDebt);
+        $rec = $this->buildRecommendation($definition, $vars, $mortgageDebt);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -766,6 +1243,8 @@ class ProtectionActionDefinitionService
      */
     private function evaluateCiCombinedRisk(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userId = $this->extractUserId($comprehensivePlan);
         if ($userId === null) {
             return null;
@@ -776,6 +1255,19 @@ class ProtectionActionDefinitionService
             ->where('policy_type', 'combined')
             ->get();
 
+        $combinedCount = $combinedPolicies->count();
+
+        $trace[] = [
+            'question' => 'Do you have any combined life and critical illness policies?',
+            'data_field' => 'Combined life and critical illness policies',
+            'data_value' => (string) $combinedCount.' policies',
+            'threshold' => '0 combined policies',
+            'passed' => $combinedCount === 0,
+            'explanation' => $combinedCount > 0
+                ? $combinedCount.' of your critical illness policies are combined with life cover. With a combined policy, if you claim for a critical illness, your life cover is also reduced or lost. Standalone policies provide independent protection for each risk.'
+                : 'You do not have any combined life and critical illness policies.',
+        ];
+
         if ($combinedPolicies->isEmpty()) {
             return null;
         }
@@ -785,7 +1277,9 @@ class ProtectionActionDefinitionService
             $vars = [
                 'provider' => $policy->provider ?? 'your insurer',
             ];
-            $results[] = $this->buildRecommendation($definition, $vars, 0);
+            $rec = $this->buildRecommendation($definition, $vars, 0);
+            $rec['decision_trace'] = $trace;
+            $results[] = $rec;
         }
 
         return $results;
@@ -800,8 +1294,21 @@ class ProtectionActionDefinitionService
      */
     private function evaluateDependantsNoLifeCover(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userProfile = $comprehensivePlan['user_profile'] ?? [];
         $dependants = (int) ($userProfile['number_of_dependents'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have any dependants?',
+            'data_field' => 'Number of dependants',
+            'data_value' => (string) $dependants,
+            'threshold' => 'At least 1 dependant',
+            'passed' => $dependants <= 0,
+            'explanation' => $dependants > 0
+                ? 'You have '.$dependants.' dependant(s) who rely on your income.'
+                : 'No dependants recorded.',
+        ];
 
         if ($dependants <= 0) {
             return null;
@@ -809,6 +1316,17 @@ class ProtectionActionDefinitionService
 
         $currentCoverage = $comprehensivePlan['current_coverage'] ?? [];
         $lifeCoverage = (float) ($currentCoverage['life_insurance']['total_coverage'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have any life insurance cover?',
+            'data_field' => 'Total life insurance coverage',
+            'data_value' => '£'.number_format($lifeCoverage, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $lifeCoverage > 0,
+            'explanation' => $lifeCoverage > 0
+                ? 'You have £'.number_format($lifeCoverage, 0).' of life insurance cover.'
+                : 'You have no life insurance cover. With '.$dependants.' dependant(s), life insurance is essential to protect their financial security if something were to happen to you.',
+        ];
 
         if ($lifeCoverage > 0) {
             return null;
@@ -818,7 +1336,10 @@ class ProtectionActionDefinitionService
             'dependant_count' => (string) $dependants,
         ];
 
-        return $this->buildRecommendation($definition, $vars, 0);
+        $rec = $this->buildRecommendation($definition, $vars, 0);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -826,9 +1347,22 @@ class ProtectionActionDefinitionService
      */
     private function evaluateEducationFundingGap(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $protectionNeeds = $comprehensivePlan['protection_needs'] ?? [];
         $breakdown = $protectionNeeds['breakdown'] ?? [];
         $educationFunding = (float) ($breakdown['education_funding'] ?? 0);
+
+        $trace[] = [
+            'question' => 'Do you have an education funding need for your dependants?',
+            'data_field' => 'Education funding requirement',
+            'data_value' => '£'.number_format($educationFunding, 0),
+            'threshold' => 'Greater than £0',
+            'passed' => $educationFunding <= 0,
+            'explanation' => $educationFunding > 0
+                ? 'You have an education funding requirement of £'.number_format($educationFunding, 0).' for your dependants.'
+                : 'No education funding need identified.',
+        ];
 
         if ($educationFunding <= 0) {
             return null;
@@ -839,6 +1373,17 @@ class ProtectionActionDefinitionService
         $coverageAnalysis = $comprehensivePlan['coverage_analysis'] ?? [];
         $lifeGap = (float) ($coverageAnalysis['life_insurance']['gap'] ?? 0);
 
+        $trace[] = [
+            'question' => 'Is your life insurance sufficient to cover your education funding need?',
+            'data_field' => 'Life insurance gap',
+            'data_value' => '£'.number_format($lifeGap, 0),
+            'threshold' => '£0 (no gap)',
+            'passed' => $lifeGap <= 0,
+            'explanation' => $lifeGap > 0
+                ? 'Your life insurance has a shortfall of £'.number_format($lifeGap, 0).', which puts your education funding at risk.'
+                : 'Your life insurance fully covers your needs, including education funding.',
+        ];
+
         if ($lifeGap <= 0) {
             return null;
         }
@@ -846,11 +1391,23 @@ class ProtectionActionDefinitionService
         // Education gap is the lesser of the education funding need and the total life gap
         $educationGap = min($educationFunding, $lifeGap);
 
+        $trace[] = [
+            'question' => 'How much of the education funding is at risk?',
+            'data_field' => 'Education funding gap',
+            'data_value' => '£'.number_format($educationGap, 0),
+            'threshold' => '£0 (fully covered)',
+            'passed' => false,
+            'explanation' => '£'.number_format($educationGap, 0).' of the education funding need is at risk due to insufficient life cover.',
+        ];
+
         $vars = [
             'gap_amount' => $this->formatCurrency($educationGap),
         ];
 
-        return $this->buildRecommendation($definition, $vars, $educationGap);
+        $rec = $this->buildRecommendation($definition, $vars, $educationGap);
+        $rec['decision_trace'] = $trace;
+
+        return $rec;
     }
 
     /**
@@ -859,14 +1416,40 @@ class ProtectionActionDefinitionService
      */
     private function evaluateNonEarningSpouse(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
     {
+        $trace = [];
+
         $userProfile = $comprehensivePlan['user_profile'] ?? [];
         $maritalStatus = strtolower((string) ($userProfile['marital_status'] ?? ''));
         $dependants = (int) ($userProfile['number_of_dependents'] ?? 0);
 
+        $isMarriedOrCp = in_array($maritalStatus, ['married', 'civil partnership']);
+
+        $trace[] = [
+            'question' => 'Are you married or in a civil partnership?',
+            'data_field' => 'Marital status',
+            'data_value' => ucfirst($maritalStatus ?: 'Not recorded'),
+            'threshold' => 'Married or civil partnership',
+            'passed' => ! $isMarriedOrCp,
+            'explanation' => $isMarriedOrCp
+                ? 'You are '.$maritalStatus.'.'
+                : 'This check only applies to those who are married or in a civil partnership.',
+        ];
+
         // Must be married/civil partnership with dependants
-        if (! in_array($maritalStatus, ['married', 'civil partnership'])) {
+        if (! $isMarriedOrCp) {
             return null;
         }
+
+        $trace[] = [
+            'question' => 'Do you have dependants?',
+            'data_field' => 'Number of dependants',
+            'data_value' => (string) $dependants,
+            'threshold' => 'At least 1 dependant',
+            'passed' => $dependants <= 0,
+            'explanation' => $dependants > 0
+                ? 'You have '.$dependants.' dependant(s).'
+                : 'No dependants recorded. This check requires dependants.',
+        ];
 
         if ($dependants <= 0) {
             return null;
@@ -877,19 +1460,33 @@ class ProtectionActionDefinitionService
         $spouseInfo = $protectionNeeds['spouse_info'] ?? [];
         $spouseGrossIncome = (float) ($spouseInfo['spouse_gross_income'] ?? 0);
 
+        // Check if spouse is included in analysis (permission granted)
+        $spouseIncluded = (bool) ($spouseInfo['spouse_included'] ?? false);
+
+        if (! $spouseIncluded) {
+            return null;
+        }
+
+        $trace[] = [
+            'question' => 'Does your spouse or partner have their own earned income?',
+            'data_field' => 'Spouse gross income',
+            'data_value' => '£'.number_format($spouseGrossIncome, 0).' per year',
+            'threshold' => 'Greater than £0',
+            'passed' => $spouseGrossIncome > 0,
+            'explanation' => $spouseGrossIncome > 0
+                ? 'Your spouse earns £'.number_format($spouseGrossIncome, 0).' per year.'
+                : 'Your spouse has no earned income. If they were unable to fulfil their role due to illness or death, the cost of replacing their contribution (childcare, household management) could be significant.',
+        ];
+
         // If spouse has earned income, this trigger does not apply
         if ($spouseGrossIncome > 0) {
             return null;
         }
 
-        // Check if spouse is included in analysis (permission granted)
-        $spouseIncluded = (bool) ($spouseInfo['spouse_included'] ?? false);
-        if (! $spouseIncluded) {
-            // Cannot determine spouse income — skip trigger
-            return null;
-        }
+        $rec = $this->buildRecommendation($definition, [], 0);
+        $rec['decision_trace'] = $trace;
 
-        return $this->buildRecommendation($definition, [], 0);
+        return $rec;
     }
 
     // =============================================
