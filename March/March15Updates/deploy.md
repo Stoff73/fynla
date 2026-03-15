@@ -105,6 +105,7 @@ This is a combined deployment covering the Decision Engine Upgrade (March 14) an
 app/Console/Commands/SendEstateAlerts.php
 app/Console/Commands/SendProtectionAlerts.php
 app/Console/Commands/SendSavingsAlerts.php
+app/Constants/InvestmentDefaults.php
 app/Models/SavingsActionDefinition.php
 app/Notifications/EmergencyFundAlertNotification.php
 app/Notifications/GiftExemptionNotification.php
@@ -132,7 +133,10 @@ app/Services/Savings/FSCSAssessor.php
 app/Services/Savings/PSACalculator.php
 app/Services/Savings/SavingsActionDefinitionService.php
 app/Services/Savings/SavingsDataReadinessService.php
+app/Traits/CalculatesOCF.php
 config/banking_licence_groups.php
+database/migrations/2026_03_13_200002_fix_savings_accounts_joint_owner_foreign_key.php
+database/migrations/2026_03_14_000001_add_sub_type_to_holdings_table.php
 database/migrations/2026_03_14_100001_create_savings_action_definitions_table.php
 database/migrations/2026_03_14_100002_create_goal_savings_account_table.php
 database/migrations/2026_03_14_100003_add_employer_benefits_to_protection_profiles.php
@@ -146,6 +150,30 @@ resources/js/components/Investment/InvestmentReadinessGate.vue
 resources/js/components/Retirement/SalarySacrificeDisplay.vue
 resources/js/components/Savings/MissingDataCard.vue
 resources/js/components/Savings/SavingsDecisionPath.vue
+resources/js/mobile/components/MobileAccordionSection.vue
+resources/js/mobile/components/MobileAccountCard.vue
+resources/js/mobile/components/MobileAllocationChart.vue
+resources/js/mobile/components/MobileDataRow.vue
+resources/js/mobile/components/MobileDetailSkeleton.vue
+resources/js/mobile/components/MobileEmptyState.vue
+resources/js/mobile/components/MobileEstateAssetCard.vue
+resources/js/mobile/components/MobileFynCard.vue
+resources/js/mobile/components/MobileGiftCard.vue
+resources/js/mobile/components/MobileHeroCard.vue
+resources/js/mobile/components/MobileHoldingRow.vue
+resources/js/mobile/components/MobilePensionCard.vue
+resources/js/mobile/components/MobilePolicyCard.vue
+resources/js/mobile/components/MobileTrustCard.vue
+resources/js/mobile/views/CoordinationDetail.vue
+resources/js/mobile/views/EstateDetail.vue
+resources/js/mobile/views/GoalsDetail.vue
+resources/js/mobile/views/InvestmentDetail.vue
+resources/js/mobile/views/ProtectionDetail.vue
+resources/js/mobile/views/RetirementDetail.vue
+resources/js/mobile/views/SavingsDetail.vue
+resources/js/utils/storage.js
+resources/js/views/Planning/PlanningJourneys.vue
+resources/js/views/Planning/WhatIfScenarios.vue
 ```
 
 ### Modified PHP Files (replace these)
@@ -153,48 +181,82 @@ resources/js/components/Savings/SavingsDecisionPath.vue
 ```
 app/Agents/CoordinatingAgent.php
 app/Agents/EstateAgent.php
+app/Agents/GoalsAgent.php
 app/Agents/InvestmentAgent.php
 app/Agents/ProtectionAgent.php
 app/Agents/RetirementAgent.php
 app/Agents/SavingsAgent.php
 app/Console/Kernel.php
 app/Constants/EstateDefaults.php
+app/Http/Controllers/Api/AdminController.php
 app/Http/Controllers/Api/AuthController.php
+app/Http/Controllers/Api/BusinessInterestController.php
+app/Http/Controllers/Api/ChattelController.php
 app/Http/Controllers/Api/EstateController.php
 app/Http/Controllers/Api/GoalsController.php
+app/Http/Controllers/Api/Investment/AssetLocationController.php
+app/Http/Controllers/Api/Investment/RebalancingCalculationController.php
+app/Http/Controllers/Api/InvestmentController.php
+app/Http/Controllers/Api/MFAController.php
+app/Http/Controllers/Api/MortgageController.php
 app/Http/Controllers/Api/PropertyController.php
 app/Http/Controllers/Api/SavingsController.php
 app/Http/Middleware/PreviewWriteInterceptor.php
+app/Http/Middleware/SecurityHeaders.php
+app/Http/Requests/Investment/StoreHoldingRequest.php
+app/Http/Requests/Investment/UpdateHoldingRequest.php
 app/Models/CashAccount.php
 app/Models/EmailVerificationCode.php
 app/Models/Goal.php
+app/Models/Investment/Holding.php
 app/Models/LifeInsurancePolicy.php
 app/Models/NotificationPreference.php
 app/Models/ProtectionProfile.php
 app/Models/SavingsAccount.php
 app/Observers/SavingsAccountGoalObserver.php
+app/Services/AI/AiChatService.php
+app/Services/AI/AiModelResolver.php
+app/Services/AI/AiToolDefinitions.php
+app/Services/Chattel/ChattelCGTService.php
+app/Services/Coordination/CrossModuleStrategyService.php
+app/Services/Coordination/HouseholdPlanningService.php
 app/Services/Estate/AssetLiquidityAnalyzer.php
+app/Services/Estate/ComprehensiveEstatePlanService.php
+app/Services/Estate/EstateAssetAggregatorService.php
 app/Services/Estate/FutureValueCalculator.php
 app/Services/Estate/GiftingStrategyOptimizer.php
 app/Services/Estate/IHTCalculationService.php
+app/Services/Estate/IntestacyCalculator.php
 app/Services/Estate/LifeCoverCalculator.php
 app/Services/Estate/LifePolicyStrategyService.php
 app/Services/Estate/PersonalizedGiftingStrategyService.php
 app/Services/Estate/PersonalizedTrustStrategyService.php
 app/Services/Estate/SpouseNRBTrackerService.php
+app/Services/Goals/GoalsProjectionService.php
+app/Services/Goals/LifeEventAllocationService.php
+app/Services/Goals/LifeEventService.php
 app/Services/Investment/Analytics/HoldingsDataExtractor.php
+app/Services/Investment/AssetAllocationOptimizer.php
 app/Services/Investment/AssetLocation/AssetLocationOptimizer.php
 app/Services/Investment/AssetLocation/TaxDragCalculator.php
 app/Services/Investment/ContributionOptimizer.php
+app/Services/Investment/DiversificationAnalyzer.php
+app/Services/Investment/DividendTaxCalculator.php
 app/Services/Investment/FeeAnalyzer.php
 app/Services/Investment/Fees/OCFImpactCalculator.php
 app/Services/Investment/Goals/GoalProgressAnalyzer.php
 app/Services/Investment/Goals/ShortfallAnalyzer.php
 app/Services/Investment/InvestmentActionDefinitionService.php
+app/Services/Investment/ModelPortfolio/ModelPortfolioBuilder.php
+app/Services/Investment/PortfolioAnalyzer.php
 app/Services/Investment/PortfolioStrategyService.php
+app/Services/Investment/Rebalancing/DriftAnalyzer.php
 app/Services/Investment/Tax/BedAndISACalculator.php
 app/Services/Investment/Tax/ISAAllowanceOptimizer.php
 app/Services/Investment/Tax/TaxOptimizationAnalyzer.php
+app/Services/Investment/TaxEfficiencyCalculator.php
+app/Services/Mobile/MobileDashboardAggregator.php
+app/Services/NetWorth/NetWorthService.php
 app/Services/Onboarding/EstateOnboardingFlow.php
 app/Services/Plans/BasePlanService.php
 app/Services/Plans/EstatePlanService.php
@@ -209,6 +271,7 @@ app/Services/Protection/RecommendationEngine.php
 app/Services/Protection/ScenarioBuilder.php
 app/Services/Retirement/ContributionOptimizer.php
 app/Services/Retirement/DecumulationPlanner.php
+app/Services/Retirement/PensionPortfolioAnalyzer.php
 app/Services/Retirement/PensionProjector.php
 app/Services/Retirement/RequiredCapitalCalculator.php
 app/Services/Retirement/RetirementActionDefinitionService.php
@@ -218,51 +281,153 @@ app/Services/Retirement/RetirementStrategyService.php
 app/Services/Savings/EmergencyFundCalculator.php
 app/Services/Savings/RateComparator.php
 app/Services/Settings/AssumptionsService.php
+app/Services/Shared/CrossModuleAssetAggregator.php
 app/Services/Tax/TaxOptimisationService.php
 app/Services/Tax/TaxProductInfoService.php
 app/Services/TaxConfigService.php
 app/Services/UKTaxCalculator.php
+app/Services/UserProfile/PersonalAccountsService.php
 app/Traits/TracksGoalContributions.php
+config/services.php
 database/seeders/DatabaseSeeder.php
 database/seeders/ProtectionActionDefinitionSeeder.php
 database/seeders/RetirementActionDefinitionSeeder.php
 database/seeders/TaxConfigurationSeeder.php
+routes/api.php
 ```
 
 ### Modified Frontend Files (frontend rebuild required)
 
 ```
 resources/css/app.css
+resources/js/app.js
+resources/js/components/Auth/VerificationCodeModal.vue
 resources/js/components/Dashboard/FinancialHealthScore.vue
+resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue
+resources/js/components/Dashboard/UKTaxesAllowancesCard.vue
 resources/js/components/Estate/IHTCalculationTable.vue
 resources/js/components/Estate/IHTPlanning.vue
 resources/js/components/Estate/LifePolicyStrategy.vue
+resources/js/components/Goals/GoalsProjectionChart.vue
+resources/js/components/Guidance/GuidanceTooltip.vue
+resources/js/components/Investment/AllocationComparison.vue
+resources/js/components/Investment/CorrelationMatrix.vue
+resources/js/components/Investment/DiversificationTab.vue
+resources/js/components/Investment/HoldingForm.vue
+resources/js/components/Investment/InvestmentRecommendationsTracker.vue
+resources/js/components/Investment/TaxOptimization.vue
+resources/js/components/Investment/TaxOptimizationOverview.vue
+resources/js/components/Investment/TaxOptimizationRecommendations.vue
+resources/js/components/Legal/StrategyDisclaimer.vue
+resources/js/components/NetWorth/AssetAllocationDonut.vue
+resources/js/components/NetWorth/ChattelsList.vue
 resources/js/components/NetWorth/InvestmentProjections.vue
+resources/js/components/NetWorth/NetWorthWealthSummary.vue
+resources/js/components/NetWorth/Property/AmortizationScheduleView.vue
+resources/js/components/NetWorth/Property/PropertyDetailInline.vue
+resources/js/components/NetWorth/Property/PropertyFinancials.vue
+resources/js/components/NetWorth/Property/PropertyTaxCalculator.vue
+resources/js/components/NetWorth/PropertyCard.vue
 resources/js/components/NetWorth/PropertyList.vue
+resources/js/components/NetWorth/StrategyDetail.vue
+resources/js/components/NetWorth/WealthSummary.vue
+resources/js/components/Onboarding/steps/AssetsStep.vue
 resources/js/components/Onboarding/steps/BudgetingCompletionStep.vue
+resources/js/components/Onboarding/steps/IncomeStep.vue
 resources/js/components/Onboarding/steps/JourneyCompletionStep.vue
+resources/js/components/Plans/Shared/PlanGoalSection.vue
+resources/js/components/Preview/PreviewBanner.vue
+resources/js/components/Retirement/DecumulationStrategyCard.vue
+resources/js/components/Shared/InfoTooltip.vue
+resources/js/components/SideMenu.vue
+resources/js/components/SideMenuIcon.vue
+resources/js/components/SideMenuSection.vue
+resources/js/components/Footer.vue
+resources/js/components/UserProfile/PersonalAccounts.vue
 resources/js/constants/designSystem.js
+resources/js/layouts/AppLayout.vue
+resources/js/layouts/PublicLayout.vue
+resources/js/mobile/appLifecycle.js
+resources/js/mobile/BiometricPrompt.vue
 resources/js/mobile/components/MobileProjectionChart.vue
 resources/js/mobile/goals/MilestoneOverlay.vue
-resources/js/mobile/views/EstateDetail.vue
+resources/js/mobile/layouts/MobileLayout.vue
+resources/js/mobile/MobileHeader.vue
+resources/js/mobile/ModuleSummaryCard.vue
+resources/js/mobile/SettingsList.vue
+resources/js/mobile/views/MobileDashboard.vue
+resources/js/mobile/views/MobileFynChat.vue
+resources/js/mobile/views/MobileGoalsList.vue
 resources/js/mobile/views/MobileLoginScreen.vue
+resources/js/mobile/views/MoreMenu.vue
+resources/js/mobile/views/VerificationCodeScreen.vue
+resources/js/mobile/VoiceInputButton.vue
+resources/js/router/index.js
+resources/js/services/authService.js
+resources/js/services/sessionLifecycleService.js
+resources/js/store/modules/auth.js
 resources/js/store/modules/estate.js
 resources/js/store/modules/investment.js
+resources/js/store/modules/mobileDashboard.js
 resources/js/store/modules/protection.js
 resources/js/store/modules/retirement.js
 resources/js/store/modules/savings.js
+resources/js/views/Actions/ActionsDashboard.vue
+resources/js/views/Dashboard.vue
 resources/js/views/Help.vue
 resources/js/views/Investment/AccountHoldingsPanel.vue
 resources/js/views/Investment/AccountPerformancePanel.vue
 resources/js/views/Login.vue
+resources/js/views/Planning/PlanningJourneys.vue
+resources/js/views/Planning/WhatIfScenarios.vue
+resources/js/views/Public/LandingPage.vue
+resources/js/views/Public/PrivacyPolicyPage.vue
+resources/js/views/Public/TermsOfServicePage.vue
+resources/js/views/Register.vue
 resources/js/views/Trusts/TrustsDashboard.vue
 resources/js/views/Version.vue
+vite.config.js
 ```
 
 ### Deleted Files (remove from server)
 
 ```
+public/icons/icon-128x128.png
+public/icons/icon-144x144.png
+public/icons/icon-152x152.png
+public/icons/icon-192x192.png
+public/icons/icon-384x384.png
+public/icons/icon-512x512.png
+public/icons/icon-72x72.png
+public/icons/icon-96x96.png
+resources/js/components/Dashboard/PostJourneyPrompt.vue
+resources/js/components/Investment/Recommendations.vue
+resources/js/components/Investment/WhatIfScenarios.vue
 resources/js/components/Protection/CoverageAdequacyGauge.vue
+resources/js/components/Shared/MobileSurveyBanner.vue
+resources/js/mobile/views/ModuleSummary.vue
+```
+
+### Modified Test Files
+
+```
+tests/Architecture/ApplicationArchitectureTest.php
+tests/Feature/Api/CountryTrackingTest.php
+tests/Feature/Api/PropertyControllerTest.php
+tests/Unit/Services/Estate/IntestacyCalculatorTest.php
+tests/Unit/Services/Investment/AssetAllocationOptimizerTest.php
+tests/Unit/Services/Investment/DiversificationAnalyzerTest.php
+tests/Unit/Services/Investment/PortfolioAnalyzerTest.php
+tests/Unit/Services/Investment/TaxEfficiencyCalculatorTest.php
+```
+
+### Other Files
+
+```
+CLAUDE.md
+package.json
+package-lock.json
+deploy/mobile/build-ios.sh
 ```
 
 ---
@@ -289,7 +454,7 @@ Delete `resources/js/components/Protection/CoverageAdequacyGauge.vue` from serve
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 
-# Run all migrations (7 new: 6 from March 14 + 1 from March 15)
+# Run all migrations (9 new migrations)
 php artisan migrate --force
 
 # Reseed (adds triggers, disables overlaps, updates tax config)
@@ -344,8 +509,8 @@ If issues arise:
 # Revert to previous main
 git checkout main~1 -- app/ config/ database/ resources/
 
-# Rollback migrations (7 new migrations)
-php artisan migrate:rollback --step=7
+# Rollback migrations (9 new migrations)
+php artisan migrate:rollback --step=9
 
 # Re-seed to restore original trigger states
 php artisan db:seed --force
