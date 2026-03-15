@@ -1,0 +1,11 @@
+{
+  "name": "fynla-windows",
+  "description": "Windows-compatible development skills for Fynla. PowerShell equivalents of session management, deployment notes, tech debt auditing, and cost estimation — with port management, Windows path conventions, and dev.ps1 integration.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fynla Development Team",
+    "email": "chris@fynla.org"
+  },
+  "homepage": "https://fynla.org",
+  "license": "UNLICENSED"
+}

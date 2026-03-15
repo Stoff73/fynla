@@ -15,6 +15,8 @@ const state = {
     willInfo: null, // Will information from IHT calculation
     lifeEvents: [],
     lifeEventImpact: null,
+    canProceed: true,
+    readinessChecks: null,
     loading: false,
     error: null,
 };
@@ -213,6 +215,9 @@ const getters = {
     upcomingLifeEvents: (state) => state.lifeEvents,
     lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
 
+    canProceed: (state) => state.canProceed,
+    readinessChecks: (state) => state.readinessChecks,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -250,8 +255,19 @@ const actions = {
 
         try {
             const response = await estateService.analyzeEstate(data);
-            // Extract the actual analysis data from the response
-            commit('setAnalysis', response.data?.data || response.data);
+            const responseData = response.data?.data || response.data;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('setAnalysis', responseData);
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Analysis failed';
@@ -743,6 +759,14 @@ const mutations = {
         if (index !== -1) {
             state.trusts.splice(index, 1);
         }
+    },
+
+    SET_CAN_PROCEED(state, canProceed) {
+        state.canProceed = canProceed;
+    },
+
+    SET_READINESS_CHECKS(state, checks) {
+        state.readinessChecks = checks;
     },
 
     setLoading(state, loading) {

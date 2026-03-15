@@ -93,6 +93,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { IHT_NIL_RATE_BAND, IHT_RESIDENCE_NIL_RATE_BAND } from '@/constants/taxConfig';
 import MobileAccordionSection from '@/mobile/components/MobileAccordionSection.vue';
 import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
 import MobileGiftCard from '@/mobile/components/MobileGiftCard.vue';
@@ -134,14 +135,14 @@ export default {
       const planning = this.$store.state.estate.secondDeathPlanning;
       return planning?.iht_summary?.current?.nil_rate_band
         || planning?.user_iht_calculation?.nil_rate_band
-        || 325000;
+        || IHT_NIL_RATE_BAND;
     },
 
     rnrb() {
       const planning = this.$store.state.estate.secondDeathPlanning;
       return planning?.iht_summary?.current?.residence_nil_rate_band
         || planning?.user_iht_calculation?.residence_nil_rate_band
-        || 175000;
+        || IHT_RESIDENCE_NIL_RATE_BAND;
     },
 
     hasData() {

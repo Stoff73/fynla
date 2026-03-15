@@ -8,6 +8,8 @@ use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Models\User;
+use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
 /**
@@ -19,7 +21,10 @@ class RetirementActionDefinitionService
     use FormatsCurrency;
 
     public function __construct(
-        private readonly ContributionOptimizer $optimizer
+        private readonly ContributionOptimizer $optimizer,
+        private readonly TaxConfigService $taxConfig,
+        private readonly SalarySacrificeAnalyzer $salarySacrificeAnalyzer,
+        private readonly DecumulationPlanner $decumulationPlanner
     ) {}
 
     /**
@@ -32,6 +37,10 @@ class RetirementActionDefinitionService
         $definitions = RetirementActionDefinition::getEnabledBySource('agent');
         $recommendations = [];
         $priority = 1;
+
+        if (empty($analysisData['profile'])) {
+            return [];
+        }
 
         $userId = $analysisData['profile']['user_id'];
         $profile = RetirementProfile::find($analysisData['profile']['id']);
@@ -169,6 +178,14 @@ class RetirementActionDefinitionService
             'annual_allowance_has_excess' => $this->evaluateAnnualAllowance($definition, $analysisData, $priority),
             'ni_years_wont_reach_required_by_spa' => $this->evaluateNIGaps($definition, $analysisData, $profile, $priority),
             'income_gap_exceeds_percentage_of_target' => $this->evaluateRetirementAge($definition, $analysisData, $config, $priority),
+            'workplace_pension_no_salary_sacrifice' => $this->evaluateSalarySacrificeAvailable($definition, $analysisData, $dcPensions, $priority),
+            'salary_sacrifice_below_proxy_floor' => $this->evaluateSalarySacrificeFloor($definition, $analysisData, $dcPensions, $priority),
+            'auto_enrolment_below_minimum_total' => $this->evaluateAutoEnrolmentMinimum($definition, $analysisData, $dcPensions, $priority),
+            'smoker_or_health_condition_enhanced_annuity' => $this->evaluateEnhancedAnnuity($definition, $analysisData, $priority),
+            'no_care_costs_entered_over_50' => $this->evaluateCareCostsNotModelled($definition, $analysisData, $profile, $config, $priority),
+            'no_state_pension_forecast' => $this->evaluateStatePensionNoForecast($definition, $analysisData, $priority),
+            'within_years_of_retirement' => $this->evaluateApproachingDecumulation($definition, $analysisData, $config, $priority),
+            'multiple_dc_pensions' => $this->evaluatePensionConsolidation($definition, $dcPensions, $config, $priority),
             default => [],
         };
     }
@@ -449,6 +466,313 @@ class RetirementActionDefinitionService
             'description' => $definition->renderDescription($vars),
             'action' => $definition->renderAction($vars) ?? sprintf('Review scenarios for retiring at %d.', $suggestedAge),
             'impact' => 'High',
+            'scope' => $definition->scope,
+        ]];
+    }
+
+    /**
+     * Salary sacrifice available: triggers for employed users with workplace pensions.
+     */
+    private function evaluateSalarySacrificeAvailable(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        $dcPensions,
+        int $priority
+    ): array {
+        $userId = $analysisData['profile']['user_id'];
+        $user = User::find($userId);
+
+        if (! $user || $user->employment_status === 'self_employed') {
+            return [];
+        }
+
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            if ($pension->scheme_type !== 'workplace') {
+                continue;
+            }
+
+            $analysis = $this->salarySacrificeAnalyzer->analyzeForPension($user, $pension);
+
+            if (! $analysis['is_available'] || $analysis['employee_ni_saving'] <= 0) {
+                continue;
+            }
+
+            $vars = [
+                'scheme_name' => $pension->scheme_name ?: 'workplace pension',
+                'employee_ni_saving' => '£'.number_format($analysis['employee_ni_saving'], 2),
+                'employer_ni_saving' => '£'.number_format($analysis['employer_ni_saving'], 2),
+            ];
+
+            $results[] = [
+                'priority' => $priority,
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars) ?? 'Review salary sacrifice options with your employer.',
+                'impact' => ucfirst($definition->priority),
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Salary sacrifice floor warning: triggers when sacrifice would drop below proxy floor.
+     */
+    private function evaluateSalarySacrificeFloor(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        $dcPensions,
+        int $priority
+    ): array {
+        $userId = $analysisData['profile']['user_id'];
+        $user = User::find($userId);
+
+        if (! $user || $user->employment_status === 'self_employed') {
+            return [];
+        }
+
+        $salary = (float) ($user->annual_employment_income ?? 0);
+        if ($salary <= 0) {
+            return [];
+        }
+
+        $proxyFloor = (float) $this->taxConfig->get('pension.salary_sacrifice.conservative_proxy_floor', 10000);
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            if ($pension->scheme_type !== 'workplace') {
+                continue;
+            }
+
+            $analysis = $this->salarySacrificeAnalyzer->analyzeForPension($user, $pension);
+
+            if (! $analysis['is_available'] || $analysis['post_sacrifice_salary'] >= $proxyFloor) {
+                continue;
+            }
+
+            $vars = [
+                'scheme_name' => $pension->scheme_name ?: 'workplace pension',
+                'post_sacrifice_salary' => '£'.number_format($analysis['post_sacrifice_salary'], 2),
+                'proxy_floor' => '£'.number_format($proxyFloor, 0),
+            ];
+
+            $results[] = [
+                'priority' => 1, // Always critical
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars) ?? 'Review your salary sacrifice amount.',
+                'impact' => 'High',
+                'scope' => 'account',
+                'account_id' => $pension->id,
+                'account_name' => $pension->scheme_name,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Auto-enrolment below minimum: triggers when total contributions are below 8%.
+     */
+    private function evaluateAutoEnrolmentMinimum(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        $dcPensions,
+        int $priority
+    ): array {
+        $userId = $analysisData['profile']['user_id'];
+        $user = User::find($userId);
+
+        if (! $user) {
+            return [];
+        }
+
+        $compliance = $this->optimizer->checkAutoEnrolmentCompliance($user, $dcPensions);
+
+        if (! $compliance['eligible'] || $compliance['meets_minimum_total']) {
+            return [];
+        }
+
+        $vars = [
+            'total_percent' => number_format($compliance['total_contribution_percent'], 1),
+            'shortfall_annual' => '£'.number_format($compliance['shortfall_annual'], 2),
+        ];
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'action' => $definition->renderAction($vars) ?? 'Review your pension contribution levels.',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+        ]];
+    }
+
+    /**
+     * Enhanced annuity eligible: triggers when smoker or health condition qualifies.
+     */
+    private function evaluateEnhancedAnnuity(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        int $priority
+    ): array {
+        $userId = $analysisData['profile']['user_id'];
+        $user = User::with('protectionProfile')->find($userId);
+
+        if (! $user) {
+            return [];
+        }
+
+        $eligibility = $this->decumulationPlanner->assessEnhancedAnnuityEligibility($user);
+
+        if (! $eligibility['is_eligible']) {
+            return [];
+        }
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle(),
+            'description' => $definition->renderDescription(),
+            'action' => $definition->renderAction() ?? 'Request enhanced annuity quotes when approaching retirement.',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+            'enhanced_annuity_reason' => $eligibility['reason'],
+            'enhancement_factor' => $eligibility['enhancement_factor'],
+        ]];
+    }
+
+    /**
+     * Care costs not modelled: triggers when user is over threshold age with no care costs.
+     */
+    private function evaluateCareCostsNotModelled(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        ?RetirementProfile $profile,
+        array $config,
+        int $priority
+    ): array {
+        if (! $profile) {
+            return [];
+        }
+
+        $ageThreshold = (int) ($config['age_threshold'] ?? 50);
+        $currentAge = $profile->current_age ?? 0;
+        $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
+
+        if ($currentAge < $ageThreshold || $careCostAnnual > 0) {
+            return [];
+        }
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle(),
+            'description' => $definition->renderDescription(),
+            'action' => $definition->renderAction() ?? 'Add care cost assumptions to your retirement profile.',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+        ]];
+    }
+
+    /**
+     * State Pension no forecast: triggers when no State Pension forecast entered.
+     */
+    private function evaluateStatePensionNoForecast(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        int $priority
+    ): array {
+        $userId = $analysisData['profile']['user_id'];
+        $statePension = StatePension::where('user_id', $userId)->first();
+
+        // If user has a forecast, no trigger
+        if ($statePension && (float) ($statePension->state_pension_forecast_annual ?? 0) > 0) {
+            return [];
+        }
+
+        $fullStatePension = $this->taxConfig->get('pension.state_pension.full_new_state_pension', 11502);
+
+        $vars = [
+            'full_state_pension' => '£'.number_format((float) $fullStatePension, 0),
+        ];
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'action' => $definition->renderAction($vars) ?? 'Request your State Pension forecast from gov.uk.',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+        ]];
+    }
+
+    /**
+     * Approaching decumulation: triggers when within configurable years of retirement.
+     */
+    private function evaluateApproachingDecumulation(
+        RetirementActionDefinition $definition,
+        array $analysisData,
+        array $config,
+        int $priority
+    ): array {
+        $yearsToRetirement = $analysisData['summary']['years_to_retirement'] ?? 999;
+        $yearsThreshold = (int) ($config['years_threshold'] ?? 10);
+
+        if ($yearsToRetirement > $yearsThreshold || $yearsToRetirement <= 0) {
+            return [];
+        }
+
+        $vars = [
+            'years_to_retirement' => (string) $yearsToRetirement,
+        ];
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'action' => $definition->renderAction($vars) ?? 'Review your decumulation strategy.',
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+        ]];
+    }
+
+    /**
+     * Pension consolidation opportunity: triggers when user has 3+ DC pensions.
+     */
+    private function evaluatePensionConsolidation(
+        RetirementActionDefinition $definition,
+        $dcPensions,
+        array $config,
+        int $priority
+    ): array {
+        $minPensionCount = (int) ($config['min_pension_count'] ?? 3);
+
+        if ($dcPensions->count() < $minPensionCount) {
+            return [];
+        }
+
+        $vars = [
+            'pension_count' => (string) $dcPensions->count(),
+        ];
+
+        return [[
+            'priority' => $priority,
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'action' => $definition->renderAction($vars) ?? 'Compare fees and features before consolidating.',
+            'impact' => ucfirst($definition->priority),
             'scope' => $definition->scope,
         ]];
     }

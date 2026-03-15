@@ -3,9 +3,28 @@
 declare(strict_types=1);
 
 use App\Services\Retirement\DecumulationPlanner;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->planner = new DecumulationPlanner;
+    $this->mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $this->mockTaxConfig->shouldReceive('get')
+        ->with('retirement.annuity_rate_estimates', [])
+        ->andReturn([
+            '55' => ['single' => 0.048, 'joint' => 0.042],
+            '60' => ['single' => 0.053, 'joint' => 0.047],
+            '65' => ['single' => 0.060, 'joint' => 0.053],
+            '70' => ['single' => 0.069, 'joint' => 0.061],
+            '75' => ['single' => 0.081, 'joint' => 0.072],
+        ]);
+    $this->mockTaxConfig->shouldReceive('get')
+        ->with('retirement.withdrawal_rates.safe', 0.04)
+        ->andReturn(0.04);
+
+    $this->planner = new DecumulationPlanner($this->mockTaxConfig);
+});
+
+afterEach(function () {
+    Mockery::close();
 });
 
 it('calculates sustainable withdrawal rate scenarios', function () {

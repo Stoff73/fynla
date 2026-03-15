@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use App\Constants\EstateDefaults;
 use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
@@ -12,8 +11,10 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Estate\GiftingStrategyOptimizer;
 use App\Services\Estate\IHTCalculationService;
+use App\Services\Estate\LifeCoverCalculator;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Estate\WillAnalysisService;
 use App\Services\TaxConfigService;
@@ -27,6 +28,16 @@ use Illuminate\Support\Facades\Cache;
  */
 class EstateAgent extends BaseAgent
 {
+    /**
+     * Fallback current age when user date of birth is unknown.
+     */
+    private const DEFAULT_CURRENT_AGE = 50;
+
+    /**
+     * Fallback life expectancy for planning calculations.
+     */
+    private const DEFAULT_LIFE_EXPECTANCY = 85;
+
     public function __construct(
         private readonly IHTCalculationService $ihtCalculator,
         private readonly EstateAssetAggregatorService $assetAggregator,
@@ -35,7 +46,9 @@ class EstateAgent extends BaseAgent
         private readonly PersonalizedTrustStrategyService $trustStrategyService,
         private readonly WillAnalysisService $willAnalysisService,
         private readonly TaxConfigService $taxConfig,
-        private readonly RecommendationPersonaliser $personaliser
+        private readonly RecommendationPersonaliser $personaliser,
+        private readonly EstateDataReadinessService $readinessService,
+        private readonly LifeCoverCalculator $lifeCoverCalculator
     ) {}
 
     /**
@@ -43,6 +56,29 @@ class EstateAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        // Data readiness gate — return early if blocking checks fail
+        $gateUser = User::find($userId);
+        if ($gateUser) {
+            $readiness = $this->readinessService->assess($gateUser);
+            if (! $readiness['can_proceed']) {
+                return $this->response(true, 'Readiness check incomplete', [
+                    'can_proceed' => false,
+                    'readiness_checks' => $readiness,
+                    'summary' => null,
+                    'asset_breakdown' => null,
+                    'iht_calculation' => null,
+                    'trust_recommendations' => null,
+                    'gifting_opportunities' => null,
+                    'trust_wish_triggers' => null,
+                    'charitable_analysis' => null,
+                    'will_review_status' => null,
+                    'life_cover' => null,
+                    'pension_amendment' => null,
+                    'profile' => null,
+                ]);
+            }
+        }
+
         $cacheKey = "estate_analysis_{$userId}";
         $cacheTags = ['estate', 'user_'.$userId];
 
@@ -117,8 +153,8 @@ class EstateAgent extends BaseAgent
             try {
                 $currentAge = $user->date_of_birth
                     ? (int) $user->date_of_birth->diffInYears(now())
-                    : EstateDefaults::DEFAULT_CURRENT_AGE;
-                $lifeExpectancy = $user->life_expectancy_override ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY;
+                    : self::DEFAULT_CURRENT_AGE;
+                $lifeExpectancy = $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY;
                 $yearsUntilDeath = max(1, $lifeExpectancy - $currentAge);
                 $nrb = $ihtCalculation['nrb_available'] ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'];
                 $rnrb = $ihtCalculation['rnrb_available'] ?? 0;
@@ -168,7 +204,21 @@ class EstateAgent extends BaseAgent
 
             // Calculate current age and life expectancy context
             $currentAge = $user->date_of_birth ?
-                (int) $user->date_of_birth->diffInYears(now()) : EstateDefaults::DEFAULT_CURRENT_AGE;
+                (int) $user->date_of_birth->diffInYears(now()) : self::DEFAULT_CURRENT_AGE;
+
+            // Assess existing life insurance policies for IHT planning suitability
+            $allPolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
+            $policyAssessment = [];
+            if ($allPolicies->isNotEmpty()) {
+                try {
+                    $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allPolicies, $user);
+                } catch (\Throwable $e) {
+                    // Continue without policy assessment
+                }
+            }
+
+            // Extract pension amendment from IHT calculation (already computed)
+            $pensionAmendment = $ihtCalculation['pension_amendment'] ?? ['amendment_warning' => false];
 
             return $this->response(
                 true,
@@ -195,10 +245,12 @@ class EstateAgent extends BaseAgent
                         'total_cover_not_in_trust' => (float) $lifePoliciesNotInTrust->sum('sum_assured'),
                         'policy_count' => $lifePoliciesInTrust->count(),
                         'policies_not_in_trust_count' => $lifePoliciesNotInTrust->count(),
+                        'policy_assessment' => $policyAssessment,
                     ],
+                    'pension_amendment' => $pensionAmendment,
                     'profile' => [
                         'current_age' => $currentAge,
-                        'life_expectancy' => $user->life_expectancy_override ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY,
+                        'life_expectancy' => $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY,
                         'marital_status' => $user->marital_status,
                         'has_dependents' => ($user->familyMembers()->where('relationship', 'child')->count() > 0),
                         'has_spouse' => $user->spouse !== null,
@@ -235,7 +287,7 @@ class EstateAgent extends BaseAgent
         $ihtLiability = $data['summary']['iht_liability'] ?? 0;
         $netEstate = $data['summary']['net_estate'] ?? 0;
         $currentAge = $data['profile']['current_age'] ?? 50;
-        $lifeExpectancy = $data['profile']['life_expectancy'] ?? EstateDefaults::DEFAULT_LIFE_EXPECTANCY;
+        $lifeExpectancy = $data['profile']['life_expectancy'] ?? self::DEFAULT_LIFE_EXPECTANCY;
         $charitableAnalysis = $data['charitable_analysis'] ?? [];
         $trustWishTriggers = $data['trust_wish_triggers'] ?? [];
 
@@ -336,7 +388,7 @@ class EstateAgent extends BaseAgent
 
         // Recommend completing missing data only when we lack essentials for a meaningful calculation
         $grossEstate = (float) ($data['summary']['gross_estate'] ?? 0);
-        $hasDob = ($data['profile']['current_age'] ?? EstateDefaults::DEFAULT_CURRENT_AGE) !== EstateDefaults::DEFAULT_CURRENT_AGE;
+        $hasDob = ($data['profile']['current_age'] ?? self::DEFAULT_CURRENT_AGE) !== self::DEFAULT_CURRENT_AGE;
         if ($grossEstate <= 0 || ! $hasDob) {
             $recommendations[] = [
                 'category' => 'planning',
@@ -499,7 +551,7 @@ class EstateAgent extends BaseAgent
      * Step 4: Annual Gifting Strategy (First Resort)
      * Immediately exempt gifts - no 7-year wait, no tax risk
      */
-    private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = EstateDefaults::DEFAULT_LIFE_EXPECTANCY): array
+    private function step4AnnualGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = self::DEFAULT_LIFE_EXPECTANCY): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $annualExemption = $ihtConfig['annual_exemption'] ?? TaxDefaults::ANNUAL_GIFT_EXEMPTION;
@@ -575,7 +627,7 @@ class EstateAgent extends BaseAgent
      * Step 6: PET Gifting Strategy (Third Resort)
      * Potentially Exempt Transfers - exempt if donor survives 7 years
      */
-    private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = EstateDefaults::DEFAULT_LIFE_EXPECTANCY): array
+    private function step6PETGiftingStrategy(int $currentAge, float $remainingLiability, int $lifeExpectancy = self::DEFAULT_LIFE_EXPECTANCY): array
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $nrb = $ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB;
@@ -698,9 +750,10 @@ class EstateAgent extends BaseAgent
         $totalLiabilities = $this->assetAggregator->calculateUserLiabilities($user);
         $netEstate = $grossEstate - $totalLiabilities;
 
-        // Classify by liquidity
-        $liquidTypes = ['cash', 'savings', 'investment'];
-        $semiLiquidTypes = ['pension', 'dc_pension', 'db_pension'];
+        // Classify by liquidity (aligned with AssetLiquidityAnalyzer reclassification)
+        $liquidTypes = ['cash', 'savings'];
+        $semiLiquidTypes = ['investment'];
+        $illiquidTypes = ['pension', 'dc_pension', 'db_pension'];
         $liquid = $assets->filter(fn ($a) => in_array($a->asset_type ?? '', $liquidTypes))->sum('current_value');
         $semiLiquid = $assets->filter(fn ($a) => in_array($a->asset_type ?? '', $semiLiquidTypes))->sum('current_value');
         $illiquid = $grossEstate - $liquid - $semiLiquid;

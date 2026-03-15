@@ -57,6 +57,9 @@ class DatabaseSeeder extends Seeder
             // Investment action definitions - configurable investment plan action triggers
             InvestmentActionDefinitionSeeder::class,
 
+            // Savings action definitions - configurable savings plan action triggers
+            SavingsActionDefinitionSeeder::class,
+
             // Protection action definitions - configurable protection plan action triggers
             ProtectionActionDefinitionSeeder::class,
 
@@ -99,6 +102,7 @@ class DatabaseSeeder extends Seeder
             PlanConfigurationSeeder::class,
             RetirementActionDefinitionSeeder::class,
             InvestmentActionDefinitionSeeder::class,
+            SavingsActionDefinitionSeeder::class,
             ProtectionActionDefinitionSeeder::class,
             TaxActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,

@@ -5,9 +5,34 @@ declare(strict_types=1);
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\FeeAnalyzer;
+use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
-    $this->feeAnalyzer = new FeeAnalyzer;
+    $this->riskPreferenceService = Mockery::mock(RiskPreferenceService::class);
+    $this->riskPreferenceService->shouldReceive('getReturnParameters')
+        ->with('medium')
+        ->andReturn([
+            'expected_return_min' => 3.5,
+            'expected_return_max' => 6.5,
+            'expected_return_typical' => 5.0,
+            'volatility' => 10.0,
+        ]);
+
+    $this->taxConfigService = Mockery::mock(TaxConfigService::class);
+    $this->taxConfigService->shouldReceive('get')
+        ->with('investment.fee_benchmarks', Mockery::any())
+        ->andReturn([
+            'low_cost_ocf' => 0.0015,
+            'high_cost_ocf' => 0.0075,
+            'platform_fee_typical' => 0.0025,
+        ]);
+
+    $this->feeAnalyzer = new FeeAnalyzer($this->riskPreferenceService, $this->taxConfigService);
+});
+
+afterEach(function () {
+    Mockery::close();
 });
 
 describe('calculateTotalFees', function () {

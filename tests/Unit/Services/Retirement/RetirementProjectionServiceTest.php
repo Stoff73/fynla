@@ -10,6 +10,7 @@ use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\TaxConfigService;
 use App\Services\UserProfile\UserProfileService;
 use Carbon\Carbon;
 
@@ -71,9 +72,17 @@ beforeEach(function () {
     $this->mockLifeEventCashFlowService->shouldReceive('getEventHash')->andReturn('noevents');
     $this->mockLifeEventCashFlowService->shouldReceive('getAppliedEvents')->andReturn([]);
 
+    $this->mockTaxConfig = Mockery::mock(TaxConfigService::class);
+    $this->mockTaxConfig->shouldReceive('get')->with('retirement.withdrawal_rates.sustainable', 0.047)->andReturn(0.047);
+    $this->mockTaxConfig->shouldReceive('get')->with('retirement.projection_end_age', 100)->andReturn(100);
+    $this->mockTaxConfig->shouldReceive('get')->with('retirement.monte_carlo_iterations', 1000)->andReturn(1000);
+    $this->mockTaxConfig->shouldReceive('get')->with('assumptions.inflation', 0.025)->andReturn(0.025);
+    $this->mockTaxConfig->shouldReceive('get')->with('retirement.target_income_percent', 0.75)->andReturn(0.75);
+
     $this->service = new RetirementProjectionService(
         $this->mockSimulator,
         $this->mockRiskService,
+        $this->mockTaxConfig,
         $this->mockUserProfileService,
         $this->mockLifeEventCashFlowService
     );
@@ -208,7 +217,7 @@ describe('projectIncomeDrawdown', function () {
         ])
             ->and($result['starting_pot'])->toBe(500000.0)
             ->and($result['withdrawal_rate'])->toBe(4.7)
-            ->and($result['inflation_rate'])->toBe(2.0)
+            ->and($result['inflation_rate'])->toBe(2.5)
             ->and($result['yearly_income'])->toBeArray()
             ->and($result['yearly_income'])->not->toBeEmpty();
     });

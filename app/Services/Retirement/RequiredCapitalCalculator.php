@@ -6,6 +6,7 @@ namespace App\Services\Retirement;
 
 use App\Models\User;
 use App\Services\Settings\AssumptionsService;
+use App\Services\TaxConfigService;
 use App\Services\UserProfile\UserProfileService;
 use Carbon\Carbon;
 
@@ -21,20 +22,13 @@ use Carbon\Carbon;
  */
 class RequiredCapitalCalculator
 {
-    private const DEFAULT_WITHDRAWAL_RATE = 0.047; // 4.7% sustainable withdrawal rate
-
     private const DEFAULT_FEE_RATE = 0.01; // 1% default fees
-
-    private const DEFAULT_INFLATION_RATE = 0.025; // 2.5% for discounting to today's money
-
-    private const DEFAULT_COMPOUND_PERIODS = 4; // Quarterly compounding
-
-    private const TARGET_INCOME_PERCENT = 0.75; // 75% of net income
 
     private const DEFAULT_RETIREMENT_AGE = 67;
 
     public function __construct(
         private readonly AssumptionsService $assumptionsService,
+        private readonly TaxConfigService $taxConfig,
         private readonly UserProfileService $userProfileService
     ) {}
 
@@ -69,15 +63,15 @@ class RequiredCapitalCalculator
         $monthlyContributions = $this->getMonthlyContributions($user);
 
         // Calculate required capital at retirement using withdrawal rate
-        $withdrawalRate = self::DEFAULT_WITHDRAWAL_RATE;
+        $withdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
         $requiredCapitalAtRetirement = $requiredIncome / $withdrawalRate;
 
         // Build assumptions array for response
         $returnRate = (float) $pensionAssumptions['return_rate'];
         $feesTotal = (float) ($pensionAssumptions['fees']['total'] ?? self::DEFAULT_FEE_RATE * 100);
         $netReturnRate = max(0, $returnRate - $feesTotal);
-        $inflationRate = self::DEFAULT_INFLATION_RATE * 100; // 2.5%
-        $compoundPeriods = (int) ($pensionAssumptions['compound_periods'] ?? self::DEFAULT_COMPOUND_PERIODS);
+        $inflationRate = (float) $this->taxConfig->get('assumptions.inflation', 0.025) * 100;
+        $compoundPeriods = (int) ($pensionAssumptions['compound_periods'] ?? (int) $this->taxConfig->get('retirement.compounding_periods', 4));
 
         $assumptions = [
             'return_rate' => round($returnRate, 2),
@@ -133,7 +127,9 @@ class RequiredCapitalCalculator
         // Fallback: Calculate 75% of net income
         $netIncome = $this->calculateUserNetIncome($user);
 
-        return $netIncome * self::TARGET_INCOME_PERCENT;
+        $targetIncomePercent = (float) $this->taxConfig->get('retirement.target_income_percent', 0.75);
+
+        return $netIncome * $targetIncomePercent;
     }
 
     /**

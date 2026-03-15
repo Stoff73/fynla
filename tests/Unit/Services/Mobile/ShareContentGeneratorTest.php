@@ -6,7 +6,7 @@ use App\Services\Mobile\ShareContentGenerator;
 
 describe('ShareContentGenerator', function () {
     it('generates content for all valid types', function () {
-        $generator = new ShareContentGenerator();
+        $generator = new ShareContentGenerator;
 
         $types = ['goal_milestone', 'net_worth_milestone', 'fyn_insight', 'app_referral'];
 
@@ -21,14 +21,14 @@ describe('ShareContentGenerator', function () {
     });
 
     it('throws for invalid type', function () {
-        $generator = new ShareContentGenerator();
+        $generator = new ShareContentGenerator;
 
         expect(fn () => $generator->generate('invalid'))
             ->toThrow(\InvalidArgumentException::class);
     });
 
     it('never includes currency symbols in any content', function () {
-        $generator = new ShareContentGenerator();
+        $generator = new ShareContentGenerator;
 
         $types = ['goal_milestone', 'net_worth_milestone', 'fyn_insight', 'app_referral'];
 

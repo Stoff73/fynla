@@ -78,12 +78,15 @@ class PropertyControllerTest extends TestCase
         $response = $this->withToken($this->token)
             ->postJson('/api/properties', $propertyData);
 
-        // Controller returns property object directly
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'id',
-                'property_type',
-                'current_value',
+                'success',
+                'message',
+                'data' => ['property' => [
+                    'id',
+                    'property_type',
+                    'current_value',
+                ]],
             ]);
 
         $this->assertDatabaseHas('properties', [

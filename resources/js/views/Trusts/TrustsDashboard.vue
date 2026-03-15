@@ -483,7 +483,7 @@ export default {
 }
 
 .upload-button:hover {
-  background: #eff6ff;
+  @apply bg-savannah-100;
 }
 
 .button-icon {

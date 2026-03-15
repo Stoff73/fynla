@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Mobile;
@@ -50,7 +51,7 @@ class PushNotificationService
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'key=' . $serverKey,
+                'Authorization' => 'key='.$serverKey,
                 'Content-Type' => 'application/json',
             ])->post('https://fcm.googleapis.com/fcm/send', [
                 'to' => $deviceToken,
@@ -67,7 +68,7 @@ class PushNotificationService
         } catch (\Exception $e) {
             Log::error('FCM send failed', [
                 'error' => $e->getMessage(),
-                'device_token_prefix' => substr($deviceToken, 0, 10) . '...',
+                'device_token_prefix' => substr($deviceToken, 0, 10).'...',
             ]);
         }
     }

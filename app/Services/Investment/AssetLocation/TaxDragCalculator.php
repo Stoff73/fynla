@@ -6,6 +6,7 @@ namespace App\Services\Investment\AssetLocation;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
@@ -23,8 +24,17 @@ class TaxDragCalculator
 {
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Calculate tax drag for a holding in its current account type
@@ -62,7 +72,7 @@ class TaxDragCalculator
         array $userTaxProfile
     ): array {
         $value = $holding->current_value;
-        $expectedReturn = $userTaxProfile['expected_return'] ?? 0.06;
+        $expectedReturn = $userTaxProfile['expected_return'] ?? $this->getDefaultExpectedReturn();
         $dividendYield = $this->estimateDividendYield($holding);
         $interestRate = $this->estimateInterestRate($holding);
 
@@ -143,11 +153,13 @@ class TaxDragCalculator
         $dividendAllowanceUsed = $userTaxProfile['dividend_allowance_used'] ?? 0;
         $remainingDividendAllowance = max(0, $dividendAllowance - $dividendAllowanceUsed);
 
-        // Personal savings allowance (£1,000 for basic rate, £500 for higher rate)
-        $personalSavingsAllowance = $incomeTaxRate <= 0.20 ? 1000 : 500;
-        if ($incomeTaxRate >= 0.45) {
-            $personalSavingsAllowance = 0; // No PSA for additional rate
-        }
+        // Personal Savings Allowance sourced from TaxConfigService
+        $psaBand = match (true) {
+            $incomeTaxRate <= 0.20 => 'basic',
+            $incomeTaxRate <= 0.40 => 'higher',
+            default => 'additional',
+        };
+        $personalSavingsAllowance = $this->taxConfig->getPersonalSavingsAllowance($psaBand);
         $psaUsed = $userTaxProfile['psa_used'] ?? 0;
         $remainingPSA = max(0, $personalSavingsAllowance - $psaUsed);
 
@@ -199,7 +211,7 @@ class TaxDragCalculator
         $taxablePortionOnWithdrawal = 0.75;
 
         // Discount future tax to present value (using expected return as discount rate)
-        $discountRate = $userTaxProfile['expected_return'] ?? 0.06;
+        $discountRate = $userTaxProfile['expected_return'] ?? $this->getDefaultExpectedReturn();
         $discountFactor = 1 / pow(1 + $discountRate, $yearsToRetirement);
 
         $totalReturn = $capitalGain + $dividend + $interest;
@@ -264,13 +276,17 @@ class TaxDragCalculator
             return $holding->dividend_yield;
         }
 
-        // Estimate based on asset type
+        // Estimate based on asset type using TaxConfigService yields
+        $yields = $this->taxConfig->get('investment.asset_class_yields', []);
+
         return match ($holding->asset_type) {
-            'equity', 'stock' => 0.02, // 2% average for equities
-            'bond', 'fixed_income' => 0.04, // 4% for bonds (mostly interest, not dividends)
-            'reit' => 0.04, // 4% for REITs
-            'preferred_stock' => 0.05, // 5% for preferred
-            default => 0.015, // 1.5% default
+            'equity', 'stock' => $yields['global_equity']['income_yield'] ?? 0.02,
+            'uk_equity' => $yields['uk_equity']['income_yield'] ?? 0.035,
+            'bond', 'fixed_income' => $yields['bonds']['income_yield'] ?? 0.04,
+            'reit', 'property' => $yields['property']['income_yield'] ?? 0.03,
+            'preferred_stock' => 0.05,
+            'cash', 'money_market' => $yields['cash']['income_yield'] ?? 0.04,
+            default => $yields['global_equity']['income_yield'] ?? 0.02,
         };
     }
 

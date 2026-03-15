@@ -6,6 +6,7 @@ namespace App\Services\Investment\Fees;
 
 use App\Constants\InvestmentDefaults;
 use App\Models\Investment\Holding;
+use App\Services\Risk\RiskPreferenceService;
 use App\Traits\CalculatesOCF;
 use Illuminate\Support\Collection;
 
@@ -23,6 +24,10 @@ class OCFImpactCalculator
 {
     use CalculatesOCF;
 
+    public function __construct(
+        private readonly RiskPreferenceService $riskPreferenceService
+    ) {}
+
     /**
      * Calculate OCF impact over time
      *
@@ -31,8 +36,12 @@ class OCFImpactCalculator
      * @param  float  $expectedReturn  Expected gross return
      * @return array OCF impact analysis
      */
-    public function calculateOCFImpact(Collection $holdings, int $years = 20, float $expectedReturn = 0.06): array
+    public function calculateOCFImpact(Collection $holdings, int $years = 20, ?float $expectedReturn = null, string $riskLevel = 'medium'): array
     {
+        if ($expectedReturn === null) {
+            $expectedReturn = $this->riskPreferenceService->getReturnParameters($riskLevel)['expected_return_typical'] / 100;
+        }
+
         if ($holdings->isEmpty()) {
             return [
                 'success' => false,
@@ -120,7 +129,7 @@ class OCFImpactCalculator
             ],
             'potential_savings' => [
                 'annual' => round(max(0, $savingsIfAllPassive), 2),
-                'ten_year' => round(max(0, $this->calculateCompoundSavings($activeValue, $savingsIfAllPassive, 10, 0.06)), 2),
+                'ten_year' => round(max(0, $this->calculateCompoundSavings($activeValue, $savingsIfAllPassive, 10, $this->getDefaultExpectedReturn())), 2),
             ],
             'recommendation' => $this->generateActiveVsPassiveRecommendation($activeValue, $passiveValue, $activeOCF, $passiveOCF),
         ];
@@ -150,7 +159,7 @@ class OCFImpactCalculator
                 'ticker' => $alternative['ticker'],
                 'ocf' => round($alternative['ocf'] * 100, 3),
                 'annual_saving' => round($annualSaving, 2),
-                'ten_year_saving' => round($this->calculateCompoundSavings($holding->current_value, $annualSaving, 10, 0.06), 2),
+                'ten_year_saving' => round($this->calculateCompoundSavings($holding->current_value, $annualSaving, 10, $this->getDefaultExpectedReturn()), 2),
                 'provider' => $alternative['provider'],
             ];
         }
@@ -377,6 +386,14 @@ class OCFImpactCalculator
                 $activeOCF * 100
             );
         }
+    }
+
+    /**
+     * Get default expected return from risk preference service (medium risk)
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
     }
 
     /**

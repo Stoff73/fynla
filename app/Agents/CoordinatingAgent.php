@@ -479,6 +479,12 @@ class CoordinatingAgent extends BaseAgent
 
     /**
      * Map SavingsAgent analysis response to the flat format expected by HolisticPlanner.
+     *
+     * Handles both legacy inline recommendations and DB-driven recommendations
+     * from SavingsActionDefinitionService. The new engine outputs recommendations
+     * with keys: title, description, category, priority, definition_key, estimated_impact.
+     * PriorityRanker applies default scoring for savings recommendations that lack
+     * module-specific fields (e.g. emergency_fund_months on individual recs).
      */
     private function mapSavingsAnalysis(array $savingsData, array $recommendations = []): array
     {

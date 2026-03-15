@@ -1,7 +1,7 @@
 {
   "name": "fynla-dev-skills",
-  "description": "Core development skills for the Fynla codebase: systematic debugging, feature scaffolding, tech debt auditing (session + full), deployment checklists, cost estimation, and skill creation/evaluation",
-  "version": "1.0.0",
+  "description": "Core development skills for the Fynla codebase: session management (start/end), systematic debugging, feature scaffolding, tech debt auditing, deployment notes/checklists, shipping (commit/push/PR), cost estimation, and skill creation.",
+  "version": "1.2.0",
   "author": {
     "name": "Fynla Development Team",
     "email": "chris@fynla.org"

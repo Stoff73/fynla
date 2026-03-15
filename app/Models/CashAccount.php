@@ -12,6 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 
+/**
+ * CashAccount tracks current/transactional accounts for cash flow analysis.
+ * It is NOT part of the savings recommendation engine.
+ * Savings accounts are managed via the SavingsAccount model.
+ */
 class CashAccount extends Model
 {
     use HasFactory, HasJointOwnership, SoftDeletes;

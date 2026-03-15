@@ -18,7 +18,7 @@ use App\Services\TaxConfigService;
  */
 class PensionProjector
 {
-    private const DEFAULT_GROWTH_RATE = 0.05; // 5% fallback if no risk profile
+    private const DEFAULT_GROWTH_RATE = 0.05; // 5% fallback if no risk profile (used when RiskPreferenceService unavailable)
 
     private const DEFAULT_RETIREMENT_AGE = 67;
 
@@ -191,8 +191,9 @@ class PensionProjector
             $statePensionIncome = $this->projectStatePension($statePension);
         }
 
-        // Estimate DC pension income using 4% withdrawal rate
-        $dcAnnualIncome = $totalDCValue * 0.04;
+        // Estimate DC pension income using safe withdrawal rate
+        $safeWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
+        $dcAnnualIncome = $totalDCValue * $safeWithdrawalRate;
 
         $totalProjectedIncome = $dcAnnualIncome + $totalDBIncome + $statePensionIncome;
 

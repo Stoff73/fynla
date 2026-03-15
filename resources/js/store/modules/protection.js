@@ -91,6 +91,8 @@ const state = {
     recommendations: [],
     lifeEvents: [],
     lifeEventImpact: null,
+    canProceed: true,
+    readinessChecks: null,
     loading: false,
     error: null,
 };
@@ -98,9 +100,11 @@ const state = {
 const getters = {
     policies: (state) => state.policies,
 
-    // Get adequacy score from analysis
+    // Get adequacy rating from analysis (category string: Excellent/Good/Fair/Critical)
     adequacyScore: (state) => {
-        return state.analysis?.data?.adequacy_score || 0;
+        const adequacy = state.analysis?.data?.adequacy_score;
+        if (!adequacy) return 'Incomplete';
+        return adequacy.rating || 'Incomplete';
     },
 
     // Get total coverage across all policy types
@@ -197,6 +201,9 @@ const getters = {
     upcomingLifeEvents: (state) => state.lifeEvents,
     lifeEventNetImpact: (state) => state.lifeEventImpact?.net_impact || 0,
 
+    canProceed: (state) => state.canProceed,
+    readinessChecks: (state) => state.readinessChecks,
+
     loading: (state) => state.loading,
     error: (state) => state.error,
 };
@@ -257,7 +264,17 @@ const actions = {
             try {
                 const analysisResponse = await protectionService.analyzeProtection({});
                 const analysisData = analysisResponse.data || analysisResponse;
-                commit('setAnalysis', analysisData);
+
+                // Guard: handle success: false or can_proceed: false
+                if (analysisData?.success === false || analysisData?.can_proceed === false) {
+                    commit('SET_CAN_PROCEED', false);
+                    commit('SET_READINESS_CHECKS', analysisData?.readiness_checks || null);
+                    commit('setAnalysis', null);
+                } else {
+                    commit('SET_CAN_PROCEED', true);
+                    commit('SET_READINESS_CHECKS', null);
+                    commit('setAnalysis', analysisData);
+                }
             } catch (analysisError) {
                 // Don't fail the whole request if analysis fails
                 commit('setAnalysis', null);
@@ -281,6 +298,17 @@ const actions = {
         try {
             const response = await protectionService.analyzeProtection(data);
             const analysisData = response.data || response;
+
+            // Guard: handle success: false or can_proceed: false
+            if (analysisData?.success === false || analysisData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', analysisData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
             commit('setAnalysis', analysisData);
             return response;
         } catch (error) {
@@ -430,6 +458,14 @@ const mutations = {
         if (index !== -1) {
             state.policies[type].splice(index, 1);
         }
+    },
+
+    SET_CAN_PROCEED(state, canProceed) {
+        state.canProceed = canProceed;
+    },
+
+    SET_READINESS_CHECKS(state, checks) {
+        state.readinessChecks = checks;
     },
 
     setLoading(state, loading) {

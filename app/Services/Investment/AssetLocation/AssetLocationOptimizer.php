@@ -6,7 +6,9 @@ namespace App\Services\Investment\AssetLocation;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesIncome;
 
 /**
  * Asset Location Optimizer
@@ -17,10 +19,13 @@ use App\Services\TaxConfigService;
  */
 class AssetLocationOptimizer
 {
+    use ResolvesIncome;
+
     public function __construct(
         private readonly TaxDragCalculator $taxDragCalculator,
         private readonly AccountTypeRecommender $recommender,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -89,8 +94,8 @@ class AssetLocationOptimizer
      */
     private function buildUserTaxProfile(User $user, array $options): array
     {
-        // Get user income and calculate tax rate
-        $annualIncome = $user->gross_annual_income ?? 50000;
+        // Get user income from all sources and calculate tax rate
+        $annualIncome = $this->resolveGrossAnnualIncome($user);
         $incomeTaxRate = $this->calculateIncomeTaxRate($annualIncome);
 
         // CGT rate (10% basic, 20% higher)
@@ -117,7 +122,9 @@ class AssetLocationOptimizer
             'cgt_allowance_used' => $options['cgt_allowance_used'] ?? 0,
             'dividend_allowance_used' => $options['dividend_allowance_used'] ?? 0,
             'psa_used' => $options['psa_used'] ?? 0,
-            'expected_return' => $options['expected_return'] ?? 0.06,
+            'expected_return' => $options['expected_return'] ?? $this->riskPreferenceService->getReturnParameters(
+                $this->riskPreferenceService->getMainRiskLevel($user->id) ?? 'medium'
+            )['expected_return_typical'] / 100,
             'years_to_retirement' => $yearsToRetirement,
             'expected_withdrawal_tax_rate' => $options['expected_withdrawal_tax_rate'] ?? 0.20,
             'prefer_pension' => $options['prefer_pension'] ?? false,

@@ -6,6 +6,7 @@ namespace App\Services\Investment\Analytics;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Utilities\StatisticalFunctions;
+use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -16,8 +17,17 @@ use Illuminate\Support\Facades\Log;
 class HoldingsDataExtractor
 {
     public function __construct(
-        private StatisticalFunctions $stats
+        private StatisticalFunctions $stats,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Extract holdings data for a user
@@ -244,13 +254,14 @@ class HoldingsDataExtractor
             }
         }
 
-        // Default to balanced portfolio return
+        // Default to balanced portfolio return from risk profile
+        $defaultReturn = $this->getDefaultExpectedReturn();
         Log::warning('Unknown asset type for expected return', [
             'asset_type' => $assetType,
-            'defaulting_to' => 0.06,
+            'defaulting_to' => $defaultReturn,
         ]);
 
-        return 0.06; // 6% balanced default
+        return $defaultReturn;
     }
 
     /**

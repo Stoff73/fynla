@@ -30,7 +30,7 @@ class ShareContentGenerator
     {
         return [
             'title' => 'Financial Milestone',
-            'text' => "Just hit a financial milestone! Tracking my net worth with Fynla has been a game-changer for staying motivated.",
+            'text' => 'Just hit a financial milestone! Tracking my net worth with Fynla has been a game-changer for staying motivated.',
             'url' => 'https://fynla.org',
         ];
     }
@@ -39,7 +39,7 @@ class ShareContentGenerator
     {
         return [
             'title' => 'Financial Insight from Fyn',
-            'text' => "Got a great financial insight from Fyn, my AI financial advisor on Fynla. Really helpful for making better financial decisions.",
+            'text' => 'Got a great financial insight from Fyn, my AI financial advisor on Fynla. Really helpful for making better financial decisions.',
             'url' => 'https://fynla.org',
         ];
     }

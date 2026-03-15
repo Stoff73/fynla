@@ -645,6 +645,7 @@ import LetterEstateWarnings from './LetterEstateWarnings.vue';
 import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { IHT_NIL_RATE_BAND, IHT_STANDARD_RATE, IHT_REDUCED_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'IHTPlanning',
@@ -763,8 +764,8 @@ export default {
       if (!this.ihtData || !this.estateLifeEvents.length) return [];
 
       const netEstate = this.ihtData.net_estate_value || 0;
-      const totalAllowances = (this.ihtData.nil_rate_band || 325000) + (this.ihtData.rnrb || 0);
-      const ihtRate = 0.4;
+      const totalAllowances = (this.ihtData.nil_rate_band || IHT_NIL_RATE_BAND) + (this.ihtData.rnrb || 0);
+      const ihtRate = IHT_STANDARD_RATE;
       const currentIHT = Math.max(0, (netEstate - totalAllowances) * ihtRate);
 
       return this.estateLifeEvents.map(event => {
@@ -863,8 +864,8 @@ export default {
     charitableBequestSavings() {
       // Calculate potential IHT savings if 10%+ is left to charity (rate drops from 40% to 36%)
       const taxableEstate = this.ihtData?.taxable_estate || 0;
-      const currentIHT = taxableEstate * 0.40;
-      const reducedIHT = taxableEstate * 0.36;
+      const currentIHT = taxableEstate * IHT_STANDARD_RATE;
+      const reducedIHT = taxableEstate * IHT_REDUCED_RATE;
       return currentIHT - reducedIHT;
     },
 
@@ -872,7 +873,7 @@ export default {
     // Baseline = Net Estate - NRB - other exemptions (NOT including RNRB)
     charitableBaseline() {
       const netEstate = this.ihtData?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       // Baseline excludes RNRB - only NRB and other exemptions (like spouse exemption)
       return Math.max(0, netEstate - nrb);
     },
@@ -890,7 +891,7 @@ export default {
     // Baseline = Net Estate - NRB (excluding RNRB)
     charitableDonationProjected() {
       const netEstate = this.projection?.at_death?.net_estate || this.secondDeathData?.second_death_analysis?.iht_calculation?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       const baseline = Math.max(0, netEstate - nrb);
       return baseline * 0.10;
     },
@@ -898,53 +899,53 @@ export default {
     // Estate after NRB (baseline for charitable bequest) - for non-married users
     estateAfterNRB() {
       const netEstate = this.ihtData?.net_estate_value || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       return Math.max(0, netEstate - nrb);
     },
 
     estateAfterNRBProjected() {
       const netEstate = this.projection?.at_death?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       return Math.max(0, netEstate - nrb);
     },
 
     estateAfterNRBMinus5() {
       const netEstate = this.projectionMinus5?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       return Math.max(0, netEstate - nrb);
     },
 
     estateAfterNRBPlus5() {
       const netEstate = this.projectionPlus5?.net_estate || 0;
-      const nrb = this.ihtData?.nrb_available || 325000;
+      const nrb = this.ihtData?.nrb_available || IHT_NIL_RATE_BAND;
       return Math.max(0, netEstate - nrb);
     },
 
     // Estate after NRB for married users (second death scenario)
     secondDeathEstateAfterNRB() {
       const netEstate = this.secondDeathData?.second_death_analysis?.current_iht_calculation?.net_estate_value || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || 325000) +
-                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || 325000);
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || IHT_NIL_RATE_BAND) +
+                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND);
       return Math.max(0, netEstate - totalNRB);
     },
 
     secondDeathEstateAfterNRBProjected() {
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || 325000) +
-                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || 325000);
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || IHT_NIL_RATE_BAND) +
+                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND);
       return Math.max(0, this.netEstateProjected - totalNRB);
     },
 
     secondDeathEstateAfterNRBMinus5() {
       const netEstate = this.secondDeathProjectionMinus5?.net_estate || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || 325000) +
-                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || 325000);
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb || IHT_NIL_RATE_BAND) +
+                       (this.secondDeathData?.second_death_analysis?.current_iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND);
       return Math.max(0, netEstate - totalNRB);
     },
 
     secondDeathEstateAfterNRBPlus5() {
       const netEstate = this.secondDeathProjectionPlus5?.net_estate || 0;
-      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || 325000) +
-                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || 325000);
+      const totalNRB = (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb || IHT_NIL_RATE_BAND) +
+                       (this.secondDeathData?.second_death_analysis?.iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND);
       return Math.max(0, netEstate - totalNRB);
     },
 
@@ -1073,14 +1074,14 @@ export default {
 
     // Taxable Estate projected (Net Estate - NRB - RNRB)
     taxableEstateProjected() {
-      const totalNRB = this.secondDeathData?.second_death_analysis?.iht_calculation?.total_nrb || 650000;
+      const totalNRB = this.secondDeathData?.second_death_analysis?.iht_calculation?.total_nrb || IHT_NIL_RATE_BAND * 2;
       const rnrb = this.secondDeathData?.second_death_analysis?.iht_calculation?.rnrb || 0;
       return Math.max(0, this.netEstateProjected - totalNRB - rnrb);
     },
 
     // IHT Liability projected (40% of Taxable Estate)
     ihtLiabilityProjected() {
-      return this.taxableEstateProjected * 0.40;
+      return this.taxableEstateProjected * IHT_STANDARD_RATE;
     },
 
     // Growth rate for projections (4.7% annual)
@@ -1125,14 +1126,14 @@ export default {
       const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
-      const totalAllowance = (this.ihtData?.nrb_available || 325000) + (this.ihtData?.rnrb_available || 0);
+      const totalAllowance = (this.ihtData?.nrb_available || IHT_NIL_RATE_BAND) + (this.ihtData?.rnrb_available || 0);
 
       // Calculate projected values using compound growth
       const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
       const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
       const projectedNetEstate = projectedAssets - projectedLiabilities;
       const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+      const projectedIHTLiability = projectedTaxableEstate * IHT_STANDARD_RATE;
 
       return {
         estimated_age_at_death: this.projectedAgeMinus5,
@@ -1153,14 +1154,14 @@ export default {
       const currentNetEstate = this.projection.now.net_estate || 0;
       const currentAssets = this.projection.now.assets || 0;
       const currentLiabilities = this.projection.now.liabilities || 0;
-      const totalAllowance = (this.ihtData?.nrb_available || 325000) + (this.ihtData?.rnrb_available || 0);
+      const totalAllowance = (this.ihtData?.nrb_available || IHT_NIL_RATE_BAND) + (this.ihtData?.rnrb_available || 0);
 
       // Calculate projected values using compound growth
       const projectedAssets = currentAssets * Math.pow(1 + this.growthRate, years);
       const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
       const projectedNetEstate = projectedAssets - projectedLiabilities;
       const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+      const projectedIHTLiability = projectedTaxableEstate * IHT_STANDARD_RATE;
 
       return {
         estimated_age_at_death: this.projectedAgePlus5,
@@ -1184,8 +1185,8 @@ export default {
       const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
 
       // Get total allowance for second death (includes spouse's transferred allowances)
-      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000;
-      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000;
+      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || IHT_NIL_RATE_BAND;
+      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND;
       const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
       const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
       const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
@@ -1195,7 +1196,7 @@ export default {
       const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
       const projectedNetEstate = projectedAssets - projectedLiabilities;
       const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+      const projectedIHTLiability = projectedTaxableEstate * IHT_STANDARD_RATE;
 
       return {
         net_estate: projectedNetEstate,
@@ -1215,8 +1216,8 @@ export default {
       const currentLiabilities = this.secondDeathData.second_death_analysis.current_iht_calculation.liabilities || 0;
 
       // Get total allowance for second death (includes spouse's transferred allowances)
-      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || 325000;
-      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || 325000;
+      const nrb = this.secondDeathData.second_death_analysis.iht_calculation?.nrb || IHT_NIL_RATE_BAND;
+      const nrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.nrb_from_spouse || IHT_NIL_RATE_BAND;
       const rnrb = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_individual || 0;
       const rnrbFromSpouse = this.secondDeathData.second_death_analysis.iht_calculation?.rnrb_from_spouse || 0;
       const totalAllowance = nrb + nrbFromSpouse + rnrb + rnrbFromSpouse;
@@ -1226,7 +1227,7 @@ export default {
       const projectedLiabilities = currentLiabilities; // Liabilities stay constant (conservative)
       const projectedNetEstate = projectedAssets - projectedLiabilities;
       const projectedTaxableEstate = Math.max(0, projectedNetEstate - totalAllowance);
-      const projectedIHTLiability = projectedTaxableEstate * 0.40;
+      const projectedIHTLiability = projectedTaxableEstate * IHT_STANDARD_RATE;
 
       return {
         net_estate: projectedNetEstate,
@@ -1278,9 +1279,9 @@ export default {
           },
         },
         allowances: {
-          nrb: currentCalc.nrb || 325000,
-          nrbFromSpouse: currentCalc.nrb_from_spouse || 325000,
-          totalNrb: (currentCalc.nrb || 325000) + (currentCalc.nrb_from_spouse || 325000),
+          nrb: currentCalc.nrb || IHT_NIL_RATE_BAND,
+          nrbFromSpouse: currentCalc.nrb_from_spouse || IHT_NIL_RATE_BAND,
+          totalNrb: (currentCalc.nrb || IHT_NIL_RATE_BAND) + (currentCalc.nrb_from_spouse || IHT_NIL_RATE_BAND),
           rnrbIndividual: currentCalc.rnrb_individual || 0,
           rnrbFromSpouse: currentCalc.rnrb_from_spouse || 0,
           totalRnrb: (currentCalc.rnrb_individual || 0) + (currentCalc.rnrb_from_spouse || 0),
@@ -1312,16 +1313,16 @@ export default {
         },
         ihtLiability: {
           now: this.charitableBequest
-            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath) * 0.36
+            ? Math.max(0, (currentCalc.taxable_estate || 0) - this.charitableDonationSecondDeath) * IHT_REDUCED_RATE
             : (currentCalc.iht_liability || 0),
           minus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5) * 0.36
+            ? Math.max(0, this.secondDeathProjectionMinus5.taxable_estate - this.charitableDonationSecondDeathMinus5) * IHT_REDUCED_RATE
             : this.secondDeathProjectionMinus5.iht_liability,
           projected: this.charitableBequest
-            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected) * 0.36
+            ? Math.max(0, this.taxableEstateProjected - this.charitableDonationSecondDeathProjected) * IHT_REDUCED_RATE
             : this.ihtLiabilityProjected,
           plus5: this.charitableBequest
-            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5) * 0.36
+            ? Math.max(0, this.secondDeathProjectionPlus5.taxable_estate - this.charitableDonationSecondDeathPlus5) * IHT_REDUCED_RATE
             : this.secondDeathProjectionPlus5.iht_liability,
         },
         charitableDonation: {
@@ -1366,9 +1367,9 @@ export default {
           },
         },
         allowances: {
-          nrb: this.ihtData?.nrb_individual || 325000,
+          nrb: this.ihtData?.nrb_individual || IHT_NIL_RATE_BAND,
           nrbFromSpouse: this.ihtData?.nrb_transferred || 0,
-          totalNrb: this.ihtData?.nrb_available || 325000,
+          totalNrb: this.ihtData?.nrb_available || IHT_NIL_RATE_BAND,
           rnrbIndividual: this.ihtData?.rnrb_individual || 0,
           rnrbFromSpouse: this.ihtData?.rnrb_transferred || 0,
           totalRnrb: this.ihtData?.rnrb_available || 0,
@@ -1401,16 +1402,16 @@ export default {
         },
         ihtLiability: {
           now: this.charitableBequest
-            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount) * 0.36
+            ? Math.max(0, (this.ihtData?.taxable_estate || 0) - this.charitableDonationAmount) * IHT_REDUCED_RATE
             : (this.ihtData?.estate_iht_liability || 0),
           minus5: this.charitableBequest
-            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount) * 0.36
+            ? Math.max(0, (this.projectionMinus5?.taxable_estate || 0) - this.charitableDonationAmount) * IHT_REDUCED_RATE
             : (this.projectionMinus5?.iht_liability || 0),
           projected: this.charitableBequest
-            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected) * 0.36
+            ? Math.max(0, (this.projection?.at_death?.taxable_estate || 0) - this.charitableDonationProjected) * IHT_REDUCED_RATE
             : (this.projection?.at_death?.iht_liability || 0),
           plus5: this.charitableBequest
-            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected) * 0.36
+            ? Math.max(0, (this.projectionPlus5?.taxable_estate || 0) - this.charitableDonationProjected) * IHT_REDUCED_RATE
             : (this.projectionPlus5?.iht_liability || 0),
         },
         charitableDonation: {

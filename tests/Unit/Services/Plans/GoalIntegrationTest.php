@@ -21,7 +21,7 @@ class TestablePlanService extends BasePlanService
         return [];
     }
 
-    public function getRecommendations(int $userId): array
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
         return [];
     }

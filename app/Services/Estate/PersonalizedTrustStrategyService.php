@@ -6,6 +6,8 @@ namespace App\Services\Estate;
 
 use App\Models\Estate\IHTProfile;
 use App\Models\User;
+use App\Services\Risk\RiskPreferenceService;
+use App\Services\Settings\AssumptionsService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -24,7 +26,9 @@ class PersonalizedTrustStrategyService
 {
     public function __construct(
         private readonly AssetLiquidityAnalyzer $liquidityAnalyzer,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly AssumptionsService $assumptionsService,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -673,5 +677,92 @@ class PersonalizedTrustStrategyService
         }
 
         return 'Limited';
+    }
+
+    /**
+     * Calculate Nil Rate Band avoidance forward projection for a trust settlement.
+     *
+     * Projects the trust value growth over 11 years (covering the 10-year
+     * periodic charge anniversary) to show whether the planned settlement
+     * amount will exceed the Nil Rate Band threshold.
+     *
+     * Growth rate is sourced from the user's risk profile via AssumptionsService
+     * and RiskPreferenceService -- never from TaxConfigService or hardcoded defaults.
+     *
+     * @param  User  $user  The user creating the trust
+     * @param  float  $plannedAmount  The planned initial settlement amount
+     * @return array Forward projection with year-by-year trajectory
+     */
+    public function calculateNRBAvoidanceProjection(User $user, float $plannedAmount): array
+    {
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $nrb = (float) $ihtConfig['nil_rate_band'];
+
+        // Get growth rate from user's risk profile via AssumptionsService
+        $riskLevel = $this->riskPreferenceService->getMainRiskLevel($user->id) ?? 'medium';
+
+        try {
+            $riskParams = $this->riskPreferenceService->getReturnParameters($riskLevel);
+            $growthRate = ($riskParams['expected_return_typical'] ?? 5.0) / 100;
+        } catch (\Exception $e) {
+            $growthRate = 0.05; // Medium risk fallback
+        }
+
+        // Calculate maximum initial settlement that stays below NRB at 10-year anniversary
+        $maxInitialSettlement = $nrb / pow(1 + $growthRate, 10);
+
+        // Project the planned amount forward
+        $projectedAt10Years = $plannedAmount * pow(1 + $growthRate, 10);
+        $willExceedNRB = $projectedAt10Years > $nrb;
+
+        // Year-by-year trajectory (0 to 11 years, covering the 10-year anniversary)
+        $trajectory = [];
+        for ($year = 0; $year <= 11; $year++) {
+            $projectedValue = $plannedAmount * pow(1 + $growthRate, $year);
+            $trajectory[] = [
+                'year' => $year,
+                'projected_value' => round($projectedValue, 2),
+                'exceeds_nrb' => $projectedValue > $nrb,
+            ];
+        }
+
+        // Calculate estimated periodic charge if value exceeds NRB at 10-year anniversary
+        $estimatedPeriodicCharge = 0;
+        if ($willExceedNRB) {
+            $estimatedPeriodicCharge = $this->calculatePeriodicCharge($projectedAt10Years, $nrb);
+        }
+
+        return [
+            'planned_amount' => round($plannedAmount, 2),
+            'max_initial_settlement' => round($maxInitialSettlement, 2),
+            'projected_at_10_years' => round($projectedAt10Years, 2),
+            'will_exceed_nrb' => $willExceedNRB,
+            'nrb_threshold' => round($nrb, 2),
+            'estimated_periodic_charge' => round($estimatedPeriodicCharge, 2),
+            'growth_rate_used' => round($growthRate, 4),
+            'risk_level' => $riskLevel,
+            'trajectory' => $trajectory,
+            'guidance' => $willExceedNRB
+                ? 'The planned settlement of £'.number_format($plannedAmount).' is projected to exceed the Nil Rate Band (£'.number_format($nrb).') by the 10-year anniversary. Consider settling no more than £'.number_format($maxInitialSettlement).' to avoid the periodic charge.'
+                : 'The planned settlement of £'.number_format($plannedAmount).' is projected to remain within the Nil Rate Band (£'.number_format($nrb).') at the 10-year anniversary. No periodic charge is expected.',
+        ];
+    }
+
+    /**
+     * Calculate the estimated periodic charge on a trust value exceeding the Nil Rate Band.
+     *
+     * The periodic charge is approximately 6% of the value above the Nil Rate Band,
+     * calculated on each 10-year anniversary of the trust.
+     *
+     * @param  float  $trustValue  The projected trust value
+     * @param  float  $nrb  The Nil Rate Band threshold
+     * @return float Estimated periodic charge
+     */
+    private function calculatePeriodicCharge(float $trustValue, float $nrb): float
+    {
+        $excessOverNRB = max(0, $trustValue - $nrb);
+
+        // Maximum periodic charge rate is 6% (30% of lifetime rate of 20%)
+        return $excessOverNRB * 0.06;
     }
 }

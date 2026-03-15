@@ -23,8 +23,11 @@ abstract class BasePlanService
 
     /**
      * Get actionable recommendations for the plan.
+     *
+     * @param  int  $userId  User ID
+     * @param  array|null  $preComputedData  Optional pre-computed analysis data to avoid redundant calls
      */
-    abstract public function getRecommendations(int $userId): array;
+    abstract public function getRecommendations(int $userId, ?array $preComputedData = null): array;
 
     /**
      * Check what data is available/missing for this plan type.
@@ -44,6 +47,7 @@ abstract class BasePlanService
 
         $goals = match ($planType) {
             'investment' => (clone $baseQuery)->whereIn('assigned_module', ['investment', 'savings'])->get(),
+            'savings' => (clone $baseQuery)->whereIn('assigned_module', ['savings', 'investment'])->get(),
             'retirement' => (clone $baseQuery)->where(function ($q) {
                 $q->where('assigned_module', 'retirement')
                     ->orWhere('goal_type', 'retirement');
@@ -264,8 +268,8 @@ abstract class BasePlanService
 
         foreach ($recommendations as $rec) {
             $actions[] = [
-                'title' => $rec['title'] ?? $rec['action'] ?? $rec['category'] ?? 'Recommendation',
-                'description' => $rec['description'] ?? $rec['rationale'] ?? $rec['action'] ?? '',
+                'title' => $rec['title'] ?? $rec['headline'] ?? $rec['action'] ?? $rec['category'] ?? 'Recommendation',
+                'description' => $rec['description'] ?? $rec['explanation'] ?? $rec['rationale'] ?? $rec['action'] ?? '',
                 'category' => $rec['category'] ?? 'General',
                 'priority' => $this->normalisePriority($rec['priority'] ?? $rec['impact'] ?? 'medium'),
                 'enabled' => true,
@@ -356,6 +360,7 @@ abstract class BasePlanService
         $goalPhrase = match ($planType) {
             'protection' => 'closing your protection gaps',
             'investment' => 'reaching your investment goals',
+            'savings' => 'optimising your savings position',
             'estate' => 'securing your estate plan',
             default => 'reaching your retirement goal',
         };

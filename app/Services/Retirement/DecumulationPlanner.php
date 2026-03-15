@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Models\User;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
 /**
@@ -14,6 +16,10 @@ use Illuminate\Support\Collection;
  */
 class DecumulationPlanner
 {
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Calculate sustainable withdrawal rate scenarios.
      *
@@ -67,19 +73,28 @@ class DecumulationPlanner
     /**
      * Compare annuity purchase vs flexible drawdown.
      *
+     * Optionally accepts a User to check for enhanced annuity eligibility via their
+     * ProtectionProfile (smoker status, health status). Enhanced annuity rates offer
+     * better income for individuals with reduced life expectancy.
+     *
      * @param  float  $pensionPot  DC pension pot value
      * @param  int  $age  Current age
      * @param  bool  $spouse  Whether to include spouse benefits
+     * @param  User|null  $user  Optional user for enhanced annuity assessment
      */
-    public function compareAnnuityVsDrawdown(float $pensionPot, int $age, bool $spouse = false): array
+    public function compareAnnuityVsDrawdown(float $pensionPot, int $age, bool $spouse = false, ?User $user = null): array
     {
-        // Annuity rates (simplified - real rates vary by provider and health)
-        // Rough estimates: 5-6% for age 65-70, decreasing with age
+        // Base annuity rate from TaxConfigService
         $annuityRate = $this->getAnnuityRate($age, $spouse);
-        $annuityIncome = $pensionPot * $annuityRate;
 
-        // Drawdown scenario using 4% withdrawal rate
-        $drawdownRate = 0.04;
+        // Check for enhanced annuity eligibility via smoker/health status
+        $enhancedInfo = $this->assessEnhancedAnnuityEligibility($user);
+        $enhancedAnnuityRate = $annuityRate * $enhancedInfo['enhancement_factor'];
+
+        $annuityIncome = $pensionPot * $enhancedAnnuityRate;
+
+        // Drawdown scenario using safe withdrawal rate
+        $drawdownRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
         $drawdownIncome = $pensionPot * $drawdownRate;
 
         return [
@@ -89,10 +104,16 @@ class DecumulationPlanner
                 'inflation_protected' => false, // Level annuity
                 'death_benefits' => $spouse ? 'Spouse pension included' : 'No death benefits',
                 'flexibility' => 'None - irreversible decision',
+                'enhanced_annuity_eligible' => $enhancedInfo['is_eligible'],
+                'enhanced_annuity_reason' => $enhancedInfo['reason'],
+                'enhancement_factor' => $enhancedInfo['enhancement_factor'],
+                'base_annuity_rate' => round($annuityRate * 100, 2),
+                'effective_annuity_rate' => round($enhancedAnnuityRate * 100, 2),
                 'pros' => [
                     'Guaranteed income for life',
                     'No investment risk',
                     'Simplicity',
+                    ...($enhancedInfo['is_eligible'] ? ['Enhanced rate may offer significantly higher income'] : []),
                 ],
                 'cons' => [
                     'Irreversible',
@@ -124,6 +145,79 @@ class DecumulationPlanner
     }
 
     /**
+     * Assess whether the user is eligible for enhanced annuity rates.
+     *
+     * Smokers and those with certain health conditions typically receive higher
+     * annuity rates because of reduced life expectancy. The enhancement factor
+     * reflects the typical 15-25% increase in annuity income.
+     *
+     * Smoker and health status are stored on the ProtectionProfile (captured
+     * during onboarding), not on the User model directly.
+     *
+     * @return array{is_eligible: bool, reason: string|null, enhancement_factor: float}
+     */
+    public function assessEnhancedAnnuityEligibility(?User $user): array
+    {
+        if ($user === null) {
+            return [
+                'is_eligible' => false,
+                'reason' => null,
+                'enhancement_factor' => 1.0,
+            ];
+        }
+
+        $user->loadMissing('protectionProfile');
+        $protectionProfile = $user->protectionProfile;
+
+        if ($protectionProfile === null) {
+            return [
+                'is_eligible' => false,
+                'reason' => null,
+                'enhancement_factor' => 1.0,
+            ];
+        }
+
+        $smokerStatus = $protectionProfile->smoker_status;
+        $healthStatus = $protectionProfile->health_status;
+
+        $isSmoker = (bool) $smokerStatus;
+        $hasHealthCondition = in_array($healthStatus, ['poor', 'fair'], true);
+
+        if (! $isSmoker && ! $hasHealthCondition) {
+            return [
+                'is_eligible' => false,
+                'reason' => null,
+                'enhancement_factor' => 1.0,
+            ];
+        }
+
+        // Calculate enhancement factor
+        // Smokers typically receive 15-25% higher annuity rates
+        // Health conditions add a further 10-15% enhancement
+        $factor = 1.0;
+        $reasons = [];
+
+        if ($isSmoker) {
+            $factor *= 1.20; // 20% enhancement for smokers (middle of 15-25% range)
+            $reasons[] = 'smoker status';
+        }
+
+        if ($hasHealthCondition) {
+            $factor *= 1.15; // 15% enhancement for health conditions
+            $reasons[] = sprintf('%s health status', $healthStatus);
+        }
+
+        return [
+            'is_eligible' => true,
+            'reason' => sprintf(
+                'You may qualify for enhanced annuity rates due to %s. Enhanced annuities offer higher income because providers factor in reduced life expectancy.',
+                implode(' and ', $reasons)
+            ),
+            'enhancement_factor' => round($factor, 4),
+        ];
+    }
+
+    /**
      * Calculate Pension Commencement Lump Sum (PCLS) strategy.
      *
      * PCLS = 25% of pension value, tax-free.
@@ -135,8 +229,9 @@ class DecumulationPlanner
         $pclsAmount = $pensionValue * 0.25;
         $remainingPot = $pensionValue - $pclsAmount;
 
-        // Calculate income from remaining pot (4% withdrawal rate)
-        $annualIncomeFromRemainingPot = $remainingPot * 0.04;
+        // Calculate income from remaining pot using safe withdrawal rate
+        $safeWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
+        $annualIncomeFromRemainingPot = $remainingPot * $safeWithdrawalRate;
 
         return [
             'pension_value' => round($pensionValue, 2),
@@ -301,10 +396,32 @@ class DecumulationPlanner
 
     /**
      * Get annuity rate based on age and spouse benefits.
+     *
+     * Uses annuity rate estimates from TaxConfigService, keyed by age bracket.
+     * Falls back to hardcoded estimates if config is unavailable.
      */
     private function getAnnuityRate(int $age, bool $spouse): float
     {
-        // Simplified rates - real rates vary significantly
+        $annuityRates = $this->taxConfig->get('retirement.annuity_rate_estimates', []);
+
+        if (! empty($annuityRates)) {
+            $type = $spouse ? 'joint' : 'single';
+
+            // Find the closest age bracket (keys are '55', '60', '65', '70', '75')
+            $closestAge = null;
+            foreach (array_keys($annuityRates) as $bracketAge) {
+                $bracketAge = (int) $bracketAge;
+                if ($closestAge === null || abs($age - $bracketAge) < abs($age - $closestAge)) {
+                    $closestAge = $bracketAge;
+                }
+            }
+
+            if ($closestAge !== null && isset($annuityRates[(string) $closestAge][$type])) {
+                return (float) $annuityRates[(string) $closestAge][$type];
+            }
+        }
+
+        // Fallback: hardcoded estimates if config unavailable
         $baseRate = match (true) {
             $age < 60 => 0.04,
             $age < 65 => 0.045,
@@ -313,7 +430,6 @@ class DecumulationPlanner
             default => 0.075,
         };
 
-        // Reduce rate if spouse benefits included
         if ($spouse) {
             $baseRate *= 0.85;
         }

@@ -311,7 +311,7 @@
                   <li>Asset allocation breakdown (Equities, Bonds, Property, Cash, Alternatives)</li>
                   <li>Risk metrics (Alpha, Beta, Sharpe Ratio, Volatility, Max Drawdown, VaR)</li>
                   <li>Fee analysis with low-cost alternatives comparison</li>
-                  <li>Diversification scoring</li>
+                  <li>Diversification analysis</li>
                 </ul>
               </div>
 
@@ -325,7 +325,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">Retirement Readiness</h3>
                 <p class="text-body-base text-horizon-500 mb-4">
-                  Score out of 100 showing how prepared you are for retirement based on projected income versus desired income.
+                  Assessment of your retirement readiness based on your current savings, pension provisions, and projected income needs.
                 </p>
               </div>
             </div>

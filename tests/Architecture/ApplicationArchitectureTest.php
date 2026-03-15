@@ -73,6 +73,14 @@ arch('all services use strict types')
     ->expect('App\Services')
     ->toUseStrictTypes();
 
+arch('all models use strict types')
+    ->expect('App\Models')
+    ->toUseStrictTypes();
+
+arch('all controllers use strict types')
+    ->expect('App\Http\Controllers')
+    ->toUseStrictTypes();
+
 // Test: No usage of deprecated functions
 arch('code does not use deprecated functions')
     ->expect('App')

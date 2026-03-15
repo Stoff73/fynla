@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment\Goals;
 
 use App\Models\Investment\InvestmentGoal;
+use App\Services\Risk\RiskPreferenceService;
 
 /**
  * Shortfall Analyzer
@@ -19,8 +20,17 @@ use App\Models\Investment\InvestmentGoal;
 class ShortfallAnalyzer
 {
     public function __construct(
-        private GoalProbabilityCalculator $probabilityCalculator
+        private GoalProbabilityCalculator $probabilityCalculator,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from user's risk profile
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Analyze goal shortfall and provide mitigation strategies
@@ -52,7 +62,7 @@ class ShortfallAnalyzer
             $currentValue,
             $goal->target_value,
             $goal->monthly_contribution ?? 0,
-            $goal->expected_return ?? 0.06,
+            $goal->expected_return ?? $this->getDefaultExpectedReturn(),
             $goal->volatility ?? 0.15,
             $yearsToGoal
         );
@@ -75,7 +85,7 @@ class ShortfallAnalyzer
             $currentValue,
             $goal->target_value,
             $goal->monthly_contribution ?? 0,
-            $goal->expected_return ?? 0.06,
+            $goal->expected_return ?? $this->getDefaultExpectedReturn(),
             $goal->volatility ?? 0.15,
             $yearsToGoal,
             $expectedShortfall
@@ -86,7 +96,7 @@ class ShortfallAnalyzer
             $currentValue,
             $goal->target_value,
             $goal->monthly_contribution ?? 0,
-            $goal->expected_return ?? 0.06,
+            $goal->expected_return ?? $this->getDefaultExpectedReturn(),
             $goal->volatility ?? 0.15,
             $yearsToGoal
         );
@@ -128,7 +138,7 @@ class ShortfallAnalyzer
         }
 
         $baseContribution = $goal->monthly_contribution ?? 0;
-        $baseReturn = $goal->expected_return ?? 0.06;
+        $baseReturn = $goal->expected_return ?? $this->getDefaultExpectedReturn();
         $volatility = $goal->volatility ?? 0.15;
 
         // Default scenarios if none provided

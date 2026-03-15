@@ -19,6 +19,22 @@ class Goal extends Model
 {
     use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
 
+    /**
+     * @var array<int, string>
+     *
+     * Note on linking mechanisms:
+     *
+     * - linked_account_ids (JSON array): Investment-goal-specific field. Stores an array of
+     *   InvestmentAccount IDs that fund this goal. Used by the Investment GoalForm.vue and
+     *   InvestmentGoal model. NOT used for savings-goal linking — do NOT repurpose for savings.
+     *
+     * - linked_savings_account_id (FK): Legacy single savings account link. Being superseded
+     *   by the goal_savings_account pivot table (many-to-many). Retained for backwards
+     *   compatibility; do NOT use for new code — use the savingsAccounts() relationship instead.
+     *
+     * - linked_investment_account_id (FK): Single investment account link used by the
+     *   TracksGoalContributions trait for auto-recording contributions when account value changes.
+     */
     protected $fillable = [
         'user_id',
         'goal_name',
@@ -144,6 +160,16 @@ class Goal extends Model
     {
         return $this->belongsToMany(self::class, 'goal_dependencies', 'goal_id', 'depends_on_goal_id')
             ->withPivot('dependency_type', 'notes')
+            ->withTimestamps();
+    }
+
+    /**
+     * Savings accounts linked to this goal via pivot table.
+     */
+    public function savingsAccounts(): BelongsToMany
+    {
+        return $this->belongsToMany(SavingsAccount::class, 'goal_savings_account')
+            ->withPivot('allocated_amount', 'is_primary', 'priority_rank')
             ->withTimestamps();
     }
 

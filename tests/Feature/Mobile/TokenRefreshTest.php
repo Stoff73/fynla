@@ -11,7 +11,7 @@ describe('Token Refresh API', function () {
         $token = $user->createToken('test-token');
         $plainToken = $token->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $plainToken)
+        $response = $this->withHeader('Authorization', 'Bearer '.$plainToken)
             ->postJson('/api/v1/auth/refresh-token');
 
         $response->assertOk()
@@ -26,7 +26,7 @@ describe('Token Refresh API', function () {
 
         // New token should work
         $newToken = $response->json('data.token');
-        $this->withHeader('Authorization', 'Bearer ' . $newToken)
+        $this->withHeader('Authorization', 'Bearer '.$newToken)
             ->getJson('/api/v1/health')
             ->assertOk();
     });
@@ -41,7 +41,7 @@ describe('Token Refresh API', function () {
         $token = $user->createToken('test-token');
         $plainToken = $token->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $plainToken)
+        $response = $this->withHeader('Authorization', 'Bearer '.$plainToken)
             ->postJson('/api/v1/auth/refresh-token');
 
         $response->assertOk();

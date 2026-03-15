@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\ProtectionActionDefinition;
 use App\Services\Protection\ProtectionActionDefinitionService;
+use App\Services\TaxConfigService;
 use Database\Seeders\ProtectionActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,7 +15,8 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(ProtectionActionDefinitionSeeder::class);
 
-    $this->service = new ProtectionActionDefinitionService;
+    $taxConfig = app(TaxConfigService::class);
+    $this->service = new ProtectionActionDefinitionService($taxConfig);
 });
 
 // =========================================================================

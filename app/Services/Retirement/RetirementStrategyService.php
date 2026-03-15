@@ -852,7 +852,8 @@ class RetirementStrategyService
             );
 
             // Calculate sustainable income at this pot
-            $sustainableIncome = $projectedPot * 0.047; // 4.7% withdrawal rate
+            $sustainableRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
+            $sustainableIncome = $projectedPot * $sustainableRate;
             $totalIncome = $sustainableIncome + $guaranteedIncome;
             $incomeCoverage = $targetIncome > 0 ? ($totalIncome / $targetIncome) * 100 : 0;
 
@@ -877,7 +878,7 @@ class RetirementStrategyService
                 $recommendedYearsDelay,
                 $cumulativeAdditionalIncome
             );
-            $sustainableIncomeAtMax = $projectedPotAtMax * 0.047;
+            $sustainableIncomeAtMax = $projectedPotAtMax * $sustainableRate;
             $totalIncomeAtMax = $sustainableIncomeAtMax + $guaranteedIncome;
             $bestIncomeCoverage = $targetIncome > 0 ? ($totalIncomeAtMax / $targetIncome) * 100 : 0;
         }
@@ -898,7 +899,8 @@ class RetirementStrategyService
             $yearsDelay,
             $cumulativeAdditionalIncome
         );
-        $sustainableIncome = $projectedPot * 0.047;
+        $sustainableRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
+        $sustainableIncome = $projectedPot * $sustainableRate;
         $totalIncome = $sustainableIncome + $guaranteedIncome;
 
         // Calculate probability directly from income coverage
@@ -1309,8 +1311,10 @@ class RetirementStrategyService
     private function calculateRefundReinvestmentStrategy(
         float $refundAmount,
         float $remainingPensionAllowance,
-        float $remainingIsaAllowance = 20000
+        ?float $remainingIsaAllowance = null
     ): array {
+        $remainingIsaAllowance = $remainingIsaAllowance ?? $this->taxConfig->getISAAllowances()['annual_allowance'];
+
         if ($refundAmount <= 0) {
             return [
                 'refund_amount' => 0,
@@ -1585,7 +1589,7 @@ class RetirementStrategyService
         $potAtRetirementWithout = $lastYear['pot_without_strategy'] ?? 0;
 
         // Use 4.7% sustainable withdrawal rate (matches RetirementProjectionService constant)
-        $sustainableWithdrawalRate = 0.047;
+        $sustainableWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
 
         $sustainableIncomeWith = $potAtRetirementWith * $sustainableWithdrawalRate;
         $sustainableIncomeWithout = $potAtRetirementWithout * $sustainableWithdrawalRate;
@@ -1666,7 +1670,7 @@ class RetirementStrategyService
         $potAtRetirement = $lastYear['pot_with_strategy'] ?? 0;
 
         // Calculate income
-        $sustainableWithdrawalRate = 0.047;
+        $sustainableWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
         $sustainableIncome = $potAtRetirement * $sustainableWithdrawalRate;
         $guaranteedIncome = $currentStatus['guaranteed_income'] ?? 0;
         $totalRetirementIncome = $sustainableIncome + $guaranteedIncome;
@@ -1830,7 +1834,7 @@ class RetirementStrategyService
         $potAtRetirementWith = $lastYear['pot_with_strategy'] ?? 0;
         $potAtRetirementWithout = $potAtOriginalRetirement;
 
-        $sustainableWithdrawalRate = 0.047;
+        $sustainableWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
         $sustainableIncomeWith = $potAtRetirementWith * $sustainableWithdrawalRate;
         $sustainableIncomeWithout = $potAtRetirementWithout * $sustainableWithdrawalRate;
 
@@ -1890,14 +1894,15 @@ class RetirementStrategyService
 
         // Calculate monthly contribution equivalent from prior strategies' income impact
         // Reverse the income calculation to get approximate monthly contributions
+        $sustainableRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
         $priorAdditionalMonthly = 0.0;
         if ($cumulativeAdditionalIncome > 0 && $yearsToRetirement > 0) {
-            // Income = pot × 0.047, so pot = income / 0.047
+            // Income = pot × sustainableRate, so pot = income / sustainableRate
             // pot = monthly × ((1 + r)^n - 1) / r, so monthly = pot × r / ((1 + r)^n - 1)
             $monthlyRate = $expectedReturn / 12;
             $months = $yearsToRetirement * 12;
             if ($monthlyRate > 0 && $months > 0) {
-                $potNeeded = $cumulativeAdditionalIncome / 0.047;
+                $potNeeded = $cumulativeAdditionalIncome / $sustainableRate;
                 $priorAdditionalMonthly = $potNeeded * $monthlyRate / (pow(1 + $monthlyRate, $months) - 1);
             }
         }
@@ -2003,8 +2008,10 @@ class RetirementStrategyService
             $futureValue = $additionalMonthlyContribution * $months;
         }
 
-        // Convert to annual income using sustainable withdrawal rate (4.7%)
-        return $futureValue * 0.047;
+        // Convert to annual income using sustainable withdrawal rate
+        $sustainableRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
+
+        return $futureValue * $sustainableRate;
     }
 
     /**

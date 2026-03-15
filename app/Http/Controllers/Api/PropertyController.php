@@ -159,7 +159,11 @@ class PropertyController extends Controller
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
-        return response()->json($propertyData, 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Property created successfully',
+            'data' => ['property' => $propertyData],
+        ], 201);
     }
 
     /**

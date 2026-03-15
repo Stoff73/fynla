@@ -47,7 +47,7 @@ describe('Admin Retirement Action Definitions API', function () {
                 ],
             ]);
 
-        expect($response->json('data'))->toHaveCount(10);
+        expect($response->json('data'))->toHaveCount(18);
     });
 
     it('denies access to non-admin users', function () {

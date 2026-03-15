@@ -32,22 +32,11 @@ class RetirementIncomeService
 {
     private const DEFAULT_RETIREMENT_AGE = 67;
 
-    private const DEFAULT_GROWTH_RATE = 0.04;
-
-    private const DEFAULT_INFLATION_RATE = 0.02;
-
     private const PROJECTION_END_AGE = 100;
 
     private const STATE_PENSION_GOV_UK = 'https://www.gov.uk/check-state-pension';
 
-    private const DEFAULT_STATE_PENSION_AGE = 67;
-
-    // Sustainable withdrawal rates
-    private const ISA_WITHDRAWAL_RATE = 0.047; // 4.7% sustainable withdrawal
-
     private const BOND_TAX_FREE_RATE = 0.05; // 5% cumulative tax-free allowance
-
-    private const GIA_WITHDRAWAL_RATE = 0.04; // 4% sustainable withdrawal
 
     public function __construct(
         private readonly TaxConfigService $taxConfig,
@@ -570,15 +559,17 @@ class RetirementIncomeService
 
         $statePensions = StatePension::whereIn('user_id', $userIds)->get();
 
+        $defaultSPA = (int) $this->taxConfig->get('pension.state_pension.current_spa', 67);
+
         // No state pension data entered
         if ($statePensions->isEmpty()) {
             return [
                 'has_data' => false,
                 'annual_amount' => 0,
-                'state_pension_age' => self::DEFAULT_STATE_PENSION_AGE,
+                'state_pension_age' => $defaultSPA,
                 'already_receiving' => false,
                 'starts_at_retirement' => false,
-                'years_until_state_pension' => max(0, self::DEFAULT_STATE_PENSION_AGE - $retirementAge),
+                'years_until_state_pension' => max(0, $defaultSPA - $retirementAge),
                 'message' => 'No State Pension forecast entered. Your projections do not include State Pension income.',
                 'link' => self::STATE_PENSION_GOV_UK,
                 'link_text' => 'Check your State Pension forecast on GOV.UK',
@@ -587,7 +578,7 @@ class RetirementIncomeService
 
         // Calculate totals from state pension records
         $totalAnnualAmount = 0;
-        $statePensionAge = self::DEFAULT_STATE_PENSION_AGE;
+        $statePensionAge = $defaultSPA;
         $alreadyReceiving = false;
 
         foreach ($statePensions as $pension) {
@@ -673,7 +664,7 @@ class RetirementIncomeService
         $balance = $totalFunds;
         $statePensionAmount = $statePensionStatus['annual_amount'] ?? 0;
         $yearsUntilStatePension = $statePensionStatus['years_until_state_pension'] ?? 0;
-        $growthRate = self::DEFAULT_GROWTH_RATE;
+        $growthRate = $this->getDefaultGrowthRate();
 
         for ($year = 0; $year < $yearsInRetirement; $year++) {
             // Calculate withdrawal needed from funds
@@ -1361,7 +1352,7 @@ class RetirementIncomeService
     {
         $totalBalance = array_sum($fundBalances);
         if ($totalBalance <= 0) {
-            return self::DEFAULT_GROWTH_RATE;
+            return $this->getDefaultGrowthRate();
         }
 
         $weightedSum = 0;
@@ -1558,7 +1549,7 @@ class RetirementIncomeService
             if ($account['type'] === 'isa_cash' || $account['type'] === 'isa_investment') {
                 $isaBalance = $account['value'] ?? 0;
                 // Cash ISA has no growth, investment ISA has 4% growth
-                $growthRate = ($account['type'] === 'isa_cash') ? 0 : self::DEFAULT_GROWTH_RATE;
+                $growthRate = ($account['type'] === 'isa_cash') ? 0 : $this->getDefaultGrowthRate();
                 $isaPmt = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
                 $totalIsaPmt += $isaPmt;
                 $isaAccounts[] = [
@@ -1661,7 +1652,7 @@ class RetirementIncomeService
                 }
 
                 // Calculate PMT to deplete ISA at age 100
-                $growthRate = ($account['type'] === 'isa_cash') ? 0 : self::DEFAULT_GROWTH_RATE;
+                $growthRate = ($account['type'] === 'isa_cash') ? 0 : $this->getDefaultGrowthRate();
                 $isaPmt = $this->calculateSustainableWithdrawalRate($isaBalance, $yearsInRetirement, $growthRate);
 
                 // ISA should use PMT (to deplete at 100), NOT fill the gap
@@ -1709,7 +1700,7 @@ class RetirementIncomeService
                     foreach ($account['sub_accounts'] as $subAccount) {
                         if ($subAccount['source_type'] === 'pension_pot_drawdown') {
                             $drawdownBalance = $subAccount['max_amount'] ?? 0;
-                            $drawdownPmt = $this->calculateSustainableWithdrawalRate($drawdownBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                            $drawdownPmt = $this->calculateSustainableWithdrawalRate($drawdownBalance, $yearsInRetirement, $this->getDefaultGrowthRate());
                             $taxableSources[] = [
                                 'source_type' => 'pension_pot_drawdown',
                                 'source_id' => $subAccount['source_id'],
@@ -1727,7 +1718,7 @@ class RetirementIncomeService
             foreach ($availableAccounts as $account) {
                 if ($account['type'] === 'gia') {
                     $giaBalance = $account['value'] ?? 0;
-                    $giaPmt = $this->calculateSustainableWithdrawalRate($giaBalance, $yearsInRetirement, self::DEFAULT_GROWTH_RATE);
+                    $giaPmt = $this->calculateSustainableWithdrawalRate($giaBalance, $yearsInRetirement, $this->getDefaultGrowthRate());
                     $taxableSources[] = [
                         'source_type' => 'gia',
                         'source_id' => $account['id'],
@@ -2263,6 +2254,14 @@ class RetirementIncomeService
     }
 
     /**
+     * Get default growth rate from TaxConfigService (safe withdrawal rate).
+     */
+    private function getDefaultGrowthRate(): float
+    {
+        return (float) $this->taxConfig->get('retirement.withdrawal_rates.safe', 0.04);
+    }
+
+    /**
      * Get growth rate for a fund type.
      */
     private function getGrowthRateForFund(string $fundKey): float
@@ -2284,7 +2283,7 @@ class RetirementIncomeService
             str_contains($fundKey, 'onshore_bond') ||
             str_contains($fundKey, 'offshore_bond') ||
             str_contains($fundKey, 'gia')) {
-            return self::DEFAULT_GROWTH_RATE;
+            return $this->getDefaultGrowthRate();
         }
 
         // Savings grow at 2%

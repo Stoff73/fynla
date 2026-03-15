@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 
@@ -89,6 +90,16 @@ class SavingsAccount extends Model
     public function beneficiary(): BelongsTo
     {
         return $this->belongsTo(FamilyMember::class, 'beneficiary_id');
+    }
+
+    /**
+     * Goals linked to this savings account via pivot table.
+     */
+    public function goals(): BelongsToMany
+    {
+        return $this->belongsToMany(Goal::class, 'goal_savings_account')
+            ->withPivot('allocated_amount', 'is_primary', 'priority_rank')
+            ->withTimestamps();
     }
 
     /**

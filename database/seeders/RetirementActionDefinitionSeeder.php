@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 /**
  * Seed the retirement_action_definitions table with all action types.
  *
- * Seeds 7 agent-sourced and 3 goal-sourced action definitions.
+ * Seeds 15 agent-sourced and 3 goal-sourced action definitions.
  * Uses updateOrCreate on `key` for idempotency.
  *
  * Run: php artisan db:seed --class=RetirementActionDefinitionSeeder --force
@@ -163,6 +163,155 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'is_enabled' => true,
                 'sort_order' => 60,
                 'notes' => 'Triggers when income gap exceeds threshold percentage of target income.',
+            ],
+
+            // ── Engine expansion actions (8) ─────────────────────
+
+            [
+                'key' => 'salary_sacrifice_available',
+                'source' => 'agent',
+                'title_template' => 'Consider Salary Sacrifice Arrangement',
+                'description_template' => 'Your workplace pension {scheme_name} could benefit from a salary sacrifice arrangement. This could save you {employee_ni_saving} per year in National Insurance contributions, with your employer also saving {employer_ni_saving}.',
+                'action_template' => 'Speak to your employer about setting up a salary sacrifice arrangement for your pension contributions.',
+                'category' => 'Salary Sacrifice',
+                'priority' => 'high',
+                'scope' => 'account',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => [
+                    'condition' => 'workplace_pension_no_salary_sacrifice',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 15,
+                'notes' => 'Triggers for employed users with workplace pensions who could benefit from salary sacrifice.',
+            ],
+
+            [
+                'key' => 'salary_sacrifice_floor_warning',
+                'source' => 'agent',
+                'title_template' => 'Salary Sacrifice Floor Warning',
+                'description_template' => 'A salary sacrifice arrangement on {scheme_name} would reduce your pay to {post_sacrifice_salary}, which is below the safe floor of {proxy_floor}. This could breach National Minimum Wage or National Living Wage requirements.',
+                'action_template' => 'Review your salary sacrifice amount carefully and seek advice before proceeding.',
+                'category' => 'Salary Sacrifice',
+                'priority' => 'critical',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'salary_sacrifice_below_proxy_floor',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 4,
+                'notes' => 'Triggers when salary sacrifice would reduce pay below the conservative proxy floor.',
+            ],
+
+            [
+                'key' => 'auto_enrolment_below_minimum',
+                'source' => 'agent',
+                'title_template' => 'Pension Contributions Below Auto-Enrolment Minimum',
+                'description_template' => 'Your total pension contribution rate of {total_percent}% is below the auto-enrolment minimum of 8% of qualifying earnings. You may be missing out on {shortfall_annual} per year.',
+                'action_template' => 'Check with your employer that your pension contributions meet the legal minimum and consider increasing your contribution.',
+                'category' => 'Auto-enrolment',
+                'priority' => 'high',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'contribution',
+                'trigger_config' => [
+                    'condition' => 'auto_enrolment_below_minimum_total',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 12,
+                'notes' => 'Triggers when total contributions are below the 8% auto-enrolment minimum.',
+            ],
+
+            [
+                'key' => 'enhanced_annuity_eligible',
+                'source' => 'agent',
+                'title_template' => 'You May Qualify for Enhanced Annuity Rates',
+                'description_template' => 'Based on your health profile, you may qualify for enhanced annuity rates which could provide significantly higher retirement income than standard rates. Enhanced annuities typically pay 15-25% more.',
+                'action_template' => 'When approaching retirement, request enhanced annuity quotes from providers — do not accept a standard annuity rate without checking.',
+                'category' => 'Annuity',
+                'priority' => 'medium',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'smoker_or_health_condition_enhanced_annuity',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 55,
+                'notes' => 'Triggers when smoker status or health condition qualifies for enhanced annuity rates.',
+            ],
+
+            [
+                'key' => 'care_costs_not_modelled',
+                'source' => 'agent',
+                'title_template' => 'Care Costs Not Included in Retirement Plan',
+                'description_template' => 'You have not entered any projected care cost assumptions. Care costs can significantly reduce your retirement income — the average annual cost of residential care in the UK exceeds £35,000.',
+                'action_template' => 'Add care cost assumptions to your retirement profile for more realistic planning.',
+                'category' => 'Care Costs',
+                'priority' => 'low',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'no_care_costs_entered_over_50',
+                    'age_threshold' => 50,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 95,
+                'notes' => 'Triggers when user is over 50 and has no care cost assumptions entered.',
+            ],
+
+            [
+                'key' => 'state_pension_no_forecast',
+                'source' => 'agent',
+                'title_template' => 'No State Pension Forecast Entered',
+                'description_template' => 'You have not entered a State Pension forecast. The State Pension can provide up to {full_state_pension} per year and is a key component of retirement income planning.',
+                'action_template' => 'Request your State Pension forecast from gov.uk and add it to your retirement profile.',
+                'category' => 'State Pension',
+                'priority' => 'medium',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'no_state_pension_forecast',
+                ],
+                'is_enabled' => true,
+                'sort_order' => 48,
+                'notes' => 'Triggers when no State Pension forecast has been entered.',
+            ],
+
+            [
+                'key' => 'approaching_decumulation',
+                'source' => 'agent',
+                'title_template' => 'Approaching Retirement — Review Decumulation Strategy',
+                'description_template' => 'You are within {years_to_retirement} years of your target retirement age. Now is the time to review your drawdown strategy, annuity options, and Pension Commencement Lump Sum entitlement.',
+                'action_template' => 'Review the decumulation analysis in your retirement dashboard and consider seeking regulated financial advice.',
+                'category' => 'Decumulation',
+                'priority' => 'high',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'within_years_of_retirement',
+                    'years_threshold' => 10,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 8,
+                'notes' => 'Triggers when user is within the configurable transition period of retirement age.',
+            ],
+
+            [
+                'key' => 'pension_consolidation_opportunity',
+                'source' => 'agent',
+                'title_template' => 'Consider Consolidating Your Defined Contribution Pensions',
+                'description_template' => 'You have {pension_count} Defined Contribution pensions. Consolidating into fewer schemes could reduce fees, simplify management, and make retirement planning easier.',
+                'action_template' => 'Compare fees and features across your pensions before consolidating. Consider seeking advice as some pensions may have valuable guarantees.',
+                'category' => 'Pension Management',
+                'priority' => 'medium',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'multiple_dc_pensions',
+                    'min_pension_count' => 3,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 65,
+                'notes' => 'Triggers when user has 3 or more DC pensions, suggesting consolidation.',
             ],
 
             // ── Goal-sourced actions (3) ──────────────────────────

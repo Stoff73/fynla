@@ -18,12 +18,12 @@ describe('ETagResponse Middleware', function () {
         $result = $this->middleware->handle($request, fn () => $response);
 
         expect($result->headers->has('ETag'))->toBeTrue()
-            ->and($result->headers->get('ETag'))->toBe('"' . md5('Hello World') . '"');
+            ->and($result->headers->get('ETag'))->toBe('"'.md5('Hello World').'"');
     });
 
     it('returns 304 when If-None-Match matches ETag', function () {
         $content = 'Hello World';
-        $etag = '"' . md5($content) . '"';
+        $etag = '"'.md5($content).'"';
 
         $request = Request::create('/test', 'GET');
         $request->headers->set('If-None-Match', $etag);
@@ -45,7 +45,7 @@ describe('ETagResponse Middleware', function () {
         $result = $this->middleware->handle($request, fn () => $response);
 
         expect($result->getStatusCode())->toBe(200)
-            ->and($result->headers->get('ETag'))->toBe('"' . md5('Hello World') . '"');
+            ->and($result->headers->get('ETag'))->toBe('"'.md5('Hello World').'"');
     });
 
     it('does not add ETag to POST requests', function () {

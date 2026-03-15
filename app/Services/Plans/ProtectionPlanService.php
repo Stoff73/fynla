@@ -70,7 +70,7 @@ class ProtectionPlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId): array
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
         $user = User::findOrFail($userId);
 

@@ -47,11 +47,47 @@ beforeEach(function () {
             'additional_rate' => 0.3935,
         ]);
 
+    // Protection-specific config values
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.withdrawal_rates.human_capital', Mockery::any())
+        ->andReturn(0.047);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.final_expenses', Mockery::any())
+        ->andReturn(7500);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.education_cost_per_year', Mockery::any())
+        ->andReturn(9000);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.income_multipliers.income_protection_max_benefit', Mockery::any())
+        ->andReturn(0.60);
+
+    // State benefit config values for SSP/ESA integration
+    $mockTaxConfig->shouldReceive('get')
+        ->with('benefits.ssp.weekly_rate', Mockery::any())
+        ->andReturn(116.75);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('benefits.ssp.max_weeks', Mockery::any())
+        ->andReturn(28);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('benefits.ssp.lower_earnings_limit', Mockery::any())
+        ->andReturn(125);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('benefits.ssp.not_available_for', Mockery::any())
+        ->andReturn(['self_employed']);
+    $mockTaxConfig->shouldReceive('get')
+        ->with('benefits.esa.assessment_rate_25_plus', Mockery::any())
+        ->andReturn(90.50);
+
+    // Employer reliance threshold
+    $mockTaxConfig->shouldReceive('get')
+        ->with('protection.dis_reliance_percent', Mockery::any())
+        ->andReturn(0.50);
+
     // Create UKTaxCalculator with mocked TaxConfigService
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
 
-    // Create CoverageGapAnalyzer with mocked UKTaxCalculator
-    $this->analyzer = new CoverageGapAnalyzer($taxCalculator);
+    // Create CoverageGapAnalyzer with mocked TaxConfigService (for both tax calc and protection config)
+    $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig);
 });
 
 describe('calculateHumanCapital', function () {

@@ -19,7 +19,10 @@ use App\Models\SavingsGoal;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Plans\SavingsPlanService;
+use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
+use App\Services\Savings\PSACalculator;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,7 +47,10 @@ class SavingsController extends Controller
         private readonly ISATracker $isaTracker,
         private readonly NetWorthService $netWorthService,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly GoalStrategyService $goalStrategy
+        private readonly GoalStrategyService $goalStrategy,
+        private readonly SavingsPlanService $savingsPlanService,
+        private readonly PSACalculator $psaCalculator,
+        private readonly FSCSAssessor $fscsAssessor
     ) {}
 
     /**
@@ -58,6 +64,7 @@ class SavingsController extends Controller
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
         $accounts = SavingsAccount::forUserOrJoint($user->id)
+            ->limit(100)
             ->get();
 
         // Transform accounts using resource and add calculated fields
@@ -71,7 +78,7 @@ class SavingsController extends Controller
             return $resourceData;
         });
 
-        $goals = SavingsGoal::where('user_id', $user->id)->get();
+        $goals = SavingsGoal::where('user_id', $user->id)->limit(100)->get();
 
         // Build expenditure profile from user data
         $expenditureProfile = [
@@ -101,6 +108,32 @@ class SavingsController extends Controller
         $currentTaxYear = $this->isaTracker->getCurrentTaxYear();
         $isaAllowance = $this->isaTracker->getISAAllowanceStatus($user->id, $currentTaxYear);
 
+        // PSA position (Personal Savings Allowance)
+        $psaPosition = null;
+        try {
+            $psaPosition = $this->psaCalculator->assessPSAPosition($user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // FSCS exposure summary
+        $fscsExposure = null;
+        $rawAccounts = SavingsAccount::forUserOrJoint($user->id)->get();
+        if ($rawAccounts->isNotEmpty()) {
+            try {
+                $fscsExposure = $this->fscsAssessor->assessExposure($rawAccounts);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        // Employment-based emergency fund target
+        $monthlyExpenditure = (float) ($user->monthly_expenditure ?? 0);
+        $emergencyFundTarget = $this->buildEmergencyFundTarget($user, $monthlyExpenditure);
+
+        // Per-child savings status
+        $childrenSavings = $this->buildChildrenSavingsStatus($user, $rawAccounts);
+
         // Get life events and goal strategies relevant to savings/cash
         try {
             $lifeEvents = $this->lifeEventIntegration->getEventsForModule($user->id, 'savings');
@@ -122,6 +155,10 @@ class SavingsController extends Controller
                 'goals' => $goals,
                 'expenditure_profile' => $expenditureProfile,
                 'isa_allowance' => $isaAllowance,
+                'psa_position' => $psaPosition,
+                'fscs_exposure' => $fscsExposure,
+                'emergency_fund_target' => $emergencyFundTarget,
+                'children_savings' => $childrenSavings,
                 'analysis' => null, // Placeholder for analysis data
                 'life_events' => $lifeEvents,
                 'life_event_impact' => $lifeEventImpact,
@@ -151,15 +188,16 @@ class SavingsController extends Controller
     }
 
     /**
-     * Get personalized recommendations
+     * Get personalized recommendations.
+     *
+     * Uses SavingsPlanService for the full DB-driven evaluation path.
      */
     public function recommendations(Request $request): JsonResponse
     {
         $user = $request->user();
 
         try {
-            $analysis = $this->savingsAgent->analyze($user->id);
-            $recommendations = $this->savingsAgent->generateRecommendations($analysis);
+            $recommendations = $this->savingsPlanService->getRecommendations($user->id);
 
             return response()->json([
                 'success' => true,
@@ -636,5 +674,91 @@ class SavingsController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Updating goal progress');
         }
+    }
+
+    /**
+     * Build employment-based emergency fund target.
+     */
+    private function buildEmergencyFundTarget($user, float $monthlyExpenditure): array
+    {
+        $baseMonths = 6;
+
+        if (! empty($user->employment_status)) {
+            $targetMonths = match ($user->employment_status) {
+                'self_employed', 'contractor', 'freelance' => 9,
+                'unemployed', 'career_break' => 12,
+                default => $baseMonths,
+            };
+        } else {
+            $targetMonths = $baseMonths;
+        }
+
+        return [
+            'target_months' => $targetMonths,
+            'target_amount' => round($monthlyExpenditure * $targetMonths, 2),
+            'employment_status' => $user->employment_status ?? null,
+            'rationale' => match ($targetMonths) {
+                9 => 'Self-employed and contractor income can be irregular, so a larger buffer is recommended.',
+                12 => 'During periods without employment, a 12-month fund provides essential security.',
+                default => 'The standard recommendation is 6 months of essential expenditure.',
+            },
+        ];
+    }
+
+    /**
+     * Build per-child savings status including Junior ISA details.
+     */
+    private function buildChildrenSavingsStatus($user, $accounts): array
+    {
+        $children = $user->familyMembers()
+            ->where('relationship', 'child')
+            ->get();
+
+        if ($children->isEmpty()) {
+            return [];
+        }
+
+        $jisaAllowance = 9000.0;
+        try {
+            $isaAllowances = app(\App\Services\TaxConfigService::class)->getISAAllowances();
+            $jisaAllowance = (float) ($isaAllowances['junior_isa']['annual_allowance'] ?? 9000);
+        } catch (\Throwable $e) {
+            // Use default
+        }
+
+        return $children->map(function ($child) use ($accounts, $jisaAllowance) {
+            $dob = $child->date_of_birth;
+            $age = $dob ? (int) \Carbon\Carbon::parse($dob)->age : null;
+            $isUnder18 = $age !== null && $age < 18;
+
+            // Find JISA accounts for this child
+            $jisaAccounts = $accounts->filter(
+                fn ($a) => $a->is_isa && $a->isa_type === 'junior_isa' && $a->beneficiary_id === $child->id
+            );
+
+            $totalJisaBalance = $jisaAccounts->sum('current_balance');
+            $totalJisaSubscription = $jisaAccounts->sum('isa_subscription_amount');
+            $jisaRemaining = max(0, $jisaAllowance - (float) $totalJisaSubscription);
+
+            // Find non-JISA savings for this child
+            $otherAccounts = $accounts->filter(
+                fn ($a) => $a->beneficiary_id === $child->id && (! $a->is_isa || $a->isa_type !== 'junior_isa')
+            );
+            $totalOtherBalance = $otherAccounts->sum('current_balance');
+
+            return [
+                'child_id' => $child->id,
+                'child_name' => $child->name,
+                'age' => $age,
+                'is_under_18' => $isUnder18,
+                'has_jisa' => $jisaAccounts->isNotEmpty(),
+                'jisa_balance' => round((float) $totalJisaBalance, 2),
+                'jisa_allowance' => $jisaAllowance,
+                'jisa_used' => round((float) $totalJisaSubscription, 2),
+                'jisa_remaining' => round($jisaRemaining, 2),
+                'other_savings_balance' => round((float) $totalOtherBalance, 2),
+                'total_savings' => round((float) $totalJisaBalance + (float) $totalOtherBalance, 2),
+            ];
+        })->values()->toArray();
     }
 }

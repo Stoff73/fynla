@@ -16,13 +16,13 @@
         "url": "Stoff73/fynla",
         "path": "plugins/fynla-dev-skills"
       },
-      "description": "Core development skills: systematic debugging, feature scaffolding, tech debt auditing, deployment checklists, cost estimation, and skill creation",
-      "version": "1.0.0",
+      "description": "Core development skills: session management (start/end), systematic debugging, feature scaffolding, tech debt auditing, deployment notes/checklists, shipping (commit/push/PR), cost estimation, and skill creation.",
+      "version": "1.2.0",
       "author": {
         "name": "Fynla Development Team"
       },
       "category": "development",
-      "keywords": ["debugging", "scaffolding", "tech-debt", "deployment", "skills", "fynla"]
+      "keywords": ["debugging", "scaffolding", "tech-debt", "deployment", "skills", "fynla", "session", "shipping"]
     },
     {
       "name": "fynla-compliance",
@@ -68,6 +68,21 @@
       },
       "category": "operations",
       "keywords": ["deployment", "database", "mysql", "product", "devops", "fynla"]
+    },
+    {
+      "name": "fynla-windows",
+      "source": {
+        "source": "git-subdir",
+        "url": "Stoff73/fynla",
+        "path": "plugins/fynla-windows"
+      },
+      "description": "Windows-compatible development skills for Fynla. PowerShell equivalents of session management, deployment notes, tech debt auditing, and cost estimation — with port management, Windows path conventions, and dev.ps1 integration.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fynla Development Team"
+      },
+      "category": "windows",
+      "keywords": ["windows", "powershell", "session", "tech-debt", "deployment", "fynla"]
     }
   ]
 }

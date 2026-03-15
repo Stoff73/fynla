@@ -24,7 +24,6 @@ use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -207,18 +206,15 @@ class AuthController extends Controller
                 'message' => 'MFA verification required.',
                 'requires_mfa' => true,
                 'data' => [
-                    'user_id' => $user->id, // Kept for backwards compatibility
-                    'mfa_token' => $mfaToken, // Secure challenge token
+                    'mfa_token' => $mfaToken,
                     'email' => $this->maskEmail($user->email),
                 ],
             ]);
         }
 
-        // Generate verification code and send email for regular users
-        $verificationCode = EmailVerificationCode::generate($user->id, 'login');
-
-        // Generate secure challenge token to avoid exposing user_id
-        $challengeToken = self::generateLoginChallengeToken($user->id);
+        // Generate verification code with challenge token for login
+        $challengeToken = Str::random(64);
+        $verificationCode = EmailVerificationCode::generate($user->id, 'login', $challengeToken);
 
         try {
             Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'login'));
@@ -234,7 +230,6 @@ class AuthController extends Controller
             'message' => 'Please check your email for verification code.',
             'requires_verification' => true,
             'data' => [
-                'user_id' => $user->id, // Kept for backwards compatibility
                 'challenge_token' => $challengeToken,
                 'email' => $this->maskEmail($user->email),
             ],
@@ -729,37 +724,16 @@ class AuthController extends Controller
     }
 
     /**
-     * Generate a cache-backed challenge token for login email verification.
-     * Avoids exposing raw user_id in the API response.
-     */
-    public static function generateLoginChallengeToken(int $userId): string
-    {
-        $token = Str::random(64);
-        $cacheKey = "login_challenge:{$token}";
-
-        // Store challenge for 15 minutes (matches verification code expiry)
-        Cache::put($cacheKey, [
-            'user_id' => $userId,
-            'created_at' => now()->timestamp,
-        ], 900);
-
-        return $token;
-    }
-
-    /**
-     * Resolve user_id from challenge_token or fall back to direct user_id.
+     * Resolve user_id from challenge_token stored on the verification code record.
      */
     private function resolveLoginUserId(Request $request): ?int
     {
-        // Prefer challenge_token if provided
         if ($request->filled('challenge_token')) {
-            $cacheKey = "login_challenge:{$request->challenge_token}";
-            $data = Cache::get($cacheKey);
+            $verification = EmailVerificationCode::findByChallengeToken($request->challenge_token);
 
-            return $data['user_id'] ?? null;
+            return $verification?->user_id;
         }
 
-        // No fallback — challenge_token is the only valid resolution path
         return null;
     }
 }

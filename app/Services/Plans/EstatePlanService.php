@@ -103,7 +103,7 @@ class EstatePlanService extends BasePlanService
         ];
     }
 
-    public function getRecommendations(int $userId): array
+    public function getRecommendations(int $userId, ?array $preComputedData = null): array
     {
         $analysis = $this->estateAgent->analyze($userId);
 

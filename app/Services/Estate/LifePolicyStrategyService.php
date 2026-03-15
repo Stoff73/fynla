@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\User;
+use App\Services\Settings\AssumptionsService;
+use App\Services\TaxConfigService;
 
 /**
  * Calculate Whole of Life Insurance Strategy vs. Self-Insurance
@@ -55,9 +57,14 @@ class LifePolicyStrategyService
     ];
 
     /**
-     * Investment return assumption for self-insurance calculation
+     * Fallback investment return rate if AssumptionsService unavailable
      */
-    private const INVESTMENT_RETURN_RATE = 0.047; // 4.7% per annum
+    private const FALLBACK_INVESTMENT_RETURN_RATE = 0.047;
+
+    public function __construct(
+        private readonly AssumptionsService $assumptionsService,
+        private readonly TaxConfigService $taxConfig
+    ) {}
 
     /**
      * Calculate whole of life policy strategy with self-insurance comparison
@@ -76,7 +83,8 @@ class LifePolicyStrategyService
         int $currentAge,
         string $gender,
         ?int $spouseAge = null,
-        ?string $spouseGender = null
+        ?string $spouseGender = null,
+        ?User $user = null
     ): array {
         // Determine if this is a joint life policy
         $isJointPolicy = $spouseAge !== null && $spouseGender !== null;
@@ -92,10 +100,12 @@ class LifePolicyStrategyService
         );
 
         // Calculate self-insurance alternative
+        $investmentReturnRate = $this->getInvestmentReturnRate($user);
         $selfInsuranceData = $this->calculateSelfInsurance(
             $policyData['annual_premium'],
             $yearsUntilDeath,
-            $coverAmount
+            $coverAmount,
+            $investmentReturnRate
         );
 
         // Generate comparison and recommendation
@@ -189,12 +199,13 @@ class LifePolicyStrategyService
     private function calculateSelfInsurance(
         float $annualPremium,
         int $years,
-        float $targetAmount
+        float $targetAmount,
+        float $investmentReturnRate
     ): array {
-        // Calculate future value of annual premium investments at 4.7% return
+        // Calculate future value of annual premium investments at assumed return rate
         $futureValue = $this->calculateFutureValueOfAnnuity(
             $annualPremium,
-            self::INVESTMENT_RETURN_RATE,
+            $investmentReturnRate,
             $years
         );
 
@@ -212,8 +223,8 @@ class LifePolicyStrategyService
             'monthly_investment' => round($annualPremium / 12, 2),
             'annual_investment' => round($annualPremium, 2),
             'investment_term_years' => $years,
-            'assumed_return_rate' => self::INVESTMENT_RETURN_RATE,
-            'assumed_return_percentage' => self::INVESTMENT_RETURN_RATE * 100,
+            'assumed_return_rate' => $investmentReturnRate,
+            'assumed_return_percentage' => $investmentReturnRate * 100,
 
             'total_invested' => round($totalInvested, 2),
             'investment_growth' => round($investmentGrowth, 2),
@@ -237,7 +248,7 @@ class LifePolicyStrategyService
             ],
 
             'cons' => [
-                'Investment risk - markets may underperform 4.7% assumption',
+                'Investment risk - markets may underperform '.round($investmentReturnRate * 100, 1).'% assumption',
                 'No guaranteed payout like insurance provides',
                 'Requires financial discipline to maintain contributions',
                 'Early death means insufficient time to accumulate funds',
@@ -518,10 +529,11 @@ class LifePolicyStrategyService
             ),
 
             'Self-Insurance' => sprintf(
-                'Self-insurance appears viable for your situation. Investing £%s annually at 4.7%% returns '.
+                'Self-insurance appears viable for your situation. Investing £%s annually at %s%% returns '.
                 'is projected to accumulate £%s by expected death - covering %d%% of your IHT liability. '.
                 'This approach offers flexibility and potential surplus for beneficiaries.',
                 number_format($selfInsuranceData['annual_investment'], 0),
+                number_format($selfInsuranceData['assumed_return_percentage'], 1),
                 number_format($selfInsuranceData['projected_fund_value'], 0),
                 (int) $selfInsuranceData['coverage_percentage']
             ),
@@ -536,5 +548,25 @@ class LifePolicyStrategyService
         ];
 
         return $summaries[$recommendedApproach] ?? $summaries['Hybrid Approach'];
+    }
+
+    /**
+     * Get investment return rate from AssumptionsService.
+     * Falls back to default rate if no user-specific assumption is configured.
+     */
+    private function getInvestmentReturnRate(?User $user): float
+    {
+        if ($user === null) {
+            return self::FALLBACK_INVESTMENT_RETURN_RATE;
+        }
+
+        $assumptions = $this->assumptionsService->getEstateAssumptions($user);
+
+        if (($assumptions['investment_growth_method'] ?? 'monte_carlo') === 'custom'
+            && isset($assumptions['custom_investment_rate'])) {
+            return (float) $assumptions['custom_investment_rate'] / 100;
+        }
+
+        return self::FALLBACK_INVESTMENT_RETURN_RATE;
     }
 }

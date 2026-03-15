@@ -6,6 +6,7 @@ namespace App\Services\Investment\Tax;
 
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -29,8 +30,17 @@ use Illuminate\Support\Collection;
 class BedAndISACalculator
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
+
+    /**
+     * Get default expected return from risk preference service
+     */
+    private function getDefaultExpectedReturn(): float
+    {
+        return $this->riskPreferenceService->getReturnParameters('medium')['expected_return_typical'] / 100;
+    }
 
     /**
      * Calculate Bed and ISA opportunities
@@ -301,8 +311,7 @@ class BedAndISACalculator
      */
     private function estimateAnnualTaxSaving(float $transferValue, Holding $holding): float
     {
-        // Assume 6% annual growth
-        $annualGrowth = $transferValue * 0.06;
+        $annualGrowth = $transferValue * $this->getDefaultExpectedReturn();
         $cgtSaving = $annualGrowth * 0.20; // 20% CGT
 
         // Dividend tax saving

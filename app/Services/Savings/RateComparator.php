@@ -134,4 +134,41 @@ class RateComparator
             default => $isIsa ? 'fixed_1_year_isa' : 'fixed_1_year',
         };
     }
+
+    /**
+     * Get institution exposure for FSCS grouping
+     *
+     * Groups accounts by banking licence group and calculates per-institution totals.
+     * Used by FSCSAssessor for FSCS protection analysis.
+     */
+    public function getInstitutionExposure(\Illuminate\Support\Collection $accounts): array
+    {
+        $licenceGroups = config('banking_licence_groups', []);
+
+        $grouped = $accounts->groupBy(function ($account) use ($licenceGroups) {
+            $provider = strtolower(trim($account->provider ?? $account->institution ?? 'unknown'));
+
+            foreach ($licenceGroups as $groupName => $members) {
+                $members = array_map('strtolower', $members);
+                if (in_array($provider, $members, true)) {
+                    return $groupName;
+                }
+            }
+
+            return ucfirst($provider);
+        });
+
+        return $grouped->map(function ($groupAccounts, $groupName) {
+            return [
+                'institution_group' => $groupName,
+                'account_count' => $groupAccounts->count(),
+                'total_balance' => round($groupAccounts->sum('current_balance'), 2),
+                'accounts' => $groupAccounts->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->account_name,
+                    'balance' => (float) $a->current_balance,
+                ])->toArray(),
+            ];
+        })->values()->toArray();
+    }
 }

@@ -135,7 +135,10 @@ describe('Annual Allowance Endpoint (Authenticated)', function () {
 
 describe('Recommendations Endpoint (Authenticated)', function () {
     beforeEach(function () {
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create([
+            'date_of_birth' => now()->subYears(45),
+            'annual_employment_income' => 50000,
+        ]);
         $this->actingAs($this->user, 'sanctum');
     });
 

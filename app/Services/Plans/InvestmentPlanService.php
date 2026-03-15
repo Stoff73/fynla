@@ -15,6 +15,16 @@ use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
+use App\Services\Investment\Recommendation\ConflictResolutionService;
+use App\Services\Investment\Recommendation\ContributionWaterfallService;
+use App\Services\Investment\Recommendation\DataReadinessService;
+use App\Services\Investment\Recommendation\GoalAssessmentService;
+use App\Services\Investment\Recommendation\LifeEventAssessmentService;
+use App\Services\Investment\Recommendation\RecommendationOutputFormatter;
+use App\Services\Investment\Recommendation\SafetyCheckService;
+use App\Services\Investment\Recommendation\SpouseOptimisationService;
+use App\Services\Investment\Recommendation\TransferRecommendationService;
+use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\TaxConfigService;
 
 class InvestmentPlanService extends BasePlanService
@@ -42,7 +52,17 @@ class InvestmentPlanService extends BasePlanService
         private readonly DisposableIncomeAccessor $incomeAccessor,
         private readonly TaxConfigService $taxConfig,
         private readonly InvestmentActionDefinitionService $actionDefinitionService,
-        private readonly RecommendationPersonaliser $personaliser
+        private readonly RecommendationPersonaliser $personaliser,
+        private readonly UserContextBuilder $userContextBuilder,
+        private readonly DataReadinessService $dataReadinessService,
+        private readonly SafetyCheckService $safetyCheckService,
+        private readonly ContributionWaterfallService $waterfallService,
+        private readonly TransferRecommendationService $transferService,
+        private readonly SpouseOptimisationService $spouseService,
+        private readonly GoalAssessmentService $goalAssessmentService,
+        private readonly LifeEventAssessmentService $lifeEventService,
+        private readonly ConflictResolutionService $conflictResolutionService,
+        private readonly RecommendationOutputFormatter $outputFormatter
     ) {}
 
     public function generatePlan(int $userId, array $options = []): array
@@ -116,10 +136,12 @@ class InvestmentPlanService extends BasePlanService
     }
 
     /**
-     * Get recommendations by delegating to the DB-driven InvestmentActionDefinitionService.
+     * Get recommendations by running the full pipeline:
+     *   1. DB-driven triggers (InvestmentActionDefinitionService)
+     *   2. Recommendation pipeline (waterfall, transfers, spouse, conflict resolution)
      *
-     * Evaluates all investment, savings, tax efficiency, and surplus waterfall triggers
-     * in a single pass. Replaces the previous two-step approach of agent + buildSavingsRecommendations.
+     * The pipeline runs in parallel with existing triggers, and ConflictResolutionService
+     * merges and deduplicates all sources into a single prioritised list.
      *
      * @param  int  $userId  User ID
      * @param  array|null  $preComputedData  Optional pre-computed data with keys:
@@ -136,11 +158,12 @@ class InvestmentPlanService extends BasePlanService
 
         $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
 
+        // ── Phase 1: DB-driven trigger recommendations ──
         $accountFeeAnalyses = $investmentAccounts->map(
             fn ($acct) => $this->feeAnalyzer->analyzeAccountFees($acct)
         )->filter(fn ($a) => $a['success'] ?? false)->values()->toArray();
 
-        $result = $this->actionDefinitionService->evaluateAgentActions(
+        $triggerResult = $this->actionDefinitionService->evaluateAgentActions(
             $investmentAnalysis,
             $savingsAnalysis,
             $investmentAccounts,
@@ -149,15 +172,126 @@ class InvestmentPlanService extends BasePlanService
             $accountFeeAnalyses
         );
 
-        $recommendations = $result['recommendations'] ?? [];
+        $triggerRecs = $triggerResult['recommendations'] ?? [];
+
+        // ── Phase 2: Pipeline recommendations ──
+        $user = User::find($userId);
+        $pipelineRecs = [];
+
+        if ($user) {
+            $pipelineRecs = $this->runPipeline($user, $investmentAnalysis, $savingsAnalysis, $investmentAccounts, $triggerRecs);
+        }
+
+        // If pipeline returned merged results, use those (they include trigger recs)
+        $recommendations = ! empty($pipelineRecs) ? $pipelineRecs : $triggerRecs;
+
+        // Filter out non-investment recommendations from spouse/transfer services.
+        // Pension, savings allowance, and other cross-module actions belong in the
+        // holistic plan only — individual module plans must stay focused.
+        $recommendations = array_values(array_filter($recommendations, function (array $rec): bool {
+            $type = $rec['strategy_type'] ?? $rec['scan_type'] ?? '';
+
+            // Spouse strategies that belong to other modules
+            $nonInvestmentStrategies = [
+                'pension_coordination',      // Retirement module
+                'non_earning_spouse_pension', // Retirement module
+                'psa_optimisation',          // Savings module
+                'marriage_allowance',        // Tax/general — not investment-specific
+            ];
+
+            // Transfer scans that belong to other modules
+            $nonInvestmentScans = [
+                'psa_breach',                // Savings module
+            ];
+
+            return ! in_array($type, array_merge($nonInvestmentStrategies, $nonInvestmentScans), true);
+        }));
 
         // Add personalised context
-        $user = User::find($userId);
         if ($user) {
             $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
         }
 
         return $recommendations;
+    }
+
+    /**
+     * Run the full recommendation pipeline.
+     *
+     * Pipeline phases:
+     *  1. Data readiness gate
+     *  2. Build user context (UserContextBuilder)
+     *  3. Safety checks (SafetyCheckService) — adjusts surplus
+     *  4. Life event assessment (LifeEventAssessmentService) — wrapper modifiers
+     *  5. Goal assessment (GoalAssessmentService) — wrapper modifiers
+     *  6. Contribution waterfall (ContributionWaterfallService)
+     *  7. Transfer scans (TransferRecommendationService)
+     *  8. Spouse optimisation (SpouseOptimisationService)
+     *  9. Conflict resolution (ConflictResolutionService) — merge all sources
+     *
+     * Falls back gracefully to trigger-only recommendations if any phase fails.
+     *
+     * @return array Merged recommendations, or empty array if pipeline cannot run
+     */
+    private function runPipeline(
+        User $user,
+        array $investmentAnalysis,
+        array $savingsAnalysis,
+        $investmentAccounts,
+        array $triggerRecs
+    ): array {
+        try {
+            // Phase 1: Data readiness gate
+            $readiness = $this->dataReadinessService->assess($user);
+            if (! ($readiness['can_proceed'] ?? true)) {
+                // Pipeline cannot run — fall back to trigger-only recommendations
+                return [];
+            }
+
+            // Phase 2: Build user context from pre-computed data
+            $context = $this->userContextBuilder->buildFromExisting(
+                $investmentAnalysis,
+                $savingsAnalysis,
+                $investmentAccounts,
+                $user
+            );
+
+            // Phase 3: Safety checks — adjusts surplus
+            $safetyResult = $this->safetyCheckService->check($context);
+            $adjustedSurplus = $safetyResult['adjusted_surplus'] ?? 0;
+
+            // Phase 4: Life event assessment
+            $lifeEventModifiers = $this->lifeEventService->assess($context);
+
+            // Phase 5: Goal assessment
+            $goalModifiers = $this->goalAssessmentService->assess($context);
+
+            // Phase 6: Contribution waterfall
+            $waterfallResult = ($adjustedSurplus > 0 && ($safetyResult['can_invest'] ?? true))
+                ? $this->waterfallService->allocate($context, $adjustedSurplus, $lifeEventModifiers, $goalModifiers, $safetyResult)
+                : ['recommendations' => [], 'total_allocated' => 0, 'remaining_surplus' => 0, 'steps_executed' => 0, 'steps_skipped' => 0, 'decision_path' => []];
+
+            // Phase 7: Transfer scans
+            $transferResult = $this->transferService->scan($context);
+
+            // Phase 8: Spouse optimisation
+            $spouseResult = $this->spouseService->optimise($context);
+
+            // Phase 9: Conflict resolution — merge all sources
+            $merged = $this->conflictResolutionService->resolve(
+                $waterfallResult['recommendations'] ?? [],
+                $triggerRecs,
+                $transferResult['recommendations'] ?? [],
+                $spouseResult['recommendations'] ?? []
+            );
+
+            return $merged['recommendations'] ?? [];
+        } catch (\Exception $e) {
+            // Pipeline failure is non-fatal — fall back to trigger-only recommendations
+            \Illuminate\Support\Facades\Log::warning('Investment pipeline failed, falling back to triggers: '.$e->getMessage());
+
+            return [];
+        }
     }
 
     public function checkDataCompleteness(int $userId): array
