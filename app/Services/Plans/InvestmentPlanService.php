@@ -185,6 +185,28 @@ class InvestmentPlanService extends BasePlanService
         // If pipeline returned merged results, use those (they include trigger recs)
         $recommendations = ! empty($pipelineRecs) ? $pipelineRecs : $triggerRecs;
 
+        // Filter out non-investment recommendations from spouse/transfer services.
+        // Pension, savings allowance, and other cross-module actions belong in the
+        // holistic plan only — individual module plans must stay focused.
+        $recommendations = array_values(array_filter($recommendations, function (array $rec): bool {
+            $type = $rec['strategy_type'] ?? $rec['scan_type'] ?? '';
+
+            // Spouse strategies that belong to other modules
+            $nonInvestmentStrategies = [
+                'pension_coordination',      // Retirement module
+                'non_earning_spouse_pension', // Retirement module
+                'psa_optimisation',          // Savings module
+                'marriage_allowance',        // Tax/general — not investment-specific
+            ];
+
+            // Transfer scans that belong to other modules
+            $nonInvestmentScans = [
+                'psa_breach',                // Savings module
+            ];
+
+            return ! in_array($type, array_merge($nonInvestmentStrategies, $nonInvestmentScans), true);
+        }));
+
         // Add personalised context
         if ($user) {
             $recommendations = $this->personaliser->personaliseRecommendations($recommendations, $user);
