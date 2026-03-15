@@ -268,8 +268,8 @@ abstract class BasePlanService
 
         foreach ($recommendations as $rec) {
             $actions[] = [
-                'title' => $rec['title'] ?? $rec['action'] ?? $rec['category'] ?? 'Recommendation',
-                'description' => $rec['description'] ?? $rec['rationale'] ?? $rec['action'] ?? '',
+                'title' => $rec['title'] ?? $rec['headline'] ?? $rec['action'] ?? $rec['category'] ?? 'Recommendation',
+                'description' => $rec['description'] ?? $rec['explanation'] ?? $rec['rationale'] ?? $rec['action'] ?? '',
                 'category' => $rec['category'] ?? 'General',
                 'priority' => $this->normalisePriority($rec['priority'] ?? $rec['impact'] ?? 'medium'),
                 'enabled' => true,
