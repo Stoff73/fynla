@@ -113,28 +113,44 @@ class SpouseOptimisationService
         $cgtExempt = $context['allowances']['cgt_annual_exempt'] ?? TaxDefaults::CGT_ANNUAL_EXEMPT;
         $combinedExempt = $cgtExempt * 2;
 
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
+        $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
+        $maritalStatus = $context['personal']['marital_status'] ?? 'married';
+
+        $giaAccountNames = $giaAccounts->map(fn ($a) => ($a['name'] ?? 'Unnamed').' at '.($a['provider'] ?? 'Unknown').' (£'.number_format($a['value'] ?? 0, 0).')')->implode('; ');
+
         $trace = [];
 
         $trace[] = [
+            'question' => 'What is the couple\'s relationship and tax position?',
+            'data_field' => 'personal.marital_status + financial.tax_band + spouse.tax_band',
+            'data_value' => ucfirst(str_replace('_', ' ', $maritalStatus)).'. Primary: '.$userTaxBand.' rate. '.$spouseName.': '.$spouseTaxBand.' rate.',
+            'threshold' => 'N/A',
+            'passed' => true,
+            'explanation' => ucfirst(str_replace('_', ' ', $maritalStatus)).' couple. Inter-spouse asset transfers are Capital Gains Tax-free, enabling both annual exemptions to be used.',
+        ];
+
+        $trace[] = [
             'question' => 'Are there General Investment Account holdings to share?',
-            'data_field' => 'gia_value',
-            'data_value' => '£'.number_format($giaValue, 0),
+            'data_field' => 'portfolio.accounts (type=gia)',
+            'data_value' => $giaAccounts->count().' account(s), total £'.number_format($giaValue, 0),
             'threshold' => 'More than £0',
             'passed' => $giaAccounts->isNotEmpty(),
             'explanation' => $giaAccounts->isNotEmpty()
-                ? '£'.number_format($giaValue, 0).' in General Investment Account holdings.'
+                ? 'General Investment Account holdings: '.$giaAccountNames.'. Total: £'.number_format($giaValue, 0).'.'
                 : 'No General Investment Account holdings — Capital Gains Tax sharing not applicable.',
         ];
 
         $trace[] = [
-            'question' => 'Are the General Investment Account holdings significant enough for Capital Gains Tax sharing?',
-            'data_field' => 'gia_value',
-            'data_value' => '£'.number_format($giaValue, 0),
-            'threshold' => '£'.number_format($cgtExempt, 0).' (single exemption)',
+            'question' => 'Are the holdings significant enough to benefit from sharing both exemptions?',
+            'data_field' => 'gia_value vs cgt_annual_exempt',
+            'data_value' => '£'.number_format($giaValue, 0).' held vs £'.number_format($cgtExempt, 0).' single exemption',
+            'threshold' => 'Holdings must exceed one partner\'s exemption (£'.number_format($cgtExempt, 0).')',
             'passed' => $giaValue >= $cgtExempt,
             'explanation' => $giaValue >= $cgtExempt
-                ? 'Holdings exceed one partner\'s exemption — sharing could double the tax-free amount to £'.number_format($combinedExempt, 0).'.'
-                : 'Holdings below single exemption — sharing provides no additional benefit.',
+                ? 'Holdings of £'.number_format($giaValue, 0).' exceed one partner\'s £'.number_format($cgtExempt, 0).' exemption — sharing doubles the tax-free amount to £'.number_format($combinedExempt, 0).'.'
+                : 'Holdings of £'.number_format($giaValue, 0).' are below the single exemption of £'.number_format($cgtExempt, 0).' — sharing provides no additional benefit.',
         ];
 
         if ($giaAccounts->isEmpty()) {
@@ -149,12 +165,13 @@ class SpouseOptimisationService
             'cgt_sharing',
             'Share Capital Gains Tax exemptions between partners',
             sprintf(
-                'You and your partner each have a %s annual Capital Gains Tax exemption — %s combined. Transferring assets between spouses is Capital Gains Tax-free. By spreading disposals across both exemptions, you can crystallise up to %s of gains tax-free each year.',
+                'Each partner has a £%s annual Capital Gains Tax exemption — £%s combined. With £%s in General Investment Accounts, transferring assets between spouses (Capital Gains Tax-free) allows both exemptions to be used. This enables crystallising up to £%s of gains tax-free each year.',
                 number_format($cgtExempt, 0, '.', ','),
                 number_format($combinedExempt, 0, '.', ','),
+                number_format($giaValue, 0, '.', ','),
                 number_format($combinedExempt, 0, '.', ',')
             ),
-            sprintf('General Investment Account value: %s. Combined annual exemption: %s.', number_format($giaValue, 0, '.', ','), number_format($combinedExempt, 0, '.', ',')),
+            sprintf('General Investment Account value: £%s. Combined annual exemption: £%s.', number_format($giaValue, 0, '.', ','), number_format($combinedExempt, 0, '.', ',')),
             'medium',
             (float) $combinedExempt
         );
@@ -169,21 +186,38 @@ class SpouseOptimisationService
     private function strategyISACoordination(array $context, array $spouseContext): ?array
     {
         $userIsaRemaining = $context['allowances']['isa_remaining'] ?? 0;
+        $userIsaUsed = $context['allowances']['isa_used'] ?? 0;
         $spouseIsaRemaining = $spouseContext['isa_remaining'] ?? 0;
         $combinedRemaining = $userIsaRemaining + $spouseIsaRemaining;
         $isaAllowance = $context['allowances']['isa_annual'] ?? TaxDefaults::ISA_ALLOWANCE;
+        $combinedAllowance = $isaAllowance * 2;
+
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
+        $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
 
         $trace = [];
 
         $trace[] = [
-            'question' => 'Is there combined ISA allowance remaining between both partners?',
-            'data_field' => 'combined_isa_remaining',
-            'data_value' => '£'.number_format($combinedRemaining, 0),
-            'threshold' => 'More than £0',
+            'question' => 'What is each partner\'s ISA allowance position this tax year?',
+            'data_field' => 'allowances.isa_remaining + spouse.isa_remaining',
+            'data_value' => 'Primary: £'.number_format($userIsaRemaining, 0).' remaining (£'.number_format($userIsaUsed, 0).' used). '.$spouseName.': £'.number_format($spouseIsaRemaining, 0).' remaining.',
+            'threshold' => 'Combined remaining must be above £0',
             'passed' => $combinedRemaining > 0,
             'explanation' => $combinedRemaining > 0
-                ? '£'.number_format($combinedRemaining, 0).' combined ISA allowance remaining (you: £'.number_format($userIsaRemaining, 0).', partner: £'.number_format($spouseIsaRemaining, 0).').'
-                : 'Both partners have fully used their ISA allowance this tax year.',
+                ? '£'.number_format($combinedRemaining, 0).' combined ISA allowance remaining out of £'.number_format($combinedAllowance, 0).' total household allowance (£'.number_format($isaAllowance, 0).' each).'
+                : 'Both partners have fully used their ISA allowance this tax year — no further contributions possible.',
+        ];
+
+        $trace[] = [
+            'question' => 'Which partner should be prioritised for ISA contributions?',
+            'data_field' => 'financial.tax_band + spouse.tax_band',
+            'data_value' => 'Primary: '.$userTaxBand.' rate. '.$spouseName.': '.$spouseTaxBand.' rate.',
+            'threshold' => 'N/A',
+            'passed' => true,
+            'explanation' => $userTaxBand !== $spouseTaxBand
+                ? 'Different tax bands — prioritise the higher-rate partner\'s ISA to shelter more tax.'
+                : 'Same tax band — either partner\'s ISA provides equal tax benefit.',
         ];
 
         if ($combinedRemaining <= 0) {
@@ -199,11 +233,12 @@ class SpouseOptimisationService
             'isa_coordination',
             'Coordinate ISA contributions between partners',
             sprintf(
-                'Between you and your partner, you have %s of combined ISA allowance remaining this tax year (you: %s, partner: %s). Coordinating contributions maximises your household\'s tax-free investment capacity of %s per year.',
+                '£%s of combined ISA allowance remains this tax year (primary: £%s remaining, %s: £%s remaining). Coordinating contributions maximises the household\'s tax-free investment capacity of £%s per year.',
                 number_format($combinedRemaining, 0, '.', ','),
                 number_format($userIsaRemaining, 0, '.', ','),
+                $spouseName,
                 number_format($spouseIsaRemaining, 0, '.', ','),
-                number_format($isaAllowance * 2, 0, '.', ',')
+                number_format($combinedAllowance, 0, '.', ',')
             ),
             'Prioritise the higher-earning partner\'s ISA if funds are limited — tax savings are greater.',
             'high',
@@ -224,7 +259,11 @@ class SpouseOptimisationService
         $userPsa = $context['allowances']['psa'] ?? 0;
         $spousePsa = $spouseContext['psa'] ?? 0;
 
-        $lowerBandPartner = $userPsa >= $spousePsa ? 'you' : 'your partner';
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $userGrossIncome = $context['financial']['gross_income'] ?? 0;
+        $spouseGrossIncome = $spouseContext['gross_income'] ?? 0;
+
+        $lowerBandPartner = $userPsa >= $spousePsa ? 'the primary holder' : $spouseName;
         $higherPsa = max($userPsa, $spousePsa);
         $lowerPsa = min($userPsa, $spousePsa);
 
@@ -232,24 +271,24 @@ class SpouseOptimisationService
 
         $trace[] = [
             'question' => 'Are the partners in different tax bands?',
-            'data_field' => 'tax_bands',
-            'data_value' => 'You: '.$userTaxBand.', Partner: '.$spouseTaxBand,
+            'data_field' => 'financial.tax_band + spouse.tax_band',
+            'data_value' => 'Primary: '.$userTaxBand.' rate (£'.number_format($userGrossIncome, 0).' gross). '.$spouseName.': '.$spouseTaxBand.' rate (£'.number_format($spouseGrossIncome, 0).' gross).',
             'threshold' => 'Different bands',
             'passed' => $userTaxBand !== $spouseTaxBand,
             'explanation' => $userTaxBand !== $spouseTaxBand
-                ? 'Different tax bands ('.$userTaxBand.' vs '.$spouseTaxBand.') — Personal Savings Allowance optimisation possible.'
-                : 'Both partners in the same tax band — no Personal Savings Allowance advantage.',
+                ? 'Different tax bands: '.$userTaxBand.' rate vs '.$spouseTaxBand.' rate. The lower-rate partner has a larger Personal Savings Allowance — optimisation is possible.'
+                : 'Both partners are '.$userTaxBand.' rate taxpayers — same Personal Savings Allowance, no optimisation advantage.',
         ];
 
         $trace[] = [
-            'question' => 'Do the partners have different Personal Savings Allowances?',
-            'data_field' => 'psa_difference',
-            'data_value' => 'Higher: £'.number_format($higherPsa, 0).', Lower: £'.number_format($lowerPsa, 0),
+            'question' => 'What are the Personal Savings Allowances for each partner?',
+            'data_field' => 'allowances.psa + spouse.psa',
+            'data_value' => 'Primary: £'.number_format($userPsa, 0).' ('.$userTaxBand.' rate). '.$spouseName.': £'.number_format($spousePsa, 0).' ('.$spouseTaxBand.' rate).',
             'threshold' => 'Higher must exceed lower',
             'passed' => $higherPsa > $lowerPsa,
             'explanation' => $higherPsa > $lowerPsa
-                ? 'The lower-rate partner ('.$lowerBandPartner.') has a £'.number_format($higherPsa, 0).' Personal Savings Allowance — shift savings interest there.'
-                : 'Personal Savings Allowances are equal — no optimisation benefit.',
+                ? 'The lower-rate partner ('.$lowerBandPartner.') has a £'.number_format($higherPsa, 0).' Personal Savings Allowance vs £'.number_format($lowerPsa, 0).'. Holding more savings interest in '.$lowerBandPartner.'\'s name uses the larger allowance.'
+                : 'Personal Savings Allowances are equal at £'.number_format($higherPsa, 0).' each — no optimisation benefit.',
         ];
 
         // Only relevant if partners are in different tax bands
@@ -265,13 +304,14 @@ class SpouseOptimisationService
             'psa_optimisation',
             'Optimise Personal Savings Allowance between partners',
             sprintf(
-                'You and your partner are in different tax bands (%s rate vs %s rate). Holding more savings interest-bearing accounts in the name of the lower-rate partner (%s) makes better use of their higher %s Personal Savings Allowance.',
+                'The primary holder (%s rate, £%s Personal Savings Allowance) and %s (%s rate, £%s Personal Savings Allowance) have different allowances. Holding more savings interest-bearing accounts in the name of the lower-rate partner makes better use of their higher allowance.',
                 $userTaxBand,
+                number_format($userPsa, 0, '.', ','),
+                $spouseName,
                 $spouseTaxBand,
-                $lowerBandPartner,
-                number_format($higherPsa, 0, '.', ',')
+                number_format($spousePsa, 0, '.', ',')
             ),
-            sprintf('Your Personal Savings Allowance: %s. Partner\'s: %s.', number_format($userPsa, 0, '.', ','), number_format($spousePsa, 0, '.', ',')),
+            sprintf('Primary Personal Savings Allowance: £%s. %s\'s: £%s.', number_format($userPsa, 0, '.', ','), $spouseName, number_format($spousePsa, 0, '.', ',')),
             'low'
         );
         $rec['decision_trace'] = $trace;
@@ -289,11 +329,16 @@ class SpouseOptimisationService
         $userPensionRemaining = $context['allowances']['pension_remaining'] ?? 0;
         $spousePensionRemaining = $spouseContext['pension_remaining'] ?? 0;
 
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $userGrossIncome = $context['financial']['gross_income'] ?? 0;
+        $spouseGrossIncome = $spouseContext['gross_income'] ?? 0;
+        $pensionAnnualAllowance = $context['allowances']['pension_annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE;
+
         $taxBandOrder = ['non_taxpayer' => 0, 'basic' => 1, 'higher' => 2, 'additional' => 3];
         $userBandRank = $taxBandOrder[$userTaxBand] ?? 1;
         $spouseBandRank = $taxBandOrder[$spouseTaxBand] ?? 1;
 
-        $higherRatePartner = $userBandRank > $spouseBandRank ? 'you' : 'your partner';
+        $higherRatePartner = $userBandRank > $spouseBandRank ? 'the primary holder' : $spouseName;
         $higherBand = $userBandRank > $spouseBandRank ? $userTaxBand : $spouseTaxBand;
         $higherRemaining = $userBandRank > $spouseBandRank ? $userPensionRemaining : $spousePensionRemaining;
 
@@ -303,28 +348,34 @@ class SpouseOptimisationService
             default => 20,
         };
 
+        $lowerReliefRate = match ($userBandRank <= $spouseBandRank ? $userTaxBand : $spouseTaxBand) {
+            'additional' => 45,
+            'higher' => 40,
+            default => 20,
+        };
+
         $trace = [];
 
         $trace[] = [
             'question' => 'Does either partner have remaining pension allowance?',
-            'data_field' => 'pension_remaining',
-            'data_value' => 'You: £'.number_format($userPensionRemaining, 0).', Partner: £'.number_format($spousePensionRemaining, 0),
-            'threshold' => 'At least one above £0',
+            'data_field' => 'allowances.pension_remaining + spouse.pension_remaining',
+            'data_value' => 'Primary: £'.number_format($userPensionRemaining, 0).' of £'.number_format($pensionAnnualAllowance, 0).' remaining. '.$spouseName.': £'.number_format($spousePensionRemaining, 0).' remaining.',
+            'threshold' => 'At least one partner above £0',
             'passed' => $userPensionRemaining > 0 || $spousePensionRemaining > 0,
             'explanation' => ($userPensionRemaining > 0 || $spousePensionRemaining > 0)
-                ? 'Pension allowance remaining — coordination opportunity exists.'
-                : 'Both partners have fully used their pension allowance.',
+                ? 'Pension allowance remaining — coordination opportunity exists to maximise tax relief.'
+                : 'Both partners have fully used their pension Annual Allowance — no coordination opportunity.',
         ];
 
         $trace[] = [
             'question' => 'Are the partners in different tax bands for pension coordination?',
-            'data_field' => 'tax_band_comparison',
-            'data_value' => 'You: '.$userTaxBand.' (rank '.$userBandRank.'), Partner: '.$spouseTaxBand.' (rank '.$spouseBandRank.')',
-            'threshold' => 'Different ranks',
+            'data_field' => 'financial.tax_band + spouse.tax_band',
+            'data_value' => 'Primary: '.$userTaxBand.' rate (£'.number_format($userGrossIncome, 0).' gross). '.$spouseName.': '.$spouseTaxBand.' rate (£'.number_format($spouseGrossIncome, 0).' gross).',
+            'threshold' => 'Different tax bands',
             'passed' => $userBandRank !== $spouseBandRank,
             'explanation' => $userBandRank !== $spouseBandRank
-                ? 'Higher-rate partner ('.$higherRatePartner.') receives '.$reliefRate.'% tax relief — prioritise their pension.'
-                : 'Same tax band — no coordination advantage.',
+                ? 'Higher-rate partner ('.$higherRatePartner.') receives '.$reliefRate.'% tax relief vs '.$lowerReliefRate.'% for the lower-rate partner. Prioritising the higher-rate partner\'s pension saves '.($reliefRate - $lowerReliefRate).' pence per £1 contributed.'
+                : 'Same tax band ('.$userTaxBand.' rate each at '.$reliefRate.'% relief) — no coordination advantage from tax rate difference.',
         ];
 
         // Only suggest if both have remaining pension allowance and different bands
@@ -340,14 +391,17 @@ class SpouseOptimisationService
             'pension_coordination',
             'Prioritise pension contributions for higher-rate partner',
             sprintf(
-                'Pension contributions for %s (%s rate taxpayer) receive %d%% tax relief compared to %d%% for the lower-rate partner. Prioritising contributions to the %s rate partner maximises the household tax benefit.',
+                'Pension contributions for %s (%s rate taxpayer, £%s gross income) receive %d%% tax relief compared to %d%% for the lower-rate partner. %s has £%s pension allowance remaining. Prioritising the %s rate partner maximises the household tax benefit.',
                 $higherRatePartner,
                 $higherBand,
+                number_format($userBandRank > $spouseBandRank ? $userGrossIncome : $spouseGrossIncome, 0, '.', ','),
                 $reliefRate,
-                20,
+                $lowerReliefRate,
+                $higherRatePartner,
+                number_format($higherRemaining, 0, '.', ','),
                 $higherBand
             ),
-            sprintf('%s rate partner has %s pension allowance remaining.', ucfirst($higherBand), number_format($higherRemaining, 0, '.', ',')),
+            sprintf('%s rate partner has £%s pension allowance remaining.', ucfirst($higherBand), number_format($higherRemaining, 0, '.', ',')),
             'high'
         );
         $rec['decision_trace'] = $trace;
@@ -363,24 +417,34 @@ class SpouseOptimisationService
         $spouseIncome = $spouseContext['gross_income'] ?? 0;
         $userIncome = $context['financial']['gross_income'] ?? 0;
 
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $spouseEmployment = $spouseContext['employment_status'] ?? 'unknown';
+        $userEmployment = $context['personal']['employment_status'] ?? 'unknown';
+
         // Check if either partner is non-earning
         $nonEarningPartner = null;
+        $nonEarningName = '';
+        $earningPartnerIncome = 0;
         if ($spouseIncome === 0.0 && $userIncome > 0) {
             $nonEarningPartner = 'partner';
+            $nonEarningName = $spouseName;
+            $earningPartnerIncome = $userIncome;
         } elseif ($userIncome === 0.0 && $spouseIncome > 0) {
             $nonEarningPartner = 'you';
+            $nonEarningName = 'the primary holder';
+            $earningPartnerIncome = $spouseIncome;
         }
 
         $trace = [];
 
         $trace[] = [
             'question' => 'Is either partner a non-earner who could benefit from a pension contribution?',
-            'data_field' => 'incomes',
-            'data_value' => 'You: £'.number_format($userIncome, 0).', Partner: £'.number_format($spouseIncome, 0),
+            'data_field' => 'financial.gross_income + spouse.gross_income',
+            'data_value' => 'Primary: £'.number_format($userIncome, 0).' ('.str_replace('_', ' ', $userEmployment).'). '.$spouseName.': £'.number_format($spouseIncome, 0).' ('.str_replace('_', ' ', $spouseEmployment).').',
             'threshold' => 'One partner earning £0',
             'passed' => $nonEarningPartner !== null,
             'explanation' => $nonEarningPartner !== null
-                ? 'Non-earning '.$nonEarningPartner.' can receive pension contributions with government tax relief.'
+                ? $nonEarningName.' has no income but can still receive pension contributions of up to £3,600 gross per year with government basic rate tax relief.'
                 : 'Both partners have income — non-earning pension strategy does not apply.',
         ];
 
@@ -395,24 +459,24 @@ class SpouseOptimisationService
 
         $trace[] = [
             'question' => 'What is the maximum gross pension contribution for a non-earner?',
-            'data_field' => 'gross_contribution',
-            'data_value' => '£'.number_format($grossContribution, 0),
-            'threshold' => '£'.number_format($grossContribution, 0),
+            'data_field' => 'pension rules',
+            'data_value' => '£'.number_format($grossContribution, 0).' gross (£'.number_format($netCost, 0).' net + £'.number_format($freeRelief, 0).' government relief)',
+            'threshold' => '£'.number_format($grossContribution, 0).' maximum',
             'passed' => true,
-            'explanation' => 'Net cost of £'.number_format($netCost, 0).' receives £'.number_format($freeRelief, 0).' in government basic rate tax relief.',
+            'explanation' => 'A net contribution of £'.number_format($netCost, 0).' from the earning partner (income £'.number_format($earningPartnerIncome, 0).') becomes £'.number_format($grossContribution, 0).' in '.$nonEarningName.'\'s pension with £'.number_format($freeRelief, 0).' in government basic rate tax relief. This is effectively free money — a '.round(($freeRelief / $netCost) * 100).'% return.',
         ];
 
         $rec = $this->buildRecommendation(
             'non_earning_spouse_pension',
             'Pension contribution for non-earning partner',
             sprintf(
-                'Even with no income, %s can receive pension contributions of up to %s gross per year. The government adds %s in basic rate tax relief on a net contribution of %s. This is effectively free money.',
-                $nonEarningPartner === 'you' ? 'you' : 'your partner',
+                'Even with no income, %s can receive pension contributions of up to £%s gross per year. The government adds £%s in basic rate tax relief on a net contribution of £%s. This is effectively free money.',
+                $nonEarningPartner === 'you' ? 'the primary holder' : $spouseName,
                 number_format($grossContribution, 0, '.', ','),
                 number_format($freeRelief, 0, '.', ','),
                 number_format($netCost, 0, '.', ',')
             ),
-            sprintf('Net cost: %s per year for %s gross pension contribution.', number_format($netCost, 0, '.', ','), number_format($grossContribution, 0, '.', ',')),
+            sprintf('Net cost: £%s per year for £%s gross pension contribution.', number_format($netCost, 0, '.', ','), number_format($grossContribution, 0, '.', ',')),
             'high',
             (float) $netCost
         );
@@ -428,6 +492,10 @@ class SpouseOptimisationService
     {
         $userTaxBand = $context['financial']['tax_band'] ?? 'basic';
         $spouseTaxBand = $spouseContext['tax_band'] ?? 'basic';
+        $userGrossIncome = $context['financial']['gross_income'] ?? 0;
+        $spouseGrossIncome = $spouseContext['gross_income'] ?? 0;
+
+        $spouseName = $spouseContext['name'] ?? 'Partner';
 
         // Marriage Allowance: non-taxpayer transfers 10% of PA to basic rate partner
         $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
@@ -438,10 +506,10 @@ class SpouseOptimisationService
 
         if ($userTaxBand === 'non_taxpayer' && $spouseTaxBand === 'basic') {
             $eligible = true;
-            $direction = sprintf('You transfer %s of your Personal Allowance to your partner.', number_format($transferable, 0, '.', ','));
+            $direction = sprintf('The primary holder (income £%s) transfers £%s of their unused Personal Allowance to %s (%s rate, income £%s).', number_format($userGrossIncome, 0, '.', ','), number_format($transferable, 0, '.', ','), $spouseName, $spouseTaxBand, number_format($spouseGrossIncome, 0, '.', ','));
         } elseif ($spouseTaxBand === 'non_taxpayer' && $userTaxBand === 'basic') {
             $eligible = true;
-            $direction = sprintf('Your partner transfers %s of their Personal Allowance to you.', number_format($transferable, 0, '.', ','));
+            $direction = sprintf('%s (income £%s) transfers £%s of their unused Personal Allowance to the primary holder (%s rate, income £%s).', $spouseName, number_format($spouseGrossIncome, 0, '.', ','), number_format($transferable, 0, '.', ','), $userTaxBand, number_format($userGrossIncome, 0, '.', ','));
         }
 
         $annualSaving = $transferable * 0.20; // 20% basic rate saving
@@ -450,13 +518,13 @@ class SpouseOptimisationService
 
         $trace[] = [
             'question' => 'Is one partner a non-taxpayer and the other a basic rate taxpayer?',
-            'data_field' => 'tax_bands',
-            'data_value' => 'You: '.$userTaxBand.', Partner: '.$spouseTaxBand,
-            'threshold' => 'One non_taxpayer + one basic',
+            'data_field' => 'financial.tax_band + spouse.tax_band',
+            'data_value' => 'Primary: '.$userTaxBand.' rate (£'.number_format($userGrossIncome, 0).' gross). '.$spouseName.': '.$spouseTaxBand.' rate (£'.number_format($spouseGrossIncome, 0).' gross).',
+            'threshold' => 'One non_taxpayer + one basic rate',
             'passed' => $eligible,
             'explanation' => $eligible
-                ? $direction.' Annual saving: £'.number_format($annualSaving, 0).'.'
-                : 'Marriage Allowance requires one non-taxpayer and one basic rate taxpayer — not eligible.',
+                ? $direction.' Annual tax saving: £'.number_format($annualSaving, 0).' (£'.number_format($transferable, 0).' × 20% basic rate).'
+                : 'Marriage Allowance requires one non-taxpayer and one basic rate taxpayer. Current bands ('.$userTaxBand.' and '.$spouseTaxBand.') do not qualify.',
         ];
 
         if (! $eligible) {
@@ -467,12 +535,12 @@ class SpouseOptimisationService
             'marriage_allowance',
             'Claim Marriage Allowance',
             sprintf(
-                'Marriage Allowance lets a non-taxpayer transfer %s of their Personal Allowance to a basic rate taxpayer partner. %s This saves %s per year in income tax.',
+                'Marriage Allowance lets a non-taxpayer transfer £%s of their Personal Allowance to a basic rate taxpayer partner. %s This saves £%s per year in income tax.',
                 number_format($transferable, 0, '.', ','),
                 $direction,
                 number_format($annualSaving, 0, '.', ',')
             ),
-            sprintf('Annual tax saving: %s. Apply online at gov.uk — can be backdated up to 4 years.', number_format($annualSaving, 0, '.', ',')),
+            sprintf('Annual tax saving: £%s. Apply online at gov.uk — can be backdated up to 4 years (potential total saving: £%s).', number_format($annualSaving, 0, '.', ','), number_format($annualSaving * 4, 0, '.', ',')),
             'high',
             $annualSaving
         );
@@ -488,6 +556,10 @@ class SpouseOptimisationService
     {
         $portfolioValue = $context['portfolio']['total_value'] ?? 0;
 
+        $spouseName = $spouseContext['name'] ?? 'Partner';
+        $userAge = $context['personal']['age'] ?? null;
+        $spouseAge = $spouseContext['age'] ?? null;
+
         // Rough combined estate estimate
         $nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'] ?? TaxDefaults::NRB;
         $rnrb = $this->taxConfig->getInheritanceTax()['residence_nil_rate_band'] ?? TaxDefaults::RNRB;
@@ -496,14 +568,28 @@ class SpouseOptimisationService
         $trace = [];
 
         $trace[] = [
-            'question' => 'Is the investment portfolio significant enough for Inheritance Tax planning?',
-            'data_field' => 'portfolio_value',
-            'data_value' => '£'.number_format($portfolioValue, 0),
-            'threshold' => '£'.number_format($nrb, 0).' (Nil Rate Band)',
+            'question' => 'What is the couple\'s investment portfolio and Inheritance Tax position?',
+            'data_field' => 'portfolio.total_value',
+            'data_value' => '£'.number_format($portfolioValue, 0).' investment portfolio',
+            'threshold' => 'At least £'.number_format($nrb, 0).' (single Nil Rate Band)',
             'passed' => $portfolioValue >= $nrb,
             'explanation' => $portfolioValue >= $nrb
-                ? 'Portfolio of £'.number_format($portfolioValue, 0).' exceeds the single Nil Rate Band — estate equalisation should be considered. Combined allowance: £'.number_format($combinedNilRate, 0).'.'
-                : 'Portfolio below the Nil Rate Band — Inheritance Tax estate equalisation is premature.',
+                ? 'Investment portfolio of £'.number_format($portfolioValue, 0).' exceeds the single Nil Rate Band of £'.number_format($nrb, 0).'. Combined available allowances: Nil Rate Band £'.number_format($nrb * 2, 0).' (£'.number_format($nrb, 0).' each) + Residence Nil Rate Band £'.number_format($rnrb * 2, 0).' (£'.number_format($rnrb, 0).' each) = £'.number_format($combinedNilRate, 0).' total. Estate equalisation should be considered to ensure both sets of allowances are fully utilised.'
+                : 'Investment portfolio of £'.number_format($portfolioValue, 0).' is below the single Nil Rate Band of £'.number_format($nrb, 0).' — Inheritance Tax estate equalisation is premature.',
+        ];
+
+        $ageInfo = '';
+        if ($userAge !== null || $spouseAge !== null) {
+            $ageInfo = ' Ages: '.($userAge !== null ? 'primary '.$userAge : '').($userAge !== null && $spouseAge !== null ? ', ' : '').($spouseAge !== null ? $spouseName.' '.$spouseAge : '').'.';
+        }
+
+        $trace[] = [
+            'question' => 'What are the couple\'s ages for Inheritance Tax planning horizon?',
+            'data_field' => 'personal.age + spouse.age',
+            'data_value' => ($userAge !== null ? 'Primary: age '.$userAge : 'Primary: age unknown').'. '.($spouseAge !== null ? $spouseName.': age '.$spouseAge : $spouseName.': age unknown').'.',
+            'threshold' => 'N/A',
+            'passed' => true,
+            'explanation' => 'Inheritance Tax planning is relevant at any age but becomes more pressing as the estate grows.'.$ageInfo,
         ];
 
         // Only flag if portfolio alone is significant (property not counted here)
@@ -515,9 +601,11 @@ class SpouseOptimisationService
             'iht_estate_equalisation',
             'Consider Inheritance Tax estate equalisation',
             sprintf(
-                'With investment assets of %s, consider how your combined estate compares to the combined Nil Rate Band of %s. Equalising assets between partners ensures both Nil Rate Bands and Residence Nil Rate Bands are fully utilised.',
+                'With investment assets of £%s, consider how the combined estate compares to the combined Nil Rate Band of £%s (Nil Rate Band £%s + Residence Nil Rate Band £%s per partner). Equalising assets between partners ensures both Nil Rate Bands and Residence Nil Rate Bands are fully utilised.',
                 number_format($portfolioValue, 0, '.', ','),
-                number_format($combinedNilRate, 0, '.', ',')
+                number_format($combinedNilRate, 0, '.', ','),
+                number_format($nrb, 0, '.', ','),
+                number_format($rnrb, 0, '.', ',')
             ),
             'Review your estate planning in the Estate module for a comprehensive Inheritance Tax assessment.',
             'low'
