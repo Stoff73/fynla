@@ -188,9 +188,10 @@ export default {
         if (data.property.id) {
           // Update existing property
           propertyResponse = await api.put(`/properties/${data.property.id}`, data.property);
+          const updatedProperty = propertyResponse.data.data?.property || propertyResponse.data;
           const index = this.properties.findIndex(p => p.id === data.property.id);
           if (index !== -1) {
-            this.properties.splice(index, 1, propertyResponse.data);
+            this.properties.splice(index, 1, updatedProperty);
           }
           this.successMessage = 'Property updated successfully';
         } else {
@@ -216,7 +217,8 @@ export default {
           }
 
           propertyResponse = await api.post('/properties', data.property);
-          this.properties.push(propertyResponse.data);
+          const newProperty = propertyResponse.data.data?.property || propertyResponse.data;
+          this.properties.push(newProperty);
 
           // Check if mortgage was auto-created
           const hasMortgage = data.property.outstanding_mortgage > 0;
@@ -256,7 +258,7 @@ export default {
 
       try {
         const response = await api.get('/properties');
-        this.properties = response.data;
+        this.properties = response.data.data?.properties || response.data.properties || [];
       } catch (error) {
         console.error('Error fetching properties:', error);
         this.error = error.response?.data?.message || 'Failed to load properties';

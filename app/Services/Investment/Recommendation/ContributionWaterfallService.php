@@ -149,7 +149,8 @@ class ContributionWaterfallService
             return $this->skipStep($stepName, 'No first-time buyer goal — Lifetime ISA not prioritised.');
         }
 
-        $lisaLimit = $this->taxConfig->getISAAllowances()['lifetime_isa'] ?? TaxDefaults::LISA_ALLOWANCE;
+        $lisaAllowances = $this->taxConfig->getISAAllowances()['lifetime_isa'] ?? [];
+        $lisaLimit = is_array($lisaAllowances) ? ($lisaAllowances['annual_allowance'] ?? TaxDefaults::LISA_ALLOWANCE) : $lisaAllowances;
         $allocation = min($remaining, $lisaLimit);
 
         return $this->buildStep($stepName, $allocation, [

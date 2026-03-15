@@ -38,6 +38,10 @@ class RetirementActionDefinitionService
         $recommendations = [];
         $priority = 1;
 
+        if (empty($analysisData['profile'])) {
+            return [];
+        }
+
         $userId = $analysisData['profile']['user_id'];
         $profile = RetirementProfile::find($analysisData['profile']['id']);
         $dcPensions = DCPension::where('user_id', $userId)->get();

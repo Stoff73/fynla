@@ -234,8 +234,12 @@ class ConflictResolutionService
     /**
      * Convert priority string to numeric rank (lower = higher priority).
      */
-    private function priorityRank(string $priority): int
+    private function priorityRank(string|int $priority): int
     {
+        if (is_int($priority)) {
+            return $priority;
+        }
+
         return self::PRIORITY_ORDER[$priority] ?? 5;
     }
 }
