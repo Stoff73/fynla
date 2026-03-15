@@ -16,13 +16,13 @@
         "url": "Stoff73/fynla",
         "path": "plugins/fynla-dev-skills"
       },
-      "description": "Core development skills: session management (start/end), systematic debugging, feature scaffolding, tech debt auditing, deployment notes/checklists, shipping (commit/push/PR), cost estimation, and skill creation. Includes Windows variants for cross-platform development.",
-      "version": "1.1.0",
+      "description": "Core development skills: session management (start/end), systematic debugging, feature scaffolding, tech debt auditing, deployment notes/checklists, shipping (commit/push/PR), cost estimation, and skill creation.",
+      "version": "1.2.0",
       "author": {
         "name": "Fynla Development Team"
       },
       "category": "development",
-      "keywords": ["debugging", "scaffolding", "tech-debt", "deployment", "skills", "fynla", "windows", "session", "shipping"]
+      "keywords": ["debugging", "scaffolding", "tech-debt", "deployment", "skills", "fynla", "session", "shipping"]
     },
     {
       "name": "fynla-compliance",
