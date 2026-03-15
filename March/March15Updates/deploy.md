@@ -1,9 +1,10 @@
 # Deploy: Decision Engine Upgrade + Login Fix + Code Review Remediation
 
 **Dates:** 2026-03-14 to 2026-03-15
-**Branch:** `engineUpgrade` → merged to `main` (PR #124)
+**Branch:** `engineUpgrade` → merged to `main` (PRs #124-#128)
 **Version:** v0.8.3 → v0.9.0
 **Tests:** 1,873 passed, 0 failures
+**Deployed to production:** 2026-03-15 — all migrations ran, database seeded, caches cleared
 **Scope:** Decision Engine Upgrade (5 modules, 31 tasks), login bug fix, full code review remediation (13 issues), plan endpoint fixes, investment plan cross-module isolation
 
 ---

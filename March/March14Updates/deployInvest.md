@@ -4,6 +4,7 @@
 **Branch:** `engineUpgrade`
 **Scope:** 5 modules (Cash/Savings, Estate Planning, Investment, Protection, Retirement)
 **Tests:** 1871 passed, 0 failures (8179 assertions)
+**Deployed to production:** 2026-03-15 (combined with March 15 fixes — see `March/March15Updates/deploy.md`)
 
 ---
 
