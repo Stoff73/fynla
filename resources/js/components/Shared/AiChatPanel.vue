@@ -317,7 +317,7 @@
                 ? 'bg-raspberry-500 text-white rounded-br-sm'
                 : 'bg-savannah-100 text-horizon-500 rounded-bl-sm'
             ]">
-              <AiMessageContent v-if="msg.role === 'assistant'" :content="msg.content" />
+              <AiMessageContent v-if="msg.role === 'assistant'" :message="msg" @navigate="handleNavigation" />
               <span v-else>{{ msg.content }}</span>
             </div>
           </div>
@@ -326,7 +326,7 @@
         <!-- Streaming indicator -->
         <div v-if="streaming" class="flex justify-start">
           <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-savannah-100 text-horizon-500 rounded-bl-sm">
-            <AiMessageContent v-if="streamingText" :content="streamingText" />
+            <AiMessageContent v-if="streamingText" :message="{ role: 'assistant', content: streamingText }" />
             <span v-else class="flex items-center gap-1 text-neutral-500">
               <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
               <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>

@@ -22,12 +22,11 @@ class AiToolDefinitions
             $tools = array_merge($tools, $this->dataCreationTools());
         }
 
-        // Convert each tool to Anthropic format: parameters → input_schema, with strict mode
+        // Convert each tool to Anthropic format: parameters → input_schema
         return array_map(fn (array $tool) => [
             'name' => $tool['name'],
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
-            'strict' => true,
         ], $tools);
     }
 

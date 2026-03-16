@@ -4,21 +4,51 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use Anthropic\Client as AnthropicClient;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\Estate\Asset;
+use App\Models\Estate\Gift;
+use App\Models\Estate\Liability;
+use App\Models\Goal;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeEvent;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
+use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\NetWorth\NetWorthService;
+use App\Services\PrerequisiteGateService;
 use App\Services\TaxConfigService;
+use App\Traits\HasAiChat;
+use App\Traits\HasAiGuardrails;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * CoordinatingAgent
  *
  * Orchestrates cross-module analysis by coordinating all module agents.
  * Resolves conflicts, ranks recommendations, and generates holistic financial plans.
+ * Also serves as the single entry point for AI chat (via HasAiChat trait).
  */
 class CoordinatingAgent extends BaseAgent
 {
+    use HasAiChat;
+    use HasAiGuardrails;
+
     public function __construct(
         private readonly ConflictResolver $conflictResolver,
         private readonly PriorityRanker $priorityRanker,
@@ -32,7 +62,11 @@ class CoordinatingAgent extends BaseAgent
         private readonly EstateAgent $estateAgent,
         private readonly GoalsAgent $goalsAgent,
         private readonly TaxOptimisationAgent $taxOptimisationAgent,
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly AnthropicClient $anthropicClient,
+        private readonly AiToolDefinitions $toolDefinitions,
+        private readonly NetWorthService $netWorthService,
+        private readonly PrerequisiteGateService $prerequisiteGate,
     ) {}
 
     /**
@@ -587,5 +621,792 @@ class CoordinatingAgent extends BaseAgent
             'full_analysis' => [],
             'error' => 'Analysis failed',
         ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Tool Execution (migrated from AiToolExecutor)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Execute a tool call with prerequisite gate enforcement.
+     */
+    public function executeTool(string $toolName, array $input, User $user): array
+    {
+        $isPreviewUser = $user->is_preview_user;
+
+        // Prerequisite gate check
+        $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
+        if (! $gate['can_proceed']) {
+            $firstAction = $gate['required_actions'][0] ?? null;
+
+            return [
+                'blocked' => true,
+                'reason' => $gate['guidance'],
+                'missing_data' => $gate['missing'],
+                'suggested_action' => $firstAction,
+                'instruction' => 'Explain to the user exactly what data is missing and why it is needed. '
+                    .'List each missing item clearly. '
+                    .($firstAction ? "Then use the navigate_to_page tool to take them to \"{$firstAction['route']}\" where they can add the missing information." : ''),
+            ];
+        }
+
+        try {
+            return match ($toolName) {
+                'navigate_to_page' => $this->handleNavigation($input),
+                'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'run_what_if_scenario' => $this->handleWhatIfScenario($input, $user),
+                'get_recommendations' => $this->handleRecommendations($user),
+                'get_tax_information' => $this->handleTaxInformation($input),
+                'generate_financial_plan' => $this->handleFinancialPlan($user),
+                'create_goal' => $this->handleCreateGoal($input, $user, $isPreviewUser),
+                'create_life_event' => $this->handleCreateLifeEvent($input, $user, $isPreviewUser),
+                'create_savings_account' => $this->handleCreateSavingsAccount($input, $user, $isPreviewUser),
+                'create_investment_account' => $this->handleCreateInvestmentAccount($input, $user, $isPreviewUser),
+                'create_pension' => $this->handleCreatePension($input, $user, $isPreviewUser),
+                'create_property' => $this->handleCreateProperty($input, $user, $isPreviewUser),
+                'create_mortgage' => $this->handleCreateMortgage($input, $user, $isPreviewUser),
+                'create_protection_policy' => $this->handleCreateProtectionPolicy($input, $user, $isPreviewUser),
+                'create_estate_asset' => $this->handleCreateEstateAsset($input, $user, $isPreviewUser),
+                'create_estate_liability' => $this->handleCreateEstateLiability($input, $user, $isPreviewUser),
+                'create_estate_gift' => $this->handleCreateEstateGift($input, $user, $isPreviewUser),
+                default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
+            };
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('[CoordinatingAgent] Database error', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
+        } catch (\Exception $e) {
+            Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return ['error' => true, 'error_type' => 'execution_failed', 'message' => 'An unexpected error occurred. Please try again.'];
+        }
+    }
+
+    // ─── Read-only tool handlers ─────────────────────────────────────
+
+    private function handleNavigation(array $input): array
+    {
+        return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    private function handleModuleAnalysis(array $input, User $user): array
+    {
+        $module = $input['module'];
+
+        $analysis = match ($module) {
+            'protection' => $this->protectionAgent->analyze($user->id),
+            'savings' => $this->savingsAgent->analyze($user->id),
+            'investment' => $this->investmentAgent->analyze($user->id),
+            'retirement' => $this->retirementAgent->analyze($user->id),
+            'estate' => $this->estateAgent->analyze($user->id),
+            'goals' => $this->goalsAgent->analyze($user->id),
+            'holistic' => $this->orchestrateAnalysis($user->id),
+            default => ['error' => "Unknown module: {$module}"],
+        };
+
+        return $this->summariseToolAnalysis($module, $analysis);
+    }
+
+    private function handleWhatIfScenario(array $input, User $user): array
+    {
+        $module = $input['module'];
+        $parameters = $input['parameters'] ?? [];
+
+        $agent = match ($module) {
+            'protection' => $this->protectionAgent,
+            'savings' => $this->savingsAgent,
+            'investment' => $this->investmentAgent,
+            'retirement' => $this->retirementAgent,
+            default => null,
+        };
+
+        if (! $agent) {
+            return ['error' => "Scenarios not available for module: {$module}"];
+        }
+
+        return $agent->buildScenarios($user->id, $parameters);
+    }
+
+    private function handleRecommendations(User $user): array
+    {
+        $analysis = $this->orchestrateAnalysis($user->id);
+
+        return [
+            'recommendations' => $analysis['ranked_recommendations'] ?? [],
+            'total' => count($analysis['ranked_recommendations'] ?? []),
+            'surplus' => $analysis['available_surplus'] ?? 0,
+        ];
+    }
+
+    private function handleTaxInformation(array $input): array
+    {
+        $topic = $input['topic'];
+
+        return match ($topic) {
+            'income_tax' => $this->taxConfig->getIncomeTax(),
+            'capital_gains' => $this->taxConfig->getCapitalGainsTax(),
+            'inheritance_tax' => $this->taxConfig->getInheritanceTax(),
+            'isa_allowances' => $this->taxConfig->getISAAllowances(),
+            'pension_allowances' => $this->taxConfig->getPensionAllowances(),
+            default => ['error' => "Unknown tax topic: {$topic}"],
+        };
+    }
+
+    private function handleFinancialPlan(User $user): array
+    {
+        $plan = $this->generateHolisticPlan($user->id);
+
+        $summary = [];
+
+        if (isset($plan['executive_summary'])) {
+            $summary['executive_summary'] = $plan['executive_summary'];
+        }
+
+        $recommendations = $plan['ranked_recommendations'] ?? $plan['recommendations'] ?? [];
+        $summary['top_recommendations'] = array_slice($recommendations, 0, 5);
+
+        if (isset($plan['action_plan'])) {
+            $summary['action_plan'] = array_slice($plan['action_plan'], 0, 5);
+        }
+
+        if (isset($plan['available_surplus'])) {
+            $summary['monthly_surplus'] = $plan['available_surplus'];
+        }
+
+        if (isset($plan['cashflow_allocation'])) {
+            $summary['suggested_allocation'] = $plan['cashflow_allocation'];
+        }
+
+        return $summary;
+    }
+
+    // ─── Entity creation tool handlers ───────────────────────────────
+
+    private function handleCreateGoal(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('goal');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'name' => 'required|string|max:255',
+            'target_amount' => 'required|numeric|min:0|max:999999999.99',
+            'target_date' => 'required|date|after:today',
+            'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
+            'goal_type' => ['required', Rule::in(['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'])],
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $goal = Goal::create([
+            'user_id' => $user->id,
+            'goal_name' => $input['name'],
+            'goal_type' => $input['goal_type'],
+            'target_amount' => $input['target_amount'],
+            'target_date' => $input['target_date'],
+            'priority' => $input['priority'],
+            'status' => 'active',
+            'current_amount' => 0,
+            'start_date' => now()->toDateString(),
+        ]);
+
+        return ['created' => true, 'entity_type' => 'goal', 'entity_id' => $goal->id, 'name' => $goal->goal_name, 'message' => "Goal \"{$goal->goal_name}\" created successfully."];
+    }
+
+    private function handleCreateLifeEvent(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('life event');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'event_type' => 'required|string|max:100',
+            'event_date' => 'required|date',
+            'description' => 'required|string|max:500',
+            'estimated_cost' => 'nullable|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $impactType = in_array($input['event_type'], LifeEvent::INCOME_EVENT_TYPES) ? 'income' : 'expense';
+
+        $lifeEvent = LifeEvent::create([
+            'user_id' => $user->id,
+            'event_name' => $input['description'],
+            'event_type' => $input['event_type'],
+            'description' => $input['description'],
+            'amount' => $input['estimated_cost'] ?? 0,
+            'impact_type' => $impactType,
+            'expected_date' => $input['event_date'],
+            'certainty' => 'likely',
+            'status' => 'planned',
+        ]);
+
+        return ['created' => true, 'entity_type' => 'life_event', 'entity_id' => $lifeEvent->id, 'name' => $lifeEvent->event_name, 'message' => "Life event \"{$lifeEvent->event_name}\" created successfully."];
+    }
+
+    private function handleCreateSavingsAccount(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('savings account');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'current_balance' => 'required|numeric|min:0|max:999999999.99',
+            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver'])],
+            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $duplicateCheck = $this->checkForDuplicate(SavingsAccount::class, $user->id, 'account_name', $input['account_name']);
+        if ($duplicateCheck) {
+            return $duplicateCheck;
+        }
+
+        $isIsa = $input['is_isa'] ?? false;
+        $accountType = $input['account_type'] ?? 'easy_access';
+
+        $account = SavingsAccount::create([
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'account_type' => $accountType,
+            'institution' => $input['institution'] ?? null,
+            'current_balance' => $input['current_balance'],
+            'interest_rate' => $input['interest_rate'] ?? null,
+            'access_type' => match ($accountType) {
+                'notice' => 'notice', 'fixed_term' => 'fixed', default => 'immediate'
+            },
+            'is_isa' => $isIsa,
+            'isa_type' => $isIsa ? 'cash' : null,
+            'is_emergency_fund' => $input['is_emergency_fund'] ?? false,
+            'regular_contribution_amount' => $input['regular_contribution_amount'] ?? null,
+            'contribution_frequency' => isset($input['regular_contribution_amount']) ? 'monthly' : null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'country' => 'GB',
+        ]);
+
+        $this->invalidateModuleCache($user->id, 'savings');
+
+        return ['created' => true, 'entity_type' => 'savings_account', 'entity_id' => $account->id, 'name' => $account->account_name, 'message' => "Savings account \"{$account->account_name}\" created with a balance of £".number_format((float) $account->current_balance, 2).'.'];
+    }
+
+    private function handleCreateInvestmentAccount(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('investment account');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+            'account_type' => ['nullable', Rule::in(['stocks_shares_isa', 'lifetime_isa', 'personal_investment_account', 'onshore_bond', 'offshore_bond'])],
+            'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $duplicateCheck = $this->checkForDuplicate(InvestmentAccount::class, $user->id, 'account_name', $input['account_name']);
+        if ($duplicateCheck) {
+            return $duplicateCheck;
+        }
+
+        $accountType = $input['account_type'] ?? 'personal_investment_account';
+
+        $account = InvestmentAccount::create([
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'account_type' => $accountType,
+            'provider' => $input['provider'] ?? null,
+            'current_value' => $input['current_value'],
+            'monthly_contribution_amount' => $input['monthly_contribution_amount'] ?? 0,
+            'contribution_frequency' => 'monthly',
+            'platform_fee_percent' => $input['platform_fee_percent'] ?? null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'country' => 'GB',
+            'tax_year' => $this->taxConfig->getTaxYear(),
+        ]);
+
+        $this->invalidateModuleCache($user->id, 'investment');
+
+        return ['created' => true, 'entity_type' => 'investment_account', 'entity_id' => $account->id, 'name' => $account->account_name, 'message' => "Investment account \"{$account->account_name}\" created with a value of £".number_format((float) $account->current_value, 2).'.'];
+    }
+
+    private function handleCreatePension(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('pension');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'pension_category' => ['required', Rule::in(['dc', 'db'])],
+            'scheme_name' => 'required|string|max:255',
+            'current_fund_value' => 'nullable|numeric|min:0|max:999999999.99',
+            'employee_contribution_percent' => 'nullable|numeric|min:0|max:100',
+            'employer_contribution_percent' => 'nullable|numeric|min:0|max:100',
+            'accrued_annual_pension' => 'nullable|numeric|min:0|max:999999.99',
+            'normal_retirement_age' => 'nullable|integer|min:50|max:75',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $dcDuplicate = $this->checkForDuplicate(DCPension::class, $user->id, 'scheme_name', $input['scheme_name']);
+        if ($dcDuplicate) {
+            return $dcDuplicate;
+        }
+        $dbDuplicate = $this->checkForDuplicate(DBPension::class, $user->id, 'scheme_name', $input['scheme_name']);
+        if ($dbDuplicate) {
+            return $dbDuplicate;
+        }
+
+        $category = $input['pension_category'] ?? 'dc';
+
+        if ($category === 'db') {
+            $pension = DBPension::create([
+                'user_id' => $user->id,
+                'scheme_name' => $input['scheme_name'],
+                'scheme_type' => $input['scheme_type'] ?? 'final_salary',
+                'accrued_annual_pension' => $input['accrued_annual_pension'] ?? 0,
+                'normal_retirement_age' => $input['normal_retirement_age'] ?? 67,
+                'pensionable_service_years' => $input['pensionable_service_years'] ?? null,
+            ]);
+
+            $this->invalidateModuleCache($user->id, 'retirement');
+
+            return ['created' => true, 'entity_type' => 'db_pension', 'entity_id' => $pension->id, 'name' => $pension->scheme_name, 'message' => "Defined Benefit pension \"{$pension->scheme_name}\" created".($pension->accrued_annual_pension > 0 ? ' with an accrued pension of £'.number_format((float) $pension->accrued_annual_pension, 2).' per year' : '').'.'];
+        }
+
+        $pension = DCPension::create([
+            'user_id' => $user->id,
+            'scheme_name' => $input['scheme_name'],
+            'scheme_type' => $input['scheme_type'] ?? 'workplace',
+            'provider' => $input['provider'] ?? null,
+            'current_fund_value' => $input['current_fund_value'] ?? 0,
+            'employee_contribution_percent' => $input['employee_contribution_percent'] ?? null,
+            'employer_contribution_percent' => $input['employer_contribution_percent'] ?? null,
+            'retirement_age' => $input['normal_retirement_age'] ?? 67,
+        ]);
+
+        $this->invalidateModuleCache($user->id, 'retirement');
+
+        return ['created' => true, 'entity_type' => 'dc_pension', 'entity_id' => $pension->id, 'name' => $pension->scheme_name, 'message' => "Defined Contribution pension \"{$pension->scheme_name}\" created".($pension->current_fund_value > 0 ? ' with a fund value of £'.number_format((float) $pension->current_fund_value, 2) : '').'.'];
+    }
+
+    private function handleCreateProperty(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('property');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'property_type' => ['required', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+            'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
+            'outstanding_mortgage' => 'nullable|numeric|min:0|max:999999999.99',
+            'mortgage_rate' => 'nullable|numeric|min:0|max:25',
+            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $property = Property::create([
+            'user_id' => $user->id,
+            'property_type' => $input['property_type'] ?? 'main_residence',
+            'current_value' => $input['current_value'],
+            'purchase_price' => $input['purchase_price'] ?? null,
+            'purchase_date' => $input['purchase_date'] ?? null,
+            'address_line_1' => $input['address_line_1'] ?? null,
+            'postcode' => $input['postcode'] ?? null,
+            'outstanding_mortgage' => $input['outstanding_mortgage'] ?? 0,
+            'monthly_rental_income' => $input['monthly_rental_income'] ?? null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'country' => 'GB',
+        ]);
+
+        $mortgageMessage = '';
+        if (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0) {
+            Mortgage::create([
+                'property_id' => $property->id,
+                'user_id' => $user->id,
+                'outstanding_balance' => $input['outstanding_mortgage'],
+                'interest_rate' => $input['mortgage_rate'] ?? null,
+                'lender_name' => $input['mortgage_lender'] ?? null,
+                'mortgage_type' => 'repayment',
+                'rate_type' => 'fixed',
+                'ownership_type' => 'individual',
+                'ownership_percentage' => 100,
+                'country' => 'GB',
+            ]);
+            $mortgageMessage = ' A linked mortgage of £'.number_format((float) $input['outstanding_mortgage'], 2).' was also created.';
+        }
+
+        $this->invalidateModuleCache($user->id, 'property');
+
+        return ['created' => true, 'entity_type' => 'property', 'entity_id' => $property->id, 'name' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $input['property_type'] ?? 'main_residence')), 'message' => 'Property created with a value of £'.number_format((float) $property->current_value, 2).'.'.$mortgageMessage];
+    }
+
+    private function handleCreateMortgage(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('mortgage');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'outstanding_balance' => 'required|numeric|min:0|max:999999999.99',
+            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
+            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker'])],
+            'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'remaining_term_months' => 'nullable|integer|min:1|max:480',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $propertyId = $this->resolvePropertyId($user, $input['property_address_hint'] ?? null);
+
+        if (! $propertyId) {
+            return ['error' => true, 'error_type' => 'missing_dependency', 'message' => 'Could not find a matching property. Please create the property first.'];
+        }
+
+        $mortgage = Mortgage::create([
+            'property_id' => $propertyId,
+            'user_id' => $user->id,
+            'lender_name' => $input['lender_name'] ?? null,
+            'outstanding_balance' => $input['outstanding_balance'],
+            'interest_rate' => $input['interest_rate'] ?? null,
+            'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+            'rate_type' => $input['rate_type'] ?? 'fixed',
+            'monthly_payment' => $input['monthly_payment'] ?? null,
+            'remaining_term_months' => $input['remaining_term_months'] ?? null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100,
+            'country' => 'GB',
+        ]);
+
+        $this->invalidateModuleCache($user->id, 'property');
+
+        return ['created' => true, 'entity_type' => 'mortgage', 'entity_id' => $mortgage->id, 'name' => ($input['lender_name'] ?? 'Mortgage').' mortgage', 'message' => 'Mortgage created with an outstanding balance of £'.number_format((float) $mortgage->outstanding_balance, 2).'.'];
+    }
+
+    private function handleCreateProtectionPolicy(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('protection policy');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'policy_type' => ['required', Rule::in(['level_term', 'term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'standalone_ci', 'accelerated_ci', 'income_protection'])],
+            'sum_assured' => 'nullable|numeric|min:0|max:999999999.99',
+            'benefit_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'premium_amount' => 'nullable|numeric|min:0|max:99999.99',
+            'policy_term_years' => 'nullable|integer|min:1|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $policyType = $input['policy_type'];
+
+        if ($policyType === 'income_protection') {
+            $policy = IncomeProtectionPolicy::create([
+                'user_id' => $user->id,
+                'provider' => $input['provider'] ?? null,
+                'benefit_amount' => $input['benefit_amount'] ?? 0,
+                'benefit_frequency' => 'monthly',
+                'premium_amount' => $input['premium_amount'] ?? null,
+            ]);
+            $this->invalidateModuleCache($user->id, 'protection');
+
+            return ['created' => true, 'entity_type' => 'income_protection_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Income protection').' policy', 'message' => 'Income protection policy created'.($policy->benefit_amount > 0 ? ' with a monthly benefit of £'.number_format((float) $policy->benefit_amount, 2) : '').'.'];
+        }
+
+        if (in_array($policyType, ['standalone_ci', 'accelerated_ci'])) {
+            $ciType = $policyType === 'standalone_ci' ? 'standalone' : 'accelerated';
+            $policy = CriticalIllnessPolicy::create([
+                'user_id' => $user->id,
+                'policy_type' => $ciType,
+                'provider' => $input['provider'] ?? null,
+                'sum_assured' => $input['sum_assured'] ?? 0,
+                'premium_amount' => $input['premium_amount'] ?? null,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+                'policy_term_years' => $input['policy_term_years'] ?? null,
+            ]);
+            $this->invalidateModuleCache($user->id, 'protection');
+
+            return ['created' => true, 'entity_type' => 'critical_illness_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Critical illness').' policy', 'message' => 'Critical illness policy created'.($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.'];
+        }
+
+        // Life insurance (term, whole of life, etc.)
+        $policy = LifeInsurancePolicy::create([
+            'user_id' => $user->id,
+            'policy_type' => $policyType,
+            'provider' => $input['provider'] ?? null,
+            'sum_assured' => $input['sum_assured'] ?? 0,
+            'premium_amount' => $input['premium_amount'] ?? null,
+            'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+            'policy_term_years' => $input['policy_term_years'] ?? null,
+            'in_trust' => $input['in_trust'] ?? false,
+        ]);
+        $this->invalidateModuleCache($user->id, 'protection');
+
+        $typeLabel = str_replace('_', ' ', $policyType);
+
+        return ['created' => true, 'entity_type' => 'life_insurance_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Life insurance').' - '.$typeLabel, 'message' => 'Life insurance policy created'.($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.'];
+    }
+
+    private function handleCreateEstateAsset(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('estate asset');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'asset_name' => 'required|string|max:255',
+            'asset_type' => ['required', Rule::in(['property', 'pension', 'investment', 'business', 'other'])],
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $asset = Asset::create([
+            'user_id' => $user->id,
+            'asset_name' => $input['asset_name'],
+            'asset_type' => $input['asset_type'],
+            'current_value' => $input['current_value'],
+            'is_iht_exempt' => $input['is_iht_exempt'] ?? false,
+            'exemption_reason' => $input['exemption_reason'] ?? null,
+            'ownership_type' => 'individual',
+            'valuation_date' => now()->toDateString(),
+        ]);
+        $this->invalidateModuleCache($user->id, 'estate');
+
+        return ['created' => true, 'entity_type' => 'estate_asset', 'entity_id' => $asset->id, 'name' => $asset->asset_name, 'message' => "Estate asset \"{$asset->asset_name}\" created with a value of £".number_format((float) $asset->current_value, 2).'.'];
+    }
+
+    private function handleCreateEstateLiability(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('estate liability');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'liability_name' => 'required|string|max:255',
+            'liability_type' => ['required', Rule::in(['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'other'])],
+            'current_balance' => 'required|numeric|min:0|max:999999999.99',
+            'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'interest_rate' => 'nullable|numeric|min:0|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $liability = Liability::create([
+            'user_id' => $user->id,
+            'liability_name' => $input['liability_name'],
+            'liability_type' => $input['liability_type'],
+            'current_balance' => $input['current_balance'],
+            'monthly_payment' => $input['monthly_payment'] ?? null,
+            'interest_rate' => $input['interest_rate'] ?? null,
+            'ownership_type' => 'individual',
+            'country' => 'GB',
+        ]);
+        $this->invalidateModuleCache($user->id, 'estate');
+
+        return ['created' => true, 'entity_type' => 'estate_liability', 'entity_id' => $liability->id, 'name' => $liability->liability_name, 'message' => "Estate liability \"{$liability->liability_name}\" created with a balance of £".number_format((float) $liability->current_balance, 2).'.'];
+    }
+
+    private function handleCreateEstateGift(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('estate gift');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'gift_date' => 'required|date',
+            'recipient' => 'required|string|max:255',
+            'gift_type' => ['required', Rule::in(['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'])],
+            'gift_value' => 'required|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $gift = Gift::create([
+            'user_id' => $user->id,
+            'gift_date' => substr($input['gift_date'], 0, 10),
+            'recipient' => $input['recipient'],
+            'gift_type' => $input['gift_type'] ?? 'pet',
+            'gift_value' => $input['gift_value'],
+            'status' => 'within_7_years',
+            'notes' => $input['notes'] ?? null,
+        ]);
+        $this->invalidateModuleCache($user->id, 'estate');
+
+        return ['created' => true, 'entity_type' => 'estate_gift', 'entity_id' => $gift->id, 'name' => "Gift to {$gift->recipient}", 'message' => 'Gift of £'.number_format((float) $gift->gift_value, 2)." to {$gift->recipient} recorded."];
+    }
+
+    // ─── Tool execution helpers ──────────────────────────────────────
+
+    private function previewBlocked(string $entityType): array
+    {
+        return ['blocked' => true, 'reason' => "You are in preview mode. Creating a {$entityType} is not available — please create a real account to save data."];
+    }
+
+    private function validateToolInput(array $input, array $rules): ?array
+    {
+        $validator = Validator::make($input, $rules);
+        if ($validator->fails()) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => $validator->errors()->first()];
+        }
+
+        return null;
+    }
+
+    private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
+    {
+        $existing = $modelClass::where('user_id', $userId)
+            ->whereRaw('LOWER('.$nameField.') = ?', [strtolower($nameValue)])
+            ->first();
+
+        if ($existing) {
+            return ['warning' => true, 'message' => "A similar record '{$existing->{$nameField}}' already exists. The new record was not created to avoid duplication.", 'existing_id' => $existing->id];
+        }
+
+        return null;
+    }
+
+    private function invalidateModuleCache(int $userId, string $module): void
+    {
+        $this->netWorthService->invalidateCache($userId);
+
+        $cachePatterns = [
+            'savings' => ["v1_savings_{$userId}"],
+            'investment' => ["v1_investment_{$userId}"],
+            'retirement' => ["v1_retirement_{$userId}"],
+            'property' => ["v1_property_{$userId}"],
+            'protection' => ["v1_protection_{$userId}"],
+            'estate' => ["v1_estate_{$userId}"],
+        ];
+
+        foreach ($cachePatterns[$module] ?? [] as $key) {
+            Cache::forget($key);
+            Cache::forget("{$key}_analysis");
+            Cache::forget("{$key}_recommendations");
+        }
+
+        Cache::forget("v1_coordinating_{$userId}_analysis");
+        Cache::forget("ai_financial_context_{$userId}");
+    }
+
+    private function resolvePropertyId(User $user, ?string $hint): ?int
+    {
+        $properties = Property::where('user_id', $user->id)->get();
+
+        if ($properties->isEmpty()) {
+            return null;
+        }
+
+        if ($properties->count() === 1) {
+            return $properties->first()->id;
+        }
+
+        if (! $hint) {
+            $main = $properties->firstWhere('property_type', 'main_residence');
+
+            return $main?->id ?? $properties->first()->id;
+        }
+
+        $hintLower = Str::lower($hint);
+
+        if (Str::contains($hintLower, ['main', 'home', 'primary', 'residence'])) {
+            $match = $properties->firstWhere('property_type', 'main_residence');
+            if ($match) {
+                return $match->id;
+            }
+        }
+
+        if (Str::contains($hintLower, ['buy to let', 'btl', 'rental', 'let'])) {
+            $match = $properties->firstWhere('property_type', 'buy_to_let');
+            if ($match) {
+                return $match->id;
+            }
+        }
+
+        if (Str::contains($hintLower, ['second', 'holiday'])) {
+            $match = $properties->firstWhere('property_type', 'secondary_residence');
+            if ($match) {
+                return $match->id;
+            }
+        }
+
+        foreach ($properties as $property) {
+            $address = Str::lower(($property->address_line_1 ?? '').' '.($property->postcode ?? ''));
+            if (Str::contains($address, $hintLower) || Str::contains($hintLower, trim($address))) {
+                return $property->id;
+            }
+        }
+
+        return $properties->first()->id;
+    }
+
+    /**
+     * Summarise analysis data for tool result.
+     */
+    private function summariseToolAnalysis(string $module, array $analysis): array
+    {
+        if (isset($analysis['error'])) {
+            return $analysis;
+        }
+
+        $summary = ['module' => $module];
+
+        if (isset($analysis['data'])) {
+            $data = $analysis['data'];
+            $summary['metrics'] = $this->extractKeyMetrics($data);
+            $summary['recommendations'] = array_slice($data['recommendations'] ?? [], 0, 5);
+        } elseif (isset($analysis['summary'])) {
+            $summary['metrics'] = $analysis['summary'];
+            $summary['recommendations'] = array_slice($analysis['ranked_recommendations'] ?? [], 0, 5);
+        } else {
+            $summary['metrics'] = $analysis;
+        }
+
+        return $summary;
+    }
+
+    private function extractKeyMetrics(array $data): array
+    {
+        $metrics = [];
+        $keyFields = [
+            'total_value', 'total_cover', 'coverage_gaps', 'net_worth',
+            'monthly_surplus', 'emergency_fund_months', 'pension_projection',
+            'iht_liability', 'total_savings', 'total_investments',
+            'retirement_income', 'target_income', 'shortfall',
+            'risk_score', 'asset_allocation', 'progress_percentage',
+        ];
+
+        foreach ($keyFields as $field) {
+            if (isset($data[$field])) {
+                $metrics[$field] = $data[$field];
+            }
+        }
+
+        return $metrics;
     }
 }
