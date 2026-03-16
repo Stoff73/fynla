@@ -207,6 +207,133 @@
           </div>
         </DashboardCard>
 
+        <!-- Protection Card -->
+        <DashboardCard
+          v-if="hasProtectionData"
+          title="Protection"
+          :loading="loading.protection"
+          @click="navigateTo('/protection')"
+        >
+          <div class="space-y-4">
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Total Coverage</span>
+              <div class="mt-1">
+                <span class="text-2xl font-bold text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+              </div>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-500">Monthly Premiums</span>
+              <span class="font-medium text-horizon-500">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-500">Policies</span>
+              <span class="font-medium text-horizon-500">{{ protectionData.policyCount }}</span>
+            </div>
+            <!-- Actions -->
+            <div v-if="protectionActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
+              <div
+                v-for="action in protectionActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'protection') + '/' + action.id)"
+              >
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <!-- Cash & Savings Card -->
+        <DashboardCard
+          v-if="hasSavingsData"
+          title="Cash & Savings"
+          :loading="loading.taxAllowances"
+          @click="navigateTo('/net-worth/cash')"
+        >
+          <div class="space-y-4">
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Total Savings</span>
+              <div class="mt-1">
+                <span class="text-2xl font-bold text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
+              </div>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-500">Accounts</span>
+              <span class="font-medium text-horizon-500">{{ savingsAccountCount }}</span>
+            </div>
+            <!-- Actions -->
+            <div v-if="savingsActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
+              <div
+                v-for="action in savingsActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'savings') + '/' + action.id)"
+              >
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        <!-- Investment Card -->
+        <DashboardCard
+          v-if="hasInvestmentData"
+          title="Investments"
+          :loading="loading.investment"
+          @click="navigateTo('/net-worth/investments')"
+        >
+          <div class="space-y-4">
+            <div class="border-b border-light-gray pb-4">
+              <span class="text-sm text-neutral-500">Portfolio Value</span>
+              <div class="mt-1">
+                <span class="text-2xl font-bold text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
+              </div>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-500">Accounts</span>
+              <span class="font-medium text-horizon-500">{{ investmentAccountCount }}</span>
+            </div>
+            <!-- Actions -->
+            <div v-if="investmentActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
+              <div
+                v-for="action in investmentActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'investment') + '/' + action.id)"
+              >
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
         <!-- Estate Planning Card -->
         <DashboardCard
           v-if="hasEstateData"
@@ -234,20 +361,23 @@
               </div>
             </div>
 
-            <!-- Trusts -->
-            <div v-if="trustsList.length > 0" class="space-y-3">
-              <div class="text-sm font-semibold text-horizon-500">Trusts</div>
+            <!-- Actions -->
+            <div v-if="estateActions.length > 0" class="space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
               <div
-                v-for="trust in trustsList"
-                :key="trust.id"
-                class="pb-2 border-b border-light-gray last:border-0 last:pb-0"
+                v-for="action in estateActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'estate') + '/' + action.id)"
               >
-                <div class="flex justify-between text-sm">
-                  <span class="font-medium text-horizon-500">{{ trust.trust_name }}</span>
-                  <span class="font-medium text-horizon-500">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                 </div>
-                <div v-if="trust.beneficiaries" class="text-xs text-neutral-500 mt-1">
-                  Beneficiaries: {{ trust.beneficiaries }}
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
                 </div>
               </div>
             </div>
@@ -624,6 +754,7 @@ export default {
         protection: true,
         goals: true,
         taxAllowances: true,
+        plans: false,
       },
       errors: {
         protection: null,
@@ -640,6 +771,7 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
     ...mapGetters('preview', ['effectivePersonaData']),
+    ...mapGetters('plans', { getPlan: 'getPlan' }),
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student';
@@ -1056,6 +1188,11 @@ export default {
       return {
         totalCoverage: this.protectionTotalCoverage || 0,
         premiumTotal: this.protectionTotalPremium || 0, // Already monthly from store getter
+        policyCount: (this.protectionLifePolicies?.length || 0) +
+          (this.protectionCriticalIllnessPolicies?.length || 0) +
+          (this.protectionIncomeProtectionPolicies?.length || 0) +
+          (this.protectionDisabilityPolicies?.length || 0) +
+          (this.protectionSicknessIllnessPolicies?.length || 0),
       };
     },
 
@@ -1272,6 +1409,45 @@ export default {
     hasAllowancesData() {
       return !!this.lisaAllowanceData || !!this.isaAllowanceData || !!this.pensionAllowanceData;
     },
+
+    estateActions() {
+      const plan = this.getPlan('estate');
+      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
+    },
+    protectionActions() {
+      const plan = this.getPlan('protection');
+      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
+    },
+    savingsActions() {
+      const plan = this.getPlan('savings');
+      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
+    },
+    investmentActions() {
+      const plan = this.getPlan('investment');
+      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
+    },
+
+    hasSavingsData() {
+      const accounts = this.$store.state.savings.accounts || [];
+      return accounts.length > 0;
+    },
+
+    savingsTotalBalance() {
+      const accounts = this.$store.state.savings.accounts || [];
+      return accounts.reduce((sum, acc) => sum + parseFloat(acc.current_balance || 0), 0);
+    },
+
+    savingsAccountCount() {
+      return (this.$store.state.savings.accounts || []).length;
+    },
+
+    investmentPortfolioValue() {
+      return this.$store.getters['investment/totalPortfolioValue'] || 0;
+    },
+
+    investmentAccountCount() {
+      return (this.$store.state.investment.accounts || []).length;
+    },
   },
 
   methods: {
@@ -1411,6 +1587,10 @@ export default {
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
+        { name: 'plans', action: 'plans/fetchPlan', payload: 'estate' },
+        { name: 'plans', action: 'plans/fetchPlan', payload: 'protection' },
+        { name: 'plans', action: 'plans/fetchPlan', payload: 'savings' },
+        { name: 'plans', action: 'plans/fetchPlan', payload: 'investment' },
       ];
 
       Object.keys(this.loading).forEach(key => {
