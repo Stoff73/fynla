@@ -1,8 +1,6 @@
 <template>
   <AppLayout>
-    <div :class="showDockedChat ? 'flex gap-4' : ''">
-    <!-- Dashboard Content -->
-    <div :class="showDockedChat ? 'flex-1 min-w-0' : ''" class="py-2 sm:py-3">
+    <div class="py-2 sm:py-3">
       <!-- 2FA Security Reminder Banner -->
       <div
         v-if="showMFABanner"
@@ -583,11 +581,6 @@
         </template>
       </div>
     </div>
-    <!-- Docked Fyn Chat Panel (real users only, desktop) -->
-    <div v-if="showDockedChat" class="hidden lg:flex w-[380px] flex-shrink-0 sticky top-0 h-[calc(100vh-4rem)]">
-      <AiChatPanel :docked="true" />
-    </div>
-    </div>
   </AppLayout>
 </template>
 
@@ -600,7 +593,6 @@ import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue'
 import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
 import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
-import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
@@ -616,7 +608,6 @@ export default {
     GoalsProjectionChartDashboard,
     AreasToCompleteCard,
     ProfileCompletionCards,
-    AiChatPanel,
     CrossModuleInsights,
     EmptyDashboard,
   },
@@ -649,11 +640,6 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
     ...mapGetters('preview', ['effectivePersonaData']),
-
-    showDockedChat() {
-      const user = this.currentUser;
-      return user && !user.is_preview_user && !this.isMobile;
-    },
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student';

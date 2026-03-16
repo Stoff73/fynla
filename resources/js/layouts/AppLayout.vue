@@ -30,11 +30,19 @@
       <!-- Preview Mode Banner -->
       <PreviewBanner v-if="isPreviewMode" />
 
-      <main class="flex-grow bg-eggshell-500">
-        <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
-          <slot />
-        </div>
-      </main>
+      <!-- Content area: flex row when docked chat is active -->
+      <div class="flex-grow flex bg-eggshell-500">
+        <main class="flex-1 min-w-0">
+          <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
+            <slot />
+          </div>
+        </main>
+
+        <!-- Docked Fyn Chat (dashboard only, real users, desktop) -->
+        <aside v-if="showDockedChat" class="hidden lg:flex w-[380px] flex-shrink-0 border-l border-light-gray bg-white">
+          <AiChatPanel :docked="true" />
+        </aside>
+      </div>
 
       <Footer />
     </div>
@@ -43,9 +51,9 @@
     <InfoGuideButton />
     <InfoGuidePanel />
 
-    <!-- AI Chat (floating button + panel) -->
-    <AiChatButton />
-    <AiChatPanel />
+    <!-- AI Chat floating button + panel (hidden when docked chat is active) -->
+    <AiChatButton v-if="!showDockedChat" />
+    <AiChatPanel v-if="!showDockedChat" />
   </div>
 </template>
 
@@ -94,25 +102,40 @@ export default {
 
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
-    ...mapGetters('auth', ['isAuthenticated']),
+    ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
 
     contentMarginClass() {
-      // No margin on mobile (menu is overlay)
-      // On desktop, margin matches side menu width
       return this.sideMenuCollapsed
-        ? 'sm:ml-16'   // 64px collapsed
-        : 'sm:ml-56';  // 224px expanded
+        ? 'sm:ml-16'
+        : 'sm:ml-56';
+    },
+
+    showDockedChat() {
+      return this.$route.path === '/dashboard'
+        && this.isAuthenticated
+        && !this.isPreviewMode
+        && this.currentUser
+        && !this.currentUser.is_preview_user;
+    },
+  },
+
+  watch: {
+    // Collapse side menu when navigating to dashboard as real user
+    '$route.path'(path) {
+      if (path === '/dashboard' && this.showDockedChat && !this.sideMenuCollapsed) {
+        this.sideMenuCollapsed = true;
+        storage.set(STORAGE_KEY, true);
+      }
     },
   },
 
   mounted() {
-    // Fetch info guide preference when layout mounts
     if (this.isAuthenticated || this.isPreviewMode) {
       this.fetchInfoGuidePreference();
     }
 
-    // Collapse side menu on dashboard for real (non-preview) users
-    if (this.$route.path === '/dashboard' && this.isAuthenticated && !this.isPreviewMode) {
+    // Collapse side menu on dashboard for real users
+    if (this.showDockedChat && !this.sideMenuCollapsed) {
       this.sideMenuCollapsed = true;
       storage.set(STORAGE_KEY, true);
     }
