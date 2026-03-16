@@ -6,6 +6,8 @@ const state = {
     liabilities: [],
     gifts: [],
     trusts: [],
+    lpas: [],
+    lpaLoading: false,
     ihtProfile: null,
     netWorth: null,
     cashFlow: null,
@@ -217,6 +219,13 @@ const getters = {
 
     canProceed: (state) => state.canProceed,
     readinessChecks: (state) => state.readinessChecks,
+
+    // Lasting Powers of Attorney
+    lpas: (state) => state.lpas,
+    lpaLoading: (state) => state.lpaLoading,
+    propertyFinancialLpas: (state) => state.lpas.filter(l => l.lpa_type === 'property_financial'),
+    healthWelfareLpas: (state) => state.lpas.filter(l => l.lpa_type === 'health_welfare'),
+    hasRegisteredLpa: (state) => state.lpas.some(l => l.status === 'registered'),
 
     loading: (state) => state.loading,
     error: (state) => state.error,
@@ -630,6 +639,75 @@ const actions = {
             commit('setLoading', false);
         }
     },
+
+    // Lasting Power of Attorney actions
+    async fetchLpas({ commit }) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.getLpas();
+            commit('setLpas', response.data || []);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to fetch Lasting Powers of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
+
+    async createLpa({ commit }, data) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createLpa(data);
+            commit('addLpa', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to create Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
+
+    async updateLpa({ commit }, { id, data }) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateLpa(id, data);
+            commit('updateLpa', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to update Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
+
+    async removeLpa({ commit }, id) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteLpa(id);
+            commit('removeLpa', id);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
 };
 
 const mutations = {
@@ -758,6 +836,32 @@ const mutations = {
         const index = state.trusts.findIndex(t => t.id === id);
         if (index !== -1) {
             state.trusts.splice(index, 1);
+        }
+    },
+
+    setLpas(state, lpas) {
+        state.lpas = lpas;
+    },
+
+    setLpaLoading(state, loading) {
+        state.lpaLoading = loading;
+    },
+
+    addLpa(state, lpa) {
+        state.lpas.push(lpa);
+    },
+
+    updateLpa(state, lpa) {
+        const index = state.lpas.findIndex(l => l.id === lpa.id);
+        if (index !== -1) {
+            state.lpas.splice(index, 1, lpa);
+        }
+    },
+
+    removeLpa(state, id) {
+        const index = state.lpas.findIndex(l => l.id === id);
+        if (index !== -1) {
+            state.lpas.splice(index, 1);
         }
     },
 

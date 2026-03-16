@@ -135,6 +135,10 @@ export default {
   },
 
   mounted() {
+    // Check for tab query param (e.g. /estate?tab=power-of-attorney)
+    if (this.$route.query.tab && this.tabs.some(t => t.id === this.$route.query.tab)) {
+      this.activeTab = this.$route.query.tab;
+    }
     this.loadEstateData();
   },
 
