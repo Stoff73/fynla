@@ -39,7 +39,7 @@
         </main>
 
         <!-- Docked Fyn Chat (dashboard only, real users, desktop) -->
-        <aside v-if="showDockedChat" class="hidden lg:flex w-[380px] flex-shrink-0 border-l border-light-gray bg-white">
+        <aside v-if="showDockedChat" class="hidden lg:flex lg:flex-col w-[380px] flex-shrink-0 border-l border-light-gray bg-white overflow-hidden">
           <AiChatPanel :docked="true" />
         </aside>
       </div>

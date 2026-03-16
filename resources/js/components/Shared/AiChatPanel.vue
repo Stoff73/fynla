@@ -1,5 +1,5 @@
 <template>
-  <component :is="docked ? 'div' : Teleport" :to="docked ? undefined : 'body'">
+  <component :is="docked ? 'div' : Teleport" :to="docked ? undefined : 'body'" :class="docked ? 'flex flex-col w-full h-full' : ''">
     <Transition
       v-if="!docked"
       enter-active-class="transition ease-out duration-200"
