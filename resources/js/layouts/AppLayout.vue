@@ -37,11 +37,15 @@
         </div>
       </main>
 
-      <Footer />
+      <Footer ref="appFooter" />
     </div>
 
-    <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar -->
-    <aside v-if="showDockedChat" class="hidden lg:flex lg:flex-col fixed top-16 right-0 bottom-0 w-[380px] border-l border-light-gray bg-white z-30">
+    <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
+    <aside
+      v-if="showDockedChat"
+      class="hidden lg:flex lg:flex-col fixed top-16 right-0 w-[380px] border-l border-light-gray bg-white z-30 transition-all duration-100"
+      :style="{ bottom: footerOffset + 'px' }"
+    >
       <AiChatPanel :docked="true" />
     </aside>
 
@@ -95,6 +99,7 @@ export default {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
+      footerOffset: 0,
     };
   },
 
@@ -135,6 +140,28 @@ export default {
     if (this.showDockedChat && !this.sideMenuCollapsed) {
       this.sideMenuCollapsed = true;
       storage.set(STORAGE_KEY, true);
+    }
+
+    // Track footer visibility for docked chat positioning
+    this._updateFooterOffset = () => {
+      const footer = this.$refs.appFooter?.$el;
+      if (!footer) { this.footerOffset = 0; return; }
+      const footerRect = footer.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      if (footerRect.top < viewportHeight) {
+        this.footerOffset = viewportHeight - footerRect.top;
+      } else {
+        this.footerOffset = 0;
+      }
+    };
+    window.addEventListener('scroll', this._updateFooterOffset, { passive: true });
+    window.addEventListener('resize', this._updateFooterOffset, { passive: true });
+  },
+
+  beforeUnmount() {
+    if (this._updateFooterOffset) {
+      window.removeEventListener('scroll', this._updateFooterOffset);
+      window.removeEventListener('resize', this._updateFooterOffset);
     }
   },
 
