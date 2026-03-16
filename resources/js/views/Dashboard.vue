@@ -471,6 +471,27 @@
                 {{ formatCurrency(Math.abs(retiredIncomeData.totalIncome - retirementData.targetIncome)) }}/yr
               </span>
             </div>
+
+            <!-- Retirement Actions (retired) -->
+            <div v-if="retirementActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
+              <div
+                v-for="action in retirementActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'retirement') + '/' + action.id)"
+              >
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- NON-RETIRED USER: Show projections -->
@@ -526,6 +547,27 @@
               <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
                 <span class="text-sm text-neutral-500">Years to Retirement</span>
                 <div class="text-lg font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
+              </div>
+            </div>
+
+            <!-- Retirement Actions (non-retired) -->
+            <div v-if="retirementActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
+              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
+              <div
+                v-for="action in retirementActions"
+                :key="action.id"
+                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
+                @click.stop="navigateTo('/actions/' + (action.plan_type || 'retirement') + '/' + action.id)"
+              >
+                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
+                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
+                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1426,6 +1468,10 @@ export default {
       const plan = this.getPlan('investment');
       return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
     },
+    retirementActions() {
+      const plan = this.getPlan('retirement');
+      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
+    },
 
     hasSavingsData() {
       const accounts = this.$store.state.savings.accounts || [];
@@ -1591,6 +1637,7 @@ export default {
         { name: 'plans', action: 'plans/fetchPlan', payload: 'protection' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'savings' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'investment' },
+        { name: 'plans', action: 'plans/fetchPlan', payload: 'retirement' },
       ];
 
       Object.keys(this.loading).forEach(key => {
