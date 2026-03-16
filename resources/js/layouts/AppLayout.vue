@@ -30,22 +30,20 @@
       <!-- Preview Mode Banner -->
       <PreviewBanner v-if="isPreviewMode" />
 
-      <!-- Content area: flex row when docked chat is active -->
-      <div class="flex-grow flex bg-eggshell-500">
-        <main class="flex-1 min-w-0">
-          <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
-            <slot />
-          </div>
-        </main>
-
-        <!-- Docked Fyn Chat (real users, desktop) — sticky to viewport -->
-        <aside v-if="showDockedChat" class="hidden lg:flex lg:flex-col w-[380px] flex-shrink-0 border-l border-light-gray bg-white sticky top-0 h-screen overflow-hidden">
-          <AiChatPanel :docked="true" />
-        </aside>
-      </div>
+      <!-- Content area -->
+      <main class="flex-grow bg-eggshell-500" :class="showDockedChat ? 'lg:mr-[380px]' : ''">
+        <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
+          <slot />
+        </div>
+      </main>
 
       <Footer />
     </div>
+
+    <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar -->
+    <aside v-if="showDockedChat" class="hidden lg:flex lg:flex-col fixed top-16 right-0 bottom-0 w-[380px] border-l border-light-gray bg-white z-30">
+      <AiChatPanel :docked="true" />
+    </aside>
 
     <!-- Information Guide (floating help button + panel) -->
     <InfoGuideButton />
