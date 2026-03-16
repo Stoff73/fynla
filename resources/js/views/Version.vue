@@ -197,21 +197,33 @@
             </ul>
           </div>
 
-          <!-- Dashboard & Retirement Fixes -->
+          <!-- Dashboard Enhancements -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Dashboard & Retirement</h3>
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Dashboard Enhancements</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Real Dashboard Data:</strong> Dashboard module summaries now show your actual financial data from all 5 modules — savings balances, investment portfolio values, retirement projections, estate net worth, and protection coverage — instead of placeholder values.</span>
+                <span class="text-body-base text-neutral-500"><strong>Module Action Cards:</strong> New Protection, Cash & Savings, and Investment cards on the dashboard. Each shows key metrics plus up to 2 top-priority recommended actions from the Fynla Brain. When no actions exist, your accounts or policies are listed instead.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Retired User Support:</strong> Retirement analysis now works correctly for users who are already retired, showing pension income from Defined Benefit and State Pension sources rather than requiring employment income.</span>
+                <span class="text-body-base text-neutral-500"><strong>Real Dashboard Data:</strong> All module summaries now show your actual financial data — savings balances, portfolio values, retirement projections, estate net worth, and protection coverage — instead of placeholder values.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Docked Fyn Assistant:</strong> For logged-in users on desktop, Fyn now appears as a permanent panel on the right side of the dashboard with the side menu auto-collapsed for more space.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Retired User Support:</strong> Retirement analysis now works correctly for already-retired users, showing pension income from Defined Benefit and State Pension sources.</span>
               </li>
             </ul>
           </div>

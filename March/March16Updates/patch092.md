@@ -328,6 +328,26 @@ The retired couple persona (Patricia & Harold Bennett) showed zero retirement in
 
 ---
 
+## Dashboard Enhancements
+
+### Module Action Cards
+
+The main dashboard now includes **Protection**, **Cash & Savings**, and **Investment** cards alongside the existing Net Worth, Estate, and Retirement cards. Each card shows key metrics and up to 2 top-priority recommended actions from the Fynla Brain, giving you immediate visibility of what to do next.
+
+- **Protection** — total coverage, monthly premiums, policy count, plus actions like coverage gaps or missing income protection
+- **Cash & Savings** — total savings balance, account count, plus actions like emergency fund targets or ISA optimisation
+- **Investments** — portfolio value, account count, plus actions like fee reviews or rebalancing opportunities
+- **Estate Planning** — trusts section replaced with estate actions like charitable bequest opportunities or liquidity risk alerts
+- **Retirement** — now includes actions like salary sacrifice opportunities or pension contribution optimisation
+
+When a module has no recommended actions, the card shows a list of your accounts or policies instead — so there's no empty white space.
+
+### Docked Fyn Assistant
+
+For logged-in users on desktop, the Fyn AI assistant now appears as a permanent panel on the right side of the dashboard. The side menu auto-collapses to make room. The floating chat button is hidden when the docked panel is active. Preview personas and mobile users continue to use the floating chat as before.
+
+---
+
 ## Coming Soon
 
 - Fyn Assistant conversation analytics dashboard
