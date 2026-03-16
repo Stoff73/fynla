@@ -300,6 +300,34 @@ All will-related navigation now points to the Will Builder at `/estate/will-buil
 
 ---
 
+## Backend Fixes
+
+### Savings Plan Integration
+
+The savings module was missing from the Plans system. Requesting `/api/plans/savings` returned a 404, and the Actions Dashboard skipped savings entirely. The `SavingsPlanService` has now been wired into `PlanController` — savings plan generation, what-if recalculation, and plan readiness status all work correctly.
+
+### Dashboard Real Data
+
+The main dashboard previously showed identical hardcoded values for every user. All five module summaries, health scores, and alerts now come from the actual module agents:
+
+- **Protection**: real adequacy score, coverage totals, premium costs, gap count
+- **Savings**: real total savings, emergency fund runway, ISA usage percentage
+- **Investment**: real portfolio value, year-to-date return, holdings count, rebalancing status
+- **Retirement**: real projected income, target income, income gap, years to retirement
+- **Estate**: real net worth, Inheritance Tax liability, effective tax rate
+
+Each agent call is wrapped in error handling so a single module failure doesn't break the entire dashboard.
+
+### Savings Rate Expiry Alerts
+
+The `savings:send-alerts` command referenced a `rate_valid_until` column that didn't exist. A migration now adds this nullable date column to `savings_accounts`, enabling rate expiry alerts at 90, 30, and 7 days before a promotional or fixed rate expires.
+
+### Retired Couple Analysis
+
+The retired couple persona (Patricia & Harold Bennett) showed zero retirement income because the readiness check blocked analysis when no employment income was recorded. For already-retired users, the income check is now a warning rather than a blocker — pension income is used for analysis instead. Patricia now correctly shows £18,500 (Defined Benefit) + £11,500 (State Pension) = £30,000 projected annual retirement income.
+
+---
+
 ## Coming Soon
 
 - Fyn Assistant conversation analytics dashboard
