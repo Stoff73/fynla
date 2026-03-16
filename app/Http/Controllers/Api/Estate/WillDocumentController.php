@@ -9,8 +9,10 @@ use App\Http\Requests\Estate\SaveWillDocumentRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\WillDocument;
 use App\Services\Estate\WillDocumentService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class WillDocumentController extends Controller
 {
@@ -76,6 +78,8 @@ class WillDocumentController extends Controller
                 'message' => 'Will document draft created.',
                 'data' => $doc,
             ], 201);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return $this->errorResponse('Failed to create will document.', $e);
         }
@@ -94,6 +98,8 @@ class WillDocumentController extends Controller
                 'success' => true,
                 'data' => $doc,
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return $this->errorResponse('Failed to load will document.', $e);
         }
@@ -116,6 +122,8 @@ class WillDocumentController extends Controller
                 'message' => 'Step saved.',
                 'data' => $updated,
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return $this->errorResponse('Failed to save step data.', $e);
         }
@@ -137,6 +145,8 @@ class WillDocumentController extends Controller
                 'message' => 'Will document completed and saved.',
                 'data' => $completed,
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
@@ -166,6 +176,8 @@ class WillDocumentController extends Controller
                     'mirror' => $mirror,
                 ],
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
@@ -194,6 +206,8 @@ class WillDocumentController extends Controller
                     'has_errors' => collect($warnings)->contains('severity', 'error'),
                 ],
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return $this->errorResponse('Failed to validate will document.', $e);
         }
@@ -214,6 +228,8 @@ class WillDocumentController extends Controller
                 'success' => true,
                 'message' => 'Will document deleted.',
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return $this->errorResponse('Failed to delete will document.', $e);
         }
