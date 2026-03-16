@@ -1,4 +1,9 @@
 # Will Builder Feature - Implementation Plan
 
-See `/Users/CSJ/.claude/plans/tidy-noodling-aho.md` for the full plan.
-This file is a marker that the will-builder plan exists for this update cycle.
+**Status:** Implemented and tested
+**Branch:** `will-builder`
+**Commits:** `9cfeadb` (feature), `12ff322` (tests)
+
+See full plan at `.claude/plans/tidy-noodling-aho.md`.
+See deploy guide at `March/March16Updates/deployWill.md`.
+See patch notes at `March/March16Updates/patch092.md`.
