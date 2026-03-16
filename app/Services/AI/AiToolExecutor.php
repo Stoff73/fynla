@@ -30,7 +30,9 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AiToolExecutor
 {
@@ -72,8 +74,26 @@ class AiToolExecutor
                 'create_estate_asset' => $this->createEstateAsset($input, $user, $isPreviewUser),
                 'create_estate_liability' => $this->createEstateLiability($input, $user, $isPreviewUser),
                 'create_estate_gift' => $this->createEstateGift($input, $user, $isPreviewUser),
-                default => ['error' => "Unknown tool: {$toolName}"],
+                default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => $e->validator->errors()->first(),
+            ];
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('[AiToolExecutor] Database error', [
+                'tool' => $toolName,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'error' => true,
+                'error_type' => 'database_error',
+                'message' => 'Unable to save the record. Please try again.',
+            ];
         } catch (\Exception $e) {
             Log::error('[AiToolExecutor] Tool execution failed', [
                 'tool' => $toolName,
@@ -81,8 +101,99 @@ class AiToolExecutor
                 'error' => $e->getMessage(),
             ]);
 
-            return ['error' => 'Tool execution failed. Please try again.'];
+            return [
+                'error' => true,
+                'error_type' => 'execution_failed',
+                'message' => 'An unexpected error occurred while executing this action. Please try again.',
+            ];
         }
+    }
+
+    /**
+     * Validate tool input against rules and return an error array or null if valid.
+     */
+    private function validateToolInput(array $input, array $rules): ?array
+    {
+        $validator = Validator::make($input, $rules);
+        if ($validator->fails()) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => $validator->errors()->first(),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Check for a duplicate record by name field and return a warning array or null.
+     */
+    private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
+    {
+        $existing = $modelClass::where('user_id', $userId)
+            ->whereRaw('LOWER('.$nameField.') = ?', [strtolower($nameValue)])
+            ->first();
+
+        if ($existing) {
+            $name = $existing->{$nameField};
+
+            return [
+                'warning' => true,
+                'message' => "A similar record '{$name}' already exists. The new record was not created to avoid duplication. If you intended to create a separate record, please use a different name.",
+                'existing_id' => $existing->id,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Check for a duplicate protection policy by provider + policy_type combo.
+     */
+    private function checkForDuplicatePolicy(int $userId, ?string $provider, string $policyType): ?array
+    {
+        if (! $provider) {
+            return null;
+        }
+
+        // Check across all protection policy models
+        $models = [
+            LifeInsurancePolicy::class => 'policy_type',
+            CriticalIllnessPolicy::class => 'policy_type',
+            IncomeProtectionPolicy::class => null,
+        ];
+
+        foreach ($models as $modelClass => $typeField) {
+            $query = $modelClass::where('user_id', $userId)
+                ->whereRaw('LOWER(provider) = ?', [strtolower($provider)]);
+
+            if ($typeField) {
+                // Map the incoming policy_type to the model's stored type
+                $storedType = $policyType;
+                if ($modelClass === CriticalIllnessPolicy::class) {
+                    $storedType = match ($policyType) {
+                        'standalone_ci' => 'standalone',
+                        'accelerated_ci' => 'accelerated',
+                        default => $policyType,
+                    };
+                }
+                $query->where($typeField, $storedType);
+            }
+
+            $existing = $query->first();
+            if ($existing) {
+                $name = ($existing->provider ?? 'Policy').' - '.($typeField ? $existing->{$typeField} : 'income protection');
+
+                return [
+                    'warning' => true,
+                    'message' => "A similar policy '{$name}' already exists. The new policy was not created to avoid duplication. If you intended to create a separate policy, please use a different provider name.",
+                    'existing_id' => $existing->id,
+                ];
+            }
+        }
+
+        return null;
     }
 
     private function navigateToPage(array $input): array
@@ -166,6 +277,17 @@ class AiToolExecutor
             ];
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'name' => 'required|string|max:255',
+            'target_amount' => 'required|numeric|min:0|max:999999999.99',
+            'target_date' => 'required|date|after:today',
+            'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
+            'goal_type' => ['required', Rule::in(['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'])],
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
         $goal = Goal::create([
             'user_id' => $user->id,
             'goal_name' => $input['name'],
@@ -194,6 +316,16 @@ class AiToolExecutor
                 'blocked' => true,
                 'reason' => 'You are in preview mode. Life event creation is not available — please create a real account to save life events.',
             ];
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'event_type' => 'required|string|max:100',
+            'event_date' => 'required|date',
+            'description' => 'required|string|max:500',
+            'estimated_cost' => 'nullable|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
         }
 
         $impactType = $this->resolveImpactType($input['event_type']);
@@ -257,6 +389,22 @@ class AiToolExecutor
             return $this->previewBlocked('savings account');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'current_balance' => 'required|numeric|min:0|max:999999999.99',
+            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver'])],
+            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $duplicateCheck = $this->checkForDuplicate(SavingsAccount::class, $user->id, 'account_name', $input['account_name']);
+        if ($duplicateCheck) {
+            return $duplicateCheck;
+        }
+
         $isIsa = $input['is_isa'] ?? false;
 
         $account = SavingsAccount::create([
@@ -294,6 +442,22 @@ class AiToolExecutor
             return $this->previewBlocked('investment account');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+            'account_type' => ['nullable', Rule::in(['stocks_shares_isa', 'lifetime_isa', 'personal_investment_account', 'onshore_bond', 'offshore_bond'])],
+            'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $duplicateCheck = $this->checkForDuplicate(InvestmentAccount::class, $user->id, 'account_name', $input['account_name']);
+        if ($duplicateCheck) {
+            return $duplicateCheck;
+        }
+
         $accountType = $input['account_type'] ?? 'personal_investment_account';
         $isIsa = Str::contains($accountType, 'isa');
 
@@ -327,6 +491,29 @@ class AiToolExecutor
     {
         if ($isPreview) {
             return $this->previewBlocked('pension');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'pension_category' => ['required', Rule::in(['dc', 'db'])],
+            'scheme_name' => 'required|string|max:255',
+            'current_fund_value' => 'nullable|numeric|min:0|max:999999999.99',
+            'employee_contribution_percent' => 'nullable|numeric|min:0|max:100',
+            'employer_contribution_percent' => 'nullable|numeric|min:0|max:100',
+            'accrued_annual_pension' => 'nullable|numeric|min:0|max:999999.99',
+            'normal_retirement_age' => 'nullable|integer|min:50|max:75',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        // Check for duplicates in both DC and DB pension models
+        $dcDuplicate = $this->checkForDuplicate(DCPension::class, $user->id, 'scheme_name', $input['scheme_name']);
+        if ($dcDuplicate) {
+            return $dcDuplicate;
+        }
+        $dbDuplicate = $this->checkForDuplicate(DBPension::class, $user->id, 'scheme_name', $input['scheme_name']);
+        if ($dbDuplicate) {
+            return $dbDuplicate;
         }
 
         $category = $input['pension_category'] ?? 'dc';
@@ -392,6 +579,18 @@ class AiToolExecutor
             return $this->previewBlocked('property');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'property_type' => ['required', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+            'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
+            'outstanding_mortgage' => 'nullable|numeric|min:0|max:999999999.99',
+            'mortgage_rate' => 'nullable|numeric|min:0|max:25',
+            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
         $property = Property::create([
             'user_id' => $user->id,
             'property_type' => $input['property_type'] ?? 'main_residence',
@@ -442,11 +641,23 @@ class AiToolExecutor
             return $this->previewBlocked('mortgage');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'outstanding_balance' => 'required|numeric|min:0|max:999999999.99',
+            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
+            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker'])],
+            'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'remaining_term_months' => 'nullable|integer|min:1|max:480',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
         // Try to match an existing property
         $propertyId = $this->resolvePropertyId($user, $input['property_address_hint'] ?? null);
 
         if (! $propertyId) {
-            return ['error' => 'Could not find a matching property. Please create the property first, or provide a more specific address hint.'];
+            return ['error' => true, 'error_type' => 'missing_dependency', 'message' => 'Could not find a matching property. Please create the property first, or provide a more specific address hint.'];
         }
 
         $mortgage = Mortgage::create([
@@ -479,6 +690,22 @@ class AiToolExecutor
     {
         if ($isPreview) {
             return $this->previewBlocked('protection policy');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'policy_type' => ['required', Rule::in(['level_term', 'term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'standalone_ci', 'accelerated_ci', 'income_protection'])],
+            'sum_assured' => 'nullable|numeric|min:0|max:999999999.99',
+            'benefit_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'premium_amount' => 'nullable|numeric|min:0|max:99999.99',
+            'policy_term_years' => 'nullable|integer|min:1|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $duplicateCheck = $this->checkForDuplicatePolicy($user->id, $input['provider'] ?? null, $input['policy_type']);
+        if ($duplicateCheck) {
+            return $duplicateCheck;
         }
 
         $policyType = $input['policy_type'];
@@ -579,6 +806,15 @@ class AiToolExecutor
             return $this->previewBlocked('estate asset');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'asset_name' => 'required|string|max:255',
+            'asset_type' => ['required', Rule::in(['property', 'pension', 'investment', 'business', 'other'])],
+            'current_value' => 'required|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
         $asset = Asset::create([
             'user_id' => $user->id,
             'asset_name' => $input['asset_name'],
@@ -607,6 +843,17 @@ class AiToolExecutor
             return $this->previewBlocked('estate liability');
         }
 
+        $validationError = $this->validateToolInput($input, [
+            'liability_name' => 'required|string|max:255',
+            'liability_type' => ['required', Rule::in(['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'other'])],
+            'current_balance' => 'required|numeric|min:0|max:999999999.99',
+            'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'interest_rate' => 'nullable|numeric|min:0|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
         $liability = Liability::create([
             'user_id' => $user->id,
             'liability_name' => $input['liability_name'],
@@ -633,6 +880,16 @@ class AiToolExecutor
     {
         if ($isPreview) {
             return $this->previewBlocked('estate gift');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'gift_date' => 'required|date',
+            'recipient' => 'required|string|max:255',
+            'gift_type' => ['required', Rule::in(['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'])],
+            'gift_value' => 'required|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
         }
 
         $giftDate = substr($input['gift_date'], 0, 10);

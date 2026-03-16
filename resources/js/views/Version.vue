@@ -76,12 +76,50 @@
             </ul>
           </div>
 
+          <!-- Fyn Assistant Optimisation -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Fynla Brain: Fyn Assistant Optimisation</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Comprehensive overhaul of the Fyn AI assistant — 21 improvements to streaming, prompt quality, safety guardrails, and cost efficiency based on a full audit against Anthropic's 2026 best practices.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Real-Time Streaming:</strong> Responses now appear word-by-word in real time instead of waiting for the full response. A new "Stop generating" button lets you cancel mid-stream.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Smarter Conversations:</strong> Restructured prompt with XML tags, 5 example conversations, richer financial context, and warm personality guidelines.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Regulatory Compliance:</strong> 6-rule compliance framework ensuring hedging language, no product recommendations, risk warnings, and signposting to regulated advice.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Data Safety:</strong> Input validation on all record creation, duplicate detection for accounts and pensions, strict schema validation on all 17 tools, and structured error messages.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Cost Efficiency:</strong> Prompt caching (up to 70% input token savings), financial summary caching, model tiering for Pro users, and daily token budgets per subscription plan.</span>
+              </li>
+            </ul>
+          </div>
+
           <!-- Stats -->
           <div class="mb-6">
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">38</div>
+                <div class="text-2xl font-bold text-raspberry-500">45</div>
                 <div class="text-body-sm text-neutral-500">Files Changed</div>
               </div>
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">

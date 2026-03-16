@@ -258,6 +258,9 @@ const actions = {
         commit('SET_STREAMING_TEXT', '');
         commit('SET_ERROR', null);
 
+        const abortController = new AbortController();
+        commit('SET_ABORT_CONTROLLER', abortController);
+
         const currentRoute = rootState.route?.path || window.location.pathname;
 
         try {
@@ -265,6 +268,7 @@ const actions = {
                 state.currentConversation.id,
                 message,
                 currentRoute,
+                { signal: abortController.signal },
             );
 
             const decoder = new TextDecoder();
@@ -346,11 +350,16 @@ const actions = {
                 }
             }
         } catch (error) {
+            // Don't show error if the user intentionally cancelled
+            if (error.name === 'AbortError') {
+                return;
+            }
             console.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             commit('SET_STREAMING', false);
             commit('SET_STREAMING_TEXT', '');
+            commit('SET_ABORT_CONTROLLER', null);
         }
     },
 
@@ -360,10 +369,21 @@ const actions = {
     abortStreaming({ commit, state }) {
         if (state.abortController) {
             state.abortController.abort();
+            commit('SET_ABORT_CONTROLLER', null);
         }
+
+        // If there was partial streaming text, save it as the assistant message
+        if (state.streamingText) {
+            commit('ADD_MESSAGE', {
+                id: 'msg_aborted_' + Date.now(),
+                role: 'assistant',
+                content: state.streamingText + '\n\n*[Response stopped]*',
+                created_at: new Date().toISOString(),
+            });
+        }
+
         commit('SET_STREAMING', false);
         commit('SET_STREAMING_TEXT', '');
-        commit('SET_ABORT_CONTROLLER', null);
     },
 
     /**
