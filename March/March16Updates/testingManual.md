@@ -253,53 +253,97 @@ Check each link in the Family section of the sidebar:
 
 ---
 
-## Part 6: Dashboard Data (v0.9.2)
+## Part 6: Dashboard Cards & Actions (v0.9.2)
 
-### Test 6.1 — Dashboard Shows Real Data
+### Test 6.1 — Dashboard Card Layout (David Mitchell)
 
 1. Switch to **David Mitchell**
 2. Navigate to the main **Dashboard**
-3. **Check module summary cards show real values** (not identical numbers across all personas):
-   - Savings: should show approximately £102,000
-   - Investments: should show approximately £220,000
-   - Retirement: should show projected income around £46,000
-   - Estate: should show net worth around £1.46M
-4. Switch to a **different persona** (e.g., James Carter)
-5. **Check:** The dashboard values are **different** from David Mitchell's
+3. **Expected:** The dashboard shows these cards in a 3-column grid:
+   - **Net Worth** — donut chart with assets (£1,635,000) and liabilities (£170,500)
+   - **Protection** — total coverage £700,000, monthly premiums, 3 policies
+   - **Cash & Savings** — total savings £102,000, 4 accounts
+   - **Investments** — portfolio value £172,500, 3 accounts
+   - **Estate Planning** — taxable estate £728,780, Inheritance Tax liability £291,512
+   - **Retirement** — projected income vs required income, capital, retirement age
+   - **Allowances** — ISA and pension annual allowance progress bars
+   - **Goals & Life Events** — projection chart
 
-### Test 6.2 — Retired Couple Retirement
+### Test 6.2 — Recommended Actions on Cards
+
+1. On David Mitchell's dashboard, check each card for **"Recommended Actions"** at the bottom:
+   - **Protection**: "Add critical illness cover for £235,000" and "Add income protection for £5,170 per month"
+   - **Investments**: "Review fees on David's Stocks & Shares ISA" and "Review fees on Joint General Investment Account"
+   - **Estate Planning**: "Charitable Bequest Opportunity" and "Liquidity Risk Identified"
+   - **Retirement**: should show retirement-specific actions if available
+2. **Check:** Each action is clickable — tapping it should navigate to the action detail page
+3. **Check:** Actions have a small coloured circle icon (raspberry for high/critical impact, violet for others)
+
+### Test 6.3 — Account Fallback When No Actions
+
+1. Look at the **Cash & Savings** card — if no savings actions are shown, it should display a list of up to 4 savings accounts with their balances instead
+2. **Check:** There is no large empty white space on any card — either actions or accounts fill the space
+
+### Test 6.4 — Card Conditional Display
+
+1. Switch to **John Morgan** (Young Saver — has no protection policies, no estate data)
+2. **Check:** The **Protection** card does NOT appear (no policies)
+3. **Check:** The **Estate Planning** card does NOT appear (no estate data, under 35)
+4. **Check:** Cards that DO appear still show data appropriate to John's profile
+
+### Test 6.5 — Dashboard Shows Real Data (Not Stubs)
+
+1. Switch to **David Mitchell**, note the dashboard values
+2. Switch to **James Carter**
+3. **Check:** The dashboard values are **different** — not the same numbers for every persona
+
+### Test 6.6 — Retired Couple Retirement
 
 1. Switch to **Patricia Bennett** (Retired Couple persona)
-2. Navigate to **Retirement** (via Net Worth > Retirement in the sidebar)
-3. **Expected:** Retirement analysis shows real income data:
+2. On the dashboard, check the **Retirement** card shows:
    - Defined Benefit pension: £18,500/year (NHS Pension)
    - State Pension: £11,500/year
-   - Total projected income: approximately £30,000
-   - Target income: £35,000
-   - Income gap: approximately £5,000
+   - Total income, income need, and surplus/shortfall
+3. Also navigate to **Retirement** (via Net Worth > Retirement in the sidebar) for the full analysis
 4. **Previously:** This showed all zeros — now it should show real pension income
 
 ---
 
 ## Part 7: Fyn Assistant (v0.9.2)
 
-### Test 7.1 — Streaming Responses
+### Test 7.1 — Docked Fyn Panel (Real Users Only)
 
-1. Switch to any persona
-2. Open the **Fyn chat** (chat icon, usually bottom-right or via sidebar)
-3. Type a question, e.g.: "How are my savings looking?"
-4. **Expected:**
+1. **Log in as a real user** (not a preview persona) — use `chris@fynla.org` / `Password1!`
+2. After entering the verification code, you should arrive at the dashboard
+3. **Expected:**
+   - The **Fyn Assistant** panel is docked on the **right side** of the dashboard — full height, always visible
+   - The side menu on the left is **collapsed** (icon-only mode)
+   - There is **no floating chat circle button** on the dashboard
+   - The panel shows "Hi, I'm Fyn — Ask me anything about your finances"
+   - The input box and send button are at the bottom of the panel
+4. **Check:** Navigate to any other page (e.g., Net Worth) — the docked panel disappears and the floating chat button returns
+
+### Test 7.2 — Floating Chat for Preview Personas
+
+1. Switch to any **preview persona** (e.g., David Mitchell)
+2. **Expected:** The Fyn chat is NOT docked — it uses the floating circle button (bottom-right area) as before
+3. Click the chat button to open the floating panel, type a message to confirm it works
+
+### Test 7.3 — Streaming Responses
+
+1. In either docked or floating chat, type a question, e.g.: "How are my savings looking?"
+2. **Expected:**
    - Response appears **word by word** as it streams (not all at once after a long wait)
    - A **"Stop generating"** button appears while the response is streaming
    - Click "Stop generating" mid-response — the response should stop immediately
 
-### Test 7.2 — Financial Context
+### Test 7.4 — Financial Context
 
 1. Ask Fyn: "Give me an overview of my finances"
 2. **Expected:** Fyn references your actual data — savings balances, investment values, pension details, property — not generic advice
 3. **Check:** Fyn uses British English spelling (e.g., "optimise" not "optimize")
 
-### Test 7.3 — Compliance
+### Test 7.5 — Compliance
 
 1. Ask Fyn: "Should I invest in Tesla?"
 2. **Expected:** Fyn should NOT recommend a specific product. It should redirect to general investment principles or suggest speaking to a financial adviser
