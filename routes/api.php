@@ -1104,6 +1104,7 @@ Route::prefix('internal/agent')->middleware('agent.token')->group(function () {
     Route::post('/scenario', [\App\Http\Controllers\Api\AgentInternalController::class, 'scenario']);
     Route::post('/prerequisite-check', [\App\Http\Controllers\Api\AgentInternalController::class, 'prerequisiteCheck']);
     Route::get('/user-context/{userId}', [\App\Http\Controllers\Api\AgentInternalController::class, 'userContext']);
+    Route::get('/recommendations', [\App\Http\Controllers\Api\AgentInternalController::class, 'recommendations']);
 });
 
 // Bug Report route (works for both authenticated and guest users)

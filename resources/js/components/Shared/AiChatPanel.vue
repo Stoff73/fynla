@@ -215,13 +215,6 @@
             </div>
           </template>
 
-          <!-- Quick reply chips after last assistant message -->
-          <QuickReplyChips
-            v-if="lastMessageIsAssistant && !streaming"
-            :chips="quickReplyChips"
-            @select="sendSuggested"
-          />
-
           <!-- Error message -->
           <div v-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
@@ -343,11 +336,6 @@
         </button>
       </div>
 
-      <!-- Quick replies (docked) -->
-      <div v-if="lastMessageIsAssistant && !streaming && quickReplyChips.length > 0" class="px-4 pb-2 flex-shrink-0">
-        <QuickReplyChips :chips="quickReplyChips" @select="handleQuickReply" />
-      </div>
-
       <!-- Docked Input -->
       <div class="flex-shrink-0 border-t border-light-gray p-4">
         <div class="flex items-end gap-2">
@@ -385,7 +373,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
-import QuickReplyChips from '@/mobile/QuickReplyChips.vue';
+
 import analyticsService from '@/services/analyticsService';
 
 export default {
@@ -393,7 +381,6 @@ export default {
 
     components: {
         AiMessageContent,
-        QuickReplyChips,
     },
 
     props: {
@@ -432,31 +419,6 @@ export default {
 
         canSend() {
             return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading;
-        },
-
-        lastMessageIsAssistant() {
-            if (!this.messages || this.messages.length === 0) return false;
-            return this.messages[this.messages.length - 1].role === 'assistant';
-        },
-
-        quickReplyChips() {
-            const route = this.$route?.path || '';
-            if (route.includes('protection')) {
-                return ['Tell me more', 'What should I do next?', 'Show my coverage gaps'];
-            }
-            if (route.includes('retirement')) {
-                return ['Tell me more', 'How can I close the gap?', 'What if I retire earlier?'];
-            }
-            if (route.includes('estate')) {
-                return ['Tell me more', 'How can I reduce this?', 'Explain the allowances'];
-            }
-            if (route.includes('savings') || route.includes('cash')) {
-                return ['Tell me more', 'Where should I save next?', 'Show my ISA usage'];
-            }
-            if (route.includes('investment')) {
-                return ['Tell me more', 'Review my allocation', 'What fees am I paying?'];
-            }
-            return ['Tell me more', 'What should I focus on?', 'Explain this further'];
         },
 
         suggestedPrompts() {

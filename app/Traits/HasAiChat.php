@@ -461,6 +461,10 @@ DATA_CREATION_GUIDANCE;
 
         if ($user->retirement_date) {
             $lines[] = "- Target retirement date: {$user->retirement_date->format('j F Y')}";
+        } elseif ($user->target_retirement_age) {
+            $lines[] = "- Target retirement age: {$user->target_retirement_age}";
+        } elseif ($user->retirementProfile && $user->retirementProfile->target_retirement_age) {
+            $lines[] = "- Target retirement age: {$user->retirementProfile->target_retirement_age}";
         }
 
         $children = $user->familyMembers()->where('relationship', 'child')->count();
@@ -644,7 +648,8 @@ DATA_CREATION_GUIDANCE;
         }
 
         $contexts = [
-            '/dashboard' => 'The user is on their Dashboard — the main overview of their financial position. Common questions here include understanding their overall financial health, what to prioritise next, and how each module relates to the others.',
+            '/dashboard' => 'The user is on their Dashboard — the main overview of their financial position.',
+            '/profile' => 'The user is viewing their User Profile — personal details, date of birth, marital status, retirement date, employment status.',
             '/net-worth/wealth-summary' => 'The user is viewing their Net Worth summary across all asset categories.',
             '/net-worth/property' => 'The user is viewing their property portfolio, including property values, equity positions, and mortgage balances.',
             '/net-worth/investments' => 'The user is viewing their investment accounts — including Stocks and Shares ISAs and general investment accounts.',
@@ -653,12 +658,20 @@ DATA_CREATION_GUIDANCE;
             '/net-worth/chattels' => 'The user is viewing their valuable possessions (chattels).',
             '/net-worth/business' => 'The user is viewing their business interests.',
             '/net-worth/liabilities' => 'The user is viewing their liabilities and debts.',
+            '/valuable-info?section=income' => 'The user is viewing their Income section — employment income, self-employment, rental, dividends, interest, and other income sources.',
+            '/valuable-info?section=expenditure' => 'The user is viewing their Expenditure section — monthly and annual spending breakdown.',
+            '/valuable-info?section=letter' => 'The user is viewing their Expression of Wishes — a letter to their spouse or family.',
             '/protection' => 'The user is on the Protection module — covering life insurance, income protection, and critical illness cover.',
             '/estate' => 'The user is on the Estate Planning module — covering Inheritance Tax, wills, trusts, gifting strategies, and Lasting Powers of Attorney.',
+            '/estate/will-builder' => 'The user is viewing the Will Builder — creating or editing their will.',
+            '/estate/power-of-attorney' => 'The user is viewing Lasting Powers of Attorney.',
             '/goals' => 'The user is on the Goals and Life Events module — tracking financial goals and planned life events.',
             '/holistic-plan' => 'The user is viewing their Holistic Financial Plan — a comprehensive cross-module summary.',
             '/trusts' => 'The user is viewing their Trusts within the Estate Planning module.',
             '/risk-profile' => 'The user is viewing their Risk Profile — their assessed attitude to investment risk.',
+            '/plans' => 'The user is viewing their Financial Plans dashboard.',
+            '/actions' => 'The user is viewing their Actions dashboard — recommended next steps.',
+            '/planning/what-if' => 'The user is viewing What-If Scenarios — exploring how changes affect their financial position.',
         ];
 
         return $contexts[$currentRoute] ?? null;
