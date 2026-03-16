@@ -315,6 +315,101 @@ const estateService = {
         const response = await api.post('/estate/will', willData);
         return response.data;
     },
+
+    // ==================== LASTING POWERS OF ATTORNEY ====================
+
+    async getLpas() {
+        const response = await api.get('/estate/lpa');
+        return response.data;
+    },
+
+    async getLpa(id) {
+        const response = await api.get(`/estate/lpa/${id}`);
+        return response.data;
+    },
+
+    async createLpa(data) {
+        const response = await api.post('/estate/lpa', data);
+        return response.data;
+    },
+
+    async updateLpa(id, data) {
+        const response = await api.put(`/estate/lpa/${id}`, data);
+        return response.data;
+    },
+
+    async deleteLpa(id) {
+        const response = await api.delete(`/estate/lpa/${id}`);
+        return response.data;
+    },
+
+    async uploadLpa(formData) {
+        const response = await api.post('/estate/lpa/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+
+    async getLpaCompliance(id) {
+        const response = await api.get(`/estate/lpa/${id}/compliance`);
+        return response.data;
+    },
+
+    async markLpaRegistered(id, data = {}) {
+        const response = await api.post(`/estate/lpa/${id}/register`, data);
+        return response.data;
+    },
+
+    async getLpaDonorDefaults() {
+        const response = await api.get('/estate/lpa/donor-defaults');
+        return response.data;
+    },
+
+    // Will Builder
+    async getWillBuilderPrePopulate() {
+        const response = await api.get('/estate/will-builder/pre-populate');
+        return response.data;
+    },
+
+    async getWillBuilderDraft() {
+        const response = await api.get('/estate/will-builder');
+        return response.data;
+    },
+
+    async createWillDocument(data) {
+        const response = await api.post('/estate/will-builder', data);
+        return response.data;
+    },
+
+    async getWillDocument(id) {
+        const response = await api.get(`/estate/will-builder/${id}`);
+        return response.data;
+    },
+
+    async updateWillDocument(id, data) {
+        const response = await api.put(`/estate/will-builder/${id}`, data);
+        return response.data;
+    },
+
+    async completeWillDocument(id) {
+        const response = await api.post(`/estate/will-builder/${id}/complete`);
+        return response.data;
+    },
+
+    async generateMirrorWill(id) {
+        const response = await api.post(`/estate/will-builder/${id}/mirror`);
+        return response.data;
+    },
+
+    async validateWillDocument(id) {
+        const response = await api.get(`/estate/will-builder/${id}/validate`);
+        return response.data;
+    },
+
+    async deleteWillDocument(id) {
+        const response = await api.delete(`/estate/will-builder/${id}`);
+        return response.data;
+    },
 };
 
 export default estateService;

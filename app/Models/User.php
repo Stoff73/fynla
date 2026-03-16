@@ -419,6 +419,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's Lasting Powers of Attorney (Estate module).
+     */
+    public function lastingPowersOfAttorney(): HasMany
+    {
+        return $this->hasMany(\App\Models\Estate\LastingPowerOfAttorney::class);
+    }
+
+    /**
      * Get the user's business interests.
      */
     public function businessInterests(): HasMany

@@ -24,6 +24,7 @@ class Will extends Model
         'executor_notes',
         'will_last_updated',
         'last_reviewed_date',
+        'will_document_id',
     ];
 
     protected $casts = [
@@ -40,6 +41,14 @@ class Will extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the generated will document (from Will Builder)
+     */
+    public function willDocument(): BelongsTo
+    {
+        return $this->belongsTo(WillDocument::class);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\Estate\Gift;
+use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
 use App\Models\LetterToSpouse;
 use App\Models\User;
@@ -304,25 +305,44 @@ class EstateDataReadinessService
     }
 
     /**
-     * Check that power of attorney information is recorded.
+     * Check that Lasting Power of Attorney information is recorded.
      *
-     * Checks the Letter to Spouse for attorney details as the primary
-     * source of power of attorney information in the estate plan.
+     * Checks for dedicated LPA records first, then falls back to
+     * Letter to Spouse attorney details.
      */
     private function checkPowerOfAttorney(User $user): array
     {
+        $hasLpa = LastingPowerOfAttorney::where('user_id', $user->id)->exists();
+
+        if ($hasLpa) {
+            $registeredCount = LastingPowerOfAttorney::where('user_id', $user->id)
+                ->where('status', 'registered')
+                ->count();
+
+            return [
+                'key' => 'power_of_attorney',
+                'level' => 'warning',
+                'passed' => true,
+                'message' => $registeredCount > 0
+                    ? 'Lasting Power of Attorney is registered with the Office of the Public Guardian.'
+                    : 'Lasting Power of Attorney has been created but is not yet registered. Registration with the Office of the Public Guardian is required before it can be used.',
+                'form_link' => '/estate',
+            ];
+        }
+
+        // Fall back to Letter to Spouse attorney details
         $letter = LetterToSpouse::where('user_id', $user->id)->first();
         $hasAttorney = $letter !== null
             && (! empty($letter->attorney_name) || ! empty($letter->attorney_contact));
 
         return [
             'key' => 'power_of_attorney',
-            'level' => 'info',
+            'level' => 'warning',
             'passed' => $hasAttorney,
             'message' => $hasAttorney
-                ? 'Power of Attorney information is recorded.'
-                : 'Recording Power of Attorney details ensures your estate plan covers incapacity planning.',
-            'form_link' => '/estate/planning',
+                ? 'Basic attorney contact information is recorded. Consider creating a formal Lasting Power of Attorney.'
+                : 'Creating a Lasting Power of Attorney ensures your estate plan covers incapacity planning. Without one, your family may need to apply to the Court of Protection.',
+            'form_link' => '/estate',
         ];
     }
 

@@ -56,6 +56,8 @@ class Document extends Model
 
     public const TYPE_PROPERTY_DOCUMENT = 'property_document';
 
+    public const TYPE_LPA = 'lpa_document';
+
     public const TYPE_UNKNOWN = 'unknown';
 
     /**

@@ -79,6 +79,7 @@
           <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
           <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" @navigate="closeMobile" />
           <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
+          <SideMenuItem icon="key" label="Power of Attorney" :to="{ path: '/estate', query: { tab: 'power-of-attorney' } }" :collapsed="effectiveCollapsed" :active="isLpaActive" @navigate="handleLpaNavigate" />
         </SideMenuSection>
 
         <!-- Planning -->
@@ -240,9 +241,16 @@ export default {
              path.startsWith('/net-worth/fees-detail');
     });
 
-    // Estate active for /estate routes
+    // Estate active for /estate routes (but not when LPA tab is active)
     const isEstateActive = computed(() => {
-      return currentPath.value.startsWith('/estate');
+      if (currentPath.value.startsWith('/estate/lpa')) return false;
+      return currentPath.value.startsWith('/estate') && route.query.tab !== 'power-of-attorney';
+    });
+
+    // LPA active for /estate?tab=power-of-attorney or /estate/lpa/* routes
+    const isLpaActive = computed(() => {
+      return (currentPath.value === '/estate' && route.query.tab === 'power-of-attorney') ||
+             currentPath.value.startsWith('/estate/lpa');
     });
 
     // Goals overview active (on /goals without tab=events)
@@ -348,6 +356,10 @@ export default {
       }
     };
 
+    const handleLpaNavigate = () => {
+      closeMobile();
+    };
+
     const openBugReport = () => {
       showBugReportModal.value = true;
       closeMobile();
@@ -401,6 +413,7 @@ export default {
       isNetWorthActive,
       isInvestmentsActive,
       isEstateActive,
+      isLpaActive,
       isGoalsOverviewActive,
       isGoalsEventsActive,
       isValuableInfoSection,
@@ -408,6 +421,7 @@ export default {
       isSectionExpanded,
       toggleCollapsed,
       closeMobile,
+      handleLpaNavigate,
       openBugReport,
       handleLogout,
     };

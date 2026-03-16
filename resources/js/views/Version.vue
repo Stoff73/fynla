@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.9.0</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.9.2</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">15 March 2026</p>
+              <p class="text-body-base text-horizon-500">16 March 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
@@ -37,6 +37,76 @@
               </span>
             </div>
           </div>
+
+          <!-- Lasting Power of Attorney -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Lasting Power of Attorney</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Full Lasting Power of Attorney management in the Estate Planning module — create, track, and manage both Property & Financial Affairs and Health & Welfare types with compliance checking against the Mental Capacity Act 2005.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Guided Creation Wizard:</strong> Step-by-step wizard for both Lasting Power of Attorney types covering donor details, attorneys, replacement attorneys, decision type, preferences, instructions, certificate provider, and notification persons.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Compliance Checking:</strong> 10 automated checks against UK legal requirements — donor age, attorney count, decision type, certificate provider 2-year rule, notification person limit, registration status, life-sustaining treatment, and more.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Print &amp; Registration Tracking:</strong> View completed Lasting Powers of Attorney in Office of the Public Guardian format with print support. Track registration status with reference numbers.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Sidebar Navigation:</strong> New Power of Attorney item in the Family section of the sidebar for direct access to the Power of Attorney tab.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Document Upload:</strong> Upload existing Lasting Power of Attorney documents (PDF or image) and track them alongside newly created ones.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Stats -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">38</div>
+                <div class="text-body-sm text-neutral-500">Files Changed</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">30</div>
+                <div class="text-body-sm text-neutral-500">New Files</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">38</div>
+                <div class="text-body-sm text-neutral-500">New Tests</div>
+              </div>
+              <div class="bg-eggshell-500 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-raspberry-500">9</div>
+                <div class="text-body-sm text-neutral-500">New Endpoints</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Version History Divider -->
+        <div class="border-t border-light-gray my-8"></div>
+
+        <!-- Previous Version: v0.9.0 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-horizon-500 mb-4">Previous Release: v0.9.0</h2>
+          <p class="text-body-sm text-neutral-500 mb-4">Released: 15 March 2026</p>
 
           <!-- Decision Engine Upgrade -->
           <div class="mb-6">
