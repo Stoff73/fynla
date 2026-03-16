@@ -249,6 +249,13 @@
                 </div>
               </div>
             </div>
+            <!-- Fallback: policy list when no actions -->
+            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+              <div v-for="policy in protectionPolicyList" :key="policy.name" class="flex justify-between text-sm">
+                <span class="text-neutral-500">{{ policy.name }}</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(policy.cover) }}</span>
+              </div>
+            </div>
           </div>
         </DashboardCard>
 
@@ -290,6 +297,13 @@
                 </div>
               </div>
             </div>
+            <!-- Fallback: account list when no actions -->
+            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+              <div v-for="acc in savingsAccountList" :key="acc.id" class="flex justify-between text-sm">
+                <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
+                <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
+              </div>
+            </div>
           </div>
         </DashboardCard>
 
@@ -329,6 +343,13 @@
                   <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
                   <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
                 </div>
+              </div>
+            </div>
+            <!-- Fallback: account list when no actions -->
+            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+              <div v-for="acc in investmentAccountList" :key="acc.id" class="flex justify-between text-sm">
+                <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
+                <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_value || acc.total_value || 0) }}</span>
               </div>
             </div>
           </div>
@@ -1493,6 +1514,22 @@ export default {
 
     investmentAccountCount() {
       return (this.$store.state.investment.accounts || []).length;
+    },
+
+    protectionPolicyList() {
+      const list = [];
+      (this.protectionLifePolicies || []).forEach(p => list.push({ name: p.policy_name || 'Life Insurance', cover: p.cover_amount || 0 }));
+      (this.protectionCriticalIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Critical Illness', cover: p.cover_amount || 0 }));
+      (this.protectionIncomeProtectionPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Income Protection', cover: p.monthly_benefit || 0 }));
+      return list.slice(0, 4);
+    },
+
+    savingsAccountList() {
+      return (this.$store.state.savings.accounts || []).slice(0, 4);
+    },
+
+    investmentAccountList() {
+      return (this.$store.state.investment.accounts || []).slice(0, 4);
     },
   },
 
