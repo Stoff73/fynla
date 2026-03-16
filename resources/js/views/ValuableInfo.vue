@@ -34,7 +34,6 @@
           <!-- Tab Content Components -->
           <div v-else>
             <LetterToSpouse v-if="activeTab === 'letter'" />
-            <WillPlanning v-if="activeTab === 'will'" />
             <IncomeOccupation v-if="activeTab === 'income'" />
             <ExpenditureOverview v-if="activeTab === 'expenditure'" />
             <RiskProfileSummary v-if="activeTab === 'risk'" />
@@ -51,7 +50,6 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
 import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
-import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import RiskProfileSummary from '@/components/Risk/RiskProfileSummary.vue';
 import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
 import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
@@ -62,7 +60,6 @@ export default {
   components: {
     AppLayout,
     LetterToSpouse,
-    WillPlanning,
     RiskProfileSummary,
     IncomeOccupation,
     ExpenditureOverview,
@@ -87,7 +84,7 @@ export default {
 
     // Update active tab when route query changes (e.g., sidebar navigation)
     watch(() => route.query.section, (section) => {
-      const validTabIds = ['letter', 'will', 'income', 'expenditure', 'risk'];
+      const validTabIds = ['letter', 'income', 'expenditure', 'risk'];
       if (section && validTabIds.includes(section) && activeTab.value !== section) {
         activeTab.value = section;
       }
@@ -112,7 +109,6 @@ export default {
 
       return [
         { id: 'letter', label: letterLabel },
-        { id: 'will', label: 'Will' },
         { id: 'income', label: 'Income' },
         { id: 'expenditure', label: 'Expenditure' },
         { id: 'risk', label: 'Risk Profile' },
@@ -136,7 +132,7 @@ export default {
       // Check for section query parameter and set active tab
       const section = route.query.section;
       if (section) {
-        const validTabIds = ['letter', 'will', 'income', 'expenditure', 'risk'];
+        const validTabIds = ['letter', 'income', 'expenditure', 'risk'];
         if (validTabIds.includes(section)) {
           activeTab.value = section;
         }

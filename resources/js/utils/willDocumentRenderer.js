@@ -170,22 +170,37 @@ export function renderWillDocument(data) {
 
   // Attestation
   html += `<h3>ATTESTATION</h3>`;
-  html += `<p class="clause">IN WITNESS WHEREOF I have hereunto set my hand this _______ day of _________________ 20_____</p>`;
+  const signedDate = data.signed_date ? formatDate(data.signed_date) : '_______ day of _________________ 20_____';
+  html += `<p class="clause">IN WITNESS WHEREOF I have hereunto set my hand this ${signedDate}</p>`;
   html += `<div class="signature-block">`;
-  html += `<div class="sig-line"><div class="line"></div><p>SIGNED by the above named <strong>${name}</strong></p></div>`;
+  if (data.signed_date) {
+    html += `<div class="sig-line"><div class="line signed-name">${escapeHtml(data.testator_full_name)}</div><p>SIGNED by the above named <strong>${name}</strong></p></div>`;
+  } else {
+    html += `<div class="sig-line"><div class="line"></div><p>SIGNED by the above named <strong>${name}</strong></p></div>`;
+  }
   html += `</div>`;
 
   // Witnesses
+  const witnesses = data.witnesses || [];
   html += `<p class="witness-intro">Signed by the Testator in our joint presence and then by us in the presence of the Testator and of each other:</p>`;
   html += `<div class="witnesses">`;
-  for (let i = 1; i <= 2; i++) {
+  for (let i = 0; i < 2; i++) {
+    const w = witnesses[i];
     html += `<div class="witness">`;
-    html += `<p class="witness-label">WITNESS ${i}</p>`;
-    html += `<div class="witness-field"><span>Signature:</span><div class="line"></div></div>`;
-    html += `<div class="witness-field"><span>Full Name:</span><div class="line"></div></div>`;
-    html += `<div class="witness-field"><span>Address:</span><div class="line"></div></div>`;
-    html += `<div class="witness-field"><span>Occupation:</span><div class="line"></div></div>`;
-    html += `<div class="witness-field"><span>Date:</span><div class="line"></div></div>`;
+    html += `<p class="witness-label">WITNESS ${i + 1}</p>`;
+    if (w) {
+      html += `<div class="witness-field"><span>Signature:</span><div class="line signed-name">${escapeHtml(w.name)}</div></div>`;
+      html += `<div class="witness-field"><span>Full Name:</span><div class="line filled">${escapeHtml(w.name)}</div></div>`;
+      html += `<div class="witness-field"><span>Address:</span><div class="line filled">${escapeHtml(w.address || '')}</div></div>`;
+      html += `<div class="witness-field"><span>Occupation:</span><div class="line filled">${escapeHtml(w.occupation || '')}</div></div>`;
+      html += `<div class="witness-field"><span>Date:</span><div class="line filled">${w.date ? formatDate(w.date) : ''}</div></div>`;
+    } else {
+      html += `<div class="witness-field"><span>Signature:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Full Name:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Address:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Occupation:</span><div class="line"></div></div>`;
+      html += `<div class="witness-field"><span>Date:</span><div class="line"></div></div>`;
+    }
     html += `</div>`;
   }
   html += `</div>`;
@@ -231,6 +246,8 @@ export function getWillDocumentStyles() {
     .witness-field { display: flex; align-items: flex-end; margin-bottom: 15px; gap: 8px; }
     .witness-field span { font-size: 10pt; white-space: nowrap; min-width: 80px; }
     .witness-field .line { flex: 1; border-bottom: 1px solid #000; min-height: 20px; }
+    .signed-name { font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 18pt; padding-left: 6px; }
+    .filled { font-size: 10pt; padding-left: 6px; }
     .disclaimer {
       margin-top: 50px;
       padding-top: 15px;

@@ -6,6 +6,7 @@
         :initial-data="initialData"
         :pre-populated="prePopulated"
         :document-id="documentId"
+        :start-at-review="startAtReview"
         @document-created="handleDocumentCreated"
       />
       <div v-else class="text-center py-16">
@@ -35,6 +36,7 @@ export default {
       initialData: null,
       prePopulated: null,
       documentId: null,
+      startAtReview: false,
     };
   },
 
@@ -51,6 +53,10 @@ export default {
       if (draftRes.data) {
         this.initialData = draftRes.data;
         this.documentId = draftRes.data.id;
+        // If the document is complete, jump straight to the Review step
+        if (draftRes.data.status === 'complete') {
+          this.startAtReview = true;
+        }
       }
     } catch (error) {
       console.error('Failed to load Will Builder data:', error);

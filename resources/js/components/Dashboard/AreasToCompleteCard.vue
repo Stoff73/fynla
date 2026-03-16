@@ -165,7 +165,7 @@ export default {
         will_info: {
           title: 'Will Information',
           description: 'Your will and executor details',
-          route: '/valuable-info?section=will',
+          route: '/estate/will-builder',
           icon: 'document',
           iconBgClass: 'bg-savannah-100',
           iconClass: 'text-neutral-500',

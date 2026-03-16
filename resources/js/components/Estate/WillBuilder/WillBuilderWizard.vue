@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- Progress Indicator -->
-    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4 mb-8">
+    <!-- Progress Indicator (hidden when viewing complete will) -->
+    <div v-if="!isViewingComplete" class="bg-white rounded-lg shadow-sm border border-light-gray p-4 mb-8">
       <div class="overflow-x-auto">
         <div class="flex items-start justify-between min-w-max px-2">
           <div
@@ -90,6 +90,7 @@ export default {
     initialData: { type: Object, default: null },
     prePopulated: { type: Object, default: null },
     documentId: { type: Number, default: null },
+    startAtReview: { type: Boolean, default: false },
   },
 
   emits: ['document-created'],
@@ -117,6 +118,10 @@ export default {
         { name: 'review', title: 'Review', shortLabel: 'Review', component: 'WillBuilderReviewStep' },
         { name: 'signing', title: 'Signing Guide', shortLabel: 'Signing', component: 'WillBuilderSigningStep' },
       ];
+    },
+
+    isViewingComplete() {
+      return this.startAtReview && this.currentStep?.name === 'review';
     },
 
     visibleSteps() {
@@ -147,6 +152,15 @@ export default {
       };
       return componentMap[this.currentStep.component];
     },
+  },
+
+  mounted() {
+    if (this.startAtReview) {
+      const reviewIndex = this.visibleSteps.findIndex(s => s.name === 'review');
+      if (reviewIndex >= 0) {
+        this.currentStepIndex = reviewIndex;
+      }
+    }
   },
 
   watch: {

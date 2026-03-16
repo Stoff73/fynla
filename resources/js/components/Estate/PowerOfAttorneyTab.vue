@@ -31,37 +31,31 @@
       </div>
 
       <div v-else>
-        <!-- Two Type Cards -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- Property & Financial -->
-          <div class="bg-white rounded-lg border border-light-gray p-5">
-            <div class="flex items-center space-x-3 mb-3">
-              <div class="w-10 h-10 rounded-lg bg-horizon-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-horizon-500">Property & Financial Affairs</h3>
-                <p class="text-xs text-neutral-500">Bank accounts, investments, property, bills, tax affairs</p>
-              </div>
-            </div>
+        <!-- LPA Cards -->
+        <div v-if="lpas.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <LpaSummaryCard
+            v-for="lpa in lpas"
+            :key="lpa.id"
+            :lpa="lpa"
+            @view="viewLpa"
+            @edit="handleEdit"
+            @delete="handleDelete"
+          />
+        </div>
 
-            <div v-if="propertyFinancialLpas.length > 0" class="space-y-3">
-              <LpaSummaryCard
-                v-for="lpa in propertyFinancialLpas"
-                :key="lpa.id"
-                :lpa="lpa"
-                @view="viewLpa"
-                @edit="handleEdit"
-                @delete="handleDelete"
-              />
-            </div>
-            <div v-else class="text-sm text-neutral-500 italic mb-3">
-              No Property & Financial Affairs Lasting Power of Attorney created yet.
-            </div>
+        <!-- Empty State -->
+        <div v-else class="bg-white rounded-lg border border-light-gray p-6 mb-6 text-center">
+          <p class="text-sm text-neutral-500 mb-4">No Lasting Powers of Attorney created yet.</p>
+        </div>
 
-            <div v-if="!hasPropertyFinancial" class="flex space-x-2 mt-4">
+        <!-- Create / Upload Actions -->
+        <div v-if="!hasPropertyFinancial || !hasHealthWelfare" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div v-if="!hasPropertyFinancial" class="flex items-center justify-between bg-white rounded-lg border border-light-gray p-4">
+            <div>
+              <p class="text-sm font-medium text-horizon-500">Property & Financial Affairs</p>
+              <p class="text-xs text-neutral-500">Bank accounts, investments, property, bills, tax affairs</p>
+            </div>
+            <div class="flex space-x-2 flex-shrink-0 ml-4">
               <button
                 v-preview-disabled
                 class="px-3 py-1.5 text-sm font-medium text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600"
@@ -74,40 +68,16 @@
                 class="px-3 py-1.5 text-sm font-medium text-horizon-500 border border-light-gray rounded-lg hover:bg-savannah-100"
                 @click="uploadType = 'property_financial'; showUploadModal = true"
               >
-                Upload Existing
+                Upload
               </button>
             </div>
           </div>
-
-          <!-- Health & Welfare -->
-          <div class="bg-white rounded-lg border border-light-gray p-5">
-            <div class="flex items-center space-x-3 mb-3">
-              <div class="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-horizon-500">Health & Welfare</h3>
-                <p class="text-xs text-neutral-500">Medical treatment, care, daily routine, life-sustaining treatment</p>
-              </div>
+          <div v-if="!hasHealthWelfare" class="flex items-center justify-between bg-white rounded-lg border border-light-gray p-4">
+            <div>
+              <p class="text-sm font-medium text-horizon-500">Health & Welfare</p>
+              <p class="text-xs text-neutral-500">Medical treatment, care, daily routine, life-sustaining treatment</p>
             </div>
-
-            <div v-if="healthWelfareLpas.length > 0" class="space-y-3">
-              <LpaSummaryCard
-                v-for="lpa in healthWelfareLpas"
-                :key="lpa.id"
-                :lpa="lpa"
-                @view="viewLpa"
-                @edit="handleEdit"
-                @delete="handleDelete"
-              />
-            </div>
-            <div v-else class="text-sm text-neutral-500 italic mb-3">
-              No Health & Welfare Lasting Power of Attorney created yet.
-            </div>
-
-            <div v-if="!hasHealthWelfare" class="flex space-x-2 mt-4">
+            <div class="flex space-x-2 flex-shrink-0 ml-4">
               <button
                 v-preview-disabled
                 class="px-3 py-1.5 text-sm font-medium text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600"
@@ -120,7 +90,7 @@
                 class="px-3 py-1.5 text-sm font-medium text-horizon-500 border border-light-gray rounded-lg hover:bg-savannah-100"
                 @click="uploadType = 'health_welfare'; showUploadModal = true"
               >
-                Upload Existing
+                Upload
               </button>
             </div>
           </div>
@@ -209,10 +179,10 @@ export default {
     ...mapGetters('estate', ['lpas', 'lpaLoading', 'propertyFinancialLpas', 'healthWelfareLpas']),
 
     hasPropertyFinancial() {
-      return this.propertyFinancialLpas.length > 0;
+      return this.propertyFinancialLpas?.length > 0;
     },
     hasHealthWelfare() {
-      return this.healthWelfareLpas.length > 0;
+      return this.healthWelfareLpas?.length > 0;
     },
   },
 

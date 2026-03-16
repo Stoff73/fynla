@@ -525,6 +525,19 @@ const routes = [
     },
   },
   {
+    path: '/estate/power-of-attorney',
+    name: 'PowerOfAttorney',
+    component: () => import('@/views/Estate/PowerOfAttorneyView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Power of Attorney', path: '/estate/power-of-attorney' },
+      ],
+    },
+  },
+  {
     path: '/estate/lpa/create/:type',
     name: 'CreateLpa',
     component: () => import('@/views/Estate/LpaWizardView.vue'),
@@ -897,6 +910,12 @@ const routes = [
     path: '/preview/estate',
     name: 'PreviewEstate',
     component: EstateDashboard,
+    meta: { public: true, previewMode: true },
+  },
+  {
+    path: '/preview/estate/power-of-attorney',
+    name: 'PreviewPowerOfAttorney',
+    component: () => import('@/views/Estate/PowerOfAttorneyView.vue'),
     meta: { public: true, previewMode: true },
   },
   {

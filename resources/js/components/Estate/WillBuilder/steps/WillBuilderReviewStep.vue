@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Validation Warnings -->
-    <div v-if="warnings.length > 0" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
+    <div v-if="!isComplete && warnings.length > 0" class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
       <h3 class="text-sm font-semibold text-violet-800 mb-2">Please Review</h3>
       <ul class="space-y-1">
         <li
@@ -36,7 +36,7 @@
 
     <!-- Will Document Preview -->
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-8">
-      <h2 class="text-h3 font-bold text-horizon-500 mb-4">Will Preview</h2>
+      <h2 class="text-h3 font-bold text-horizon-500 mb-4">{{ isComplete ? 'Your Will' : 'Will Preview' }}</h2>
 
       <!-- Rendered Will HTML -->
       <div
@@ -49,25 +49,36 @@
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mt-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div class="flex gap-3">
-          <button
-            @click="$emit('back')"
-            class="px-4 py-2 text-neutral-500 hover:text-horizon-500 transition-colors"
-          >
-            Back
-          </button>
-          <button
-            v-for="(step, index) in editableSteps"
-            :key="step.name"
-            @click="$emit('jump', step.originalIndex)"
-            class="text-xs text-violet-600 hover:text-violet-800 underline"
-          >
-            Edit {{ step.label }}
-          </button>
+          <template v-if="isComplete">
+            <button
+              v-preview-disabled
+              @click="$emit('jump', 0)"
+              class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-lg font-medium hover:bg-savannah-100 transition-colors"
+            >
+              Edit Will
+            </button>
+          </template>
+          <template v-else>
+            <button
+              @click="$emit('back')"
+              class="px-4 py-2 text-neutral-500 hover:text-horizon-500 transition-colors"
+            >
+              Back
+            </button>
+            <button
+              v-for="(step, index) in editableSteps"
+              :key="step.name"
+              @click="$emit('jump', step.originalIndex)"
+              class="text-xs text-violet-600 hover:text-violet-800 underline"
+            >
+              Edit {{ step.label }}
+            </button>
+          </template>
         </div>
         <div class="flex gap-3">
           <!-- Generate Mirror (if mirror will and not yet generated) -->
           <button
-            v-if="formData.will_type === 'mirror' && !mirrorData && documentId"
+            v-if="!isComplete && formData.will_type === 'mirror' && !mirrorData && documentId"
             @click="generateMirror"
             :disabled="generatingMirror"
             class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-lg font-medium hover:bg-savannah-100 transition-colors disabled:opacity-50"
@@ -86,6 +97,7 @@
           </button>
 
           <button
+            v-if="!isComplete"
             @click="handleComplete"
             :disabled="hasErrors || completing"
             class="px-6 py-2.5 bg-raspberry-500 text-white rounded-lg font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50"
@@ -100,10 +112,13 @@
 
 <script>
 import { renderWillDocument, printWillDocument } from '@/utils/willDocumentRenderer';
+import { previewModeMixin } from '@/mixins/previewModeMixin';
 import estateService from '@/services/estateService';
 
 export default {
   name: 'WillBuilderReviewStep',
+
+  mixins: [previewModeMixin],
 
   props: {
     formData: { type: Object, required: true },
@@ -130,6 +145,10 @@ export default {
 
     renderedHtml() {
       return renderWillDocument(this.activeData);
+    },
+
+    isComplete() {
+      return this.formData.status === 'complete';
     },
 
     hasErrors() {
@@ -291,5 +310,16 @@ export default {
   flex: 1;
   border-bottom: 1px solid #000;
   min-height: 14px;
+}
+
+.will-preview :deep(.signed-name) {
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 16px;
+  padding-left: 4px;
+}
+
+.will-preview :deep(.filled) {
+  font-size: 10px;
+  padding-left: 4px;
 }
 </style>
