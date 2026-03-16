@@ -12,10 +12,12 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ## How to Access Preview Personas
 
+Preview personas are **not user accounts** — you do not log in as them. Instead, you switch to a persona's view to see the application through their eyes with their sample data.
+
 1. Open https://fynla.org in an **incognito/private browser window**
 2. On the landing page, scroll down to the persona selector
-3. Click a persona name to log in as that person
-4. You'll see a purple "Preview Mode" banner at the top of every page
+3. Click a persona name to **switch to their view**
+4. You'll see a purple "Preview Mode" banner at the top of every page — this confirms you're viewing that persona's data
 
 **Available personas:**
 
@@ -34,7 +36,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 1.1 — View a Completed Will (David Mitchell)
 
-1. Log in as **David Mitchell** (Peak Earners persona)
+1. Switch to **David Mitchell** (Peak Earners persona)
 2. In the left sidebar, click **"Will"** under the Family section
 3. **Expected:** You arrive at `/estate/will-builder` showing David's completed will
 4. **Check the following:**
@@ -57,7 +59,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 1.2 — View a Simple Will (Margaret Thompson)
 
-1. Log in as **Margaret Thompson** (Widow persona)
+1. Switch to **Margaret Thompson** (Widow persona)
 2. Click **"Will"** in the sidebar
 3. **Expected:** Margaret's simple will displayed in legal format
 4. **Check:**
@@ -72,7 +74,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 1.3 — Will Builder Banner (James Carter)
 
-1. Log in as **James Carter** (Young Family persona)
+1. Switch to **James Carter** (Young Family persona)
 2. In the sidebar, click **"Estate Planning"**
 3. **Expected:** The estate dashboard shows a **"Build Your Will"** banner at the top
 4. Click the banner — you should arrive at the Will Builder wizard starting at **Step 1 (Introduction)**
@@ -81,7 +83,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 1.4 — Will Not in Old Locations
 
-1. While logged in as any persona:
+1. While viewing any persona:
    - Click the **user dropdown** (top-right corner) — there should be **no "Will" link** in the dropdown menu
    - Navigate to the "Valuable Info" page (if accessible via Income or Expenditure links) — the tabs should be: **Letter, Income, Expenditure, Risk Profile** — no "Will" tab
 
@@ -91,7 +93,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 2.1 — LPA Dashboard (David Mitchell)
 
-1. Log in as **David Mitchell**
+1. Switch to **David Mitchell**
 2. In the sidebar, click **"Power of Attorney"** under the Family section
 3. **Expected:** You arrive at `/estate/power-of-attorney` — a standalone page (not a tab on the estate dashboard)
 4. **Check:**
@@ -134,7 +136,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 2.3 — LPA with Draft Status (Margaret Thompson)
 
-1. Log in as **Margaret Thompson**
+1. Switch to **Margaret Thompson**
 2. Click **"Power of Attorney"** in the sidebar
 3. **Expected:** 2 LPA cards:
    - Property & Financial Affairs — **"Registered"** badge (green)
@@ -153,7 +155,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 2.4 — LPA via Estate Dashboard Card
 
-1. Log in as **David Mitchell**
+1. Switch to **David Mitchell**
 2. Click **"Estate Planning"** in the sidebar
 3. On the IHT calculation page, look for the navigation cards at the top (Will, Gifting, Life Policy, Charitable Bequest, **Power of Attorney**)
 4. Click the **Power of Attorney** card
@@ -161,7 +163,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 2.5 — LPA Create Buttons (James Carter)
 
-1. Log in as **James Carter** (has no LPAs)
+1. Switch to **James Carter** (has no LPAs)
 2. Click **"Power of Attorney"** in the sidebar
 3. **Expected:** Empty state message, plus two rows with **"Create"** and **"Upload"** buttons:
    - Property & Financial Affairs — Create / Upload
@@ -174,7 +176,7 @@ This manual is for non-technical testers. Follow each section step by step. For 
 
 ### Test 3.1 — Estate Dashboard Layout
 
-1. Log in as **David Mitchell**
+1. Switch to **David Mitchell**
 2. Click **"Estate Planning"** in the sidebar
 3. **Expected:** The IHT calculation page with navigation cards at the top:
    - Inheritance Tax Summary card
@@ -225,7 +227,7 @@ Check each link in the Family section of the sidebar:
 
 ### Test 5.1 — Actions Dashboard
 
-1. Log in as **David Mitchell**
+1. Switch to **David Mitchell**
 2. In the sidebar under Planning, click **"Actions"**
 3. **Expected:** Actions grouped by module in a grid layout:
    - Protection actions (if any)
@@ -255,19 +257,19 @@ Check each link in the Family section of the sidebar:
 
 ### Test 6.1 — Dashboard Shows Real Data
 
-1. Log in as **David Mitchell**
+1. Switch to **David Mitchell**
 2. Navigate to the main **Dashboard**
 3. **Check module summary cards show real values** (not identical numbers across all personas):
    - Savings: should show approximately £102,000
    - Investments: should show approximately £220,000
    - Retirement: should show projected income around £46,000
    - Estate: should show net worth around £1.46M
-4. Log in as a **different persona** (e.g., James Carter)
+4. Switch to a **different persona** (e.g., James Carter)
 5. **Check:** The dashboard values are **different** from David Mitchell's
 
 ### Test 6.2 — Retired Couple Retirement
 
-1. Log in as **Patricia Bennett** (Retired Couple persona)
+1. Switch to **Patricia Bennett** (Retired Couple persona)
 2. Navigate to **Retirement** (via Net Worth > Retirement in the sidebar)
 3. **Expected:** Retirement analysis shows real income data:
    - Defined Benefit pension: £18,500/year (NHS Pension)
@@ -283,7 +285,7 @@ Check each link in the Family section of the sidebar:
 
 ### Test 7.1 — Streaming Responses
 
-1. Log in as any persona
+1. Switch to any persona
 2. Open the **Fyn chat** (chat icon, usually bottom-right or via sidebar)
 3. Type a question, e.g.: "How are my savings looking?"
 4. **Expected:**
@@ -348,7 +350,7 @@ Check that acronyms are spelled out: "Annual Allowance" not "AA", "Stocks & Shar
 ## Reporting Issues
 
 When reporting an issue, please include:
-1. **Which persona** you were logged in as
+1. **Which persona** you were viewing
 2. **Which page** you were on (copy the URL if possible)
 3. **What you expected** to see
 4. **What you actually saw** (a screenshot is ideal)
