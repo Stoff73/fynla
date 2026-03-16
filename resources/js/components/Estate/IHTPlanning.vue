@@ -237,6 +237,42 @@
           </div>
         </div>
 
+        <!-- Power of Attorney Card -->
+        <div class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToLpa">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">
+              <svg class="h-6 w-6 text-horizon-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+              </svg>
+              <h4 class="text-sm font-semibold text-horizon-500">Power of Attorney</h4>
+            </div>
+            <svg class="h-4 w-4 text-horizon-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center text-xs">
+              <span class="text-neutral-500">Status:</span>
+              <span v-if="lpaRegisteredCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white text-spring-800">
+                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                {{ lpaRegisteredCount }} Registered
+              </span>
+              <span v-else-if="lpaDraftCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-horizon-500">
+                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                {{ lpaDraftCount }} Draft
+              </span>
+              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-horizon-500">
+                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
+                None
+              </span>
+            </div>
+            <div class="text-xs text-neutral-500">
+              <p v-if="lpaRegisteredCount > 0">{{ lpaRegisteredCount }} registered, {{ lpaDraftCount }} draft</p>
+              <p v-else>Appoint someone to act on your behalf</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Trust Card (only show if taxable estate > £2m) -->
         <div v-if="(ihtData?.taxable_estate || 0) > 2000000" class="bg-white rounded-lg p-5 border border-light-gray shadow-sm hover:shadow-md transition-shadow cursor-pointer" @click="navigateToTrustsTab">
           <div class="flex items-center justify-between mb-3">
@@ -686,12 +722,20 @@ export default {
   },
 
   computed: {
-    ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact']),
+    ...mapState('estate', ['analysis', 'gifts', 'lifeEvents', 'lifeEventImpact', 'lpas']),
     ...mapGetters('estate', ['netWorthValue', 'ihtLiability', 'ihtExemptAssets']),
     ...mapGetters('auth', ['currentUser']),
 
     hasSpouseLinked() {
       return this.hasSpouse;
+    },
+
+    lpaRegisteredCount() {
+      return (this.lpas || []).filter(l => l.status === 'registered').length;
+    },
+
+    lpaDraftCount() {
+      return (this.lpas || []).filter(l => l.status === 'draft' || l.status === 'completed').length;
     },
 
     formattedIHTLiability() {
@@ -1433,6 +1477,7 @@ export default {
     this.checkUserMaritalStatus();
     this.loadCharitableBequest();
     this.loadIHTCalculation();
+    this.$store.dispatch('estate/fetchLpas').catch(() => {});
   },
 
   watch: {
@@ -1497,6 +1542,10 @@ export default {
     navigateToTrustsTab() {
       // Emit event to parent EstateDashboard to switch to Trusts tab
       this.$emit('switch-tab', 'trusts');
+    },
+
+    navigateToLpa() {
+      this.$router.push('/estate/power-of-attorney');
     },
 
     loadCharitableBequest() {

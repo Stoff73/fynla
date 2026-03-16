@@ -13,7 +13,10 @@ use App\Models\DisabilityPolicy;
 use App\Models\Estate\Bequest;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTProfile;
+use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
+use App\Models\Estate\LpaAttorney;
+use App\Models\Estate\LpaNotificationPerson;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
@@ -171,6 +174,9 @@ class PreviewUserSeeder extends Seeder
         // Create letters to spouse
         $this->createLetterToSpouse($user, $spouse, $data['letter_to_spouse'] ?? null, $data['chattels'] ?? []);
 
+        // Create Lasting Powers of Attorney
+        $this->createLpas($user, $spouse, $personaId);
+
         // Set journey states and selections
         $this->setJourneyData($user, $personaId);
 
@@ -266,6 +272,14 @@ class PreviewUserSeeder extends Seeder
 
         // Delete letters to spouse
         LetterToSpouse::where('user_id', $user->id)->delete();
+
+        // Delete Lasting Powers of Attorney (and their attorneys/notification persons via cascade)
+        $lpas = LastingPowerOfAttorney::withTrashed()->where('user_id', $user->id)->get();
+        foreach ($lpas as $lpa) {
+            LpaAttorney::where('lasting_power_of_attorney_id', $lpa->id)->delete();
+            LpaNotificationPerson::where('lasting_power_of_attorney_id', $lpa->id)->delete();
+        }
+        LastingPowerOfAttorney::withTrashed()->where('user_id', $user->id)->forceDelete();
     }
 
     /**
@@ -1378,6 +1392,308 @@ class PreviewUserSeeder extends Seeder
                 'is_active' => $trust['is_active'] ?? true,
             ]);
         }
+    }
+
+    /**
+     * Create Lasting Powers of Attorney for specific personas.
+     */
+    private function createLpas(User $user, ?User $spouse, string $personaId): void
+    {
+        if ($personaId === 'peak_earners') {
+            $this->createPeakEarnerLpas($user, $spouse);
+        } elseif ($personaId === 'widow') {
+            $this->createWidowLpas($user);
+        }
+    }
+
+    /**
+     * Create LPAs for peak_earners (David & Sarah Mitchell).
+     */
+    private function createPeakEarnerLpas(User $user, ?User $spouse): void
+    {
+        // David: Property & Financial Affairs (registered)
+        $davidPf = LastingPowerOfAttorney::create([
+            'user_id' => $user->id,
+            'lpa_type' => 'property_financial',
+            'status' => 'registered',
+            'source' => 'uploaded',
+            'donor_full_name' => $user->name,
+            'donor_date_of_birth' => $user->date_of_birth,
+            'donor_address_line_1' => '14 Oakwood Drive',
+            'donor_address_city' => 'Sevenoaks',
+            'donor_address_county' => 'Kent',
+            'donor_address_postcode' => 'TN13 1QR',
+            'attorney_decision_type' => 'jointly_and_severally',
+            'when_attorneys_can_act' => 'only_when_lost_capacity',
+            'certificate_provider_name' => 'Robert Hartley',
+            'certificate_provider_relationship' => 'Family Solicitor',
+            'certificate_provider_known_years' => 12,
+            'registration_date' => '2024-06-15',
+            'opg_reference' => 'LP-2024-0847291',
+            'is_registered_with_opg' => true,
+            'completed_at' => '2024-05-20',
+        ]);
+
+        // David PF attorneys
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $davidPf->id,
+            'attorney_type' => 'primary',
+            'full_name' => $spouse ? $spouse->name : 'Sarah Mitchell',
+            'relationship_to_donor' => 'Spouse',
+            'sort_order' => 0,
+        ]);
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $davidPf->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'James Mitchell',
+            'relationship_to_donor' => 'Brother',
+            'sort_order' => 1,
+        ]);
+
+        // David PF notification person
+        LpaNotificationPerson::create([
+            'lasting_power_of_attorney_id' => $davidPf->id,
+            'full_name' => 'Elizabeth Mitchell',
+            'address_line_1' => '8 The Crescent',
+            'address_city' => 'Tonbridge',
+            'address_postcode' => 'TN9 2AB',
+            'sort_order' => 0,
+        ]);
+
+        // David: Health & Welfare (registered)
+        $davidHw = LastingPowerOfAttorney::create([
+            'user_id' => $user->id,
+            'lpa_type' => 'health_welfare',
+            'status' => 'registered',
+            'source' => 'uploaded',
+            'donor_full_name' => $user->name,
+            'donor_date_of_birth' => $user->date_of_birth,
+            'donor_address_line_1' => '14 Oakwood Drive',
+            'donor_address_city' => 'Sevenoaks',
+            'donor_address_county' => 'Kent',
+            'donor_address_postcode' => 'TN13 1QR',
+            'attorney_decision_type' => 'jointly_and_severally',
+            'life_sustaining_treatment' => 'can_consent',
+            'certificate_provider_name' => 'Robert Hartley',
+            'certificate_provider_relationship' => 'Family Solicitor',
+            'certificate_provider_known_years' => 12,
+            'registration_date' => '2024-06-15',
+            'opg_reference' => 'LP-2024-0847292',
+            'is_registered_with_opg' => true,
+            'completed_at' => '2024-05-20',
+        ]);
+
+        // David HW attorneys
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $davidHw->id,
+            'attorney_type' => 'primary',
+            'full_name' => $spouse ? $spouse->name : 'Sarah Mitchell',
+            'relationship_to_donor' => 'Spouse',
+            'sort_order' => 0,
+        ]);
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $davidHw->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'James Mitchell',
+            'relationship_to_donor' => 'Brother',
+            'sort_order' => 1,
+        ]);
+
+        LpaNotificationPerson::create([
+            'lasting_power_of_attorney_id' => $davidHw->id,
+            'full_name' => 'Elizabeth Mitchell',
+            'address_line_1' => '8 The Crescent',
+            'address_city' => 'Tonbridge',
+            'address_postcode' => 'TN9 2AB',
+            'sort_order' => 0,
+        ]);
+
+        // Sarah's LPAs (if spouse exists)
+        if ($spouse) {
+            // Sarah: Property & Financial Affairs (registered)
+            $sarahPf = LastingPowerOfAttorney::create([
+                'user_id' => $spouse->id,
+                'lpa_type' => 'property_financial',
+                'status' => 'registered',
+                'source' => 'uploaded',
+                'donor_full_name' => $spouse->name,
+                'donor_date_of_birth' => $spouse->date_of_birth,
+                'donor_address_line_1' => '14 Oakwood Drive',
+                'donor_address_city' => 'Sevenoaks',
+                'donor_address_county' => 'Kent',
+                'donor_address_postcode' => 'TN13 1QR',
+                'attorney_decision_type' => 'jointly_and_severally',
+                'when_attorneys_can_act' => 'only_when_lost_capacity',
+                'certificate_provider_name' => 'Robert Hartley',
+                'certificate_provider_relationship' => 'Family Solicitor',
+                'certificate_provider_known_years' => 12,
+                'registration_date' => '2024-09-10',
+                'opg_reference' => 'LP-2024-0953104',
+                'is_registered_with_opg' => true,
+                'completed_at' => '2024-08-15',
+            ]);
+
+            LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $sarahPf->id,
+                'attorney_type' => 'primary',
+                'full_name' => $user->name,
+                'relationship_to_donor' => 'Spouse',
+                'sort_order' => 0,
+            ]);
+            LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $sarahPf->id,
+                'attorney_type' => 'primary',
+                'full_name' => 'Claire Henderson',
+                'relationship_to_donor' => 'Sister',
+                'sort_order' => 1,
+            ]);
+
+            LpaNotificationPerson::create([
+                'lasting_power_of_attorney_id' => $sarahPf->id,
+                'full_name' => 'Patricia Henderson',
+                'address_line_1' => '22 Manor Road',
+                'address_city' => 'Tunbridge Wells',
+                'address_postcode' => 'TN1 1YZ',
+                'sort_order' => 0,
+            ]);
+
+            // Sarah: Health & Welfare (registered)
+            $sarahHw = LastingPowerOfAttorney::create([
+                'user_id' => $spouse->id,
+                'lpa_type' => 'health_welfare',
+                'status' => 'registered',
+                'source' => 'uploaded',
+                'donor_full_name' => $spouse->name,
+                'donor_date_of_birth' => $spouse->date_of_birth,
+                'donor_address_line_1' => '14 Oakwood Drive',
+                'donor_address_city' => 'Sevenoaks',
+                'donor_address_county' => 'Kent',
+                'donor_address_postcode' => 'TN13 1QR',
+                'attorney_decision_type' => 'jointly_and_severally',
+                'life_sustaining_treatment' => 'can_consent',
+                'certificate_provider_name' => 'Robert Hartley',
+                'certificate_provider_relationship' => 'Family Solicitor',
+                'certificate_provider_known_years' => 12,
+                'registration_date' => '2024-09-10',
+                'opg_reference' => 'LP-2024-0953105',
+                'is_registered_with_opg' => true,
+                'completed_at' => '2024-08-15',
+            ]);
+
+            LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $sarahHw->id,
+                'attorney_type' => 'primary',
+                'full_name' => $user->name,
+                'relationship_to_donor' => 'Spouse',
+                'sort_order' => 0,
+            ]);
+            LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $sarahHw->id,
+                'attorney_type' => 'primary',
+                'full_name' => 'Claire Henderson',
+                'relationship_to_donor' => 'Sister',
+                'sort_order' => 1,
+            ]);
+
+            LpaNotificationPerson::create([
+                'lasting_power_of_attorney_id' => $sarahHw->id,
+                'full_name' => 'Patricia Henderson',
+                'address_line_1' => '22 Manor Road',
+                'address_city' => 'Tunbridge Wells',
+                'address_postcode' => 'TN1 1YZ',
+                'sort_order' => 0,
+            ]);
+        }
+    }
+
+    /**
+     * Create LPAs for widow (Margaret Thompson).
+     */
+    private function createWidowLpas(User $user): void
+    {
+        // Property & Financial Affairs (registered)
+        $pfLpa = LastingPowerOfAttorney::create([
+            'user_id' => $user->id,
+            'lpa_type' => 'property_financial',
+            'status' => 'registered',
+            'source' => 'uploaded',
+            'donor_full_name' => $user->name,
+            'donor_date_of_birth' => $user->date_of_birth,
+            'donor_address_line_1' => '7 Rose Cottage Lane',
+            'donor_address_city' => 'Bath',
+            'donor_address_county' => 'Somerset',
+            'donor_address_postcode' => 'BA1 5NR',
+            'attorney_decision_type' => 'jointly',
+            'when_attorneys_can_act' => 'only_when_lost_capacity',
+            'certificate_provider_name' => 'Dr Helen Cross',
+            'certificate_provider_relationship' => 'GP',
+            'certificate_provider_known_years' => 15,
+            'registration_date' => '2023-11-20',
+            'opg_reference' => 'LP-2023-0612845',
+            'is_registered_with_opg' => true,
+            'completed_at' => '2023-10-15',
+        ]);
+
+        // Primary attorney: son
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $pfLpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Richard Thompson',
+            'relationship_to_donor' => 'Son',
+            'sort_order' => 0,
+        ]);
+
+        // Replacement attorney: daughter
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $pfLpa->id,
+            'attorney_type' => 'replacement',
+            'full_name' => 'Catherine Thompson',
+            'relationship_to_donor' => 'Daughter',
+            'sort_order' => 0,
+        ]);
+
+        LpaNotificationPerson::create([
+            'lasting_power_of_attorney_id' => $pfLpa->id,
+            'full_name' => 'Susan Clarke',
+            'address_line_1' => '15 Lansdown Road',
+            'address_city' => 'Bath',
+            'address_postcode' => 'BA1 5EE',
+            'sort_order' => 0,
+        ]);
+
+        // Health & Welfare (draft — not yet registered)
+        $hwLpa = LastingPowerOfAttorney::create([
+            'user_id' => $user->id,
+            'lpa_type' => 'health_welfare',
+            'status' => 'draft',
+            'source' => 'created',
+            'donor_full_name' => $user->name,
+            'donor_date_of_birth' => $user->date_of_birth,
+            'donor_address_line_1' => '7 Rose Cottage Lane',
+            'donor_address_city' => 'Bath',
+            'donor_address_county' => 'Somerset',
+            'donor_address_postcode' => 'BA1 5NR',
+            'attorney_decision_type' => 'jointly',
+            'life_sustaining_treatment' => 'can_consent',
+        ]);
+
+        // Primary attorney: son
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $hwLpa->id,
+            'attorney_type' => 'primary',
+            'full_name' => 'Richard Thompson',
+            'relationship_to_donor' => 'Son',
+            'sort_order' => 0,
+        ]);
+
+        // Replacement attorney: daughter
+        LpaAttorney::create([
+            'lasting_power_of_attorney_id' => $hwLpa->id,
+            'attorney_type' => 'replacement',
+            'full_name' => 'Catherine Thompson',
+            'relationship_to_donor' => 'Daughter',
+            'sort_order' => 0,
+        ]);
     }
 
     /**

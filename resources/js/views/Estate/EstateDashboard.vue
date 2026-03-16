@@ -43,8 +43,8 @@
 
       <!-- Main Content -->
       <div v-else>
-        <!-- Will Builder Banner -->
-        <div class="mb-6">
+        <!-- Will Builder Banner (only show when no will exists) -->
+        <div v-if="!hasWillDocument" class="mb-6">
           <router-link
             to="/estate/will-builder"
             class="block bg-white border border-light-gray rounded-lg p-5 hover:border-raspberry-300 hover:shadow-sm transition-all group"
@@ -82,8 +82,6 @@
           <!-- Trust Planning Tab -->
           <TrustPlanning v-else-if="activeTab === 'trusts'" @switch-tab="switchTab" />
 
-          <!-- Power of Attorney Tab -->
-          <PowerOfAttorneyTab v-else-if="activeTab === 'power-of-attorney'" @switch-tab="switchTab" />
         </div>
       </div>
       </div>
@@ -98,7 +96,7 @@ import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
-import PowerOfAttorneyTab from '@/components/Estate/PowerOfAttorneyTab.vue';
+import estateService from '@/services/estateService';
 
 export default {
   name: 'EstateDashboard',
@@ -109,25 +107,24 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
-    PowerOfAttorneyTab,
   },
 
   data() {
     return {
       activeTab: 'iht',
       initialLoading: true,
+      hasWillDocument: false,
       tabs: [
         { id: 'iht', label: 'Inheritance Tax Planning' },
         { id: 'gifting', label: 'Gifting Strategy' },
         { id: 'life-policy', label: 'Life Policy Strategy' },
         { id: 'trusts', label: 'Trust Strategy' },
-        { id: 'power-of-attorney', label: 'Power of Attorney' },
       ],
     };
   },
 
   computed: {
-    ...mapState('estate', ['error']),
+    ...mapState('estate', ['error', 'willInfo']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -148,6 +145,19 @@ export default {
     async loadEstateData() {
       try {
         await this.fetchEstateData();
+        // Check if user has a will (traditional Will record OR WillDocument from builder)
+        if (this.willInfo?.has_will) {
+          this.hasWillDocument = true;
+        } else {
+          try {
+            const willResponse = await estateService.getWillBuilderDraft();
+            if (willResponse && willResponse.data) {
+              this.hasWillDocument = true;
+            }
+          } catch {
+            // No will document found — banner will show
+          }
+        }
       } catch (error) {
         console.error('Failed to load estate data:', error);
       } finally {

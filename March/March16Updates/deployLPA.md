@@ -1,7 +1,7 @@
 # Deploy: Lasting Power of Attorney Feature
 
 **Date:** 2026-03-16
-**Branch:** `will-builder` (includes LPA feature)
+**Branch:** `estateFix` (navigation fix + LPA seeder improvements)
 **Version:** v0.9.0 → v0.9.2
 **Tests:** 38 new LPA tests, all passing (93 assertions)
 
@@ -87,14 +87,15 @@ app/Models/User.php                                    — added lastingPowersOf
 app/Models/Document.php                                — added TYPE_LPA constant
 app/Services/Estate/EstateDataReadinessService.php     — checkPowerOfAttorney() now uses LPA model, upgraded to warning level
 routes/api.php                                         — added LpaController import + 9 LPA routes in estate group
-database/seeders/PreviewUserSeeder.php                 — added createLpas() for peak_earners, widow, retired_couple
+database/seeders/PreviewUserSeeder.php                 — added createLpas() for peak_earners + widow, LPA cleanup in deleteUserData()
 ```
 
-### New Frontend Files (16 files)
+### New Frontend Files (17 files)
 
-**Views (1)**
+**Views (2)**
 ```
 resources/js/views/Estate/LpaWizardView.vue
+resources/js/views/Estate/PowerOfAttorneyView.vue
 ```
 
 **Components — Tab & Display (6)**
@@ -121,15 +122,16 @@ resources/js/components/Estate/LpaWizardSteps/NotificationPersonsStep.vue
 resources/js/components/Estate/LpaWizardSteps/ReviewStep.vue
 ```
 
-### Modified Frontend Files (7 files)
+### Modified Frontend Files (8 files)
 
 ```
-resources/js/views/Estate/EstateDashboard.vue          — added 5th tab (Power of Attorney), reads tab query param on mount
+resources/js/views/Estate/EstateDashboard.vue          — removed Power of Attorney tab, conditional will banner (v-if="!hasWillDocument")
 resources/js/services/estateService.js                 — added 9 LPA API methods
 resources/js/store/modules/estate.js                   — added LPA state, getters, mutations, actions
-resources/js/router/index.js                           — added /estate/lpa/create/:type route
-resources/js/components/SideMenu.vue                   — added Power of Attorney nav item in Family section with isLpaActive computed
+resources/js/router/index.js                           — added /estate/power-of-attorney + /estate/lpa/create/:type + preview routes
+resources/js/components/SideMenu.vue                   — Power of Attorney links to /estate/power-of-attorney (standalone page), updated isEstateActive/isLpaActive
 resources/js/components/SideMenuIcon.vue               — added 'key' icon for Power of Attorney
+resources/js/components/Estate/IHTPlanning.vue         — added Power of Attorney card to navigation grid, fetches LPA data on mount
 resources/js/views/Version.vue                         — updated current version to v0.9.2, moved v0.9.0 to previous versions
 ```
 
@@ -176,23 +178,25 @@ Up to 5 people to notify during Office of the Public Guardian registration — n
 
 | Persona | LPA Data |
 |---------|----------|
-| peak_earners (David Mitchell) | Both types registered, 2 primary + 1 replacement attorney, jointly and severally |
-| widow (Margaret Thompson) | Property registered, Health in draft, 2 primary attorneys acting jointly |
-| retired_couple (Patricia & Harold Bennett) | Both types registered for both spouses, replacement attorneys, notification persons |
+| peak_earners (David & Sarah Mitchell) | 4 registered LPAs (2 each), 2 primary attorneys acting jointly and severally, 1 notification person each |
+| widow (Margaret Thompson) | Property & Financial registered (OPG LP-2023-0612845), Health & Welfare in draft, primary + replacement attorney |
 
 ---
 
 ## Post-Deployment Verification
 
-1. Navigate to Estate Planning → Power of Attorney tab appears as 5th tab
-2. Both LPA type cards render (Property & Financial / Health & Welfare)
-3. Click "Create" → wizard loads with donor details pre-filled
-4. Complete wizard → LPA saves and appears on tab
-5. Click "View Details" → full OPG-format display with compliance checks
-6. Click "Print / Save as PDF" → browser print dialog opens
-7. Log in as peak_earners → both registered LPAs display
-8. Log in as widow → Property registered, Health in draft
-9. Log in as retired_couple → both spouses have both types registered
+1. **Sidebar "Estate Planning"** → `/estate` → IHT calculation with cards (Will, Gifting, Life Policy, Charitable Bequest, Power of Attorney) — no Power of Attorney tab
+2. **Sidebar "Power of Attorney"** → `/estate/power-of-attorney` → standalone LPA management page
+3. **IHT page Power of Attorney card** → clicks through to `/estate/power-of-attorney`
+4. **Will Builder banner** → hidden for David Mitchell (has will), shown for personas without a will
+5. Both LPA type cards render (Property & Financial / Health & Welfare)
+6. Click "Create" → wizard loads with donor details pre-filled
+7. Complete wizard → LPA saves and appears on page
+8. Click "View Details" → full OPG-format display with compliance checks
+9. Click "Print / Save as PDF" → browser print dialog opens
+10. Log in as peak_earners → 4 registered LPAs display (2 David, 2 Sarah)
+11. Log in as widow → Property registered, Health in draft
+12. LPA wizard: `/estate/lpa/create/property_financial` still works
 
 ---
 
@@ -205,7 +209,7 @@ DROP TABLE IF EXISTS lpa_attorneys;
 DROP TABLE IF EXISTS lasting_powers_of_attorney;
 ```
 
-Then remove the LPA routes from `routes/api.php` and revert the modified files. Frontend will gracefully handle the missing tab (the Power of Attorney tab simply won't load data).
+Then remove the LPA routes from `routes/api.php` and revert the modified files. Frontend will gracefully handle the missing page (the Power of Attorney page simply won't load data).
 
 ---
 
@@ -214,5 +218,5 @@ Then remove the LPA routes from `routes/api.php` and revert the modified files. 
 | Category | New | Modified | Total |
 |----------|-----|----------|-------|
 | PHP (backend) | 14 | 5 | 19 |
-| Vue/JS (frontend) | 16 | 7 | 23 |
-| **Total** | **30** | **12** | **42** |
+| Vue/JS (frontend) | 17 | 8 | 25 |
+| **Total** | **31** | **13** | **44** |
