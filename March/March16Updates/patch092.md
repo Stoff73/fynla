@@ -344,7 +344,9 @@ When a module has no recommended actions, the card shows a list of your accounts
 
 ### Docked Fyn Assistant
 
-For logged-in users on desktop, the Fyn AI assistant now appears as a permanent panel on the right side of the dashboard. The side menu auto-collapses to make room. The floating chat button is hidden when the docked panel is active. Preview personas and mobile users continue to use the floating chat as before.
+For logged-in users on desktop, the Fyn AI assistant now appears as a permanent panel on the right side of **every page**. The side menu auto-collapses to make room. The floating chat button is hidden when the docked panel is active. Preview personas and mobile users continue to use the floating chat as before.
+
+The panel dynamically adjusts its position based on visible elements — it sits below any active banners (trial countdown, two-factor authentication reminder, offline indicator) and stops above the footer when scrolled to the bottom. When a banner is dismissed, the panel expands immediately to fill the freed space.
 
 ---
 
