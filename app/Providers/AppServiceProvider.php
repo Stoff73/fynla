@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Anthropic\Client as AnthropicClient;
 use App\Services\Plans\PlanConfigService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -17,6 +18,17 @@ class AppServiceProvider extends ServiceProvider
     {
         // Request-scoped singleton for plan configuration (same pattern as TaxConfigService)
         $this->app->scoped(PlanConfigService::class);
+
+        // Anthropic SDK client singleton
+        $this->app->singleton(AnthropicClient::class, function () {
+            $apiKey = config('services.anthropic.api_key');
+
+            if (empty($apiKey)) {
+                throw new \RuntimeException('ANTHROPIC_API_KEY is not configured.');
+            }
+
+            return new AnthropicClient(apiKey: $apiKey);
+        });
     }
 
     /**

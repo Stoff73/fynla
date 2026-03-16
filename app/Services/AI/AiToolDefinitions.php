@@ -22,12 +22,11 @@ class AiToolDefinitions
             $tools = array_merge($tools, $this->dataCreationTools());
         }
 
-        // Convert each tool to Anthropic format: parameters → input_schema, with strict mode
+        // Convert each tool to Anthropic format: parameters → input_schema
         return array_map(fn (array $tool) => [
             'name' => $tool['name'],
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
-            'strict' => true,
         ], $tools);
     }
 
@@ -42,7 +41,7 @@ class AiToolDefinitions
                     'properties' => [
                         'route_path' => [
                             'type' => 'string',
-                            'description' => 'The application route path. Valid routes: /dashboard, /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash, /net-worth/business, /net-worth/chattels, /net-worth/liabilities, /protection, /estate, /goals, /holistic-plan, /trusts, /risk-profile, /profile, /settings',
+                            'description' => 'The application route path. Valid routes: /dashboard, /profile, /settings, /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash, /net-worth/business, /net-worth/chattels, /net-worth/liabilities, /valuable-info?section=income, /valuable-info?section=expenditure, /valuable-info?section=letter, /protection, /estate, /estate/will-builder, /estate/power-of-attorney, /goals, /holistic-plan, /trusts, /risk-profile, /plans, /actions, /planning/journeys, /planning/what-if',
                         ],
                         'description' => [
                             'type' => 'string',

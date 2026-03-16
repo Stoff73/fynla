@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Agents\CoordinatingAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
-use App\Services\AI\AiChatService;
-use App\Services\AI\AiSimulatedService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -19,8 +18,7 @@ class AiChatController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly AiChatService $chatService,
-        private readonly AiSimulatedService $simulatedService,
+        private readonly CoordinatingAgent $coordinatingAgent,
     ) {}
 
     /**
@@ -112,6 +110,10 @@ class AiChatController extends Controller
      * Send a message and stream the response via SSE.
      *
      * POST /api/ai-chat/conversations/{id}/messages
+     *
+     * Both preview and real users now use the same chat() method on CoordinatingAgent.
+     * Preview users are handled via tool restrictions (getTools(true) excludes write tools)
+     * and the preview mode section in the system prompt.
      */
     public function sendMessage(Request $request, int $id): StreamedResponse
     {
@@ -128,9 +130,12 @@ class AiChatController extends Controller
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute) {
             try {
-                $generator = $user->is_preview_user
-                    ? $this->simulatedService->sendMessage($user, $conversation, $message, $currentRoute)
-                    : $this->chatService->sendMessage($user, $conversation, $message, $currentRoute);
+                $generator = $this->coordinatingAgent->chat(
+                    $user,
+                    $conversation,
+                    $message,
+                    $currentRoute
+                );
 
                 foreach ($generator as $event) {
                     echo 'data: '.json_encode($event)."\n\n";

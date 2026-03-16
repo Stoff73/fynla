@@ -40,6 +40,8 @@ return [
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY', ''),
         'chat_model' => env('ANTHROPIC_CHAT_MODEL', 'claude-haiku-4-5-20251001'),
+        'advanced_chat_model' => env('ANTHROPIC_ADVANCED_CHAT_MODEL', 'claude-sonnet-4-6-20260320'),
+        'agent_internal_token' => env('AGENT_INTERNAL_TOKEN', ''),
     ],
 
     'getaddress' => [

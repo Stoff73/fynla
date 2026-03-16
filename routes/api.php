@@ -1097,6 +1097,16 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage']);
 });
 
+// Internal Agent API routes (Python Agent SDK sidecar callbacks)
+Route::prefix('internal/agent')->middleware('agent.token')->group(function () {
+    Route::get('/analysis/{module}', [\App\Http\Controllers\Api\AgentInternalController::class, 'moduleAnalysis']);
+    Route::get('/tax/{topic}', [\App\Http\Controllers\Api\AgentInternalController::class, 'taxInformation']);
+    Route::post('/scenario', [\App\Http\Controllers\Api\AgentInternalController::class, 'scenario']);
+    Route::post('/prerequisite-check', [\App\Http\Controllers\Api\AgentInternalController::class, 'prerequisiteCheck']);
+    Route::get('/user-context/{userId}', [\App\Http\Controllers\Api\AgentInternalController::class, 'userContext']);
+    Route::get('/recommendations', [\App\Http\Controllers\Api\AgentInternalController::class, 'recommendations']);
+});
+
 // Bug Report route (works for both authenticated and guest users)
 Route::post('/bug-report', [BugReportController::class, 'store'])
     ->middleware('throttle:bug-reports');
