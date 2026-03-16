@@ -3,6 +3,7 @@
 **Date:** 2026-03-16
 **Branch:** `estateFix` (navigation fix + will builder integration + seeded data)
 **Tests:** 36 new tests, all passing (91 assertions)
+**Status:** DEPLOYED TO PRODUCTION — 16 March 2026
 
 ---
 

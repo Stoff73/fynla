@@ -1,8 +1,12 @@
-# Complete Deployment Guide — 16 March 2026
+# Complete Deployment Guide — March 13–16, 2026
 
-**Version:** v0.9.0 → v0.9.2
-**Branches:** `will-builder` (PR #130), `fynAssist` (PR #131), `estateFix` (PR #132), `toDo` (pending)
-**Total files changed:** 76 (44 new, 32 modified)
+**Version:** v0.8.3 → v0.9.2
+**Covers:** All changes from 13 March to 16 March 2026
+**PRs merged:** #122–#133 (12 pull requests)
+**Status:** DEPLOYED TO PRODUCTION — 16 March 2026
+**Total files to upload:** 213 PHP + frontend files (excluding tests)
+
+**CRITICAL: This is a cumulative deploy. Every file listed below must be uploaded.**
 
 ---
 

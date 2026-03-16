@@ -2,7 +2,7 @@
 
 **Date:** 16 March 2026
 **Companion document:** `lpa-research.md`
-**Status:** Planning
+**Status:** DEPLOYED TO PRODUCTION — 16 March 2026
 
 ---
 

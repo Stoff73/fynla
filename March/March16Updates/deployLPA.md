@@ -3,6 +3,7 @@
 **Date:** 2026-03-16
 **Branch:** `estateFix` (navigation fix + LPA seeder improvements)
 **Version:** v0.9.0 → v0.9.2
+**Status:** DEPLOYED TO PRODUCTION — 16 March 2026
 **Tests:** 38 new LPA tests, all passing (93 assertions)
 
 ---

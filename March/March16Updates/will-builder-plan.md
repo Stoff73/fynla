@@ -1,6 +1,6 @@
 # Will Builder Feature - Implementation Plan
 
-**Status:** Implemented and tested
+**Status:** DEPLOYED TO PRODUCTION — 16 March 2026
 **Branch:** `will-builder`
 **Commits:** `9cfeadb` (feature), `12ff322` (tests)
 
