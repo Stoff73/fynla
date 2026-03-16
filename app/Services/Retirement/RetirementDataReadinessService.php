@@ -117,13 +117,22 @@ class RetirementDataReadinessService
 
         $passed = $grossIncome > 0;
 
+        // Already-retired users may have no employment income — downgrade from blocking to warning
+        $profile = $user->retirementProfile;
+        $isRetired = $profile
+            && $profile->current_age > 0
+            && $profile->target_retirement_age > 0
+            && $profile->current_age >= $profile->target_retirement_age;
+
         return [
             'key' => 'income',
-            'level' => 'blocking',
+            'level' => ($passed || $isRetired) ? ($passed ? 'blocking' : 'warning') : 'blocking',
             'passed' => $passed,
             'message' => $passed
                 ? 'Gross annual income is recorded.'
-                : 'Gross annual income is required for contribution and annual allowance calculations.',
+                : ($isRetired
+                    ? 'No employment income recorded. This is expected for retired users — pension income will be used for analysis.'
+                    : 'Gross annual income is required for contribution and annual allowance calculations.'),
             'form_link' => '/profile/employment',
         ];
     }

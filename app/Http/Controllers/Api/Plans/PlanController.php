@@ -15,6 +15,7 @@ use App\Services\Plans\InvestmentPlanService;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Plans\ProtectionPlanService;
 use App\Services\Plans\RetirementPlanService;
+use App\Services\Plans\SavingsPlanService;
 use App\Services\Plans\WhatIfCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class PlanController extends Controller
         private readonly InvestmentPlanService $investmentPlanService,
         private readonly ProtectionPlanService $protectionPlanService,
         private readonly RetirementPlanService $retirementPlanService,
+        private readonly SavingsPlanService $savingsPlanService,
         private readonly GoalPlanService $goalPlanService,
         private readonly EstatePlanService $estatePlanService,
         private readonly WhatIfCalculator $whatIfCalculator,
@@ -152,6 +154,7 @@ class PlanController extends Controller
                 'investment' => $this->investmentPlanService->checkDataCompleteness($userId),
                 'protection' => $this->protectionPlanService->checkDataCompleteness($userId),
                 'retirement' => $this->retirementPlanService->checkDataCompleteness($userId),
+                'savings' => $this->savingsPlanService->checkDataCompleteness($userId),
                 'estate' => $this->estatePlanService->checkDataCompleteness($userId),
                 'holistic' => ['completeness' => 100, 'available' => true],
             ];
@@ -213,12 +216,13 @@ class PlanController extends Controller
     /**
      * Resolve the plan service for a given type.
      */
-    private function getPlanService(string $type): InvestmentPlanService|ProtectionPlanService|RetirementPlanService|EstatePlanService
+    private function getPlanService(string $type): InvestmentPlanService|ProtectionPlanService|RetirementPlanService|SavingsPlanService|EstatePlanService
     {
         return match ($type) {
             'investment' => $this->investmentPlanService,
             'protection' => $this->protectionPlanService,
             'retirement' => $this->retirementPlanService,
+            'savings' => $this->savingsPlanService,
             'estate' => $this->estatePlanService,
             default => throw new \InvalidArgumentException("Unknown plan type: {$type}"),
         };

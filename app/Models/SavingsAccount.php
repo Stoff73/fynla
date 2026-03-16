@@ -26,6 +26,7 @@ class SavingsAccount extends Model
         'account_number',
         'current_balance',
         'interest_rate',
+        'rate_valid_until',
         'access_type',
         'notice_period_days',
         'maturity_date',
@@ -56,6 +57,7 @@ class SavingsAccount extends Model
     protected $casts = [
         'current_balance' => 'decimal:2',
         'interest_rate' => 'decimal:4',
+        'rate_valid_until' => 'date',
         'notice_period_days' => 'integer',
         'maturity_date' => 'date',
         'is_emergency_fund' => 'boolean',
