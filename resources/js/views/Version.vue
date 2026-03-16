@@ -114,24 +114,126 @@
             </ul>
           </div>
 
+          <!-- Will Builder -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Will Builder</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">A guided 10-step wizard to create a legally-structured will for England and Wales — including executors, guardians for minor children, specific gifts, residuary estate distribution, funeral wishes, and digital assets.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Mirror Wills for Couples:</strong> Create matching wills for you and your spouse in a single wizard run. Beneficiaries are automatically swapped between the two documents.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Legal Document Format:</strong> Completed wills are displayed in formal legal language with proper attestation clauses, signatures in cursive script, and witness details — ready to print or save as PDF.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Pre-Population:</strong> Name, address, date of birth, occupation, spouse details, children, and existing executor are automatically filled from your profile.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Signing Guide:</strong> Step-by-step instructions for making your will legally valid with two witnesses, including what counts as valid witnessing under the Wills Act 1837.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Estate Navigation & Legal Documents -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Estate Planning Improvements</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Lasting Power of Attorney Legal View:</strong> View your Lasting Powers of Attorney in formal Office of the Public Guardian format with signatures from donor, attorneys, and certificate provider, plus registration stamps for registered documents.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Standalone Power of Attorney Page:</strong> Power of Attorney has its own dedicated page accessible from the sidebar, with a navigation card on the Inheritance Tax calculation dashboard.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Consolidated Will Navigation:</strong> All will-related links now go directly to the Will Builder. The "Build Your Will" banner only appears when you haven't created a will yet.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Actions & Decision Trees -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Actions Dashboard & Decision Trees</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">The Actions page has been rebuilt to show recommendations grouped by module, each with full decision traceability showing exactly how the Fynla Brain arrived at each recommendation.</p>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Decision Tree Visualisation:</strong> Every recommendation includes a visual flowchart showing the decision path with your actual financial data at each step.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Decision Trace Timeline:</strong> A step-by-step timeline walking through every piece of data gathered, every check performed, and how each drove the final recommendation.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Savings Plan Integration:</strong> Savings module now included in the Plans system — savings recommendations appear alongside other module actions.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Dashboard & Retirement Fixes -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Dashboard & Retirement</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Real Dashboard Data:</strong> Dashboard module summaries now show your actual financial data from all 5 modules — savings balances, investment portfolio values, retirement projections, estate net worth, and protection coverage — instead of placeholder values.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Retired User Support:</strong> Retirement analysis now works correctly for users who are already retired, showing pension income from Defined Benefit and State Pension sources rather than requiring employment income.</span>
+              </li>
+            </ul>
+          </div>
+
           <!-- Stats -->
           <div class="mb-6">
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Release Statistics</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">45</div>
+                <div class="text-2xl font-bold text-raspberry-500">213</div>
                 <div class="text-body-sm text-neutral-500">Files Changed</div>
               </div>
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">30</div>
+                <div class="text-2xl font-bold text-raspberry-500">100</div>
                 <div class="text-body-sm text-neutral-500">New Files</div>
               </div>
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">38</div>
+                <div class="text-2xl font-bold text-raspberry-500">74</div>
                 <div class="text-body-sm text-neutral-500">New Tests</div>
               </div>
               <div class="bg-eggshell-500 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-raspberry-500">9</div>
+                <div class="text-2xl font-bold text-raspberry-500">18</div>
                 <div class="text-body-sm text-neutral-500">New Endpoints</div>
               </div>
             </div>
