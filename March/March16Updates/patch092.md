@@ -159,10 +159,78 @@ Three preview personas now include Lasting Power of Attorney data for demonstrat
 
 ---
 
+## Fyn Assistant Optimisation
+
+A comprehensive overhaul of the Fynla AI assistant (Fyn) based on a full audit against Anthropic's 2026 best practices. 21 improvements implemented across streaming, prompt quality, safety, and cost efficiency.
+
+### Real-Time Streaming
+
+Fyn's responses now stream word-by-word in real time. Previously, the entire response was generated server-side before anything appeared — meaning you'd wait 10–30 seconds seeing nothing. Now the first words appear within a second, and you can watch the response form naturally.
+
+A new **Stop generating** button lets you cancel a response mid-stream if you've already seen what you need.
+
+### Smarter Prompt Architecture
+
+The system prompt that guides Fyn has been completely restructured:
+
+- **XML-tagged sections** for clearer instruction following — identity, rules, compliance, context, examples, and personality are now cleanly separated
+- **5 few-shot examples** demonstrating the ideal tone, format, and depth for protection, savings, tax, goal creation, and financial overview conversations
+- **Richer financial context** — Fyn now sees your total savings, investments, pension value, protection cover, property ownership, estimated tax band, and retirement income gap in every conversation
+- **Warm personality guidelines** — Fyn celebrates your progress before discussing gaps, uses plain language, and treats financial decisions with empathy
+- **Response format rules** — concise, bold key figures, always ends with a follow-up question, no filler preambles
+
+### Regulatory Compliance
+
+A dedicated 6-rule compliance framework ensures Fyn:
+
+1. Uses hedging language for all guidance ("you may want to consider", not "you should")
+2. Never recommends specific financial products or providers
+3. Signposts regulated advice for complex decisions (pension transfers, estate structures)
+4. Includes risk warnings when discussing investments
+5. Caveats all tax guidance with current tax year and individual circumstances
+6. Never gives market timing advice
+
+### Safety & Data Integrity
+
+- **Input validation** on every record Fyn creates — currency amounts, dates, percentages, and enums are all validated before saving to the database
+- **Duplicate detection** for savings accounts, investment accounts, pensions, and protection policies — Fyn warns you if a similar record already exists
+- **Out-of-scope handling** — asking Fyn about the weather or football redirects politely to financial planning
+- **Structured error messages** — specific, actionable messages for rate limits, busy service, long conversations, and configuration issues (replacing generic "something went wrong")
+- **Daily token budgets** per subscription plan (Student: 50k, Standard: 200k, Pro: 500k tokens/day)
+
+### Tool Definitions
+
+All 17 AI tools now use **strict schema validation** — guaranteeing that every tool call from the model has the correct types and required fields. Date fields use ISO format validation. Three previously underspecified tools (what-if scenarios, recommendations, financial plan) now have proper schemas.
+
+### Cost Efficiency
+
+- **Prompt caching** reduces input token costs by up to 70% across multi-turn conversations — the system prompt and tool definitions are cached for 5 minutes between messages
+- **Financial summary caching** avoids re-running the full 7-module analysis on every message (2-minute cache per user)
+- **Model tiering** for Pro users — complex queries (financial plans, what-if scenarios, estate planning, pension projections) automatically use a more capable model, while simple queries stay on the fast, cost-effective default
+
+### Max Token Increase
+
+Response length limits increased from 2,048/4,096 to **4,096/8,192 tokens** (Standard/Pro), allowing Fyn to give properly detailed analysis without truncating mid-thought.
+
+---
+
+## Technical Summary (Updated)
+
+| Metric | Lasting Power of Attorney | Will Builder | Fyn Assistant | Total |
+|--------|--------------------------|-------------|---------------|-------|
+| New database tables | 3 | 1 (+1 altered) | 0 | 4 |
+| New API endpoints | 9 | 9 | 0 | 18 |
+| New backend files | 14 | 6 | 0 | 20 |
+| New frontend components | 16 | 13 | 0 | 29 |
+| Modified files | 12 | 6 | 7 | 25 |
+| New tests | 38 (93 assertions) | 36 (91 assertions) | 0 | 74 (184 assertions) |
+
+---
+
 ## Coming Soon
 
-- Fynla Assistant audit and improvements
 - Will Builder preview persona data (pre-seeded wills for demonstration)
+- Fyn Assistant conversation analytics dashboard
 
 ---
 

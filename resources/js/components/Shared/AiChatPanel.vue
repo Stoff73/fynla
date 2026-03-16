@@ -199,6 +199,19 @@
                 </div>
               </div>
             </div>
+
+            <!-- Cancel streaming button -->
+            <div v-if="streaming" class="flex justify-center py-2">
+              <button
+                @click="cancelStreaming"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-body-sm text-neutral-500 hover:text-raspberry-500 bg-white border border-light-gray rounded-full shadow-sm hover:shadow transition-all"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Stop generating
+              </button>
+            </div>
           </template>
 
           <!-- Quick reply chips after last assistant message -->
@@ -426,6 +439,7 @@ export default {
             'loadConversation',
             'deleteConversation',
             'sendMessage',
+            'abortStreaming',
         ]),
 
         async onOpen() {
@@ -451,6 +465,10 @@ export default {
 
         closePanel() {
             this.close();
+        },
+
+        cancelStreaming() {
+            this.abortStreaming();
         },
 
         async send() {

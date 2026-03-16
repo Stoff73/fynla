@@ -22,11 +22,12 @@ class AiToolDefinitions
             $tools = array_merge($tools, $this->dataCreationTools());
         }
 
-        // Convert each tool to Anthropic format: parameters → input_schema
+        // Convert each tool to Anthropic format: parameters → input_schema, with strict mode
         return array_map(fn (array $tool) => [
             'name' => $tool['name'],
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
+            'strict' => true,
         ], $tools);
     }
 
@@ -49,6 +50,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['route_path', 'description'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -70,6 +72,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['module'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -85,11 +88,34 @@ class AiToolDefinitions
                         ],
                         'parameters' => [
                             'type' => 'object',
-                            'description' => 'Scenario parameters. For retirement: additional_contribution (number), later_retirement_age (number), lower_target_income (number). For protection: new_coverage (object with type and amount).',
-                            'properties' => (object) [],
+                            'description' => 'Scenario parameters. For retirement: additional_contribution, later_retirement_age, lower_target_income. For savings: additional_savings. For investment: growth_rate_override.',
+                            'properties' => [
+                                'additional_contribution' => [
+                                    'type' => 'number',
+                                    'description' => 'Additional monthly contribution in pounds',
+                                ],
+                                'later_retirement_age' => [
+                                    'type' => 'integer',
+                                    'description' => 'Alternative retirement age to model',
+                                ],
+                                'lower_target_income' => [
+                                    'type' => 'number',
+                                    'description' => 'Alternative target retirement income in pounds per year',
+                                ],
+                                'additional_savings' => [
+                                    'type' => 'number',
+                                    'description' => 'Additional monthly savings amount in pounds',
+                                ],
+                                'growth_rate_override' => [
+                                    'type' => 'number',
+                                    'description' => 'Alternative annual growth rate as a percentage (e.g. 7 for 7%)',
+                                ],
+                            ],
+                            'additionalProperties' => false,
                         ],
                     ],
                     'required' => ['module', 'parameters'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -98,6 +124,7 @@ class AiToolDefinitions
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -119,6 +146,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['topic'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -133,6 +161,7 @@ class AiToolDefinitions
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -173,6 +202,7 @@ class AiToolDefinitions
                         ],
                         'target_date' => [
                             'type' => 'string',
+                            'format' => 'date',
                             'description' => 'Target date in YYYY-MM-DD format',
                         ],
                         'priority' => [
@@ -187,6 +217,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['name', 'target_amount', 'target_date', 'priority', 'goal_type'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -201,6 +232,7 @@ class AiToolDefinitions
                         ],
                         'event_date' => [
                             'type' => 'string',
+                            'format' => 'date',
                             'description' => 'Expected date in YYYY-MM-DD format',
                         ],
                         'description' => [
@@ -213,6 +245,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['event_type', 'event_date', 'description'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -262,6 +295,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['account_name', 'current_balance'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -297,6 +331,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['account_name', 'current_value'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -348,6 +383,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['pension_category', 'scheme_name'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -377,6 +413,7 @@ class AiToolDefinitions
                         ],
                         'purchase_date' => [
                             'type' => 'string',
+                            'format' => 'date',
                             'description' => 'Purchase date in YYYY-MM-DD format (approximate year is fine, e.g., "2018-01-01")',
                         ],
                         'address_line_1' => [
@@ -405,6 +442,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['property_type', 'current_value'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -449,6 +487,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['outstanding_balance'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -499,6 +538,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['policy_type'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
@@ -536,6 +576,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['asset_name', 'asset_type', 'current_value'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -567,6 +608,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['liability_name', 'liability_type', 'current_balance'],
+                    'additionalProperties' => false,
                 ],
             ],
             [
@@ -577,6 +619,7 @@ class AiToolDefinitions
                     'properties' => [
                         'gift_date' => [
                             'type' => 'string',
+                            'format' => 'date',
                             'description' => 'Date the gift was or will be made, in YYYY-MM-DD format',
                         ],
                         'recipient' => [
@@ -598,6 +641,7 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['gift_date', 'recipient', 'gift_type', 'gift_value'],
+                    'additionalProperties' => false,
                 ],
             ],
         ];
