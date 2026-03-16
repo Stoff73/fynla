@@ -76,40 +76,46 @@
             </ul>
           </div>
 
-          <!-- Fyn Assistant Optimisation -->
+          <!-- Fyn Assistant: Intelligent Prerequisite System -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Fynla Brain: Fyn Assistant Optimisation</h3>
-            <p class="text-body-sm text-neutral-500 mb-4">Comprehensive overhaul of the Fyn AI assistant — 21 improvements to streaming, prompt quality, safety guardrails, and cost efficiency based on a full audit against Anthropic's 2026 best practices.</p>
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Fynla Brain: Intelligent Financial Guidance</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Major upgrade to Fyn, your financial assistant — now powered by the Anthropic SDK with a new prerequisite system that ensures every piece of guidance is backed by your actual data. Fyn will never give vague or misleading advice when information is missing.</p>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Real-Time Streaming:</strong> Responses now appear word-by-word in real time instead of waiting for the full response. A new "Stop generating" button lets you cancel mid-stream.</span>
+                <span class="text-body-base text-neutral-500"><strong>Prerequisite Gates:</strong> Fyn now checks your data before giving advice. If information is missing, you will see exactly what is needed, why it matters, and Fyn will navigate you directly to the right page to add it.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Smarter Conversations:</strong> Restructured prompt with XML tags, 5 example conversations, richer financial context, and warm personality guidelines.</span>
+                <span class="text-body-base text-neutral-500"><strong>Richer Analysis:</strong> Fyn now uses 100% of the cross-module analysis when responding — including decision traces, cashflow allocation, conflict resolution, and cross-module strategies. Responses reference your specific figures, not generalities.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Regulatory Compliance:</strong> 6-rule compliance framework ensuring hedging language, no product recommendations, risk warnings, and signposting to regulated advice.</span>
+                <span class="text-body-base text-neutral-500"><strong>Smarter Navigation:</strong> Fyn can now navigate you to 26 different pages across the application — including income, expenditure, will builder, power of attorney, plans, actions, and what-if scenarios.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Data Safety:</strong> Input validation on all record creation, duplicate detection for accounts and pensions, strict schema validation on all 17 tools, and structured error messages.</span>
+                <span class="text-body-base text-neutral-500"><strong>Anthropic SDK Integration:</strong> Upgraded from raw API calls to the official Anthropic PHP SDK for more reliable streaming, better error handling, and prompt caching for faster responses.</span>
               </li>
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-body-base text-neutral-500"><strong>Cost Efficiency:</strong> Prompt caching (up to 70% input token savings), financial summary caching, model tiering for Pro users, and daily token budgets per subscription plan.</span>
+                <span class="text-body-base text-neutral-500"><strong>Simplified Architecture:</strong> Consolidated from 8 separate service files into a single, streamlined system. Both preview and registered users now use the same conversation engine.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>User-Driven Conversations:</strong> Quick reply suggestion chips have been removed. Conversations are now entirely driven by you, with Fyn responding to your specific questions.</span>
               </li>
             </ul>
           </div>
