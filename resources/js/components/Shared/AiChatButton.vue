@@ -71,6 +71,11 @@ export default {
             if (publicRoutes.some((route) => route !== '/' && currentPath.startsWith(route))) {
                 return false;
             }
+            // Hide on dashboard for real users (docked chat panel is used instead)
+            if (currentPath === '/dashboard') {
+                const user = this.$store.getters['auth/currentUser'];
+                if (user && !user.is_preview_user) return false;
+            }
             return true;
         },
 

@@ -1,6 +1,7 @@
 <template>
-  <Teleport to="body">
+  <component :is="docked ? 'div' : Teleport" :to="docked ? undefined : 'body'">
     <Transition
+      v-if="!docked"
       enter-active-class="transition ease-out duration-200"
       :enter-from-class="isMobile ? 'translate-y-full opacity-0' : 'translate-y-4 opacity-0'"
       :enter-to-class="isMobile ? 'translate-y-0 opacity-100' : 'translate-y-0 opacity-100'"
@@ -263,7 +264,124 @@
         </div>
       </div>
     </Transition>
-  </Teleport>
+    <!-- Docked mode: full-height inline panel, always visible -->
+    <div
+      v-if="docked"
+      class="flex flex-col bg-white border-l border-light-gray h-full"
+    >
+      <!-- Docked Header -->
+      <div class="px-4 py-3 border-b border-light-gray flex-shrink-0">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-horizon-500">Fynla Assistant</h3>
+          <div class="flex items-center gap-1">
+            <button
+              @click="startNew"
+              class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+              title="New conversation"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+            <button
+              @click="toggleHistory"
+              class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+              :class="{ 'bg-savannah-100 text-neutral-500': showHistory }"
+              title="Conversation history"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Docked Messages (reuse same scroll area) -->
+      <div ref="dockedMessagesContainer" class="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-thin">
+        <!-- Empty state -->
+        <div v-if="!messages || messages.length === 0" class="flex flex-col items-center justify-center h-full text-center py-8">
+          <div class="w-12 h-12 bg-savannah-100 rounded-full flex items-center justify-center mb-3">
+            <svg class="w-6 h-6 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+          </div>
+          <p class="text-sm font-medium text-horizon-500 mb-1">Hi, I'm Fyn</p>
+          <p class="text-xs text-neutral-500">Ask me anything about your finances</p>
+        </div>
+
+        <!-- Messages -->
+        <template v-for="(msg, idx) in messages" :key="idx">
+          <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+            <div :class="[
+              'max-w-[85%] rounded-lg px-3 py-2 text-sm',
+              msg.role === 'user'
+                ? 'bg-raspberry-500 text-white rounded-br-sm'
+                : 'bg-savannah-100 text-horizon-500 rounded-bl-sm'
+            ]">
+              <AiMessageContent v-if="msg.role === 'assistant'" :content="msg.content" />
+              <span v-else>{{ msg.content }}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Streaming indicator -->
+        <div v-if="streaming" class="flex justify-start">
+          <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-savannah-100 text-horizon-500 rounded-bl-sm">
+            <AiMessageContent v-if="streamingText" :content="streamingText" />
+            <span v-else class="flex items-center gap-1 text-neutral-500">
+              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stop streaming button (docked) -->
+      <div v-if="streaming" class="px-4 pb-2 flex-shrink-0">
+        <button @click="cancelStreaming" class="w-full py-1.5 text-xs font-medium text-neutral-500 bg-savannah-100 hover:bg-savannah-200 rounded-lg transition-colors">
+          Stop generating
+        </button>
+      </div>
+
+      <!-- Quick replies (docked) -->
+      <div v-if="lastMessageIsAssistant && !streaming && quickReplyChips.length > 0" class="px-4 pb-2 flex-shrink-0">
+        <QuickReplyChips :chips="quickReplyChips" @select="handleQuickReply" />
+      </div>
+
+      <!-- Docked Input -->
+      <div class="px-4 py-3 border-t border-light-gray flex-shrink-0">
+        <div class="flex items-end gap-2">
+          <textarea
+            ref="dockedInputField"
+            v-model="inputMessage"
+            @keydown.enter.exact.prevent="send"
+            placeholder="Ask Fyn anything..."
+            rows="1"
+            class="flex-1 resize-none rounded-lg border border-light-gray px-3 py-2 text-sm text-horizon-500 placeholder-neutral-500
+                   focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                   disabled:bg-savannah-100 disabled:cursor-not-allowed"
+            :class="{ 'opacity-60': streaming }"
+          ></textarea>
+          <button
+            @click="send"
+            :disabled="!canSend"
+            class="px-3 py-2 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
+                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                   flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-xs text-horizon-400 mt-1">
+          Not regulated financial advice. Press Enter to send.
+        </p>
+      </div>
+    </div>
+  </component>
 </template>
 
 <script>
@@ -280,10 +398,18 @@ export default {
         QuickReplyChips,
     },
 
+    props: {
+        docked: {
+            type: Boolean,
+            default: false,
+        },
+    },
+
     data() {
         return {
             inputMessage: '',
             windowWidth: window.innerWidth,
+            Teleport: 'Teleport',
         };
     },
 
@@ -398,6 +524,12 @@ export default {
     mounted() {
         this.handleResize = () => { this.windowWidth = window.innerWidth; };
         window.addEventListener('resize', this.handleResize);
+
+        // In docked mode, auto-open and load conversations immediately
+        if (this.docked) {
+            this.$store.dispatch('aiChat/open');
+            this.onOpen();
+        }
     },
 
     beforeUnmount() {
@@ -491,7 +623,7 @@ export default {
         },
 
         scrollToBottom() {
-            const container = this.$refs.messagesContainer;
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
                 container.scrollTop = container.scrollHeight;
             }
