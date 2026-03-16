@@ -110,6 +110,12 @@ export default {
     if (this.isAuthenticated || this.isPreviewMode) {
       this.fetchInfoGuidePreference();
     }
+
+    // Collapse side menu on dashboard for real (non-preview) users
+    if (this.$route.path === '/dashboard' && this.isAuthenticated && !this.isPreviewMode) {
+      this.sideMenuCollapsed = true;
+      storage.set(STORAGE_KEY, true);
+    }
   },
 
   methods: {

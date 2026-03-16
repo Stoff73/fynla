@@ -1474,6 +1474,12 @@ export default {
       this.isMobile = window.innerWidth < 768;
     };
     window.addEventListener('resize', this._handleResize);
+
+    // For real users (not preview), open Fyn chat and collapse side menu on dashboard load
+    const user = this.currentUser;
+    if (user && !user.is_preview_user && !this.isMobile) {
+      this.$store.dispatch('aiChat/open');
+    }
   },
 
   beforeUnmount() {
