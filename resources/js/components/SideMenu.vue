@@ -314,7 +314,7 @@ export default {
           isEstateActive.value ||
           isWillBuilderActive.value ||
           path.startsWith('/trusts') ||
-          (path.startsWith('/valuable-info') && (section === 'will' || section === 'letter'))) {
+          (path.startsWith('/valuable-info') && section === 'letter')) {
         return 'family';
       }
       if (path.startsWith('/holistic-plan') ||

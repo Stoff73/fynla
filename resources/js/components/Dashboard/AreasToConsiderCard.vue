@@ -164,7 +164,7 @@ export default {
           id: 'will',
           title: 'Will',
           description: willDescription,
-          route: '/valuable-info?section=will',
+          route: '/estate/will-builder',
           icon: 'document',
           iconBgClass: 'bg-savannah-100',
           iconClass: 'text-neutral-500',
