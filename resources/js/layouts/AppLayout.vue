@@ -16,19 +16,21 @@
       class="flex flex-col min-h-screen transition-all duration-300 ease-out"
       :class="contentMarginClass"
     >
-      <Navbar />
+      <div ref="appHeader">
+        <Navbar />
 
-      <!-- Offline Indicator Banner -->
-      <OfflineBanner />
+        <!-- Offline Indicator Banner -->
+        <OfflineBanner />
 
-      <!-- Trial Countdown Banner (non-preview users only) -->
-      <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
+        <!-- Trial Countdown Banner (non-preview users only) -->
+        <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
 
-      <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
-      <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
+        <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
+        <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
 
-      <!-- Preview Mode Banner -->
-      <PreviewBanner v-if="isPreviewMode" />
+        <!-- Preview Mode Banner -->
+        <PreviewBanner v-if="isPreviewMode" />
+      </div>
 
       <!-- Content area -->
       <main class="flex-grow bg-eggshell-500" :class="showDockedChat ? 'lg:mr-[380px]' : ''">
@@ -43,8 +45,8 @@
     <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
     <aside
       v-if="showDockedChat"
-      class="hidden lg:flex lg:flex-col fixed top-16 right-0 w-[380px] border-l border-light-gray bg-white z-30 transition-all duration-100"
-      :style="{ bottom: footerOffset + 'px' }"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-[380px] border-l border-light-gray bg-white z-30 transition-all duration-100"
+      :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <AiChatPanel :docked="true" />
     </aside>
@@ -99,6 +101,7 @@ export default {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
+      headerOffset: 64,
       footerOffset: 0,
     };
   },
@@ -142,8 +145,15 @@ export default {
       storage.set(STORAGE_KEY, true);
     }
 
-    // Track footer visibility for docked chat positioning
-    this._updateFooterOffset = () => {
+    // Track header height + footer visibility for docked chat positioning
+    this._updateChatOffsets = () => {
+      // Header: measure actual height of navbar + banners
+      const header = this.$refs.appHeader;
+      if (header) {
+        this.headerOffset = header.offsetHeight;
+      }
+
+      // Footer: adjust bottom when footer scrolls into view
       const footer = this.$refs.appFooter?.$el;
       if (!footer) { this.footerOffset = 0; return; }
       const footerRect = footer.getBoundingClientRect();
@@ -154,14 +164,24 @@ export default {
         this.footerOffset = 0;
       }
     };
-    window.addEventListener('scroll', this._updateFooterOffset, { passive: true });
-    window.addEventListener('resize', this._updateFooterOffset, { passive: true });
+    window.addEventListener('scroll', this._updateChatOffsets, { passive: true });
+    window.addEventListener('resize', this._updateChatOffsets, { passive: true });
+    // Initial measurement after DOM settles
+    this.$nextTick(() => this._updateChatOffsets());
+    // Re-measure when banners appear/disappear
+    if (this.$refs.appHeader) {
+      this._headerObserver = new MutationObserver(() => this._updateChatOffsets());
+      this._headerObserver.observe(this.$refs.appHeader, { childList: true, subtree: true, attributes: true });
+    }
   },
 
   beforeUnmount() {
-    if (this._updateFooterOffset) {
-      window.removeEventListener('scroll', this._updateFooterOffset);
-      window.removeEventListener('resize', this._updateFooterOffset);
+    if (this._updateChatOffsets) {
+      window.removeEventListener('scroll', this._updateChatOffsets);
+      window.removeEventListener('resize', this._updateChatOffsets);
+    }
+    if (this._headerObserver) {
+      this._headerObserver.disconnect();
     }
   },
 
