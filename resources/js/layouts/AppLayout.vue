@@ -111,8 +111,7 @@ export default {
     },
 
     showDockedChat() {
-      return this.$route.path === '/dashboard'
-        && this.isAuthenticated
+      return this.isAuthenticated
         && !this.isPreviewMode
         && this.currentUser
         && !this.currentUser.is_preview_user;
@@ -120,9 +119,9 @@ export default {
   },
 
   watch: {
-    // Collapse side menu when navigating to dashboard as real user
-    '$route.path'(path) {
-      if (path === '/dashboard' && this.showDockedChat && !this.sideMenuCollapsed) {
+    // Collapse side menu when docked chat becomes active
+    showDockedChat(active) {
+      if (active && !this.sideMenuCollapsed) {
         this.sideMenuCollapsed = true;
         storage.set(STORAGE_KEY, true);
       }
@@ -134,7 +133,7 @@ export default {
       this.fetchInfoGuidePreference();
     }
 
-    // Collapse side menu on dashboard for real users
+    // Collapse side menu for real users with docked chat
     if (this.showDockedChat && !this.sideMenuCollapsed) {
       this.sideMenuCollapsed = true;
       storage.set(STORAGE_KEY, true);
