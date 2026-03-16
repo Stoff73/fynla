@@ -120,7 +120,7 @@ Your generated will uses formal legal language ("I HEREBY REVOKE", "I GIVE DEVIS
 
 ### Sidebar Navigation
 
-A new **Power of Attorney** item has been added to the sidebar under the Family section, giving you one-click access to your Lasting Powers of Attorney from anywhere in the application. The sidebar highlights correctly whether you're viewing the Power of Attorney tab or creating a new Lasting Power of Attorney in the wizard.
+A new **Power of Attorney** item has been added to the sidebar under the Family section, giving you one-click access to your Lasting Powers of Attorney from anywhere in the application. The **Will** sidebar item now links directly to the Will Builder at `/estate/will-builder`. The sidebar highlights correctly whether you're viewing the Power of Attorney page, Will Builder, or creating a new Lasting Power of Attorney in the wizard.
 
 ### Estate Planning Readiness
 
@@ -259,16 +259,44 @@ LPA seeding has been refined:
 | David & Sarah Mitchell (Peak Earners) | 4 registered LPAs — David has Property & Financial (LP-2024-0847291) and Health & Welfare (LP-2024-0847292), Sarah has Property & Financial (LP-2024-0953104) and Health & Welfare (LP-2024-0953105). Each with 2 attorneys (spouse + sibling) acting jointly and severally, 1 notification person |
 | Margaret Thompson (Widow) | Property & Financial registered (LP-2023-0612845) with son as primary attorney and daughter as replacement. Health & Welfare in draft with same attorney arrangement |
 
+### Lasting Power of Attorney Legal Document View
+
+Clicking "View Details" on any Lasting Power of Attorney now displays the full legal document in Office of the Public Guardian format, replacing the previous card-based layout. The document includes:
+
+- **Formal legal sections** — Donor, Attorneys, Replacement Attorneys, When Attorneys Can Act, Preferences & Instructions, Life-Sustaining Treatment, Certificate Provider, People to Notify
+- **Signatures** — donor, each attorney, replacement attorneys, and certificate provider, rendered in cursive script with dates for signed documents
+- **Registration stamp** — bordered section showing Office of the Public Guardian registration date and reference number for registered LPAs
+- **Print / Save PDF** — opens a formatted print window with the full legal document
+- **Back navigation** — uses the standard `detail-inline-back` pattern at the top of the view
+
+The LPA dashboard page no longer shows a "Back to Estate Planning" link — it is a standalone page accessible from the sidebar.
+
+### Will Navigation Consolidation
+
+All will-related navigation now points to the Will Builder at `/estate/will-builder`:
+- **Sidebar "Will"** — previously linked to `/valuable-info?section=will`, now links to `/estate/will-builder`
+- **IHT Planning Will card** — now navigates to `/estate/will-builder`
+- **Navbar dropdown** — Will link removed (Will Builder is accessed via sidebar)
+- **Dashboard cards** (Areas to Complete, Areas to Consider) — now link to `/estate/will-builder`
+- **Valuable Info page** — Will tab removed entirely; remaining tabs: Letter, Income, Expenditure, Risk Profile
+
 ### Files Changed
 
 | File | Change |
 |------|--------|
 | `resources/js/views/Estate/EstateDashboard.vue` | Removed LPA tab, conditional will banner |
-| `resources/js/views/Estate/PowerOfAttorneyView.vue` | **NEW** — standalone LPA page with back link |
+| `resources/js/views/Estate/PowerOfAttorneyView.vue` | **NEW** — standalone LPA page |
+| `resources/js/utils/lpaDocumentRenderer.js` | **NEW** — legal document renderer + print for LPAs |
+| `resources/js/components/Estate/LpaDetailView.vue` | Replaced card layout with legal document format, `detail-inline-back` navigation |
+| `resources/js/components/Estate/PowerOfAttorneyTab.vue` | Simplified layout — removed outer type wrapper cards |
 | `resources/js/router/index.js` | Added `/estate/power-of-attorney` + preview route |
-| `resources/js/components/SideMenu.vue` | Updated LPA link to standalone path, simplified active state |
-| `resources/js/components/Estate/IHTPlanning.vue` | Added Power of Attorney card, LPA state/computed, fetch on mount |
-| `database/seeders/PreviewUserSeeder.php` | Added `createLpas()` for Mitchell + Thompson, LPA cleanup in `deleteUserData()` |
+| `resources/js/components/SideMenu.vue` | Will links to `/estate/will-builder`, LPA links to `/estate/power-of-attorney`, updated active states |
+| `resources/js/components/Estate/IHTPlanning.vue` | Added Power of Attorney card, Will card links to Will Builder |
+| `resources/js/components/Navbar.vue` | Removed Will link from dropdown |
+| `resources/js/views/ValuableInfo.vue` | Removed Will tab |
+| `resources/js/components/Dashboard/AreasToCompleteCard.vue` | Will link updated to `/estate/will-builder` |
+| `resources/js/components/Dashboard/AreasToConsiderCard.vue` | Will link updated to `/estate/will-builder` |
+| `database/seeders/PreviewUserSeeder.php` | LPA + WillDocument seeding with signatures and witness data |
 
 ---
 

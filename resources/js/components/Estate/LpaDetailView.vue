@@ -1,23 +1,16 @@
 <template>
   <div class="lpa-detail-view">
-    <!-- Print-friendly header -->
-    <div class="print-header hidden print:block mb-8 text-center">
-      <h1 class="text-2xl font-black text-horizon-500">Lasting Power of Attorney</h1>
-      <p class="text-lg text-neutral-500">{{ typeLabel }}</p>
-    </div>
+    <!-- Back button -->
+    <button @click="$emit('back')" class="detail-inline-back mb-4 print:hidden">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Lasting Powers of Attorney
+    </button>
 
     <!-- Screen header -->
     <div class="flex items-center justify-between mb-6 print:hidden">
       <div class="flex items-center space-x-3">
-        <button
-          class="text-sm text-horizon-400 hover:text-horizon-500 flex items-center"
-          @click="$emit('back')"
-        >
-          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
         <h2 class="text-lg font-bold text-horizon-500">{{ typeLabel }}</h2>
         <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', statusClass]">
           {{ statusLabel }}
@@ -25,10 +18,13 @@
       </div>
       <div class="flex items-center space-x-2">
         <button
-          class="px-3 py-1.5 text-sm font-medium text-horizon-500 border border-light-gray rounded-lg hover:bg-savannah-100"
-          @click="printLpa"
+          class="px-3 py-1.5 text-sm font-medium text-horizon-500 border border-light-gray rounded-lg hover:bg-savannah-100 flex items-center gap-2"
+          @click="handlePrint"
         >
-          Print / Save as PDF
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+          </svg>
+          Print / Save PDF
         </button>
         <button
           v-preview-disabled
@@ -40,207 +36,16 @@
       </div>
     </div>
 
-    <!-- Section 1: Donor -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Section 1 — The Donor
-      </h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <p class="text-xs text-neutral-500">Full Name</p>
-          <p class="text-sm font-medium text-horizon-500">{{ lpa.donor_full_name || '—' }}</p>
-        </div>
-        <div>
-          <p class="text-xs text-neutral-500">Date of Birth</p>
-          <p class="text-sm font-medium text-horizon-500">{{ formatDateDisplay(lpa.donor_date_of_birth) }}</p>
-        </div>
-        <div class="sm:col-span-2">
-          <p class="text-xs text-neutral-500">Address</p>
-          <p class="text-sm font-medium text-horizon-500">{{ formattedDonorAddress }}</p>
-        </div>
-      </div>
+    <!-- Legal Document View -->
+    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-8 mb-4">
+      <div
+        class="lpa-document prose prose-sm max-w-none"
+        v-html="renderedHtml"
+      ></div>
     </div>
 
-    <!-- Section 2: Primary Attorneys -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Section 2 — The Attorneys
-      </h3>
-      <div v-if="primaryAttorneys.length === 0" class="text-sm text-neutral-500 italic">
-        No attorneys appointed yet.
-      </div>
-      <div v-else class="space-y-4">
-        <div
-          v-for="(attorney, index) in primaryAttorneys"
-          :key="attorney.id"
-          class="border-b border-light-gray pb-3 last:border-b-0 last:pb-0"
-        >
-          <p class="text-xs text-neutral-500 mb-1">Attorney {{ index + 1 }}</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <p class="text-sm font-medium text-horizon-500">{{ attorney.full_name }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-neutral-500">Relationship</p>
-              <p class="text-sm text-horizon-500">{{ attorney.relationship_to_donor || '—' }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-neutral-500">Date of Birth</p>
-              <p class="text-sm text-horizon-500">{{ formatDateDisplay(attorney.date_of_birth) }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Decision Type -->
-        <div v-if="primaryAttorneys.length > 1 && lpa.attorney_decision_type" class="mt-3 pt-3 border-t border-light-gray">
-          <p class="text-xs text-neutral-500">How attorneys make decisions</p>
-          <p class="text-sm font-medium text-horizon-500">{{ decisionTypeLabel }}</p>
-          <p v-if="lpa.jointly_for_some_details" class="text-xs text-neutral-500 mt-1">
-            {{ lpa.jointly_for_some_details }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 3: Replacement Attorneys -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Section 3 — Replacement Attorneys
-      </h3>
-      <div v-if="replacementAttorneys.length === 0" class="text-sm text-neutral-500 italic">
-        No replacement attorneys appointed.
-      </div>
-      <div v-else class="space-y-3">
-        <div
-          v-for="(attorney, index) in replacementAttorneys"
-          :key="attorney.id"
-          class="border-b border-light-gray pb-3 last:border-b-0 last:pb-0"
-        >
-          <p class="text-xs text-neutral-500 mb-1">Replacement Attorney {{ index + 1 }}</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <p class="text-sm font-medium text-horizon-500">{{ attorney.full_name }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-neutral-500">Relationship</p>
-              <p class="text-sm text-horizon-500">{{ attorney.relationship_to_donor || '—' }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-neutral-500">Date of Birth</p>
-              <p class="text-sm text-horizon-500">{{ formatDateDisplay(attorney.date_of_birth) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 4: When can attorneys act (Property only) -->
-    <div v-if="lpa.lpa_type === 'property_financial'" class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Section 4 — When Attorneys Can Act
-      </h3>
-      <p class="text-sm text-horizon-500">
-        {{ lpa.when_attorneys_can_act === 'while_has_capacity'
-          ? 'While the donor still has mental capacity, and also when they have lost mental capacity.'
-          : lpa.when_attorneys_can_act === 'only_when_lost_capacity'
-            ? 'Only when the donor has lost mental capacity.'
-            : 'Not specified.' }}
-      </p>
-    </div>
-
-    <!-- Section 5: Preferences & Instructions -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        {{ lpa.lpa_type === 'property_financial' ? 'Section 5' : 'Section 4' }} — Preferences & Instructions
-      </h3>
-      <div class="space-y-3">
-        <div>
-          <p class="text-xs text-neutral-500">Preferences (advisory — your attorneys should consider these)</p>
-          <p class="text-sm text-horizon-500 whitespace-pre-wrap">{{ lpa.preferences || 'None specified.' }}</p>
-        </div>
-        <div>
-          <p class="text-xs text-neutral-500">Instructions (binding — your attorneys must follow these)</p>
-          <p class="text-sm text-horizon-500 whitespace-pre-wrap">{{ lpa.instructions || 'None specified.' }}</p>
-        </div>
-        <!-- Life-sustaining treatment (Health only) -->
-        <div v-if="lpa.lpa_type === 'health_welfare'">
-          <p class="text-xs text-neutral-500">Life-sustaining treatment</p>
-          <p class="text-sm font-medium text-horizon-500">
-            {{ lpa.life_sustaining_treatment === 'can_consent'
-              ? 'Your attorneys can give or refuse consent to life-sustaining treatment on your behalf.'
-              : lpa.life_sustaining_treatment === 'cannot_consent'
-                ? 'Your attorneys cannot give or refuse consent to life-sustaining treatment on your behalf.'
-                : 'Not specified.' }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 6: Certificate Provider -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        Certificate Provider
-      </h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <p class="text-xs text-neutral-500">Name</p>
-          <p class="text-sm font-medium text-horizon-500">{{ lpa.certificate_provider_name || '—' }}</p>
-        </div>
-        <div>
-          <p class="text-xs text-neutral-500">Relationship</p>
-          <p class="text-sm text-horizon-500">{{ lpa.certificate_provider_relationship || '—' }}</p>
-        </div>
-        <div>
-          <p class="text-xs text-neutral-500">Known for</p>
-          <p class="text-sm text-horizon-500">
-            {{ lpa.certificate_provider_known_years ? lpa.certificate_provider_known_years + ' years' : '—' }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 7: People to Notify -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
-        People to Notify
-      </h3>
-      <div v-if="notificationPersons.length === 0" class="text-sm text-neutral-500 italic">
-        No people to notify listed.
-      </div>
-      <div v-else class="space-y-2">
-        <div
-          v-for="(person, index) in notificationPersons"
-          :key="person.id"
-          class="flex items-center justify-between py-1"
-        >
-          <p class="text-sm text-horizon-500">{{ index + 1 }}. {{ person.full_name }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Registration Info -->
-    <div v-if="lpa.is_registered_with_opg" class="bg-spring-50 rounded-lg border border-spring-200 p-5 mb-4">
-      <h3 class="text-sm font-bold text-spring-800 mb-2">Registration Details</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <p class="text-xs text-spring-600">Registration Date</p>
-          <p class="text-sm font-medium text-spring-800">{{ formatDateDisplay(lpa.registration_date) }}</p>
-        </div>
-        <div v-if="lpa.opg_reference">
-          <p class="text-xs text-spring-600">Office of the Public Guardian Reference</p>
-          <p class="text-sm font-medium text-spring-800">{{ lpa.opg_reference }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Notes -->
-    <div v-if="lpa.notes" class="bg-white rounded-lg border border-light-gray p-5 mb-4">
-      <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-2">Notes</h3>
-      <p class="text-sm text-horizon-500 whitespace-pre-wrap">{{ lpa.notes }}</p>
-    </div>
-
-    <!-- Compliance Checklist -->
-    <div class="bg-white rounded-lg border border-light-gray p-5 mb-4 print:hidden">
+    <!-- Compliance Checklist (draft/incomplete only) -->
+    <div v-if="lpa.status === 'draft'" class="bg-white rounded-lg border border-light-gray p-5 mb-4 print:hidden">
       <h3 class="text-sm font-bold text-horizon-500 uppercase tracking-wider mb-3 border-b border-light-gray pb-2">
         Compliance Checks
       </h3>
@@ -251,7 +56,7 @@
     </div>
 
     <!-- Legal Disclaimer -->
-    <div class="bg-savannah-100 rounded-lg p-4 text-xs text-neutral-500 print:block">
+    <div class="bg-savannah-100 rounded-lg p-4 text-xs text-neutral-500">
       <p class="font-medium text-horizon-500 mb-1">Important</p>
       <p>
         This document is a record of your Lasting Power of Attorney details. It is not a legally binding document.
@@ -261,13 +66,14 @@
         <span class="font-medium">gov.uk/lasting-power-of-attorney</span> for more information.
       </p>
     </div>
+
   </div>
 </template>
 
 <script>
 import LpaComplianceChecklist from './LpaComplianceChecklist.vue';
+import { renderLpaDocument, printLpaDocument } from '@/utils/lpaDocumentRenderer';
 import estateService from '@/services/estateService';
-import { formatDate } from '@/utils/dateFormatter';
 
 export default {
   name: 'LpaDetailView',
@@ -295,8 +101,8 @@ export default {
   computed: {
     typeLabel() {
       return this.lpa.lpa_type === 'property_financial'
-        ? 'Lasting Power of Attorney — Property & Financial Affairs'
-        : 'Lasting Power of Attorney — Health & Welfare';
+        ? 'Property & Financial Affairs'
+        : 'Health & Welfare';
     },
     statusLabel() {
       const labels = {
@@ -316,45 +122,18 @@ export default {
       };
       return classes[this.lpa.status] || 'bg-neutral-100 text-neutral-600';
     },
-    primaryAttorneys() {
-      return (this.lpa.attorneys || []).filter(a => a.attorney_type === 'primary');
-    },
-    replacementAttorneys() {
-      return (this.lpa.attorneys || []).filter(a => a.attorney_type === 'replacement');
-    },
-    notificationPersons() {
-      return this.lpa.notification_persons || [];
-    },
-    decisionTypeLabel() {
-      const labels = {
-        jointly: 'Jointly — all attorneys must agree on every decision',
-        jointly_and_severally: 'Jointly and severally — attorneys can make decisions together or independently',
-        jointly_for_some: 'Jointly for some decisions, severally for others',
-      };
-      return labels[this.lpa.attorney_decision_type] || '';
-    },
-    formattedDonorAddress() {
-      const parts = [
-        this.lpa.donor_address_line_1,
-        this.lpa.donor_address_line_2,
-        this.lpa.donor_address_city,
-        this.lpa.donor_address_county,
-        this.lpa.donor_address_postcode,
-      ].filter(Boolean);
-      return parts.length > 0 ? parts.join(', ') : '—';
+    renderedHtml() {
+      return renderLpaDocument(this.lpa);
     },
   },
 
   mounted() {
-    this.loadCompliance();
+    if (this.lpa.status === 'draft') {
+      this.loadCompliance();
+    }
   },
 
   methods: {
-    formatDateDisplay(date) {
-      if (!date) return '—';
-      return formatDate(date);
-    },
-
     async loadCompliance() {
       if (!this.lpa.id) return;
       this.complianceLoading = true;
@@ -368,16 +147,126 @@ export default {
       }
     },
 
-    printLpa() {
-      window.print();
+    handlePrint() {
+      printLpaDocument(this.lpa);
     },
   },
 };
 </script>
 
 <style scoped>
-@media print {
-  .print-header { display: block !important; }
-  .lpa-detail-view { max-width: 100%; }
+.lpa-document {
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 700px;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.lpa-document :deep(h1) {
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.lpa-document :deep(h2) {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.lpa-document :deep(h3) {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 3px;
+}
+
+.lpa-document :deep(.title-rule) {
+  border: none;
+  border-top: 2px solid #1F2A44;
+  margin: 10px 0 16px;
+}
+
+.lpa-document :deep(.opg-ref) {
+  text-align: center;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.lpa-document :deep(.clause) {
+  margin-bottom: 8px;
+  text-align: justify;
+}
+
+.lpa-document :deep(.clause-indent) {
+  margin-left: 16px;
+  font-style: italic;
+}
+
+.lpa-document :deep(.sub-heading) {
+  font-weight: 700;
+  font-size: 10px;
+  margin-top: 10px;
+  margin-bottom: 3px;
+  text-decoration: underline;
+}
+
+.lpa-document :deep(.sub-clauses) {
+  margin-left: 20px;
+}
+
+.lpa-document :deep(.sub-clauses p) {
+  margin-bottom: 6px;
+}
+
+.lpa-document :deep(.signature-block) {
+  margin: 16px 0;
+}
+
+.lpa-document :deep(.sig-label) {
+  font-weight: 700;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.lpa-document :deep(.sig-line .line) {
+  border-bottom: 1px solid #000;
+  width: 200px;
+  height: 30px;
+}
+
+.lpa-document :deep(.sig-meta) {
+  font-size: 9px;
+  color: #555;
+}
+
+.lpa-document :deep(.signed-name) {
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 16px;
+  padding-left: 4px;
+}
+
+.lpa-document :deep(.registration-stamp) {
+  margin-top: 20px;
+  padding: 12px;
+  border: 2px solid #1F2A44;
+  border-radius: 4px;
+}
+
+.lpa-document :deep(.registration-stamp h3) {
+  border-bottom: none;
+  margin-top: 0;
 }
 </style>

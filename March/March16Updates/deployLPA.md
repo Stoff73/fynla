@@ -90,7 +90,7 @@ routes/api.php                                         — added LpaController i
 database/seeders/PreviewUserSeeder.php                 — added createLpas() for peak_earners + widow, LPA cleanup in deleteUserData()
 ```
 
-### New Frontend Files (17 files)
+### New Frontend Files (18 files)
 
 **Views (2)**
 ```
@@ -106,6 +106,11 @@ resources/js/components/Estate/LpaDetailView.vue
 resources/js/components/Estate/LpaComplianceChecklist.vue
 resources/js/components/Estate/LpaUploadForm.vue
 resources/js/components/Estate/AddressFieldGroup.vue
+```
+
+**Utilities (1)**
+```
+resources/js/utils/lpaDocumentRenderer.js
 ```
 
 **Components — Wizard (10)**
@@ -189,14 +194,15 @@ Up to 5 people to notify during Office of the Public Guardian registration — n
 2. **Sidebar "Power of Attorney"** → `/estate/power-of-attorney` → standalone LPA management page
 3. **IHT page Power of Attorney card** → clicks through to `/estate/power-of-attorney`
 4. **Will Builder banner** → hidden for David Mitchell (has will), shown for personas without a will
-5. Both LPA type cards render (Property & Financial / Health & Welfare)
+5. LPA summary cards render directly (no outer type wrapper cards)
 6. Click "Create" → wizard loads with donor details pre-filled
 7. Complete wizard → LPA saves and appears on page
-8. Click "View Details" → full OPG-format display with compliance checks
-9. Click "Print / Save as PDF" → browser print dialog opens
-10. Log in as peak_earners → 4 registered LPAs display (2 David, 2 Sarah)
-11. Log in as widow → Property registered, Health in draft
-12. LPA wizard: `/estate/lpa/create/property_financial` still works
+8. Click "View Details" → legal OPG-format document with signatures (donor, attorneys, certificate provider), registration stamp for registered LPAs
+9. Detail view: `detail-inline-back` button at top, Print/Save PDF and Edit in header
+10. Click "Print / Save as PDF" → new window with formatted legal document
+11. Log in as peak_earners → 4 registered LPAs display (2 David, 2 Sarah) with filled signatures and preferences/instructions
+12. Log in as widow → Property registered (signed, with witnesses), Health in draft
+13. LPA wizard: `/estate/lpa/create/property_financial` still works
 
 ---
 
@@ -218,5 +224,5 @@ Then remove the LPA routes from `routes/api.php` and revert the modified files. 
 | Category | New | Modified | Total |
 |----------|-----|----------|-------|
 | PHP (backend) | 14 | 5 | 19 |
-| Vue/JS (frontend) | 17 | 8 | 25 |
-| **Total** | **31** | **13** | **44** |
+| Vue/JS (frontend) | 18 | 8 | 26 |
+| **Total** | **32** | **13** | **45** |

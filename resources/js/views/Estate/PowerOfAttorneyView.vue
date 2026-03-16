@@ -2,14 +2,8 @@
   <AppLayout>
     <div class="py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
-        <!-- Header with back link -->
+        <!-- Header -->
         <div class="mb-6">
-          <router-link to="/estate" class="inline-flex items-center text-sm text-neutral-500 hover:text-horizon-500 transition-colors mb-3">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Back to Estate Planning
-          </router-link>
           <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Lasting Power of Attorney</h1>
         </div>
 
