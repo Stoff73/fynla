@@ -11,8 +11,10 @@ use App\Http\Controllers\Api\Estate\GiftingController;
 use App\Http\Controllers\Api\Estate\IHTController;
 use App\Http\Controllers\Api\Estate\LetterValidationController;
 use App\Http\Controllers\Api\Estate\LifePolicyController;
+use App\Http\Controllers\Api\Estate\LpaController;
 use App\Http\Controllers\Api\Estate\TrustController;
 use App\Http\Controllers\Api\Estate\WillController;
+use App\Http\Controllers\Api\Estate\WillDocumentController;
 use App\Http\Controllers\Api\EstateController;
 use App\Http\Controllers\Api\FamilyMembersController;
 use App\Http\Controllers\Api\GDPRController;
@@ -799,6 +801,19 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
     Route::get('/trust-recommendations', [TrustController::class, 'getTrustRecommendations']);
     Route::get('/trusts/upcoming-tax-returns', [TrustController::class, 'getUpcomingTaxReturns']);
 
+    // Will Builder
+    Route::prefix('will-builder')->group(function () {
+        Route::get('/pre-populate', [WillDocumentController::class, 'prePopulate']);
+        Route::get('/', [WillDocumentController::class, 'index']);
+        Route::post('/', [WillDocumentController::class, 'store']);
+        Route::get('/{id}', [WillDocumentController::class, 'show']);
+        Route::put('/{id}', [WillDocumentController::class, 'update']);
+        Route::post('/{id}/complete', [WillDocumentController::class, 'complete']);
+        Route::post('/{id}/mirror', [WillDocumentController::class, 'generateMirror']);
+        Route::get('/{id}/validate', [WillDocumentController::class, 'validateDocument']);
+        Route::delete('/{id}', [WillDocumentController::class, 'destroy']);
+    });
+
     // Will and Bequests
     Route::get('/will', [WillController::class, 'getWill']);
     Route::post('/will', [WillController::class, 'storeOrUpdateWill']);
@@ -813,6 +828,19 @@ Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
 
     // Letter to Spouse cross-validation
     Route::get('/letter-validation', [LetterValidationController::class, 'checkConsistency']);
+
+    // Lasting Powers of Attorney
+    Route::prefix('lpa')->group(function () {
+        Route::get('/', [LpaController::class, 'index']);
+        Route::post('/', [LpaController::class, 'store']);
+        Route::get('/donor-defaults', [LpaController::class, 'donorDefaults']);
+        Route::post('/upload', [LpaController::class, 'upload']);
+        Route::get('/{id}', [LpaController::class, 'show'])->where('id', '[0-9]+');
+        Route::put('/{id}', [LpaController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/{id}', [LpaController::class, 'destroy'])->where('id', '[0-9]+');
+        Route::get('/{id}/compliance', [LpaController::class, 'compliance'])->where('id', '[0-9]+');
+        Route::post('/{id}/register', [LpaController::class, 'markRegistered'])->where('id', '[0-9]+');
+    });
 });
 
 // Retirement module routes

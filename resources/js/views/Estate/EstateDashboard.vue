@@ -43,6 +43,31 @@
 
       <!-- Main Content -->
       <div v-else>
+        <!-- Will Builder Banner -->
+        <div class="mb-6">
+          <router-link
+            to="/estate/will-builder"
+            class="block bg-white border border-light-gray rounded-lg p-5 hover:border-raspberry-300 hover:shadow-sm transition-all group"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-raspberry-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-5 h-5 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-horizon-500 group-hover:text-raspberry-600 transition-colors">Build Your Will</h3>
+                  <p class="text-xs text-neutral-500">Create a legally-structured will for England and Wales with our guided builder</p>
+                </div>
+              </div>
+              <svg class="w-5 h-5 text-neutral-500 group-hover:text-raspberry-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </router-link>
+        </div>
+
         <!-- Tab Content -->
         <div>
           <!-- Inheritance Tax Planning Tab -->
@@ -56,6 +81,9 @@
 
           <!-- Trust Planning Tab -->
           <TrustPlanning v-else-if="activeTab === 'trusts'" @switch-tab="switchTab" />
+
+          <!-- Power of Attorney Tab -->
+          <PowerOfAttorneyTab v-else-if="activeTab === 'power-of-attorney'" @switch-tab="switchTab" />
         </div>
       </div>
       </div>
@@ -70,6 +98,7 @@ import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
+import PowerOfAttorneyTab from '@/components/Estate/PowerOfAttorneyTab.vue';
 
 export default {
   name: 'EstateDashboard',
@@ -80,6 +109,7 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
+    PowerOfAttorneyTab,
   },
 
   data() {
@@ -91,6 +121,7 @@ export default {
         { id: 'gifting', label: 'Gifting Strategy' },
         { id: 'life-policy', label: 'Life Policy Strategy' },
         { id: 'trusts', label: 'Trust Strategy' },
+        { id: 'power-of-attorney', label: 'Power of Attorney' },
       ],
     };
   },

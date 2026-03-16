@@ -124,6 +124,15 @@
           <div v-else class="text-sm text-neutral-500">
             <p v-if="form.has_will === false">You have indicated that you don't have a will. Click Edit to update this.</p>
             <p v-else>Will status not specified. Click Edit to configure your will details.</p>
+            <router-link
+              to="/estate/will-builder"
+              class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-raspberry-500 text-white rounded-lg text-sm font-medium hover:bg-raspberry-600 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Build Your Will
+            </router-link>
           </div>
         </div>
 

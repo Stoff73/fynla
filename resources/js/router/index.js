@@ -525,6 +525,32 @@ const routes = [
     },
   },
   {
+    path: '/estate/lpa/create/:type',
+    name: 'CreateLpa',
+    component: () => import('@/views/Estate/LpaWizardView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Lasting Power of Attorney', path: '' },
+      ],
+    },
+  },
+  {
+    path: '/estate/will-builder',
+    name: 'WillBuilder',
+    component: () => import('@/views/Estate/WillBuilderView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Will Builder', path: '' },
+      ],
+    },
+  },
+  {
     path: '/trusts',
     name: 'Trusts',
     component: TrustsDashboard,
