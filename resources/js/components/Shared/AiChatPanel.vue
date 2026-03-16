@@ -267,37 +267,35 @@
     <!-- Docked mode: full-height inline panel, always visible -->
     <div
       v-if="docked"
-      class="flex flex-col bg-white border-l border-light-gray h-full"
+      class="flex flex-col bg-white w-full h-full"
     >
       <!-- Docked Header -->
-      <div class="px-4 py-3 border-b border-light-gray flex-shrink-0">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-horizon-500">Fynla Assistant</h3>
-          <div class="flex items-center gap-1">
-            <button
-              @click="startNew"
-              class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
-              title="New conversation"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </button>
-            <button
-              @click="toggleHistory"
-              class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
-              :class="{ 'bg-savannah-100 text-neutral-500': showHistory }"
-              title="Conversation history"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-          </div>
+      <div class="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b border-light-gray">
+        <h3 class="text-sm font-semibold text-horizon-500">Fynla Assistant</h3>
+        <div class="flex items-center gap-1">
+          <button
+            @click="startNew"
+            class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+            title="New conversation"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+          <button
+            @click="toggleHistory"
+            class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
+            :class="{ 'bg-savannah-100 text-neutral-500': showHistory }"
+            title="Conversation history"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <!-- Docked Messages (reuse same scroll area) -->
+      <!-- Docked Messages -->
       <div ref="dockedMessagesContainer" class="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-thin">
         <!-- Empty state -->
         <div v-if="!messages || messages.length === 0" class="flex flex-col items-center justify-center h-full text-center py-8">
@@ -351,7 +349,7 @@
       </div>
 
       <!-- Docked Input -->
-      <div class="px-4 py-3 border-t border-light-gray flex-shrink-0">
+      <div class="flex-shrink-0 border-t border-light-gray p-4">
         <div class="flex items-end gap-2">
           <textarea
             ref="dockedInputField"
@@ -359,7 +357,7 @@
             @keydown.enter.exact.prevent="send"
             placeholder="Ask Fyn anything..."
             rows="1"
-            class="flex-1 resize-none rounded-lg border border-light-gray px-3 py-2 text-sm text-horizon-500 placeholder-neutral-500
+            class="flex-1 min-w-0 resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
                    focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
                    disabled:bg-savannah-100 disabled:cursor-not-allowed"
             :class="{ 'opacity-60': streaming }"
@@ -367,7 +365,7 @@
           <button
             @click="send"
             :disabled="!canSend"
-            class="px-3 py-2 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
+            class="flex-shrink-0 p-2.5 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                    flex items-center justify-center"
           >
@@ -376,7 +374,7 @@
             </svg>
           </button>
         </div>
-        <p class="text-xs text-horizon-400 mt-1">
+        <p class="text-xs text-horizon-400 mt-1.5">
           Not regulated financial advice. Press Enter to send.
         </p>
       </div>
