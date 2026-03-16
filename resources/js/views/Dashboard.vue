@@ -112,7 +112,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Outstanding Balance</span>
               <div class="mt-1">
-                <span class="text-3xl font-bold text-raspberry-600">
+                <span class="text-xl font-bold text-raspberry-600">
                   {{ formatCurrency(studentLiability.balance) }}
                 </span>
               </div>
@@ -197,7 +197,7 @@
           <!-- Empty state when no assets or liabilities -->
           <div v-else class="space-y-4">
             <div class="border-b border-light-gray pb-4">
-              <span class="text-3xl font-bold text-horizon-400">
+              <span class="text-xl font-bold text-horizon-400">
                 {{ formatCurrency(0) }}
               </span>
             </div>
@@ -218,7 +218,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Total Coverage</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+                <span class="text-xl font-bold text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -270,7 +270,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Total Savings</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
+                <span class="text-xl font-bold text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -318,7 +318,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Portfolio Value</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
+                <span class="text-xl font-bold text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -367,7 +367,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Taxable Estate on Joint Death Now</span>
               <div class="mt-1">
-                <span class="text-2xl font-bold text-raspberry-500">
+                <span class="text-xl font-bold text-raspberry-500">
                   {{ formatCurrency(estateData.taxableEstate) }}
                 </span>
               </div>
@@ -409,7 +409,7 @@
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Taxable Estate</span>
               <div class="mt-1">
-                <span class="text-3xl font-bold text-horizon-400">
+                <span class="text-xl font-bold text-horizon-400">
                   {{ formatCurrency(0) }}
                 </span>
               </div>
@@ -522,7 +522,7 @@
               <div>
                 <span class="text-sm text-neutral-500">Projected Income</span>
                 <div class="flex items-baseline gap-1 mt-1">
-                  <span class="text-2xl font-bold text-spring-600">
+                  <span class="text-xl font-bold text-spring-600">
                     {{ formatCurrency(retirementData.projectedIncome) }}
                   </span>
                   <span class="text-xs text-neutral-500">/yr</span>
@@ -531,7 +531,7 @@
               <div class="text-right">
                 <span class="text-sm text-neutral-500">Required Income</span>
                 <div class="flex items-baseline justify-end gap-1 mt-1">
-                  <span class="text-2xl font-bold text-horizon-500">
+                  <span class="text-xl font-bold text-horizon-500">
                     {{ formatCurrency(retirementData.targetIncome) }}
                   </span>
                   <span class="text-xs text-neutral-500">/yr</span>
@@ -544,7 +544,7 @@
               <div>
                 <span class="text-sm text-neutral-500">Projected Capital</span>
                 <div class="mt-1">
-                  <span class="text-2xl font-bold text-spring-600">
+                  <span class="text-xl font-bold text-spring-600">
                     {{ formatCurrency(retirementData.projectedCapital) }}
                   </span>
                 </div>
@@ -552,7 +552,7 @@
               <div class="text-right">
                 <span class="text-sm text-neutral-500">Capital Required</span>
                 <div class="mt-1">
-                  <span class="text-2xl font-bold text-horizon-500">
+                  <span class="text-xl font-bold text-horizon-500">
                     {{ formatCurrency(retirementData.capitalRequired) }}
                   </span>
                 </div>
@@ -563,11 +563,11 @@
             <div class="flex justify-between">
               <div v-if="retirementData.retirementAge" class="text-center">
                 <span class="text-sm text-neutral-500">Retirement Age</span>
-                <div class="text-lg font-semibold text-horizon-500">{{ retirementData.retirementAge }}</div>
+                <div class="text-base font-semibold text-horizon-500">{{ retirementData.retirementAge }}</div>
               </div>
               <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
                 <span class="text-sm text-neutral-500">Years to Retirement</span>
-                <div class="text-lg font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
+                <div class="text-base font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
               </div>
             </div>
 
