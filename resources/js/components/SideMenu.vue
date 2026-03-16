@@ -75,7 +75,7 @@
         <!-- Family (has spouse) / Admin (no spouse) -->
         <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
           <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" @navigate="closeMobile" />
-          <SideMenuItem icon="document-check" label="Will" :to="{ path: '/valuable-info', query: { section: 'will' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('will')" @navigate="closeMobile" />
+          <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" @navigate="closeMobile" />
           <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
           <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" @navigate="closeMobile" />
           <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
@@ -241,11 +241,17 @@ export default {
              path.startsWith('/net-worth/fees-detail');
     });
 
-    // Estate active for /estate routes (but not LPA sub-paths)
+    // Estate active for /estate routes (but not LPA or will-builder sub-paths)
     const isEstateActive = computed(() => {
       if (currentPath.value.startsWith('/estate/lpa')) return false;
       if (currentPath.value.startsWith('/estate/power-of-attorney')) return false;
+      if (currentPath.value.startsWith('/estate/will-builder')) return false;
       return currentPath.value.startsWith('/estate');
+    });
+
+    // Will Builder active
+    const isWillBuilderActive = computed(() => {
+      return currentPath.value.startsWith('/estate/will-builder');
     });
 
     // LPA active for /estate/power-of-attorney or /estate/lpa/* routes
@@ -306,6 +312,7 @@ export default {
       }
       if (path.startsWith('/protection') ||
           isEstateActive.value ||
+          isWillBuilderActive.value ||
           path.startsWith('/trusts') ||
           (path.startsWith('/valuable-info') && (section === 'will' || section === 'letter'))) {
         return 'family';
@@ -410,6 +417,7 @@ export default {
       isNetWorthActive,
       isInvestmentsActive,
       isEstateActive,
+      isWillBuilderActive,
       isLpaActive,
       isGoalsOverviewActive,
       isGoalsEventsActive,

@@ -34,6 +34,8 @@ class WillDocument extends Model
         'digital_assets_instructions',
         'survivorship_days',
         'domicile_confirmed',
+        'signed_date',
+        'witnesses',
         'generated_at',
         'last_edited_at',
     ];
@@ -43,7 +45,9 @@ class WillDocument extends Model
         'guardians' => 'array',
         'specific_gifts' => 'array',
         'residuary_estate' => 'array',
+        'witnesses' => 'array',
         'testator_date_of_birth' => 'date',
+        'signed_date' => 'date',
         'generated_at' => 'datetime',
         'last_edited_at' => 'datetime',
         'survivorship_days' => 'integer',

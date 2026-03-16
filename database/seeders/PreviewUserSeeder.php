@@ -19,6 +19,7 @@ use App\Models\Estate\LpaAttorney;
 use App\Models\Estate\LpaNotificationPerson;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
+use App\Models\Estate\WillDocument;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -177,6 +178,9 @@ class PreviewUserSeeder extends Seeder
         // Create Lasting Powers of Attorney
         $this->createLpas($user, $spouse, $personaId);
 
+        // Create Will Documents (Will Builder)
+        $this->createWillDocuments($user, $spouse, $personaId);
+
         // Set journey states and selections
         $this->setJourneyData($user, $personaId);
 
@@ -272,6 +276,9 @@ class PreviewUserSeeder extends Seeder
 
         // Delete letters to spouse
         LetterToSpouse::where('user_id', $user->id)->delete();
+
+        // Delete Will Documents
+        WillDocument::withTrashed()->where('user_id', $user->id)->forceDelete();
 
         // Delete Lasting Powers of Attorney (and their attorneys/notification persons via cascade)
         $lpas = LastingPowerOfAttorney::withTrashed()->where('user_id', $user->id)->get();
@@ -1425,6 +1432,8 @@ class PreviewUserSeeder extends Seeder
             'donor_address_postcode' => 'TN13 1QR',
             'attorney_decision_type' => 'jointly_and_severally',
             'when_attorneys_can_act' => 'only_when_lost_capacity',
+            'preferences' => 'I would prefer my attorneys to consult with my financial adviser before making significant investment decisions over £50,000. I would also prefer that my main residence is not sold unless absolutely necessary for my care needs.',
+            'instructions' => 'My attorneys must not make gifts from my estate exceeding £500 per person per year, other than to my spouse. Any decision to sell property must be agreed by both attorneys acting together.',
             'certificate_provider_name' => 'Robert Hartley',
             'certificate_provider_relationship' => 'Family Solicitor',
             'certificate_provider_known_years' => 12,
@@ -1439,6 +1448,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $davidPf->id,
             'attorney_type' => 'primary',
             'full_name' => $spouse ? $spouse->name : 'Sarah Mitchell',
+            'date_of_birth' => $spouse?->date_of_birth,
             'relationship_to_donor' => 'Spouse',
             'sort_order' => 0,
         ]);
@@ -1446,6 +1456,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $davidPf->id,
             'attorney_type' => 'primary',
             'full_name' => 'James Mitchell',
+            'date_of_birth' => '1974-08-03',
             'relationship_to_donor' => 'Brother',
             'sort_order' => 1,
         ]);
@@ -1474,6 +1485,8 @@ class PreviewUserSeeder extends Seeder
             'donor_address_postcode' => 'TN13 1QR',
             'attorney_decision_type' => 'jointly_and_severally',
             'life_sustaining_treatment' => 'can_consent',
+            'preferences' => 'I would prefer to remain in my own home for as long as possible. If residential care becomes necessary, I would prefer a facility close to my family in Kent. I would like my attorneys to consult with my GP before making decisions about ongoing medication changes.',
+            'instructions' => 'My attorneys must consult with my spouse before agreeing to any care placement. If my spouse is unable to be consulted, my attorneys should seek the advice of my GP.',
             'certificate_provider_name' => 'Robert Hartley',
             'certificate_provider_relationship' => 'Family Solicitor',
             'certificate_provider_known_years' => 12,
@@ -1488,6 +1501,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $davidHw->id,
             'attorney_type' => 'primary',
             'full_name' => $spouse ? $spouse->name : 'Sarah Mitchell',
+            'date_of_birth' => $spouse?->date_of_birth,
             'relationship_to_donor' => 'Spouse',
             'sort_order' => 0,
         ]);
@@ -1495,6 +1509,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $davidHw->id,
             'attorney_type' => 'primary',
             'full_name' => 'James Mitchell',
+            'date_of_birth' => '1974-08-03',
             'relationship_to_donor' => 'Brother',
             'sort_order' => 1,
         ]);
@@ -1524,6 +1539,8 @@ class PreviewUserSeeder extends Seeder
                 'donor_address_postcode' => 'TN13 1QR',
                 'attorney_decision_type' => 'jointly_and_severally',
                 'when_attorneys_can_act' => 'only_when_lost_capacity',
+                'preferences' => 'I would prefer my attorneys to maintain my existing investment strategy and consult with our financial adviser before making changes. I would like my household bills to continue being paid by direct debit where possible.',
+                'instructions' => 'My attorneys must not sell or remortgage any jointly owned property without first consulting my spouse. Any gifts from my estate must not exceed the annual Inheritance Tax exemption limits.',
                 'certificate_provider_name' => 'Robert Hartley',
                 'certificate_provider_relationship' => 'Family Solicitor',
                 'certificate_provider_known_years' => 12,
@@ -1537,6 +1554,7 @@ class PreviewUserSeeder extends Seeder
                 'lasting_power_of_attorney_id' => $sarahPf->id,
                 'attorney_type' => 'primary',
                 'full_name' => $user->name,
+                'date_of_birth' => $user->date_of_birth,
                 'relationship_to_donor' => 'Spouse',
                 'sort_order' => 0,
             ]);
@@ -1544,6 +1562,7 @@ class PreviewUserSeeder extends Seeder
                 'lasting_power_of_attorney_id' => $sarahPf->id,
                 'attorney_type' => 'primary',
                 'full_name' => 'Claire Henderson',
+                'date_of_birth' => '1980-11-17',
                 'relationship_to_donor' => 'Sister',
                 'sort_order' => 1,
             ]);
@@ -1571,6 +1590,8 @@ class PreviewUserSeeder extends Seeder
                 'donor_address_postcode' => 'TN13 1QR',
                 'attorney_decision_type' => 'jointly_and_severally',
                 'life_sustaining_treatment' => 'can_consent',
+                'preferences' => 'I would prefer to be cared for at home wherever possible. If I need residential care, I would prefer somewhere within easy visiting distance of my family. I would like to continue attending my local church if my health allows.',
+                'instructions' => 'My attorneys must always consult my spouse before making decisions about my care or living arrangements. Life-sustaining treatment decisions must be made jointly by both attorneys.',
                 'certificate_provider_name' => 'Robert Hartley',
                 'certificate_provider_relationship' => 'Family Solicitor',
                 'certificate_provider_known_years' => 12,
@@ -1584,6 +1605,7 @@ class PreviewUserSeeder extends Seeder
                 'lasting_power_of_attorney_id' => $sarahHw->id,
                 'attorney_type' => 'primary',
                 'full_name' => $user->name,
+                'date_of_birth' => $user->date_of_birth,
                 'relationship_to_donor' => 'Spouse',
                 'sort_order' => 0,
             ]);
@@ -1591,6 +1613,7 @@ class PreviewUserSeeder extends Seeder
                 'lasting_power_of_attorney_id' => $sarahHw->id,
                 'attorney_type' => 'primary',
                 'full_name' => 'Claire Henderson',
+                'date_of_birth' => '1980-11-17',
                 'relationship_to_donor' => 'Sister',
                 'sort_order' => 1,
             ]);
@@ -1625,6 +1648,8 @@ class PreviewUserSeeder extends Seeder
             'donor_address_postcode' => 'BA1 5NR',
             'attorney_decision_type' => 'jointly',
             'when_attorneys_can_act' => 'only_when_lost_capacity',
+            'preferences' => 'I would prefer my son to be the lead attorney for day-to-day financial decisions. I would like my existing charitable donations to the Royal British Legion and Macmillan Cancer Support to continue.',
+            'instructions' => 'My attorneys must not sell my main residence at 7 Rose Cottage Lane without the written agreement of both my children. Any investment decisions must be made jointly.',
             'certificate_provider_name' => 'Dr Helen Cross',
             'certificate_provider_relationship' => 'GP',
             'certificate_provider_known_years' => 15,
@@ -1639,6 +1664,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $pfLpa->id,
             'attorney_type' => 'primary',
             'full_name' => 'Richard Thompson',
+            'date_of_birth' => '1982-07-19',
             'relationship_to_donor' => 'Son',
             'sort_order' => 0,
         ]);
@@ -1648,6 +1674,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $pfLpa->id,
             'attorney_type' => 'replacement',
             'full_name' => 'Catherine Thompson',
+            'date_of_birth' => '1985-02-11',
             'relationship_to_donor' => 'Daughter',
             'sort_order' => 0,
         ]);
@@ -1675,6 +1702,8 @@ class PreviewUserSeeder extends Seeder
             'donor_address_postcode' => 'BA1 5NR',
             'attorney_decision_type' => 'jointly',
             'life_sustaining_treatment' => 'can_consent',
+            'preferences' => 'I would prefer to remain in my own home for as long as possible. If I require residential care, I would prefer a facility in Bath or the surrounding area so my friends and family can visit easily.',
+            'instructions' => 'My attorneys must consult with my GP, Dr Helen Cross, before making decisions about changes to my medication or treatment plan.',
         ]);
 
         // Primary attorney: son
@@ -1682,6 +1711,7 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $hwLpa->id,
             'attorney_type' => 'primary',
             'full_name' => 'Richard Thompson',
+            'date_of_birth' => '1982-07-19',
             'relationship_to_donor' => 'Son',
             'sort_order' => 0,
         ]);
@@ -1691,9 +1721,268 @@ class PreviewUserSeeder extends Seeder
             'lasting_power_of_attorney_id' => $hwLpa->id,
             'attorney_type' => 'replacement',
             'full_name' => 'Catherine Thompson',
+            'date_of_birth' => '1985-02-11',
             'relationship_to_donor' => 'Daughter',
             'sort_order' => 0,
         ]);
+    }
+
+    /**
+     * Create Will Documents (Will Builder) for specific personas.
+     */
+    private function createWillDocuments(User $user, ?User $spouse, string $personaId): void
+    {
+        if ($personaId === 'peak_earners') {
+            $this->createMitchellWillDocuments($user, $spouse);
+        } elseif ($personaId === 'widow') {
+            $this->createWidowWillDocument($user);
+        } elseif ($personaId === 'retired_couple') {
+            $this->createRetiredCoupleWillDocuments($user, $spouse);
+        }
+    }
+
+    /**
+     * Mirror wills for David & Sarah Mitchell.
+     */
+    private function createMitchellWillDocuments(User $user, ?User $spouse): void
+    {
+        $userWill = Will::where('user_id', $user->id)->first();
+
+        $davidDoc = WillDocument::create([
+            'user_id' => $user->id,
+            'will_id' => $userWill?->id,
+            'will_type' => 'mirror',
+            'status' => 'complete',
+            'testator_full_name' => $user->name,
+            'testator_address' => '14 Oakwood Drive, Sevenoaks, Kent, TN13 1QR',
+            'testator_date_of_birth' => $user->date_of_birth,
+            'testator_occupation' => 'Investment Director',
+            'executors' => [
+                ['name' => 'Sarah Mitchell', 'address' => '14 Oakwood Drive, Sevenoaks, Kent, TN13 1QR', 'relationship' => 'Spouse'],
+                ['name' => 'Barclays Wealth Management', 'address' => '1 Churchill Place, London, E14 5HP', 'relationship' => 'Professional Executor'],
+            ],
+            'guardians' => [
+                ['name' => 'James Mitchell', 'address' => '8 The Crescent, Tonbridge, Kent, TN9 2AB', 'relationship' => 'Brother'],
+                ['name' => 'Claire Henderson', 'address' => '22 Manor Road, Tunbridge Wells, Kent, TN1 1YZ', 'relationship' => 'Sister-in-law'],
+            ],
+            'specific_gifts' => [
+                ['beneficiary_name' => 'Cancer Research UK', 'type' => 'cash', 'amount' => 10000, 'description' => null, 'conditions' => null],
+            ],
+            'residuary_estate' => [
+                ['beneficiary_name' => 'Sarah Mitchell', 'percentage' => 100, 'substitution_beneficiary' => 'Children in equal shares'],
+            ],
+            'funeral_preference' => 'cremation',
+            'funeral_wishes_notes' => 'A celebration of life at St Nicholas Church, Sevenoaks. No flowers — donations to Cancer Research UK.',
+            'digital_executor_name' => 'Sarah Mitchell',
+            'digital_assets_instructions' => 'Password manager master password is in the safe deposit box at Barclays Sevenoaks. Digital photo library on iCloud to be preserved for the children.',
+            'survivorship_days' => 28,
+            'domicile_confirmed' => 'england_wales',
+            'signed_date' => '2024-03-20',
+            'witnesses' => [
+                ['name' => 'Robert Hartley', 'address' => 'Hartley & Co Solicitors, 12 High Street, Sevenoaks, TN13 1HX', 'occupation' => 'Solicitor', 'date' => '2024-03-20'],
+                ['name' => 'Amanda Pearson', 'address' => '9 Station Road, Sevenoaks, TN13 1AQ', 'occupation' => 'Legal Secretary', 'date' => '2024-03-20'],
+            ],
+            'generated_at' => '2024-03-15 10:30:00',
+            'last_edited_at' => '2024-03-15 10:30:00',
+        ]);
+
+        if ($spouse) {
+            $spouseWill = Will::where('user_id', $spouse->id)->first();
+
+            $sarahDoc = WillDocument::create([
+                'user_id' => $spouse->id,
+                'will_id' => $spouseWill?->id,
+                'will_type' => 'mirror',
+                'status' => 'complete',
+                'testator_full_name' => $spouse->name,
+                'testator_address' => '14 Oakwood Drive, Sevenoaks, Kent, TN13 1QR',
+                'testator_date_of_birth' => $spouse->date_of_birth,
+                'testator_occupation' => 'NHS Consultant Paediatrician',
+                'executors' => [
+                    ['name' => 'David Mitchell', 'address' => '14 Oakwood Drive, Sevenoaks, Kent, TN13 1QR', 'relationship' => 'Spouse'],
+                    ['name' => 'Barclays Wealth Management', 'address' => '1 Churchill Place, London, E14 5HP', 'relationship' => 'Professional Executor'],
+                ],
+                'guardians' => [
+                    ['name' => 'James Mitchell', 'address' => '8 The Crescent, Tonbridge, Kent, TN9 2AB', 'relationship' => 'Brother-in-law'],
+                    ['name' => 'Claire Henderson', 'address' => '22 Manor Road, Tunbridge Wells, Kent, TN1 1YZ', 'relationship' => 'Sister'],
+                ],
+                'specific_gifts' => [
+                    ['beneficiary_name' => 'Cancer Research UK', 'type' => 'cash', 'amount' => 10000, 'description' => null, 'conditions' => null],
+                ],
+                'residuary_estate' => [
+                    ['beneficiary_name' => 'David Mitchell', 'percentage' => 100, 'substitution_beneficiary' => 'Children in equal shares'],
+                ],
+                'funeral_preference' => 'cremation',
+                'funeral_wishes_notes' => 'A celebration of life at St Nicholas Church, Sevenoaks. No flowers — donations to Cancer Research UK.',
+                'digital_executor_name' => 'David Mitchell',
+                'digital_assets_instructions' => 'Password manager master password is in the safe deposit box at Barclays Sevenoaks.',
+                'survivorship_days' => 28,
+                'domicile_confirmed' => 'england_wales',
+                'signed_date' => '2024-03-20',
+                'witnesses' => [
+                    ['name' => 'Robert Hartley', 'address' => 'Hartley & Co Solicitors, 12 High Street, Sevenoaks, TN13 1HX', 'occupation' => 'Solicitor', 'date' => '2024-03-20'],
+                    ['name' => 'Amanda Pearson', 'address' => '9 Station Road, Sevenoaks, TN13 1AQ', 'occupation' => 'Legal Secretary', 'date' => '2024-03-20'],
+                ],
+                'generated_at' => '2024-03-15 10:30:00',
+                'last_edited_at' => '2024-03-15 10:30:00',
+            ]);
+
+            // Link mirror documents
+            $davidDoc->update(['mirror_document_id' => $sarahDoc->id]);
+            $sarahDoc->update(['mirror_document_id' => $davidDoc->id]);
+
+            // Link will_document_id on wills
+            if ($userWill) {
+                $userWill->update(['will_document_id' => $davidDoc->id]);
+            }
+            if ($spouseWill) {
+                $spouseWill->update(['will_document_id' => $sarahDoc->id]);
+            }
+        }
+    }
+
+    /**
+     * Simple will for Margaret Thompson.
+     */
+    private function createWidowWillDocument(User $user): void
+    {
+        $will = Will::where('user_id', $user->id)->first();
+
+        $doc = WillDocument::create([
+            'user_id' => $user->id,
+            'will_id' => $will?->id,
+            'will_type' => 'simple',
+            'status' => 'complete',
+            'testator_full_name' => $user->name,
+            'testator_address' => '7 Rose Cottage Lane, Bath, Somerset, BA1 5NR',
+            'testator_date_of_birth' => $user->date_of_birth,
+            'testator_occupation' => 'Retired Teacher',
+            'executors' => [
+                ['name' => 'Andrew Thompson', 'address' => '12 Lansdown Crescent, Bath, BA1 5EX', 'relationship' => 'Son'],
+                ['name' => 'Smithson Solicitors LLP', 'address' => '4 Queen Square, Bath, BA1 2HE', 'relationship' => 'Professional Executor'],
+            ],
+            'guardians' => null,
+            'specific_gifts' => [
+                ['beneficiary_name' => 'Cotswold Care Hospice', 'type' => 'cash', 'amount' => 25000, 'description' => null, 'conditions' => null],
+                ['beneficiary_name' => 'St Lawrence Church, Bourton', 'type' => 'cash', 'amount' => 5000, 'description' => null, 'conditions' => null],
+                ['beneficiary_name' => 'Catherine Williams', 'type' => 'item', 'amount' => null, 'description' => 'Engagement ring and pearl necklace from my late husband Harold', 'conditions' => null],
+            ],
+            'residuary_estate' => [
+                ['beneficiary_name' => 'Andrew Thompson', 'percentage' => 40, 'substitution_beneficiary' => 'His children in equal shares'],
+                ['beneficiary_name' => 'Catherine Williams', 'percentage' => 40, 'substitution_beneficiary' => 'Her children in equal shares'],
+                ['beneficiary_name' => 'Grandchildren Education Trust', 'percentage' => 15, 'substitution_beneficiary' => null],
+                ['beneficiary_name' => 'Richard Thompson', 'percentage' => 5, 'substitution_beneficiary' => 'His children in equal shares'],
+            ],
+            'funeral_preference' => 'burial',
+            'funeral_wishes_notes' => 'To be buried alongside my late husband Harold at St Lawrence Churchyard, Bourton-on-the-Water. A traditional Church of England service. Hymns: The Lord Is My Shepherd and Dear Lord and Father of Mankind.',
+            'digital_executor_name' => 'Andrew Thompson',
+            'digital_assets_instructions' => 'Email and online banking credentials are in the blue folder in the bureau in the front room. Facebook account to be memorialised.',
+            'survivorship_days' => 28,
+            'domicile_confirmed' => 'england_wales',
+            'signed_date' => '2023-06-15',
+            'witnesses' => [
+                ['name' => 'Dr Helen Cross', 'address' => 'Pulteney Practice, 35 Great Pulteney Street, Bath, BA2 4BY', 'occupation' => 'General Practitioner', 'date' => '2023-06-15'],
+                ['name' => 'Mary Jenkins', 'address' => '4 Rose Cottage Lane, Bath, BA1 5NR', 'occupation' => 'Retired Nurse', 'date' => '2023-06-15'],
+            ],
+            'generated_at' => '2023-06-10 14:00:00',
+            'last_edited_at' => '2023-06-10 14:00:00',
+        ]);
+
+        if ($will) {
+            $will->update(['will_document_id' => $doc->id]);
+        }
+    }
+
+    /**
+     * Mirror wills for Patricia & Harold Bennett.
+     */
+    private function createRetiredCoupleWillDocuments(User $user, ?User $spouse): void
+    {
+        $userWill = Will::where('user_id', $user->id)->first();
+
+        $patriciaDoc = WillDocument::create([
+            'user_id' => $user->id,
+            'will_id' => $userWill?->id,
+            'will_type' => 'mirror',
+            'status' => 'complete',
+            'testator_full_name' => $user->name,
+            'testator_address' => '3 Willow Gardens, Cheltenham, Gloucestershire, GL50 2QE',
+            'testator_date_of_birth' => $user->date_of_birth,
+            'testator_occupation' => 'Retired',
+            'executors' => [
+                ['name' => 'Mark Bennett', 'address' => '19 Montpellier Walk, Cheltenham, GL50 1SD', 'relationship' => 'Son'],
+                ['name' => 'Adams & Co Solicitors', 'address' => '7 Promenade, Cheltenham, GL50 1LN', 'relationship' => 'Professional Executor'],
+            ],
+            'guardians' => null,
+            'specific_gifts' => [
+                ['beneficiary_name' => 'Grandchildren Education Fund', 'type' => 'cash', 'amount' => 25000, 'description' => null, 'conditions' => 'To be held in trust until each grandchild reaches 18'],
+            ],
+            'residuary_estate' => [
+                ['beneficiary_name' => 'Harold Bennett', 'percentage' => 100, 'substitution_beneficiary' => 'Children in equal shares'],
+            ],
+            'funeral_preference' => 'cremation',
+            'funeral_wishes_notes' => 'A simple service at Cheltenham Crematorium. Ashes to be scattered at Cleeve Hill.',
+            'digital_executor_name' => 'Mark Bennett',
+            'digital_assets_instructions' => null,
+            'survivorship_days' => 28,
+            'domicile_confirmed' => 'england_wales',
+            'signed_date' => '2023-08-22',
+            'witnesses' => [
+                ['name' => 'Jonathan Adams', 'address' => 'Adams & Co Solicitors, 7 Promenade, Cheltenham, GL50 1LN', 'occupation' => 'Solicitor', 'date' => '2023-08-22'],
+                ['name' => 'Karen Phillips', 'address' => '7 Promenade, Cheltenham, GL50 1LN', 'occupation' => 'Legal Executive', 'date' => '2023-08-22'],
+            ],
+            'generated_at' => '2023-08-15 11:00:00',
+            'last_edited_at' => '2023-08-15 11:00:00',
+        ]);
+
+        if ($spouse) {
+            $spouseWill = Will::where('user_id', $spouse->id)->first();
+
+            $haroldDoc = WillDocument::create([
+                'user_id' => $spouse->id,
+                'will_id' => $spouseWill?->id,
+                'will_type' => 'mirror',
+                'status' => 'complete',
+                'testator_full_name' => $spouse->name,
+                'testator_address' => '3 Willow Gardens, Cheltenham, Gloucestershire, GL50 2QE',
+                'testator_date_of_birth' => $spouse->date_of_birth,
+                'testator_occupation' => 'Retired',
+                'executors' => [
+                    ['name' => 'Mark Bennett', 'address' => '19 Montpellier Walk, Cheltenham, GL50 1SD', 'relationship' => 'Son'],
+                    ['name' => 'Adams & Co Solicitors', 'address' => '7 Promenade, Cheltenham, GL50 1LN', 'relationship' => 'Professional Executor'],
+                ],
+                'guardians' => null,
+                'specific_gifts' => [
+                    ['beneficiary_name' => 'Grandchildren Education Fund', 'type' => 'cash', 'amount' => 25000, 'description' => null, 'conditions' => 'To be held in trust until each grandchild reaches 18'],
+                ],
+                'residuary_estate' => [
+                    ['beneficiary_name' => 'Patricia Bennett', 'percentage' => 100, 'substitution_beneficiary' => 'Children in equal shares'],
+                ],
+                'funeral_preference' => 'cremation',
+                'funeral_wishes_notes' => 'A simple service at Cheltenham Crematorium. Ashes to be scattered at Cleeve Hill.',
+                'digital_executor_name' => 'Mark Bennett',
+                'digital_assets_instructions' => null,
+                'survivorship_days' => 28,
+                'domicile_confirmed' => 'england_wales',
+                'signed_date' => '2023-08-22',
+                'witnesses' => [
+                    ['name' => 'Jonathan Adams', 'address' => 'Adams & Co Solicitors, 7 Promenade, Cheltenham, GL50 1LN', 'occupation' => 'Solicitor', 'date' => '2023-08-22'],
+                    ['name' => 'Karen Phillips', 'address' => '7 Promenade, Cheltenham, GL50 1LN', 'occupation' => 'Legal Executive', 'date' => '2023-08-22'],
+                ],
+                'generated_at' => '2023-08-15 11:00:00',
+                'last_edited_at' => '2023-08-15 11:00:00',
+            ]);
+
+            $patriciaDoc->update(['mirror_document_id' => $haroldDoc->id]);
+            $haroldDoc->update(['mirror_document_id' => $patriciaDoc->id]);
+
+            if ($userWill) {
+                $userWill->update(['will_document_id' => $patriciaDoc->id]);
+            }
+            if ($spouseWill) {
+                $spouseWill->update(['will_document_id' => $haroldDoc->id]);
+            }
+        }
     }
 
     /**

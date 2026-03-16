@@ -1,7 +1,7 @@
 # Deploy: Will Builder Feature
 
 **Date:** 2026-03-16
-**Branch:** `will-builder`
+**Branch:** `estateFix` (navigation fix + will builder integration + seeded data)
 **Tests:** 36 new tests, all passing (91 assertions)
 
 ---
@@ -18,9 +18,10 @@
 php artisan migrate
 ```
 
-This creates 1 new table and alters 1 existing:
+This creates 1 new table, alters 1 existing, and adds columns:
 - **New:** `will_documents` (testator details, executors, guardians, gifts, residuary, funeral, digital assets — all as JSON columns)
 - **Altered:** `wills` table gets `will_document_id` FK column
+- **Altered:** `will_documents` table gets `signed_date` (date) and `witnesses` (JSON) columns
 
 ### 3. Seed
 ```bash
@@ -31,7 +32,7 @@ php artisan db:seed --force
 
 ## Files to Upload
 
-### New PHP Files (6)
+### New PHP Files (7)
 
 ```
 app/Models/Estate/WillDocument.php
@@ -40,12 +41,14 @@ app/Http/Controllers/Api/Estate/WillDocumentController.php
 app/Http/Requests/Estate/SaveWillDocumentRequest.php
 database/factories/Estate/WillDocumentFactory.php
 database/migrations/2026_03_16_200001_create_will_documents_table.php
+database/migrations/2026_03_16_200002_add_signature_and_witness_fields_to_will_documents_table.php
 ```
 
-### Modified PHP Files (2)
+### Modified PHP Files (3)
 
 ```
 app/Models/Estate/Will.php                    — added willDocument() relationship + will_document_id fillable
+app/Models/Estate/WillDocument.php            — added signed_date, witnesses to fillable + casts
 routes/api.php                                — added 9 will-builder routes in estate group
 ```
 
@@ -67,13 +70,19 @@ resources/js/components/Estate/WillBuilder/steps/WillBuilderSigningStep.vue
 resources/js/utils/willDocumentRenderer.js
 ```
 
-### Modified Frontend Files (4)
+### Modified Frontend Files (8)
 
 ```
-resources/js/services/estateService.js        — added 9 will-builder API methods
-resources/js/router/index.js                  — added /estate/will-builder route
-resources/js/views/Estate/EstateDashboard.vue — added "Build Your Will" banner card
-resources/js/components/Estate/WillPlanning.vue — added "Build Your Will" CTA button
+resources/js/services/estateService.js                                — added 9 will-builder API methods
+resources/js/router/index.js                                          — added /estate/will-builder route
+resources/js/views/Estate/EstateDashboard.vue                         — conditional "Build Your Will" banner (hidden when will exists)
+resources/js/views/Estate/WillBuilderView.vue                         — startAtReview prop for complete documents
+resources/js/components/Estate/WillBuilder/WillBuilderWizard.vue      — startAtReview prop, hides progress tracker for complete wills
+resources/js/components/Estate/WillBuilder/steps/WillBuilderReviewStep.vue — "Edit Will" (preview-disabled) for complete docs, hides "Complete & Finalise"
+resources/js/components/Estate/WillPlanning.vue                       — added "Build Your Will" CTA button
+resources/js/utils/willDocumentRenderer.js                            — renders filled signatures + witness details when data present
+resources/js/components/SideMenu.vue                                  — "Will" links to /estate/will-builder, isWillBuilderActive computed
+resources/js/components/Estate/IHTPlanning.vue                        — Will card navigates to /estate/will-builder
 ```
 
 ### Test Files (not deployed, for reference)
@@ -96,8 +105,12 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 ```
 
 ### 2. Verify
-- Visit `/estate` — "Build Your Will" banner should appear
-- Click through to `/estate/will-builder` — wizard should load with 10 steps
+- Visit `/estate` — "Build Your Will" banner only shows for users without a will
+- Sidebar "Will" → `/estate/will-builder` — complete will shows rendered document (no progress tracker), draft shows wizard
+- IHT Planning Will card → `/estate/will-builder`
+- David Mitchell: shows signed will with witness details, "Edit Will" button is preview-disabled
+- James Carter: shows wizard at step 1 (no will yet), banner visible on estate dashboard
+- Margaret Thompson: shows signed simple will with witness details
 - Check API: `GET /api/estate/will-builder/pre-populate` returns user data
 
 ---
@@ -107,12 +120,24 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 | Metric | Count |
 |--------|-------|
 | New database tables | 1 |
-| Altered tables | 1 |
+| Altered tables | 1 (wills + will_documents) |
 | New API endpoints | 9 |
-| New PHP files | 6 |
-| Modified PHP files | 2 |
+| New PHP files | 7 |
+| Modified PHP files | 3 |
 | New Vue components | 13 |
-| Modified Vue files | 4 |
+| Modified Vue files | 8 |
 | New utility | 1 (willDocumentRenderer.js) |
 | New tests | 36 (91 assertions) |
-| **Total new/modified files** | **26** |
+| **Total new/modified files** | **32** |
+
+---
+
+## Seeded Will Documents (5 personas)
+
+| Persona | Will Type | Signed | Witnesses |
+|---------|-----------|--------|-----------|
+| David Mitchell | Mirror | 20 Mar 2024 | Robert Hartley (Solicitor), Amanda Pearson (Legal Secretary) |
+| Sarah Mitchell | Mirror | 20 Mar 2024 | Robert Hartley (Solicitor), Amanda Pearson (Legal Secretary) |
+| Margaret Thompson | Simple | 15 Jun 2023 | Dr Helen Cross (GP), Mary Jenkins (Retired Nurse) |
+| Patricia Bennett | Mirror | 22 Aug 2023 | Jonathan Adams (Solicitor), Karen Phillips (Legal Executive) |
+| Harold Bennett | Mirror | 22 Aug 2023 | Jonathan Adams (Solicitor), Karen Phillips (Legal Executive) |

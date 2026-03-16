@@ -1530,8 +1530,7 @@ export default {
     },
 
     navigateToWillTab() {
-      // Navigate to Valuable Info page with Wills tab active
-      this.$router.push({ path: '/valuable-info', query: { section: 'will' } });
+      this.$router.push('/estate/will-builder');
     },
 
     navigateToProtectionModule() {
