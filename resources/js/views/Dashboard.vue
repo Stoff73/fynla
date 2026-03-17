@@ -48,8 +48,8 @@
         </div>
       </div>
 
-      <!-- Journey Progress Hero (shown when life stage is active) -->
-      <JourneyProgressHero v-if="currentStage && !showEmptyDashboard" class="mb-3" />
+      <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
+      <JourneyProgressHero v-if="currentStage" class="mb-3" />
 
       <!-- Empty Dashboard (no financial data) -->
       <template v-if="showEmptyDashboard">

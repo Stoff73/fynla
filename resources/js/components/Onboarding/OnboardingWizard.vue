@@ -629,8 +629,48 @@ export default {
       lifeStageCurrentIndex.value = nextIndex;
     };
 
-    const handleLifeStageStepSave = () => {
-      // When a form emits save, treat it as completing the step
+    const handleLifeStageStepSave = async (formData) => {
+      // Save the form data via the appropriate API based on current step.
+      // SaveAccountModal and LiabilityForm emit data — parent must save.
+      // PersonalInformation emits form data — parent must save.
+      // Deprecated steps (IncomeStep, SimpleExpenditureStep) save internally.
+      const stepId = lifeStageCurrentStepId.value;
+      try {
+        const api = (await import('@/services/api')).default;
+
+        if (stepId === 'personal-info' && formData) {
+          await api.put('/profile', formData);
+        } else if (stepId === 'student-loan' && formData) {
+          await api.post('/estate/liabilities', formData);
+        } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
+          await api.post('/savings', formData);
+        } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
+          await api.post('/net-worth/properties', formData);
+        } else if (stepId === 'protection-insurance' && formData) {
+          // PolicyFormModal emits with policyType field
+          const policyType = formData.policyType || formData.policy_type || 'life';
+          const typeRoutes = {
+            life: '/protection/life-insurance',
+            criticalIllness: '/protection/critical-illness',
+            incomeProtection: '/protection/income-protection',
+            disability: '/protection/disability',
+            sicknessIllness: '/protection/sickness-illness',
+          };
+          const route = typeRoutes[policyType] || '/protection/life-insurance';
+          await api.post(route, formData);
+        } else if ((stepId === 'pensions' || stepId === 'pension-auto-enrolment' || stepId === 'pension-review' || stepId === 'pension-drawdown') && formData) {
+          await api.post('/retirement/dc-pensions', formData);
+        } else if (stepId === 'goals' && formData) {
+          await api.post('/goals', formData);
+        } else if (stepId === 'family' && formData) {
+          await api.post('/profile/family-members', formData);
+        }
+      } catch (error) {
+        console.error('[Onboarding] Failed to save step data:', error?.message || error);
+        // Don't block progress — data can be re-entered from module pages
+      }
+
+      // Advance to next step
       handleLifeStageNext();
     };
 
