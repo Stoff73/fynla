@@ -170,7 +170,7 @@
 
       <!-- EDIT MODE - Form inputs -->
       <div v-else class="bg-white rounded-lg border border-light-gray p-6">
-        <h3 class="text-h4 font-semibold text-horizon-500 mb-6">Edit Personal Information</h3>
+        <h3 class="text-h4 font-semibold text-horizon-500 mb-6">{{ context === 'onboarding' ? 'About You' : 'Edit Personal Information' }}</h3>
 
         <!-- Onboarding info bar — only for students where address/occupation are hidden -->
         <div v-if="context === 'onboarding' && !isFieldVisible('address_line_1')" class="mb-6 p-4 bg-violet-50 border border-violet-200 rounded-lg">
@@ -537,8 +537,8 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-end space-x-4 pt-6 border-t border-light-gray">
+        <!-- Action Buttons (hidden in onboarding — Skip/Continue handles navigation) -->
+        <div v-if="context !== 'onboarding'" class="flex justify-end space-x-4 pt-6 border-t border-light-gray">
             <button
               type="button"
               @click="handleCancel"
