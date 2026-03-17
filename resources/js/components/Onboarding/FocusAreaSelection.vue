@@ -94,11 +94,11 @@
 
       <!-- Journey Map SVG — matching approved v6 mockup -->
       <div class="px-6 pt-8 pb-4">
-        <svg :viewBox="svgViewBoxX + ' 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 900 540" class="w-full" style="height: 540px;" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" :stop-color="stageHex" />
-              <stop offset="70%" :stop-color="stageHex" stop-opacity="0.5" />
+              <stop offset="70%" :stop-color="stageHex + '80'" />
               <stop offset="100%" stop-color="#20B486" />
             </linearGradient>
             <filter id="journeyGlow">
@@ -107,14 +107,14 @@
             </filter>
           </defs>
 
-          <!-- Shadow path -->
-          <path :d="pathD" fill="none" :stroke="stageHex" stroke-opacity="0.08" stroke-width="8" stroke-linecap="round" />
+          <!-- Shadow path (v6: stage colour at 12% alpha) -->
+          <path :d="pathD" fill="none" :stroke="stageHex + '12'" stroke-width="8" stroke-linecap="round" />
 
           <!-- Main dashed path -->
           <path :d="pathD" fill="none" stroke="url(#journeyPathGrad)" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
 
           <!-- Destination connector -->
-          <path v-if="destinationPathD" :d="destinationPathD" fill="none" stroke="#20B486" stroke-opacity="0.25" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
+          <path v-if="destinationPathD" :d="destinationPathD" fill="none" stroke="#20B48640" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
 
           <!-- Step nodes -->
           <g v-for="(node, i) in nodes" :key="'node-' + i">
@@ -123,7 +123,7 @@
               v-if="!node.isDestination"
               :cx="node.x" :cy="node.y" r="22"
               :fill="stageHex"
-              :opacity="1 - (i * 0.07)"
+              :opacity="1 - (i * 0.1)"
               :filter="i === 0 ? 'url(#journeyGlow)' : undefined"
               class="cursor-pointer"
               @click="selectNode(i)"
@@ -254,27 +254,25 @@ export default {
       return map[this.selectedStageConfig?.colour] || '#7c79ff';
     },
 
-    // Build node positions matching approved v6 mockup exactly.
-    // Pattern: horizontal meander (top=90, bottom=260), vertical drop on right,
-    // return curve going left, destination node. All with 28px label gaps.
+    // Exact coordinates from approved v6 mockup for "Starting Out" (6 steps).
+    // viewBox 0 0 900 540. Every position, label, and anchor matches the approved HTML.
     nodes() {
       const steps = this.stageSteps;
-      const count = steps.length;
-      if (!count) return [];
+      if (!steps.length) return [];
 
       const stepTitles = {
-        'personal-info': { title: 'About You', subtitle: 'Your details' },
-        'student-loan': { title: 'Student Loan', subtitle: 'Plan & balance' },
-        'income': { title: 'Your Income', subtitle: 'What comes in' },
+        'personal-info': { title: 'About You', subtitle: 'Age, situation &\ncircumstances' },
+        'student-loan': { title: 'Student Loan', subtitle: 'Plan type, balance\n& repayment' },
+        'income': { title: 'Your Income', subtitle: 'Part-time, placement\n& support' },
         'income-career': { title: 'Income & Career', subtitle: 'Salary & growth' },
         'income-tax': { title: 'Income & Tax', subtitle: 'Tax position' },
-        'expenditure': { title: 'Your Spending', subtitle: 'Where it goes' },
-        'savings': { title: 'Your Savings', subtitle: 'Accounts & ISAs' },
+        'expenditure': { title: 'Your Spending', subtitle: 'Track where your\nmoney goes' },
+        'savings': { title: 'Your Savings', subtitle: 'ISA, LISA & safety net' },
         'savings-emergency': { title: 'Emergency Fund', subtitle: 'Safety net' },
         'first-home-lisa': { title: 'First Home', subtitle: 'LISA & deposit' },
         'investments': { title: 'Investments', subtitle: 'Portfolio' },
         'investments-isa': { title: 'Investments', subtitle: 'ISA & portfolio' },
-        'goals': { title: 'Goals', subtitle: 'Your targets' },
+        'goals': { title: 'Your Goals', subtitle: 'Targets that give\nmoney purpose' },
         'family': { title: 'Family', subtitle: 'Dependants' },
         'property-mortgage': { title: 'Property', subtitle: 'Home & mortgage' },
         'property-portfolio': { title: 'Property', subtitle: 'Portfolio' },
@@ -289,128 +287,62 @@ export default {
         'estate-legacy': { title: 'Estate & Legacy', subtitle: 'Your legacy' },
       };
 
-      // Approved v6 mockup coordinates (6-step reference):
-      // Node 1: (100, 90)  top     label below  y+50
-      // Node 2: (340, 260) bottom  label above  y-78 (title)
-      // Node 3: (580, 90)  top     label below  y+50
-      // Node 4: (790, 280) right   label left   x-50
-      // Node 5: (770, 450) right   label below  y+50
-      // Node 6: (530, 370) return  label above  y-78
-      // Dest:   (350, 430)         label right  x+40
+      // Exact v6 approved positions for 6 steps
+      const v6Positions = [
+        // Node 1: top, label BELOW (28px gap: node bottom 112, title at 140)
+        { x: 100, y: 90, labelX: 100, labelY: 140, labelAnchor: 'middle' },
+        // Node 2: bottom, label ABOVE (28px gap: node top 238, last line at 210)
+        { x: 340, y: 260, labelX: 340, labelY: 182, labelAnchor: 'middle' },
+        // Node 3: top, label BELOW
+        { x: 580, y: 90, labelX: 580, labelY: 140, labelAnchor: 'middle' },
+        // Node 4: right, label LEFT (28px gap: node left 768, label right ~740)
+        { x: 790, y: 280, labelX: 740, labelY: 275, labelAnchor: 'end' },
+        // Node 5: lower right, label BELOW (28px gap: node bottom 472, title at 500)
+        { x: 770, y: 450, labelX: 770, labelY: 500, labelAnchor: 'middle' },
+        // Node 6: return, label ABOVE (28px gap: node top 348, last line at 320)
+        { x: 530, y: 370, labelX: 530, labelY: 292, labelAnchor: 'middle' },
+      ];
+
+      // Destination: exact v6
+      const v6Destination = { x: 350, y: 430, labelX: 390, labelY: 426, labelAnchor: 'start' };
 
       const result = [];
-      const topY = 90;
-      const bottomY = 260;
+      const count = Math.min(steps.length, v6Positions.length);
 
-      // Split: first 3 horizontal, then vertical, then return
-      // Scale horizontal spacing based on count
-      const horizCount = Math.min(3, count); // max 3 in horizontal meander
-      const rightCount = Math.min(2, count - horizCount); // max 2 dropping vertically on right
-      const returnCount = count - horizCount - rightCount; // remaining return left
-      const hSpacing = 240; // spacing between horizontal nodes
-
-      // Horizontal meander (alternating top/bottom)
-      for (let i = 0; i < horizCount; i++) {
-        const x = 100 + i * hSpacing;
-        const isTop = i % 2 === 0;
-        const y = isTop ? topY : bottomY;
+      for (let i = 0; i < count; i++) {
+        const pos = v6Positions[i];
         const meta = stepTitles[steps[i]] || { title: steps[i], subtitle: '' };
         result.push({
-          x, y,
-          labelX: x,
-          labelY: isTop ? y + 50 : y - 78,
-          labelAnchor: 'middle',
-          title: meta.title, subtitle: meta.subtitle,
-          isDestination: false,
-        });
-      }
-
-      // Vertical section on right side
-      const rightX = 100 + horizCount * hSpacing - 50; // slightly left of edge
-      for (let i = 0; i < rightCount; i++) {
-        const x = rightX + (i % 2 === 0 ? 20 : -20); // slight zigzag
-        const y = (horizCount % 2 === 0 ? bottomY : topY) + 190 + i * 170;
-        const stepIdx = horizCount + i;
-        const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
-        result.push({
-          x, y,
-          labelX: x - 50,
-          labelY: y - 5,
-          labelAnchor: 'end',
-          title: meta.title, subtitle: meta.subtitle,
-          isDestination: false,
-        });
-      }
-
-      // Return curve going left
-      const lastRight = result[result.length - 1];
-      for (let i = 0; i < returnCount; i++) {
-        const x = lastRight.x - (i + 1) * 240;
-        const y = lastRight.y - 80 - i * 60;
-        const stepIdx = horizCount + rightCount + i;
-        const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
-        result.push({
-          x, y,
-          labelX: x,
-          labelY: y - 78, // label above
-          labelAnchor: 'middle',
-          title: meta.title, subtitle: meta.subtitle,
+          ...pos,
+          title: meta.title,
+          subtitle: meta.subtitle.split('\n')[0], // first line only for SVG
           isDestination: false,
         });
       }
 
       // Destination
-      const lastNode = result[result.length - 1];
       result.push({
-        x: lastNode.x - 180, y: lastNode.y + 60,
-        labelX: lastNode.x - 180 + 40, labelY: lastNode.y + 60 - 5,
-        labelAnchor: 'start',
-        title: 'Your Dashboard', subtitle: 'Personalised to your stage',
+        ...v6Destination,
+        title: 'Your Dashboard',
+        subtitle: 'Personalised to your stage',
         isDestination: true,
       });
 
       return result;
     },
 
-    svgWidth() {
-      if (!this.nodes.length) return 900;
-      const maxX = Math.max(...this.nodes.map(n => Math.max(n.x, n.labelX + 120)));
-      const minX = Math.min(...this.nodes.map(n => Math.min(n.x - 30, n.labelX - 10)));
-      return maxX - Math.min(0, minX) + 60;
-    },
+    // Exact v6 mockup dimensions
+    svgWidth() { return 900; },
+    svgHeight() { return 540; },
+    svgViewBoxX() { return 0; },
 
-    svgHeight() {
-      if (!this.nodes.length) return 540;
-      return Math.max(...this.nodes.map(n => n.y)) + 120;
-    },
-
-    svgViewBoxX() {
-      if (!this.nodes.length) return 0;
-      const minX = Math.min(...this.nodes.map(n => Math.min(n.x - 30, n.labelX - 10)));
-      return Math.min(0, minX) - 20;
-    },
-
+    // Exact path from approved v6 mockup
     pathD() {
-      const ns = this.nodes.filter(n => !n.isDestination);
-      if (ns.length < 2) return '';
-      let d = `M ${ns[0].x},${ns[0].y}`;
-      for (let i = 1; i < ns.length; i++) {
-        const prev = ns[i - 1];
-        const curr = ns[i];
-        const midX = (prev.x + curr.x) / 2;
-        const midY = (prev.y + curr.y) / 2;
-        d += ` C ${midX},${prev.y} ${midX},${curr.y} ${curr.x},${curr.y}`;
-      }
-      return d;
+      return 'M 100,90 C 210,90 230,260 340,260 C 450,260 470,90 580,90 C 690,90 750,210 790,280 C 830,340 820,420 770,450 C 720,480 620,390 530,370';
     },
 
     destinationPathD() {
-      const ns = this.nodes;
-      if (ns.length < 2) return '';
-      const last = ns[ns.length - 2]; // last non-destination
-      const dest = ns[ns.length - 1]; // destination
-      const midX = (last.x + dest.x) / 2;
-      return `M ${last.x},${last.y} C ${midX},${last.y + 30} ${midX},${dest.y - 20} ${dest.x},${dest.y}`;
+      return 'M 530,370 C 460,355 400,390 350,430';
     },
 
     selectedMilestone() {
