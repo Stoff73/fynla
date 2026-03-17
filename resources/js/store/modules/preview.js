@@ -17,7 +17,6 @@ import { removeToken, setToken as storageSetToken, isNativePlatform } from '../.
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
 import peakEarnersData from '../../data/personas/peak_earners.json';
-import widowData from '../../data/personas/widow.json';
 import entrepreneurData from '../../data/personas/entrepreneur.json';
 import youngSaverData from '../../data/personas/young_saver.json';
 import retiredCoupleData from '../../data/personas/retired_couple.json';
@@ -28,7 +27,6 @@ import studentData from '../../data/personas/student.json';
 const PERSONA_DATA = {
     young_family: youngFamilyData,
     peak_earners: peakEarnersData,
-    widow: widowData,
     entrepreneur: entrepreneurData,
     young_saver: youngSaverData,
     retired_couple: retiredCoupleData,
@@ -43,8 +41,7 @@ const PERSONA_ORDER = [
     'entrepreneur',    // Alex Chen
     'young_saver',     // John Morgan
     'student',         // Janice Taylor
-    'retired_couple',  // Robert & Patricia Williams
-    'widow',           // Margaret Thompson
+    'retired_couple',  // Patricia & Harold Bennett
 ];
 
 /**
