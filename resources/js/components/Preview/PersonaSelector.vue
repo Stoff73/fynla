@@ -263,9 +263,8 @@ export default {
                 // Use persona-specific darker shade for the selector button
                 // Use basePersonaId to maintain consistent color when viewing as spouse
                 const darkColors = {
-                    young_family: 'bg-raspberry-600 hover:bg-raspberry-700 text-white',
-                    peak_earners: 'bg-spring-700 hover:bg-spring-800 text-white',
-                    widow: 'bg-purple-600 hover:bg-purple-700 text-white',
+                    young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
+                    peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
                     entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
                     student: 'bg-teal-600 hover:bg-teal-700 text-white',
