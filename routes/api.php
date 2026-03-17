@@ -1013,6 +1013,9 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser'])
         ->middleware('permission:users.delete');
 
+    // User module status tracking
+    Route::get('users/{id}/module-status', [\App\Http\Controllers\Api\AdminController::class, 'moduleStatus']);
+
     // Subscription stats
     Route::get('/subscriptions/stats', [\App\Http\Controllers\Api\AdminController::class, 'getSubscriptionStats']);
 
@@ -1054,6 +1057,21 @@ Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])-
     Route::delete('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'destroy']);
     Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'toggleEnabled']);
 });
+
+// Generic action definition routes (for Decision Matrix)
+Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])
+    ->prefix('admin/action-definitions/{module}')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'index']);
+        Route::get('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'show']);
+        Route::post('/', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'store']);
+        Route::patch('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'update']);
+        Route::delete('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'destroy']);
+        Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'toggleEnabled']);
+    });
+
+Route::middleware(['auth:sanctum', 'permission:admin.access'])
+    ->get('admin/decision-matrix/{module}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'decisionMatrix']);
 
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
