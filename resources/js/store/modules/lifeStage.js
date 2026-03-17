@@ -30,31 +30,51 @@ const getters = {
     if (!user) return [];
 
     // Map step IDs to data existence checks
+    // Uses multiple data sources: auth user fields, netWorth overview/summary,
+    // and individual module stores. Checks overview.breakdown and assetsSummary
+    // counts since those load with fetchOverview (not separate fetch calls).
+    const nw = rootState.netWorth || {};
+    const overview = nw.overview || {};
+    const breakdown = overview.breakdown || {};
+    const liabBreakdown = overview.liabilitiesBreakdown || {};
+    const summary = nw.assetsSummary || {};
+
+    const hasProperty = (summary.property?.count || 0) > 0 || (breakdown.property || 0) > 0 || (nw.properties?.length || 0) > 0;
+    const hasCash = (summary.cash?.count || 0) > 0 || (breakdown.cash || 0) > 0 || (rootState.savings?.accounts?.length || 0) > 0;
+    const hasInvestments = (summary.investments?.count || 0) > 0 || (breakdown.investments || 0) > 0 || (rootState.investment?.accounts?.length || 0) > 0;
+    const hasPensions = (summary.pensions?.count || 0) > 0 || (breakdown.pensions || 0) > 0 || (rootState.retirement?.pensions?.length || 0) > 0;
+    const hasProtection = (rootState.protection?.policies?.length || 0) > 0 || (rootState.protection?.totalCoverage || 0) > 0;
+    const hasLiabilities = overview.totalLiabilities > 0 || (liabBreakdown.student_loans || 0) > 0;
+    const hasGoals = (rootState.goals?.goals?.length || 0) > 0;
+    const hasWill = !!rootState.estate?.will || !!rootState.estate?.estateData;
+    const hasEstate = !!rootState.estate?.estateData || overview.totalAssets > 0;
+    const hasFamily = (rootState.userProfile?.familyMembers?.length || 0) > 0 || user.marital_status === 'married';
+
     const stepDataChecks = {
       'personal-info': () => !!user.date_of_birth && !!user.gender,
-      'student-loan': () => (rootState.estate?.liabilities || []).some(l => l.liability_type === 'student_loan'),
+      'student-loan': () => hasLiabilities,
       'income': () => !!user.annual_employment_income || !!user.employment_status,
       'income-career': () => !!user.annual_employment_income || !!user.employment_status,
       'income-tax': () => !!user.annual_employment_income,
       'expenditure': () => !!user.monthly_expenditure && user.monthly_expenditure > 0,
-      'savings': () => (rootState.savings?.accounts?.length || 0) > 0,
-      'savings-emergency': () => (rootState.savings?.accounts?.length || 0) > 0,
-      'first-home-lisa': () => (rootState.savings?.accounts || []).some(a => a.account_type === 'cash_isa' || a.is_isa),
-      'investments': () => (rootState.investment?.accounts?.length || 0) > 0,
-      'investments-isa': () => (rootState.investment?.accounts?.length || 0) > 0,
-      'goals': () => (rootState.goals?.goals?.length || 0) > 0,
-      'family': () => (rootState.userProfile?.familyMembers?.length || 0) > 0 || user.marital_status === 'married',
-      'property-mortgage': () => (rootState.netWorth?.properties?.length || 0) > 0,
-      'property-portfolio': () => (rootState.netWorth?.properties?.length || 0) > 0,
-      'protection-insurance': () => (rootState.protection?.policies?.length || 0) > 0,
-      'pensions': () => (rootState.retirement?.pensions?.length || 0) > 0,
-      'pension-auto-enrolment': () => (rootState.retirement?.pensions?.length || 0) > 0,
-      'pension-review': () => (rootState.retirement?.pensions?.length || 0) > 0,
-      'pension-drawdown': () => (rootState.retirement?.pensions?.length || 0) > 0,
-      'state-pension': () => !!rootState.retirement?.statePension,
-      'will-estate': () => !!rootState.estate?.will,
-      'estate-iht': () => !!rootState.estate?.estateData,
-      'estate-legacy': () => !!rootState.estate?.estateData,
+      'savings': () => hasCash,
+      'savings-emergency': () => hasCash,
+      'first-home-lisa': () => hasCash,
+      'investments': () => hasInvestments,
+      'investments-isa': () => hasInvestments,
+      'goals': () => hasGoals,
+      'family': () => hasFamily,
+      'property-mortgage': () => hasProperty,
+      'property-portfolio': () => hasProperty,
+      'protection-insurance': () => hasProtection,
+      'pensions': () => hasPensions,
+      'pension-auto-enrolment': () => hasPensions,
+      'pension-review': () => hasPensions,
+      'pension-drawdown': () => hasPensions,
+      'state-pension': () => hasPensions,
+      'will-estate': () => hasWill,
+      'estate-iht': () => hasEstate,
+      'estate-legacy': () => hasEstate,
     };
 
     const steps = getters.onboardingSteps;
