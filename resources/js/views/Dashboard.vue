@@ -809,9 +809,9 @@ import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
 
 // Life stage journey components
-const JourneyProgressHero = () => import('@/components/Journey/JourneyProgressHero.vue');
-const GoalsCard = () => import('@/components/Dashboard/GoalsCard.vue');
-const LifeTimelineCard = () => import('@/components/Dashboard/LifeTimelineCard.vue');
+import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
+import GoalsCard from '@/components/Dashboard/GoalsCard.vue';
+import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 export default {
   name: 'Dashboard',
