@@ -373,8 +373,10 @@ export default {
       if (stepCount <= 6) return base;
       // 7 steps: extend from node 6 (530,370) curving DOWN-LEFT to node 7 (280,440)
       if (stepCount === 7) return base + ' C 430,390 360,430 280,440';
-      // 8 steps: extend further from node 7 (280,440) curving UP-LEFT to node 8 (80,370)
-      return base + ' C 430,390 360,430 280,440 C 200,450 120,410 80,370';
+      // 8 steps: extend further from node 7 (280,440) with gentle curve UP-LEFT to node 8 (80,370)
+      // C1 (190,448) continues the left-down momentum from node 7
+      // C2 (120,400) gradually lifts toward node 8 — no sharp turn
+      return base + ' C 430,390 360,430 280,440 C 190,448 120,400 80,370';
     },
 
     destinationPathD() {
