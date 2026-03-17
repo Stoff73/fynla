@@ -77,7 +77,7 @@ class AdvisorDashboardService
             ->active()
             ->where(function ($q) {
                 $q->where('next_review_due', '<=', now())
-                  ->orWhere('next_review_due', '<=', now()->addDays(30));
+                    ->orWhere('next_review_due', '<=', now()->addDays(30));
             })
             ->with(['client', 'activities' => fn ($q) => $q->latest('activity_date')->limit(1)])
             ->orderBy('next_review_due', 'asc')

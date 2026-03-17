@@ -11,7 +11,6 @@ use App\Models\CashAccount;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
-use App\Models\DisabilityPolicy;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
@@ -25,13 +24,12 @@ use App\Models\Investment\RiskProfile;
 use App\Models\LifeInsurancePolicy;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
-use App\Models\SicknessIllnessPolicy;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Admin\UserModuleTrackingService;
 
 beforeEach(function () {
-    $this->service = new UserModuleTrackingService();
+    $this->service = new UserModuleTrackingService;
 });
 
 describe('Protection module status', function () {

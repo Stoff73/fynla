@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function () {
-    $this->service = new AdvisorImpersonationService();
+    $this->service = new AdvisorImpersonationService;
     $this->advisor = User::factory()->create(['is_advisor' => true]);
 
     // Create a real Sanctum token so currentAccessToken()->id works
