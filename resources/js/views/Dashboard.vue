@@ -820,15 +820,7 @@
           :horizontal="true"
         />
 
-        <!-- Cross-Module Insights (all non-student users) -->
-        <template v-if="!isStudentPersona">
-          <div class="lg:col-span-3">
-            <h2 class="text-lg font-bold text-horizon-500 mt-2 mb-1">Cross-Module Insights</h2>
-          </div>
-          <div class="lg:col-span-3">
-            <CrossModuleInsights />
-          </div>
-        </template>
+        <!-- Cross-Module Insights removed from dashboard -->
       </div>
     </div>
   </AppLayout>
@@ -841,7 +833,7 @@ import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
-import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
+// CrossModuleInsights removed from dashboard
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
@@ -863,7 +855,6 @@ export default {
     GoalsProjectionChartDashboard,
     AreasToCompleteCard,
     ProfileCompletionCards,
-    CrossModuleInsights,
     EmptyDashboard,
     JourneyProgressHero,
     GoalsCard,
