@@ -28,6 +28,7 @@ class User extends Authenticatable
     protected $guarded = [
         'id',
         'is_admin',
+        'is_advisor',
         'is_preview_user',
         'preview_persona_id',
         'email_verified_at',
@@ -69,6 +70,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_admin' => 'boolean',
+        'is_advisor' => 'boolean',
         'is_preview_user' => 'boolean',
         'must_change_password' => 'boolean',
         // MFA fields
@@ -544,6 +546,22 @@ class User extends Authenticatable
     public function goals(): HasMany
     {
         return $this->hasMany(Goal::class);
+    }
+
+    /**
+     * Get clients managed by this advisor.
+     */
+    public function advisorClients(): HasMany
+    {
+        return $this->hasMany(AdvisorClient::class, 'advisor_id');
+    }
+
+    /**
+     * Get advisors managing this client.
+     */
+    public function advisors(): HasMany
+    {
+        return $this->hasMany(AdvisorClient::class, 'client_id');
     }
 
     /**

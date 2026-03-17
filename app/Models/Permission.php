@@ -39,6 +39,8 @@ class Permission extends Model
 
     public const ADMIN_BACKUP = 'admin.backup';
 
+    public const ADVISOR_ACCESS = 'advisor.access';
+
     protected $fillable = [
         'name',
         'display_name',
