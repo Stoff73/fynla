@@ -66,6 +66,9 @@ class DatabaseSeeder extends Seeder
             // Tax action definitions - configurable tax optimisation action triggers
             TaxActionDefinitionSeeder::class,
 
+            // Estate action definitions - configurable estate planning action triggers
+            EstateActionDefinitionSeeder::class,
+
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
         ]);
@@ -105,6 +108,7 @@ class DatabaseSeeder extends Seeder
             SavingsActionDefinitionSeeder::class,
             ProtectionActionDefinitionSeeder::class,
             TaxActionDefinitionSeeder::class,
+            EstateActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,
         ]);
     }
