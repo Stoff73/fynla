@@ -25,15 +25,7 @@
           :class="stageCardBorderClass(stage)"
           @click="selectStage(stage.id)"
         >
-          <div class="flex justify-center mb-4">
-            <div
-              class="w-14 h-14 rounded-full flex items-center justify-center"
-              :class="stageIconBgClass(stage)"
-            >
-              <component :is="stageIconComponent(stage)" class="w-7 h-7 text-white" />
-            </div>
-          </div>
-          <h3 class="text-base font-bold text-horizon-500 text-center mb-1">{{ stage.label }}</h3>
+          <h3 class="text-base font-bold text-horizon-500 text-center mb-1 mt-2">{{ stage.label }}</h3>
           <p class="text-sm font-semibold text-center mb-2" :class="stageTextColourClass(stage)">
             Ages {{ stage.ageRange }}
           </p>
