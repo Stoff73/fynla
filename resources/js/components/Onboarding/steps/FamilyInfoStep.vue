@@ -87,23 +87,26 @@
         </div>
       </div>
 
-      <!-- Add Family Member Button -->
+      <!-- Add Family Member Button (hidden when inline form is open) -->
       <button
+        v-if="!showModal"
         type="button"
         class="btn-secondary w-full md:w-auto"
         @click="showAddModal"
       >
         + Add Family Member
       </button>
-    </div>
 
-    <!-- Family Member Form Modal -->
-    <FamilyMemberFormModal
-      v-if="showModal"
-      :member="selectedMember"
-      @save="handleSave"
-      @close="closeModal"
-    />
+      <!-- Family Member Form (inline, no modal overlay) -->
+      <div v-if="showModal" class="border border-light-gray rounded-lg p-4 bg-white">
+        <FamilyMemberFormModal
+          :member="selectedMember"
+          context="onboarding"
+          @save="handleSave"
+          @close="closeModal"
+        />
+      </div>
+    </div>
 
     <!-- Spouse Success Modal -->
     <SpouseSuccessModal

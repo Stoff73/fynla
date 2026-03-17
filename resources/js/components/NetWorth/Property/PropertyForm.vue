@@ -1,14 +1,16 @@
 <template>
-  <div class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="">
-    <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
-      <div ref="formContent" class="overflow-y-auto max-h-[90vh]">
+  <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center'" @click.self="">
+    <div :class="context === 'onboarding' ? '' : 'relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden'" @click.stop>
+      <div ref="formContent" :class="context === 'onboarding' ? '' : 'overflow-y-auto max-h-[90vh]'">
       <!-- Header -->
-      <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 rounded-t-lg z-10">
+      <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 rounded-t-lg z-10'">
         <div class="flex items-center justify-between">
           <h3 class="text-2xl font-semibold text-horizon-500">
             {{ isEditMode ? 'Edit Property' : 'Add Property' }}
           </h3>
           <button
+            v-if="context !== 'onboarding'"
             @click="$emit('close')"
             class="text-horizon-400 hover:text-neutral-500 transition-colors"
           >
@@ -1253,7 +1255,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="bg-savannah-100 border-t border-light-gray px-6 py-4 flex justify-between rounded-b-lg">
+        <div :class="context === 'onboarding' ? 'mt-6 flex justify-between' : 'bg-savannah-100 border-t border-light-gray px-6 py-4 flex justify-between rounded-b-lg'">
           <button
             type="button"
             @click="previousStep"
@@ -1265,6 +1267,7 @@
 
           <div class="flex space-x-2 ml-auto">
             <button
+              v-if="context !== 'onboarding'"
               type="button"
               @click="$emit('close')"
               class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-button hover:bg-savannah-100 transition-colors"
