@@ -17,6 +17,10 @@ export default {
     'bg-violet-50', 'bg-violet-100', 'bg-violet-500', 'text-violet-500', 'text-violet-700', 'border-violet-300',
     'bg-horizon-50', 'bg-horizon-100', 'text-horizon-500', 'border-horizon-200',
     'bg-savannah-100', 'bg-eggshell-500',
+    // Life stage sidebar — dynamic stage colours (progress ring, active states, badges)
+    'stroke-violet-500', 'stroke-spring-500', 'stroke-raspberry-500', 'stroke-light-blue-500', 'stroke-horizon-500',
+    'bg-light-blue-100', 'bg-light-blue-500', 'text-light-blue-500',
+    'bg-horizon-500', 'text-horizon-700', 'stroke-light-gray',
   ],
   theme: {
     extend: {
