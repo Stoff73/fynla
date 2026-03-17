@@ -610,8 +610,14 @@ export default {
 
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
-        // Onboarding complete — go to dashboard
+        // Onboarding complete — refresh net worth cache then go to dashboard
         await store.dispatch('auth/fetchUser', null, { root: true });
+        try {
+          const api = (await import('@/services/api')).default;
+          await api.post('/net-worth/refresh');
+        } catch {
+          // Non-blocking — dashboard will still load
+        }
         router.push({ name: 'Dashboard' });
         return;
       }
