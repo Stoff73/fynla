@@ -19,20 +19,19 @@
       </div>
     </div>
 
-    <!-- Timeline -->
-    <div v-if="timelineEvents.length > 0" class="relative">
-      <!-- Vertical timeline line -->
-      <div class="absolute left-3 top-3 bottom-3 w-px bg-light-gray"></div>
+    <!-- Horizontal Timeline (when horizontal prop is true) -->
+    <div v-if="horizontal && timelineEvents.length > 0" class="relative">
+      <!-- Horizontal line -->
+      <div class="absolute top-3 left-3 right-3 h-px bg-light-gray"></div>
 
-      <div class="space-y-4">
+      <div class="flex items-start justify-between gap-2 overflow-x-auto">
         <div
           v-for="(event, index) in timelineEvents"
           :key="event.id || index"
-          class="relative flex items-start gap-4 pl-0"
+          class="flex flex-col items-center text-center flex-1 min-w-[100px] relative"
         >
-          <!-- Timeline dot -->
-          <div class="relative z-10 flex-shrink-0">
-            <!-- Past event: spring-500 solid dot -->
+          <!-- Dot -->
+          <div class="relative z-10 flex-shrink-0 mb-2">
             <div
               v-if="event.timeState === 'past'"
               class="w-6 h-6 rounded-full bg-spring-500 flex items-center justify-center"
@@ -41,8 +40,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-
-            <!-- Imminent/current event: stage-colour dot with glow -->
             <div
               v-else-if="event.timeState === 'imminent'"
               class="w-6 h-6 rounded-full flex items-center justify-center"
@@ -51,8 +48,6 @@
             >
               <div class="w-2 h-2 rounded-full bg-white"></div>
             </div>
-
-            <!-- Future event: light-gray dot -->
             <div
               v-else
               class="w-6 h-6 rounded-full bg-light-gray border-2 border-white flex items-center justify-center"
@@ -61,7 +56,61 @@
             </div>
           </div>
 
-          <!-- Event content -->
+          <!-- Label -->
+          <p
+            class="text-xs font-medium leading-tight"
+            :class="event.timeState === 'past' ? 'text-neutral-500' : 'text-horizon-500'"
+          >
+            {{ event.event_name || event.title || event.name }}
+          </p>
+          <span class="text-xs text-neutral-500 mt-0.5">
+            {{ formatEventDate(event) }}
+          </span>
+          <button
+            v-if="event.timeState === 'imminent'"
+            class="text-xs font-medium mt-1 hover:underline"
+            :class="'text-' + stageColour + '-500'"
+            @click="$router.push('/goals?event=' + event.id)"
+          >
+            See impact &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical Timeline (default) -->
+    <div v-else-if="timelineEvents.length > 0" class="relative">
+      <div class="absolute left-3 top-3 bottom-3 w-px bg-light-gray"></div>
+      <div class="space-y-4">
+        <div
+          v-for="(event, index) in timelineEvents"
+          :key="event.id || index"
+          class="relative flex items-start gap-4 pl-0"
+        >
+          <div class="relative z-10 flex-shrink-0">
+            <div
+              v-if="event.timeState === 'past'"
+              class="w-6 h-6 rounded-full bg-spring-500 flex items-center justify-center"
+            >
+              <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div
+              v-else-if="event.timeState === 'imminent'"
+              class="w-6 h-6 rounded-full flex items-center justify-center"
+              :class="'bg-' + stageColour + '-500'"
+              :style="{ boxShadow: '0 0 0 4px ' + stageColourRgba }"
+            >
+              <div class="w-2 h-2 rounded-full bg-white"></div>
+            </div>
+            <div
+              v-else
+              class="w-6 h-6 rounded-full bg-light-gray border-2 border-white flex items-center justify-center"
+            >
+              <div class="w-2 h-2 rounded-full bg-neutral-500"></div>
+            </div>
+          </div>
           <div class="flex-1 min-w-0 pt-0.5">
             <div class="flex items-center justify-between">
               <p
@@ -74,8 +123,6 @@
                 {{ formatEventDate(event) }}
               </span>
             </div>
-
-            <!-- Imminent events get a call-to-action link -->
             <button
               v-if="event.timeState === 'imminent'"
               class="text-xs font-medium mt-1 hover:underline"
@@ -109,6 +156,13 @@ import { mapGetters, mapState } from 'vuex';
 
 export default {
   name: 'LifeTimelineCard',
+
+  props: {
+    horizontal: {
+      type: Boolean,
+      default: false,
+    },
+  },
 
   computed: {
     ...mapState('goals', ['lifeEvents']),

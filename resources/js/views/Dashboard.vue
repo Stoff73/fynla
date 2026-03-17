@@ -767,16 +767,57 @@
 
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
 
-        <!-- Stage-curated: Goals Card (new component with progress bars and suggested goals) -->
-        <GoalsCard
+        <!-- Stage-curated: Goals projection chart (spans 2 columns) + Suggested goals card (1 column) -->
+        <DashboardCard
           v-if="currentStage && isCardVisible('goals')"
-          @add-goal="navigateTo('/goals?addGoal=true')"
-          @add-suggested-goal="handleSuggestedGoal"
-        />
+          title="Goals & Life Events"
+          :loading="loading.goals"
+          class="lg:col-span-2"
+          @click="navigateTo('/goals')"
+        >
+          <div v-if="goalsData.hasProjection || goalsData.hasGoals" class="cursor-pointer">
+            <GoalsProjectionChartDashboard />
+          </div>
+          <div v-else class="text-center py-4">
+            <h3 class="text-sm font-semibold text-horizon-500 mb-1">Set Your First Goal</h3>
+            <p class="text-xs text-neutral-500">Track your financial goals and life events</p>
+          </div>
+        </DashboardCard>
 
-        <!-- Stage-curated: Life Timeline Card (new component with vertical timeline) -->
+        <!-- Suggested Goals Card (3rd column next to the goals chart) -->
+        <div v-if="currentStage && isCardVisible('goals')" class="bg-white rounded-card border border-light-gray shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-horizon-500">Suggested for You</h3>
+            <button @click="navigateTo('/goals?addGoal=true')" class="text-xs font-semibold text-raspberry-500 hover:text-raspberry-600">+ Add goal</button>
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="suggestion in stageSuggestedGoals"
+              :key="suggestion.id"
+              class="flex items-start gap-3 p-3 border border-dashed border-light-gray rounded-lg cursor-pointer hover:bg-savannah-100 hover:border-savannah-400 transition-all"
+              @click="handleSuggestedGoal(suggestion)"
+            >
+              <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-horizon-500">{{ suggestion.label }}</p>
+                <p v-if="suggestion.description" class="text-xs text-neutral-500 mt-0.5">{{ suggestion.description }}</p>
+              </div>
+              <svg class="w-4 h-4 text-neutral-500 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
         <LifeTimelineCard
           v-if="currentStage && isCardVisible('life-timeline')"
+          class="lg:col-span-3"
+          :horizontal="true"
         />
 
         <!-- Cross-Module Insights (all non-student users) -->
@@ -862,6 +903,7 @@ export default {
     ...mapGetters('lifeStage', {
       currentStage: 'currentStage',
       stageDashboardCards: 'dashboardCards',
+      stageSuggestedGoals: 'suggestedGoals',
     }),
 
     isStudentPersona() {
