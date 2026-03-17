@@ -94,7 +94,7 @@
 
       <!-- Journey Map SVG — matching approved v6 mockup -->
       <div class="px-6 pt-8 pb-4">
-        <svg viewBox="0 0 900 540" class="w-full" style="height: 540px;" preserveAspectRatio="xMidYMid meet">
+        <svg :viewBox="svgViewBoxX + ' 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" :stop-color="stageHex" />
@@ -287,42 +287,66 @@ export default {
         'estate-legacy': { title: 'Estate & Legacy', subtitle: 'Your legacy' },
       };
 
-      // Exact v6 approved positions for 6 steps
-      const v6Positions = [
-        // Node 1: top, label BELOW (28px gap: node bottom 112, title at 140)
+      // Base 6 nodes from approved v6 mockup (shared by all step counts)
+      const baseNodes = [
+        // Node 1: top, label BELOW (28px gap)
         { x: 100, y: 90, labelX: 100, labelY: 140, labelAnchor: 'middle' },
-        // Node 2: bottom, label ABOVE (28px gap: node top 238, last line at 210)
+        // Node 2: bottom, label ABOVE (28px gap)
         { x: 340, y: 260, labelX: 340, labelY: 182, labelAnchor: 'middle' },
         // Node 3: top, label BELOW
         { x: 580, y: 90, labelX: 580, labelY: 140, labelAnchor: 'middle' },
-        // Node 4: right, label LEFT (28px gap: node left 768, label right ~740)
+        // Node 4: right drop, label LEFT (28px gap)
         { x: 790, y: 280, labelX: 740, labelY: 275, labelAnchor: 'end' },
-        // Node 5: lower right, label BELOW (28px gap: node bottom 472, title at 500)
+        // Node 5: lower right, label BELOW (28px gap)
         { x: 770, y: 450, labelX: 770, labelY: 500, labelAnchor: 'middle' },
-        // Node 6: return, label ABOVE (28px gap: node top 348, last line at 320)
+        // Node 6: return left, label ABOVE (28px gap)
         { x: 530, y: 370, labelX: 530, labelY: 292, labelAnchor: 'middle' },
       ];
 
-      // Destination: exact v6
-      const v6Destination = { x: 350, y: 430, labelX: 390, labelY: 426, labelAnchor: 'start' };
+      // Extended node for 7 steps: continues curve DOWN-LEFT from node 6 (530,370)
+      // Stays BELOW the horizontal meander — no path crossing
+      // Label LEFT to avoid collision with destination below
+      const node7Down = { x: 280, y: 440, labelX: 230, labelY: 435, labelAnchor: 'end' };
+
+      // Extended node for 8 steps: from node 7, curves back UP-LEFT
+      // Label BELOW
+      const node8Up = { x: 80, y: 370, labelX: 80, labelY: 420, labelAnchor: 'middle' };
+
+      // Destinations per step count — positioned clear of all labels
+      const destinations = {
+        6: { x: 350, y: 430, labelX: 390, labelY: 426, labelAnchor: 'start' },
+        7: { x: 100, y: 510, labelX: 140, labelY: 506, labelAnchor: 'start' },
+        8: { x: 80, y: 490, labelX: 120, labelY: 486, labelAnchor: 'start' },
+      };
+
+      // Select positions based on step count
+      const stepCount = steps.length;
+      let positions;
+      if (stepCount <= 6) {
+        positions = baseNodes.slice(0, stepCount);
+      } else if (stepCount === 7) {
+        positions = [...baseNodes, node7Down];
+      } else {
+        positions = [...baseNodes, node7Down, node8Up];
+      }
+
+      const dest = destinations[Math.min(stepCount, 8)] || destinations[6];
 
       const result = [];
-      const count = Math.min(steps.length, v6Positions.length);
-
-      for (let i = 0; i < count; i++) {
-        const pos = v6Positions[i];
+      for (let i = 0; i < positions.length; i++) {
+        const pos = positions[i];
         const meta = stepTitles[steps[i]] || { title: steps[i], subtitle: '' };
         result.push({
           ...pos,
           title: meta.title,
-          subtitle: meta.subtitle.split('\n')[0], // first line only for SVG
+          subtitle: meta.subtitle.split('\n')[0],
           isDestination: false,
         });
       }
 
       // Destination
       result.push({
-        ...v6Destination,
+        ...dest,
         title: 'Your Dashboard',
         subtitle: 'Personalised to your stage',
         isDestination: true,
@@ -331,18 +355,36 @@ export default {
       return result;
     },
 
-    // Exact v6 mockup dimensions
     svgWidth() { return 900; },
-    svgHeight() { return 540; },
-    svgViewBoxX() { return 0; },
+    svgHeight() {
+      const count = this.stageSteps.length;
+      if (count <= 6) return 540;
+      if (count === 7) return 560;
+      return 540;
+    },
+    svgViewBoxX() { return this.stageSteps.length >= 8 ? -20 : 0; },
 
-    // Exact path from approved v6 mockup
+    // Paths per step count — all smooth cubic beziers, no sharp turns
     pathD() {
-      return 'M 100,90 C 210,90 230,260 340,260 C 450,260 470,90 580,90 C 690,90 750,210 790,280 C 830,340 820,420 770,450 C 720,480 620,390 530,370';
+      // Base v6 path (6 nodes)
+      const base = 'M 100,90 C 210,90 230,260 340,260 C 450,260 470,90 580,90 C 690,90 750,210 790,280 C 830,340 820,420 770,450 C 720,480 620,390 530,370';
+      const stepCount = this.stageSteps.length;
+
+      if (stepCount <= 6) return base;
+      // 7 steps: extend from node 6 (530,370) curving DOWN-LEFT to node 7 (280,440)
+      if (stepCount === 7) return base + ' C 430,390 360,430 280,440';
+      // 8 steps: extend further from node 7 (280,440) curving UP-LEFT to node 8 (80,370)
+      return base + ' C 430,390 360,430 280,440 C 200,450 120,410 80,370';
     },
 
     destinationPathD() {
-      return 'M 530,370 C 460,355 400,390 350,430';
+      const stepCount = this.stageSteps.length;
+      // 6 steps: from node 6 (530,370) to dest (350,430)
+      if (stepCount <= 6) return 'M 530,370 C 460,355 400,390 350,430';
+      // 7 steps: from node 7 (280,440) to dest (100,500)
+      if (stepCount === 7) return 'M 280,440 C 200,460 140,480 100,500';
+      // 8 steps: from node 8 (80,370) to dest (80,480)
+      return 'M 80,370 C 60,410 70,450 80,480';
     },
 
     selectedMilestone() {
