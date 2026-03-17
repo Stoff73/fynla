@@ -94,7 +94,7 @@
 
       <!-- Journey Map SVG — matching approved v6 mockup -->
       <div class="px-6 pt-8 pb-4">
-        <svg :viewBox="'0 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
+        <svg :viewBox="svgViewBoxX + ' 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" :stop-color="stageHex" />
@@ -254,8 +254,9 @@ export default {
       return map[this.selectedStageConfig?.colour] || '#7c79ff';
     },
 
-    // Build node positions matching the approved v6 mockup pattern:
-    // Horizontal meander (top/bottom alternating), then vertical drop, then curve back
+    // Build node positions matching approved v6 mockup exactly.
+    // Pattern: horizontal meander (top=90, bottom=260), vertical drop on right,
+    // return curve going left, destination node. All with 28px label gaps.
     nodes() {
       const steps = this.stageSteps;
       const count = steps.length;
@@ -288,66 +289,83 @@ export default {
         'estate-legacy': { title: 'Estate & Legacy', subtitle: 'Your legacy' },
       };
 
+      // Approved v6 mockup coordinates (6-step reference):
+      // Node 1: (100, 90)  top     label below  y+50
+      // Node 2: (340, 260) bottom  label above  y-78 (title)
+      // Node 3: (580, 90)  top     label below  y+50
+      // Node 4: (790, 280) right   label left   x-50
+      // Node 5: (770, 450) right   label below  y+50
+      // Node 6: (530, 370) return  label above  y-78
+      // Dest:   (350, 430)         label right  x+40
+
       const result = [];
       const topY = 90;
-      const bottomY = 240;
-      const startX = 80;
-      const horizontalSteps = Math.min(count, Math.ceil(count * 0.6)); // ~60% horizontal
-      const verticalSteps = count - horizontalSteps;
-      const hSpacing = 200;
+      const bottomY = 260;
 
-      // Horizontal meandering section
-      for (let i = 0; i < horizontalSteps; i++) {
-        const x = startX + i * hSpacing;
+      // Split: first 3 horizontal, then vertical, then return
+      // Scale horizontal spacing based on count
+      const horizCount = Math.min(3, count); // max 3 in horizontal meander
+      const rightCount = Math.min(2, count - horizCount); // max 2 dropping vertically on right
+      const returnCount = count - horizCount - rightCount; // remaining return left
+      const hSpacing = 240; // spacing between horizontal nodes
+
+      // Horizontal meander (alternating top/bottom)
+      for (let i = 0; i < horizCount; i++) {
+        const x = 100 + i * hSpacing;
         const isTop = i % 2 === 0;
         const y = isTop ? topY : bottomY;
         const meta = stepTitles[steps[i]] || { title: steps[i], subtitle: '' };
-
-        // Labels: below for top nodes, above for bottom nodes (28px gap)
-        const labelY = isTop ? y + 22 + 28 : y - 22 - 42;
-
         result.push({
           x, y,
-          labelX: x, labelY,
+          labelX: x,
+          labelY: isTop ? y + 50 : y - 78,
           labelAnchor: 'middle',
-          title: meta.title,
-          subtitle: meta.subtitle,
+          title: meta.title, subtitle: meta.subtitle,
           isDestination: false,
         });
       }
 
-      // Vertical/return section
-      if (verticalSteps > 0) {
-        const lastH = result[result.length - 1];
-        const verticalStartY = lastH.y + 120;
-        const returnSpacing = hSpacing * 0.8;
-
-        for (let i = 0; i < verticalSteps; i++) {
-          const x = lastH.x - (i * returnSpacing);
-          const y = verticalStartY + (i * 60);
-          const stepIdx = horizontalSteps + i;
-          const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
-
-          // Labels to the left for vertical section
-          result.push({
-            x, y,
-            labelX: x - 22 - 28, labelY: y - 5,
-            labelAnchor: 'end',
-            title: meta.title,
-            subtitle: meta.subtitle,
-            isDestination: false,
-          });
-        }
+      // Vertical section on right side
+      const rightX = 100 + horizCount * hSpacing - 50; // slightly left of edge
+      for (let i = 0; i < rightCount; i++) {
+        const x = rightX + (i % 2 === 0 ? 20 : -20); // slight zigzag
+        const y = (horizCount % 2 === 0 ? bottomY : topY) + 190 + i * 170;
+        const stepIdx = horizCount + i;
+        const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
+        result.push({
+          x, y,
+          labelX: x - 50,
+          labelY: y - 5,
+          labelAnchor: 'end',
+          title: meta.title, subtitle: meta.subtitle,
+          isDestination: false,
+        });
       }
 
-      // Destination node
+      // Return curve going left
+      const lastRight = result[result.length - 1];
+      for (let i = 0; i < returnCount; i++) {
+        const x = lastRight.x - (i + 1) * 240;
+        const y = lastRight.y - 80 - i * 60;
+        const stepIdx = horizCount + rightCount + i;
+        const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
+        result.push({
+          x, y,
+          labelX: x,
+          labelY: y - 78, // label above
+          labelAnchor: 'middle',
+          title: meta.title, subtitle: meta.subtitle,
+          isDestination: false,
+        });
+      }
+
+      // Destination
       const lastNode = result[result.length - 1];
       result.push({
-        x: lastNode.x - 160, y: lastNode.y + 50,
-        labelX: lastNode.x - 160 + 30, labelY: lastNode.y + 50 - 5,
+        x: lastNode.x - 180, y: lastNode.y + 60,
+        labelX: lastNode.x - 180 + 40, labelY: lastNode.y + 60 - 5,
         labelAnchor: 'start',
-        title: 'Your Dashboard',
-        subtitle: 'Personalised to your stage',
+        title: 'Your Dashboard', subtitle: 'Personalised to your stage',
         isDestination: true,
       });
 
@@ -355,13 +373,21 @@ export default {
     },
 
     svgWidth() {
-      if (!this.nodes.length) return 800;
-      return Math.max(...this.nodes.map(n => n.x)) + 120;
+      if (!this.nodes.length) return 900;
+      const maxX = Math.max(...this.nodes.map(n => Math.max(n.x, n.labelX + 120)));
+      const minX = Math.min(...this.nodes.map(n => Math.min(n.x - 30, n.labelX - 10)));
+      return maxX - Math.min(0, minX) + 60;
     },
 
     svgHeight() {
-      if (!this.nodes.length) return 400;
-      return Math.max(...this.nodes.map(n => n.y)) + 100;
+      if (!this.nodes.length) return 540;
+      return Math.max(...this.nodes.map(n => n.y)) + 120;
+    },
+
+    svgViewBoxX() {
+      if (!this.nodes.length) return 0;
+      const minX = Math.min(...this.nodes.map(n => Math.min(n.x - 30, n.labelX - 10)));
+      return Math.min(0, minX) - 20;
     },
 
     pathD() {
