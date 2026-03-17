@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
 use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\LifeStageController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\NetWorthController;
@@ -188,6 +189,13 @@ Route::middleware('auth:sanctum')->prefix('journeys')->group(function () {
     Route::get('/{journey}/steps', [JourneyController::class, 'getSteps']);
     Route::post('/{journey}/start', [JourneyController::class, 'startJourney']);
     Route::post('/{journey}/complete', [JourneyController::class, 'completeJourney']);
+});
+
+// Life Stage routes
+Route::middleware('auth:sanctum')->prefix('life-stage')->group(function () {
+    Route::get('/progress', [LifeStageController::class, 'progress']);
+    Route::post('/set', [LifeStageController::class, 'setStage']);
+    Route::post('/complete-step', [LifeStageController::class, 'completeStep']);
 });
 
 // User Profile routes (Phase 2)

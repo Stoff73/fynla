@@ -28,6 +28,7 @@ import household from './modules/household';
 import journeys from './modules/journeys';
 import mobileDashboard from './modules/mobileDashboard';
 import mobileNotifications from './modules/mobileNotifications';
+import lifeStage from './modules/lifeStage';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -79,6 +80,7 @@ const store = createStore({
     journeys,
     mobileDashboard,
     mobileNotifications,
+    lifeStage,
   },
   plugins: [
     createPersistedState({
