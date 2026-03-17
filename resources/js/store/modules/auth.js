@@ -16,6 +16,7 @@ const getters = {
   user: (state) => state.user, // Alias for currentUser
   isAdmin: (state) => state.role === 'admin',
   isSupport: (state) => state.role === 'support',
+  isAdvisor: (state) => state.user?.is_advisor === true,
   role: (state) => state.role,
   permissions: (state) => state.permissions,
   hasPermission: (state) => (perm) => state.permissions.includes(perm),
