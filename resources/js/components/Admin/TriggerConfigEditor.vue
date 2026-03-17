@@ -21,14 +21,29 @@
       </select>
     </div>
 
+    <!-- Combinator selector (AND/OR) between condition rows -->
+    <div v-if="activeTriggerFields.length > 0" class="flex gap-2 items-center mb-2 text-[13px]">
+      <select
+        :value="localConfig.combinator || 'and'"
+        @change="updateField('combinator', $event.target.value)"
+        class="text-violet-500 font-bold text-xs bg-transparent border-none cursor-pointer min-w-[50px] text-center"
+      >
+        <option value="and">AND</option>
+        <option value="or">OR</option>
+      </select>
+      <span class="text-neutral-500 text-xs">conditions below</span>
+    </div>
+
     <!-- Dynamic trigger fields based on selected condition -->
     <template v-if="activeTriggerFields.length > 0">
       <div
-        v-for="field in activeTriggerFields"
+        v-for="(field, index) in activeTriggerFields"
         :key="field"
         class="flex gap-2 items-center mb-2 text-[13px]"
       >
-        <span class="text-violet-500 font-bold text-xs min-w-[24px] text-center">AND</span>
+        <span class="text-violet-500 font-bold text-xs min-w-[24px] text-center">
+          {{ index === 0 ? '' : (localConfig.combinator || 'and').toUpperCase() }}
+        </span>
         <label class="text-neutral-500 text-xs min-w-[80px]">{{ formatFieldLabel(field) }}</label>
         <input
           type="text"

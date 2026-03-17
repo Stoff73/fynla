@@ -304,6 +304,8 @@ class UserModuleTrackingService
             'journey_states' => $user->journey_states ?? [],
             'journey_selections' => $user->journey_selections ?? [],
             'progress_records' => $user->onboardingProgress->count(),
+            'life_stage' => $user->life_stage,
+            'life_stage_completed_steps' => $user->life_stage_completed_steps ?? [],
         ];
     }
 

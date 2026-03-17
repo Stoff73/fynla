@@ -56,6 +56,7 @@
       :definition="drawerDefinition"
       :module="activeModule"
       :module-config="activeModuleConfig"
+      :saving="saving"
       @save="handleSave"
       @close="closeDrawer"
     />
@@ -84,6 +85,7 @@ export default {
       matrixData: null,
       drawerDefinition: null,
       moduleCounts: {},
+      saving: false,
     };
   },
 
@@ -182,6 +184,7 @@ export default {
     },
 
     async handleSave(formData) {
+      this.saving = true;
       try {
         if (formData.id) {
           await actionDefinitionService.updateDefinition(this.activeModule, formData.id, formData);
@@ -193,6 +196,8 @@ export default {
       } catch (err) {
         console.error('Save error:', err);
         alert('Failed to save. Check the console for details.');
+      } finally {
+        this.saving = false;
       }
     },
 

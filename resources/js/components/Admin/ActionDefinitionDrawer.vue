@@ -256,6 +256,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    saving: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   emits: ['save', 'close'],
@@ -263,7 +267,6 @@ export default {
   data() {
     return {
       form: this.getDefaultForm(),
-      saving: false,
     };
   },
 
@@ -327,13 +330,8 @@ export default {
       };
     },
 
-    async handleSave() {
-      this.saving = true;
-      try {
-        this.$emit('save', { ...this.form });
-      } finally {
-        this.saving = false;
-      }
+    handleSave() {
+      this.$emit('save', { ...this.form });
     },
   },
 };

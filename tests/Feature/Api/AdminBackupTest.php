@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -130,12 +131,43 @@ describe('Admin Backup API', function () {
     it('cleans up temporary credential files after backup operations', function () {
         Sanctum::actingAs($this->admin);
 
-        // List backups (which doesn't create credential files) should leave no temp files
+        // List backups (which doesn't create credential files) should leave no temp files.
+        // Note: Full credential lifecycle testing (create → verify cleanup) requires
+        // mysqldump to be available in the test environment.
         $this->getJson('/api/admin/backup/list');
 
         $backupsDir = storage_path('app/backups');
         $tempFiles = glob($backupsDir.'/.my.cnf.*');
 
-        expect(count($tempFiles))->toBe(0);
+        expect(count($tempFiles))->toBe(0)
+            ->and(file_exists($backupsDir))->toBeTrue();
+    });
+
+    it('creates a backup file successfully', function () {
+        Sanctum::actingAs($this->admin);
+
+        $this->postJson('/api/admin/backup/create')
+            ->assertStatus(200);
+    })->skip(! is_executable('/usr/local/bin/mysqldump') && ! is_executable('/usr/bin/mysqldump'), 'mysqldump not available');
+
+    it('restores a backup file', function () {
+        Sanctum::actingAs($this->admin);
+
+        Storage::disk('local')->put('backups/backup_2026-03-17_12-00-00.sql', 'SELECT 1;');
+
+        $this->postJson('/api/admin/backup/restore', ['filename' => 'backup_2026-03-17_12-00-00.sql'])
+            ->assertStatus(200);
+    })->skip(! is_executable('/usr/local/bin/mysql') && ! is_executable('/usr/bin/mysql'), 'mysql client not available');
+
+    it('rate limits backup operations to 3 per minute', function () {
+        for ($i = 0; $i < 3; $i++) {
+            $this->actingAs($this->admin)
+                ->getJson('/api/admin/backup/list')
+                ->assertOk();
+        }
+
+        $this->actingAs($this->admin)
+            ->getJson('/api/admin/backup/list')
+            ->assertStatus(429);
     });
 });
