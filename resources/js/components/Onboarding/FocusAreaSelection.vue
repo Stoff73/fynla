@@ -1,6 +1,7 @@
 <template>
   <div class="max-w-5xl mx-auto">
-    <div class="bg-white rounded-lg border border-light-gray shadow-sm p-6 mb-6">
+    <!-- STATE 1: Stage Selection (no stage chosen yet) -->
+    <div v-if="!selectedStage" class="bg-white rounded-lg border border-light-gray shadow-sm p-6 mb-6">
       <!-- Welcome Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
@@ -22,9 +23,8 @@
           type="button"
           class="card group text-left transition-all duration-200 hover:shadow-md hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 cursor-pointer"
           :class="stageCardBorderClass(stage)"
-          @click="handleStageClick(stage.id)"
+          @click="selectStage(stage.id)"
         >
-          <!-- Stage Icon Circle -->
           <div class="flex justify-center mb-4">
             <div
               class="w-14 h-14 rounded-full flex items-center justify-center"
@@ -33,21 +33,11 @@
               <component :is="stageIconComponent(stage)" class="w-7 h-7 text-white" />
             </div>
           </div>
-
-          <!-- Stage Label -->
-          <h3 class="text-base font-bold text-horizon-500 text-center mb-1">
-            {{ stage.label }}
-          </h3>
-
-          <!-- Age Range -->
+          <h3 class="text-base font-bold text-horizon-500 text-center mb-1">{{ stage.label }}</h3>
           <p class="text-sm font-semibold text-center mb-2" :class="stageTextColourClass(stage)">
             Ages {{ stage.ageRange }}
           </p>
-
-          <!-- Tagline -->
-          <p class="text-xs text-neutral-500 text-center leading-relaxed">
-            {{ stage.tagline }}
-          </p>
+          <p class="text-xs text-neutral-500 text-center leading-relaxed">{{ stage.tagline }}</p>
         </button>
       </div>
 
@@ -70,12 +60,11 @@
           class="inline-flex items-center px-5 py-2.5 rounded-full border border-light-gray text-sm font-medium text-horizon-500 bg-white hover:bg-savannah-100 hover:border-savannah-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all duration-200"
           @click="handleFocusClick(area.id)"
         >
-          <component :is="focusAreaIcon(area)" class="w-4 h-4 mr-2" :class="focusAreaIconColour(area)" />
           {{ area.label }}
         </button>
       </div>
 
-      <!-- Skip to Dashboard -->
+      <!-- Skip -->
       <div class="text-center">
         <button
           type="button"
@@ -89,11 +78,133 @@
         </button>
       </div>
     </div>
+
+    <!-- STATE 2: Journey Map (stage selected, shown inline) -->
+    <div v-else class="bg-white rounded-lg border border-light-gray shadow-sm overflow-hidden mb-6">
+      <!-- Stage hero header -->
+      <div
+        class="px-8 py-6 text-white text-center"
+        :style="{ background: `linear-gradient(135deg, ${stageHex}, ${stageHexLight})` }"
+      >
+        <div class="text-3xl mb-1">{{ selectedStageConfig.icon === 'graduation-cap' ? '🎓' : selectedStageConfig.icon === 'briefcase' ? '🏠' : selectedStageConfig.icon === 'shield' ? '👨‍👩‍👧‍👦' : selectedStageConfig.icon === 'chart-line' ? '📈' : '🌅' }}</div>
+        <h2 class="text-xl font-black mb-1">{{ selectedStageConfig.label }}</h2>
+        <p class="text-sm opacity-90">{{ selectedStageConfig.tagline }}</p>
+        <p class="text-xs opacity-70 mt-1">{{ stageSteps.length }} steps · About {{ stageSteps.length * 2 }} minutes</p>
+      </div>
+
+      <!-- Journey Map SVG — matching approved v6 mockup -->
+      <div class="px-6 pt-8 pb-4">
+        <svg :viewBox="'0 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="journeyPathGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" :stop-color="stageHex" />
+              <stop offset="70%" :stop-color="stageHex" stop-opacity="0.5" />
+              <stop offset="100%" stop-color="#20B486" />
+            </linearGradient>
+            <filter id="journeyGlow">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Shadow path -->
+          <path :d="pathD" fill="none" :stroke="stageHex" stroke-opacity="0.08" stroke-width="8" stroke-linecap="round" />
+
+          <!-- Main dashed path -->
+          <path :d="pathD" fill="none" stroke="url(#journeyPathGrad)" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
+
+          <!-- Destination connector -->
+          <path v-if="destinationPathD" :d="destinationPathD" fill="none" stroke="#20B486" stroke-opacity="0.25" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
+
+          <!-- Step nodes -->
+          <g v-for="(node, i) in nodes" :key="'node-' + i">
+            <!-- Node circle -->
+            <circle
+              v-if="!node.isDestination"
+              :cx="node.x" :cy="node.y" r="22"
+              :fill="stageHex"
+              :opacity="1 - (i * 0.07)"
+              :filter="i === 0 ? 'url(#journeyGlow)' : undefined"
+              class="cursor-pointer"
+              @click="selectNode(i)"
+            />
+            <!-- Destination circle -->
+            <circle
+              v-else
+              :cx="node.x" :cy="node.y" r="24"
+              fill="#20B486"
+              filter="url(#journeyGlow)"
+            />
+
+            <!-- Step number -->
+            <text
+              v-if="!node.isDestination"
+              :x="node.x" :y="node.y + 5"
+              text-anchor="middle" fill="white" font-weight="800" font-size="14"
+            >{{ i + 1 }}</text>
+
+            <!-- Destination flag -->
+            <text
+              v-if="node.isDestination"
+              :x="node.x" :y="node.y + 5"
+              text-anchor="middle" fill="white" font-size="16"
+            >🏁</text>
+
+            <!-- Label -->
+            <text
+              :x="node.labelX" :y="node.labelY"
+              :text-anchor="node.labelAnchor"
+              :fill="node.isDestination ? '#20B486' : '#1F2A44'"
+              font-weight="700" font-size="12"
+            >{{ node.title }}</text>
+            <text
+              :x="node.labelX" :y="node.labelY + 14"
+              :text-anchor="node.labelAnchor"
+              fill="#717171" font-size="10"
+            >{{ node.subtitle }}</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Detail card when a node is tapped -->
+      <div v-if="selectedNodeIndex !== null && selectedMilestone" class="mx-6 mb-4 p-5 rounded-xl border-2" :class="detailCardClass">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center" :class="detailNodeClass">
+            {{ selectedNodeIndex + 1 }}
+          </div>
+          <div class="text-sm font-bold text-horizon-500">{{ nodes[selectedNodeIndex]?.title }}</div>
+          <div class="text-xs text-neutral-500 ml-auto">Tap any step to learn more</div>
+        </div>
+        <p class="text-sm text-neutral-500 leading-relaxed">{{ selectedMilestone.didYouKnow }}</p>
+      </div>
+
+      <!-- CTAs -->
+      <div class="px-8 pb-6 text-center">
+        <div class="flex gap-3 justify-center pt-5 border-t border-light-gray">
+          <button
+            class="bg-raspberry-500 hover:bg-raspberry-600 text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors"
+            @click="startJourney"
+          >
+            Start My Journey
+          </button>
+          <button
+            class="bg-white hover:bg-savannah-100 text-horizon-500 px-8 py-3 rounded-lg font-bold text-sm border border-light-gray transition-colors"
+            @click="seeInAction"
+          >
+            See It in Action
+          </button>
+        </div>
+        <p class="text-xs text-neutral-500 mt-3">You can skip steps and come back to them later</p>
+        <button class="text-xs text-neutral-500 hover:text-horizon-500 mt-2" @click="selectedStage = null">
+          ← Choose a different stage
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { LIFE_STAGES, STAGE_ORDER } from '@/constants/lifeStageConfig';
+import { LIFE_STAGES, STAGE_ORDER, PERSONA_TO_STAGE } from '@/constants/lifeStageConfig';
 
 export default {
   name: 'FocusAreaSelection',
@@ -103,11 +214,13 @@ export default {
   data() {
     return {
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
+      selectedStage: null,
+      selectedNodeIndex: null,
       focusAreas: [
-        { id: 'budgeting', label: 'Cash & Budget', colour: 'spring' },
-        { id: 'protection', label: 'Protection', colour: 'raspberry' },
-        { id: 'investment', label: 'Investment', colour: 'violet' },
-        { id: 'retirement', label: 'Retirement', colour: 'horizon' },
+        { id: 'budgeting', label: 'Cash & Budget' },
+        { id: 'protection', label: 'Protection' },
+        { id: 'investment', label: 'Investment' },
+        { id: 'retirement', label: 'Retirement' },
       ],
     };
   },
@@ -116,16 +229,221 @@ export default {
     stages() {
       return STAGE_ORDER.map(id => LIFE_STAGES[id]);
     },
+
+    selectedStageConfig() {
+      return this.selectedStage ? LIFE_STAGES[this.selectedStage] : null;
+    },
+
+    stageSteps() {
+      return this.selectedStageConfig?.onboarding?.steps || [];
+    },
+
+    stageHex() {
+      const map = {
+        violet: '#5854E6', spring: '#20B486', raspberry: '#E83E6D',
+        'light-blue': '#6C83BC', horizon: '#1F2A44',
+      };
+      return map[this.selectedStageConfig?.colour] || '#5854E6';
+    },
+
+    stageHexLight() {
+      const map = {
+        violet: '#7c79ff', spring: '#2dd49e', raspberry: '#ff5a8a',
+        'light-blue': '#8fa3d0', horizon: '#3a4a6a',
+      };
+      return map[this.selectedStageConfig?.colour] || '#7c79ff';
+    },
+
+    // Build node positions matching the approved v6 mockup pattern:
+    // Horizontal meander (top/bottom alternating), then vertical drop, then curve back
+    nodes() {
+      const steps = this.stageSteps;
+      const count = steps.length;
+      if (!count) return [];
+
+      const stepTitles = {
+        'personal-info': { title: 'About You', subtitle: 'Your details' },
+        'student-loan': { title: 'Student Loan', subtitle: 'Plan & balance' },
+        'income': { title: 'Your Income', subtitle: 'What comes in' },
+        'income-career': { title: 'Income & Career', subtitle: 'Salary & growth' },
+        'income-tax': { title: 'Income & Tax', subtitle: 'Tax position' },
+        'expenditure': { title: 'Your Spending', subtitle: 'Where it goes' },
+        'savings': { title: 'Your Savings', subtitle: 'Accounts & ISAs' },
+        'savings-emergency': { title: 'Emergency Fund', subtitle: 'Safety net' },
+        'first-home-lisa': { title: 'First Home', subtitle: 'LISA & deposit' },
+        'investments': { title: 'Investments', subtitle: 'Portfolio' },
+        'investments-isa': { title: 'Investments', subtitle: 'ISA & portfolio' },
+        'goals': { title: 'Goals', subtitle: 'Your targets' },
+        'family': { title: 'Family', subtitle: 'Dependants' },
+        'property-mortgage': { title: 'Property', subtitle: 'Home & mortgage' },
+        'property-portfolio': { title: 'Property', subtitle: 'Portfolio' },
+        'protection-insurance': { title: 'Protection', subtitle: 'Your cover' },
+        'pensions': { title: 'Pensions', subtitle: 'Pension pots' },
+        'pension-auto-enrolment': { title: 'Pension', subtitle: 'Auto-enrolment' },
+        'pension-review': { title: 'Pension Review', subtitle: 'Consolidate' },
+        'pension-drawdown': { title: 'Drawdown', subtitle: 'Income strategy' },
+        'state-pension': { title: 'State Pension', subtitle: 'Forecast' },
+        'will-estate': { title: 'Will & Estate', subtitle: 'Estate planning' },
+        'estate-iht': { title: 'Estate', subtitle: 'Inheritance Tax' },
+        'estate-legacy': { title: 'Estate & Legacy', subtitle: 'Your legacy' },
+      };
+
+      const result = [];
+      const topY = 90;
+      const bottomY = 240;
+      const startX = 80;
+      const horizontalSteps = Math.min(count, Math.ceil(count * 0.6)); // ~60% horizontal
+      const verticalSteps = count - horizontalSteps;
+      const hSpacing = 200;
+
+      // Horizontal meandering section
+      for (let i = 0; i < horizontalSteps; i++) {
+        const x = startX + i * hSpacing;
+        const isTop = i % 2 === 0;
+        const y = isTop ? topY : bottomY;
+        const meta = stepTitles[steps[i]] || { title: steps[i], subtitle: '' };
+
+        // Labels: below for top nodes, above for bottom nodes (28px gap)
+        const labelY = isTop ? y + 22 + 28 : y - 22 - 42;
+
+        result.push({
+          x, y,
+          labelX: x, labelY,
+          labelAnchor: 'middle',
+          title: meta.title,
+          subtitle: meta.subtitle,
+          isDestination: false,
+        });
+      }
+
+      // Vertical/return section
+      if (verticalSteps > 0) {
+        const lastH = result[result.length - 1];
+        const verticalStartY = lastH.y + 120;
+        const returnSpacing = hSpacing * 0.8;
+
+        for (let i = 0; i < verticalSteps; i++) {
+          const x = lastH.x - (i * returnSpacing);
+          const y = verticalStartY + (i * 60);
+          const stepIdx = horizontalSteps + i;
+          const meta = stepTitles[steps[stepIdx]] || { title: steps[stepIdx], subtitle: '' };
+
+          // Labels to the left for vertical section
+          result.push({
+            x, y,
+            labelX: x - 22 - 28, labelY: y - 5,
+            labelAnchor: 'end',
+            title: meta.title,
+            subtitle: meta.subtitle,
+            isDestination: false,
+          });
+        }
+      }
+
+      // Destination node
+      const lastNode = result[result.length - 1];
+      result.push({
+        x: lastNode.x - 160, y: lastNode.y + 50,
+        labelX: lastNode.x - 160 + 30, labelY: lastNode.y + 50 - 5,
+        labelAnchor: 'start',
+        title: 'Your Dashboard',
+        subtitle: 'Personalised to your stage',
+        isDestination: true,
+      });
+
+      return result;
+    },
+
+    svgWidth() {
+      if (!this.nodes.length) return 800;
+      return Math.max(...this.nodes.map(n => n.x)) + 120;
+    },
+
+    svgHeight() {
+      if (!this.nodes.length) return 400;
+      return Math.max(...this.nodes.map(n => n.y)) + 100;
+    },
+
+    pathD() {
+      const ns = this.nodes.filter(n => !n.isDestination);
+      if (ns.length < 2) return '';
+      let d = `M ${ns[0].x},${ns[0].y}`;
+      for (let i = 1; i < ns.length; i++) {
+        const prev = ns[i - 1];
+        const curr = ns[i];
+        const midX = (prev.x + curr.x) / 2;
+        const midY = (prev.y + curr.y) / 2;
+        d += ` C ${midX},${prev.y} ${midX},${curr.y} ${curr.x},${curr.y}`;
+      }
+      return d;
+    },
+
+    destinationPathD() {
+      const ns = this.nodes;
+      if (ns.length < 2) return '';
+      const last = ns[ns.length - 2]; // last non-destination
+      const dest = ns[ns.length - 1]; // destination
+      const midX = (last.x + dest.x) / 2;
+      return `M ${last.x},${last.y} C ${midX},${last.y + 30} ${midX},${dest.y - 20} ${dest.x},${dest.y}`;
+    },
+
+    selectedMilestone() {
+      if (this.selectedNodeIndex === null || !this.selectedStageConfig) return null;
+      const stepId = this.stageSteps[this.selectedNodeIndex];
+      return this.selectedStageConfig.onboarding?.learningMilestones?.[stepId] || null;
+    },
+
+    detailCardClass() {
+      const map = {
+        violet: 'bg-violet-50 border-violet-200',
+        spring: 'bg-spring-50 border-spring-200',
+        raspberry: 'bg-raspberry-50 border-raspberry-200',
+        'light-blue': 'bg-light-blue-100 border-horizon-200',
+        horizon: 'bg-horizon-50 border-horizon-200',
+      };
+      return map[this.selectedStageConfig?.colour] || 'bg-violet-50 border-violet-200';
+    },
+
+    detailNodeClass() {
+      const map = {
+        violet: 'bg-violet-500',
+        spring: 'bg-spring-500',
+        raspberry: 'bg-raspberry-500',
+        'light-blue': 'bg-light-blue-500',
+        horizon: 'bg-horizon-500',
+      };
+      return map[this.selectedStageConfig?.colour] || 'bg-violet-500';
+    },
   },
 
   methods: {
-    handleStageClick(stageId) {
-      this.$emit('stage-selected', stageId);
+    selectStage(stageId) {
+      this.selectedStage = stageId;
+      this.selectedNodeIndex = null;
+    },
+
+    selectNode(index) {
+      this.selectedNodeIndex = this.selectedNodeIndex === index ? null : index;
+    },
+
+    startJourney() {
+      this.$emit('stage-selected', this.selectedStage);
+    },
+
+    seeInAction() {
+      // Find persona for this stage and enter preview
+      const personaMap = {};
+      Object.entries(PERSONA_TO_STAGE).forEach(([persona, stage]) => {
+        if (!personaMap[stage]) personaMap[stage] = persona;
+      });
+      const persona = personaMap[this.selectedStage];
+      if (persona) {
+        this.$store.dispatch('preview/enterPreviewMode', persona);
+      }
     },
 
     handleFocusClick(areaId) {
       this.$emit('focus-selected', areaId);
-      // Backward compatibility with existing flow
       this.$emit('selected', areaId);
     },
 
@@ -166,86 +484,9 @@ export default {
       return map[stage.colour] || 'text-violet-500';
     },
 
-    stageIconComponent(stage) {
-      const icons = {
-        'graduation-cap': 'IconGraduationCap',
-        'briefcase': 'IconBriefcase',
-        'shield': 'IconShield',
-        'chart-line': 'IconChartLine',
-        'sun': 'IconSun',
-      };
-      return icons[stage.icon] || 'IconGraduationCap';
-    },
-
-    focusAreaIcon(area) {
-      const icons = {
-        budgeting: 'IconWallet',
-        protection: 'IconShieldSmall',
-        investment: 'IconTrending',
-        retirement: 'IconClock',
-      };
-      return icons[area.id] || 'IconWallet';
-    },
-
-    focusAreaIconColour(area) {
-      const map = {
-        spring: 'text-spring-500',
-        raspberry: 'text-raspberry-500',
-        violet: 'text-violet-500',
-        horizon: 'text-horizon-500',
-      };
-      return map[area.colour] || 'text-neutral-500';
-    },
-  },
-
-  components: {
-    IconGraduationCap: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-      </svg>`,
-    },
-    IconBriefcase: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-      </svg>`,
-    },
-    IconShield: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>`,
-    },
-    IconChartLine: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-      </svg>`,
-    },
-    IconSun: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>`,
-    },
-    IconWallet: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>`,
-    },
-    IconShieldSmall: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>`,
-    },
-    IconTrending: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-      </svg>`,
-    },
-    IconClock: {
-      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>`,
+    stageIconComponent() {
+      // Simple circle — the icon components were causing Vue warnings
+      return 'span';
     },
   },
 };

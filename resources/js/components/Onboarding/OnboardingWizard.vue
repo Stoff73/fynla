@@ -466,8 +466,15 @@ export default {
     // LIFE STAGE MODE
     // ================================================================
     const currentLifeStage = computed(() => store.getters['lifeStage/currentStage']);
+    // Track whether the user has actively started their journey in this session
+    // If they navigate to /onboarding/welcome, show stage picker first even if they have a stage
+    const lifeStageStarted = ref(false);
+
     const isLifeStageMode = computed(() => {
-      return props.mode === 'life-stage' || (currentLifeStage.value && !props.mode);
+      if (props.mode === 'life-stage') return true;
+      // If user has a stage but hasn't started in this session, show welcome first
+      if (currentLifeStage.value && !props.mode && lifeStageStarted.value) return true;
+      return false;
     });
     const lifeStageSteps = computed(() => store.getters['lifeStage/onboardingSteps'] || []);
     const lifeStageCompletedSteps = computed(() => store.state.lifeStage?.completedSteps || []);
@@ -625,8 +632,10 @@ export default {
 
     // Journey Map Modal handlers
     const handleStageSelected = async (stageId) => {
-      selectedStageId.value = stageId;
-      showJourneyMapModal.value = true;
+      // Stage selected from FocusAreaSelection (after user viewed journey map inline and clicked Start My Journey)
+      await store.dispatch('lifeStage/setStage', stageId);
+      lifeStageStarted.value = true;
+      lifeStageCurrentIndex.value = 0;
     };
 
     const closeJourneyMapModal = () => {
