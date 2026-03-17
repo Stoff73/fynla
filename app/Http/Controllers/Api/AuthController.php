@@ -325,12 +325,20 @@ class AuthController extends Controller
         }
         $user->load($relations);
 
+        // Include life stage data completeness so frontend has it immediately
+        $dataCompletedSteps = [];
+        if ($user->life_stage) {
+            $lifeStageService = app(\App\Services\LifeStage\LifeStageService::class);
+            $dataCompletedSteps = $lifeStageService->getDataCompleteness($user);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'user' => $user,
                 'role' => $user->role?->name,
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
+                'data_completed_steps' => $dataCompletedSteps,
             ],
         ]);
     }

@@ -24,11 +24,15 @@ class LifeStageController extends Controller
     public function progress(Request $request): JsonResponse
     {
         try {
-            $progress = $this->lifeStageService->getProgress($request->user());
+            $user = $request->user();
+            $progress = $this->lifeStageService->getProgress($user);
+            $dataCompleted = $this->lifeStageService->getDataCompleteness($user);
 
             return response()->json([
                 'success' => true,
-                'data' => $progress,
+                'data' => array_merge($progress, [
+                    'data_completed_steps' => $dataCompleted,
+                ]),
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Get life stage progress');

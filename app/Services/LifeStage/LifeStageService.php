@@ -210,4 +210,92 @@ class LifeStageService
     {
         return in_array($user->employment_status, ['retired', 'not_working', 'not-working'], true);
     }
+
+    /**
+     * Get data completeness for each onboarding step.
+     *
+     * Uses actual DB queries (same as DataReadiness services and PrerequisiteGateService)
+     * to determine which steps have data. Returns an array of step IDs that are complete.
+     *
+     * This is the single source of truth for progress calculation — the frontend
+     * should NOT attempt to check Vuex store state for this.
+     */
+    public function getDataCompleteness(User $user): array
+    {
+        $hasPersonalInfo = $user->date_of_birth && $user->gender;
+        $hasIncome = $this->calculateTotalIncome($user) > 0 || $user->employment_status;
+        $hasExpenditure = $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user);
+        $hasSavings = $user->savingsAccounts()->exists();
+        $hasInvestments = $user->investmentAccounts()->exists();
+        $hasPensions = $user->dcPensions()->exists() || $user->dbPensions()->exists();
+        $hasProtection = $user->lifeInsurancePolicies()->exists()
+            || $user->criticalIllnessPolicies()->exists()
+            || $user->incomeProtectionPolicies()->exists();
+        $hasProperty = $this->hasProperty($user);
+        $hasGoals = $user->goals()->exists();
+        $hasFamily = $this->hasChildren($user) || $this->isMarried($user);
+        $hasWill = $user->has_will ?? false;
+        $hasEstate = $hasProperty || $hasInvestments || $hasSavings;
+        $hasLiabilities = $user->liabilities()->exists();
+        $hasStatePension = $user->statePension()->exists();
+
+        // Map every possible step ID to its data check
+        $stepChecks = [
+            'personal-info' => $hasPersonalInfo,
+            'student-loan' => $hasLiabilities,
+            'income' => $hasIncome,
+            'income-career' => $hasIncome,
+            'income-tax' => $hasIncome,
+            'expenditure' => $hasExpenditure,
+            'savings' => $hasSavings,
+            'savings-emergency' => $hasSavings,
+            'first-home-lisa' => $hasSavings,
+            'investments' => $hasInvestments,
+            'investments-isa' => $hasInvestments,
+            'goals' => $hasGoals,
+            'family' => $hasFamily,
+            'property-mortgage' => $hasProperty,
+            'property-portfolio' => $hasProperty,
+            'protection-insurance' => $hasProtection,
+            'pensions' => $hasPensions,
+            'pension-auto-enrolment' => $hasPensions,
+            'pension-review' => $hasPensions,
+            'pension-drawdown' => $hasPensions,
+            'state-pension' => $hasStatePension || $hasPensions,
+            'will-estate' => $hasWill,
+            'estate-iht' => $hasEstate,
+            'estate-legacy' => $hasEstate,
+        ];
+
+        $completed = [];
+        foreach ($stepChecks as $stepId => $hasData) {
+            if ($hasData) {
+                $completed[] = $stepId;
+            }
+        }
+
+        return $completed;
+    }
+
+    /**
+     * Calculate total income from all sources (same as PrerequisiteGateService).
+     */
+    private function calculateTotalIncome(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+    }
+
+    /**
+     * Check if user has an expenditure profile.
+     */
+    private function hasExpenditureProfile(User $user): bool
+    {
+        return \App\Models\ExpenditureProfile::where('user_id', $user->id)->exists();
+    }
 }

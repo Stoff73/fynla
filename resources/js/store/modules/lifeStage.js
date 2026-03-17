@@ -3,7 +3,8 @@ import lifeStageService from '@/services/lifeStageService';
 
 const state = {
   currentStage: null, // 'university' | 'early_career' | 'mid_career' | 'peak' | 'retirement'
-  completedSteps: [],
+  completedSteps: [], // explicitly marked via onboarding flow
+  dataCompletedSteps: [], // from backend DataReadiness checks (actual DB data)
   loading: false,
   error: null,
 };
@@ -23,76 +24,21 @@ const getters = {
   learningMilestone: (state, getters) => (stepId) => getters.stageConfig?.onboarding?.learningMilestones?.[stepId] || null,
   formFields: (state, getters) => (formName) => getters.stageConfig?.formFields?.[formName] || {},
 
-  // Detect which steps have data — a step is complete if the user has relevant data,
-  // regardless of whether they went through the onboarding flow
-  dataCompletedSteps: (state, getters, rootState) => {
-    const user = rootState.auth?.user;
-    if (!user) return [];
-
-    // Map step IDs to data existence checks
-    // Uses multiple data sources: auth user fields, netWorth overview/summary,
-    // and individual module stores. Checks overview.breakdown and assetsSummary
-    // counts since those load with fetchOverview (not separate fetch calls).
-    const nw = rootState.netWorth || {};
-    const overview = nw.overview || {};
-    const breakdown = overview.breakdown || {};
-    const liabBreakdown = overview.liabilitiesBreakdown || {};
-    const summary = nw.assetsSummary || {};
-
-    const hasProperty = (summary.property?.count || 0) > 0 || (breakdown.property || 0) > 0 || (nw.properties?.length || 0) > 0;
-    const hasCash = (summary.cash?.count || 0) > 0 || (breakdown.cash || 0) > 0 || (rootState.savings?.accounts?.length || 0) > 0;
-    const hasInvestments = (summary.investments?.count || 0) > 0 || (breakdown.investments || 0) > 0 || (rootState.investment?.accounts?.length || 0) > 0;
-    const hasPensions = (summary.pensions?.count || 0) > 0 || (breakdown.pensions || 0) > 0 || (rootState.retirement?.pensions?.length || 0) > 0;
-    const hasProtection = (rootState.protection?.policies?.length || 0) > 0 || (rootState.protection?.totalCoverage || 0) > 0;
-    const hasLiabilities = overview.totalLiabilities > 0 || (liabBreakdown.student_loans || 0) > 0;
-    const hasGoals = (rootState.goals?.goals?.length || 0) > 0;
-    const hasWill = !!rootState.estate?.will || !!rootState.estate?.estateData;
-    const hasEstate = !!rootState.estate?.estateData || overview.totalAssets > 0;
-    const hasFamily = (rootState.userProfile?.familyMembers?.length || 0) > 0 || user.marital_status === 'married';
-
-    const stepDataChecks = {
-      'personal-info': () => !!user.date_of_birth && !!user.gender,
-      'student-loan': () => hasLiabilities,
-      'income': () => !!user.annual_employment_income || !!user.employment_status,
-      'income-career': () => !!user.annual_employment_income || !!user.employment_status,
-      'income-tax': () => !!user.annual_employment_income,
-      'expenditure': () => !!user.monthly_expenditure && user.monthly_expenditure > 0,
-      'savings': () => hasCash,
-      'savings-emergency': () => hasCash,
-      'first-home-lisa': () => hasCash,
-      'investments': () => hasInvestments,
-      'investments-isa': () => hasInvestments,
-      'goals': () => hasGoals,
-      'family': () => hasFamily,
-      'property-mortgage': () => hasProperty,
-      'property-portfolio': () => hasProperty,
-      'protection-insurance': () => hasProtection,
-      'pensions': () => hasPensions,
-      'pension-auto-enrolment': () => hasPensions,
-      'pension-review': () => hasPensions,
-      'pension-drawdown': () => hasPensions,
-      'state-pension': () => hasPensions,
-      'will-estate': () => hasWill,
-      'estate-iht': () => hasEstate,
-      'estate-legacy': () => hasEstate,
-    };
-
-    const steps = getters.onboardingSteps;
-    const completed = [];
-    steps.forEach(stepId => {
-      const check = stepDataChecks[stepId];
-      // Step is complete if explicitly marked OR if data exists
-      if (state.completedSteps.includes(stepId) || (check && check())) {
-        completed.push(stepId);
-      }
-    });
-    return completed;
+  // Steps completed based on actual data (from backend DataReadiness checks).
+  // This is populated by fetchStage from the /api/life-stage/progress endpoint.
+  // The backend checks actual DB records (same as PrerequisiteGateService and
+  // DataReadiness services used by agents). NOT guessed from Vuex state.
+  dataCompletedSteps: (state) => {
+    return state.dataCompletedSteps || [];
   },
 
   progressPercentage: (state, getters) => {
     const steps = getters.onboardingSteps;
     if (!steps.length) return 0;
-    return Math.round((getters.dataCompletedSteps.length / steps.length) * 100);
+    const completed = getters.dataCompletedSteps;
+    // Only count steps that are in the current stage's step list
+    const relevant = completed.filter(s => steps.includes(s));
+    return Math.round((relevant.length / steps.length) * 100);
   },
 
   nextStep: (state, getters) => {
@@ -164,6 +110,7 @@ const getters = {
 const mutations = {
   setCurrentStage(state, stage) { state.currentStage = stage; },
   setCompletedSteps(state, steps) { state.completedSteps = steps; },
+  setDataCompletedSteps(state, steps) { state.dataCompletedSteps = steps; },
   addCompletedStep(state, step) {
     if (!state.completedSteps.includes(step)) {
       state.completedSteps.push(step);
@@ -181,9 +128,15 @@ const actions = {
       if (user?.life_stage) {
         commit('setCurrentStage', user.life_stage);
       }
-      // Also load completed steps from backend
+      // Load progress from backend — includes data completeness from actual DB checks
+      // (same checks used by PrerequisiteGateService and DataReadiness services)
       const response = await lifeStageService.getProgress();
-      commit('setCompletedSteps', response.completed_steps || []);
+      // Guard: API might return HTML (redirect) if token isn't ready yet
+      if (response && typeof response === 'object' && response.success) {
+        const progressData = response.data || response;
+        commit('setCompletedSteps', progressData.completed_steps || []);
+        commit('setDataCompletedSteps', progressData.data_completed_steps || []);
+      }
     } catch (error) {
       commit('setError', error.message);
     } finally {

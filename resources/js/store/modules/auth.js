@@ -137,7 +137,7 @@ const actions = {
     }
   },
 
-  async fetchUser({ commit, state }) {
+  async fetchUser({ commit, dispatch, state }) {
     commit('setLoading', true);
     commit('setError', null);
 
@@ -146,6 +146,15 @@ const actions = {
       commit('setUser', data.user);
       commit('setRole', data.role);
       commit('setPermissions', data.permissions || []);
+
+      // Set life stage data immediately from the auth response (no separate API call needed)
+      if (data.user?.life_stage) {
+        commit('lifeStage/setCurrentStage', data.user.life_stage, { root: true });
+      }
+      if (data.data_completed_steps?.length) {
+        commit('lifeStage/setDataCompletedSteps', data.data_completed_steps, { root: true });
+      }
+
       return data.user;
     } catch (error) {
       const errorMessage = error.message || 'Failed to fetch user';
