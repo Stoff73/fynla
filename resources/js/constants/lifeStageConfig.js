@@ -84,7 +84,7 @@ export const LIFE_STAGES = {
         'personal-info': {
           didYouKnow: 'Your date of birth determines when you\'ll start repaying your student loan and when you\'ll be automatically enrolled in a workplace pension (from age 22). Getting these dates right means Fynla can flag the exact month things change for you.',
           whyWeAsk: 'Your age and gender affect life expectancy projections, pension eligibility dates, and ISA and Lifetime ISA access rules.',
-          howItFits: 'As a student, we keep things simple — no need for address or health details yet. We focus on what matters now: your loan, your income, and building your first financial habits.',
+          howItFits: 'As a student, we keep things focused. Your date of birth determines when student loan repayments start (the April after you leave your course) and when you\'ll be auto-enrolled in a workplace pension at 22. Your university and student number help us verify your status for student-specific guidance. We\'ll ask for address and health details later when they become relevant to your plan.',
           quickStat: { value: '22', label: 'Age you\'ll be automatically enrolled in a workplace pension' },
         },
         'student-loan': {
@@ -246,7 +246,7 @@ export const LIFE_STAGES = {
         'personal-info': {
           didYouKnow: 'Your early career is one of the most financially formative periods of your life. The habits and accounts you open now — pensions, ISAs, emergency funds — will compound over decades. Getting the foundations right at 25 is worth more than trying to catch up at 45.',
           whyWeAsk: 'Your date of birth and marital status determine pension eligibility dates and tax allowances. Your address is needed for property searches and regional cost calculations. Employment details shape your pension auto-enrolment status and income tax band.',
-          howItFits: 'Building foundations means locking in good habits early: a six-month emergency fund, a growing workplace pension, and a clear plan for your first home. Everything starts with knowing where you are today.',
+          howItFits: 'Your date of birth tells us when you\'ll hit key milestones — pension auto-enrolment at 22, Lifetime ISA eligibility before 40, and State Pension age. Your address is needed for stamp duty calculations when you buy your first home, and for regional cost-of-living adjustments. Employment details determine your pension contributions and student loan repayments. These basics shape every savings target and timeline we calculate for you.',
           quickStat: { value: '£60,000', label: 'Annual pension allowance you can contribute tax-free (2025/26)' },
         },
         'income-career': {
@@ -419,7 +419,7 @@ export const LIFE_STAGES = {
         'personal-info': {
           didYouKnow: 'At this life stage, your financial plan needs to protect the people who depend on you as much as it needs to grow your wealth. The two are inseparable. A gap in your protection can undo decades of careful saving in a single event.',
           whyWeAsk: 'Your date of birth, marital status, and address determine your tax position, pension eligibility, and property-related calculations. Your occupation and employment status affect income protection costs and pension contribution limits. Health and smoking status directly impact the cost of life insurance and critical illness cover.',
-          howItFits: 'This stage is about balance: building wealth for the future whilst making sure your family is protected today. Every field here feeds into your protection gap analysis, retirement projections, and estate planning calculations.',
+          howItFits: 'These details are the foundation everything else builds on. Your date of birth and address feed into your net worth calculations, property valuations, and retirement timeline. Your marital status determines whether we plan for one income or two, and whether allowances like the marriage tax transfer or transferable nil-rate band apply. Your occupation and health details let us calculate exactly how much protection cover your family needs — and what it would cost. Every step that follows in your journey uses this information.',
           quickStat: { value: '1 in 2', label: 'UK adults will develop cancer during their lifetime — critical illness cover matters' },
         },
         'family': {
@@ -603,7 +603,7 @@ export const LIFE_STAGES = {
         'personal-info': {
           didYouKnow: 'Your late forties and fifties are the most financially consequential decade of your life. Earnings are typically at their peak, the mortgage is shrinking, children are becoming independent — and every year of focused planning now can mean five to ten extra years of financial freedom later.',
           whyWeAsk: 'Your date of birth and target retirement age determine how many years you have to build your pension pot. Your address affects property valuations and regional tax calculations. Health and smoking status impact protection policy costs. Employment and marital status shape tax relief opportunities and allowance transfers.',
-          howItFits: 'At this stage the question shifts from "am I saving?" to "am I saving enough, in the right places, tax-efficiently?" We need the full picture to answer that honestly.',
+          howItFits: 'Your target retirement age and date of birth determine exactly how many years you have to build your pension pot — and whether carry-forward strategies are worth pursuing. Your address feeds into property valuations for estate planning and potential downsizing calculations. Health and smoking status affect whether whole-of-life cover or critical illness protection is advisable and affordable. Employment details tell us your tax band, which determines the value of pension tax relief — 40% for higher-rate taxpayers versus 20% for basic rate.',
           quickStat: { value: '57', label: 'Minimum pension access age rising to in 2028 — check your plans' },
         },
         'income-tax': {
@@ -780,7 +780,7 @@ export const LIFE_STAGES = {
         'personal-info': {
           didYouKnow: 'Retirement is not a financial finish line — it is a new beginning that could last 20–30 years or more. Life expectancy for a 65-year-old woman in the UK is now over 87; for a man, over 84. Your financial plan needs to sustain your lifestyle for decades, not just years.',
           whyWeAsk: 'Your date of birth drives life expectancy projections and State Pension eligibility. Your address is needed for property valuations and care cost estimates. Marital status determines inheritance tax allowance transfers and pension beneficiary rules. Health and smoking status affect longevity assumptions in your income projections.',
-          howItFits: 'At this stage, the plan shifts from accumulation to distribution. We focus on making your money last, generating sustainable income, and ensuring your legacy is structured exactly as you intend.',
+          howItFits: 'Your date of birth drives the longevity assumptions in your income projections — how long your money needs to last. Your address is essential for property valuations, local authority care cost estimates, and inheritance tax calculations on your estate. Marital status determines whether your spouse can inherit your pension tax-free and whether the transferable nil-rate band applies. Health and smoking status adjust our life expectancy models so your drawdown strategy is realistic, not optimistic.',
           quickStat: { value: '87+', label: 'Average life expectancy for a 65-year-old woman in the UK today' },
         },
         'pension-drawdown': {
