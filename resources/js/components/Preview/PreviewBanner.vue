@@ -186,7 +186,6 @@ export default {
             const colors = {
                 young_family: 'bg-gradient-to-r from-blue-500 to-blue-600',
                 peak_earners: 'bg-gradient-to-r from-green-500 to-green-600',
-                widow: 'bg-gradient-to-r from-purple-500 to-purple-600',
                 entrepreneur: 'bg-gradient-to-r from-fuchsia-500 to-fuchsia-600',
                 young_saver: 'bg-gradient-to-r from-cyan-500 to-cyan-600',
                 student: 'bg-gradient-to-r from-teal-500 to-teal-600',
@@ -198,22 +197,20 @@ export default {
 
         buttonColorClass() {
             const colors = {
-                young_family: 'text-violet-100 hover:text-white',
-                peak_earners: 'text-spring-100 hover:text-white',
-                widow: 'text-purple-100 hover:text-white',
+                young_family: 'text-blue-100 hover:text-white',
+                peak_earners: 'text-green-100 hover:text-white',
                 entrepreneur: 'text-fuchsia-100 hover:text-white',
                 young_saver: 'text-cyan-100 hover:text-white',
                 student: 'text-teal-100 hover:text-white',
                 retired_couple: 'text-rose-100 hover:text-white',
             };
-            return colors[this.basePersonaId] || 'text-savannah-100 hover:text-white';
+            return colors[this.basePersonaId] || 'text-neutral-100 hover:text-white';
         },
 
         registerButtonClass() {
             const colors = {
-                young_family: 'bg-white text-violet-600 hover:bg-violet-50',
-                peak_earners: 'bg-white text-spring-600 hover:bg-spring-50',
-                widow: 'bg-white text-purple-600 hover:bg-purple-50',
+                young_family: 'bg-white text-blue-600 hover:bg-blue-50',
+                peak_earners: 'bg-white text-green-600 hover:bg-green-50',
                 entrepreneur: 'bg-white text-fuchsia-600 hover:bg-fuchsia-50',
                 young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
                 student: 'bg-white text-teal-600 hover:bg-teal-50',
@@ -224,9 +221,8 @@ export default {
 
         loadingTextClass() {
             const colors = {
-                young_family: 'text-violet-100',
-                peak_earners: 'text-spring-100',
-                widow: 'text-purple-100',
+                young_family: 'text-blue-100',
+                peak_earners: 'text-green-100',
                 entrepreneur: 'text-fuchsia-100',
                 young_saver: 'text-cyan-100',
                 student: 'text-teal-100',
@@ -240,7 +236,16 @@ export default {
          * that works well on all persona gradient backgrounds
          */
         spouseToggleClass() {
-            return 'bg-white/20 hover:bg-white/30 text-white border border-white/30';
+            // Shade darker than the banner gradient for each persona
+            const colors = {
+                young_family: 'bg-blue-700 hover:bg-blue-800 text-white border border-blue-400/30',
+                peak_earners: 'bg-green-700 hover:bg-green-800 text-white border border-green-400/30',
+                entrepreneur: 'bg-fuchsia-700 hover:bg-fuchsia-800 text-white border border-fuchsia-400/30',
+                young_saver: 'bg-cyan-700 hover:bg-cyan-800 text-white border border-cyan-400/30',
+                student: 'bg-teal-700 hover:bg-teal-800 text-white border border-teal-400/30',
+                retired_couple: 'bg-rose-700 hover:bg-rose-800 text-white border border-rose-400/30',
+            };
+            return colors[this.basePersonaId] || 'bg-neutral-700 hover:bg-neutral-800 text-white border border-neutral-400/30';
         },
     },
 
