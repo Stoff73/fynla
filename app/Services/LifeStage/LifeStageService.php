@@ -247,10 +247,13 @@ class LifeStageService
         $hasProperty = $this->hasProperty($user);
         $hasGoals = $user->goals()->exists();
         $hasFamily = $this->hasChildren($user) || $this->isMarried($user);
-        $hasWill = $user->has_will ?? false;
         $hasEstate = $hasProperty || $hasInvestments || $hasSavings;
         $hasLiabilities = $user->liabilities()->exists();
         $hasStatePension = $user->statePension()->exists();
+
+        // Will data is stored in the Estate\Will model (via onboarding processWillInfo),
+        // not as a field on the user model. Check for a Will record instead.
+        $hasWill = \App\Models\Estate\Will::where('user_id', $user->id)->exists();
 
         // Map every possible step ID to its data check
         $stepChecks = [
@@ -276,13 +279,24 @@ class LifeStageService
             'pension-drawdown' => $hasPensions,
             'state-pension' => $hasStatePension || $hasPensions,
             'will-estate' => $hasWill,
-            'estate-iht' => $hasEstate,
-            'estate-legacy' => $hasEstate,
+            'estate-iht' => $hasEstate || $hasWill,
+            'estate-legacy' => $hasEstate || $hasWill,
         ];
 
         $completed = [];
         foreach ($stepChecks as $stepId => $hasData) {
             if ($hasData) {
+                $completed[] = $stepId;
+            }
+        }
+
+        // Also include steps from the explicit completion list (life_stage_completed_steps).
+        // This ensures steps that were genuinely completed in the onboarding wizard
+        // but whose data doesn't match the DB checks (e.g. WillInfoStep saves via
+        // onboarding store, not user model) are still reported as complete.
+        $explicitSteps = $user->life_stage_completed_steps ?? [];
+        foreach ($explicitSteps as $stepId) {
+            if (! in_array($stepId, $completed, true)) {
                 $completed[] = $stepId;
             }
         }

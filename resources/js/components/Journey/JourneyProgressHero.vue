@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <!-- Right: Continue Journey button -->
+      <!-- Right: Continue Journey button (when steps remain) -->
       <button
         v-if="nextStep"
         class="flex-shrink-0 bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
@@ -37,7 +37,7 @@
       </button>
     </div>
 
-    <!-- Next step CTA row (below the main row) -->
+    <!-- Next step CTA row (below the main row, when steps remain) -->
     <div
       v-if="nextStep && nextStepMilestone"
       class="mt-4 pt-4 border-t border-light-gray flex flex-col sm:flex-row sm:items-center gap-3"
@@ -68,6 +68,28 @@
       >
         Continue
       </button>
+    </div>
+
+    <!-- Journey complete message (all steps done) -->
+    <div
+      v-if="isJourneyComplete"
+      class="mt-4 pt-4 border-t border-light-gray flex flex-col sm:flex-row sm:items-center gap-3"
+    >
+      <div
+        class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500"
+      >
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-spring-600">
+          Journey complete
+        </p>
+        <p class="text-xs text-neutral-500 mt-0.5">
+          You have completed all onboarding steps. Explore your dashboard to review your financial plan.
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -101,13 +123,17 @@ export default {
     },
 
     completedCount() {
-      const allCompleted = this.$store.getters['lifeStage/dataCompletedSteps'] || [];
+      const allCompleted = this.$store.getters['lifeStage/allCompletedSteps'] || [];
       const stageSteps = this.onboardingSteps || [];
       return allCompleted.filter(s => stageSteps.includes(s)).length;
     },
 
     totalSteps() {
       return this.onboardingSteps?.length || 0;
+    },
+
+    isJourneyComplete() {
+      return this.totalSteps > 0 && !this.nextStep;
     },
 
     nextStepNumber() {

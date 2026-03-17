@@ -32,10 +32,23 @@ const getters = {
     return state.dataCompletedSteps || [];
   },
 
+  // Union of both completion sources: explicit flags (from onboarding flow)
+  // AND data-readiness checks (from actual DB records). A step is considered
+  // complete if it appears in EITHER source. This prevents steps that were
+  // genuinely completed from showing as incomplete when the data-readiness
+  // check is stricter than what the onboarding form actually saves (e.g.
+  // WillInfoStep saves via onboarding store, not user.has_will; GoalSetupStep
+  // may be skipped but explicitly marked complete).
+  allCompletedSteps: (state) => {
+    const explicit = state.completedSteps || [];
+    const dataReady = state.dataCompletedSteps || [];
+    return [...new Set([...explicit, ...dataReady])];
+  },
+
   progressPercentage: (state, getters) => {
     const steps = getters.onboardingSteps;
     if (!steps.length) return 0;
-    const completed = getters.dataCompletedSteps;
+    const completed = getters.allCompletedSteps;
     // Only count steps that are in the current stage's step list
     const relevant = completed.filter(s => steps.includes(s));
     return Math.round((relevant.length / steps.length) * 100);
@@ -43,7 +56,7 @@ const getters = {
 
   nextStep: (state, getters) => {
     const steps = getters.onboardingSteps;
-    const completed = getters.dataCompletedSteps;
+    const completed = getters.allCompletedSteps;
     return steps.find(step => !completed.includes(step)) || null;
   },
 
