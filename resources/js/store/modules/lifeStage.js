@@ -23,15 +23,62 @@ const getters = {
   learningMilestone: (state, getters) => (stepId) => getters.stageConfig?.onboarding?.learningMilestones?.[stepId] || null,
   formFields: (state, getters) => (formName) => getters.stageConfig?.formFields?.[formName] || {},
 
+  // Detect which steps have data — a step is complete if the user has relevant data,
+  // regardless of whether they went through the onboarding flow
+  dataCompletedSteps: (state, getters, rootState) => {
+    const user = rootState.auth?.user;
+    if (!user) return [];
+
+    // Map step IDs to data existence checks
+    const stepDataChecks = {
+      'personal-info': () => !!user.date_of_birth && !!user.gender,
+      'student-loan': () => (rootState.estate?.liabilities || []).some(l => l.liability_type === 'student_loan'),
+      'income': () => !!user.annual_employment_income || !!user.employment_status,
+      'income-career': () => !!user.annual_employment_income || !!user.employment_status,
+      'income-tax': () => !!user.annual_employment_income,
+      'expenditure': () => !!user.monthly_expenditure && user.monthly_expenditure > 0,
+      'savings': () => (rootState.savings?.accounts?.length || 0) > 0,
+      'savings-emergency': () => (rootState.savings?.accounts?.length || 0) > 0,
+      'first-home-lisa': () => (rootState.savings?.accounts || []).some(a => a.account_type === 'cash_isa' || a.is_isa),
+      'investments': () => (rootState.investment?.accounts?.length || 0) > 0,
+      'investments-isa': () => (rootState.investment?.accounts?.length || 0) > 0,
+      'goals': () => (rootState.goals?.goals?.length || 0) > 0,
+      'family': () => (rootState.userProfile?.familyMembers?.length || 0) > 0 || user.marital_status === 'married',
+      'property-mortgage': () => (rootState.netWorth?.properties?.length || 0) > 0,
+      'property-portfolio': () => (rootState.netWorth?.properties?.length || 0) > 0,
+      'protection-insurance': () => (rootState.protection?.policies?.length || 0) > 0,
+      'pensions': () => (rootState.retirement?.pensions?.length || 0) > 0,
+      'pension-auto-enrolment': () => (rootState.retirement?.pensions?.length || 0) > 0,
+      'pension-review': () => (rootState.retirement?.pensions?.length || 0) > 0,
+      'pension-drawdown': () => (rootState.retirement?.pensions?.length || 0) > 0,
+      'state-pension': () => !!rootState.retirement?.statePension,
+      'will-estate': () => !!rootState.estate?.will,
+      'estate-iht': () => !!rootState.estate?.estateData,
+      'estate-legacy': () => !!rootState.estate?.estateData,
+    };
+
+    const steps = getters.onboardingSteps;
+    const completed = [];
+    steps.forEach(stepId => {
+      const check = stepDataChecks[stepId];
+      // Step is complete if explicitly marked OR if data exists
+      if (state.completedSteps.includes(stepId) || (check && check())) {
+        completed.push(stepId);
+      }
+    });
+    return completed;
+  },
+
   progressPercentage: (state, getters) => {
     const steps = getters.onboardingSteps;
     if (!steps.length) return 0;
-    return Math.round((state.completedSteps.length / steps.length) * 100);
+    return Math.round((getters.dataCompletedSteps.length / steps.length) * 100);
   },
 
   nextStep: (state, getters) => {
     const steps = getters.onboardingSteps;
-    return steps.find(step => !state.completedSteps.includes(step)) || null;
+    const completed = getters.dataCompletedSteps;
+    return steps.find(step => !completed.includes(step)) || null;
   },
 
   // Dynamic promotion: merge primary + user-data-promoted modules

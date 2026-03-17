@@ -101,7 +101,7 @@ export default {
     },
 
     completedCount() {
-      return this.$store.state.lifeStage.completedSteps?.length || 0;
+      return this.$store.getters['lifeStage/dataCompletedSteps']?.length || 0;
     },
 
     totalSteps() {
