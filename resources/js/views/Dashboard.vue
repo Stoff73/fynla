@@ -48,6 +48,9 @@
         </div>
       </div>
 
+      <!-- Journey Progress Hero (shown when life stage is active) -->
+      <JourneyProgressHero v-if="currentStage && !showEmptyDashboard" class="mb-3" />
+
       <!-- Empty Dashboard (no financial data) -->
       <template v-if="showEmptyDashboard">
         <div class="grid grid-cols-1 gap-3">
@@ -65,9 +68,9 @@
         <!-- Profile Completion Cards (shown for quick onboarding users) -->
         <ProfileCompletionCards v-if="isQuickOnboardingUser" />
 
-        <!-- Student: Recent Activity Card (replaces Net Worth) -->
+        <!-- Student: Recent Activity Card (replaces Net Worth) — maps to 'budget-tracker' -->
         <DashboardCard
-          v-if="isStudentPersona"
+          v-if="isStudentPersona && isCardVisible('budget-tracker')"
           title="Recent Activity"
           :loading="false"
           @click="navigateTo('/net-worth/cash')"
@@ -101,9 +104,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Student: Student Debt Card -->
+        <!-- Student: Student Debt Card — maps to 'student-loan' -->
         <DashboardCard
-          v-if="isStudentPersona"
+          v-if="isStudentPersona && isCardVisible('student-loan')"
           title="Student Debt"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/liabilities')"
@@ -148,9 +151,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Net Worth Card (hidden for student persona) -->
+        <!-- Net Worth Card (hidden for student persona) — maps to 'net-worth' -->
         <DashboardCard
-          v-if="!isStudentPersona"
+          v-if="!isStudentPersona && isCardVisible('net-worth')"
           title="Net Worth"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
@@ -207,9 +210,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Protection Card -->
+        <!-- Protection Card — maps to 'protection' -->
         <DashboardCard
-          v-if="hasProtectionData"
+          v-if="hasProtectionData && isCardVisible('protection')"
           title="Protection"
           :loading="loading.protection"
           @click="navigateTo('/protection')"
@@ -259,9 +262,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Cash & Savings Card -->
+        <!-- Cash & Savings Card — maps to 'cash-savings' / 'savings' -->
         <DashboardCard
-          v-if="hasSavingsData"
+          v-if="hasSavingsData && (isCardVisible('cash-savings') || isCardVisible('savings'))"
           title="Cash & Savings"
           :loading="loading.taxAllowances"
           @click="navigateTo('/net-worth/cash')"
@@ -307,9 +310,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Investment Card -->
+        <!-- Investment Card — maps to 'investments' -->
         <DashboardCard
-          v-if="hasInvestmentData"
+          v-if="hasInvestmentData && isCardVisible('investments')"
           title="Investments"
           :loading="loading.investment"
           @click="navigateTo('/net-worth/investments')"
@@ -355,9 +358,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Estate Planning Card -->
+        <!-- Estate Planning Card — maps to 'estate' -->
         <DashboardCard
-          v-if="hasEstateData"
+          v-if="hasEstateData && isCardVisible('estate')"
           title="Estate Planning"
           :loading="loading.estate"
           @click="navigateTo('/estate')"
@@ -447,9 +450,9 @@
         </DashboardCard>
 
 
-        <!-- Retirement Card (hidden for users under 35) -->
+        <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
         <DashboardCard
-          v-if="hasRetirementData && (userAge === null || userAge >= 35)"
+          v-if="hasRetirementData && (userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
@@ -594,8 +597,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Allowances Card -->
+        <!-- Allowances Card — maps to 'tax-allowances' -->
         <DashboardCard
+          v-if="isCardVisible('tax-allowances')"
           title="Allowances"
           :loading="loading.taxAllowances"
         >
@@ -734,9 +738,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Goals & Events Card (spans 2 columns on larger screens) -->
+        <!-- Goals & Events Card (spans 2 columns on larger screens) — legacy, hidden when stage-curated GoalsCard is shown -->
         <DashboardCard
-          v-if="hasGoalsData"
+          v-if="hasGoalsData && !currentStage"
           title="Goals & Life Events"
           :loading="loading.goals"
           class="lg:col-span-2"
@@ -762,6 +766,18 @@
         </DashboardCard>
 
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
+
+        <!-- Stage-curated: Goals Card (new component with progress bars and suggested goals) -->
+        <GoalsCard
+          v-if="currentStage && isCardVisible('goals')"
+          @add-goal="navigateTo('/goals?addGoal=true')"
+          @add-suggested-goal="handleSuggestedGoal"
+        />
+
+        <!-- Stage-curated: Life Timeline Card (new component with vertical timeline) -->
+        <LifeTimelineCard
+          v-if="currentStage && isCardVisible('life-timeline')"
+        />
 
         <!-- Cross-Module Insights (all non-student users) -->
         <template v-if="!isStudentPersona">
@@ -792,6 +808,11 @@ import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
 
+// Life stage journey components
+const JourneyProgressHero = () => import('@/components/Journey/JourneyProgressHero.vue');
+const GoalsCard = () => import('@/components/Dashboard/GoalsCard.vue');
+const LifeTimelineCard = () => import('@/components/Dashboard/LifeTimelineCard.vue');
+
 export default {
   name: 'Dashboard',
 
@@ -803,6 +824,9 @@ export default {
     ProfileCompletionCards,
     CrossModuleInsights,
     EmptyDashboard,
+    JourneyProgressHero,
+    GoalsCard,
+    LifeTimelineCard,
   },
 
   mixins: [currencyMixin],
@@ -835,6 +859,10 @@ export default {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
     ...mapGetters('preview', ['effectivePersonaData']),
     ...mapGetters('plans', { getPlan: 'getPlan' }),
+    ...mapGetters('lifeStage', {
+      currentStage: 'currentStage',
+      stageDashboardCards: 'dashboardCards',
+    }),
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student';
@@ -1537,6 +1565,27 @@ export default {
     ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
     ...mapActions('retirement', ['fetchRequiredCapital']),
 
+    /**
+     * Stage-curated card visibility.
+     * When a life stage is active, only cards listed in the stage's dashboard.cards
+     * config are shown. When no stage is set, all cards fall back to their original
+     * visibility logic (the existing v-if conditions handle that).
+     */
+    isCardVisible(cardId) {
+      // No stage set — fall back to showing all cards (existing behaviour)
+      if (!this.currentStage) return true;
+      // Stage is active — only show cards in the curated list
+      return this.stageDashboardCards.includes(cardId);
+    },
+
+    handleSuggestedGoal(goalData) {
+      // Navigate to goals page with the suggested goal pre-filled
+      this.$router.push({
+        path: '/goals',
+        query: { addGoal: 'true', suggested: goalData.id },
+      });
+    },
+
     // Format asset category names for display
     formatAssetCategory(category) {
       const categoryLabels = {
@@ -1654,6 +1703,8 @@ export default {
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
+        { name: 'goals', action: 'goals/fetchGoals' },
+        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
       ] : [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
@@ -1670,6 +1721,8 @@ export default {
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
+        { name: 'goals', action: 'goals/fetchGoals' },
+        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'estate' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'protection' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'savings' },
@@ -1753,6 +1806,8 @@ export default {
       handler(user) {
         if (user && !this.dataLoaded) {
           this.dataLoaded = true;
+          // Fetch life stage data (for stage-curated dashboard)
+          this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         }
       }
