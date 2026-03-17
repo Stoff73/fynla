@@ -22,7 +22,20 @@ class LifeStageService
             throw new \InvalidArgumentException("Invalid life stage: {$stage}");
         }
 
-        $user->update(['life_stage' => $stage]);
+        // Set life stage and a default onboarding_focus_area so legacy
+        // onboarding endpoints don't fail with "Focus area not set"
+        $focusAreaMap = [
+            'university' => 'protection',
+            'early_career' => 'investment',
+            'mid_career' => 'protection',
+            'peak' => 'retirement',
+            'retirement' => 'estate',
+        ];
+
+        $user->update([
+            'life_stage' => $stage,
+            'onboarding_focus_area' => $focusAreaMap[$stage] ?? 'protection',
+        ]);
     }
 
     /**
