@@ -253,6 +253,9 @@ const actions = {
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
 
+                // Set the life stage from the persona mapping
+                dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
+
                 // On native, use SPA navigation to avoid page reload (which loses in-memory state)
                 const router = window.__appRouter;
                 if (router && isNativePlatform()) {
@@ -302,6 +305,9 @@ const actions = {
                 // Update auth state with the new preview user
                 commit('auth/setUser', response.data.user, { root: true });
                 commit('auth/setToken', token, { root: true });
+
+                // Set the life stage from the persona mapping
+                dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
 
                 // On native, use SPA navigation; on web, reload for fresh state
                 const router = window.__appRouter;
