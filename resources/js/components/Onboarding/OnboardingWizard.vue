@@ -1,104 +1,293 @@
 <template>
   <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
-    <!-- Journey Context Header (journey mode only) -->
-    <div v-if="isJourneyMode && journeyContextLabel" class="max-w-5xl mx-auto mb-4">
-      <div class="bg-white rounded-lg shadow-sm border border-light-gray px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="text-body-sm text-neutral-500">Setting up:</span>
-          <span class="text-body font-medium text-horizon-500">{{ journeyContextLabel }}</span>
-        </div>
-        <span v-if="journeyProgressPercentage > 0" class="text-body-sm text-neutral-500">
-          {{ journeyProgressPercentage }}% complete
-        </span>
-      </div>
-    </div>
 
-    <!-- Progress Indicator -->
-    <div v-if="showProgressBar" class="max-w-5xl mx-auto mb-8">
-      <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
-        <div class="overflow-x-auto">
-          <div class="flex items-start justify-between min-w-max px-2">
-            <div
-              v-for="(step, index) in displaySteps"
-              :key="step.name"
-              class="flex-1 flex flex-col items-center relative min-w-[80px]"
-            >
-              <!-- Step Circle -->
+    <!-- ================================================================== -->
+    <!-- LIFE STAGE MODE: Progress bar, two-column layout, learning sidebar -->
+    <!-- ================================================================== -->
+    <template v-if="isLifeStageMode">
+      <!-- Progress Bar -->
+      <div v-if="lifeStageSteps.length > 0" class="max-w-6xl mx-auto mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
+          <div class="overflow-x-auto scrollbar-hide">
+            <div class="flex items-start justify-between min-w-max px-2">
               <div
-                class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
-                :class="getStepCircleClass(step, index)"
+                v-for="(stepId, index) in lifeStageSteps"
+                :key="stepId"
+                class="flex-1 flex flex-col items-center relative min-w-[80px]"
               >
-                <!-- Checkmark for completed -->
-                <svg v-if="isStepCompleted(step, index)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-                <!-- Skip icon for skipped -->
-                <svg v-else-if="isStepSkipped(step)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                </svg>
-                <!-- Step number for current/pending -->
-                <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+                <!-- Step Circle -->
+                <div
+                  class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                  :class="getLifeStageStepCircleClass(stepId, index)"
+                >
+                  <!-- Tick for completed -->
+                  <svg v-if="isLifeStageStepCompleted(stepId)" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Number for current/upcoming -->
+                  <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+                </div>
+                <!-- Step Label -->
+                <span
+                  class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
+                  :class="getLifeStageStepLabelClass(stepId, index)"
+                >{{ getLifeStageStepLabel(stepId) }}</span>
+                <!-- Connecting Line -->
+                <div
+                  v-if="index < lifeStageSteps.length - 1"
+                  class="absolute h-0.5 top-[18px] left-1/2 -z-10"
+                  :style="{ width: 'calc(100% - 20px)' }"
+                  :class="getLifeStageConnectingLineClass(index)"
+                ></div>
               </div>
-              <!-- Step Label -->
-              <span
-                class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
-                :class="getStepLabelClass(step, index)"
-              >
-                {{ getStepShortLabel(step) }}
-              </span>
-              <!-- Connecting Line -->
-              <div
-                v-if="index < displaySteps.length - 1"
-                class="absolute h-0.5 top-[18px] left-1/2 -z-10"
-                :style="{ width: 'calc(100% - 20px)' }"
-                :class="getConnectingLineClass(step, index)"
-              ></div>
+            </div>
+          </div>
+          <!-- Skip to Dashboard -->
+          <div class="mt-3 text-center">
+            <button
+              type="button"
+              class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
+              @click="showSkipToDashboardModal = true"
+            >
+              Skip to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-Column Layout -->
+      <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Left Column: Form -->
+          <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
+              <Transition name="fade" mode="out-in">
+                <component
+                  v-if="lifeStageCurrentComponent"
+                  :is="lifeStageCurrentComponent"
+                  :key="lifeStageCurrentStepId"
+                  :context="'onboarding'"
+                  @save="handleLifeStageStepSave"
+                  @next="handleLifeStageNext"
+                  @back="handleLifeStageBack"
+                  @skip="handleLifeStageSkip"
+                  @close="handleLifeStageNext"
+                />
+                <div v-else class="py-12 text-center">
+                  <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p class="text-sm text-neutral-500">Loading step...</p>
+                </div>
+              </Transition>
+
+              <!-- Navigation Buttons -->
+              <div class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
+                <button
+                  v-if="lifeStageCurrentIndex > 0"
+                  type="button"
+                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
+                  @click="handleLifeStageBack"
+                >
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+                <div v-else></div>
+
+                <div class="flex items-center gap-3">
+                  <button
+                    type="button"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
+                    @click="handleLifeStageSkip"
+                  >
+                    Skip this step
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors"
+                    @click="handleLifeStageNext"
+                  >
+                    Continue
+                    <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Learning Sidebar (desktop) -->
+          <div class="w-full lg:w-[340px] flex-shrink-0">
+            <div class="lg:sticky lg:top-8">
+              <LearningMilestoneSidebar
+                :step="lifeStageCurrentStepId"
+                :stage="currentLifeStage"
+                class="rounded-lg shadow-sm border border-light-gray"
+              />
             </div>
           </div>
         </div>
-        <!-- Skip to Dashboard link (full mode only) -->
-        <div v-if="showSkipToDashboardLink" class="mt-3 text-center">
-          <button
-            type="button"
-            class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
-            @click="showSkipToDashboardModal = true"
-          >
-            Skip to Dashboard
-          </button>
+      </div>
+    </template>
+
+    <!-- ================================================================== -->
+    <!-- LEGACY MODE: Journey context header, existing step flow            -->
+    <!-- ================================================================== -->
+    <template v-else>
+      <!-- Journey Context Header (journey mode only) -->
+      <div v-if="isJourneyMode && journeyContextLabel" class="max-w-5xl mx-auto mb-4">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray px-4 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-body-sm text-neutral-500">Setting up:</span>
+            <span class="text-body font-medium text-horizon-500">{{ journeyContextLabel }}</span>
+          </div>
+          <span v-if="journeyProgressPercentage > 0" class="text-body-sm text-neutral-500">
+            {{ journeyProgressPercentage }}% complete
+          </span>
         </div>
       </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="max-w-5xl mx-auto">
-      <!-- Focus Area Selection (welcome screen - non-journey modes only) -->
-      <FocusAreaSelection
-        v-if="!focusArea && !isJourneyMode"
-        @selected="handleFocusAreaSelected"
-      />
+      <!-- Progress Indicator -->
+      <div v-if="showProgressBar" class="max-w-5xl mx-auto mb-8">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
+          <div class="overflow-x-auto">
+            <div class="flex items-start justify-between min-w-max px-2">
+              <div
+                v-for="(step, index) in displaySteps"
+                :key="step.name"
+                class="flex-1 flex flex-col items-center relative min-w-[80px]"
+              >
+                <!-- Step Circle -->
+                <div
+                  class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                  :class="getStepCircleClass(step, index)"
+                >
+                  <!-- Checkmark for completed -->
+                  <svg v-if="isStepCompleted(step, index)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Skip icon for skipped -->
+                  <svg v-else-if="isStepSkipped(step)" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Step number for current/pending -->
+                  <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+                </div>
+                <!-- Step Label -->
+                <span
+                  class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
+                  :class="getStepLabelClass(step, index)"
+                >
+                  {{ getStepShortLabel(step) }}
+                </span>
+                <!-- Connecting Line -->
+                <div
+                  v-if="index < displaySteps.length - 1"
+                  class="absolute h-0.5 top-[18px] left-1/2 -z-10"
+                  :style="{ width: 'calc(100% - 20px)' }"
+                  :class="getConnectingLineClass(step, index)"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <!-- Skip to Dashboard link (full mode only) -->
+          <div v-if="showSkipToDashboardLink" class="mt-3 text-center">
+            <button
+              type="button"
+              class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
+              @click="showSkipToDashboardModal = true"
+            >
+              Skip to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <!-- Journey Completion Step -->
-      <JourneyCompletionStep
-        v-if="isJourneyMode && showJourneyCompletion"
-        :journey-name="currentJourneyName"
-        :completed-steps="journeySteps"
-        @next="handleJourneyCompletionNext"
-      />
-
-      <!-- Step Content -->
-      <Transition name="fade" mode="out-in">
-        <component
-          v-if="showStepContent"
-          :is="currentStepComponent"
-          :key="currentStepKey"
-          @next="handleNext"
-          @back="handleBack"
-          @skip="handleSkipRequest"
+      <!-- Main Content -->
+      <div class="max-w-5xl mx-auto">
+        <!-- Focus Area Selection (welcome screen - non-journey modes only) -->
+        <FocusAreaSelection
+          v-if="!focusArea && !isJourneyMode && !isLifeStageMode"
+          @stage-selected="handleStageSelected"
+          @focus-selected="handleFocusAreaSelected"
+          @selected="handleFocusAreaSelected"
         />
-      </Transition>
-    </div>
 
-    <!-- Skip Confirmation Modal (full mode only) -->
+        <!-- Journey Completion Step -->
+        <JourneyCompletionStep
+          v-if="isJourneyMode && showJourneyCompletion"
+          :journey-name="currentJourneyName"
+          :completed-steps="journeySteps"
+          @next="handleJourneyCompletionNext"
+        />
+
+        <!-- Step Content -->
+        <Transition name="fade" mode="out-in">
+          <component
+            v-if="showStepContent"
+            :is="currentStepComponent"
+            :key="currentStepKey"
+            @next="handleNext"
+            @back="handleBack"
+            @skip="handleSkipRequest"
+          />
+        </Transition>
+      </div>
+    </template>
+
+    <!-- ================================================================== -->
+    <!-- SHARED: Journey Map Modal (shown when user selects a life stage)   -->
+    <!-- ================================================================== -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="showJourneyMapModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-horizon-500 bg-opacity-50" @click="closeJourneyMapModal"></div>
+
+          <!-- Modal Content -->
+          <div class="relative bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 z-10">
+            <!-- Close button -->
+            <button
+              type="button"
+              class="absolute top-4 right-4 text-neutral-500 hover:text-horizon-500 transition-colors"
+              @click="closeJourneyMapModal"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <!-- Stage heading -->
+            <div class="text-center mb-6">
+              <h2 class="text-xl font-bold text-horizon-500">
+                {{ selectedStageConfig ? selectedStageConfig.label : '' }}
+              </h2>
+              <p class="text-sm text-neutral-500 mt-1">
+                {{ selectedStageConfig ? selectedStageConfig.tagline : '' }}
+              </p>
+            </div>
+
+            <!-- Journey Map -->
+            <JourneyMap
+              v-if="selectedStageId"
+              :stage="selectedStageId"
+              :completed-steps="[]"
+              mode="preview"
+              @start="handleJourneyMapStart"
+              @preview="handleJourneyMapPreview"
+            />
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- ================================================================== -->
+    <!-- SHARED: Skip and Confirm Modals                                    -->
+    <!-- ================================================================== -->
     <ConfirmDialog
       :show="showSkipModal"
       title="This information is important"
@@ -110,7 +299,6 @@
       @cancel="hideSkipModal"
     />
 
-    <!-- Skip to Dashboard Modal (full mode only) -->
     <SkipToDashboardModal
       :show="showSkipToDashboardModal"
       @continue="showSkipToDashboardModal = false"
@@ -120,12 +308,17 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, defineAsyncComponent, shallowRef, markRaw } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
+import { LIFE_STAGES, STAGE_ORDER } from '@/constants/lifeStageConfig';
 import FocusAreaSelection from './FocusAreaSelection.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SkipToDashboardModal from './SkipToDashboardModal.vue';
+import LearningMilestoneSidebar from './LearningMilestoneSidebar.vue';
+import JourneyMap from '@/components/Journey/JourneyMap.vue';
+
+// Legacy step components (kept for backward compatibility with existing modes)
 import PersonalInfoStep from './steps/PersonalInfoStep.vue';
 import IncomeStep from './steps/IncomeStep.vue';
 import ExpenditureStep from './steps/ExpenditureStep.vue';
@@ -148,6 +341,66 @@ import SimpleSavingsAccountStep from './steps/SimpleSavingsAccountStep.vue';
 import SimplePropertyMortgageStep from './steps/SimplePropertyMortgageStep.vue';
 import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 
+// =====================================================================
+// LIFE STAGE STEP → COMPONENT MAPPING
+// Maps each step ID from lifeStageConfig onboarding.steps to the
+// unified form component that should render for that step.
+// =====================================================================
+const STEP_COMPONENTS = {
+  'personal-info': () => import('@/components/UserProfile/PersonalInformation.vue'),
+  'student-loan': () => import('@/components/Estate/LiabilityForm.vue'),
+  'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
+  'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
+  'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
+  'expenditure': () => import('@/components/UserProfile/ExpenditureForm.vue'),
+  'savings': () => import('@/components/Savings/SaveAccountModal.vue'),
+  'savings-emergency': () => import('@/components/Savings/SaveAccountModal.vue'),
+  'first-home-lisa': () => import('@/components/Savings/SaveAccountModal.vue'),
+  'property-mortgage': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
+  'property-portfolio': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
+  'protection-insurance': () => import('@/components/Protection/PolicyFormModal.vue'),
+  'pensions': () => import('@/components/Retirement/DCPensionForm.vue'),
+  'pension-auto-enrolment': () => import('@/components/Retirement/DCPensionForm.vue'),
+  'pension-review': () => import('@/components/Retirement/UnifiedPensionForm.vue'),
+  'pension-drawdown': () => import('@/components/Retirement/DCPensionForm.vue'),
+  'family': () => import('@/components/UserProfile/FamilyMemberFormModal.vue'),
+  'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
+  'estate-iht': () => import('@/components/Estate/IHTPlanning.vue'),
+  'estate-legacy': () => import('@/components/Estate/WillPlanning.vue'),
+  'goals': () => import('@/components/Goals/GoalFormModal.vue'),
+  'investments': () => import('@/components/Investment/AccountForm.vue'),
+  'investments-isa': () => import('@/components/Investment/AccountForm.vue'),
+  'state-pension': () => import('@/components/Retirement/StatePensionForm.vue'),
+};
+
+// Step label map for the progress bar
+const STEP_LABELS = {
+  'personal-info': 'About You',
+  'student-loan': 'Student Loan',
+  'income': 'Income',
+  'income-career': 'Income',
+  'income-tax': 'Income',
+  'expenditure': 'Spending',
+  'savings': 'Savings',
+  'savings-emergency': 'Savings',
+  'first-home-lisa': 'First Home',
+  'pension-auto-enrolment': 'Pension',
+  'investments': 'Investments',
+  'investments-isa': 'Investments',
+  'goals': 'Goals',
+  'family': 'Family',
+  'property-mortgage': 'Property',
+  'property-portfolio': 'Property',
+  'protection-insurance': 'Protection',
+  'pensions': 'Pensions',
+  'pension-review': 'Pensions',
+  'pension-drawdown': 'Pensions',
+  'will-estate': 'Will',
+  'estate-iht': 'Estate',
+  'estate-legacy': 'Estate',
+  'state-pension': 'State Pension',
+};
+
 export default {
   name: 'OnboardingWizard',
 
@@ -155,6 +408,8 @@ export default {
     FocusAreaSelection,
     ConfirmDialog,
     SkipToDashboardModal,
+    LearningMilestoneSidebar,
+    JourneyMap,
     PersonalInfoStep,
     IncomeStep,
     ExpenditureStep,
@@ -182,7 +437,7 @@ export default {
     mode: {
       type: String,
       default: null,
-      validator: (v) => v === null || ['quick', 'full', 'module', 'journey'].includes(v),
+      validator: (v) => v === null || ['quick', 'full', 'module', 'journey', 'life-stage'].includes(v),
     },
     moduleSteps: {
       type: Array,
@@ -204,25 +459,221 @@ export default {
     const pendingSkipStep = ref(null);
     const showSkipToDashboardModal = ref(false);
     const showJourneyCompletion = ref(false);
+    const showJourneyMapModal = ref(false);
+    const selectedStageId = ref(null);
 
-    // Mode flags
+    // ================================================================
+    // LIFE STAGE MODE
+    // ================================================================
+    const currentLifeStage = computed(() => store.getters['lifeStage/currentStage']);
+    const isLifeStageMode = computed(() => {
+      return props.mode === 'life-stage' || (currentLifeStage.value && !props.mode);
+    });
+    const lifeStageSteps = computed(() => store.getters['lifeStage/onboardingSteps'] || []);
+    const lifeStageCompletedSteps = computed(() => store.state.lifeStage?.completedSteps || []);
+
+    const lifeStageCurrentIndex = ref(0);
+
+    const lifeStageCurrentStepId = computed(() => {
+      return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
+    });
+
+    // Dynamically resolve the component for the current life stage step
+    const lifeStageCurrentComponent = shallowRef(null);
+
+    const loadLifeStageComponent = async (stepId) => {
+      if (!stepId || !STEP_COMPONENTS[stepId]) {
+        lifeStageCurrentComponent.value = null;
+        return;
+      }
+      try {
+        const module = await STEP_COMPONENTS[stepId]();
+        lifeStageCurrentComponent.value = markRaw(module.default || module);
+      } catch (err) {
+        console.error(`Failed to load component for step "${stepId}":`, err);
+        lifeStageCurrentComponent.value = null;
+      }
+    };
+
+    // Watch for step changes and load the appropriate component
+    watch(lifeStageCurrentStepId, (newStepId) => {
+      if (newStepId) {
+        loadLifeStageComponent(newStepId);
+      }
+    }, { immediate: true });
+
+    const stageColour = computed(() => {
+      const config = LIFE_STAGES[currentLifeStage.value];
+      return config?.colour || 'violet';
+    });
+
+    const stageColourClasses = computed(() => {
+      const map = {
+        violet: {
+          bg: 'bg-violet-500 border-violet-500',
+          text: 'text-violet-500',
+          line: 'bg-violet-500',
+          ring: 'ring-violet-500',
+        },
+        spring: {
+          bg: 'bg-spring-500 border-spring-500',
+          text: 'text-spring-500',
+          line: 'bg-spring-500',
+          ring: 'ring-spring-500',
+        },
+        raspberry: {
+          bg: 'bg-raspberry-500 border-raspberry-500',
+          text: 'text-raspberry-500',
+          line: 'bg-raspberry-500',
+          ring: 'ring-raspberry-500',
+        },
+        'light-blue': {
+          bg: 'bg-light-blue-500 border-light-blue-500',
+          text: 'text-light-blue-500',
+          line: 'bg-light-blue-500',
+          ring: 'ring-light-blue-500',
+        },
+        horizon: {
+          bg: 'bg-horizon-500 border-horizon-500',
+          text: 'text-horizon-500',
+          line: 'bg-horizon-500',
+          ring: 'ring-horizon-500',
+        },
+      };
+      return map[stageColour.value] || map.violet;
+    });
+
+    const selectedStageConfig = computed(() => {
+      return selectedStageId.value ? LIFE_STAGES[selectedStageId.value] : null;
+    });
+
+    const isLifeStageStepCompleted = (stepId) => {
+      return lifeStageCompletedSteps.value.includes(stepId);
+    };
+
+    const isLifeStageCurrentStep = (index) => {
+      return index === lifeStageCurrentIndex.value;
+    };
+
+    const getLifeStageStepCircleClass = (stepId, index) => {
+      if (isLifeStageCurrentStep(index)) {
+        return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+      }
+      if (isLifeStageStepCompleted(stepId)) {
+        return 'bg-spring-500 border-spring-500 text-white';
+      }
+      return 'bg-white border-light-gray text-neutral-500';
+    };
+
+    const getLifeStageStepLabelClass = (stepId, index) => {
+      if (isLifeStageCurrentStep(index)) {
+        return stageColourClasses.value.text + ' font-semibold';
+      }
+      if (isLifeStageStepCompleted(stepId)) {
+        return 'text-spring-600';
+      }
+      return 'text-neutral-500';
+    };
+
+    const getLifeStageStepLabel = (stepId) => {
+      return STEP_LABELS[stepId] || stepId;
+    };
+
+    const getLifeStageConnectingLineClass = (index) => {
+      if (index < lifeStageCurrentIndex.value) {
+        return 'bg-spring-500';
+      }
+      return 'bg-light-gray';
+    };
+
+    const handleLifeStageNext = async () => {
+      const currentStepId = lifeStageCurrentStepId.value;
+      if (currentStepId) {
+        await store.dispatch('lifeStage/completeStep', currentStepId);
+      }
+
+      const nextIndex = lifeStageCurrentIndex.value + 1;
+      if (nextIndex >= lifeStageSteps.value.length) {
+        // Onboarding complete — go to dashboard
+        await store.dispatch('auth/fetchUser', null, { root: true });
+        router.push({ name: 'Dashboard' });
+        return;
+      }
+
+      lifeStageCurrentIndex.value = nextIndex;
+    };
+
+    const handleLifeStageBack = () => {
+      if (lifeStageCurrentIndex.value > 0) {
+        lifeStageCurrentIndex.value -= 1;
+      }
+    };
+
+    const handleLifeStageSkip = () => {
+      const nextIndex = lifeStageCurrentIndex.value + 1;
+      if (nextIndex >= lifeStageSteps.value.length) {
+        router.push({ name: 'Dashboard' });
+        return;
+      }
+      lifeStageCurrentIndex.value = nextIndex;
+    };
+
+    const handleLifeStageStepSave = () => {
+      // When a form emits save, treat it as completing the step
+      handleLifeStageNext();
+    };
+
+    // Journey Map Modal handlers
+    const handleStageSelected = async (stageId) => {
+      selectedStageId.value = stageId;
+      showJourneyMapModal.value = true;
+    };
+
+    const closeJourneyMapModal = () => {
+      showJourneyMapModal.value = false;
+      selectedStageId.value = null;
+    };
+
+    const handleJourneyMapStart = async () => {
+      const stageId = selectedStageId.value;
+      showJourneyMapModal.value = false;
+      selectedStageId.value = null;
+
+      // Set the life stage and enter life stage onboarding mode
+      await store.dispatch('lifeStage/setStage', stageId);
+      lifeStageCurrentIndex.value = 0;
+    };
+
+    const handleJourneyMapPreview = () => {
+      const stageConfig = LIFE_STAGES[selectedStageId.value];
+      if (stageConfig?.persona) {
+        showJourneyMapModal.value = false;
+        selectedStageId.value = null;
+        // Navigate to preview mode for this persona
+        router.push({ name: 'PreviewDashboard', query: { persona: stageConfig.persona } });
+      }
+    };
+
+    // ================================================================
+    // LEGACY MODE (journey, quick, full, module)
+    // ================================================================
     const isJourneyMode = computed(() => props.mode === 'journey');
     const isModuleMode = computed(() => props.mode === 'module');
     const isQuickMode = computed(() => {
       if (props.mode === 'full') return false;
       if (props.mode === 'module') return false;
       if (props.mode === 'journey') return false;
+      if (props.mode === 'life-stage') return false;
+      if (isLifeStageMode.value) return false;
       return props.mode === 'quick' || props.mode === null;
     });
 
-    // Quick mode steps definition (client-side only, no backend fetch needed)
     const quickSteps = [
       { name: 'personal_info', title: 'Personal Information' },
       { name: 'income', title: 'Employment & Income' },
       { name: 'quick_assets', title: 'Your Financial Picture' },
     ];
 
-    // Journey mode state
     const currentJourneyName = computed(() => {
       if (isJourneyMode.value) {
         return props.journeyName || route.params?.journey || store.state.journeys.currentJourney;
@@ -266,7 +717,6 @@ export default {
         .join(', ');
     });
 
-    // Existing onboarding state
     const focusArea = computed(() => store.state.onboarding.focusArea);
 
     const currentStepIndex = computed(() => {
@@ -297,7 +747,6 @@ export default {
     const totalSteps = computed(() => store.state.onboarding.totalSteps);
     const progressPercentage = computed(() => store.state.onboarding.progressPercentage);
 
-    // Steps to display in the progress bar
     const displaySteps = computed(() => {
       if (isJourneyMode.value) return journeySteps.value;
       if (isQuickMode.value) return quickSteps;
@@ -306,6 +755,7 @@ export default {
     });
 
     const showProgressBar = computed(() => {
+      if (isLifeStageMode.value) return false;
       if (isJourneyMode.value) {
         return !showJourneyCompletion.value && journeySteps.value.length > 0;
       }
@@ -313,6 +763,7 @@ export default {
     });
 
     const showStepContent = computed(() => {
+      if (isLifeStageMode.value) return false;
       if (isJourneyMode.value) {
         return !showJourneyCompletion.value && currentStep.value;
       }
@@ -324,7 +775,6 @@ export default {
       return !isQuickMode.value && !isCompletionStep.value;
     });
 
-    // Full steps from store (for full mode)
     const steps = computed(() => store.state.onboarding.steps || []);
     const skippedSteps = computed(() => store.state.onboarding.skippedSteps || []);
 
@@ -405,91 +855,35 @@ export default {
       return currentStep.value?.name === 'completion';
     });
 
-    // Map journey backend steps to actual Vue components
     const resolveJourneyComponent = (step) => {
       if (!step) return null;
 
       const componentName = step.component;
       const fields = step.fields || [];
 
-      // Direct component mappings for simplified journey steps
-      if (componentName === 'SimplePersonalInfoStep') {
-        return 'SimplePersonalInfoStep';
-      }
+      if (componentName === 'SimplePersonalInfoStep') return 'SimplePersonalInfoStep';
+      if (componentName === 'SimpleIncomeStep') return 'SimpleIncomeStep';
+      if (componentName === 'SimpleExpenditureStep') return 'SimpleExpenditureStep';
+      if (componentName === 'SimpleSavingsAccountStep') return 'SimpleSavingsAccountStep';
+      if (componentName === 'SimplePropertyMortgageStep') return 'SimplePropertyMortgageStep';
+      if (componentName === 'FamilyInfoStep') return 'FamilyInfoStep';
+      if (componentName === 'LiabilitiesStep') return 'LiabilitiesStep';
+      if (componentName === 'ProtectionPoliciesStep') return 'ProtectionPoliciesStep';
+      if (componentName === 'JourneyPersonalStep') return 'PersonalInfoStep';
+      if (componentName === 'BudgetingStep') return 'BudgetingSteps';
 
-      if (componentName === 'SimpleIncomeStep') {
-        return 'SimpleIncomeStep';
-      }
-
-      if (componentName === 'SimpleExpenditureStep') {
-        return 'SimpleExpenditureStep';
-      }
-
-      if (componentName === 'SimpleSavingsAccountStep') {
-        return 'SimpleSavingsAccountStep';
-      }
-
-      if (componentName === 'SimplePropertyMortgageStep') {
-        return 'SimplePropertyMortgageStep';
-      }
-
-      // Reused existing components (referenced directly by name from step overrides)
-      if (componentName === 'FamilyInfoStep') {
-        return 'FamilyInfoStep';
-      }
-
-      if (componentName === 'LiabilitiesStep') {
-        return 'LiabilitiesStep';
-      }
-
-      if (componentName === 'ProtectionPoliciesStep') {
-        return 'ProtectionPoliciesStep';
-      }
-
-      // Standard component mappings
-      if (componentName === 'JourneyPersonalStep') {
-        return 'PersonalInfoStep';
-      }
-
-      if (componentName === 'BudgetingStep') {
-        return 'BudgetingSteps';
-      }
-
-      // Financial steps mapped by field
       if (componentName === 'JourneyFinancialStep') {
-        if (fields.includes('family_members') || fields.includes('spouse')) {
-          return 'FamilyInfoStep';
-        }
-        if (fields.includes('protection_policies')) {
-          return 'ProtectionPoliciesStep';
-        }
-        if (fields.includes('mortgages') || fields.includes('properties')) {
-          return 'AssetsStep';
-        }
-        if (fields.includes('liabilities')) {
-          return 'LiabilitiesStep';
-        }
-        if (fields.includes('savings_accounts')) {
-          return 'QuickAssetsStep';
-        }
-        if (fields.includes('wills')) {
-          return 'WillInfoStep';
-        }
-        if (fields.includes('trusts')) {
-          return 'TrustInfoStep';
-        }
-        if (fields.includes('pensions') || fields.includes('dc_pensions') || fields.includes('db_pensions') || fields.includes('state_pension')) {
-          return 'AssetsStep';
-        }
-        if (fields.includes('investment_accounts') || fields.includes('investments')) {
-          return 'AssetsStep';
-        }
-        if (fields.includes('business_interests')) {
-          return 'AssetsStep';
-        }
-        if (fields.includes('goals')) {
-          return 'GoalSetupStep';
-        }
+        if (fields.includes('family_members') || fields.includes('spouse')) return 'FamilyInfoStep';
+        if (fields.includes('protection_policies')) return 'ProtectionPoliciesStep';
+        if (fields.includes('mortgages') || fields.includes('properties')) return 'AssetsStep';
+        if (fields.includes('liabilities')) return 'LiabilitiesStep';
+        if (fields.includes('savings_accounts')) return 'QuickAssetsStep';
+        if (fields.includes('wills')) return 'WillInfoStep';
+        if (fields.includes('trusts')) return 'TrustInfoStep';
+        if (fields.includes('pensions') || fields.includes('dc_pensions') || fields.includes('db_pensions') || fields.includes('state_pension')) return 'AssetsStep';
+        if (fields.includes('investment_accounts') || fields.includes('investments')) return 'AssetsStep';
+        if (fields.includes('business_interests')) return 'AssetsStep';
+        if (fields.includes('goals')) return 'GoalSetupStep';
       }
 
       return null;
@@ -522,7 +916,6 @@ export default {
 
     const handleFocusAreaSelected = async (area) => {
       if (isQuickMode.value) {
-        // In quick mode, set steps locally instead of fetching from backend
         store.commit('onboarding/SET_STEPS', quickSteps);
         store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
         store.commit('onboarding/SET_CURRENT_STEP', quickSteps[0].name);
@@ -540,7 +933,6 @@ export default {
       const nextIndex = currentStepIndex.value + 1;
 
       if (isQuickMode.value && nextIndex >= quickSteps.length) {
-        // Quick mode complete - mark onboarding as done and go to dashboard
         await store.dispatch('onboarding/completeQuickOnboarding');
         await store.dispatch('auth/fetchUser', null, { root: true });
         router.push({ name: 'Dashboard' });
@@ -548,13 +940,11 @@ export default {
       }
 
       if (isModuleMode.value && nextIndex >= props.moduleSteps.length) {
-        // Module mini-onboarding complete - go back to dashboard
         router.push({ name: 'Dashboard' });
         return;
       }
 
       if (isQuickMode.value || isModuleMode.value) {
-        // Local step navigation (no backend step fetching)
         store.commit('onboarding/SET_CURRENT_STEP_INDEX', nextIndex);
         store.commit('onboarding/SET_CURRENT_STEP', stepsToUse[nextIndex].name);
       } else {
@@ -566,7 +956,6 @@ export default {
       const isLast = store.getters['journeys/isLastStep'];
 
       if (isLast) {
-        // Complete the journey and show completion screen
         await store.dispatch('journeys/completeJourney', currentJourneyName.value);
         showJourneyCompletion.value = true;
       } else {
@@ -575,8 +964,7 @@ export default {
     };
 
     const handleJourneyCompletionNext = async () => {
-      // This is called when user clicks "Continue to next journey" from completion
-      // The JourneyCompletionStep handles its own navigation
+      // JourneyCompletionStep handles its own navigation
     };
 
     const handleBack = async () => {
@@ -601,7 +989,6 @@ export default {
 
     const handleSkipRequest = async (stepName) => {
       if (isJourneyMode.value) {
-        // In journey mode, skip just advances to next step
         handleNext();
         return;
       }
@@ -629,7 +1016,7 @@ export default {
 
     const handleSkipToDashboard = async () => {
       showSkipToDashboardModal.value = false;
-      if (isJourneyMode.value) {
+      if (isJourneyMode.value || isLifeStageMode.value) {
         await store.dispatch('auth/fetchUser', null, { root: true });
         router.push({ name: 'Dashboard' });
       } else {
@@ -639,19 +1026,32 @@ export default {
     };
 
     onMounted(async () => {
+      if (isLifeStageMode.value) {
+        // Life stage mode: steps come from lifeStage store
+        // Find the first uncompleted step to resume from
+        const steps = lifeStageSteps.value;
+        const completed = lifeStageCompletedSteps.value;
+        let resumeIndex = 0;
+        for (let i = 0; i < steps.length; i++) {
+          if (!completed.includes(steps[i])) {
+            resumeIndex = i;
+            break;
+          }
+          if (i === steps.length - 1) {
+            resumeIndex = steps.length - 1;
+          }
+        }
+        lifeStageCurrentIndex.value = resumeIndex;
+        return;
+      }
+
       if (isJourneyMode.value) {
-        // Journey mode: load steps from journey API
         const journey = currentJourneyName.value;
         if (journey) {
-          // Set focus area for compatibility with existing step components
           store.commit('onboarding/SET_FOCUS_AREA', journey);
-
-          // Fetch journey steps if not already loaded
           if (store.state.journeys.currentSteps.length === 0 || store.state.journeys.currentJourney !== journey) {
             await store.dispatch('journeys/fetchSteps', journey);
           }
-
-          // Start the journey if not already in progress
           const journeyState = store.state.journeys.journeyStates[journey];
           if (!journeyState || journeyState === 'not_started') {
             await store.dispatch('journeys/startJourney', journey);
@@ -660,27 +1060,22 @@ export default {
         return;
       }
 
-      // Fetch onboarding status on mount
       await store.dispatch('onboarding/fetchOnboardingStatus');
 
       if (isModuleMode.value) {
-        // Module mode: set up steps from props
         store.commit('onboarding/SET_STEPS', props.moduleSteps);
         store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
         store.commit('onboarding/SET_CURRENT_STEP', props.moduleSteps[0]?.name);
-        // Auto-set focus area so step components work
         if (!focusArea.value) {
           store.commit('onboarding/SET_FOCUS_AREA', 'estate');
         }
       } else {
-        // Always reset to welcome screen when user navigates to onboarding
         store.commit('onboarding/SET_FOCUS_AREA', null);
         store.commit('onboarding/SET_CURRENT_STEP_INDEX', 0);
         store.commit('onboarding/SET_CURRENT_STEP', null);
       }
     });
 
-    // Watch for route changes in journey mode
     watch(() => route.params?.journey, async (newJourney) => {
       if (isJourneyMode.value && newJourney) {
         showJourneyCompletion.value = false;
@@ -690,6 +1085,37 @@ export default {
     });
 
     return {
+      // Life stage mode
+      isLifeStageMode,
+      currentLifeStage,
+      lifeStageSteps,
+      lifeStageCompletedSteps,
+      lifeStageCurrentIndex,
+      lifeStageCurrentStepId,
+      lifeStageCurrentComponent,
+      stageColour,
+      stageColourClasses,
+      isLifeStageStepCompleted,
+      isLifeStageCurrentStep,
+      getLifeStageStepCircleClass,
+      getLifeStageStepLabelClass,
+      getLifeStageStepLabel,
+      getLifeStageConnectingLineClass,
+      handleLifeStageNext,
+      handleLifeStageBack,
+      handleLifeStageSkip,
+      handleLifeStageStepSave,
+
+      // Journey map modal
+      showJourneyMapModal,
+      selectedStageId,
+      selectedStageConfig,
+      handleStageSelected,
+      closeJourneyMapModal,
+      handleJourneyMapStart,
+      handleJourneyMapPreview,
+
+      // Legacy mode
       focusArea,
       currentStep,
       currentStepIndex,
@@ -744,5 +1170,18 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.journey-node-pulse {
+  animation: nodePulse 2s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
 }
 </style>
