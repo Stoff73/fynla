@@ -79,8 +79,8 @@
                 </div>
               </Transition>
 
-              <!-- Navigation Buttons -->
-              <div class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
+              <!-- Navigation Buttons (hidden for deprecated steps that have their own nav) -->
+              <div v-if="!stepHasOwnNav" class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
                 <button
                   v-if="lifeStageCurrentIndex > 0"
                   type="button"
@@ -352,7 +352,7 @@ const STEP_COMPONENTS = {
   'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
-  'expenditure': () => import('@/components/UserProfile/ExpenditureForm.vue'),
+  'expenditure': () => import('@/components/Onboarding/steps/SimpleExpenditureStep.vue'),
   'savings': () => import('@/components/Savings/SaveAccountModal.vue'),
   'savings-emergency': () => import('@/components/Savings/SaveAccountModal.vue'),
   'first-home-lisa': () => import('@/components/Savings/SaveAccountModal.vue'),
@@ -484,6 +484,10 @@ export default {
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
     });
+
+    // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
+    const stepsWithOwnNav = ['income', 'income-career', 'income-tax', 'expenditure', 'will-estate', 'estate-iht', 'estate-legacy', 'state-pension'];
+    const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
     // Dynamically resolve the component for the current life stage step
     const lifeStageCurrentComponent = shallowRef(null);
@@ -1101,6 +1105,7 @@ export default {
       lifeStageCompletedSteps,
       lifeStageCurrentIndex,
       lifeStageCurrentStepId,
+      stepHasOwnNav,
       lifeStageCurrentComponent,
       stageColour,
       stageColourClasses,
