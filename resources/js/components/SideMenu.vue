@@ -145,11 +145,13 @@
             </div>
           </div>
 
-          <!-- Explore more (collapsed mode): vertical dots icon with flyout -->
-          <div v-if="effectiveCollapsed && exploreItems.length > 0" class="relative mb-1" @mouseenter="exploreFlyoutOpen = true" @mouseleave="exploreFlyoutOpen = false">
+          <!-- Explore more (collapsed mode): dots toggle, shows icons inline -->
+          <template v-if="effectiveCollapsed && exploreItems.length > 0">
+            <div class="border-t border-light-gray my-1 mx-3"></div>
             <button
               class="flex items-center justify-center w-full py-2 text-neutral-500 hover:text-horizon-500 transition-colors"
               title="Explore more"
+              @click="exploreFlyoutOpen = !exploreFlyoutOpen"
             >
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="5" r="2" />
@@ -157,37 +159,21 @@
                 <circle cx="12" cy="19" r="2" />
               </svg>
             </button>
-
-            <!-- Flyout panel -->
-            <Transition
-              enter-active-class="transition ease-out duration-150"
-              enter-from-class="opacity-0 -translate-x-2"
-              enter-to-class="opacity-100 translate-x-0"
-              leave-active-class="transition ease-in duration-100"
-              leave-from-class="opacity-100 translate-x-0"
-              leave-to-class="opacity-0 -translate-x-2"
-            >
-              <div
-                v-if="exploreFlyoutOpen"
-                class="absolute left-16 top-0 bg-white border border-light-gray rounded-r-lg shadow-lg py-2 min-w-48 z-[61]"
-              >
-                <div class="px-3 pb-1 mb-1 border-b border-light-gray">
-                  <span class="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Explore more</span>
-                </div>
-                <router-link
-                  v-for="item in exploreItems"
-                  :key="'flyout-' + item.id"
-                  :to="item.to"
-                  class="flex items-center px-3 py-1.5 text-sm text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500 transition-colors"
-                  :class="isItemActive(item.id) ? activeFlyoutItemClass : ''"
-                  @click="exploreFlyoutOpen = false; closeMobile();"
-                >
-                  <SideMenuIcon :name="item.icon" class="w-4 h-4 flex-shrink-0 mr-2.5" />
-                  <span class="whitespace-nowrap">{{ item.label }}</span>
-                </router-link>
-              </div>
-            </Transition>
-          </div>
+            <template v-if="exploreFlyoutOpen">
+              <SideMenuItem
+                v-for="item in exploreItems"
+                :key="'collapsed-explore-' + item.id"
+                :icon="item.icon"
+                :label="item.label"
+                :to="item.to"
+                :collapsed="true"
+                :active="isItemActive(item.id)"
+                :activeColour="stageColour"
+                :muted="true"
+                @navigate="closeMobile"
+              />
+            </template>
+          </template>
 
           <!-- Divider before bottom sections -->
           <div class="mx-3 my-2 border-t border-light-gray"></div>
@@ -667,6 +653,8 @@ export default {
         closeMobile();
       }
     };
+
+    // No complex flyout — explore items toggle inline in collapsed mode
 
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
