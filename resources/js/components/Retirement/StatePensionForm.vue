@@ -1,12 +1,12 @@
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'">
+    <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto'">
       <!-- Header -->
-      <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between">
+      <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between'">
         <h3 class="text-xl font-semibold text-horizon-500">
           {{ isEdit ? 'Update' : 'Enter' }} State Pension Details
         </h3>
-        <button @click="$emit('close')" class="text-horizon-400 hover:text-neutral-500 transition-colors">
+        <button v-if="context !== 'onboarding'" @click="$emit('close')" class="text-horizon-400 hover:text-neutral-500 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -28,7 +28,7 @@
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="p-6 pb-8">
+      <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'p-6 pb-8'">
         <div class="space-y-6">
           <!-- Forecast Weekly Amount -->
           <div>
@@ -148,6 +148,7 @@
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-light-gray">
           <button
+            v-if="context !== 'onboarding'"
             type="button"
             @click="$emit('close')"
             class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200"
@@ -176,6 +177,11 @@ export default {
     statePension: {
       type: Object,
       default: null,
+    },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (v) => ['standalone', 'onboarding'].includes(v),
     },
   },
 
