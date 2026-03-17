@@ -23,6 +23,11 @@ export default {
     return api.delete(`/admin/users/${userId}`);
   },
 
+  // User Module Status
+  getUserModuleStatus(userId) {
+    return api.get(`/admin/users/${userId}/module-status`);
+  },
+
   // Roles
   getRoles() {
     return api.get('/admin/roles');
