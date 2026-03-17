@@ -487,6 +487,7 @@ export default {
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
+      'personal-info',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
       'goals',
@@ -643,7 +644,32 @@ export default {
         const api = (await import('@/services/api')).default;
 
         if (stepId === 'personal-info' && formData) {
-          await api.put('/profile', formData);
+          // PersonalInformation emits raw form data — save via store dispatches
+          // (same as the standalone component uses)
+          const personalData = {
+            name: formData.name,
+            email: formData.email,
+            date_of_birth: formData.date_of_birth || null,
+            gender: formData.gender || null,
+            marital_status: formData.marital_status || null,
+            phone: formData.phone || null,
+            address_line_1: formData.address_line_1 || null,
+            address_line_2: formData.address_line_2 || null,
+            city: formData.city || null,
+            county: formData.county || null,
+            postcode: formData.postcode || null,
+          };
+          const occupationData = {
+            occupation: formData.occupation || null,
+            employer: formData.employer || null,
+            industry: formData.industry || null,
+            employment_status: formData.employment_status || null,
+            target_retirement_age: formData.target_retirement_age || null,
+          };
+          await Promise.all([
+            store.dispatch('userProfile/updatePersonalInfo', personalData),
+            store.dispatch('userProfile/updateIncomeOccupation', occupationData),
+          ]);
         } else if (stepId === 'student-loan' && formData) {
           await api.post('/estate/liabilities', formData);
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {

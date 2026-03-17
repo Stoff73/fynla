@@ -537,7 +537,7 @@
           </div>
         </div>
 
-        <!-- Action Buttons (hidden in onboarding — Skip/Continue handles navigation) -->
+        <!-- Action Buttons: standalone mode -->
         <div v-if="context !== 'onboarding'" class="flex justify-end space-x-4 pt-6 border-t border-light-gray">
             <button
               type="button"
@@ -555,6 +555,27 @@
               <span v-if="!submitting">Save Changes</span>
               <span v-else>Saving...</span>
             </button>
+        </div>
+        <!-- Action Buttons: onboarding mode — Submit triggers @save which wizard handles -->
+        <div v-else class="flex items-center justify-end gap-3 pt-6 border-t border-light-gray">
+          <button
+            type="button"
+            class="text-body-sm text-neutral-500 hover:text-horizon-500 underline"
+            @click="$emit('skip')"
+          >
+            Skip this step
+          </button>
+          <button
+            type="submit"
+            class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors"
+            :disabled="submitting"
+          >
+            <span v-if="!submitting">Continue</span>
+            <span v-else>Saving...</span>
+            <svg v-if="!submitting" class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
         </div>
       </div>
@@ -587,7 +608,7 @@ export default {
     },
   },
 
-  emits: ['save'],
+  emits: ['save', 'skip', 'next', 'back', 'close'],
 
   setup(props, { emit }) {
     const store = useStore();
