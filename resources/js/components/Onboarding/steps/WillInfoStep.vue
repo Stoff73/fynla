@@ -82,10 +82,28 @@
         >
       </div>
 
-      <div v-if="!formData.has_will" class="bg-spring-50 p-4 rounded-lg border border-spring-200">
-        <p class="text-body-sm text-spring-800">
-          <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
-        </p>
+      <div v-if="formData.has_will === false" class="space-y-4">
+        <div class="bg-violet-50 p-4 rounded-lg border border-violet-200">
+          <p class="text-body-sm text-violet-800">
+            <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
+          </p>
+        </div>
+        <div class="bg-white p-4 rounded-lg border border-light-gray">
+          <p class="text-body font-medium text-horizon-500 mb-2">Create your will now</p>
+          <p class="text-body-sm text-neutral-500 mb-4">
+            Use our guided Will Builder to create a will that reflects your wishes. It takes about 15 minutes and you can save your progress at any time.
+          </p>
+          <button
+            type="button"
+            @click="openWillBuilder"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors"
+          >
+            Start Will Builder
+            <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </OnboardingStep>
@@ -94,6 +112,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 import OnboardingStep from '../OnboardingStep.vue';
 
 export default {
@@ -107,6 +126,7 @@ export default {
 
   setup(props, { emit }) {
     const store = useStore();
+    const router = useRouter();
 
     const formData = ref({
       has_will: null,
@@ -168,6 +188,10 @@ export default {
       }
     });
 
+    const openWillBuilder = () => {
+      router.push('/estate/will-builder');
+    };
+
     return {
       formData,
       loading,
@@ -175,6 +199,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      openWillBuilder,
     };
   },
 };

@@ -690,6 +690,10 @@ export default {
           await api.post(route, formData);
         } else if ((stepId === 'pensions' || stepId === 'pension-auto-enrolment' || stepId === 'pension-review' || stepId === 'pension-drawdown') && formData) {
           await api.post('/retirement/pensions/dc', formData);
+        } else if ((stepId === 'investments' || stepId === 'investments-isa') && formData) {
+          await api.post('/investment/accounts', formData);
+        } else if (stepId === 'state-pension' && formData) {
+          await api.post('/retirement/state-pension', formData);
         } else if (stepId === 'goals' && formData) {
           await api.post('/goals', formData);
         } else if (stepId === 'family' && formData) {
