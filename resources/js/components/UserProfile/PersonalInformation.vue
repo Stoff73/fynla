@@ -172,11 +172,18 @@
       <div v-else class="bg-white rounded-lg border border-light-gray p-6">
         <h3 class="text-h4 font-semibold text-horizon-500 mb-6">Edit Personal Information</h3>
 
+        <!-- Onboarding info bar -->
+        <div v-if="context === 'onboarding'" class="mb-6 p-4 bg-violet-50 border border-violet-200 rounded-lg">
+          <p class="text-body-sm text-violet-800">
+            You can add your address, occupation and other details later in your profile settings.
+          </p>
+        </div>
+
         <div class="space-y-6">
         <!-- Basic Details Section -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <!-- Name -->
-          <div>
+          <div v-if="isFieldVisible('first_name')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Full Name
             </label>
@@ -189,7 +196,7 @@
           </div>
 
           <!-- Email -->
-          <div>
+          <div v-if="isFieldVisible('email')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Email Address
             </label>
@@ -202,7 +209,7 @@
           </div>
 
           <!-- Date of Birth -->
-          <div>
+          <div v-if="isFieldVisible('date_of_birth')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Date of Birth
             </label>
@@ -217,7 +224,7 @@
           </div>
 
           <!-- Gender -->
-          <div>
+          <div v-if="isFieldVisible('gender')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Gender
             </label>
@@ -234,7 +241,7 @@
           </div>
 
           <!-- Marital Status -->
-          <div>
+          <div v-if="isFieldVisible('marital_status')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Marital Status
             </label>
@@ -252,7 +259,7 @@
           </div>
 
           <!-- Phone -->
-          <div>
+          <div v-if="isFieldVisible('phone')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
               Phone Number
             </label>
@@ -264,10 +271,59 @@
               class="input-field"
             />
           </div>
+
+          <!-- Student-specific fields -->
+          <!-- University -->
+          <div v-if="isFieldVisible('university')">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
+              University
+            </label>
+            <input
+              id="university"
+              v-model="form.university"
+              type="text"
+              class="input-field"
+              placeholder="e.g., University of Manchester"
+            />
+          </div>
+
+          <!-- Student Number -->
+          <div v-if="isFieldVisible('student_number')">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
+              Student Number
+            </label>
+            <input
+              id="student_number"
+              v-model="form.student_number"
+              type="text"
+              class="input-field"
+              placeholder="Your student ID number"
+            />
+          </div>
+
+          <!-- Education Level -->
+          <div v-if="isFieldVisible('education_level')">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
+              Education Level
+            </label>
+            <select
+              id="education_level"
+              v-model="form.education_level"
+              class="input-field"
+            >
+              <option value="">Select level</option>
+              <option value="undergraduate">Undergraduate</option>
+              <option value="postgraduate">Postgraduate</option>
+              <option value="doctorate">Doctorate</option>
+              <option value="foundation">Foundation Year</option>
+              <option value="hnd">Higher National Diploma</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
         </div>
 
         <!-- Address Section -->
-        <div class="border-t border-light-gray pt-6">
+        <div v-if="isFieldVisible('address_line_1')" class="border-t border-light-gray pt-6">
           <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Address</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -340,12 +396,12 @@
         </div>
 
         <!-- Occupation Section -->
-        <div class="border-t border-light-gray pt-6">
+        <div v-if="isFieldVisible('occupation') || isFieldVisible('employment_status')" class="border-t border-light-gray pt-6">
           <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Occupation</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <!-- Occupation -->
-            <div>
+            <div v-if="isFieldVisible('occupation')">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Job Title
               </label>
@@ -357,7 +413,7 @@
             </div>
 
             <!-- Employer -->
-            <div>
+            <div v-if="isFieldVisible('employer')">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Employer
               </label>
@@ -371,7 +427,7 @@
             </div>
 
             <!-- Industry -->
-            <div>
+            <div v-if="isFieldVisible('industry')">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Industry
               </label>
@@ -385,7 +441,7 @@
             </div>
 
             <!-- Employment Status -->
-            <div>
+            <div v-if="isFieldVisible('employment_status')">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Employment Status
               </label>
@@ -405,7 +461,7 @@
             </div>
 
             <!-- Retirement Age (for non-retired) -->
-            <div v-if="form.employment_status && form.employment_status !== 'retired'">
+            <div v-if="isFieldVisible('target_retirement_age') && form.employment_status && form.employment_status !== 'retired'">
               <label class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Retirement Age
               </label>
@@ -426,7 +482,7 @@
         </div>
 
         <!-- Domicile Section -->
-        <div class="border-t border-light-gray pt-6">
+        <div v-if="isFieldVisible('country_of_birth')" class="border-t border-light-gray pt-6">
           <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Domicile Status</h3>
           <p class="text-body-sm text-neutral-500 mb-4">
             Your domicile status affects UK inheritance tax on your worldwide assets
@@ -523,9 +579,19 @@ export default {
     OccupationAutocomplete,
   },
 
-  setup() {
+  props: {
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
+  },
+
+  emits: ['save'],
+
+  setup(props, { emit }) {
     const store = useStore();
-    const isEditing = ref(false);
+    const isEditing = ref(props.context === 'onboarding');
     const submitting = ref(false);
     const successMessage = ref('');
     const errorMessage = ref('');
@@ -553,6 +619,11 @@ export default {
       return date.toISOString().split('T')[0];
     });
 
+    // Life stage field visibility
+    const isFieldVisible = (fieldName) => {
+      return store.getters['lifeStage/isFieldVisible']('personalInfo', fieldName, props.context);
+    };
+
     const form = ref({
       // Personal info
       name: '',
@@ -577,6 +648,10 @@ export default {
       country_of_birth: '',
       uk_arrival_date: '',
       domicile_status: 'uk_domiciled',
+      // Student-specific fields
+      university: '',
+      student_number: '',
+      education_level: '',
     });
 
     const shouldShowUKArrivalDate = computed(() => {
@@ -761,6 +836,12 @@ export default {
     };
 
     const handleSubmit = async () => {
+      // In onboarding context, emit form data instead of making API calls
+      if (props.context === 'onboarding') {
+        emit('save', { ...form.value });
+        return;
+      }
+
       submitting.value = true;
       successMessage.value = '';
       errorMessage.value = '';
@@ -907,6 +988,8 @@ export default {
       calculateYearsResident,
       formatDisplayDate,
       formatEmploymentStatus,
+      isFieldVisible,
+      context: props.context,
     };
   },
 };

@@ -92,6 +92,7 @@
 </template>
 
 <script>
+// DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';

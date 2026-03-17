@@ -1330,6 +1330,11 @@ export default {
       type: Object,
       default: null,
     },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
   },
 
   data() {

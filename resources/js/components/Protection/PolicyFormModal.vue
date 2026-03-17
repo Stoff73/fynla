@@ -48,11 +48,22 @@
                 class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select policy type...</option>
-                <option value="life">Life Insurance</option>
-                <option value="criticalIllness">Critical Illness</option>
-                <option value="incomeProtection">Income Protection</option>
-                <option value="disability">Disability</option>
-                <option value="sicknessIllness">Sickness/Illness</option>
+                <!-- Stage-suggested types shown first when in onboarding -->
+                <optgroup v-if="context === 'onboarding' && stageDefaultPolicyTypes.length" label="Recommended for your stage">
+                  <option v-if="stageDefaultPolicyTypes.includes('life')" value="life">Life Insurance</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('critical_illness')" value="criticalIllness">Critical Illness</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('income_protection')" value="incomeProtection">Income Protection</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('whole_of_life')" value="life">Whole of Life Insurance</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('disability')" value="disability">Disability</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('funeral_plan')" value="sicknessIllness">Funeral Plan</option>
+                </optgroup>
+                <optgroup :label="context === 'onboarding' && stageDefaultPolicyTypes.length ? 'All policy types' : 'Policy types'">
+                  <option value="life">Life Insurance</option>
+                  <option value="criticalIllness">Critical Illness</option>
+                  <option value="incomeProtection">Income Protection</option>
+                  <option value="disability">Disability</option>
+                  <option value="sicknessIllness">Sickness/Illness</option>
+                </optgroup>
               </select>
             </div>
 
@@ -481,6 +492,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
   },
 
   data() {
@@ -516,6 +532,14 @@ export default {
   },
 
   computed: {
+    stageFormConfig() {
+      return this.$store.getters['lifeStage/formFields']('protection') || {};
+    },
+
+    stageDefaultPolicyTypes() {
+      return this.stageFormConfig.defaultPolicyTypes || [];
+    },
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
