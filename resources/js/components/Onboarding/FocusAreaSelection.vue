@@ -305,18 +305,20 @@ export default {
 
       // Extended node for 7 steps: continues curve DOWN-LEFT from node 6 (530,370)
       // Stays BELOW the horizontal meander — no path crossing
-      // Label LEFT to avoid collision with destination below
-      const node7Down = { x: 280, y: 440, labelX: 230, labelY: 435, labelAnchor: 'end' };
+      // Label ABOVE node (28px gap: node top 440-22=418, title at 390)
+      // Above keeps it clear of destination label below
+      const node7Down = { x: 280, y: 440, labelX: 280, labelY: 362, labelAnchor: 'middle' };
 
-      // Extended node for 8 steps: from node 7, curves back UP-LEFT
-      // Label BELOW
-      const node8Up = { x: 80, y: 370, labelX: 80, labelY: 420, labelAnchor: 'middle' };
+      // Extended node for 8 steps: from node 7 (280,440), curves UP-LEFT to (100,350)
+      // More horizontal separation from node 1 (x=100 vs x=100 but y=350 vs y=90 — clear)
+      // Label BELOW node (28px gap: node bottom 350+22=372, title at 400)
+      const node8Up = { x: 100, y: 350, labelX: 100, labelY: 400, labelAnchor: 'middle' };
 
-      // Destinations per step count — positioned clear of all labels
+      // Destinations — well below all step labels
       const destinations = {
         6: { x: 350, y: 430, labelX: 390, labelY: 426, labelAnchor: 'start' },
         7: { x: 100, y: 510, labelX: 140, labelY: 506, labelAnchor: 'start' },
-        8: { x: 80, y: 490, labelX: 120, labelY: 486, labelAnchor: 'start' },
+        8: { x: 100, y: 470, labelX: 140, labelY: 466, labelAnchor: 'start' },
       };
 
       // Select positions based on step count
@@ -373,10 +375,10 @@ export default {
       if (stepCount <= 6) return base;
       // 7 steps: extend from node 6 (530,370) curving DOWN-LEFT to node 7 (280,440)
       if (stepCount === 7) return base + ' C 430,390 360,430 280,440';
-      // 8 steps: extend further from node 7 (280,440) with gentle curve UP-LEFT to node 8 (80,370)
+      // 8 steps: extend further from node 7 (280,440) with gentle curve UP-LEFT to node 8 (100,350)
       // C1 (190,448) continues the left-down momentum from node 7
-      // C2 (120,400) gradually lifts toward node 8 — no sharp turn
-      return base + ' C 430,390 360,430 280,440 C 190,448 120,400 80,370';
+      // C2 (130,380) gradually lifts toward node 8 — smooth, no sharp turn
+      return base + ' C 430,390 360,430 280,440 C 190,448 130,380 100,350';
     },
 
     destinationPathD() {
@@ -385,8 +387,8 @@ export default {
       if (stepCount <= 6) return 'M 530,370 C 460,355 400,390 350,430';
       // 7 steps: from node 7 (280,440) to dest (100,500)
       if (stepCount === 7) return 'M 280,440 C 200,460 140,480 100,500';
-      // 8 steps: from node 8 (80,370) to dest (80,480)
-      return 'M 80,370 C 60,410 70,450 80,480';
+      // 8 steps: from node 8 (100,350) to dest (100,470)
+      return 'M 100,350 C 90,390 95,440 100,470';
     },
 
     selectedMilestone() {
