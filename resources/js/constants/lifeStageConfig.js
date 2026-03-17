@@ -245,7 +245,7 @@ export const LIFE_STAGES = {
       learningMilestones: {
         'personal-info': {
           didYouKnow: 'Your early career is one of the most financially formative periods of your life. The habits and accounts you open now — pensions, ISAs, emergency funds — will compound over decades. Getting the foundations right at 25 is worth more than trying to catch up at 45.',
-          whyWeAsk: 'Your age, employment status, and occupation shape your pension auto-enrolment eligibility, tax band, National Insurance contributions, and the financial milestones most relevant to your stage.',
+          whyWeAsk: 'Your date of birth and marital status determine pension eligibility dates and tax allowances. Your address is needed for property searches and regional cost calculations. Employment details shape your pension auto-enrolment status and income tax band.',
           howItFits: 'Building foundations means locking in good habits early: a six-month emergency fund, a growing workplace pension, and a clear plan for your first home. Everything starts with knowing where you are today.',
           quickStat: { value: '£60,000', label: 'Annual pension allowance you can contribute tax-free (2025/26)' },
         },
@@ -316,7 +316,6 @@ export const LIFE_STAGES = {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
         stage: ['marital_status', 'occupation', 'employer', 'employment_status'],
         onboardingHide: [
-          'address_line_1', 'address_line_2', 'city', 'county', 'postcode',
           'education_level', 'university', 'student_number',
           'target_retirement_age', 'health_status', 'smoking_status',
           'country_of_birth', 'domicile_status',
@@ -419,8 +418,8 @@ export const LIFE_STAGES = {
       learningMilestones: {
         'personal-info': {
           didYouKnow: 'At this life stage, your financial plan needs to protect the people who depend on you as much as it needs to grow your wealth. The two are inseparable. A gap in your protection can undo decades of careful saving in a single event.',
-          whyWeAsk: 'Your age, health status, and smoking status directly affect the cost and availability of life insurance, critical illness cover, and income protection — the three pillars of a family financial safety net.',
-          howItFits: 'This stage is about balance: building wealth for the future whilst making sure your family is protected today. We\'ll ask about both so your plan covers all angles.',
+          whyWeAsk: 'Your date of birth, marital status, and address determine your tax position, pension eligibility, and property-related calculations. Your occupation and employment status affect income protection costs and pension contribution limits. Health and smoking status directly impact the cost of life insurance and critical illness cover.',
+          howItFits: 'This stage is about balance: building wealth for the future whilst making sure your family is protected today. Every field here feeds into your protection gap analysis, retirement projections, and estate planning calculations.',
           quickStat: { value: '1 in 2', label: 'UK adults will develop cancer during their lifetime — critical illness cover matters' },
         },
         'family': {
@@ -499,7 +498,6 @@ export const LIFE_STAGES = {
           'health_status', 'smoking_status', 'target_retirement_age',
         ],
         onboardingHide: [
-          'address_line_1', 'address_line_2', 'city', 'county', 'postcode',
           'education_level', 'university', 'student_number',
           'country_of_birth', 'domicile_status',
         ],
@@ -604,7 +602,7 @@ export const LIFE_STAGES = {
       learningMilestones: {
         'personal-info': {
           didYouKnow: 'Your late forties and fifties are the most financially consequential decade of your life. Earnings are typically at their peak, the mortgage is shrinking, children are becoming independent — and every year of focused planning now can mean five to ten extra years of financial freedom later.',
-          whyWeAsk: 'Your target retirement age, health status, and employment situation are the three most important inputs in projecting whether you can retire when you want to, at the standard of living you expect.',
+          whyWeAsk: 'Your date of birth and target retirement age determine how many years you have to build your pension pot. Your address affects property valuations and regional tax calculations. Health and smoking status impact protection policy costs. Employment and marital status shape tax relief opportunities and allowance transfers.',
           howItFits: 'At this stage the question shifts from "am I saving?" to "am I saving enough, in the right places, tax-efficiently?" We need the full picture to answer that honestly.',
           quickStat: { value: '57', label: 'Minimum pension access age rising to in 2028 — check your plans' },
         },
@@ -678,7 +676,6 @@ export const LIFE_STAGES = {
           'health_status', 'smoking_status', 'target_retirement_age',
         ],
         onboardingHide: [
-          'address_line_1', 'address_line_2', 'city', 'county', 'postcode',
           'education_level', 'university', 'student_number',
           'country_of_birth', 'domicile_status',
         ],
@@ -782,7 +779,7 @@ export const LIFE_STAGES = {
       learningMilestones: {
         'personal-info': {
           didYouKnow: 'Retirement is not a financial finish line — it is a new beginning that could last 20–30 years or more. Life expectancy for a 65-year-old woman in the UK is now over 87; for a man, over 84. Your financial plan needs to sustain your lifestyle for decades, not just years.',
-          whyWeAsk: 'Your age, health status, and marital situation determine your State Pension amounts, pension access rules, inheritance tax position, and the longevity assumptions we use in your income projections.',
+          whyWeAsk: 'Your date of birth drives life expectancy projections and State Pension eligibility. Your address is needed for property valuations and care cost estimates. Marital status determines inheritance tax allowance transfers and pension beneficiary rules. Health and smoking status affect longevity assumptions in your income projections.',
           howItFits: 'At this stage, the plan shifts from accumulation to distribution. We focus on making your money last, generating sustainable income, and ensuring your legacy is structured exactly as you intend.',
           quickStat: { value: '87+', label: 'Average life expectancy for a 65-year-old woman in the UK today' },
         },
@@ -847,7 +844,6 @@ export const LIFE_STAGES = {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
         stage: ['marital_status', 'health_status', 'smoking_status'],
         onboardingHide: [
-          'address_line_1', 'address_line_2', 'city', 'county', 'postcode',
           'education_level', 'university', 'student_number',
           'occupation', 'employer', 'employment_status', 'industry',
           'target_retirement_age',

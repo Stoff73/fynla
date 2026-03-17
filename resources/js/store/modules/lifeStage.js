@@ -96,11 +96,10 @@ const getters = {
     if (context === 'standalone') return true;
     const config = getters.formFields(formName);
     if (!config) return true;
-    const alwaysFields = config.always || [];
-    const stageFields = config.stage || [];
     const onboardingHide = config.onboardingHide || [];
+    // In onboarding: hide only fields explicitly in onboardingHide. Show everything else.
     if (context === 'onboarding' && onboardingHide.includes(fieldName)) return false;
-    return alwaysFields.includes(fieldName) || stageFields.includes(fieldName);
+    return true;
   },
 
   allStages: () => STAGE_ORDER.map(id => LIFE_STAGES[id]),
