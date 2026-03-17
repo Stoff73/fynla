@@ -61,23 +61,22 @@
           <!-- Left Column: Form -->
           <div class="flex-1 min-w-0">
             <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
-              <Transition name="fade" mode="out-in">
-                <component
-                  v-if="lifeStageCurrentComponent"
-                  :is="lifeStageCurrentComponent"
-                  :key="lifeStageCurrentStepId"
-                  :context="'onboarding'"
-                  @save="handleLifeStageStepSave"
-                  @next="handleLifeStageNext"
-                  @back="handleLifeStageBack"
-                  @skip="handleLifeStageSkip"
-                  @close="handleLifeStageNext"
-                />
-                <div v-else class="py-12 text-center">
-                  <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
-                  <p class="text-sm text-neutral-500">Loading step...</p>
-                </div>
-              </Transition>
+              <!-- No Transition wrapper: mode="out-in" causes stuck renders on async component swap -->
+              <component
+                v-if="lifeStageCurrentComponent"
+                :is="lifeStageCurrentComponent"
+                :key="lifeStageCurrentStepId"
+                :context="'onboarding'"
+                @save="handleLifeStageStepSave"
+                @next="handleLifeStageNext"
+                @back="handleLifeStageBack"
+                @skip="handleLifeStageSkip"
+                @close="handleLifeStageNext"
+              />
+              <div v-else class="py-12 text-center">
+                <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <p class="text-sm text-neutral-500">Loading step...</p>
+              </div>
 
               <!-- Navigation Buttons (hidden for deprecated steps that have their own nav) -->
               <div v-if="!stepHasOwnNav" class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
