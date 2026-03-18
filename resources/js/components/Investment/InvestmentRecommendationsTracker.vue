@@ -442,7 +442,7 @@ export default {
     formatCategory(category) {
       const labels = {
         rebalancing: 'Rebalancing',
-        tax: 'Tax Optimization',
+        tax: 'Tax Optimisation',
         fees: 'Fee Reduction',
         risk: 'Risk Management',
         goal: 'Goal Alignment',

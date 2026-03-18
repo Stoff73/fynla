@@ -766,12 +766,12 @@ export default {
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-700;
   margin-bottom: 0.5rem;
 }
 
 .page-description {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .loading-state,
@@ -781,7 +781,7 @@ export default {
 }
 
 .error-message {
-  color: #dc2626;
+  @apply text-raspberry-500;
   margin-bottom: 1rem;
 }
 
@@ -803,7 +803,7 @@ export default {
 .section-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
   margin: 0;
 }
 
@@ -815,17 +815,15 @@ export default {
 }
 
 .status-badge.default {
-  background-color: #e5e7eb;
-  color: #374151;
+  @apply bg-eggshell-100 text-horizon-600;
 }
 
 .status-badge.custom {
-  background-color: #dbeafe;
-  color: #1e40af;
+  @apply bg-violet-100 text-violet-800;
 }
 
 .section-description {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
@@ -851,7 +849,7 @@ export default {
 .assumption-field label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  @apply text-horizon-600;
   margin-bottom: 0.5rem;
 }
 
@@ -864,7 +862,7 @@ export default {
 .form-input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  @apply border border-light-gray;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   transition: border-color 0.15s ease-in-out;
@@ -872,39 +870,38 @@ export default {
 
 .form-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  @apply border-violet-500;
+  box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.1);
 }
 
 .input-suffix {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 0.875rem;
   min-width: 60px;
 }
 
 .field-hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  @apply text-neutral-400;
   margin-top: 0.25rem;
 }
 
 .assumption-field.readonly .readonly-value {
   padding: 0.5rem 0.75rem;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  @apply bg-eggshell-50 border border-light-gray;
   border-radius: 0.375rem;
 }
 
 .assumption-field.readonly .value {
   font-size: 0.875rem;
-  color: #374151;
+  @apply text-horizon-600;
 }
 
 .summary-row {
   display: flex;
   gap: 2rem;
   padding: 1rem;
-  background-color: #f9fafb;
+  @apply bg-eggshell-50;
   border-radius: 0.375rem;
   margin-bottom: 1.5rem;
 }
@@ -917,13 +914,13 @@ export default {
 
 .summary-item .label {
   font-size: 0.875rem;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .summary-item .value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
 }
 
 .section-actions {
@@ -947,28 +944,25 @@ export default {
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  @apply bg-raspberry-500;
   color: white;
   border: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
+  @apply bg-raspberry-600;
 }
 
 .btn-outline {
-  background-color: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  @apply bg-white text-horizon-600 border border-light-gray;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background-color: #f9fafb;
+  @apply bg-eggshell-50;
 }
 
 .info-section {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  @apply bg-spring-50 border border-spring-200;
 }
 
 .info-list {
@@ -979,11 +973,11 @@ export default {
 
 .info-list li {
   padding: 0.5rem 0;
-  color: #166534;
+  @apply text-spring-700;
   font-size: 0.875rem;
 }
 
 .info-list li strong {
-  color: #14532d;
+  @apply text-spring-800;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="tax-optimization-recommendations">
-    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Optimization Recommendations</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Optimisation Recommendations</h3>
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3 mb-6">

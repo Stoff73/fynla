@@ -134,8 +134,8 @@
         <h2 class="text-xl font-semibold text-horizon-500 mb-4">Tax Efficiency</h2>
         <div v-if="taxEfficiency" class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-sm text-neutral-500">Efficiency Score:</span>
-            <span class="text-sm font-medium text-horizon-500">{{ taxEfficiencyScore }}/100</span>
+            <span class="text-sm text-neutral-500">Tax Efficiency:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ taxEfficiencyLabel }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-sm text-neutral-500">Unrealised Gains:</span>
@@ -168,11 +168,11 @@
           <p class="text-sm text-neutral-500 mt-1">{{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
         </div>
 
-        <!-- Diversification Score -->
+        <!-- Diversification -->
         <div class="border-l-4 border-violet-500 pl-4">
-          <p class="text-sm text-neutral-500 mb-1">Diversification Score</p>
-          <p class="text-2xl font-bold text-horizon-500">{{ diversificationScore }}/100</p>
-          <p class="text-sm text-neutral-500 mt-1">{{ diversificationLabel }}</p>
+          <p class="text-sm text-neutral-500 mb-1">Diversification</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ diversificationLabel }}</p>
+          <p class="text-sm text-neutral-500 mt-1">Across {{ holdingsCount }} holding{{ holdingsCount !== 1 ? 's' : '' }}</p>
         </div>
       </div>
     </div>
@@ -240,11 +240,18 @@ export default {
       return `${sign}${this.ytdReturn.toFixed(2)}%`;
     },
 
+    taxEfficiencyLabel() {
+      if (this.taxEfficiencyScore >= 80) return 'Highly Efficient';
+      if (this.taxEfficiencyScore >= 60) return 'Moderately Efficient';
+      if (this.taxEfficiencyScore >= 40) return 'Could Be Improved';
+      return 'Needs Attention';
+    },
+
     diversificationLabel() {
-      if (this.diversificationScore >= 80) return 'Excellent';
-      if (this.diversificationScore >= 60) return 'Good';
-      if (this.diversificationScore >= 40) return 'Fair';
-      return 'Poor';
+      if (this.diversificationScore >= 80) return 'Well Diversified';
+      if (this.diversificationScore >= 60) return 'Moderately Diversified';
+      if (this.diversificationScore >= 40) return 'Concentrated';
+      return 'Highly Concentrated';
     },
 
     riskMetrics() {
