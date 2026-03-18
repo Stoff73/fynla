@@ -181,7 +181,7 @@
           <div class="bg-eggshell-500 rounded-lg p-4">
             <h4 class="text-sm font-semibold text-horizon-500 mb-2">Rationale:</h4>
             <ul class="space-y-1">
-              <li v-for="(reason, index) in optimizationResult.wrapper_allocation.rationale" :key="index" class="text-sm text-neutral-500 flex items-start">
+              <li v-for="(reason, index) in optimizationResult.wrapper_allocation.rationale" :key="`rationale-${index}-${reason.slice(0, 20)}`" class="text-sm text-neutral-500 flex items-start">
                 <svg class="h-4 w-4 text-violet-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
@@ -257,13 +257,13 @@
               <div class="space-y-2">
                 <p class="text-xs font-medium text-spring-600">Pros:</p>
                 <ul class="space-y-1">
-                  <li v-for="(pro, index) in optimizationResult.lump_sum_analysis.lump_sum.pros" :key="index" class="text-xs text-neutral-500 flex items-start">
+                  <li v-for="(pro, index) in optimizationResult.lump_sum_analysis.lump_sum.pros" :key="`ls-pro-${index}`" class="text-xs text-neutral-500 flex items-start">
                     <span class="mr-2">+</span>{{ pro }}
                   </li>
                 </ul>
                 <p class="text-xs font-medium text-raspberry-600 mt-3">Cons:</p>
                 <ul class="space-y-1">
-                  <li v-for="(con, index) in optimizationResult.lump_sum_analysis.lump_sum.cons" :key="index" class="text-xs text-neutral-500 flex items-start">
+                  <li v-for="(con, index) in optimizationResult.lump_sum_analysis.lump_sum.cons" :key="`ls-con-${index}`" class="text-xs text-neutral-500 flex items-start">
                     <span class="mr-2">-</span>{{ con }}
                   </li>
                 </ul>
@@ -285,13 +285,13 @@
               <div class="space-y-2">
                 <p class="text-xs font-medium text-spring-600">Pros:</p>
                 <ul class="space-y-1">
-                  <li v-for="(pro, index) in optimizationResult.lump_sum_analysis.dca.pros" :key="index" class="text-xs text-neutral-500 flex items-start">
+                  <li v-for="(pro, index) in optimizationResult.lump_sum_analysis.dca.pros" :key="`dca-pro-${index}`" class="text-xs text-neutral-500 flex items-start">
                     <span class="mr-2">+</span>{{ pro }}
                   </li>
                 </ul>
                 <p class="text-xs font-medium text-raspberry-600 mt-3">Cons:</p>
                 <ul class="space-y-1">
-                  <li v-for="(con, index) in optimizationResult.lump_sum_analysis.dca.cons" :key="index" class="text-xs text-neutral-500 flex items-start">
+                  <li v-for="(con, index) in optimizationResult.lump_sum_analysis.dca.cons" :key="`dca-con-${index}`" class="text-xs text-neutral-500 flex items-start">
                     <span class="mr-2">-</span>{{ con }}
                   </li>
                 </ul>
@@ -353,7 +353,7 @@
           <h3 class="text-lg font-semibold text-horizon-500 mb-4">Recommendations</h3>
 
           <div class="space-y-3">
-            <div v-for="(rec, index) in optimizationResult.recommendations" :key="index" class="border-l-4 p-4 rounded-r-lg" :class="getPriorityClass(rec.priority)">
+            <div v-for="(rec, index) in optimizationResult.recommendations" :key="rec.title || `rec-${index}`" class="border-l-4 p-4 rounded-r-lg" :class="getPriorityClass(rec.priority)">
               <div class="flex items-start justify-between mb-2">
                 <h4 class="font-semibold text-horizon-500">{{ rec.title }}</h4>
                 <span class="px-2 py-1 text-xs font-semibold rounded uppercase" :class="getPriorityBadgeClass(rec.priority)">

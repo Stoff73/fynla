@@ -59,19 +59,31 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
         <span class="text-sm font-medium text-neutral-500">Contributions Used ({{ selectedTaxYear }})</span>
         <span class="text-lg font-bold text-horizon-500">
-          {{ formatCurrency(getHistoricalContributions(selectedTaxYear)) }}
+          <template v-if="getHistoricalContributions(selectedTaxYear) !== null">
+            {{ formatCurrency(getHistoricalContributions(selectedTaxYear)) }}
+          </template>
+          <template v-else>
+            <span class="text-neutral-400 text-sm font-normal italic">Not yet tracked</span>
+          </template>
         </span>
       </div>
 
-      <div class="relative w-full bg-savannah-200 rounded-full h-4 mb-2">
+      <div v-if="getHistoricalContributions(selectedTaxYear) !== null" class="relative w-full bg-savannah-200 rounded-full h-4 mb-2">
         <div
           class="bg-violet-500 h-4 rounded-full"
           :style="{ width: getHistoricalPercent(selectedTaxYear) + '%' }"
         ></div>
       </div>
+      <div v-else class="bg-savannah-100 rounded-lg p-3 mb-2">
+        <p class="text-sm text-neutral-500 italic">
+          Historical contribution data will be available in a future update.
+        </p>
+      </div>
 
       <p class="text-sm text-neutral-500 mt-2">
-        Unused allowance: {{ formatCurrency(getHistoricalUnused(selectedTaxYear)) }}
+        <template v-if="getHistoricalUnused(selectedTaxYear) !== null">
+          Unused allowance: {{ formatCurrency(getHistoricalUnused(selectedTaxYear)) }}
+        </template>
       </p>
     </div>
 
@@ -95,7 +107,8 @@
             <p class="text-xs text-neutral-500">Available to carry forward</p>
           </div>
           <div class="text-right">
-            <p class="text-lg font-bold text-violet-600">{{ formatCurrency(year.available) }}</p>
+            <p v-if="year.available !== null" class="text-lg font-bold text-violet-600">{{ formatCurrency(year.available) }}</p>
+            <p v-else class="text-sm text-neutral-400 italic">Not yet tracked</p>
           </div>
         </div>
       </div>
@@ -232,7 +245,6 @@ export default {
     carryForwardYears() {
       // Calculate carry forward from previous 3 years
       const years = [];
-      const currentYear = '2025/26';
 
       if (!this.mpaaTriggered) {
         years.push(
@@ -245,28 +257,34 @@ export default {
       return years;
     },
 
+    hasCarryForwardData() {
+      return this.carryForwardYears.some(year => year.available !== null);
+    },
+
     totalAvailableWithCarryForward() {
-      const carryForwardTotal = this.carryForwardYears.reduce((sum, year) => sum + year.available, 0);
+      if (!this.hasCarryForwardData) return this.remainingAllowance;
+      const carryForwardTotal = this.carryForwardYears.reduce((sum, year) => sum + (year.available || 0), 0);
       return this.remainingAllowance + carryForwardTotal;
     },
   },
 
   methods: {
     getHistoricalContributions(taxYear) {
-      // TODO: This should come from the backend API
-      // For now, return 0 to avoid showing fake data
-      // Users should only see their actual contributions
-      return 0;
+      // Historical contribution data is not yet available from the backend API.
+      // Returns null to distinguish "no data" from "zero contributions".
+      return null;
     },
 
     getHistoricalUnused(taxYear) {
-      const standardAllowance = 60000;
       const used = this.getHistoricalContributions(taxYear);
+      if (used === null) return null;
+      const standardAllowance = 60000;
       return Math.max(0, standardAllowance - used);
     },
 
     getHistoricalPercent(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
+      if (used === null) return 0;
       return Math.min(100, Math.round((used / 60000) * 100));
     },
   },

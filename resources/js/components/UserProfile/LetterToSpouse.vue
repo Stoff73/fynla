@@ -755,7 +755,14 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import api from '@/services/api';
+import letterService from '@/services/letterService';
+import savingsService from '@/services/savingsService';
+import investmentService from '@/services/investmentService';
+import propertyService from '@/services/propertyService';
+import protectionService from '@/services/protectionService';
+import estateService from '@/services/estateService';
+import retirementService from '@/services/retirementService';
+import authService from '@/services/authService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import LetterEstateWarnings from '@/components/Estate/LetterEstateWarnings.vue';
 
@@ -925,8 +932,8 @@ export default {
   methods: {
     async loadLetter() {
       try {
-        const response = await api.get('/user/letter-to-spouse');
-        this.letterData = response.data.data;
+        const response = await letterService.getLetter();
+        this.letterData = response.data;
         this.populateForm(this.letterData);
       } catch (error) {
         console.error('Error loading letter:', error);
@@ -937,25 +944,25 @@ export default {
       this.loading = true;
       try {
         const [savingsRes, investmentsRes, propertiesRes, protectionRes, estateRes, retirementRes] = await Promise.all([
-          api.get('/savings').catch(() => ({ data: { data: [] } })),
-          api.get('/investment').catch(() => ({ data: { data: [] } })),
-          api.get('/properties').catch(() => ({ data: { data: [] } })),
-          api.get('/protection').catch(() => ({ data: { data: {} } })),
-          api.get('/estate').catch(() => ({ data: { data: { liabilities: [] } } })),
-          api.get('/retirement').catch(() => ({ data: { data: {} } })),
+          savingsService.getSavingsData().catch(() => ({ data: [] })),
+          investmentService.getInvestmentData().catch(() => ({ data: [] })),
+          propertyService.getProperties().catch(() => ({ data: [] })),
+          protectionService.getProtectionData().catch(() => ({ data: {} })),
+          estateService.getEstateData().catch(() => ({ data: { liabilities: [] } })),
+          retirementService.getRetirementData().catch(() => ({ data: {} })),
         ]);
 
         // Extract savings accounts from nested structure
-        this.profileData.savings = savingsRes.data.data?.accounts || savingsRes.data?.accounts || [];
-        this.profileData.investments = investmentsRes.data.data?.accounts || investmentsRes.data?.accounts || [];
-        this.profileData.properties = propertiesRes.data.data || propertiesRes.data || [];
+        this.profileData.savings = savingsRes.data?.accounts || savingsRes?.accounts || [];
+        this.profileData.investments = investmentsRes.data?.accounts || investmentsRes?.accounts || [];
+        this.profileData.properties = propertiesRes.data || propertiesRes || [];
 
         // Liabilities come from estate endpoint
-        const estate = estateRes.data.data || estateRes.data || {};
+        const estate = estateRes.data || estateRes || {};
         this.profileData.liabilities = estate.liabilities || [];
 
         // Pensions from retirement endpoint
-        const retirement = retirementRes.data.data || retirementRes.data || {};
+        const retirement = retirementRes.data || retirementRes || {};
         const dcPensions = retirement.dc_pensions || [];
         const dbPensions = retirement.db_pensions || [];
         this.profileData.pensions = [
@@ -964,7 +971,7 @@ export default {
         ];
 
         // Combine all protection policies - handle nested policies structure
-        const protection = protectionRes.data.data || protectionRes.data || {};
+        const protection = protectionRes.data || protectionRes || {};
         const policies = protection.policies || protection;
         this.profileData.policies = [
           ...(policies.life_insurance || []).map(p => ({ ...p, policy_type: 'life' })),
@@ -988,8 +995,8 @@ export default {
 
     async checkMaritalStatus() {
       try {
-        const userResponse = await api.get('/auth/user');
-        const user = userResponse.data.data?.user || userResponse.data;
+        const userData = await authService.getUser();
+        const user = userData.user || userData;
 
         // Single, widowed and divorced users see "Expression of Wishes" instead of "Letter to Spouse"
         const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
@@ -1001,8 +1008,8 @@ export default {
 
     async loadWillData() {
       try {
-        const response = await api.get('/estate/will');
-        this.willData = response.data.data;
+        const response = await letterService.getWillData();
+        this.willData = response.data;
 
         // If letter doesn't have executor info but Will does, pre-populate
         if (this.willData && this.willData.executor_name && !this.formData.executor_name) {
@@ -1027,8 +1034,8 @@ export default {
     async saveLetter() {
       this.saving = true;
       try {
-        const response = await api.put('/user/letter-to-spouse', this.formData);
-        this.letterData = response.data.data;
+        const response = await letterService.saveLetter(this.formData);
+        this.letterData = response.data;
         this.originalFormData = JSON.parse(JSON.stringify(this.formData));
         this.isEditing = false;
         this.$emit('success', 'Letter saved successfully');

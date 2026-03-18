@@ -311,6 +311,15 @@ import { ref, computed, onMounted, watch, defineAsyncComponent, shallowRef, mark
 import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import { LIFE_STAGES, STAGE_ORDER } from '@/constants/lifeStageConfig';
+import savingsService from '@/services/savingsService';
+import propertyService from '@/services/propertyService';
+import protectionService from '@/services/protectionService';
+import retirementService from '@/services/retirementService';
+import investmentService from '@/services/investmentService';
+import goalsService from '@/services/goalsService';
+import netWorthService from '@/services/netWorthService';
+import estateService from '@/services/estateService';
+import userProfileService from '@/services/userProfileService';
 import FocusAreaSelection from './FocusAreaSelection.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import SkipToDashboardModal from './SkipToDashboardModal.vue';
@@ -613,8 +622,7 @@ export default {
         // Onboarding complete — refresh net worth cache then go to dashboard
         await store.dispatch('auth/fetchUser', null, { root: true });
         try {
-          const api = (await import('@/services/api')).default;
-          await api.post('/net-worth/refresh');
+          await netWorthService.refresh();
         } catch {
           // Non-blocking — dashboard will still load
         }
@@ -651,8 +659,6 @@ export default {
       // Deprecated steps (IncomeStep, SimpleExpenditureStep) save internally.
       const stepId = lifeStageCurrentStepId.value;
       try {
-        const api = (await import('@/services/api')).default;
-
         if (stepId === 'personal-info' && formData) {
           // PersonalInformation emits raw form data — save via store dispatches
           // (same as the standalone component uses)
@@ -684,39 +690,39 @@ export default {
             store.dispatch('userProfile/updateIncomeOccupation', occupationData),
           ]);
         } else if (stepId === 'student-loan' && formData) {
-          await api.post('/estate/liabilities', formData);
+          await estateService.createLiability(formData);
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
-          await api.post('/savings/accounts', formData);
+          await savingsService.createAccount(formData);
         } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
           // PropertyForm emits { property: {...}, mortgage: {...} }
           const propertyData = formData.property || formData;
-          const response = await api.post('/properties', propertyData);
+          const response = await propertyService.createProperty(propertyData);
           // If property has a mortgage, save it linked to the new property
-          if (formData.mortgage && response.data?.data?.id) {
-            await api.post(`/properties/${response.data.data.id}/mortgages`, formData.mortgage);
+          if (formData.mortgage && response.data?.id) {
+            await propertyService.createPropertyMortgage(response.data.id, formData.mortgage);
           }
         } else if (stepId === 'protection-insurance' && formData) {
           // PolicyFormModal emits with policyType field
           const policyType = formData.policyType || formData.policy_type || 'life';
-          const typeRoutes = {
-            life: '/protection/policies/life',
-            criticalIllness: '/protection/policies/critical-illness',
-            incomeProtection: '/protection/policies/income-protection',
-            disability: '/protection/policies/disability',
-            sicknessIllness: '/protection/policies/sickness-illness',
+          const policyCreators = {
+            life: (data) => protectionService.createLifePolicy(data),
+            criticalIllness: (data) => protectionService.createCriticalIllnessPolicy(data),
+            incomeProtection: (data) => protectionService.createIncomeProtectionPolicy(data),
+            disability: (data) => protectionService.createDisabilityPolicy(data),
+            sicknessIllness: (data) => protectionService.createSicknessIllnessPolicy(data),
           };
-          const route = typeRoutes[policyType] || '/protection/policies/life';
-          await api.post(route, formData);
+          const creator = policyCreators[policyType] || policyCreators.life;
+          await creator(formData);
         } else if ((stepId === 'pensions' || stepId === 'pension-auto-enrolment' || stepId === 'pension-review' || stepId === 'pension-drawdown') && formData) {
-          await api.post('/retirement/pensions/dc', formData);
+          await retirementService.createDCPension(formData);
         } else if ((stepId === 'investments' || stepId === 'investments-isa') && formData) {
-          await api.post('/investment/accounts', formData);
+          await investmentService.createAccount(formData);
         } else if (stepId === 'state-pension' && formData) {
-          await api.post('/retirement/state-pension', formData);
+          await retirementService.updateStatePension(formData);
         } else if (stepId === 'goals' && formData) {
-          await api.post('/goals', formData);
+          await goalsService.createGoal(formData);
         } else if (stepId === 'family' && formData) {
-          await api.post('/user/family-members', formData);
+          await userProfileService.createFamilyMember(formData);
         }
       } catch (error) {
         console.error('[Onboarding] Failed to save step data:', error?.message || error);

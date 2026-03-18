@@ -41,7 +41,7 @@
       <!-- Rendered Will HTML -->
       <div
         class="will-preview prose prose-sm max-w-none"
-        v-html="renderedHtml"
+        v-html="sanitizedHtml"
       ></div>
     </div>
 
@@ -112,6 +112,7 @@
 
 <script>
 import { renderWillDocument, printWillDocument } from '@/utils/willDocumentRenderer';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import estateService from '@/services/estateService';
 
@@ -145,6 +146,10 @@ export default {
 
     renderedHtml() {
       return renderWillDocument(this.activeData);
+    },
+
+    sanitizedHtml() {
+      return sanitizeHtml(this.renderedHtml);
     },
 
     isComplete() {

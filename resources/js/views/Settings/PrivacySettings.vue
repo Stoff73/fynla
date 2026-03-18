@@ -350,7 +350,7 @@
 
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
-import api from '@/services/api';
+import privacyService from '@/services/privacyService';
 
 export default {
   name: 'PrivacySettings',
@@ -408,8 +408,8 @@ export default {
   methods: {
     async loadConsents() {
       try {
-        const response = await api.get('/auth/gdpr/consents');
-        const consents = response.data.data?.consents || [];
+        const response = await privacyService.getConsents();
+        const consents = response.data?.consents || [];
         consents.forEach(consent => {
           if (consent.consent_type === 'marketing') {
             this.consents.marketing = consent.granted;
@@ -421,10 +421,7 @@ export default {
     },
     async updateConsent(type, granted) {
       try {
-        await api.put('/auth/gdpr/consents', {
-          consent_type: type,
-          granted: granted,
-        });
+        await privacyService.updateConsent(type, granted);
         this.$toast?.success?.(`${type} consent updated`);
       } catch (error) {
         this.$toast?.error?.('Failed to update consent') ||
@@ -433,8 +430,8 @@ export default {
     },
     async checkExportStatus() {
       try {
-        const response = await api.get('/auth/gdpr/export/status');
-        const exports = response.data.data?.exports || [];
+        const response = await privacyService.getExportStatus();
+        const exports = response.data?.exports || [];
         const pending = exports.find(e => e.status === 'pending' || e.status === 'processing');
         const completed = exports.find(e => e.status === 'completed');
 
@@ -447,9 +444,7 @@ export default {
     async requestExport() {
       this.exportLoading = true;
       try {
-        await api.post('/auth/gdpr/export', {
-          format: this.exportFormat,
-        });
+        await privacyService.requestExport(this.exportFormat);
         this.$toast?.success?.('Data export requested. You will be notified when ready.') ||
           alert('Data export requested. You will be notified when ready.');
         this.checkExportStatus();
@@ -463,9 +458,7 @@ export default {
     async downloadExport() {
       if (!this.completedExport) return;
       try {
-        const response = await api.get(`/auth/gdpr/export/${this.completedExport.id}/download`, {
-          responseType: 'blob',
-        });
+        const response = await privacyService.downloadExport(this.completedExport.id);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -508,10 +501,10 @@ export default {
       this.deletionWizard.error = null;
 
       try {
-        const response = await api.post('/auth/gdpr/erasure/initiate', { type });
-        this.deletionWizard.sessionToken = response.data.session_token;
+        const response = await privacyService.initiateErasure(type);
+        this.deletionWizard.sessionToken = response.session_token;
 
-        if (response.data.requires_2fa) {
+        if (response.requires_2fa) {
           this.deletionWizard.verificationMethod = '2fa';
         } else {
           this.deletionWizard.verificationMethod = 'email';
@@ -539,10 +532,7 @@ export default {
       this.deletionWizard.error = null;
 
       try {
-        await api.post('/auth/gdpr/erasure/verify', {
-          session_token: this.deletionWizard.sessionToken,
-          code: this.fullCode,
-        });
+        await privacyService.verifyErasure(this.deletionWizard.sessionToken, this.fullCode);
 
         this.deletionWizard.step = 3;
       } catch (error) {
@@ -557,9 +547,7 @@ export default {
       if (this.resendCooldown > 0) return;
 
       try {
-        await api.post('/auth/gdpr/erasure/resend-code', {
-          session_token: this.deletionWizard.sessionToken,
-        });
+        await privacyService.resendErasureCode(this.deletionWizard.sessionToken);
 
         this.$toast?.success?.('Verification code sent') ||
           alert('Verification code sent to your email');
@@ -585,12 +573,12 @@ export default {
       this.deletionWizard.error = null;
 
       try {
-        const response = await api.post('/auth/gdpr/erasure/execute', {
-          session_token: this.deletionWizard.sessionToken,
-          confirmation: this.deletionWizard.confirmationText,
-        });
+        const response = await privacyService.executeErasure(
+          this.deletionWizard.sessionToken,
+          this.deletionWizard.confirmationText
+        );
 
-        if (response.data.logout_required) {
+        if (response.logout_required) {
           // Account deleted - log out and redirect
           await this.$store.dispatch('auth/logout');
           this.$router.push('/login');
