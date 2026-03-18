@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Http\Resources\UserResource;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -345,7 +346,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $user,
+                'user' => new UserResource($user),
                 'role' => $user->role?->name ?? ($user->is_admin ? 'admin' : null),
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
                 'data_completed_steps' => $dataCompletedSteps,
@@ -727,7 +728,7 @@ class AuthController extends Controller
         }
 
         $data = array_merge([
-            'user' => $user,
+            'user' => new UserResource($user),
             'access_token' => $token,
             'token_type' => 'Bearer',
             'must_change_password' => $user->must_change_password ?? false,

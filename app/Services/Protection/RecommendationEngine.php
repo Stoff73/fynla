@@ -254,6 +254,8 @@ class RecommendationEngine
      */
     private function calculateTotalPremiums(ProtectionProfile $profile): float
     {
+        $profile->user->loadMissing(['lifeInsurancePolicies', 'criticalIllnessPolicies', 'incomeProtectionPolicies']);
+
         $totalPremiums = 0;
 
         foreach ($profile->user->lifeInsurancePolicies as $policy) {

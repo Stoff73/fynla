@@ -74,15 +74,16 @@ class PreviewWriteInterceptor
      * These POST endpoints compute and return data without modifying anything.
      */
     private const EXCLUDED_PATTERNS = [
-        '/calculate',           // All calculation endpoints (personal-accounts, IHT, SDLT, etc.)
-        '/calculate-',          // Hyphenated calculation endpoints (calculate-sdlt, calculate-iht)
-        '/projections',         // Projection/simulation endpoints (investment, retirement)
-        '/recalculate',         // Risk profile recalculation endpoint
-        '/reprocess',           // Document re-extraction endpoint
-        '/analyze',             // Analysis endpoints (investment portfolio analysis)
-        '/toggle-retirement',   // Retirement inclusion toggle for assets (investment & savings)
-        '/holistic/plan',       // Holistic plan generation (read-only computation)
-        '/holistic/analyze',    // Holistic analysis (read-only computation)
+        '#/calculate$#',           // All calculation endpoints (personal-accounts, IHT, SDLT, etc.)
+        '#/calculate-#',           // Hyphenated calculation endpoints (calculate-sdlt, calculate-iht)
+        '#/projections$#',         // Projection/simulation endpoints (investment, retirement)
+        '#/projections/#',         // Projection sub-endpoints
+        '#/analyze$#',             // Analysis endpoints (investment portfolio analysis)
+        '#/analyze-#',             // Hyphenated analysis endpoints
+        '#/summary$#',             // Summary endpoints
+        '#/comparison$#',          // Comparison endpoints
+        '#/monte-carlo#',          // Monte Carlo simulation endpoints
+        '#/rebalance-preview$#',   // Rebalance preview (read-only)
     ];
 
     /**
@@ -118,7 +119,7 @@ class PreviewWriteInterceptor
 
         // Check if this route matches an excluded pattern (e.g., calculation endpoints)
         foreach (self::EXCLUDED_PATTERNS as $pattern) {
-            if (str_contains($currentPath, $pattern)) {
+            if (preg_match($pattern, $currentPath)) {
                 return $next($request);
             }
         }
