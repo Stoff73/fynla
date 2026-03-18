@@ -55,9 +55,24 @@
 - **Problem:** No "Advisor" link in main app sidebar. Advisors had to manually navigate to `/advisor`.
 - **Fix:** Added `isAdvisor` computed property from `auth/isAdvisor` getter. Added "Advisor" sidebar section with "Advisor Dashboard" link, conditionally shown for advisor users. Added `/advisor` path to section expansion logic.
 
+**11. AdvisorImpersonationMiddleware — Applied to API middleware group**
+- **File:** `app/Http/Kernel.php`, `app/Http/Middleware/AdvisorImpersonationMiddleware.php`
+- **Problem:** Middleware was registered as alias but never applied to any route group. Impersonation stored cache state but never swapped `auth()->user()` on subsequent API requests, so clicking "Enter Profile" showed the advisor's empty dashboard instead of the client's financial data.
+- **Fix:** Added middleware to the `api` middleware group in `Kernel.php`. Added route skip for `api/advisor/*` so the advisor retains their identity on advisor endpoints while impersonating a client.
+
+**12. Navbar — Added Advisor link to top navigation**
+- **File:** `resources/js/components/Navbar.vue`
+- **Problem:** No way to access advisor dashboard from the main app top navigation.
+- **Fix:** Added violet "Advisor" button next to Admin button, shown when `isAdvisor` is true.
+
+**13. AdvisorLayout — Replaced text logo with Fynla image**
+- **File:** `resources/js/layouts/AdvisorLayout.vue`
+- **Problem:** Top bar showed plain text "fynla" instead of the actual logo.
+- **Fix:** Replaced with `<img src="/images/logos/LogoHiResFynlaLight.png">`.
+
 ### Test File Fixes
 
-**11. Pest test case collisions — 4 files**
+**14. Pest test case collisions — 4 files**
 - **Files:** `AdvisorControllerTest.php`, `AdvisorMiddlewareTest.php`, `AdvisorDashboardServiceTest.php`, `AdvisorImpersonationServiceTest.php`
 - **Problem:** Redundant `uses(TestCase::class, RefreshDatabase::class)` conflicted with `tests/Pest.php` global bindings.
 - **Fix:** Removed redundant `uses()` calls.
@@ -141,12 +156,11 @@
 
 ---
 
-## Remaining Known Issues (Not Fixed — Low Priority)
+## Remaining Known Issues (Low Priority)
 
-1. **Impersonation middleware not applied to routes** — `advisor.impersonate` middleware is registered but not applied to any route group. Impersonation enter/exit works via API but the middleware doesn't swap `auth()->user()` on subsequent requests.
-2. **Missing `widow` persona** (Margaret Thompson) — Not in preview users table. 5/6 expected clients.
-3. **N+1 query in AdvisorDashboardService** — `User::find($client->spouse_id)` in loops. Performance optimisation.
-4. **23 pre-existing test failures** in `TaxConfigurationTest.php` — duplicate `admin@fps.com` entry. Not advisor-related.
+1. **Missing `widow` persona** (Margaret Thompson) — Not in preview users table. 5/6 expected clients.
+2. **N+1 query in AdvisorDashboardService** — `User::find($client->spouse_id)` in loops. Performance optimisation.
+3. **23 pre-existing test failures** in `TaxConfigurationTest.php` — duplicate `admin@fps.com` entry. Not advisor-related.
 
 ---
 
@@ -168,6 +182,18 @@
 | `resources/js/views/Advisor/AdvisorActivityLog.vue` | Fix pagination response unwrapping |
 | `resources/js/views/Advisor/AdvisorReports.vue` | Fix pagination unwrapping, `acknowledged_date` → `report_acknowledged_date`, add `formatReportType()` |
 | `resources/js/components/SideMenu.vue` | Add Advisor Dashboard link for advisor users |
+| `resources/js/components/Navbar.vue` | Add violet Advisor button to top navbar for advisor users |
+
+### Infrastructure
+| File | Change |
+|------|--------|
+| `app/Http/Kernel.php` | Added `AdvisorImpersonationMiddleware` to `api` middleware group (was only registered as alias, never applied) |
+| `app/Http/Middleware/AdvisorImpersonationMiddleware.php` | Added skip for `/api/advisor/*` routes so advisor retains identity on advisor endpoints while impersonating |
+
+### Logo
+| File | Change |
+|------|--------|
+| `resources/js/layouts/AdvisorLayout.vue` | Replaced text "fynla" with `LogoHiResFynlaLight.png` image in top bar |
 
 ### Tests
 | File | Change |
