@@ -72,7 +72,8 @@ import AdminDashboard from '../../components/Admin/AdminDashboard.vue';
 import UserManagement from '../../components/Admin/UserManagement.vue';
 import DatabaseBackup from '../../components/Admin/DatabaseBackup.vue';
 import TaxSettings from '../../components/Admin/TaxSettings.vue';
-const DecisionMatrix = () => import('../../components/Admin/DecisionMatrix.vue');
+import { defineAsyncComponent } from 'vue';
+const DecisionMatrix = defineAsyncComponent(() => import('../../components/Admin/DecisionMatrix.vue'));
 
 export default {
   name: 'AdminPanel',
