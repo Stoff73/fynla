@@ -1758,7 +1758,7 @@ export default {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #E83E6D;
+  accent-color: theme('colors.raspberry.500');
 }
 
 /* Progress and Assumptions Row */

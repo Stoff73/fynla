@@ -100,6 +100,7 @@
 import authService from '@/services/authService';
 import { setToken, getItem } from '@/services/tokenStorage';
 import { platform } from '@/utils/platform';
+import logger from '@/utils/logger';
 
 export default {
   name: 'MobileLoginScreen',
@@ -199,18 +200,18 @@ export default {
     async handleLogin() {
       this.loading = true;
       this.error = null;
-      console.log('[MobileLogin] Starting login for:', this.email);
+      logger.info('[MobileLogin] Starting login');
 
       try {
         const result = await authService.login({
           email: this.email,
           password: this.password,
         });
-        console.log('[MobileLogin] Login result:', JSON.stringify(result));
+        logger.info('[MobileLogin] Login result received');
 
         // Check if MFA or verification required (flags are on top-level result)
         if (result.requires_mfa || result.requires_verification) {
-          console.log('[MobileLogin] Verification required, navigating to /m/verify');
+          logger.info('[MobileLogin] Verification required, navigating to /m/verify');
           this.$router.push({
             path: '/m/verify',
             query: {
@@ -225,19 +226,19 @@ export default {
 
         // Direct login (no verification needed — e.g. preview users)
         const token = result.data?.access_token;
-        console.log('[MobileLogin] Direct login, token present:', !!token);
+        logger.info('[MobileLogin] Direct login, token present:', !!token);
         if (token) {
           await setToken(token);
           this.$store.commit('auth/setToken', token);
-          console.log('[MobileLogin] Fetching user...');
+          logger.info('[MobileLogin] Fetching user...');
           await this.$store.dispatch('auth/fetchUser');
-          console.log('[MobileLogin] Navigating to /m/home');
+          logger.info('[MobileLogin] Navigating to /m/home');
           this.$router.push('/m/home');
         } else {
-          console.log('[MobileLogin] No token and no verification required — unexpected response');
+          logger.info('[MobileLogin] No token and no verification required — unexpected response');
         }
       } catch (error) {
-        console.log('[MobileLogin] Error caught:', JSON.stringify(error));
+        logger.error('[MobileLogin] Login failed', error.message);
         this.error = error.response?.data?.message || error.message || 'Login failed. Please try again.';
       } finally {
         this.loading = false;
