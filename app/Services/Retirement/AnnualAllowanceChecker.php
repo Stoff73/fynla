@@ -82,10 +82,10 @@ class AnnualAllowanceChecker
         // Calculate total annual contributions
         $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
 
-        // Get user's income (from retirement profile or assumed)
+        // Get user's income from all sources
         $income = $this->getUserIncome($userId);
-        $thresholdIncome = $income; // Simplified - should include other sources
-        $adjustedIncome = $income + $totalContributions; // Simplified calculation
+        $thresholdIncome = $income;
+        $adjustedIncome = $income + $totalContributions;
 
         // Check if tapering applies
         $standardAllowance = $this->getStandardAnnualAllowance();
@@ -258,12 +258,24 @@ class AnnualAllowanceChecker
     }
 
     /**
-     * Get user's annual income.
+     * Get user's total annual income from all sources.
+     *
+     * Includes employment, self-employment, rental, dividend, interest,
+     * other income, and trust income for accurate tapering calculations.
      */
     private function getUserIncome(int $userId): float
     {
-        $profile = \App\Models\RetirementProfile::where('user_id', $userId)->first();
+        $user = \App\Models\User::find($userId);
+        if (!$user) {
+            return 0.0;
+        }
 
-        return $profile ? (float) $profile->current_annual_salary : 0.0;
+        return (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
     }
 }

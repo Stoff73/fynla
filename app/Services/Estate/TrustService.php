@@ -151,10 +151,11 @@ class TrustService
         $trustsConfig = $this->taxConfig->getTrusts();
         $trustTypeConfig = $trustsConfig['types'][$trustType] ?? null;
 
-        // Default rates for discretionary trusts
+        // Default rates for discretionary trusts (from config, with fallbacks)
+        $discretionaryConfig = $trustsConfig['income_tax']['discretionary'] ?? [];
         $incomeTaxRates = [
-            'standard_rate' => 0.45,
-            'dividend_rate' => 0.3935,
+            'standard_rate' => $discretionaryConfig['standard_rate'] ?? 0.45,
+            'dividend_rate' => $discretionaryConfig['dividend_rate'] ?? 0.3935,
         ];
 
         // Determine income tax treatment based on trust type

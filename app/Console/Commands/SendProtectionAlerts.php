@@ -68,42 +68,43 @@ class SendProtectionAlerts extends Command
             'income_protection_policies' => 'Income Protection',
         ];
 
+        $thirtyDaysAgo = now()->subDays(30);
+
         foreach ($otherPolicyTables as $table => $defaultName) {
             if (! DB::getSchemaBuilder()->hasColumn($table, 'policy_term_years')) {
                 continue;
             }
 
-            $expired = DB::table($table)
+            $policies = DB::table($table)
                 ->whereNull('deleted_at')
                 ->whereNotNull('policy_start_date')
                 ->whereNotNull('policy_term_years')
                 ->where('policy_term_years', '>', 0)
-                ->whereRaw(
-                    'DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) < ?',
-                    [$today]
-                )
-                ->whereRaw(
-                    'DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) >= ?',
-                    [now()->subDays(30)->toDateString()]
-                )
                 ->select(
                     'user_id',
                     DB::raw("COALESCE(provider, '{$defaultName}') as policy_name"),
-                    DB::raw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) as end_date')
+                    'policy_start_date',
+                    'policy_term_years'
                 )
-                ->get();
+                ->get()
+                ->filter(function ($policy) use ($today, $thirtyDaysAgo) {
+                    $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years);
 
-            foreach ($expired as $policy) {
+                    return $endDate->lt(Carbon::parse($today)) && $endDate->gte($thirtyDaysAgo);
+                });
+
+            foreach ($policies as $policy) {
+                $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years)->toDateString();
                 $count += $this->sendAlert(
                     (int) $policy->user_id,
                     'policy_expired',
                     'Protection Policy Expired',
                     "Your {$policy->policy_name} policy expired on "
-                        .Carbon::parse($policy->end_date)->format('j F Y')
+                        .Carbon::parse($endDate)->format('j F Y')
                         .'. If you still have protection needs, arrange replacement cover.',
                     [
                         'policy_name' => $policy->policy_name,
-                        'expiry_date' => $policy->end_date,
+                        'expiry_date' => $endDate,
                         'route' => '/protection',
                     ]
                 );
@@ -171,18 +172,21 @@ class SendProtectionAlerts extends Command
                     ->whereNotNull('policy_start_date')
                     ->whereNotNull('policy_term_years')
                     ->where('policy_term_years', '>', 0)
-                    ->whereBetween(
-                        DB::raw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR)'),
-                        [$windowStart, $windowEnd]
-                    )
                     ->select(
                         'user_id',
                         DB::raw("COALESCE(provider, '{$defaultName}') as policy_name"),
-                        DB::raw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) as end_date')
+                        'policy_start_date',
+                        'policy_term_years'
                     )
-                    ->get();
+                    ->get()
+                    ->filter(function ($policy) use ($windowStart, $windowEnd) {
+                        $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years);
+
+                        return $endDate->gte(Carbon::parse($windowStart)) && $endDate->lte(Carbon::parse($windowEnd));
+                    });
 
                 foreach ($renewals as $policy) {
+                    $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years)->toDateString();
                     $count += $this->sendAlert(
                         (int) $policy->user_id,
                         'policy_approaching_renewal',
@@ -191,7 +195,7 @@ class SendProtectionAlerts extends Command
                             .'Review your coverage to ensure it still meets your needs and consider obtaining replacement quotes.',
                         [
                             'policy_name' => $policy->policy_name,
-                            'end_date' => $policy->end_date,
+                            'end_date' => $endDate,
                             'months_remaining' => $interval['months'],
                             'route' => '/protection',
                         ]

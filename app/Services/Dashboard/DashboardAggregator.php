@@ -63,46 +63,25 @@ class DashboardAggregator
                 ($estateScore * 0.20)
             );
 
+            // Return qualitative label instead of raw numeric scores (Rule 13: No Scores in User-Facing UI)
             return [
-                'composite_score' => round($compositeScore, 2),
-                'breakdown' => [
-                    'protection' => [
-                        'score' => $protectionScore,
-                        'weight' => 0.20,
-                        'contribution' => round($protectionScore * 0.20, 2),
-                    ],
-                    'emergency_fund' => [
-                        'score' => $emergencyFundScore,
-                        'weight' => 0.15,
-                        'contribution' => round($emergencyFundScore * 0.15, 2),
-                    ],
-                    'retirement' => [
-                        'score' => $retirementScore,
-                        'weight' => 0.25,
-                        'contribution' => round($retirementScore * 0.25, 2),
-                    ],
-                    'investment' => [
-                        'score' => $investmentScore,
-                        'weight' => 0.20,
-                        'contribution' => round($investmentScore * 0.20, 2),
-                    ],
-                    'estate' => [
-                        'score' => $estateScore,
-                        'weight' => 0.20,
-                        'contribution' => round($estateScore * 0.20, 2),
-                    ],
+                'status' => $this->getHealthLabel($compositeScore),
+                'areas' => [
+                    'protection' => $this->getHealthLabel($protectionScore),
+                    'emergency_fund' => $this->getHealthLabel($emergencyFundScore),
+                    'retirement' => $this->getHealthLabel($retirementScore),
+                    'investment' => $this->getHealthLabel($investmentScore),
+                    'estate' => $this->getHealthLabel($estateScore),
                 ],
-                'label' => $this->getHealthLabel($compositeScore),
                 'recommendation' => $this->getHealthRecommendation($compositeScore),
             ];
         } catch (\Exception $e) {
             \Log::error('Failed to calculate financial health score: '.$e->getMessage());
 
             return [
-                'composite_score' => 0,
-                'breakdown' => [],
-                'label' => 'Unknown',
-                'recommendation' => 'Unable to calculate financial health score',
+                'status' => 'Unknown',
+                'areas' => [],
+                'recommendation' => 'Unable to calculate financial health assessment',
             ];
         }
     }

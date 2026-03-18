@@ -868,19 +868,8 @@ DATA_CREATION_GUIDANCE;
         try {
             $incomeTax = $this->taxConfig->getIncomeTax();
             $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
-            $basicRateLimit = 50270.0;
-            $additionalRateLimit = 125140.0;
-
-            $bands = $incomeTax['bands'] ?? [];
-            foreach ($bands as $band) {
-                $name = strtolower($band['name'] ?? '');
-                if (str_contains($name, 'higher') && isset($band['from'])) {
-                    $basicRateLimit = (float) $band['from'];
-                }
-                if (str_contains($name, 'additional') && isset($band['from'])) {
-                    $additionalRateLimit = (float) $band['from'];
-                }
-            }
+            $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+            $additionalRateLimit = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
         } catch (\Exception) {
             $personalAllowance = 12570.0;
             $basicRateLimit = 50270.0;

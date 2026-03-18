@@ -501,16 +501,23 @@ class HouseholdPlanningService
     }
 
     /**
-     * Get the marginal tax rate for a given band.
+     * Get the marginal tax rate for a given band from TaxConfigService.
      */
     private function getMarginalRate(string $band): float
     {
+        $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+        $bands = $incomeTaxConfig['bands'] ?? [];
+
+        $basicRate = (float) ($bands[0]['rate'] ?? 0.20);
+        $higherRate = (float) ($bands[1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($bands[2]['rate'] ?? 0.45);
+
         return match ($band) {
             'none' => 0.0,
-            'basic' => 0.20,
-            'higher' => 0.40,
-            'additional' => 0.45,
-            default => 0.20,
+            'basic' => $basicRate,
+            'higher' => $higherRate,
+            'additional' => $additionalRate,
+            default => $basicRate,
         };
     }
 
@@ -696,7 +703,8 @@ class HouseholdPlanningService
             return null;
         }
 
-        $saving = $transferAmount * 0.20; // 20% of transferred allowance
+        $basicRate = $this->getMarginalRate('basic');
+        $saving = $transferAmount * $basicRate; // Basic rate tax saving on transferred allowance
         $nonTaxpayerName = $nonTaxpayer->first_name ?? 'the non-taxpayer';
         $basicRateName = $basicRate->first_name ?? 'the basic rate taxpayer';
 

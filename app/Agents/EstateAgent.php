@@ -56,44 +56,47 @@ class EstateAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        // Load user once with all needed relationships (avoids duplicate query)
+        $user = User::with([
+            'ihtProfile',
+            'assets',
+            'properties',
+            'liabilities',
+            'mortgages',
+            'spouse',
+            'familyMembers',
+            'trusts',
+            'gifts',
+        ])->find($userId);
+
+        if (!$user) {
+            return $this->response(false, 'User not found', []);
+        }
+
         // Data readiness gate — return early if blocking checks fail
-        $gateUser = User::find($userId);
-        if ($gateUser) {
-            $readiness = $this->readinessService->assess($gateUser);
-            if (! $readiness['can_proceed']) {
-                return $this->response(true, 'Readiness check incomplete', [
-                    'can_proceed' => false,
-                    'readiness_checks' => $readiness,
-                    'summary' => null,
-                    'asset_breakdown' => null,
-                    'iht_calculation' => null,
-                    'trust_recommendations' => null,
-                    'gifting_opportunities' => null,
-                    'trust_wish_triggers' => null,
-                    'charitable_analysis' => null,
-                    'will_review_status' => null,
-                    'life_cover' => null,
-                    'pension_amendment' => null,
-                    'profile' => null,
-                ]);
-            }
+        $readiness = $this->readinessService->assess($user);
+        if (! $readiness['can_proceed']) {
+            return $this->response(true, 'Readiness check incomplete', [
+                'can_proceed' => false,
+                'readiness_checks' => $readiness,
+                'summary' => null,
+                'asset_breakdown' => null,
+                'iht_calculation' => null,
+                'trust_recommendations' => null,
+                'gifting_opportunities' => null,
+                'trust_wish_triggers' => null,
+                'charitable_analysis' => null,
+                'will_review_status' => null,
+                'life_cover' => null,
+                'pension_amendment' => null,
+                'profile' => null,
+            ]);
         }
 
         $cacheKey = "estate_analysis_{$userId}";
         $cacheTags = ['estate', 'user_'.$userId];
 
-        return $this->remember($cacheKey, function () use ($userId) {
-            $user = User::with([
-                'ihtProfile',
-                'assets',
-                'properties',
-                'liabilities',
-                'mortgages',
-                'spouse',
-                'familyMembers',
-                'trusts',
-                'gifts',
-            ])->findOrFail($userId);
+        return $this->remember($cacheKey, function () use ($user, $userId) {
 
             // Load all life insurance policies in a single query and filter in-memory
             $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();

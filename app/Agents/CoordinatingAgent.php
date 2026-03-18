@@ -1280,6 +1280,11 @@ class CoordinatingAgent extends BaseAgent
 
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
     {
+        $allowedColumns = ['first_name', 'surname', 'name', 'email', 'asset_name', 'liability_name', 'trust_name', 'scheme_name', 'provider', 'account_name', 'policy_name', 'gift_type'];
+        if (!in_array($nameField, $allowedColumns, true)) {
+            throw new \InvalidArgumentException("Invalid column name: {$nameField}");
+        }
+
         $existing = $modelClass::where('user_id', $userId)
             ->whereRaw('LOWER('.$nameField.') = ?', [strtolower($nameValue)])
             ->first();

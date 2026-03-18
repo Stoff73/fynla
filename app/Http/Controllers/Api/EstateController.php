@@ -11,6 +11,10 @@ use App\Http\Requests\Estate\StoreLiabilityRequest;
 use App\Http\Requests\Estate\UpdateAssetRequest;
 use App\Http\Requests\Estate\UpdateGiftRequest;
 use App\Http\Requests\Estate\UpdateLiabilityRequest;
+use App\Http\Resources\Estate\AssetResource;
+use App\Http\Resources\Estate\GiftResource;
+use App\Http\Resources\Estate\LiabilityResource;
+use App\Http\Resources\Estate\TrustResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
@@ -84,11 +88,11 @@ class EstateController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'assets' => $assets,
+                'assets' => AssetResource::collection($assets),
                 'investment_accounts' => $investmentAccountsFormatted,
-                'liabilities' => $liabilities,
-                'gifts' => $gifts,
-                'trusts' => $trusts,
+                'liabilities' => LiabilityResource::collection($liabilities),
+                'gifts' => GiftResource::collection($gifts),
+                'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'estate'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate'), null, report: true),
@@ -197,7 +201,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Asset created successfully',
-                'data' => $asset,
+                'data' => new AssetResource($asset),
             ], 201);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
@@ -229,7 +233,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Asset updated successfully',
-                'data' => $asset->fresh(),
+                'data' => new AssetResource($asset->fresh()),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -292,7 +296,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Liability created successfully',
-                'data' => $liability,
+                'data' => new LiabilityResource($liability),
             ], 201);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
@@ -324,7 +328,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Liability updated successfully',
-                'data' => $liability->fresh(),
+                'data' => new LiabilityResource($liability->fresh()),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -387,7 +391,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Gift created successfully',
-                'data' => $gift,
+                'data' => new GiftResource($gift),
             ], 201);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Record not found'], 404);
@@ -419,7 +423,7 @@ class EstateController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Gift updated successfully',
-                'data' => $gift->fresh(),
+                'data' => new GiftResource($gift->fresh()),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
