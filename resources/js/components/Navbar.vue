@@ -39,6 +39,18 @@
             Complete Setup
           </router-link>
           <router-link
+            v-if="isAdvisor"
+            to="/advisor"
+            class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-violet-500 hover:bg-violet-600"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <path d="M20 8v6M23 11h-6" />
+            </svg>
+            Advisor
+          </router-link>
+          <router-link
             v-if="isAdmin"
             to="/admin"
             class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-error-600 hover:bg-error-700"
@@ -226,6 +238,10 @@ export default {
       return store.getters['auth/isAdmin'];
     });
 
+    const isAdvisor = computed(() => {
+      return store.getters['auth/isAdvisor'];
+    });
+
     const onboardingCompleted = computed(() => {
       const user = store.getters['auth/currentUser'];
       return user?.onboarding_completed || false;
@@ -299,6 +315,7 @@ export default {
       showLogoutModal,
       userName,
       isAdmin,
+      isAdvisor,
       onboardingCompleted,
       showCompleteSetupButton,
       showMFAReminder,
