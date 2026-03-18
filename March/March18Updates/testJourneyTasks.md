@@ -492,11 +492,11 @@ After all 5 journeys tested:
 |---------|--------|-------------|-------------------|-------------|-------------|
 | Starting Out | PASS | 6/6 | YES — all cards correct | 3 (1 medium, 2 low) + 3 sidebar bugs | 4 fixed |
 | Building Foundations | PASS | 7/7 | YES — Net Worth, Cash & Savings, Investments, Goals | 0 | 0 |
-| Protecting What Matters | NOT STARTED | /11 | | | |
-| Planning Your Future | NOT STARTED | /10 | | | |
-| Enjoying Your Wealth | NOT STARTED | /11 | | | |
+| Protecting What Matters | PASS (1 bug fixed) | 8/8 | Net Worth, Protection, Retirement, Goals. Property save bug found & fixed | 1 (property save) | 1 (commit 4ca8cf1) |
+| Planning Your Future | PASS (1 bug) | 7/7 | Net Worth £665K, Investments, Estate IHT £22K, Retirement, Allowances, Goals | 1 ("Other" goal 422) | 0 — backend validation |
+| Enjoying Your Wealth | PASS | 6/6 | Net Worth £420K, Retirement Income £28,302/yr, Allowances, Goals | 0 | 0 |
 
-**Overall Status:** Journeys 1-2 COMPLETE and PASS. Journeys 3-5 remaining.
+**Overall Status:** ALL 5 JOURNEYS COMPLETE AND PASS.
 **Tester Notes:**
 - Tax configuration must be seeded before dashboard loads
 - Name split issue is pre-existing (sends combined, DB stores split)
