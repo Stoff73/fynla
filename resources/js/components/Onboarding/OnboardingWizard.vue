@@ -688,7 +688,13 @@ export default {
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
           await api.post('/savings/accounts', formData);
         } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
-          await api.post('/properties', formData);
+          // PropertyForm emits { property: {...}, mortgage: {...} }
+          const propertyData = formData.property || formData;
+          const response = await api.post('/properties', propertyData);
+          // If property has a mortgage, save it linked to the new property
+          if (formData.mortgage && response.data?.data?.id) {
+            await api.post(`/properties/${response.data.data.id}/mortgages`, formData.mortgage);
+          }
         } else if (stepId === 'protection-insurance' && formData) {
           // PolicyFormModal emits with policyType field
           const policyType = formData.policyType || formData.policy_type || 'life';
