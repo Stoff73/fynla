@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Savings;
 
-use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
@@ -66,15 +65,20 @@ class PSACalculator
     {
         $grossIncome = $this->resolveGrossAnnualIncome($user);
 
-        if ($grossIncome <= TaxDefaults::PERSONAL_ALLOWANCE) {
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+        $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
+
+        if ($grossIncome <= $personalAllowance) {
             return 'basic';
         }
 
-        if ($grossIncome <= TaxDefaults::HIGHER_RATE_THRESHOLD) {
+        if ($grossIncome <= $basicRateLimit) {
             return 'basic';
         }
 
-        if ($grossIncome <= TaxDefaults::ADDITIONAL_RATE_THRESHOLD) {
+        if ($grossIncome <= $additionalThreshold) {
             return 'higher';
         }
 

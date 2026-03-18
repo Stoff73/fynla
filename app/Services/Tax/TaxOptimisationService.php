@@ -236,8 +236,10 @@ class TaxOptimisationService
         $assumedReturn = 0.06;
         $assumedDividendYield = 0.02;
 
-        $cgtRate = $taxBand === 'basic' ? TaxDefaults::CGT_BASIC_RATE : TaxDefaults::CGT_HIGHER_RATE;
-        $dividendRate = $taxBand === 'basic' ? 0.0875 : 0.3375;
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtRate = $taxBand === 'basic' ? (float) ($cgtConfig['basic_rate'] ?? 0.10) : (float) ($cgtConfig['higher_rate'] ?? 0.20);
+        $dividendConfig = $this->taxConfig->getDividendTax();
+        $dividendRate = $taxBand === 'basic' ? (float) ($dividendConfig['basic_rate'] ?? 0.0875) : (float) ($dividendConfig['higher_rate'] ?? 0.3375);
 
         $growthSaving = $amountToShelter * $assumedReturn * $cgtRate;
         $dividendSaving = $amountToShelter * $assumedDividendYield * $dividendRate;
@@ -321,7 +323,8 @@ class TaxOptimisationService
             return null;
         }
 
-        $cgtRate = $taxBand === 'basic' ? TaxDefaults::CGT_BASIC_RATE : TaxDefaults::CGT_HIGHER_RATE;
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtRate = $taxBand === 'basic' ? (float) ($cgtConfig['basic_rate'] ?? 0.10) : (float) ($cgtConfig['higher_rate'] ?? 0.20);
 
         if ($cgtPosition['has_harvesting_opportunity']) {
             $harvestable = min($cgtPosition['unrealised_losses'], $cgtPosition['excess_gains']);
@@ -466,20 +469,14 @@ class TaxOptimisationService
 
     private function determineTaxBand(float $grossIncome): string
     {
-        $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+        $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
-        if ($grossIncome <= $personalAllowance) {
-            return 'non_taxpayer';
-        }
-
-        if ($grossIncome <= $personalAllowance + TaxDefaults::BASIC_RATE_BAND) {
-            return 'basic';
-        }
-
-        if ($grossIncome <= TaxDefaults::ADDITIONAL_RATE_THRESHOLD) {
-            return 'higher';
-        }
-
+        if ($grossIncome <= $personalAllowance) { return 'non_taxpayer'; }
+        if ($grossIncome <= $basicRateLimit) { return 'basic'; }
+        if ($grossIncome <= $additionalThreshold) { return 'higher'; }
         return 'additional';
     }
 }

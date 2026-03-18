@@ -161,6 +161,11 @@ class PersonalizedTrustStrategyService
         float $availableNRB,
         array $liquidityAnalysis
     ): array {
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
+        $cltSettlorRate = $cltLifetimeRate / (1 - $cltLifetimeRate); // Grossed-up rate when settlor pays
+
         $liquidAssets = collect($liquidityAnalysis['liquid']['assets'] ?? []);
 
         // For Immediate CLT, you can transfer all liquid assets (not capped at NRB)
@@ -169,11 +174,11 @@ class PersonalizedTrustStrategyService
         $excessOverNRB = max(0.0, $amountToTrust - $availableNRB);
 
         // CLT taxation: 20% on excess over NRB (or 25% if settlor pays)
-        $lifetimeCharge = $excessOverNRB * 0.20;
-        $lifetimeChargeIfSettlorPays = $excessOverNRB * 0.25;
+        $lifetimeCharge = $excessOverNRB * $cltLifetimeRate;
+        $lifetimeChargeIfSettlorPays = $excessOverNRB * $cltSettlorRate;
 
         // Potential additional charge if death within 7 years
-        $potentialDeathCharge = ($excessOverNRB * 0.40) - $lifetimeCharge; // 40% less 20% already paid
+        $potentialDeathCharge = ($excessOverNRB * $ihtRate) - $lifetimeCharge; // 40% less 20% already paid
 
         $implementation = [
             '1. **Identify liquid assets** to transfer into discretionary trust (cash, investments)',
@@ -206,7 +211,7 @@ class PersonalizedTrustStrategyService
             'priority' => 1,
             'description' => 'Transfer liquid assets into a discretionary trust using your available Nil Rate Band',
             'amount' => $amountToTrust,
-            'iht_saving_potential' => min($amountToTrust, $availableNRB) * 0.40, // Saving: 40% on amount within NRB
+            'iht_saving_potential' => min($amountToTrust, $availableNRB) * $ihtRate, // Saving: IHT rate on amount within NRB
             'lifetime_tax_charge' => $lifetimeCharge,
             'potential_death_charge' => $potentialDeathCharge,
             'time_frame' => '7 years for full effectiveness',
@@ -259,8 +264,10 @@ class PersonalizedTrustStrategyService
 
         $schedule = $this->buildCLTCycleSchedule($amountPerCycle, $cyclesNeeded, $availableNRB);
 
-        // IHT saving: 40% on total transferred (assuming survival)
-        $ihtSaving = $totalOverLifetime * 0.40;
+        // IHT saving: IHT rate on total transferred (assuming survival)
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtSaving = $totalOverLifetime * $ihtRate;
 
         $implementation = [
             '1. **Cycle 1 (Year 0)**: Transfer £'.number_format($amountPerCycle, 0).' into discretionary trust',
@@ -334,6 +341,8 @@ class PersonalizedTrustStrategyService
      */
     private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
     {
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
         $totalCharge = 0;
 
         foreach ($schedule as $cycle) {
@@ -341,7 +350,7 @@ class PersonalizedTrustStrategyService
 
             // If death occurs within 7 years of this transfer
             if ($yearsFromTransfer < 7) {
-                $charge = $cycle['amount'] * 0.40; // 40% charge
+                $charge = $cycle['amount'] * $ihtRate;
 
                 // Apply taper relief if 3-7 years
                 if ($yearsFromTransfer >= 3) {
@@ -393,8 +402,10 @@ class PersonalizedTrustStrategyService
         // Loan trust: lend money to trust, loan stays in estate but growth doesn't
         $loanAmount = $totalLiquid;
         $assumedGrowthRate = 0.05; // 5% per year
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
         $growthOver20Years = $loanAmount * (pow(1 + $assumedGrowthRate, 20) - 1);
-        $ihtSaving = $growthOver20Years * 0.40;
+        $ihtSaving = $growthOver20Years * $ihtRate;
 
         return [
             'strategy_name' => 'Loan Trust Strategy',
@@ -452,6 +463,8 @@ class PersonalizedTrustStrategyService
 
         // Get IHT configuration
         $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
 
         // Discounted gift trust: gift with retained income rights
         // Discount reduces the CLT value
@@ -464,7 +477,7 @@ class PersonalizedTrustStrategyService
         $cltValue = $giftValue - $discountValue; // Actual chargeable amount
 
         // Discount stays in estate, gift value (after discount) is CLT
-        $ihtSavingOnGift = $cltValue * 0.40;
+        $ihtSavingOnGift = $cltValue * $ihtRate;
 
         return [
             'strategy_name' => 'Discounted Gift Trust',
@@ -475,8 +488,8 @@ class PersonalizedTrustStrategyService
             'discount_value' => $discountValue,
             'discount_percentage' => $discountRate * 100,
             'iht_saving_potential' => $ihtSavingOnGift,
-            'lifetime_tax_charge' => max(0, ($cltValue - $ihtConfig['nil_rate_band']) * 0.20), // 20% on excess over NRB
-            'potential_death_charge' => max(0, ($cltValue - $ihtConfig['nil_rate_band']) * 0.40), // 40% if death within 7 years
+            'lifetime_tax_charge' => max(0, ($cltValue - $ihtConfig['nil_rate_band']) * $cltLifetimeRate), // CLT lifetime rate on excess over NRB
+            'potential_death_charge' => max(0, ($cltValue - $ihtConfig['nil_rate_band']) * $ihtRate), // IHT rate if death within 7 years
             'time_frame' => '7 years for full effectiveness',
             'risk_level' => 'Medium',
             'suitable_for' => 'Those wanting to gift but retain income',
