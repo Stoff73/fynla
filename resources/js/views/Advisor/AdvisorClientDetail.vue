@@ -51,14 +51,11 @@
           <div class="flex-1 min-w-0">
             <h1 class="text-2xl font-black text-horizon-500 mb-1">{{ client.display_name }}</h1>
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-neutral-500">
-              <div v-if="client.client_type">
-                <span class="font-semibold text-horizon-500">Type:</span> {{ client.client_type }}
-              </div>
               <div v-if="client.assigned_date">
                 <span class="font-semibold text-horizon-500">Assigned:</span> {{ formatDateShort(client.assigned_date) }}
               </div>
-              <div v-if="client.review_frequency">
-                <span class="font-semibold text-horizon-500">Review Schedule:</span> {{ formatFrequency(client.review_frequency) }}
+              <div v-if="client.review_frequency_months">
+                <span class="font-semibold text-horizon-500">Review Schedule:</span> {{ formatFrequency(client.review_frequency_months) }}
               </div>
             </div>
           </div>
@@ -103,7 +100,7 @@
                 class="text-sm font-semibold"
                 :class="isReviewOverdue ? 'text-raspberry-500' : 'text-horizon-500'"
               >
-                {{ client.next_review_date ? formatDateShort(client.next_review_date) : 'Not scheduled' }}
+                {{ client.next_review_due ? formatDateShort(client.next_review_due) : 'Not scheduled' }}
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -115,7 +112,7 @@
             <div class="flex justify-between items-center">
               <span class="text-sm text-neutral-500">Frequency</span>
               <span class="text-sm font-semibold text-horizon-500">
-                {{ formatFrequency(client.review_frequency) }}
+                {{ formatFrequency(client.review_frequency_months) }}
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -241,8 +238,8 @@ export default {
     },
 
     isReviewOverdue() {
-      if (!this.client || !this.client.next_review_date) return false;
-      return new Date(this.client.next_review_date) < new Date();
+      if (!this.client || !this.client.next_review_due) return false;
+      return new Date(this.client.next_review_due) < new Date();
     },
   },
 
@@ -261,7 +258,8 @@ export default {
       try {
         this.activitiesLoading = true;
         const data = await advisorService.getActivities({ client_id: this.clientId });
-        this.activities = Array.isArray(data) ? data : (data.data || []);
+        const inner = data.data || data;
+        this.activities = Array.isArray(inner) ? inner : (inner.data || []);
       } catch {
         this.activities = [];
       } finally {
@@ -298,6 +296,10 @@ export default {
 
     formatFrequency(frequency) {
       if (!frequency) return 'Annual';
+      if (typeof frequency === 'number') {
+        const monthLabels = { 1: 'Monthly', 3: 'Quarterly', 6: 'Semi-Annual', 12: 'Annual', 24: 'Biennial' };
+        return monthLabels[frequency] || `Every ${frequency} months`;
+      }
       const labels = {
         annually: 'Annual',
         semi_annually: 'Semi-Annual',

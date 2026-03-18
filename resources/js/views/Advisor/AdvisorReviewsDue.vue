@@ -24,7 +24,7 @@
           <!-- Left: Client info -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-3">
-              <h3 class="text-base font-bold text-horizon-500">{{ review.client_name }}</h3>
+              <h3 class="text-base font-bold text-horizon-500">{{ review.display_name }}</h3>
               <span
                 class="text-xs font-bold px-2.5 py-0.5 rounded-full"
                 :class="review.is_overdue
@@ -45,7 +45,7 @@
               <div>
                 <span class="text-neutral-500">Frequency</span>
                 <div class="font-semibold text-horizon-500 mt-0.5">
-                  {{ formatFrequency(review.review_frequency || review.review_type) }}
+                  {{ formatFrequency(review.review_frequency_months) }}
                 </div>
               </div>
               <div>
@@ -54,7 +54,7 @@
                   class="font-semibold mt-0.5"
                   :class="review.is_overdue ? 'text-raspberry-500' : 'text-horizon-500'"
                 >
-                  {{ review.next_review_date ? formatDateShort(review.next_review_date) : '--' }}
+                  {{ review.next_review_due ? formatDateShort(review.next_review_due) : '--' }}
                 </div>
               </div>
             </div>
@@ -128,6 +128,10 @@ export default {
 
     formatFrequency(frequency) {
       if (!frequency) return 'Annual';
+      if (typeof frequency === 'number') {
+        const monthLabels = { 1: 'Monthly', 3: 'Quarterly', 6: 'Semi-Annual', 12: 'Annual', 24: 'Biennial' };
+        return monthLabels[frequency] || `Every ${frequency} months`;
+      }
       const labels = {
         annually: 'Annual',
         annual: 'Annual',

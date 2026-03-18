@@ -82,7 +82,20 @@ class ClientActivityService
             $query->where('activity_date', '<=', $filters['date_to']);
         }
 
-        return $query->paginate($filters['per_page'] ?? 20)->toArray();
+        $paginated = $query->paginate($filters['per_page'] ?? 20);
+
+        $paginated->getCollection()->transform(function (ClientActivity $activity) {
+            $client = $activity->client;
+            $clientName = $client
+                ? "{$client->first_name} {$client->surname}"
+                : 'Unknown';
+
+            $activity->setAttribute('client_name', $clientName);
+
+            return $activity;
+        });
+
+        return $paginated->toArray();
     }
 
     public function listForClient(int $advisorClientId): array

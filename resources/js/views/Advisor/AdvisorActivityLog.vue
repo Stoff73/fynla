@@ -307,15 +307,17 @@ export default {
           params.type = this.$route.query.type;
         }
 
-        const data = await advisorService.getActivities(params);
+        const response = await advisorService.getActivities(params);
+        // Response: {success, data: {current_page, data: [...], last_page, ...}}
+        const paginated = response.data || response;
 
-        if (Array.isArray(data)) {
-          this.activities = data;
+        if (Array.isArray(paginated)) {
+          this.activities = paginated;
           this.totalPages = 1;
         } else {
-          this.activities = data.data || [];
-          this.totalPages = data.last_page || data.meta?.last_page || 1;
-          this.currentPage = data.current_page || data.meta?.current_page || 1;
+          this.activities = paginated.data || [];
+          this.totalPages = paginated.last_page || paginated.meta?.last_page || 1;
+          this.currentPage = paginated.current_page || paginated.meta?.current_page || 1;
         }
       } catch {
         this.activities = [];

@@ -3,7 +3,7 @@
     <!-- Top bar -->
     <div class="bg-horizon-500 text-white px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <div class="text-raspberry-500 font-black text-xl">fynla</div>
+        <img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" class="h-7" />
         <div class="bg-violet-500 text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-wide">
           ADVISOR VIEW
         </div>

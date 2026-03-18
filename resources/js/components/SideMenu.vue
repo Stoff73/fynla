@@ -178,6 +178,11 @@
           <SideMenuItem icon="bug" label="Bug Report" :collapsed="effectiveCollapsed" :active="false" @action="openBugReport" />
         </SideMenuSection>
 
+        <!-- Advisor (conditional) -->
+        <SideMenuSection v-if="isAdvisor" label="Advisor" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('advisorPanel')" @toggle="toggleSection('advisorPanel')">
+          <SideMenuItem icon="briefcase" label="Advisor Dashboard" to="/advisor" :collapsed="effectiveCollapsed" :active="isActive('/advisor')" @navigate="closeMobile" />
+        </SideMenuSection>
+
         <!-- Admin (conditional) -->
         <SideMenuSection v-if="isAdmin" label="Admin" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('adminPanel')" @toggle="toggleSection('adminPanel')">
           <SideMenuItem icon="shield-exclamation" label="Admin Panel" to="/admin" :collapsed="effectiveCollapsed" :active="isActive('/admin')" @navigate="closeMobile" />
@@ -278,6 +283,7 @@ export default {
     const showBugReportModal = ref(false);
     const exploreExpanded = ref(false);
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
+    const isAdvisor = computed(() => store.getters['auth/isAdvisor']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
     const hasSpouse = computed(() => {
       if (isPreviewMode.value) {
@@ -557,6 +563,9 @@ export default {
       if (path.startsWith('/help')) {
         return 'support';
       }
+      if (path.startsWith('/advisor')) {
+        return 'advisorPanel';
+      }
       if (path.startsWith('/admin') || path.startsWith('/uk-taxes')) {
         return 'adminPanel';
       }
@@ -640,6 +649,7 @@ export default {
       logoUrl,
       faviconUrl,
       isAdmin,
+      isAdvisor,
       hasSpouse,
       effectiveCollapsed,
       menuWidthClass,

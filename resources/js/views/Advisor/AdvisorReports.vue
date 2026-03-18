@@ -33,13 +33,13 @@
               <span class="font-semibold text-horizon-500">{{ report.client_name || '--' }}</span>
             </td>
             <td class="p-4 text-sm border-b border-light-gray text-horizon-500">
-              {{ report.report_type || '--' }}
+              {{ formatReportType(report.report_type) }}
             </td>
             <td class="p-4 text-sm border-b border-light-gray text-horizon-500">
               {{ formatDateShort(report.report_sent_date || report.activity_date || report.date) }}
             </td>
             <td class="p-4 text-sm border-b border-light-gray text-horizon-500">
-              {{ report.acknowledged_date ? formatDateShort(report.acknowledged_date) : '--' }}
+              {{ report.report_acknowledged_date ? formatDateShort(report.report_acknowledged_date) : '--' }}
             </td>
             <td class="p-4 text-sm border-b border-light-gray text-neutral-500 max-w-xs truncate">
               {{ report.summary || '--' }}
@@ -47,11 +47,11 @@
             <td class="p-4 text-sm border-b border-light-gray">
               <span
                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                :class="report.acknowledged_date
+                :class="report.report_acknowledged_date
                   ? 'bg-spring-100 text-spring-700'
                   : 'bg-violet-50 text-violet-700'"
               >
-                {{ report.acknowledged_date ? 'Acknowledged' : 'Pending' }}
+                {{ report.report_acknowledged_date ? 'Acknowledged' : 'Pending' }}
               </span>
             </td>
           </tr>
@@ -96,12 +96,14 @@ export default {
       this.loading = true;
 
       try {
-        const data = await advisorService.getActivities({ activity_type: 'suitability_report' });
+        const response = await advisorService.getActivities({ activity_type: 'suitability_report' });
+        // Response: {success, data: {current_page, data: [...], ...}}
+        const paginated = response.data || response;
 
-        if (Array.isArray(data)) {
-          this.reports = data;
+        if (Array.isArray(paginated)) {
+          this.reports = paginated;
         } else {
-          this.reports = data.data || [];
+          this.reports = paginated.data || [];
         }
       } catch {
         this.reports = [];
@@ -113,6 +115,11 @@ export default {
     formatDateShort(dateStr) {
       if (!dateStr) return '--';
       return formatDateLong(dateStr, true);
+    },
+
+    formatReportType(type) {
+      if (!type) return '--';
+      return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
   },
 };

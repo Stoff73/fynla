@@ -22,21 +22,17 @@ class AdvisorClientSeeder extends Seeder
     public function run(): void
     {
         // 1. Set chris@fynla.org as an advisor (bypass guarded attributes)
-        $updated = DB::table('users')
-            ->where('email', 'chris@fynla.org')
-            ->update(['is_advisor' => true]);
+        $advisor = User::where('email', 'chris@fynla.org')->first();
 
-        if ($updated === 0) {
+        if (! $advisor) {
             Log::warning('AdvisorClientSeeder: chris@fynla.org not found — skipping.');
 
             return;
         }
 
-        $advisor = User::where('email', 'chris@fynla.org')->first();
-
-        if (! $advisor) {
-            return;
-        }
+        DB::table('users')
+            ->where('id', $advisor->id)
+            ->update(['is_advisor' => true]);
 
         // 2. Per-persona configuration
         $clientConfigs = [

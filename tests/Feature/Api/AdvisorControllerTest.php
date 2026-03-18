@@ -5,10 +5,6 @@ declare(strict_types=1);
 use App\Models\AdvisorClient;
 use App\Models\ClientActivity;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-
-uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     $this->advisor = User::factory()->create(['is_advisor' => true]);
@@ -74,7 +70,7 @@ it('returns client detail for assigned client', function () {
         ->assertJson(['success' => true])
         ->assertJsonStructure([
             'success',
-            'data' => ['id', 'advisor_id', 'client_id', 'status', 'client'],
+            'data' => ['id', 'client_id', 'display_name', 'status', 'module_status', 'activities'],
         ]);
 });
 

@@ -211,7 +211,7 @@
                   {{ formatDateShort(client.last_report.report_sent_date || client.last_report.activity_date) }}
                 </div>
                 <div class="text-xs text-neutral-500 mt-0.5">
-                  {{ client.last_report.report_type || '' }}
+                  {{ formatReportType(client.last_report.report_type) }}
                 </div>
               </div>
               <span v-else class="text-neutral-500">--</span>
@@ -278,7 +278,7 @@
           class="bg-white border border-light-gray rounded-xl p-5 shadow-card mb-4"
         >
           <div class="flex items-center justify-between mb-3">
-            <div class="font-bold text-base text-horizon-500">{{ review.client_name }}</div>
+            <div class="font-bold text-base text-horizon-500">{{ review.display_name }}</div>
             <div
               class="text-xs font-bold"
               :class="review.is_overdue ? 'text-raspberry-500' : 'text-neutral-500'"
@@ -287,7 +287,7 @@
             </div>
           </div>
           <div class="text-sm text-neutral-500 leading-relaxed">
-            <strong class="text-horizon-500 font-semibold">{{ review.review_type || 'Annual Review' }}</strong>
+            <strong class="text-horizon-500 font-semibold">{{ formatReviewFrequency(review.review_frequency_months) }}</strong>
             — Last reviewed {{ formatDateShort(review.last_review_date) }}
             <br />
             <span v-if="review.focus">{{ review.focus }}<br /></span>
@@ -318,19 +318,19 @@
           >
             <div
               class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              :class="activityIconClass(activity.type)"
+              :class="activityIconClass(activity.activity_type)"
             >
               <!-- Email icon -->
-              <svg v-if="activity.type === 'email'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5854E6" stroke-width="2">
+              <svg v-if="activity.activity_type === 'email'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5854E6" stroke-width="2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
               <!-- Phone icon -->
-              <svg v-else-if="activity.type === 'phone'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#20B486" stroke-width="2">
+              <svg v-else-if="activity.activity_type === 'phone'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#20B486" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.98.37 1.94.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.87.33 1.83.57 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
               <!-- Report icon -->
-              <svg v-else-if="activity.type === 'report'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E83E6D" stroke-width="2">
+              <svg v-else-if="activity.activity_type === 'suitability_report'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E83E6D" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
@@ -493,30 +493,43 @@ export default {
       switch (type) {
         case 'email': return 'bg-violet-50';
         case 'phone': return 'bg-spring-50';
-        case 'report': return 'bg-raspberry-50';
+        case 'suitability_report': return 'bg-raspberry-50';
         case 'meeting': return 'bg-savannah-100';
         default: return 'bg-violet-50';
       }
     },
 
     activityLabel(activity) {
-      switch (activity.type) {
+      const type = activity.activity_type || activity.type;
+      switch (type) {
         case 'email': return 'Email sent';
         case 'phone': return 'Phone call';
-        case 'report': return 'Suitability report sent';
+        case 'suitability_report': return 'Suitability report sent';
         case 'meeting': return 'Meeting';
         case 'letter': return 'Letter sent';
-        default: return activity.type || 'Activity';
+        case 'review': return 'Review';
+        case 'note': return 'Note';
+        default: return type || 'Activity';
       }
+    },
+
+    formatReviewFrequency(months) {
+      if (!months) return 'Annual Review';
+      const labels = { 1: 'Monthly Review', 3: 'Quarterly Review', 6: 'Semi-Annual Review', 12: 'Annual Review', 24: 'Biennial Review' };
+      return labels[months] || `Review (Every ${months} months)`;
     },
 
     activityDescription(activity) {
       const clientName = activity.client_name || '';
-      const summary = activity.summary || activity.description || '';
-      const parts = [];
-      if (clientName) parts.push(`to ${clientName}`);
-      if (summary) parts.push(`\u2014 ${summary}`);
-      return parts.join(' ');
+      const summary = activity.summary || '';
+      if (summary) return `\u2014 ${summary}`;
+      if (clientName) return `\u2014 ${clientName}`;
+      return '';
+    },
+
+    formatReportType(type) {
+      if (!type) return '';
+      return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
 
     viewClient(client) {

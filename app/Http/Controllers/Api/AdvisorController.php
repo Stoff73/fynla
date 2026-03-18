@@ -57,7 +57,38 @@ class AdvisorController extends Controller
                 ->with(['client', 'activities' => fn ($q) => $q->latest('activity_date')])
                 ->firstOrFail();
 
-            return response()->json(['success' => true, 'data' => $advisorClient]);
+            $client = $advisorClient->client;
+            $spouse = $client->spouse_id ? User::find($client->spouse_id) : null;
+            $displayName = $spouse
+                ? "{$client->first_name} & {$spouse->first_name} {$client->surname}"
+                : "{$client->first_name} {$client->surname}";
+
+            $data = [
+                'id' => $advisorClient->id,
+                'client_id' => $client->id,
+                'display_name' => $displayName,
+                'email' => $client->email,
+                'module_status' => $this->moduleTracking->getModuleStatus($client),
+                'last_review_date' => $advisorClient->last_review_date,
+                'next_review_due' => $advisorClient->next_review_due,
+                'review_frequency_months' => $advisorClient->review_frequency_months,
+                'assigned_date' => $advisorClient->assigned_date,
+                'status' => $advisorClient->status,
+                'notes' => $advisorClient->notes,
+                'activities' => $advisorClient->activities->map(fn ($a) => [
+                    'id' => $a->id,
+                    'activity_type' => $a->activity_type,
+                    'summary' => $a->summary,
+                    'details' => $a->details,
+                    'activity_date' => $a->activity_date,
+                    'follow_up_date' => $a->follow_up_date,
+                    'follow_up_completed' => $a->follow_up_completed,
+                    'report_type' => $a->report_type,
+                    'report_sent_date' => $a->report_sent_date,
+                ]),
+            ];
+
+            return response()->json(['success' => true, 'data' => $data]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Client not found or not assigned to you.'], 404);
         } catch (\Exception $e) {
