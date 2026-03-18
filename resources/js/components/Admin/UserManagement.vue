@@ -51,6 +51,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Name</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Modules</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Role</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Spouse</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Plan</th>
@@ -62,12 +63,16 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-light-gray">
-            <tr v-for="user in users" :key="user.id" class="hover:bg-savannah-100">
+            <template v-for="user in users" :key="user.id">
+            <tr class="hover:bg-savannah-100 cursor-pointer" @click="toggleExpandedUser(user.id)">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-horizon-500">{{ user.id }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-horizon-500">{{ user.name }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{{ user.email }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <UserModuleStatus :user-id="user.id" />
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span v-if="user.role?.name === 'admin'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-800">
                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -124,7 +129,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
-                  @click="editUser(user)"
+                  @click.stop="editUser(user)"
                   class="text-raspberry-600 hover:text-raspberry-900 mr-3"
                   title="Edit user"
                 >
@@ -133,7 +138,7 @@
                   </svg>
                 </button>
                 <button
-                  @click="confirmDeleteUser(user)"
+                  @click.stop="confirmDeleteUser(user)"
                   class="text-raspberry-600 hover:text-raspberry-900"
                   title="Delete user"
                   :disabled="user.role?.name === 'admin' && totalAdmins === 1"
@@ -144,8 +149,18 @@
                 </button>
               </td>
             </tr>
+            <!-- Expanded row -->
+            <tr v-if="expandedUserId === user.id">
+              <td :colspan="12" class="px-6 py-4 bg-eggshell-500">
+                <div class="flex gap-6">
+                  <UserModuleStatus :user-id="user.id" :expanded="true" />
+                  <UserOnboardingProgress :user-id="user.id" />
+                </div>
+              </td>
+            </tr>
+            </template>
             <tr v-if="users.length === 0">
-              <td colspan="11" class="px-6 py-8 text-center text-neutral-500">
+              <td colspan="12" class="px-6 py-8 text-center text-neutral-500">
                 No users found
               </td>
             </tr>
@@ -273,6 +288,8 @@
 import adminService from '../../services/adminService';
 import UserFormModal from './UserFormModal.vue';
 import ConfirmDialog from '../Common/ConfirmDialog.vue';
+import UserModuleStatus from './UserModuleStatus.vue';
+import UserOnboardingProgress from './UserOnboardingProgress.vue';
 
 export default {
   name: 'UserManagement',
@@ -280,6 +297,8 @@ export default {
   components: {
     UserFormModal,
     ConfirmDialog,
+    UserModuleStatus,
+    UserOnboardingProgress,
   },
 
   data() {
@@ -303,6 +322,7 @@ export default {
       searchTimeout: null,
       messageTimeout: null,
       availableRoles: [],
+      expandedUserId: null,
     };
   },
 
@@ -364,6 +384,10 @@ export default {
         this.currentPage = 1;
         this.loadUsers();
       }, 500);
+    },
+
+    toggleExpandedUser(userId) {
+      this.expandedUserId = this.expandedUserId === userId ? null : userId;
     },
 
     openCreateModal() {
