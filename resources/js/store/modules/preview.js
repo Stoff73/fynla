@@ -17,7 +17,6 @@ import { removeToken, setToken as storageSetToken, isNativePlatform } from '../.
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
 import peakEarnersData from '../../data/personas/peak_earners.json';
-import widowData from '../../data/personas/widow.json';
 import entrepreneurData from '../../data/personas/entrepreneur.json';
 import youngSaverData from '../../data/personas/young_saver.json';
 import retiredCoupleData from '../../data/personas/retired_couple.json';
@@ -28,7 +27,6 @@ import studentData from '../../data/personas/student.json';
 const PERSONA_DATA = {
     young_family: youngFamilyData,
     peak_earners: peakEarnersData,
-    widow: widowData,
     entrepreneur: entrepreneurData,
     young_saver: youngSaverData,
     retired_couple: retiredCoupleData,
@@ -43,8 +41,7 @@ const PERSONA_ORDER = [
     'entrepreneur',    // Alex Chen
     'young_saver',     // John Morgan
     'student',         // Janice Taylor
-    'retired_couple',  // Robert & Patricia Williams
-    'widow',           // Margaret Thompson
+    'retired_couple',  // Patricia & Harold Bennett
 ];
 
 /**
@@ -253,6 +250,9 @@ const actions = {
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
 
+                // Set the life stage from the persona mapping
+                dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
+
                 // On native, use SPA navigation to avoid page reload (which loses in-memory state)
                 const router = window.__appRouter;
                 if (router && isNativePlatform()) {
@@ -302,6 +302,9 @@ const actions = {
                 // Update auth state with the new preview user
                 commit('auth/setUser', response.data.user, { root: true });
                 commit('auth/setToken', token, { root: true });
+
+                // Set the life stage from the persona mapping
+                dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
 
                 // On native, use SPA navigation; on web, reload for fresh state
                 const router = window.__appRouter;

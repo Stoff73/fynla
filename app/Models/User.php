@@ -126,6 +126,7 @@ class User extends Authenticatable
         'onboarding_asset_flags' => 'array',
         'journey_states' => 'array',
         'journey_selections' => 'array',
+        'life_stage_completed_steps' => 'array',
         'dismissed_prompts' => 'array',
         'uk_arrival_date' => 'date',
         'deemed_domicile_date' => 'date',

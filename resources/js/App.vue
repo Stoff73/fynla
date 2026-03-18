@@ -19,6 +19,8 @@ export default {
       if (store.getters['auth/isAuthenticated']) {
         try {
           await store.dispatch('auth/fetchUser');
+          // Fetch life stage after user is loaded (drives sidebar, dashboard, onboarding)
+          store.dispatch('lifeStage/fetchStage').catch(() => {});
         } catch (error) {
           // Token is invalid, clear it
           store.commit('auth/clearAuth');

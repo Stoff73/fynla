@@ -1,18 +1,14 @@
 <template>
-  <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <!-- Background overlay -->
-    <div
-      class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
-    ></div>
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 z-50 overflow-y-auto'" :role="context === 'onboarding' ? undefined : 'dialog'" :aria-modal="context === 'onboarding' ? undefined : 'true'">
+    <!-- Background overlay (modal only) -->
+    <div v-if="context !== 'onboarding'" class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"></div>
 
-    <!-- Modal container -->
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <!-- Container -->
+    <div :class="context === 'onboarding' ? '' : 'flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0'">
+      <span v-if="context !== 'onboarding'" class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-      <!-- Modal panel -->
-      <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto"
-      >
+      <!-- Panel -->
+      <div :class="context === 'onboarding' ? '' : 'relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto'">
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
           <div class="flex items-center justify-between mb-4">
@@ -20,6 +16,7 @@
               {{ isEditing ? 'Edit Policy' : 'Add New Policy' }}
             </h3>
             <button
+              v-if="context !== 'onboarding'"
               @click="handleClose"
               class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
@@ -36,7 +33,7 @@
         </div>
 
         <!-- Form -->
-        <form @submit.prevent="handleSubmit" class="px-6 pb-6">
+        <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'px-6 pb-6'">
           <div class="space-y-4 pr-2">
             <!-- Policy Type Selection (only for new policies) -->
             <div v-if="!isEditing">
@@ -48,11 +45,22 @@
                 class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select policy type...</option>
-                <option value="life">Life Insurance</option>
-                <option value="criticalIllness">Critical Illness</option>
-                <option value="incomeProtection">Income Protection</option>
-                <option value="disability">Disability</option>
-                <option value="sicknessIllness">Sickness/Illness</option>
+                <!-- Stage-suggested types shown first when in onboarding -->
+                <optgroup v-if="context === 'onboarding' && stageDefaultPolicyTypes.length" label="Recommended for your stage">
+                  <option v-if="stageDefaultPolicyTypes.includes('life')" value="life">Life Insurance</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('critical_illness')" value="criticalIllness">Critical Illness</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('income_protection')" value="incomeProtection">Income Protection</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('whole_of_life')" value="life">Whole of Life Insurance</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('disability')" value="disability">Disability</option>
+                  <option v-if="stageDefaultPolicyTypes.includes('funeral_plan')" value="sicknessIllness">Funeral Plan</option>
+                </optgroup>
+                <optgroup :label="context === 'onboarding' && stageDefaultPolicyTypes.length ? 'All policy types' : 'Policy types'">
+                  <option value="life">Life Insurance</option>
+                  <option value="criticalIllness">Critical Illness</option>
+                  <option value="incomeProtection">Income Protection</option>
+                  <option value="disability">Disability</option>
+                  <option value="sicknessIllness">Sickness/Illness</option>
+                </optgroup>
               </select>
             </div>
 
@@ -453,6 +461,7 @@
               {{ submitting ? 'Saving...' : (isEditing ? 'Update Policy' : 'Add Policy') }}
             </button>
             <button
+              v-if="context !== 'onboarding'"
               type="button"
               @click="handleClose"
               class="px-6 py-3 bg-savannah-100 text-neutral-500 font-medium rounded-lg hover:bg-savannah-200 transition-colors"
@@ -480,6 +489,11 @@ export default {
     isEditing: {
       type: Boolean,
       default: false,
+    },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
     },
   },
 
@@ -516,6 +530,14 @@ export default {
   },
 
   computed: {
+    stageFormConfig() {
+      return this.$store.getters['lifeStage/formFields']('protection') || {};
+    },
+
+    stageDefaultPolicyTypes() {
+      return this.stageFormConfig.defaultPolicyTypes || [];
+    },
+
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },

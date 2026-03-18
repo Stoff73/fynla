@@ -39,8 +39,80 @@
       </div>
     </div>
 
-    <!-- Map Your Path to Financial Freedom -->
+    <!-- Find Your Stage Section -->
     <div class="bg-white py-12 lg:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="leading-tight mb-3">
+            Where are you in your<br />
+            <span class="text-raspberry-500">financial journey?</span>
+          </h2>
+          <p class="text-neutral-500 max-w-2xl mx-auto leading-relaxed">
+            Choose the stage that best describes where you are right now, and explore a personalised demo experience tailored to your situation.
+          </p>
+        </div>
+
+        <!-- Life Stage Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+          <button
+            v-for="stage in stages"
+            :key="stage.id"
+            type="button"
+            class="card group text-left transition-all duration-200 hover:shadow-md hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 cursor-pointer"
+            :class="stageCardBorderClass(stage)"
+            @click="handleStageCardClick(stage)"
+          >
+            <!-- Stage Label -->
+            <h3 class="text-base font-bold text-horizon-500 text-center mb-1 mt-2">
+              {{ stage.label }}
+            </h3>
+
+            <!-- Age Range -->
+            <p class="text-sm font-semibold text-center mb-2" :class="stageTextColourClass(stage)">
+              Ages {{ stage.ageRange }}
+            </p>
+
+            <!-- Tagline -->
+            <p class="text-xs text-neutral-500 text-center leading-relaxed">
+              {{ stage.tagline }}
+            </p>
+
+            <!-- See Demo Hint -->
+            <div class="mt-3 text-center">
+              <span class="inline-flex items-center text-xs font-semibold transition-colors" :class="stageTextColourClass(stage)">
+                See it in action
+                <svg class="w-3 h-3 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Divider -->
+        <div class="relative mb-8">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-light-gray"></div>
+          </div>
+          <div class="relative flex justify-center">
+            <span class="bg-white px-4 text-sm text-neutral-500">or get started</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-4">
+          <router-link to="/register" class="px-8 py-2.5 bg-raspberry-500 text-white rounded-button font-medium hover:bg-raspberry-600 transition-colors">
+            Create Your Account
+          </router-link>
+          <p class="text-sm text-neutral-500">
+            Not convinced yet?
+            <a href="/?demo=true" class="text-horizon-500 underline hover:text-raspberry-500 transition-colors" @click.prevent="enterPreviewMode">Browse all demos</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Your Path to Financial Freedom -->
+    <div class="bg-savannah-100 py-12 lg:py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-16">
           <div class="lg:flex-1">
@@ -76,10 +148,6 @@
 
             <div class="flex flex-col items-start gap-4">
               <router-link to="/register" class="px-8 py-2.5 bg-horizon-500 text-white rounded-button font-medium hover:bg-horizon-600 transition-colors">Sign up</router-link>
-              <p class="text-sm text-neutral-500">
-                Not convinced yet, check out
-                <a href="/?demo=true" class="text-horizon-500 underline hover:text-raspberry-500 transition-colors" @click.prevent="enterPreviewMode">our demo</a>
-              </p>
             </div>
           </div>
 
@@ -313,6 +381,7 @@ import { mapActions, mapGetters } from 'vuex';
 import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vue';
+import { LIFE_STAGES, STAGE_ORDER, PERSONA_TO_STAGE } from '@/constants/lifeStageConfig';
 
 export default {
   name: 'LandingPage',
@@ -320,6 +389,35 @@ export default {
   components: {
     PublicLayout,
     PersonaSelectionModal,
+    // Inline icon components (same as FocusAreaSelection.vue)
+    IconGraduationCap: {
+      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+      </svg>`,
+    },
+    IconBriefcase: {
+      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+      </svg>`,
+    },
+    IconShield: {
+      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>`,
+    },
+    IconChartLine: {
+      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>`,
+    },
+    IconSun: {
+      template: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>`,
+    },
   },
 
   data() {
@@ -334,6 +432,10 @@ export default {
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
+
+    stages() {
+      return STAGE_ORDER.map(id => LIFE_STAGES[id]);
+    },
   },
 
   mounted() {
@@ -388,6 +490,81 @@ export default {
         this.previewError = 'Unable to load demo. Please try again or check your connection.';
         this.enteringPreview = false;
       }
+    },
+
+    /**
+     * Handle clicking a life stage card on the landing page.
+     * Finds the persona mapped to that stage and enters preview mode directly.
+     */
+    async handleStageCardClick(stage) {
+      if (this.enteringPreview) return;
+
+      // Find the persona ID for this stage
+      const personaId = stage.persona;
+      if (!personaId) {
+        // Fallback: open the persona selection modal
+        this.enterPreviewMode();
+        return;
+      }
+
+      this.enteringPreview = true;
+      this.previewError = '';
+
+      try {
+        await this.$store.dispatch('preview/loadPersona', personaId);
+        await nextTick();
+        this.$router.push('/dashboard');
+      } catch (error) {
+        console.error('Failed to enter preview mode for stage:', stage.id, error);
+        this.previewError = 'Unable to load demo. Please try again or check your connection.';
+        this.enteringPreview = false;
+        // Show the modal so user can retry or pick manually
+        this.showSelectionModal = true;
+      }
+    },
+
+    stageCardBorderClass(stage) {
+      const map = {
+        violet: 'hover:border-violet-400',
+        spring: 'hover:border-spring-400',
+        raspberry: 'hover:border-raspberry-400',
+        'light-blue': 'hover:border-light-blue-500',
+        horizon: 'hover:border-horizon-400',
+      };
+      return map[stage.colour] || 'hover:border-violet-400';
+    },
+
+    stageIconBgClass(stage) {
+      const map = {
+        violet: 'bg-gradient-to-br from-violet-400 to-violet-600',
+        spring: 'bg-gradient-to-br from-spring-400 to-spring-600',
+        raspberry: 'bg-gradient-to-br from-raspberry-400 to-raspberry-600',
+        'light-blue': 'bg-gradient-to-br from-light-blue-500 to-horizon-400',
+        horizon: 'bg-gradient-to-br from-horizon-400 to-horizon-600',
+      };
+      return map[stage.colour] || 'bg-gradient-to-br from-violet-400 to-violet-600';
+    },
+
+    stageTextColourClass(stage) {
+      const map = {
+        violet: 'text-violet-500',
+        spring: 'text-spring-500',
+        raspberry: 'text-raspberry-500',
+        'light-blue': 'text-light-blue-500',
+        horizon: 'text-horizon-500',
+      };
+      return map[stage.colour] || 'text-violet-500';
+    },
+
+    stageIconComponent(stage) {
+      const icons = {
+        'graduation-cap': 'IconGraduationCap',
+        'briefcase': 'IconBriefcase',
+        'shield': 'IconShield',
+        'chart-line': 'IconChartLine',
+        'sun': 'IconSun',
+      };
+      return icons[stage.icon] || 'IconGraduationCap';
     },
   },
 };

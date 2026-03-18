@@ -230,7 +230,7 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" @click="handleCancel">
+        <button v-if="context !== 'onboarding'" type="button" class="btn btn-secondary" @click="handleCancel">
           Cancel
         </button>
         <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
@@ -258,6 +258,11 @@ export default {
     mode: {
       type: String,
       default: 'create', // 'create' or 'edit'
+    },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (v) => ['standalone', 'onboarding'].includes(v),
     },
   },
 

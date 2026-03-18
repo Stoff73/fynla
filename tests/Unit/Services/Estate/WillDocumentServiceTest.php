@@ -316,6 +316,7 @@ describe('WillDocumentService', function () {
         it('generates a mirror will with swapped beneficiaries', function () {
             $spouse = User::factory()->create([
                 'first_name' => 'Emily',
+                'middle_name' => null,
                 'surname' => 'Carter',
                 'date_of_birth' => '1987-03-22',
             ]);

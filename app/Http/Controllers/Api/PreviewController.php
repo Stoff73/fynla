@@ -34,7 +34,6 @@ class PreviewController extends Controller
     private const VALID_PERSONAS = [
         'young_family',
         'peak_earners',
-        'widow',
         'entrepreneur',
         'young_saver',
         'retired_couple',
@@ -60,12 +59,6 @@ class PreviewController extends Controller
             'name' => 'David & Sarah Mitchell',
             'tagline' => 'Peak earners planning ahead',
             'description' => 'A couple in their late 40s at peak earning capacity, with substantial assets and complex planning needs.',
-        ],
-        'widow' => [
-            'id' => 'widow',
-            'name' => 'Margaret Thompson',
-            'tagline' => 'Recently widowed, adjusting finances',
-            'description' => 'A 68-year-old widow navigating inherited wealth and estate planning considerations.',
         ],
         'entrepreneur' => [
             'id' => 'entrepreneur',

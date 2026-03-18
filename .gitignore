@@ -57,3 +57,4 @@ yarn-error.log
 ios/App/Pods/
 ios/App/App/public/
 
+.superpowers/

@@ -29,18 +29,18 @@
         >
           <option value="">Select a goal type</option>
           <option value="emergency_fund">Emergency Fund</option>
-          <option value="house_deposit">House Deposit</option>
+          <option value="home_deposit">House Deposit</option>
           <option value="holiday">Holiday</option>
           <option value="education">Education</option>
           <option value="wedding">Wedding</option>
-          <option value="car">Car Purchase</option>
-          <option value="home_improvement">Home Improvement</option>
-          <option value="other">Other</option>
+          <option value="car_purchase">Car Purchase</option>
+          <option value="debt_repayment">Debt Repayment</option>
+          <option value="custom">Other</option>
         </select>
       </div>
 
       <!-- Goal Name (for "Other" type) -->
-      <div v-if="formData.goal_type === 'other'">
+      <div v-if="formData.goal_type === 'custom'">
         <label for="goal_name" class="label">
           Goal Name
         </label>
@@ -107,6 +107,7 @@
 </template>
 
 <script>
+// DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
@@ -155,13 +156,13 @@ export default {
 
     const goalTypeLabels = {
       emergency_fund: 'Emergency Fund',
-      house_deposit: 'House Deposit',
+      home_deposit: 'House Deposit',
       holiday: 'Holiday',
       education: 'Education',
       wedding: 'Wedding',
-      car: 'Car Purchase',
-      home_improvement: 'Home Improvement',
-      other: 'Other',
+      car_purchase: 'Car Purchase',
+      debt_repayment: 'Debt Repayment',
+      custom: 'Other',
     };
 
     const handleNext = async () => {
@@ -174,13 +175,12 @@ export default {
       error.value = null;
 
       try {
-        // Build goal data for API
+        // Build goal data for API (matches StoreGoalRequest validation)
         const goalData = {
-          name: formData.value.name || goalTypeLabels[formData.value.goal_type],
+          goal_name: formData.value.name || goalTypeLabels[formData.value.goal_type],
           goal_type: formData.value.goal_type,
           target_amount: formData.value.target_amount || 0,
           target_date: formData.value.target_date || null,
-          status: 'active',
           priority: 'medium',
         };
 

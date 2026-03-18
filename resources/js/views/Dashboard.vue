@@ -48,6 +48,9 @@
         </div>
       </div>
 
+      <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
+      <JourneyProgressHero v-if="currentStage" class="mb-3" />
+
       <!-- Empty Dashboard (no financial data) -->
       <template v-if="showEmptyDashboard">
         <div class="grid grid-cols-1 gap-3">
@@ -65,9 +68,9 @@
         <!-- Profile Completion Cards (shown for quick onboarding users) -->
         <ProfileCompletionCards v-if="isQuickOnboardingUser" />
 
-        <!-- Student: Recent Activity Card (replaces Net Worth) -->
+        <!-- Student: Recent Activity Card (replaces Net Worth) — maps to 'budget-tracker' -->
         <DashboardCard
-          v-if="isStudentPersona"
+          v-if="isStudentPersona && isCardVisible('budget-tracker')"
           title="Recent Activity"
           :loading="false"
           @click="navigateTo('/net-worth/cash')"
@@ -101,9 +104,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Student: Student Debt Card -->
+        <!-- Student: Student Debt Card — maps to 'student-loan' -->
         <DashboardCard
-          v-if="isStudentPersona"
+          v-if="isStudentPersona && isCardVisible('student-loan')"
           title="Student Debt"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/liabilities')"
@@ -148,9 +151,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Net Worth Card (hidden for student persona) -->
+        <!-- Net Worth Card (hidden for student persona) — maps to 'net-worth' -->
         <DashboardCard
-          v-if="!isStudentPersona"
+          v-if="!isStudentPersona && isCardVisible('net-worth')"
           title="Net Worth"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/wealth-summary')"
@@ -207,9 +210,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Protection Card -->
+        <!-- Protection Card — maps to 'protection' -->
         <DashboardCard
-          v-if="hasProtectionData"
+          v-if="hasProtectionData && isCardVisible('protection')"
           title="Protection"
           :loading="loading.protection"
           @click="navigateTo('/protection')"
@@ -259,9 +262,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Cash & Savings Card -->
+        <!-- Cash & Savings Card — maps to 'cash-savings' / 'savings' -->
         <DashboardCard
-          v-if="hasSavingsData"
+          v-if="hasSavingsData && (isCardVisible('cash-savings') || isCardVisible('savings'))"
           title="Cash & Savings"
           :loading="loading.taxAllowances"
           @click="navigateTo('/net-worth/cash')"
@@ -307,9 +310,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Investment Card -->
+        <!-- Investment Card — maps to 'investments' -->
         <DashboardCard
-          v-if="hasInvestmentData"
+          v-if="hasInvestmentData && isCardVisible('investments')"
           title="Investments"
           :loading="loading.investment"
           @click="navigateTo('/net-worth/investments')"
@@ -355,9 +358,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Estate Planning Card -->
+        <!-- Estate Planning Card — maps to 'estate' -->
         <DashboardCard
-          v-if="hasEstateData"
+          v-if="hasEstateData && isCardVisible('estate')"
           title="Estate Planning"
           :loading="loading.estate"
           @click="navigateTo('/estate')"
@@ -447,9 +450,9 @@
         </DashboardCard>
 
 
-        <!-- Retirement Card (hidden for users under 35) -->
+        <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
         <DashboardCard
-          v-if="hasRetirementData && (userAge === null || userAge >= 35)"
+          v-if="hasRetirementData && (userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
@@ -594,8 +597,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Allowances Card -->
+        <!-- Allowances Card — maps to 'tax-allowances' -->
         <DashboardCard
+          v-if="isCardVisible('tax-allowances')"
           title="Allowances"
           :loading="loading.taxAllowances"
         >
@@ -734,9 +738,9 @@
           </div>
         </DashboardCard>
 
-        <!-- Goals & Events Card (spans 2 columns on larger screens) -->
+        <!-- Goals & Events Card (spans 2 columns on larger screens) — legacy, hidden when stage-curated GoalsCard is shown -->
         <DashboardCard
-          v-if="hasGoalsData"
+          v-if="hasGoalsData && !currentStage"
           title="Goals & Life Events"
           :loading="loading.goals"
           class="lg:col-span-2"
@@ -763,15 +767,60 @@
 
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
 
-        <!-- Cross-Module Insights (all non-student users) -->
-        <template v-if="!isStudentPersona">
-          <div class="lg:col-span-3">
-            <h2 class="text-lg font-bold text-horizon-500 mt-2 mb-1">Cross-Module Insights</h2>
+        <!-- Stage-curated: Goals projection chart (spans 2 columns) + Suggested goals card (1 column) -->
+        <DashboardCard
+          v-if="currentStage && isCardVisible('goals')"
+          title="Goals & Life Events"
+          :loading="loading.goals"
+          class="lg:col-span-2"
+          @click="navigateTo('/goals')"
+        >
+          <div v-if="goalsData.hasProjection || goalsData.hasGoals" class="cursor-pointer">
+            <GoalsProjectionChartDashboard />
           </div>
-          <div class="lg:col-span-3">
-            <CrossModuleInsights />
+          <div v-else class="text-center py-4">
+            <h3 class="text-sm font-semibold text-horizon-500 mb-1">Set Your First Goal</h3>
+            <p class="text-xs text-neutral-500">Track your financial goals and life events</p>
           </div>
-        </template>
+        </DashboardCard>
+
+        <!-- Suggested Goals Card (3rd column next to the goals chart) -->
+        <div v-if="currentStage && isCardVisible('goals')" class="bg-white rounded-card border border-light-gray shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-horizon-500">Suggested for You</h3>
+            <button @click="navigateTo('/goals?addGoal=true')" class="text-xs font-semibold text-raspberry-500 hover:text-raspberry-600">+ Add goal</button>
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="suggestion in stageSuggestedGoals"
+              :key="suggestion.id"
+              class="flex items-start gap-3 p-3 border border-dashed border-light-gray rounded-lg cursor-pointer hover:bg-savannah-100 hover:border-savannah-400 transition-all"
+              @click="handleSuggestedGoal(suggestion)"
+            >
+              <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-horizon-500">{{ suggestion.label }}</p>
+                <p v-if="suggestion.description" class="text-xs text-neutral-500 mt-0.5">{{ suggestion.description }}</p>
+              </div>
+              <svg class="w-4 h-4 text-neutral-500 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
+        <LifeTimelineCard
+          v-if="currentStage && isCardVisible('life-timeline')"
+          class="lg:col-span-3"
+          :horizontal="true"
+        />
+
+        <!-- Cross-Module Insights removed from dashboard -->
       </div>
     </div>
   </AppLayout>
@@ -784,13 +833,18 @@ import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
-import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
+// CrossModuleInsights removed from dashboard
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
+
+// Life stage journey components
+import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
+import GoalsCard from '@/components/Dashboard/GoalsCard.vue';
+import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 export default {
   name: 'Dashboard',
@@ -801,8 +855,10 @@ export default {
     GoalsProjectionChartDashboard,
     AreasToCompleteCard,
     ProfileCompletionCards,
-    CrossModuleInsights,
     EmptyDashboard,
+    JourneyProgressHero,
+    GoalsCard,
+    LifeTimelineCard,
   },
 
   mixins: [currencyMixin],
@@ -835,6 +891,11 @@ export default {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
     ...mapGetters('preview', ['effectivePersonaData']),
     ...mapGetters('plans', { getPlan: 'getPlan' }),
+    ...mapGetters('lifeStage', {
+      currentStage: 'currentStage',
+      stageDashboardCards: 'dashboardCards',
+      stageSuggestedGoals: 'suggestedGoals',
+    }),
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student';
@@ -851,6 +912,18 @@ export default {
 
     studentLiability() {
       if (!this.isStudentPersona) return null;
+      // Check estate store liabilities first (real user data)
+      const estateLiabilities = this.$store.state.estate?.liabilities || [];
+      const storeLoan = estateLiabilities.find(l => (l.liability_type || '').includes('student'));
+      if (storeLoan) {
+        return {
+          balance: parseFloat(storeLoan.current_balance || 0),
+          name: storeLoan.liability_name || 'Student Loan',
+          interestRate: parseFloat(storeLoan.interest_rate || 0),
+          notes: storeLoan.notes || '',
+        };
+      }
+      // Fallback: net worth overview liabilities
       const overview = this.netWorthOverview;
       const liabilities = overview?.liabilities || [];
       const loan = liabilities.find(l => (l.liability_type || '').includes('student'));
@@ -862,7 +935,7 @@ export default {
           notes: loan.notes || '',
         };
       }
-      // Fallback: use persona JSON data
+      // Fallback: persona JSON data
       const personaLiabilities = this.effectivePersonaData?.liabilities || [];
       const personaLoan = personaLiabilities.find(l => (l.liability_type || '').includes('student'));
       if (personaLoan) {
@@ -890,7 +963,7 @@ export default {
     },
 
     hasAnyFinancialData() {
-      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData;
+      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData || this.hasSavingsData || this.hasActualGoals;
     },
 
     // Check if the user is currently retired
@@ -1315,6 +1388,11 @@ export default {
       return true;
     },
 
+    hasActualGoals() {
+      const goals = this.$store.state.goals?.goals || [];
+      return goals.length > 0;
+    },
+
     // ISA Allowance computed — uses server-calculated tracking data
     // Lifetime ISA eligibility: under 40 and no main residence property
     lisaEligible() {
@@ -1537,6 +1615,27 @@ export default {
     ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
     ...mapActions('retirement', ['fetchRequiredCapital']),
 
+    /**
+     * Stage-curated card visibility.
+     * When a life stage is active, only cards listed in the stage's dashboard.cards
+     * config are shown. When no stage is set, all cards fall back to their original
+     * visibility logic (the existing v-if conditions handle that).
+     */
+    isCardVisible(cardId) {
+      // No stage set — fall back to showing all cards (existing behaviour)
+      if (!this.currentStage) return true;
+      // Stage is active — only show cards in the curated list
+      return this.stageDashboardCards.includes(cardId);
+    },
+
+    handleSuggestedGoal(goalData) {
+      // Navigate to goals page with the suggested goal pre-filled
+      this.$router.push({
+        path: '/goals',
+        query: { addGoal: 'true', suggested: goalData.id },
+      });
+    },
+
     // Format asset category names for display
     formatAssetCategory(category) {
       const categoryLabels = {
@@ -1654,6 +1753,8 @@ export default {
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
+        { name: 'goals', action: 'goals/fetchGoals' },
+        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
       ] : [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
@@ -1670,6 +1771,8 @@ export default {
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
+        { name: 'goals', action: 'goals/fetchGoals' },
+        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'estate' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'protection' },
         { name: 'plans', action: 'plans/fetchPlan', payload: 'savings' },
@@ -1753,6 +1856,8 @@ export default {
       handler(user) {
         if (user && !this.dataLoaded) {
           this.dataLoaded = true;
+          // Fetch life stage data (for stage-curated dashboard)
+          this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         }
       }

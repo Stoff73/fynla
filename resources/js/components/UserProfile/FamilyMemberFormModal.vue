@@ -1,13 +1,14 @@
 <template>
-  <div class="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <!-- Background overlay -->
-      <div class="fixed inset-0 bg-neutral-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+  <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
+  <div :class="context === 'onboarding' ? '' : 'fixed z-10 inset-0 overflow-y-auto'" :aria-labelledby="context === 'onboarding' ? undefined : 'modal-title'" :role="context === 'onboarding' ? undefined : 'dialog'" :aria-modal="context === 'onboarding' ? undefined : 'true'">
+    <div :class="context === 'onboarding' ? '' : 'flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0'">
+      <!-- Background overlay (modal only) -->
+      <div v-if="context !== 'onboarding'" class="fixed inset-0 bg-neutral-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
 
       <!-- Centre modal -->
-      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      <span v-if="context !== 'onboarding'" class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-      <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6 max-h-[90vh] overflow-y-auto">
+      <div :class="context === 'onboarding' ? '' : 'inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6 max-h-[90vh] overflow-y-auto'">
         <div>
           <div class="mb-4">
             <h3 class="text-h4 font-semibold text-horizon-500" id="modal-title">
@@ -223,16 +224,17 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+            <div :class="context === 'onboarding' ? 'mt-5 flex justify-end' : 'mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense'">
               <button
                 type="submit"
                 :disabled="submitting"
-                class="btn-primary w-full sm:col-start-2"
+                :class="context === 'onboarding' ? 'btn-primary' : 'btn-primary w-full sm:col-start-2'"
               >
                 <span v-if="!submitting">{{ isEditing ? 'Update' : 'Add' }} Family Member</span>
                 <span v-else>{{ isEditing ? 'Updating...' : 'Adding...' }}</span>
               </button>
               <button
+                v-if="context !== 'onboarding'"
                 type="button"
                 @click="$emit('close')"
                 :disabled="submitting"
@@ -258,6 +260,11 @@ export default {
     member: {
       type: Object,
       default: null,
+    },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
     },
   },
 

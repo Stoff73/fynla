@@ -49,7 +49,6 @@ class PreviewUserSeeder extends Seeder
     private const PERSONAS = [
         'young_family',
         'peak_earners',
-        'widow',
         'entrepreneur',
         'young_saver',
         'retired_couple',
@@ -103,6 +102,11 @@ class PreviewUserSeeder extends Seeder
 
         // Create primary user (pass expenditure data if available)
         $user = $this->createUser($data['user'], $personaId, $data['expenditure'] ?? null);
+
+        // Set life stage from persona JSON
+        if (! empty($data['life_stage'])) {
+            $user->update(['life_stage' => $data['life_stage']]);
+        }
 
         // Create spouse if exists and not deceased (pass expenditure data for household sharing)
         $spouse = null;

@@ -512,6 +512,10 @@ Additional fixes:
 
 ---
 
-## Flaky Test Note
+## Flaky Test Fix
 
-`Tests\Unit\Services\Estate\WillDocumentServiceTest > generateMirrorWill` fails intermittently in the full suite but passes consistently in isolation. This is a pre-existing test ordering issue (likely shared database state from a preceding test). Not introduced by this upgrade. Needs investigation separately.
+### ISSUE 8: WillDocumentServiceTest flaky mirror will test (fixed)
+**File:** `tests/Unit/Services/Estate/WillDocumentServiceTest.php`
+**Root cause:** `User::factory()` has `'middle_name' => fake()->optional(0.3)->firstName()` — 30% chance of generating a random middle name. The mirror will test created a spouse with `first_name: 'Emily', surname: 'Carter'` but did not set `middle_name: null`. So 30% of runs the spouse got a name like "Emily Sarah Carter" while the assertion expected "Emily Carter".
+**Fix:** Added `'middle_name' => null` to the spouse factory call at line 320.
+**Verified:** 5/5 isolated runs pass. Full suite no longer fails on this test.

@@ -64,6 +64,7 @@
 </template>
 
 <script>
+// DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';

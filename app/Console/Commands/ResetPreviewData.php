@@ -27,7 +27,7 @@ class ResetPreviewData extends Command
      *
      * @var string
      */
-    protected $signature = 'preview:reset {persona? : The persona ID to reset (young_family, peak_earners, widow, entrepreneur). If omitted, resets all.}';
+    protected $signature = 'preview:reset {persona? : The persona ID to reset (young_family, peak_earners, entrepreneur, young_saver, retired_couple, student). If omitted, resets all.}';
 
     /**
      * The console command description.
@@ -42,8 +42,10 @@ class ResetPreviewData extends Command
     private const VALID_PERSONAS = [
         'young_family',
         'peak_earners',
-        'widow',
         'entrepreneur',
+        'young_saver',
+        'retired_couple',
+        'student',
     ];
 
     /**

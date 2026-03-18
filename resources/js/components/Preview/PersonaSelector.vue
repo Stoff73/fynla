@@ -44,43 +44,64 @@
                     <p class="text-xs text-neutral-500 mt-0.5">Explore different life stages and situations</p>
                 </div>
 
-                <!-- Persona options -->
+                <!-- Persona options grouped by stage -->
                 <div class="p-2 max-h-96 overflow-y-auto">
-                    <button
-                        v-for="persona in availablePersonas"
-                        :key="persona.id"
-                        @click="selectPersona(persona)"
-                        class="w-full p-3 rounded-lg text-left transition-colors mb-1 last:mb-0"
-                        :class="personaButtonClasses(persona)"
+                    <div
+                        v-for="group in personasByStage"
+                        :key="group.stageId"
+                        class="mb-3 last:mb-0"
                     >
-                        <div class="flex items-start gap-3">
-                            <!-- Avatar/Icon based on persona -->
-                            <div
-                                class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                                :class="avatarClasses(persona)"
+                        <!-- Stage group header -->
+                        <div class="flex items-center gap-2 px-3 py-1.5 mb-1">
+                            <span
+                                class="text-xs font-bold uppercase tracking-wide"
+                                :class="stageHeaderColourClass(group.stageColour)"
                             >
-                                <span class="text-lg">{{ getPersonaEmoji(persona.id) }}</span>
-                            </div>
-
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-medium text-horizon-500">{{ persona.name }}</span>
-                                    <span
-                                        v-if="persona.id === basePersonaId"
-                                        class="text-xs bg-raspberry-100 text-raspberry-700 px-1.5 py-0.5 rounded"
-                                    >
-                                        Current
-                                    </span>
-                                </div>
-                                <p class="text-sm text-neutral-500 mt-0.5">{{ persona.tagline }}</p>
-                                <div class="flex items-center gap-3 mt-1 text-xs text-horizon-400">
-                                    <span>{{ persona.netWorthRange }}</span>
-                                    <span class="text-horizon-300">|</span>
-                                    <span>{{ persona.focus }}</span>
-                                </div>
-                            </div>
+                                {{ group.stageLabel }}
+                            </span>
+                            <span class="text-[10px] font-medium" :class="stageHeaderColourClass(group.stageColour)">
+                                Ages {{ group.ageRange }}
+                            </span>
+                            <div class="flex-1 h-px ml-1" :class="stageDividerClass(group.stageColour)"></div>
                         </div>
-                    </button>
+
+                        <!-- Persona cards within this stage -->
+                        <button
+                            v-for="persona in group.personas"
+                            :key="persona.id"
+                            @click="selectPersona(persona)"
+                            class="w-full p-3 rounded-lg text-left transition-colors mb-1 last:mb-0"
+                            :class="personaButtonClasses(persona)"
+                        >
+                            <div class="flex items-start gap-3">
+                                <!-- Avatar/Icon based on persona -->
+                                <div
+                                    class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                    :class="avatarClasses(persona)"
+                                >
+                                    <span class="text-lg">{{ getPersonaEmoji(persona.id) }}</span>
+                                </div>
+
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-horizon-500">{{ persona.name }}</span>
+                                        <span
+                                            v-if="persona.id === basePersonaId"
+                                            class="text-xs bg-raspberry-100 text-raspberry-700 px-1.5 py-0.5 rounded"
+                                        >
+                                            Current
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-neutral-500 mt-0.5">{{ persona.tagline }}</p>
+                                    <div class="flex items-center gap-3 mt-1 text-xs text-horizon-400">
+                                        <span>{{ persona.netWorthRange }}</span>
+                                        <span class="text-horizon-300">|</span>
+                                        <span>{{ persona.focus }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Footer with edit indicator -->
@@ -138,6 +159,7 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
+import { LIFE_STAGES, STAGE_ORDER, PERSONA_TO_STAGE } from '@/constants/lifeStageConfig';
 
 export default {
     name: 'PersonaSelector',
@@ -173,6 +195,56 @@ export default {
         ]),
 
         /**
+         * Group available personas by their life stage.
+         * Returns an array of { stageId, stageLabel, stageColour, ageRange, personas: [] }
+         */
+        personasByStage() {
+            const groups = [];
+            const personaMap = {};
+            const unmapped = [];
+
+            // Build a map of stageId -> personas
+            this.availablePersonas.forEach(persona => {
+                const stageId = PERSONA_TO_STAGE[persona.id];
+                if (!stageId) {
+                    unmapped.push(persona);
+                    return;
+                }
+                if (!personaMap[stageId]) {
+                    personaMap[stageId] = [];
+                }
+                personaMap[stageId].push(persona);
+            });
+
+            // Build ordered groups
+            STAGE_ORDER.forEach(stageId => {
+                if (personaMap[stageId] && personaMap[stageId].length > 0) {
+                    const stageConfig = LIFE_STAGES[stageId];
+                    groups.push({
+                        stageId,
+                        stageLabel: stageConfig.label,
+                        stageColour: stageConfig.colour,
+                        ageRange: stageConfig.ageRange,
+                        personas: personaMap[stageId],
+                    });
+                }
+            });
+
+            // Include any personas without a stage mapping at the end
+            if (unmapped.length > 0) {
+                groups.push({
+                    stageId: 'other',
+                    stageLabel: 'Other',
+                    stageColour: 'neutral',
+                    ageRange: '',
+                    personas: unmapped,
+                });
+            }
+
+            return groups;
+        },
+
+        /**
          * Get the base persona for display (handles spouse view)
          * When viewing as spouse, we still want to show the family name
          */
@@ -191,9 +263,8 @@ export default {
                 // Use persona-specific darker shade for the selector button
                 // Use basePersonaId to maintain consistent color when viewing as spouse
                 const darkColors = {
-                    young_family: 'bg-raspberry-600 hover:bg-raspberry-700 text-white',
-                    peak_earners: 'bg-spring-700 hover:bg-spring-800 text-white',
-                    widow: 'bg-purple-600 hover:bg-purple-700 text-white',
+                    young_family: 'bg-blue-600 hover:bg-blue-700 text-white',
+                    peak_earners: 'bg-green-600 hover:bg-green-700 text-white',
                     entrepreneur: 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white',
                     young_saver: 'bg-cyan-600 hover:bg-cyan-700 text-white',
                     student: 'bg-teal-600 hover:bg-teal-700 text-white',
@@ -289,6 +360,30 @@ export default {
                 retired_couple: '👴👵',
             };
             return emojis[personaId] || '👤';
+        },
+
+        stageHeaderColourClass(colour) {
+            const map = {
+                violet: 'text-violet-500',
+                spring: 'text-spring-600',
+                raspberry: 'text-raspberry-500',
+                'light-blue': 'text-light-blue-500',
+                horizon: 'text-horizon-500',
+                neutral: 'text-neutral-500',
+            };
+            return map[colour] || 'text-neutral-500';
+        },
+
+        stageDividerClass(colour) {
+            const map = {
+                violet: 'bg-violet-200',
+                spring: 'bg-spring-200',
+                raspberry: 'bg-raspberry-200',
+                'light-blue': 'bg-light-blue-100',
+                horizon: 'bg-horizon-200',
+                neutral: 'bg-light-gray',
+            };
+            return map[colour] || 'bg-light-gray';
         },
 
         handleClickOutside(event) {

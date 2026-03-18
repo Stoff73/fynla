@@ -1271,6 +1271,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
   },
 
   emits: ['save', 'cancel'],

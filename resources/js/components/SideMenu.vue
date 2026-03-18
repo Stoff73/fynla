@@ -28,9 +28,44 @@
       <!-- Logo -->
       <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
-          <img v-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
+          <!-- Collapsed: progress ring around favicon (when stage is set) -->
+          <div v-if="effectiveCollapsed && currentStage" class="relative" :title="`Journey: ${progressPercentage}% complete`">
+            <svg viewBox="0 0 40 40" class="w-10 h-10 -rotate-90">
+              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3" class="stroke-light-gray" />
+              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3"
+                :class="progressRingColourClass"
+                :stroke-dasharray="106.8"
+                :stroke-dashoffset="106.8 - (106.8 * progressPercentage / 100)"
+                stroke-linecap="round" />
+            </svg>
+            <img :src="faviconUrl" alt="Fynla" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5" />
+          </div>
+          <!-- Collapsed: no stage, just favicon -->
+          <img v-else-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
+          <!-- Expanded: full logo -->
           <img v-else :src="logoUrl" alt="Fynla" class="h-20 w-auto mt-3" />
         </router-link>
+      </div>
+
+      <!-- Stage badge & progress bar (expanded, when stage is set) -->
+      <div v-if="!effectiveCollapsed && currentStage" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
+        <div class="text-xs font-semibold" :class="stageLabelColourClass">
+          {{ stageLabel }} &middot; Ages {{ stageAgeRange }}
+        </div>
+        <div class="mt-2">
+          <div class="flex justify-between text-xs mb-1">
+            <span class="text-neutral-500">Journey Progress</span>
+            <span :class="stageLabelColourClass" class="font-bold">{{ progressPercentage }}%</span>
+          </div>
+          <div class="h-1 bg-light-gray rounded-full overflow-hidden">
+            <div class="h-1 rounded-full transition-all duration-500" :class="progressBarColourClass" :style="{ width: progressPercentage + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsed: tiny progress percentage below ring -->
+      <div v-if="effectiveCollapsed && currentStage" class="text-center flex-shrink-0 -mt-1 mb-1">
+        <span class="text-[9px] font-bold" :class="stageLabelColourClass">{{ progressPercentage }}%</span>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
@@ -46,62 +81,68 @@
 
       <!-- Navigation items -->
       <div class="flex-1 overflow-y-auto py-2 scrollbar-hide">
+
         <!-- Dashboard & Net Worth (no section heading) -->
         <div class="mb-1">
           <div class="flex flex-col pt-1">
-            <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" @navigate="closeMobile" />
-            <SideMenuItem icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" @navigate="closeMobile" />
+            <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+            <SideMenuItem v-if="isStageItemVisible('net-worth')" icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           </div>
           <div v-if="effectiveCollapsed" class="mx-3 my-2 border-t border-light-gray"></div>
         </div>
 
         <!-- Cash Management -->
-        <SideMenuSection label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
-          <SideMenuItem icon="banknotes" label="Bank Accounts" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" @navigate="closeMobile" />
-          <SideMenuItem icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" @navigate="closeMobile" />
-          <SideMenuItem icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" @navigate="closeMobile" />
+        <SideMenuSection v-if="isSectionVisible(['bank-accounts', 'income', 'expenditure', 'savings'])" label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
+          <SideMenuItem v-if="isStageItemVisible('bank-accounts')" icon="banknotes" label="Bank Accounts" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('income')" icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('expenditure')" icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('savings')" icon="banknotes" label="Savings" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Finances -->
-        <SideMenuSection label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
-          <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" @navigate="closeMobile" />
-          <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" @navigate="closeMobile" />
-          <SideMenuItem icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" @navigate="closeMobile" />
-          <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" @navigate="closeMobile" />
-          <SideMenuItem icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" @navigate="closeMobile" />
-          <SideMenuItem icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" @navigate="closeMobile" />
+        <SideMenuSection v-if="isSectionVisible(['investments', 'retirement', 'property', 'chattels', 'risk-profile', 'business'])" label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
+          <SideMenuItem v-if="isStageItemVisible('investments')" icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('retirement')" icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('property')" icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('chattels')" icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('risk-profile')" icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('business')" icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Family (has spouse) / Admin (no spouse) -->
-        <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
-          <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" @navigate="closeMobile" />
-          <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" @navigate="closeMobile" />
-          <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
-          <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" @navigate="closeMobile" />
-          <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
-          <SideMenuItem icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" @navigate="closeMobile" />
+        <SideMenuSection v-if="isSectionVisible(['protection', 'will', 'letter', 'trusts', 'estate', 'power-of-attorney'])" :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
+          <SideMenuItem v-if="isStageItemVisible('protection')" icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('will')" icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('letter')" icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('trusts')" icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('estate')" icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('power-of-attorney')" icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Planning -->
-        <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
-          <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" @navigate="closeMobile" />
-          <SideMenuItem icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" @navigate="closeMobile" />
-          <SideMenuItem icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" @navigate="closeMobile" />
-          <SideMenuItem icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" @navigate="closeMobile" />
-          <SideMenuItem icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" @navigate="closeMobile" />
-          <SideMenuItem icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" @navigate="closeMobile" />
-          <SideMenuItem icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" @navigate="closeMobile" />
+        <SideMenuSection v-if="isSectionVisible(['holistic-plan', 'plans', 'journeys', 'what-if', 'goals', 'life-events', 'actions'])" label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
+          <SideMenuItem v-if="isStageItemVisible('holistic-plan')" icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('plans')" icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('journeys')" icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('what-if')" icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('goals')" icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('life-events')" icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('actions')" icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
+
+        <!-- ============================================================ -->
+        <!-- BOTTOM SECTIONS (always shown, regardless of stage) -->
+        <!-- ============================================================ -->
 
         <!-- Account -->
         <SideMenuSection label="Account" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('account')" @toggle="toggleSection('account')">
-          <SideMenuItem icon="user" label="User Profile" to="/profile" :collapsed="effectiveCollapsed" :active="isActive('/profile')" @navigate="closeMobile" />
-          <SideMenuItem icon="cog" label="Settings" to="/settings" :collapsed="effectiveCollapsed" :active="isActive('/settings')" @navigate="closeMobile" />
+          <SideMenuItem icon="user" label="User Profile" to="/profile" :collapsed="effectiveCollapsed" :active="isActive('/profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem icon="cog" label="Settings" to="/settings" :collapsed="effectiveCollapsed" :active="isActive('/settings')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
         <!-- Support -->
         <SideMenuSection label="Support" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('support')" @toggle="toggleSection('support')">
-          <SideMenuItem icon="question-mark-circle" label="Help" to="/help" :collapsed="effectiveCollapsed" :active="isActive('/help')" @navigate="closeMobile" />
+          <SideMenuItem icon="question-mark-circle" label="Help" to="/help" :collapsed="effectiveCollapsed" :active="isActive('/help')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem
             icon="chat-bubble"
             label="Feedback"
@@ -148,9 +189,32 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
+import SideMenuIcon from './SideMenuIcon.vue';
 import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
+
+// Map sidebar item IDs (from lifeStageConfig) to route paths, icons, and labels.
+// Icon names must match SideMenuIcon.vue template names exactly.
+const SIDEBAR_ITEMS = {
+  'dashboard':     { icon: 'home',            label: 'Dashboard',          to: '/dashboard' },
+  'bank-accounts': { icon: 'banknotes',       label: 'Bank Accounts',      to: '/net-worth/cash' },
+  'income':        { icon: 'currency-pound',   label: 'Income',             to: { path: '/valuable-info', query: { section: 'income' } } },
+  'expenditure':   { icon: 'arrow-up-tray',    label: 'Expenditure',        to: { path: '/valuable-info', query: { section: 'expenditure' } } },
+  'savings':       { icon: 'banknotes',        label: 'Savings',            to: '/net-worth/cash' },
+  'investments':   { icon: 'trending-up',      label: 'Investments',        to: '/net-worth/investments' },
+  'retirement':    { icon: 'clock',            label: 'Retirement',         to: '/net-worth/retirement' },
+  'property':      { icon: 'home-modern',      label: 'Property',           to: '/net-worth/property' },
+  'protection':    { icon: 'shield-check',     label: 'Protection',         to: '/protection' },
+  'will':          { icon: 'document-check',   label: 'Will',               to: '/estate/will-builder' },
+  'estate':        { icon: 'document-text',    label: 'Estate Planning',    to: '/estate' },
+  'goals':         { icon: 'flag',             label: 'Goals',              to: '/goals' },
+  'risk-profile':  { icon: 'chart-pie',        label: 'Risk Profile',       to: '/risk-profile' },
+  'plans':         { icon: 'clipboard-list',   label: 'Plans',              to: '/plans' },
+  'business':      { icon: 'briefcase',        label: 'Business',           to: '/net-worth/business' },
+  'trusts':        { icon: 'building-library', label: 'Trusts',             to: '/trusts' },
+  'chattels':      { icon: 'cube',             label: 'Personal Valuables', to: '/net-worth/chattels' },
+};
 
 export default {
   name: 'SideMenu',
@@ -158,6 +222,7 @@ export default {
   components: {
     SideMenuItem,
     SideMenuSection,
+    SideMenuIcon,
     BugReportModal,
   },
 
@@ -182,6 +247,8 @@ export default {
     const logoUrl = '/images/logos/LogoHiResFynlaDark.png';
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
+    const exploreExpanded = ref(false);
+    const exploreFlyoutOpen = ref(false);
 
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
@@ -192,6 +259,75 @@ export default {
       return store.getters['spousePermission/hasSpouse'];
     });
 
+    // ---------------------------------------------------------------
+    // Life stage getters
+    // ---------------------------------------------------------------
+    const currentStage = computed(() => store.getters['lifeStage/currentStage']);
+    const stageLabel = computed(() => store.getters['lifeStage/stageLabel']);
+    const stageColour = computed(() => store.getters['lifeStage/stageColour']);
+    const stageConfig = computed(() => store.getters['lifeStage/stageConfig']);
+    const stageAgeRange = computed(() => stageConfig.value?.ageRange || '');
+    const progressPercentage = computed(() => store.getters['lifeStage/progressPercentage']);
+
+    // Colour class mappings — Tailwind JIT needs full class names
+    const COLOUR_CLASSES = {
+      text: {
+        'violet': 'text-violet-500',
+        'spring': 'text-spring-500',
+        'raspberry': 'text-raspberry-500',
+        'light-blue': 'text-light-blue-500',
+        'horizon': 'text-horizon-500',
+      },
+      bg: {
+        'violet': 'bg-violet-500',
+        'spring': 'bg-spring-500',
+        'raspberry': 'bg-raspberry-500',
+        'light-blue': 'bg-light-blue-500',
+        'horizon': 'bg-horizon-500',
+      },
+      stroke: {
+        'violet': 'stroke-violet-500',
+        'spring': 'stroke-spring-500',
+        'raspberry': 'stroke-raspberry-500',
+        'light-blue': 'stroke-light-blue-500',
+        'horizon': 'stroke-horizon-500',
+      },
+      activeFlyout: {
+        'violet': 'bg-violet-50 text-violet-700',
+        'spring': 'bg-spring-50 text-spring-700',
+        'raspberry': 'bg-raspberry-50 text-raspberry-700',
+        'light-blue': 'bg-light-blue-100 text-horizon-700',
+        'horizon': 'bg-horizon-100 text-horizon-700',
+      },
+    };
+
+    const stageLabelColourClass = computed(() => COLOUR_CLASSES.text[stageColour.value] || 'text-horizon-500');
+    const progressBarColourClass = computed(() => COLOUR_CLASSES.bg[stageColour.value] || 'bg-horizon-500');
+    const progressRingColourClass = computed(() => COLOUR_CLASSES.stroke[stageColour.value] || 'stroke-horizon-500');
+    const activeFlyoutItemClass = computed(() => COLOUR_CLASSES.activeFlyout[stageColour.value] || 'bg-raspberry-50 text-raspberry-700');
+
+    // ---------------------------------------------------------------
+    // Stage-driven sidebar items
+    // ---------------------------------------------------------------
+    const resolveItem = (id) => {
+      const config = SIDEBAR_ITEMS[id];
+      if (!config) return null;
+      return { id, ...config };
+    };
+
+    const primaryItems = computed(() => {
+      const ids = store.getters['lifeStage/effectiveSidebarPrimary'] || [];
+      return ids.map(resolveItem).filter(Boolean);
+    });
+
+    const exploreItems = computed(() => {
+      const ids = store.getters['lifeStage/effectiveSidebarExplore'] || [];
+      return ids.map(resolveItem).filter(Boolean);
+    });
+
+    // ---------------------------------------------------------------
+    // Active state detection (used by both legacy and stage layouts)
+    // ---------------------------------------------------------------
     // On mobile overlay, always show expanded (not collapsed)
     const effectiveCollapsed = computed(() => {
       if (props.mobileOpen) return false;
@@ -203,7 +339,6 @@ export default {
       return props.collapsed ? 'w-16' : 'w-56';
     });
 
-    // Active state detection
     const currentPath = computed(() => route.path);
 
     const isExactActive = (path) => currentPath.value === path;
@@ -270,7 +405,57 @@ export default {
       return currentPath.value.startsWith('/goals') && route.query.tab === 'events';
     });
 
+    // Active state for stage-driven sidebar items (maps item ID to route check)
+    const isItemActive = (itemId) => {
+      switch (itemId) {
+        case 'dashboard':     return isExactActive('/dashboard');
+        case 'bank-accounts': return isActive('/net-worth/cash');
+        case 'savings':       return isActive('/net-worth/cash');
+        case 'income':        return isValuableInfoSection('income');
+        case 'expenditure':   return isValuableInfoSection('expenditure');
+        case 'investments':   return isInvestmentsActive.value;
+        case 'retirement':    return isActive('/net-worth/retirement');
+        case 'property':      return isActive('/net-worth/property');
+        case 'protection':    return isActive('/protection');
+        case 'will':          return isWillBuilderActive.value;
+        case 'estate':        return isEstateActive.value;
+        case 'goals':         return isGoalsOverviewActive.value;
+        case 'risk-profile':  return isActive('/risk-profile');
+        case 'plans':         return isActive('/plans');
+        case 'business':      return isActive('/net-worth/business');
+        case 'trusts':        return isActive('/trusts');
+        case 'chattels':      return isActive('/net-worth/chattels');
+        default:              return false;
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Stage-driven visibility: when a stage is set, only show items
+    // that are in the primary or explore lists. When no stage, show all.
+    // ---------------------------------------------------------------
+    const allStageItems = computed(() => {
+      if (!currentStage.value) return null; // null = show everything
+      const primary = store.getters['lifeStage/effectiveSidebarPrimary'] || [];
+      const explore = store.getters['lifeStage/effectiveSidebarExplore'] || [];
+      return new Set([...primary, ...explore]);
+    });
+
+    const isStageItemVisible = (itemId) => {
+      // No stage set = show everything (legacy mode)
+      if (!allStageItems.value) return true;
+      // Only show items that are in the stage's primary or explore list
+      return allStageItems.value.has(itemId);
+    };
+
+    // Section visibility — hide entire section heading when no items are visible
+    const isSectionVisible = (sectionItemIds) => {
+      if (!allStageItems.value) return true; // no stage = show all sections
+      return sectionItemIds.some(id => allStageItems.value.has(id));
+    };
+
+    // ---------------------------------------------------------------
     // Section expand/collapse state
+    // ---------------------------------------------------------------
     const STORAGE_KEY = 'sideMenuExpandedSections';
     const expandedSections = ref({});
 
@@ -347,10 +532,12 @@ export default {
 
     // Auto-expand section when route changes
     watch(() => route.fullPath, () => {
-      const activeKey = activeSectionKey.value;
-      if (activeKey && !expandedSections.value[activeKey]) {
-        expandedSections.value = { ...expandedSections.value, [activeKey]: true };
-        saveExpandedState();
+      {
+        const activeKey = activeSectionKey.value;
+        if (activeKey && !expandedSections.value[activeKey]) {
+          expandedSections.value = { ...expandedSections.value, [activeKey]: true };
+          saveExpandedState();
+        }
       }
     });
 
@@ -388,14 +575,18 @@ export default {
       }
     };
 
+    // No complex flyout — explore items toggle inline in collapsed mode
+
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
       // Auto-expand the section containing the active route on initial load
-      const activeKey = activeSectionKey.value;
-      if (activeKey && !expandedSections.value[activeKey]) {
-        expandedSections.value = { ...expandedSections.value, [activeKey]: true };
-        saveExpandedState();
+      {
+        const activeKey = activeSectionKey.value;
+        if (activeKey && !expandedSections.value[activeKey]) {
+          expandedSections.value = { ...expandedSections.value, [activeKey]: true };
+          saveExpandedState();
+        }
       }
     });
 
@@ -412,6 +603,26 @@ export default {
       menuWidthClass,
       showBugReportModal,
       currentPath,
+
+      // Life stage
+      currentStage,
+      stageLabel,
+      stageColour,
+      stageAgeRange,
+      progressPercentage,
+      stageLabelColourClass,
+      progressBarColourClass,
+      progressRingColourClass,
+      activeFlyoutItemClass,
+      primaryItems,
+      exploreItems,
+      exploreExpanded,
+      exploreFlyoutOpen,
+      isItemActive,
+      isStageItemVisible,
+      isSectionVisible,
+
+      // Active state
       isExactActive,
       isActive,
       isNetWorthActive,
@@ -422,6 +633,8 @@ export default {
       isGoalsOverviewActive,
       isGoalsEventsActive,
       isValuableInfoSection,
+
+      // Section state
       toggleSection,
       isSectionExpanded,
       toggleCollapsed,
@@ -432,4 +645,3 @@ export default {
   },
 };
 </script>
-

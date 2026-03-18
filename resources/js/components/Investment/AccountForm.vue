@@ -1,18 +1,20 @@
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-      <!-- Background overlay -->
-      <div class="fixed inset-0 transition-opacity bg-horizon-500 bg-opacity-75"></div>
+  <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
+  <div v-if="context === 'onboarding' || show" :class="context === 'onboarding' ? '' : 'fixed inset-0 z-50 overflow-y-auto'">
+    <div :class="context === 'onboarding' ? '' : 'flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0'">
+      <!-- Background overlay (modal only) -->
+      <div v-if="context !== 'onboarding'" class="fixed inset-0 transition-opacity bg-horizon-500 bg-opacity-75"></div>
 
-      <!-- Modal panel -->
-      <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
+      <!-- Modal panel / inline container -->
+      <div :class="context === 'onboarding' ? '' : 'inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto'">
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-light-gray">
+        <div :class="context === 'onboarding' ? 'mb-4' : 'bg-white px-6 py-4 border-b border-light-gray'">
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold text-horizon-500">
               {{ isEditMode ? 'Edit Investment Account' : 'Add New Investment Account' }}
             </h3>
             <button
+              v-if="context !== 'onboarding'"
               @click="closeModal"
               class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
@@ -109,8 +111,9 @@
           </div>
 
           <!-- Footer -->
-          <div class="bg-eggshell-500 px-6 py-4 flex justify-end gap-3">
+          <div :class="context === 'onboarding' ? 'mt-6 flex justify-end gap-3' : 'bg-eggshell-500 px-6 py-4 flex justify-end gap-3'">
             <button
+              v-if="context !== 'onboarding'"
               type="button"
               @click="closeModal"
               class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
@@ -154,7 +157,7 @@ export default {
   props: {
     show: {
       type: Boolean,
-      required: true,
+      default: true,
     },
     account: {
       type: Object,
@@ -163,6 +166,11 @@ export default {
     isOnboarding: {
       type: Boolean,
       default: false,
+    },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
     },
   },
 
@@ -714,6 +722,13 @@ export default {
     'formData.platform_fee_percent'() {
       this.feePercentageWarning = false;
     },
+  },
+
+  async mounted() {
+    // In onboarding context, load risk profile immediately (no show watcher to trigger it)
+    if (this.context === 'onboarding') {
+      await this.loadRiskProfile();
+    }
   },
 
   methods: {

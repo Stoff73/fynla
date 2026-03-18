@@ -46,7 +46,7 @@
                                 </div>
                             </div>
 
-                            <!-- Persona Grid -->
+                            <!-- Persona Grid grouped by Stage -->
                             <div class="p-6">
                                 <!-- Error Banner -->
                                 <div v-if="error" class="mb-4 rounded-lg bg-raspberry-50 border border-raspberry-200 px-4 py-3 flex items-start gap-3">
@@ -56,66 +56,87 @@
                                     <p class="text-sm text-raspberry-700">{{ error }}</p>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button
-                                        v-for="persona in personas"
-                                        :key="persona.id"
-                                        @click="selectPersona(persona)"
-                                        :disabled="loadingPersonaId !== null"
-                                        class="group relative text-left rounded-xl border-2 overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
-                                        :class="[
-                                            loadingPersonaId === persona.id
-                                                ? 'border-raspberry-500 ring-2 ring-raspberry-500'
-                                                : 'border-light-gray hover:border-horizon-300 hover:shadow-lg hover:-translate-y-0.5',
-                                            loadingPersonaId !== null && loadingPersonaId !== persona.id
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : ''
-                                        ]"
-                                    >
-                                        <!-- Card Header with Gradient -->
-                                        <div :class="getHeaderClasses(persona.id)" class="px-4 py-4">
-                                            <div class="flex items-center gap-3">
-                                                <!-- Avatar -->
-                                                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <span v-if="loadingPersonaId === persona.id" class="animate-spin">
-                                                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
+                                <div
+                                    v-for="group in personasByStage"
+                                    :key="group.stageId"
+                                    class="mb-5 last:mb-0"
+                                >
+                                    <!-- Stage group header -->
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <span
+                                            class="text-sm font-bold"
+                                            :class="getStageHeaderColour(group.stageColour)"
+                                        >
+                                            {{ group.stageLabel }}
+                                        </span>
+                                        <span class="text-xs font-medium" :class="getStageHeaderColour(group.stageColour)">
+                                            Ages {{ group.ageRange }}
+                                        </span>
+                                        <div class="flex-1 h-px" :class="getStageDividerColour(group.stageColour)"></div>
+                                    </div>
+
+                                    <!-- Persona cards for this stage -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            v-for="persona in group.personas"
+                                            :key="persona.id"
+                                            @click="selectPersona(persona)"
+                                            :disabled="loadingPersonaId !== null"
+                                            class="group relative text-left rounded-xl border-2 overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                                            :class="[
+                                                loadingPersonaId === persona.id
+                                                    ? 'border-raspberry-500 ring-2 ring-raspberry-500'
+                                                    : 'border-light-gray hover:border-horizon-300 hover:shadow-lg hover:-translate-y-0.5',
+                                                loadingPersonaId !== null && loadingPersonaId !== persona.id
+                                                    ? 'opacity-50 cursor-not-allowed'
+                                                    : ''
+                                            ]"
+                                        >
+                                            <!-- Card Header with Gradient -->
+                                            <div :class="getHeaderClasses(persona.id)" class="px-4 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <!-- Avatar -->
+                                                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <span v-if="loadingPersonaId === persona.id" class="animate-spin">
+                                                            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24">
+                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                        </span>
+                                                        <span v-else class="text-2xl">{{ getPersonaEmoji(persona.id) }}</span>
+                                                    </div>
+                                                    <!-- Name & Tagline -->
+                                                    <div class="min-w-0">
+                                                        <h3 class="font-bold text-white text-lg leading-tight">{{ persona.name }}</h3>
+                                                        <p class="text-white/80 text-sm">{{ persona.tagline }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Card Content -->
+                                            <div class="px-4 py-3 bg-white">
+                                                <!-- Description -->
+                                                <p class="text-neutral-500 text-sm mb-3 line-clamp-2">{{ persona.description }}</p>
+
+                                                <!-- Stats -->
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md bg-savannah-100 text-xs font-medium text-neutral-500">
+                                                        {{ persona.netWorthRange }}
                                                     </span>
-                                                    <span v-else class="text-2xl">{{ getPersonaEmoji(persona.id) }}</span>
-                                                </div>
-                                                <!-- Name & Tagline -->
-                                                <div class="min-w-0">
-                                                    <h3 class="font-bold text-white text-lg leading-tight">{{ persona.name }}</h3>
-                                                    <p class="text-white/80 text-sm">{{ persona.tagline }}</p>
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium" :class="getFocusBadgeClasses(persona.id)">
+                                                        {{ persona.focus }}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Card Content -->
-                                        <div class="px-4 py-3 bg-white">
-                                            <!-- Description -->
-                                            <p class="text-neutral-500 text-sm mb-3 line-clamp-2">{{ persona.description }}</p>
-
-                                            <!-- Stats -->
-                                            <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-savannah-100 text-xs font-medium text-neutral-500">
-                                                    {{ persona.netWorthRange }}
-                                                </span>
-                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium" :class="getFocusBadgeClasses(persona.id)">
-                                                    {{ persona.focus }}
-                                                </span>
+                                            <!-- Hover Arrow -->
+                                            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity" :class="{ 'opacity-100': loadingPersonaId === persona.id }">
+                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                </svg>
                                             </div>
-                                        </div>
-
-                                        <!-- Hover Arrow -->
-                                        <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity" :class="{ 'opacity-100': loadingPersonaId === persona.id }">
-                                            <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
-                                        </div>
-                                    </button>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Footer hint -->
@@ -151,6 +172,8 @@
 </template>
 
 <script>
+import { LIFE_STAGES, STAGE_ORDER, PERSONA_TO_STAGE } from '@/constants/lifeStageConfig';
+
 export default {
     name: 'PersonaSelectionModal',
 
@@ -175,6 +198,55 @@ export default {
         return {
             loadingPersonaId: null,
         };
+    },
+
+    computed: {
+        /**
+         * Group personas by their life stage for display.
+         * Returns an array of { stageId, stageLabel, stageColour, ageRange, personas: [] }
+         */
+        personasByStage() {
+            const groups = [];
+            const personaMap = {};
+
+            // Build a map of stageId -> personas
+            (this.personas || []).forEach(persona => {
+                const stageId = PERSONA_TO_STAGE[persona.id];
+                if (!stageId) return;
+                if (!personaMap[stageId]) {
+                    personaMap[stageId] = [];
+                }
+                personaMap[stageId].push(persona);
+            });
+
+            // Build ordered groups
+            STAGE_ORDER.forEach(stageId => {
+                if (personaMap[stageId] && personaMap[stageId].length > 0) {
+                    const stageConfig = LIFE_STAGES[stageId];
+                    groups.push({
+                        stageId,
+                        stageLabel: stageConfig.label,
+                        stageColour: stageConfig.colour,
+                        ageRange: stageConfig.ageRange,
+                        personas: personaMap[stageId],
+                    });
+                }
+            });
+
+            // Include any personas without a stage mapping at the end
+            const unmapped = (this.personas || []).filter(p => !PERSONA_TO_STAGE[p.id]);
+            if (unmapped.length > 0) {
+                groups.push({
+                    stageId: 'other',
+                    stageLabel: 'Other Scenarios',
+                    stageColour: 'neutral',
+                    ageRange: '',
+                    personas: unmapped,
+                });
+            }
+
+            return groups;
+        },
     },
 
     watch: {
@@ -206,33 +278,61 @@ export default {
                 widow: '👵',
                 entrepreneur: '🚀',
                 young_saver: '🎓',
+                student: '📚',
                 retired_couple: '👴👵',
             };
             return emojis[personaId] || '👤';
         },
 
         getHeaderClasses(personaId) {
+            // Map persona IDs to stage colours for the card header gradient
+            const stageId = PERSONA_TO_STAGE[personaId];
+            const colour = stageId ? LIFE_STAGES[stageId]?.colour : null;
             const gradients = {
-                young_family: 'bg-gradient-to-br from-blue-500 to-blue-700',
-                peak_earners: 'bg-gradient-to-br from-green-500 to-green-700',
-                widow: 'bg-gradient-to-br from-purple-500 to-purple-700',
-                entrepreneur: 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-700',
-                young_saver: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
-                retired_couple: 'bg-gradient-to-br from-rose-500 to-rose-700',
+                violet: 'bg-gradient-to-br from-violet-400 to-violet-600',
+                spring: 'bg-gradient-to-br from-spring-400 to-spring-600',
+                raspberry: 'bg-gradient-to-br from-raspberry-400 to-raspberry-600',
+                'light-blue': 'bg-gradient-to-br from-light-blue-500 to-horizon-400',
+                horizon: 'bg-gradient-to-br from-horizon-400 to-horizon-600',
             };
-            return gradients[personaId] || 'bg-gradient-to-br from-raspberry-500 to-raspberry-700';
+            return gradients[colour] || 'bg-gradient-to-br from-raspberry-500 to-raspberry-700';
         },
 
         getFocusBadgeClasses(personaId) {
+            const stageId = PERSONA_TO_STAGE[personaId];
+            const colour = stageId ? LIFE_STAGES[stageId]?.colour : null;
             const classes = {
-                young_family: 'bg-violet-100 text-violet-700',
-                peak_earners: 'bg-spring-100 text-spring-700',
-                widow: 'bg-purple-100 text-purple-700',
-                entrepreneur: 'bg-fuchsia-100 text-fuchsia-700',
-                young_saver: 'bg-cyan-100 text-cyan-700',
-                retired_couple: 'bg-rose-100 text-rose-700',
+                violet: 'bg-violet-100 text-violet-700',
+                spring: 'bg-spring-100 text-spring-700',
+                raspberry: 'bg-raspberry-100 text-raspberry-700',
+                'light-blue': 'bg-light-blue-100 text-light-blue-500',
+                horizon: 'bg-horizon-100 text-horizon-500',
             };
-            return classes[personaId] || 'bg-savannah-100 text-neutral-500';
+            return classes[colour] || 'bg-savannah-100 text-neutral-500';
+        },
+
+        getStageHeaderColour(colour) {
+            const map = {
+                violet: 'text-violet-500',
+                spring: 'text-spring-600',
+                raspberry: 'text-raspberry-500',
+                'light-blue': 'text-light-blue-500',
+                horizon: 'text-horizon-500',
+                neutral: 'text-neutral-500',
+            };
+            return map[colour] || 'text-neutral-500';
+        },
+
+        getStageDividerColour(colour) {
+            const map = {
+                violet: 'bg-violet-200',
+                spring: 'bg-spring-200',
+                raspberry: 'bg-raspberry-200',
+                'light-blue': 'bg-light-blue-100',
+                horizon: 'bg-horizon-200',
+                neutral: 'bg-light-gray',
+            };
+            return map[colour] || 'bg-light-gray';
         },
     },
 

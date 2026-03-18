@@ -1,25 +1,28 @@
 <template>
-  <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <!-- Background overlay -->
+  <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 z-50 overflow-y-auto'" :aria-labelledby="context === 'onboarding' ? undefined : 'modal-title'" :role="context === 'onboarding' ? undefined : 'dialog'" :aria-modal="context === 'onboarding' ? undefined : 'true'">
+    <!-- Background overlay (modal only) -->
     <div
+      v-if="context !== 'onboarding'"
       class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
     ></div>
 
-    <!-- Modal container -->
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <!-- Modal container / inline container -->
+    <div :class="context === 'onboarding' ? '' : 'flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0'">
+      <span v-if="context !== 'onboarding'" class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-      <!-- Modal panel -->
+      <!-- Panel -->
       <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto"
+        :class="context === 'onboarding' ? '' : 'relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto'"
       >
         <!-- Header -->
-        <div class="bg-white px-6 pt-6">
+        <div :class="context === 'onboarding' ? '' : 'bg-white px-6 pt-6'">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-semibold text-horizon-500">
               {{ isEditing ? 'Edit Account' : 'Add Account' }}
             </h3>
             <button
+              v-if="context !== 'onboarding'"
               @click="handleClose"
               class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
@@ -36,7 +39,7 @@
         </div>
 
         <!-- Form -->
-        <form @submit.prevent="handleSubmit" class="px-6 pb-6">
+        <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'px-6 pb-6'">
           <div class="space-y-4 pr-2">
             <!-- Institution -->
             <div>
@@ -61,6 +64,21 @@
                 class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
                 <option value="">Select product type...</option>
+                <!-- Stage-prioritised types shown first when in onboarding -->
+                <optgroup v-if="context === 'onboarding' && stageDefaultTypes.length" label="Most common for you">
+                  <option v-if="stageDefaultTypes.includes('savings_account')" value="savings_account">Savings Account</option>
+                  <option v-if="stageDefaultTypes.includes('current_account')" value="current_account">Current Account</option>
+                  <option v-if="stageDefaultTypes.includes('easy_access')" value="easy_access">Easy Access</option>
+                  <option v-if="stageDefaultTypes.includes('instant_access')" value="instant_access">Instant Access</option>
+                  <option v-if="stageDefaultTypes.includes('notice')" value="notice">Notice Account</option>
+                  <option v-if="stageDefaultTypes.includes('fixed')" value="fixed">Fixed Term</option>
+                  <option v-if="stageDefaultTypes.includes('cash_isa')" value="cash_isa">Cash ISA</option>
+                  <option v-if="stageDefaultTypes.includes('junior_isa')" value="junior_isa">Junior ISA</option>
+                  <option v-if="stageDefaultTypes.includes('lifetime_isa')" value="lifetime_isa">Lifetime ISA</option>
+                  <option v-if="stageDefaultTypes.includes('fixed_rate')" value="fixed">Fixed Rate</option>
+                  <option v-if="stageDefaultTypes.includes('premium_bonds')" value="premium_bonds">Premium Bonds</option>
+                  <option v-if="stageDefaultTypes.includes('nsi')" value="nsi">NS&I Savings</option>
+                </optgroup>
                 <optgroup label="Bank Accounts">
                   <option value="savings_account">Savings Account</option>
                   <option value="current_account">Current Account</option>
@@ -162,16 +180,21 @@
             </div>
 
             <!-- Emergency Fund Status -->
-            <div class="flex items-center">
-              <input
-                v-model="formData.is_emergency_fund"
-                type="checkbox"
-                id="is_emergency_fund"
-                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
-              />
-              <label for="is_emergency_fund" class="ml-2 block text-sm text-neutral-500">
-                This forms part of my emergency fund
-              </label>
+            <div :class="shouldHighlightEmergencyFund ? 'p-4 bg-spring-50 border border-spring-200 rounded-lg' : ''">
+              <p v-if="shouldHighlightEmergencyFund" class="text-sm font-medium text-spring-700 mb-2">
+                Building an emergency fund is a great first step
+              </p>
+              <div class="flex items-center">
+                <input
+                  v-model="formData.is_emergency_fund"
+                  type="checkbox"
+                  id="is_emergency_fund"
+                  class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
+                />
+                <label for="is_emergency_fund" class="ml-2 block text-sm text-neutral-500">
+                  This forms part of my emergency fund
+                </label>
+              </div>
             </div>
 
             <!-- ISA Status (hidden when product type is already ISA) -->
@@ -450,8 +473,8 @@
               </div>
             </div>
 
-            <!-- Joint Ownership Section (hidden for NS&I and ISA - always individual) -->
-            <div v-if="!isNSIProductType && !isISAProductType" class="space-y-4 pt-4 border-t border-light-gray">
+            <!-- Joint Ownership Section (hidden for NS&I, ISA, and when stage config hides it) -->
+            <div v-if="!isNSIProductType && !isISAProductType && !shouldHideOwnership" class="space-y-4 pt-4 border-t border-light-gray">
               <h4 class="text-sm font-semibold text-horizon-500">Ownership</h4>
 
               <!-- Ownership Type -->
@@ -505,6 +528,7 @@
           <!-- Form Actions -->
           <div class="mt-6 flex justify-end gap-3">
             <button
+              v-if="context !== 'onboarding'"
               type="button"
               @click="handleClose"
               class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
@@ -549,6 +573,11 @@ export default {
       type: String,
       default: '',
     },
+    context: {
+      type: String,
+      default: 'standalone',
+      validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
   },
 
   data() {
@@ -585,6 +614,22 @@ export default {
   },
 
   computed: {
+    stageFormConfig() {
+      return this.$store.getters['lifeStage/formFields']('savings') || {};
+    },
+
+    shouldHideOwnership() {
+      return this.context === 'onboarding' && this.stageFormConfig.hideOwnership === true;
+    },
+
+    shouldHighlightEmergencyFund() {
+      return this.context === 'onboarding' && this.stageFormConfig.emergencyFundProminent === true;
+    },
+
+    stageDefaultTypes() {
+      return this.stageFormConfig.defaultTypes || [];
+    },
+
     isEditing() {
       return !!this.account;
     },
