@@ -2184,10 +2184,15 @@ class SavingsActionDefinitionService
         $pensionAmount = min($surplus, $annualAllowance);
 
         // Determine marginal tax rate based on income
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+        $additionalRateThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
+
         $marginalRate = 0.20;
-        if ($grossIncome > 150000) {
+        if ($grossIncome > $additionalRateThreshold) {
             $marginalRate = 0.45;
-        } elseif ($grossIncome > 50270) {
+        } elseif ($grossIncome > $basicRateLimit) {
             $marginalRate = 0.40;
         }
         $taxRelief = $pensionAmount * $marginalRate;

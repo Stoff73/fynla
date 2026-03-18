@@ -42,8 +42,13 @@ class RunMonteCarloSimulation implements ShouldQueue
     {
         \Log::info("Monte Carlo job {$this->jobId} starting");
 
-        // Mark job as running
-        Cache::put("monte_carlo_status_{$this->jobId}", 'running', TaxDefaults::CACHE_TTL_STANDARD);
+        // Mark job as running (preserve user_id from initial cache entry)
+        $existing = Cache::get("monte_carlo_status_{$this->jobId}");
+        $userId = is_array($existing) ? ($existing['user_id'] ?? null) : null;
+        Cache::put("monte_carlo_status_{$this->jobId}", [
+            'status' => 'running',
+            'user_id' => $userId,
+        ], TaxDefaults::CACHE_TTL_STANDARD);
 
         try {
             // Run simulation
@@ -69,14 +74,20 @@ class RunMonteCarloSimulation implements ShouldQueue
 
             // Store results in cache (24 hours for results, 1 hour for status)
             Cache::put("monte_carlo_results_{$this->jobId}", $results, TaxDefaults::CACHE_TTL_SIMULATION);
-            Cache::put("monte_carlo_status_{$this->jobId}", 'completed', TaxDefaults::CACHE_TTL_STANDARD);
+            Cache::put("monte_carlo_status_{$this->jobId}", [
+                'status' => 'completed',
+                'user_id' => $userId,
+            ], TaxDefaults::CACHE_TTL_STANDARD);
 
             \Log::info("Monte Carlo job {$this->jobId} completed successfully, status cached");
         } catch (\Exception $e) {
             \Log::error("Monte Carlo job {$this->jobId} failed: ".$e->getMessage());
 
             // Mark job as failed
-            Cache::put("monte_carlo_status_{$this->jobId}", 'failed', TaxDefaults::CACHE_TTL_STANDARD);
+            Cache::put("monte_carlo_status_{$this->jobId}", [
+                'status' => 'failed',
+                'user_id' => $userId,
+            ], TaxDefaults::CACHE_TTL_STANDARD);
             Cache::put("monte_carlo_error_{$this->jobId}", $e->getMessage(), TaxDefaults::CACHE_TTL_STANDARD);
 
             throw $e;

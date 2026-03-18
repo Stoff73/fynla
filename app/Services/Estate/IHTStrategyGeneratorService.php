@@ -37,7 +37,11 @@ class IHTStrategyGeneratorService
 
         // 1. Annual Exemption Strategy
         $annualExemption = (float) $giftingConfig['annual_exemption'];
-        $yearsToProject = min(20, 30); // Project 20 years or to age 90
+        $currentAge = $user->date_of_birth
+            ? (int) $user->date_of_birth->diffInYears(now())
+            : 70;
+        $lifeExpectancy = $user->life_expectancy_override ?? 90;
+        $yearsToProject = min(20, max(1, $lifeExpectancy - $currentAge));
         $totalAnnualGifting = $annualExemption * $yearsToProject;
         $annualIhtSaved = $totalAnnualGifting * $ihtRate;
 

@@ -38,7 +38,7 @@ class DividendTaxCalculator
         $dividendAllowance = (float) ($dividendConfig['allowance'] ?? 500);
         $basicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
         $higherRate = (float) ($dividendConfig['higher_rate'] ?? 0.3375);
-        $additionalRate = (float) ($dividendConfig['additional_rate'] ?? 0.3938);
+        $additionalRate = (float) ($dividendConfig['additional_rate'] ?? 0.3935);
 
         // Personal allowance taper: reduce by £1 per £2 over £100,000 adjusted net income
         $totalIncome = $nonDividendIncome + $dividendIncome;

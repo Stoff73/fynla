@@ -129,6 +129,7 @@ class EstateAgent extends BaseAgent
                 $ihtLiability = $ihtCalculation['iht_liability'] ?? 0;
                 $effectiveTaxRate = $ihtCalculation['effective_rate'] ?? 0;
             } catch (\Exception $e) {
+                report($e);
                 // Continue without IHT calculation
             }
 
@@ -144,6 +145,7 @@ class EstateAgent extends BaseAgent
                         $user
                     );
                 } catch (\Throwable $e) {
+                    report($e);
                     // Continue without trust recommendations
                 }
             }
@@ -168,6 +170,7 @@ class EstateAgent extends BaseAgent
                     $rnrb
                 );
             } catch (\Throwable $e) {
+                report($e);
                 // Continue without gifting opportunities
             }
 
@@ -179,6 +182,7 @@ class EstateAgent extends BaseAgent
                     $trustWishTriggers = $this->willAnalysisService->detectTrustTriggeringWishes($will);
                 }
             } catch (\Throwable $e) {
+                report($e);
                 // Continue without wish triggers
             }
 
@@ -188,6 +192,7 @@ class EstateAgent extends BaseAgent
                 $netEstate = $assetSummary['net_estate'] ?? 0;
                 $charitableAnalysis = $this->willAnalysisService->analyzeCharitableBequests($user, $netEstate);
             } catch (\Throwable $e) {
+                report($e);
                 // Continue without charitable analysis
             }
 
@@ -213,6 +218,7 @@ class EstateAgent extends BaseAgent
                 try {
                     $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allPolicies, $user);
                 } catch (\Throwable $e) {
+                    report($e);
                     // Continue without policy assessment
                 }
             }

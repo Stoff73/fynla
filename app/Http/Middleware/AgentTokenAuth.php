@@ -21,7 +21,7 @@ class AgentTokenAuth
         $token = $request->header('X-Agent-Token');
         $expectedToken = config('services.anthropic.agent_internal_token');
 
-        if (! $token || ! $expectedToken || $token !== $expectedToken) {
+        if (! $token || ! $expectedToken || ! hash_equals($expectedToken, $token)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 

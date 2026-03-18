@@ -55,6 +55,12 @@ class IHTCalculationService
      */
     public function calculate(User $user, ?User $spouse = null, bool $dataSharingEnabled = false): array
     {
+        // Eager load relationships to prevent N+1 queries
+        $user->loadMissing(['investmentAccounts', 'mortgages', 'liabilities', 'savingsAccounts', 'properties']);
+        if ($spouse) {
+            $spouse->loadMissing(['investmentAccounts', 'mortgages', 'liabilities', 'savingsAccounts', 'properties']);
+        }
+
         // 1. Check cache first
         $cached = $this->getCachedCalculation($user, $spouse, $dataSharingEnabled);
         if ($cached) {

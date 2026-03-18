@@ -199,6 +199,8 @@ class InvestmentController extends Controller
             // Generate unique job ID
             $jobId = Str::uuid()->toString();
 
+            $user = $request->user();
+
             // Dispatch job
             RunMonteCarloSimulation::dispatch(
                 $jobId,
@@ -210,6 +212,12 @@ class InvestmentController extends Controller
                 $validated['iterations'] ?? 1000,
                 $validated['goal_amount'] ?? null
             );
+
+            // Store user ownership of this job for IDOR protection
+            Cache::put("monte_carlo_status_{$jobId}", [
+                'status' => 'queued',
+                'user_id' => $user->id,
+            ], 3600);
 
             return response()->json([
                 'success' => true,
@@ -230,19 +238,21 @@ class InvestmentController extends Controller
     /**
      * Get Monte Carlo simulation results
      */
-    public function getMonteCarloResults(string $jobId): JsonResponse
+    public function getMonteCarloResults(Request $request, string $jobId): JsonResponse
     {
         $status = Cache::get("monte_carlo_status_{$jobId}");
 
-        if (! $status) {
-
+        if (! $status || (is_array($status) && ($status['user_id'] ?? null) !== $request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Job not found',
             ], 404);
         }
 
-        if ($status === 'running') {
+        // Extract status string if stored as array with user_id
+        $statusValue = is_array($status) ? ($status['status'] ?? 'unknown') : $status;
+
+        if ($statusValue === 'running') {
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -253,7 +263,7 @@ class InvestmentController extends Controller
             ]);
         }
 
-        if ($status === 'failed') {
+        if ($statusValue === 'failed') {
             $error = Cache::get("monte_carlo_error_{$jobId}", 'Unknown error');
 
             return response()->json([

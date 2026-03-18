@@ -34,11 +34,11 @@ class AuthController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private LoginLockoutService $lockoutService,
-        private MFAService $mfaService,
-        private SessionService $sessionService,
-        private AuditService $auditService,
-        private TrialService $trialService
+        private readonly LoginLockoutService $lockoutService,
+        private readonly MFAService $mfaService,
+        private readonly SessionService $sessionService,
+        private readonly AuditService $auditService,
+        private readonly TrialService $trialService
     ) {}
 
     /**
