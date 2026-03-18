@@ -176,13 +176,18 @@ export default {
 
       try {
         // Build goal data for API (matches StoreGoalRequest validation)
+        const goalName = formData.value.name || goalTypeLabels[formData.value.goal_type];
         const goalData = {
-          goal_name: formData.value.name || goalTypeLabels[formData.value.goal_type],
+          goal_name: goalName,
           goal_type: formData.value.goal_type,
           target_amount: formData.value.target_amount || 0,
           target_date: formData.value.target_date || null,
           priority: 'medium',
         };
+        // Backend requires custom_goal_type_name when goal_type is 'custom'
+        if (formData.value.goal_type === 'custom') {
+          goalData.custom_goal_type_name = formData.value.name;
+        }
 
         await goalsService.createGoal(goalData);
 
