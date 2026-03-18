@@ -420,10 +420,12 @@ export default {
       }
 
       try {
-        const activitiesData = await advisorService.getActivities({ limit: 5 });
-        this.recentActivities = Array.isArray(activitiesData)
-          ? activitiesData
-          : (activitiesData.data || []);
+        const activitiesResponse = await advisorService.getActivities({ per_page: 5 });
+        // API returns paginated: {success, data: {current_page, data: [...], ...}}
+        const responseData = activitiesResponse.data || activitiesResponse;
+        this.recentActivities = Array.isArray(responseData)
+          ? responseData
+          : (responseData.data || []);
       } catch {
         this.recentActivities = [];
       }
