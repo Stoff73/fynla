@@ -188,7 +188,7 @@ export default {
 }
 
 .account-item:hover .account-name {
-  @apply text-purple-600;
+  @apply text-violet-600;
 }
 
 .account-info {
@@ -220,8 +220,8 @@ export default {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  @apply bg-purple-50;
-  @apply text-purple-800;
+  @apply bg-violet-50;
+  @apply text-violet-700;
   white-space: nowrap;
 }
 
@@ -271,16 +271,16 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  @apply text-purple-600;
-  @apply bg-purple-50;
-  @apply border border-purple-200;
+  @apply text-violet-600;
+  @apply bg-violet-50;
+  @apply border border-violet-200;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  @apply bg-purple-100;
-  @apply border-purple-300;
+  @apply bg-violet-100;
+  @apply border-violet-300;
 }
 </style>

@@ -327,11 +327,11 @@ export default {
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #888;
+  @apply bg-neutral-400;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  @apply bg-neutral-600;
 }
 </style>

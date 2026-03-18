@@ -72,7 +72,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, BORDER_COLORS, SUCCESS_COLORS, ERROR_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS, SUCCESS_COLORS, ERROR_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import EventIcon from '@/components/Goals/EventIcon.vue';
 
 export default {
@@ -366,15 +366,15 @@ export default {
 
       let tooltipHtml = `
         <div class="apexcharts-tooltip-custom" style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
-          <div style="font-weight: 600; margin-bottom: 8px; color: #0F1729; font-size: 14px;">Age ${age}</div>
+          <div style="font-weight: 600; margin-bottom: 8px; color: ${SECONDARY_COLORS[700]}; font-size: 14px;">Age ${age}</div>
       `;
 
       if (yearData) {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${PRIMARY_COLORS[600]}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Net Worth:</span>
-            <span style="font-weight: 600; margin-left: auto; color: #0F1729;">${this.formatCurrency(yearData.net_worth)}</span>
+            <span style="color: ${TEXT_COLORS.muted};">Net Worth:</span>
+            <span style="font-weight: 600; margin-left: auto; color: ${SECONDARY_COLORS[700]};">${this.formatCurrency(yearData.net_worth)}</span>
           </div>
         `;
       }
@@ -383,17 +383,17 @@ export default {
         const goals = eventsAtAge.filter(e => e.type === 'goal');
         const lifeEvents = eventsAtAge.filter(e => e.type === 'life_event');
 
-        tooltipHtml += `<div style="border-top: 1px solid #E5E5E5; margin-top: 8px; padding-top: 8px;">`;
+        tooltipHtml += `<div style="border-top: 1px solid ${BORDER_COLORS.default}; margin-top: 8px; padding-top: 8px;">`;
 
         if (goals.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; font-weight: 600;">Goals:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: ${TEXT_COLORS.muted}; margin-bottom: 4px; font-weight: 600;">Goals:</div>`;
           goals.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #2D3A54; font-size: 12px;">${event.name}</span>
+                <span style="color: ${SECONDARY_COLORS[500]}; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;
@@ -401,14 +401,14 @@ export default {
         }
 
         if (lifeEvents.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: ${TEXT_COLORS.muted}; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events:</div>`;
           lifeEvents.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
             tooltipHtml += `
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${event.color}; margin-right: 6px;"></span>
-                <span style="color: #2D3A54; font-size: 12px;">${event.name}</span>
+                <span style="color: ${SECONDARY_COLORS[500]}; font-size: 12px;">${event.name}</span>
                 <span style="font-weight: 600; margin-left: auto; color: ${color}; font-size: 12px;">${sign}${this.formatCurrency(event.amount)}</span>
               </div>
             `;

@@ -125,10 +125,12 @@ import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import {
   PRIMARY_COLORS,
+  SECONDARY_COLORS,
   SUCCESS_COLORS,
   ERROR_COLORS,
   BORDER_COLORS,
   ASSET_COLORS,
+  TEXT_COLORS,
 } from '@/constants/designSystem';
 import ViewToggle from '../Shared/ViewToggle.vue';
 import ProjectionSummaryCards from './ProjectionSummaryCards.vue';
@@ -660,7 +662,7 @@ export default {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${PRIMARY_COLORS[600]}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Net Worth:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Net Worth:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.net_worth)}</span>
           </div>
         `;
@@ -668,12 +670,12 @@ export default {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${SUCCESS_COLORS[500]}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Income:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Income:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.income)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ERROR_COLORS[500]}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Expenditure:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Expenditure:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(yearData.expenditure)}</span>
           </div>
         `;
@@ -689,25 +691,25 @@ export default {
         tooltipHtml += `
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.pensions}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Pensions:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Pensions:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(pensions)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.property}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Property:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Property:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(property)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.investments}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Investments:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Investments:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(investments)}</span>
           </div>
           <div style="display: flex; align-items: center; margin-bottom: 4px;">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: ${ASSET_COLORS.cash}; margin-right: 8px;"></span>
-            <span style="color: #717171;">Cash:</span>
+            <span style="color: ${TEXT_COLORS.muted};">Cash:</span>
             <span style="font-weight: 600; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(cash)}</span>
           </div>
-          <div style="display: flex; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #E5E5E5;">
+          <div style="display: flex; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid ${BORDER_COLORS.default};">
             <span style="@apply text-neutral-500; font-weight: 600;">Total Assets:</span>
             <span style="font-weight: 700; margin-left: auto; @apply text-horizon-500;">${this.formatCurrency(total)}</span>
           </div>
@@ -720,11 +722,11 @@ export default {
         const goals = eventsAtAge.filter(e => e.type === 'goal');
         const lifeEvents = eventsAtAge.filter(e => e.type === 'life_event');
 
-        tooltipHtml += `<div style="border-top: 1px solid #E5E5E5; margin-top: 8px; padding-top: 8px;">`;
+        tooltipHtml += `<div style="border-top: 1px solid ${BORDER_COLORS.default}; margin-top: 8px; padding-top: 8px;">`;
 
         // Show goals at this age
         if (goals.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; font-weight: 600;">Goals at this age:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: ${TEXT_COLORS.muted}; margin-bottom: 4px; font-weight: 600;">Goals at this age:</div>`;
           goals.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];
@@ -740,7 +742,7 @@ export default {
 
         // Show life events at this age
         if (lifeEvents.length > 0) {
-          tooltipHtml += `<div style="font-size: 11px; color: #717171; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events at this age:</div>`;
+          tooltipHtml += `<div style="font-size: 11px; color: ${TEXT_COLORS.muted}; margin-bottom: 4px; margin-top: ${goals.length > 0 ? '8px' : '0'}; font-weight: 600;">Life Events at this age:</div>`;
           lifeEvents.forEach(event => {
             const sign = event.impact === 'income' ? '+' : '-';
             const color = event.impact === 'income' ? SUCCESS_COLORS[600] : ERROR_COLORS[600];

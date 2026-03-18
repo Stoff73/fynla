@@ -1,6 +1,7 @@
 import netWorthService from '../../services/netWorthService';
 import propertyService from '../../services/propertyService';
 import mortgageService from '../../services/mortgageService';
+import logger from '../../utils/logger';
 
 const state = {
     overview: {
@@ -332,7 +333,7 @@ const actions = {
             }
         } catch (error) {
             // Log but don't throw - this is a background sync
-            console.warn('Failed to sync related modules:', error);
+            logger.error('Failed to sync related modules', error.message);
         }
     },
 
@@ -378,8 +379,7 @@ const actions = {
                 throw new Error(response.message || 'Failed to fetch property');
             }
         } catch (error) {
-            console.error('fetchProperty error:', error);
-            console.error('error.response:', error.response);
+            logger.error('fetchProperty failed', error.message);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch property';
             commit('SET_ERROR', errorMessage);
             throw error;

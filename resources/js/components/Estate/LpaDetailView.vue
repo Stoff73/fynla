@@ -162,9 +162,9 @@ export default {
   max-height: 700px;
   overflow-y: auto;
   padding: 20px;
-  border: 1px solid #eee;
+  @apply border border-light-gray;
   border-radius: 8px;
-  background: #fafafa;
+  @apply bg-eggshell-50;
 }
 
 .lpa-document :deep(h1) {
@@ -249,7 +249,7 @@ export default {
 
 .lpa-document :deep(.sig-meta) {
   font-size: 9px;
-  color: #555;
+  @apply text-neutral-600;
 }
 
 .lpa-document :deep(.signed-name) {

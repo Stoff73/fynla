@@ -825,8 +825,8 @@ export default {
 }
 
 .tax-return-item.overdue {
-  background: #fef2f2;
-  border-color: #fecaca;
+  @apply bg-light-pink-50;
+  @apply border-raspberry-200;
 }
 
 .return-name {

@@ -13,6 +13,7 @@
 
 import api from '../../services/api';
 import { removeToken, setToken as storageSetToken, isNativePlatform } from '../../services/tokenStorage';
+import logger from '../../utils/logger';
 
 // Import full persona data from JSON files
 import youngFamilyData from '../../data/personas/young_family.json';
@@ -227,25 +228,25 @@ const actions = {
     async enterPreviewMode({ commit, dispatch }, personaId) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
-        console.log('[Preview] Step 1: Entering preview mode for:', personaId);
+        logger.info('[Preview] Entering preview mode for:', personaId);
 
         try {
-            console.log('[Preview] Step 2: Removing token...');
+            logger.info('[Preview] Removing token...');
             await removeToken();
-            console.log('[Preview] Step 3: Token removed, clearing auth...');
+            logger.info('[Preview] Token removed, clearing auth...');
             commit('auth/clearAuth', null, { root: true });
 
-            console.log('[Preview] Step 4: Resetting module states...');
+            logger.info('[Preview] Resetting module states...');
             commit('userProfile/resetState', null, { root: true });
             dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
-            console.log('[Preview] Step 5: Calling API /preview/login/' + personaId);
+            logger.info('[Preview] Calling API /preview/login/', personaId);
             const response = await api.post(`/preview/login/${personaId}`);
-            console.log('[Preview] Step 6: API response success:', response.data?.success);
+            logger.info('[Preview] API response success:', response.data?.success);
 
             if (response.data.success) {
                 const token = response.data.token;
-                console.log('[Preview] Step 7: Storing token, length:', token?.length);
+                logger.info('[Preview] Storing token');
                 await storageSetToken(token);
                 commit('auth/setToken', token, { root: true });
                 commit('auth/setUser', response.data.user, { root: true });
@@ -256,10 +257,10 @@ const actions = {
                 // On native, use SPA navigation to avoid page reload (which loses in-memory state)
                 const router = window.__appRouter;
                 if (router && isNativePlatform()) {
-                    console.log('[Preview] Step 8: SPA navigate to /m/home');
+                    logger.info('[Preview] SPA navigate to /m/home');
                     router.push('/m/home');
                 } else {
-                    console.log('[Preview] Step 8: Navigating to /dashboard');
+                    logger.info('[Preview] Navigating to /dashboard');
                     window.location.href = '/dashboard';
                 }
 
@@ -268,7 +269,7 @@ const actions = {
                 throw new Error(response.data.message || 'Failed to enter preview mode');
             }
         } catch (error) {
-            console.log('[Preview] ERROR:', error?.message || 'unknown', JSON.stringify(error));
+            logger.error('[Preview] Enter preview mode failed', error?.message);
             const message = error.response?.data?.message || error.message;
             commit('SET_ERROR', message);
             throw error;
@@ -374,7 +375,7 @@ const actions = {
             await api.post('/preview/exit');
         } catch (error) {
             // Ignore errors - we're logging out anyway
-            console.warn('[Preview] Exit error:', error.message);
+            logger.error('[Preview] Exit error', error.message);
         }
 
         // Clear auth state
