@@ -898,7 +898,7 @@ export default {
     }),
 
     isStudentPersona() {
-      return this.currentUser?.preview_persona_id === 'student';
+      return this.currentUser?.preview_persona_id === 'student' || this.currentStage === 'university';
     },
 
     recentTransactions() {
