@@ -13,6 +13,10 @@ const lifeStageService = {
     const response = await api.post('/life-stage/complete-step', { step: stepId });
     return response.data;
   },
+  async getCompleteness() {
+    const response = await api.get('/life-stage/completeness');
+    return response.data;
+  },
 };
 
 export default lifeStageService;

@@ -189,7 +189,6 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
-import SideMenuIcon from './SideMenuIcon.vue';
 import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
@@ -222,7 +221,6 @@ export default {
   components: {
     SideMenuItem,
     SideMenuSection,
-    SideMenuIcon,
     BugReportModal,
   },
 
@@ -248,8 +246,6 @@ export default {
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
     const exploreExpanded = ref(false);
-    const exploreFlyoutOpen = ref(false);
-
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
     const hasSpouse = computed(() => {
@@ -304,27 +300,6 @@ export default {
     const stageLabelColourClass = computed(() => COLOUR_CLASSES.text[stageColour.value] || 'text-horizon-500');
     const progressBarColourClass = computed(() => COLOUR_CLASSES.bg[stageColour.value] || 'bg-horizon-500');
     const progressRingColourClass = computed(() => COLOUR_CLASSES.stroke[stageColour.value] || 'stroke-horizon-500');
-    const activeFlyoutItemClass = computed(() => COLOUR_CLASSES.activeFlyout[stageColour.value] || 'bg-raspberry-50 text-raspberry-700');
-
-    // ---------------------------------------------------------------
-    // Stage-driven sidebar items
-    // ---------------------------------------------------------------
-    const resolveItem = (id) => {
-      const config = SIDEBAR_ITEMS[id];
-      if (!config) return null;
-      return { id, ...config };
-    };
-
-    const primaryItems = computed(() => {
-      const ids = store.getters['lifeStage/effectiveSidebarPrimary'] || [];
-      return ids.map(resolveItem).filter(Boolean);
-    });
-
-    const exploreItems = computed(() => {
-      const ids = store.getters['lifeStage/effectiveSidebarExplore'] || [];
-      return ids.map(resolveItem).filter(Boolean);
-    });
-
     // ---------------------------------------------------------------
     // Active state detection (used by both legacy and stage layouts)
     // ---------------------------------------------------------------
@@ -613,11 +588,7 @@ export default {
       stageLabelColourClass,
       progressBarColourClass,
       progressRingColourClass,
-      activeFlyoutItemClass,
-      primaryItems,
-      exploreItems,
       exploreExpanded,
-      exploreFlyoutOpen,
       isItemActive,
       isStageItemVisible,
       isSectionVisible,

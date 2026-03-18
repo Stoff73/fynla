@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\LifeStage\LifeStageService;
+use App\Services\PrerequisiteGateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,8 @@ class LifeStageController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly LifeStageService $lifeStageService
+        private readonly LifeStageService $lifeStageService,
+        private readonly PrerequisiteGateService $prerequisiteGate
     ) {}
 
     /**
@@ -80,5 +82,100 @@ class LifeStageController extends Controller
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Complete life stage step');
         }
+    }
+
+    /**
+     * Get per-module information completeness.
+     *
+     * Returns two tiers per module:
+     * - has_data (display level): user has entered any data for this module
+     * - can_advise (advice level): Agent has enough data for regulated advice
+     * - missing: specific fields still needed for advice level
+     * - guidance: user-friendly explanation of what's needed
+     *
+     * This is the single source of truth for progress indicators, dashboard
+     * card visibility, and Agent/AI chat advice readiness.
+     */
+    public function completeness(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $modules = $this->buildModuleCompleteness($user);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'modules' => $modules,
+                    'life_stage' => $user->life_stage,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Get module completeness');
+        }
+    }
+
+    /**
+     * Build per-module completeness combining display-level and advice-level checks.
+     *
+     * Display level: does any data exist for this module? (enough to show a card)
+     * Advice level: do all BLOCKING prerequisites pass? (enough for Agent analysis)
+     */
+    private function buildModuleCompleteness(\App\Models\User $user): array
+    {
+        // Advice-level checks from PrerequisiteGateService (BLOCKING gates)
+        $adviceGates = [
+            'protection' => $this->prerequisiteGate->canAnalyseProtection($user),
+            'savings' => $this->prerequisiteGate->canAnalyseSavings($user),
+            'retirement' => $this->prerequisiteGate->canAnalyseRetirement($user),
+            'investment' => $this->prerequisiteGate->canAnalyseInvestment($user),
+            'estate' => $this->prerequisiteGate->canAnalyseEstate($user),
+            'goals' => $this->prerequisiteGate->canAnalyseGoals($user),
+            'tax_optimisation' => $this->prerequisiteGate->canAnalyseTax($user),
+        ];
+
+        // Display-level checks: does the user have ANY data for this module?
+        $displayChecks = [
+            'protection' => $user->lifeInsurancePolicies()->exists()
+                || $user->criticalIllnessPolicies()->exists()
+                || $user->incomeProtectionPolicies()->exists(),
+            'savings' => $user->savingsAccounts()->exists(),
+            'retirement' => $user->dcPensions()->exists()
+                || $user->dbPensions()->exists()
+                || $user->statePension()->exists(),
+            'investment' => $user->investmentAccounts()->exists(),
+            'estate' => $user->properties()->exists()
+                || $user->investmentAccounts()->exists()
+                || $user->savingsAccounts()->exists()
+                || $user->liabilities()->exists(),
+            'goals' => $user->goals()->exists(),
+            'tax_optimisation' => $this->calculateTotalIncome($user) > 0,
+        ];
+
+        $modules = [];
+        foreach ($adviceGates as $module => $gate) {
+            $modules[$module] = [
+                'has_data' => $displayChecks[$module] ?? false,
+                'can_advise' => $gate['can_proceed'],
+                'missing' => $gate['missing'],
+                'guidance' => $gate['guidance'],
+                'required_actions' => $gate['required_actions'],
+            ];
+        }
+
+        return $modules;
+    }
+
+    /**
+     * Calculate total annual income from all sources.
+     */
+    private function calculateTotalIncome(\App\Models\User $user): float
+    {
+        return (float) $user->annual_employment_income
+            + (float) $user->annual_self_employment_income
+            + (float) $user->annual_rental_income
+            + (float) $user->annual_dividend_income
+            + (float) $user->annual_interest_income
+            + (float) $user->annual_other_income
+            + (float) $user->annual_trust_income;
     }
 }

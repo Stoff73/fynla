@@ -490,7 +490,7 @@ export default {
       'personal-info',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals',
+      'goals', 'property-mortgage',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -632,6 +632,10 @@ export default {
     };
 
     const handleLifeStageSkip = () => {
+      const currentStepId = lifeStageSteps.value[lifeStageCurrentIndex.value];
+      if (currentStepId) {
+        store.dispatch('lifeStage/completeStep', currentStepId);
+      }
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
         router.push({ name: 'Dashboard' });
@@ -664,6 +668,9 @@ export default {
             city: formData.city || null,
             county: formData.county || null,
             postcode: formData.postcode || null,
+            education_level: formData.education_level || null,
+            university: formData.university || null,
+            student_number: formData.student_number || null,
           };
           const occupationData = {
             occupation: formData.occupation || null,
