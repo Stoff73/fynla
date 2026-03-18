@@ -92,7 +92,7 @@
         </div>
 
         <!-- Cash Management -->
-        <SideMenuSection label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
+        <SideMenuSection v-if="isSectionVisible(['bank-accounts', 'income', 'expenditure', 'savings'])" label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
           <SideMenuItem v-if="isStageItemVisible('bank-accounts')" icon="banknotes" label="Bank Accounts" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('income')" icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('expenditure')" icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -100,7 +100,7 @@
         </SideMenuSection>
 
         <!-- Finances -->
-        <SideMenuSection label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
+        <SideMenuSection v-if="isSectionVisible(['investments', 'retirement', 'property', 'chattels', 'risk-profile', 'business'])" label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
           <SideMenuItem v-if="isStageItemVisible('investments')" icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('retirement')" icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('property')" icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -110,7 +110,7 @@
         </SideMenuSection>
 
         <!-- Family (has spouse) / Admin (no spouse) -->
-        <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
+        <SideMenuSection v-if="isSectionVisible(['protection', 'will', 'letter', 'trusts', 'estate', 'power-of-attorney'])" :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
           <SideMenuItem v-if="isStageItemVisible('protection')" icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('will')" icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('letter')" icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -120,7 +120,7 @@
         </SideMenuSection>
 
         <!-- Planning -->
-        <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
+        <SideMenuSection v-if="isSectionVisible(['holistic-plan', 'plans', 'journeys', 'what-if', 'goals', 'life-events', 'actions'])" label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
           <SideMenuItem v-if="isStageItemVisible('holistic-plan')" icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('plans')" icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isStageItemVisible('journeys')" icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -443,12 +443,14 @@ export default {
     const isStageItemVisible = (itemId) => {
       // No stage set = show everything (legacy mode)
       if (!allStageItems.value) return true;
-      // Item is in the stage's primary or explore list = show
-      if (allStageItems.value.has(itemId)) return true;
-      // Item is NOT managed by the stage config at all = show
-      // (only hide items that are explicitly in another stage's list but not this one)
-      // For now, show all items — the stage config controls ordering/prominence, not hiding
-      return true;
+      // Only show items that are in the stage's primary or explore list
+      return allStageItems.value.has(itemId);
+    };
+
+    // Section visibility — hide entire section heading when no items are visible
+    const isSectionVisible = (sectionItemIds) => {
+      if (!allStageItems.value) return true; // no stage = show all sections
+      return sectionItemIds.some(id => allStageItems.value.has(id));
     };
 
     // ---------------------------------------------------------------
@@ -618,6 +620,7 @@ export default {
       exploreFlyoutOpen,
       isItemActive,
       isStageItemVisible,
+      isSectionVisible,
 
       // Active state
       isExactActive,
