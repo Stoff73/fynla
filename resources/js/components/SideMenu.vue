@@ -82,156 +82,53 @@
       <!-- Navigation items -->
       <div class="flex-1 overflow-y-auto py-2 scrollbar-hide">
 
-        <!-- ============================================================ -->
-        <!-- STAGE-ADAPTIVE LAYOUT (when a life stage is set) -->
-        <!-- ============================================================ -->
-        <template v-if="currentStage">
-
-          <!-- Primary items (stage-driven) -->
-          <div class="mb-1">
-            <div class="flex flex-col pt-1">
-              <SideMenuItem
-                v-for="item in primaryItems"
-                :key="item.id"
-                :icon="item.icon"
-                :label="item.label"
-                :to="item.to"
-                :collapsed="effectiveCollapsed"
-                :active="isItemActive(item.id)"
-                :active-colour="stageColour"
-                @navigate="closeMobile"
-              />
-            </div>
+        <!-- Dashboard & Net Worth (no section heading) -->
+        <div class="mb-1">
+          <div class="flex flex-col pt-1">
+            <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+            <SideMenuItem v-if="isStageItemVisible('net-worth')" icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           </div>
+          <div v-if="effectiveCollapsed" class="mx-3 my-2 border-t border-light-gray"></div>
+        </div>
 
-          <!-- Divider -->
-          <div class="mx-3 my-2 border-t border-light-gray"></div>
+        <!-- Cash Management -->
+        <SideMenuSection label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
+          <SideMenuItem v-if="isStageItemVisible('bank-accounts')" icon="banknotes" label="Bank Accounts" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('income')" icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('expenditure')" icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('savings')" icon="banknotes" label="Savings" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+        </SideMenuSection>
 
-          <!-- Explore more section (expanded mode) -->
-          <div v-if="!effectiveCollapsed && exploreItems.length > 0" class="mb-1">
-            <button
-              class="flex items-center justify-between w-full px-4 pt-2 pb-1 group"
-              @click="exploreExpanded = !exploreExpanded"
-            >
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 group-hover:text-horizon-500 transition-colors">Explore more</span>
-              <svg
-                class="w-3 h-3 text-neutral-500 group-hover:text-horizon-500 transition-transform duration-200"
-                :class="exploreExpanded ? 'rotate-180' : ''"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div
-              class="grid transition-[grid-template-rows] duration-200 ease-out"
-              :class="exploreExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
-            >
-              <div class="overflow-hidden">
-                <div class="flex flex-col">
-                  <SideMenuItem
-                    v-for="item in exploreItems"
-                    :key="item.id"
-                    :icon="item.icon"
-                    :label="item.label"
-                    :to="item.to"
-                    :collapsed="effectiveCollapsed"
-                    :active="isItemActive(item.id)"
-                    :active-colour="stageColour"
-                    :muted="true"
-                    @navigate="closeMobile"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- Finances -->
+        <SideMenuSection label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
+          <SideMenuItem v-if="isStageItemVisible('investments')" icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('retirement')" icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('property')" icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('chattels')" icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('risk-profile')" icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('business')" icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+        </SideMenuSection>
 
-          <!-- Explore more (collapsed mode): dots toggle, shows icons inline -->
-          <template v-if="effectiveCollapsed && exploreItems.length > 0">
-            <div class="border-t border-light-gray my-1 mx-3"></div>
-            <button
-              class="flex items-center justify-center w-full py-2 text-neutral-500 hover:text-horizon-500 transition-colors"
-              title="Explore more"
-              @click="exploreFlyoutOpen = !exploreFlyoutOpen"
-            >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="5" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="12" cy="19" r="2" />
-              </svg>
-            </button>
-            <template v-if="exploreFlyoutOpen">
-              <SideMenuItem
-                v-for="item in exploreItems"
-                :key="'collapsed-explore-' + item.id"
-                :icon="item.icon"
-                :label="item.label"
-                :to="item.to"
-                :collapsed="true"
-                :active="isItemActive(item.id)"
-                :activeColour="stageColour"
-                :muted="true"
-                @navigate="closeMobile"
-              />
-            </template>
-          </template>
+        <!-- Family (has spouse) / Admin (no spouse) -->
+        <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
+          <SideMenuItem v-if="isStageItemVisible('protection')" icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('will')" icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('letter')" icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('trusts')" icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('estate')" icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('power-of-attorney')" icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+        </SideMenuSection>
 
-          <!-- Divider before bottom sections -->
-          <div class="mx-3 my-2 border-t border-light-gray"></div>
-        </template>
-
-        <!-- ============================================================ -->
-        <!-- LEGACY LAYOUT (no life stage set — full default menu) -->
-        <!-- ============================================================ -->
-        <template v-else>
-
-          <!-- Dashboard & Net Worth (no section heading) -->
-          <div class="mb-1">
-            <div class="flex flex-col pt-1">
-              <SideMenuItem icon="home" label="Dashboard" to="/dashboard" :collapsed="effectiveCollapsed" :active="isExactActive('/dashboard')" @navigate="closeMobile" />
-              <SideMenuItem icon="chart-bar" label="Net Worth" to="/net-worth/wealth-summary" :collapsed="effectiveCollapsed" :active="isNetWorthActive" @navigate="closeMobile" />
-            </div>
-            <div v-if="effectiveCollapsed" class="mx-3 my-2 border-t border-light-gray"></div>
-          </div>
-
-          <!-- Cash Management -->
-          <SideMenuSection label="Cash Management" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('cashManagement')" @toggle="toggleSection('cashManagement')">
-            <SideMenuItem icon="banknotes" label="Bank Accounts" to="/net-worth/cash" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/cash')" @navigate="closeMobile" />
-            <SideMenuItem icon="currency-pound" label="Income" :to="{ path: '/valuable-info', query: { section: 'income' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('income')" @navigate="closeMobile" />
-            <SideMenuItem icon="arrow-up-tray" label="Expenditure" :to="{ path: '/valuable-info', query: { section: 'expenditure' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('expenditure')" @navigate="closeMobile" />
-          </SideMenuSection>
-
-          <!-- Finances -->
-          <SideMenuSection label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
-            <SideMenuItem icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" @navigate="closeMobile" />
-            <SideMenuItem icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" @navigate="closeMobile" />
-            <SideMenuItem icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" @navigate="closeMobile" />
-            <SideMenuItem icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" @navigate="closeMobile" />
-            <SideMenuItem icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" @navigate="closeMobile" />
-            <SideMenuItem icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" @navigate="closeMobile" />
-          </SideMenuSection>
-
-          <!-- Family (has spouse) / Admin (no spouse) -->
-          <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
-            <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" @navigate="closeMobile" />
-            <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" @navigate="closeMobile" />
-            <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" @navigate="closeMobile" />
-            <SideMenuItem icon="building-library" label="Trusts" to="/trusts" :collapsed="effectiveCollapsed" :active="isActive('/trusts')" @navigate="closeMobile" />
-            <SideMenuItem icon="document-text" label="Estate Planning" to="/estate" :collapsed="effectiveCollapsed" :active="isEstateActive" @navigate="closeMobile" />
-            <SideMenuItem icon="key" label="Power of Attorney" to="/estate/power-of-attorney" :collapsed="effectiveCollapsed" :active="isLpaActive" @navigate="closeMobile" />
-          </SideMenuSection>
-
-          <!-- Planning -->
-          <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
-            <SideMenuItem icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" @navigate="closeMobile" />
-            <SideMenuItem icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" @navigate="closeMobile" />
-            <SideMenuItem icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" @navigate="closeMobile" />
-            <SideMenuItem icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" @navigate="closeMobile" />
-            <SideMenuItem icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" @navigate="closeMobile" />
-            <SideMenuItem icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" @navigate="closeMobile" />
-            <SideMenuItem icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" @navigate="closeMobile" />
-          </SideMenuSection>
-
-        </template>
+        <!-- Planning -->
+        <SideMenuSection label="Planning" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('planning')" @toggle="toggleSection('planning')">
+          <SideMenuItem v-if="isStageItemVisible('holistic-plan')" icon="puzzle-piece" label="Holistic Plan" to="/holistic-plan" :collapsed="effectiveCollapsed" :active="isActive('/holistic-plan')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('plans')" icon="clipboard-list" label="Plans" to="/plans" :collapsed="effectiveCollapsed" :active="isActive('/plans')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('journeys')" icon="map" label="Journeys" to="/planning/journeys" :collapsed="effectiveCollapsed" :active="isActive('/planning/journeys')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('what-if')" icon="beaker" label="What If Scenarios" to="/planning/what-if" :collapsed="effectiveCollapsed" :active="isActive('/planning/what-if')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('goals')" icon="flag" label="Goals" to="/goals" :collapsed="effectiveCollapsed" :active="isGoalsOverviewActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('life-events')" icon="calendar" label="Life Events" :to="{ path: '/goals', query: { tab: 'events' } }" :collapsed="effectiveCollapsed" :active="isGoalsEventsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isStageItemVisible('actions')" icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+        </SideMenuSection>
 
         <!-- ============================================================ -->
         <!-- BOTTOM SECTIONS (always shown, regardless of stage) -->
@@ -533,7 +430,29 @@ export default {
     };
 
     // ---------------------------------------------------------------
-    // Section expand/collapse state (legacy layout)
+    // Stage-driven visibility: when a stage is set, only show items
+    // that are in the primary or explore lists. When no stage, show all.
+    // ---------------------------------------------------------------
+    const allStageItems = computed(() => {
+      if (!currentStage.value) return null; // null = show everything
+      const primary = store.getters['lifeStage/effectiveSidebarPrimary'] || [];
+      const explore = store.getters['lifeStage/effectiveSidebarExplore'] || [];
+      return new Set([...primary, ...explore]);
+    });
+
+    const isStageItemVisible = (itemId) => {
+      // No stage set = show everything (legacy mode)
+      if (!allStageItems.value) return true;
+      // Item is in the stage's primary or explore list = show
+      if (allStageItems.value.has(itemId)) return true;
+      // Item is NOT managed by the stage config at all = show
+      // (only hide items that are explicitly in another stage's list but not this one)
+      // For now, show all items — the stage config controls ordering/prominence, not hiding
+      return true;
+    };
+
+    // ---------------------------------------------------------------
+    // Section expand/collapse state
     // ---------------------------------------------------------------
     const STORAGE_KEY = 'sideMenuExpandedSections';
     const expandedSections = ref({});
@@ -609,9 +528,9 @@ export default {
       return expandedSections.value[key] || false;
     };
 
-    // Auto-expand section when route changes (legacy layout)
+    // Auto-expand section when route changes
     watch(() => route.fullPath, () => {
-      if (!currentStage.value) {
+      {
         const activeKey = activeSectionKey.value;
         if (activeKey && !expandedSections.value[activeKey]) {
           expandedSections.value = { ...expandedSections.value, [activeKey]: true };
@@ -659,8 +578,8 @@ export default {
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
-      // Auto-expand the section containing the active route on initial load (legacy layout)
-      if (!currentStage.value) {
+      // Auto-expand the section containing the active route on initial load
+      {
         const activeKey = activeSectionKey.value;
         if (activeKey && !expandedSections.value[activeKey]) {
           expandedSections.value = { ...expandedSections.value, [activeKey]: true };
@@ -698,8 +617,9 @@ export default {
       exploreExpanded,
       exploreFlyoutOpen,
       isItemActive,
+      isStageItemVisible,
 
-      // Legacy active state
+      // Active state
       isExactActive,
       isActive,
       isNetWorthActive,
