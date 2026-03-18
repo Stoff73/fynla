@@ -156,7 +156,7 @@
                 <div class="space-y-3">
                   <div
                     v-for="(band, index) in (isEditing ? editableConfig.income_tax.bands : currentConfig.income_tax.bands)"
-                    :key="index"
+                    :key="band.name || `band-${band.lower_limit}-${index}`"
                     class="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-savannah-100 rounded-lg"
                   >
                     <div>
@@ -891,7 +891,7 @@
                 <div class="space-y-2">
                   <div
                     v-for="(relief, index) in (isEditing ? editableConfig.inheritance_tax?.potentially_exempt_transfers?.taper_relief : currentConfig.inheritance_tax?.potentially_exempt_transfers?.taper_relief)"
-                    :key="index"
+                    :key="`taper-${relief.years}-${index}`"
                     class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg"
                   >
                     <div>
@@ -1002,7 +1002,7 @@
               <h3 class="text-lg font-semibold text-horizon-500">Standard Residential Stamp Duty Land Tax</h3>
             </div>
             <div class="px-6 py-4">
-              <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.standard?.bands : currentConfig.stamp_duty?.residential?.standard?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
+              <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.standard?.bands : currentConfig.stamp_duty?.residential?.standard?.bands)" :key="`sdlt-std-${band.threshold}-${index}`" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
                 <div>
                   <label class="block text-xs text-neutral-500 mb-1">Threshold (£)</label>
                   <input
@@ -1054,7 +1054,7 @@
 
               <div>
                 <h4 class="text-sm font-medium text-horizon-500 mb-3">Stamp Duty Land Tax Bands</h4>
-                <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.additional_properties?.bands : currentConfig.stamp_duty?.residential?.additional_properties?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
+                <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.additional_properties?.bands : currentConfig.stamp_duty?.residential?.additional_properties?.bands)" :key="`sdlt-add-${band.threshold}-${index}`" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
                   <div>
                     <label class="block text-xs text-neutral-500 mb-1">Threshold (£)</label>
                     <input
@@ -1117,7 +1117,7 @@
 
               <div>
                 <h4 class="text-sm font-medium text-horizon-500 mb-3">First-Time Buyer Stamp Duty Land Tax Bands</h4>
-                <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.first_time_buyers?.bands : currentConfig.stamp_duty?.residential?.first_time_buyers?.bands)" :key="index" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
+                <div v-for="(band, index) in (isEditing ? editableConfig.stamp_duty?.residential?.first_time_buyers?.bands : currentConfig.stamp_duty?.residential?.first_time_buyers?.bands)" :key="`sdlt-ftb-${band.threshold}-${index}`" class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg mb-3">
                   <div>
                     <label class="block text-xs text-neutral-500 mb-1">Threshold (£)</label>
                     <input

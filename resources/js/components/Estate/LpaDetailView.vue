@@ -40,7 +40,7 @@
     <div class="bg-white rounded-lg shadow-sm border border-light-gray p-8 mb-4">
       <div
         class="lpa-document prose prose-sm max-w-none"
-        v-html="renderedHtml"
+        v-html="sanitizedHtml"
       ></div>
     </div>
 
@@ -73,6 +73,7 @@
 <script>
 import LpaComplianceChecklist from './LpaComplianceChecklist.vue';
 import { renderLpaDocument, printLpaDocument } from '@/utils/lpaDocumentRenderer';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import estateService from '@/services/estateService';
 
 export default {
@@ -124,6 +125,9 @@ export default {
     },
     renderedHtml() {
       return renderLpaDocument(this.lpa);
+    },
+    sanitizedHtml() {
+      return sanitizeHtml(this.renderedHtml);
     },
   },
 

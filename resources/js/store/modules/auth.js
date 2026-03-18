@@ -41,7 +41,6 @@ const actions = {
     // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
       await removeToken();
-      localStorage.removeItem('auth_token');
     }
 
     try {
@@ -78,7 +77,6 @@ const actions = {
     // If was in preview mode, clear both storage types (don't redirect via exitPreview)
     if (wasInPreviewMode) {
       await removeToken();
-      localStorage.removeItem('auth_token');
     }
 
     try {

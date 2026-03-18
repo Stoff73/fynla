@@ -83,7 +83,9 @@ export default {
     },
 
     milestoneCount() {
-      return 0; // TODO: compute from goals store
+      // Uses activeGoals count from the goals store as milestone indicator.
+      // A dedicated activeMilestoneCount getter does not exist yet.
+      return this.$store.getters['goals/activeGoals']?.length || 0;
     },
   },
 
