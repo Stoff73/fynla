@@ -16,7 +16,7 @@ The agent taking over this work should check ALL work VERY carefully due to the 
 
 4. **Modal forms in onboarding** — Multiple components were rendering as modals during onboarding instead of inline. The agent fixed some but may have missed others or introduced regressions.
 
-5. **Progress tracking was broken** — Personal info wasn't saving to the user model because the agent used a non-existent API route (`api.put('/profile')`). Was eventually fixed but the agent kept dismissing the 0% progress as "not a real bug" instead of investigating properly.
+5. **Progress tracking was broken** — Personal info wasn't saving to the user model because the agent used a non-existent API route (`api.put('/profile')`). Was eventually fixed but the agent kept dismissing the 0% progress as "not a real bug" instead of investigating properly. This is mostly fixed, needs to be double checked for consistency.
 
 6. **Goal type validation mismatch** — Frontend goal types didn't match backend StoreGoalRequest validation rules. Fixed but the agent should have caught this during the first test.
 
