@@ -271,10 +271,32 @@ and what the next session should start with. Include any gotchas or warnings.]
 a second look in the next session.]
 ```
 
-### 6d: Save to both locations
+### 6d: Save to three locations
 
-1. Project root: `TODO.md`
-2. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/March[DD]Updates/TODO.md`
+The TODO.md is a handover for the NEXT session, so place it in TOMORROW's update folder (current day + 1):
+
+```bash
+# Calculate tomorrow's date folder
+TODAY=$(date +%d)
+TOMORROW=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
+NEXT_FOLDER="March${TOMORROW}Updates"
+```
+
+1. Project root: `TODO.md` (always kept here for session-start to read)
+2. Project updates: `March/${NEXT_FOLDER}/TODO.md` (in tomorrow's folder, not today's)
+3. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md` (same — tomorrow's folder)
+
+```bash
+# Create tomorrow's folders if needed
+mkdir -p "March/${NEXT_FOLDER}"
+mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}"
+
+# Copy to all three locations
+cp TODO.md "March/${NEXT_FOLDER}/TODO.md"
+cp TODO.md "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md"
+```
+
+**Why tomorrow's folder:** Today's folder contains what was done today. Tomorrow's folder is where the next session starts — so the TODO belongs there as the first thing the next session sees.
 
 ### 6e: If nothing outstanding
 
