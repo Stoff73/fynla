@@ -46,6 +46,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
+            \App\Http\Middleware\AdvisorImpersonationMiddleware::class, // Swap auth user when advisor is impersonating
             \App\Http\Middleware\PreviewWriteInterceptor::class, // Intercept writes for preview users
             \App\Http\Middleware\CheckSubscription::class, // Feature-flagged subscription enforcement
         ],

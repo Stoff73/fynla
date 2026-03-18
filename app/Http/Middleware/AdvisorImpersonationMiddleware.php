@@ -19,6 +19,11 @@ class AdvisorImpersonationMiddleware
             return $next($request);
         }
 
+        // Don't swap user on advisor routes — advisor needs to stay as themselves
+        if ($request->is('api/advisor/*') || $request->is('api/advisor')) {
+            return $next($request);
+        }
+
         $tokenId = $user->currentAccessToken()?->id;
         if (! $tokenId) {
             return $next($request);
