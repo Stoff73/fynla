@@ -72,13 +72,17 @@ class ISATracker
             ? ($totalUsed / $totalAllowance) * 100
             : 0;
 
-        // Update tracking record
-        $tracking->update([
+        // Update tracking record only if values changed
+        $tracking->fill([
             'cash_isa_used' => $cashIsaUsed,
             'stocks_shares_isa_used' => $stocksSharesIsaUsed,
             'lisa_used' => $lisaUsed,
             'total_used' => $totalUsed,
         ]);
+
+        if ($tracking->isDirty()) {
+            $tracking->save();
+        }
 
         // Calculate projected ISA usage from regular contributions
         $projectedCashIsa = $this->calculateProjectedSubscriptions($userId, $taxYear, 'cash');

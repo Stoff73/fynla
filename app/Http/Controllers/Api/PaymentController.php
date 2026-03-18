@@ -163,6 +163,15 @@ class PaymentController extends Controller
 
         $orderId = $request->input('order_id');
 
+        // Verify the order belongs to the requesting user before calling Revolut
+        $payment = Payment::where('revolut_order_id', $orderId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$payment) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
         try {
             // Verify order state with Revolut: GET /api/orders/{order_id}
             $revolutOrder = $this->revolutService->getOrder($orderId);

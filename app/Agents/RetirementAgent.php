@@ -23,6 +23,7 @@ use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Retirement\RetirementDataReadinessService;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Collection;
 
 /**
  * Retirement Agent
@@ -33,6 +34,8 @@ use App\Services\TaxConfigService;
 class RetirementAgent extends BaseAgent
 {
     protected int $cacheTtl = 3600;
+
+    private ?Collection $dcPensions = null;
 
     public function __construct(
         private readonly PensionProjector $projector,
@@ -220,7 +223,7 @@ class RetirementAgent extends BaseAgent
     public function buildScenarios(int $userId, array $parameters): array
     {
         $profile = RetirementProfile::where('user_id', $userId)->first();
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = $this->getDCPensions($userId);
 
         if (! $profile) {
             return $this->response(false, 'No retirement profile found', []);
@@ -331,7 +334,7 @@ class RetirementAgent extends BaseAgent
         $additionalYears = $newRetirementAge - $profile->target_retirement_age;
 
         // Simulate additional years of contributions and growth
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = $this->getDCPensions($userId);
         $currentMonthlyContributions = $dcPensions->sum('monthly_contribution_amount');
         $additionalContributions = ($currentMonthlyContributions * 12) * $additionalYears;
 
@@ -419,6 +422,18 @@ class RetirementAgent extends BaseAgent
         }
 
         return (float) $this->taxConfig->get('assumptions.growth_by_risk.medium', TaxDefaults::DEFAULT_GROWTH_RATE);
+    }
+
+    /**
+     * Get DC pensions for a user, cached for the lifetime of this agent instance.
+     */
+    private function getDCPensions(int $userId): Collection
+    {
+        if ($this->dcPensions === null) {
+            $this->dcPensions = DCPension::where('user_id', $userId)->get();
+        }
+
+        return $this->dcPensions;
     }
 
     /**

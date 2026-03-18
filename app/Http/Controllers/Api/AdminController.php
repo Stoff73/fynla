@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\AdminUserResource;
 use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
@@ -124,7 +125,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $users,
+                'data' => AdminUserResource::collection($users)->response()->getData(true),
             ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to fetch users', $e);
@@ -167,7 +168,6 @@ class AdminController extends Controller
             $user = new User;
             $user->first_name = $request->first_name;
             $user->surname = $request->surname;
-            $user->name = trim($request->first_name.' '.$request->surname);
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
             $user->role_id = $role?->id;
@@ -179,7 +179,7 @@ class AdminController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User created successfully',
-                'data' => $user,
+                'data' => new AdminUserResource($user),
             ], 201);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to create user', $e);
@@ -230,9 +230,6 @@ class AdminController extends Controller
             if ($request->has('surname')) {
                 $user->surname = $request->surname;
             }
-            if ($request->has('first_name') || $request->has('surname')) {
-                $user->name = trim(($user->first_name ?? '').' '.($user->surname ?? ''));
-            }
             if ($request->has('email')) {
                 $user->email = $request->email;
             }
@@ -251,7 +248,7 @@ class AdminController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully',
-                'data' => $user,
+                'data' => new AdminUserResource($user),
             ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to update user', $e);

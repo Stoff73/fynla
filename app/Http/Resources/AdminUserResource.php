@@ -7,7 +7,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class UserResource extends JsonResource
+class AdminUserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -21,32 +21,22 @@ class UserResource extends JsonResource
             'is_preview_user' => $this->is_preview_user,
             'is_admin' => $this->is_admin,
             'is_advisor' => $this->is_advisor,
-            'preview_persona_id' => $this->preview_persona_id,
             'date_of_birth' => $this->date_of_birth,
-            'gender' => $this->gender,
             'marital_status' => $this->marital_status,
             'life_stage' => $this->life_stage,
             'onboarding_completed' => $this->onboarding_completed,
-            'onboarding_stage' => $this->onboarding_stage,
-            'journey_state' => $this->journey_state,
-            'has_spouse' => $this->has_spouse,
-            'spouse_id' => $this->spouse_id,
-            'mfa_enabled' => $this->mfa_enabled,
-            'is_student' => $this->is_student,
-            'student_loan_plan' => $this->student_loan_plan,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'role' => $this->when($this->relationLoaded('role'), $this->role),
+            'subscription' => $this->when($this->relationLoaded('subscription'), $this->subscription),
             'spouse' => $this->when($this->relationLoaded('spouse'), function () {
                 return $this->spouse ? [
                     'id' => $this->spouse->id,
                     'first_name' => $this->spouse->first_name,
                     'surname' => $this->spouse->surname,
                     'email' => $this->spouse->email,
-                    'is_preview_user' => $this->spouse->is_preview_user,
                 ] : null;
             }),
-            'role' => $this->when($this->relationLoaded('role'), $this->role),
-            'subscription' => $this->when($this->relationLoaded('subscription'), $this->subscription),
         ];
     }
 }

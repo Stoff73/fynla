@@ -95,17 +95,10 @@ class EstateAgent extends BaseAgent
                 'gifts',
             ])->findOrFail($userId);
 
-            // Load life insurance policies written in trust (for IHT mitigation)
-            $lifePoliciesInTrust = LifeInsurancePolicy::where('user_id', $userId)
-                ->where('in_trust', true)
-                ->get();
-
-            // Load non-trust life policies for trust placement recommendations
-            $lifePoliciesNotInTrust = LifeInsurancePolicy::where('user_id', $userId)
-                ->where(function ($q) {
-                    $q->where('in_trust', false)->orWhereNull('in_trust');
-                })
-                ->get();
+            // Load all life insurance policies in a single query and filter in-memory
+            $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
+            $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
+            $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => !$p->in_trust);
 
             $spouseLifeCoverInTrust = 0;
             if ($user->spouse) {
@@ -212,11 +205,10 @@ class EstateAgent extends BaseAgent
                 (int) $user->date_of_birth->diffInYears(now()) : self::DEFAULT_CURRENT_AGE;
 
             // Assess existing life insurance policies for IHT planning suitability
-            $allPolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
             $policyAssessment = [];
-            if ($allPolicies->isNotEmpty()) {
+            if ($allLifePolicies->isNotEmpty()) {
                 try {
-                    $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allPolicies, $user);
+                    $policyAssessment = $this->lifeCoverCalculator->assessExistingPolicies($allLifePolicies, $user);
                 } catch (\Throwable $e) {
                     report($e);
                     // Continue without policy assessment

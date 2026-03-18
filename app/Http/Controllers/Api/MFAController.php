@@ -43,8 +43,8 @@ class MFAController extends Controller
 
         $secret = $this->mfaService->generateSecret();
 
-        // Store secret temporarily in session for verification
-        session(['mfa_setup_secret' => $secret]);
+        // Store secret temporarily in cache for verification (5 min TTL)
+        Cache::put("mfa_setup_secret:{$user->id}", $secret, 300);
 
         $qrCodeDataUri = $this->mfaService->getQRCodeDataUri($user, $secret);
 
@@ -67,7 +67,7 @@ class MFAController extends Controller
         ]);
 
         $user = $request->user();
-        $secret = session('mfa_setup_secret');
+        $secret = Cache::pull("mfa_setup_secret:{$user->id}");
 
         if (! $secret) {
             return response()->json([
@@ -89,8 +89,7 @@ class MFAController extends Controller
         // Audit log
         $this->auditService->logAuth(AuditLog::ACTION_MFA_ENABLED, $user);
 
-        // Clear setup session
-        session()->forget('mfa_setup_secret');
+        // Secret already consumed by Cache::pull above
 
         return response()->json([
             'success' => true,
