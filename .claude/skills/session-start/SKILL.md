@@ -1,6 +1,6 @@
 ---
 name: session-start
-description: Bootstrap a new development session. Seeds the database, checks git status, shows recent activity, and displays context summary. Run this at the start of every session to ensure the environment is ready. Use when the user says "start session", "get ready", "set up", "begin", or at the start of any new conversation.
+description: Bootstrap a new development session. Checks for overnight issues, cleans up stale worktrees/branches, syncs git, audits for broken code, seeds the database, starts the dev server, and displays context. Run at the start of every session. Use when the user says "start session", "get ready", "set up", "begin", or at the start of any new conversation.
 disable-model-invocation: true
 ---
 
@@ -8,174 +8,163 @@ disable-model-invocation: true
 
 Prepare the development environment for a new Fynla session. This is the FIRST thing that runs in every session.
 
-## Step 1: Database Seed (CRITICAL - NEVER SKIP)
+## Step 1: Read Memory, TODO & Context
 
-Run the full database seed. This is the #1 rule of the project — zero tolerance for skipping.
+Read the project memory to understand current state:
 
 ```bash
-php artisan db:seed
+cat /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/MEMORY.md
 ```
 
-If seeding fails, diagnose immediately. Common fixes:
+**Read TODO.md** — this is the handover from the previous session. It contains outstanding items, tech debt, known issues, and context for what to pick up:
 
-| Error | Fix |
-|-------|-----|
-| Table doesn't exist | `php artisan migrate && php artisan db:seed` |
-| Duplicate key | Safe to ignore — seeders use `updateOrCreate()` |
-| Connection refused | Check MySQL is running: `mysql.server start` or `brew services start mysql` |
+```bash
+cat TODO.md 2>/dev/null || echo "No TODO.md — clean slate"
+```
 
-### Complete Seeder Inventory (18 seeders)
+If TODO.md exists and has unchecked items, present them to the user prominently:
 
-**Phase 1 — Required (14 seeders, run by `db:seed`):**
+```markdown
+## Outstanding from Previous Session
 
-| Seeder | Purpose |
-|--------|---------|
-| `TaxConfigurationSeeder` | UK tax rates, allowances, thresholds (5 tax years) |
-| `TaxProductReferenceSeeder` | ISA/GIA/Bond tax treatment info |
-| `ActuarialLifeTablesSeeder` | ONS life expectancy data for estate/retirement projections |
-| `RolesPermissionsSeeder` | Auth roles and permissions |
-| `AdminUserSeeder` | Admin accounts (demo@fps.com, admin@fps.com) |
-| `PreviewUserSeeder` | 6 preview personas (young_family, peak_earners, widow, entrepreneur, young_saver, retired_couple) |
-| `SavingsMarketRatesSeeder` | Savings benchmark rates |
-| `PlanConfigurationSeeder` | Admin-configurable plan rates, benchmarks, defaults |
-| `RetirementActionDefinitionSeeder` | Retirement plan action triggers |
-| `InvestmentActionDefinitionSeeder` | Investment plan action triggers |
-| `ProtectionActionDefinitionSeeder` | Protection plan action triggers |
-| `TaxActionDefinitionSeeder` | Tax optimisation action triggers |
-| `SubscriptionPlanSeeder` | Subscription pricing and trial config |
-| `OccupationCodeSeeder` | ONS SOC 2020 occupation codes |
+[items from TODO.md]
 
-**Phase 2 — Dev/Staging only (2 seeders, run by `db:seed` in local/dev/staging):**
+Would you like to address these first, or work on something else?
+```
 
-| Seeder | Purpose |
-|--------|---------|
-| `HouseholdSeeder` | Households for multi-user testing |
-| `TestUsersSeeder` | Additional test user accounts |
+Check for any other handover notes from previous sessions:
 
+```bash
+# Check for recent handover/update notes
+find March/ -name "*.md" -newer CLAUDE.md -mtime -1 2>/dev/null | head -10
+```
 
-### Quick Fix Reference
-
-| Issue | Seeder |
-|-------|--------|
-| Tax calculations failing | `TaxConfigurationSeeder` |
-| Tax Status tab empty | `TaxProductReferenceSeeder` |
-| Preview personas broken / 403 | `PreviewUserSeeder` |
-| Life expectancy errors | `ActuarialLifeTablesSeeder` |
-| Savings market rates missing | `SavingsMarketRatesSeeder` |
-| Plan actions not showing | All 4 action definition seeders |
-| Subscription plans missing | `SubscriptionPlanSeeder` |
-| Plan benchmarks wrong | `PlanConfigurationSeeder` |
-| Occupation dropdown empty | `OccupationCodeSeeder` |
-| Roles/permissions errors | `RolesPermissionsSeeder` |
-
-## Step 2: Git Sync & Branch Context
+## Step 2: Git Sync & Cleanup
 
 ### 2a: Check current state
 
 ```bash
 git status
 git branch --show-current
-git log --oneline -10
-```
-
-### 2b: Fetch latest from remote
-
-```bash
 git fetch origin
 ```
 
-### 2c: Sync based on branch
+### 2b: Clean up stale worktrees and branches
 
-**If on `main`:**
+Previous sessions may have left orphaned worktrees or unmerged branches. Clean them up:
+
+```bash
+# List all worktrees
+git worktree list
+
+# Remove any orphaned worktrees (agent-* or worktree-*)
+for dir in .claude/worktrees/agent-*/; do
+  if [ -d "$dir" ]; then
+    agent=$(basename "$dir")
+    # Check if it has uncommitted changes
+    changes=$(cd "$dir" && git diff --name-only HEAD 2>/dev/null | wc -l)
+    if [ "$changes" -gt 0 ]; then
+      echo "WARNING: $agent has $changes uncommitted changes — review before removing"
+    else
+      git worktree remove "$dir" --force 2>/dev/null
+      git branch -D "worktree-$agent" 2>/dev/null
+      echo "Cleaned up: $agent"
+    fi
+  fi
+done
+```
+
+If worktrees with uncommitted changes are found, report them to the user before removing.
+
+### 2c: Clean up stale branches
+
+```bash
+# List local branches that no longer have a remote
+git branch -vv | grep ': gone]' | awk '{print $1}'
+
+# List feature branches (but don't delete — report to user)
+git branch | grep -v main | grep -v '\*'
+```
+
+Report any stale branches but do NOT auto-delete. Ask the user.
+
+### 2d: Sync main
+
 ```bash
 git pull origin main
 ```
 
-**If on a feature branch:**
+If there are conflicts, resolve them or report to the user.
 
-First, check the branch's relationship with main:
-
-```bash
-# Commits on this branch not in main
-git log --oneline main..HEAD
-
-# Commits on main not in this branch
-git log --oneline HEAD..origin/main
-
-# Check if branch also has a remote tracking branch
-git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
-```
-
-Then sync in this order:
-
-1. **Pull the branch's own remote** (if it has one):
-   ```bash
-   git pull origin $(git branch --show-current)
-   ```
-
-2. **Check divergence from main:**
-   ```bash
-   git log --oneline HEAD..origin/main --count
-   ```
-
-3. **If main has new commits**, rebase the feature branch onto main:
-   ```bash
-   git rebase origin/main
-   ```
-
-### 2d: Conflict resolution
-
-If rebase or pull produces conflicts:
-
-1. **List conflicted files:**
-   ```bash
-   git diff --name-only --diff-filter=U
-   ```
-
-2. **For each conflicted file**, read the file and resolve the conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`). Prefer the approach that:
-   - Keeps both sets of changes where possible
-   - Favours the feature branch's intent for feature-specific code
-   - Favours main's version for shared infrastructure (config, routes, seeders)
-
-3. **After resolving each file:**
-   ```bash
-   git add <resolved-file>
-   ```
-
-4. **Continue the rebase:**
-   ```bash
-   git rebase --continue
-   ```
-
-5. **If conflicts are too complex to auto-resolve**, abort and report to the user:
-   ```bash
-   git rebase --abort
-   ```
-   Then explain what conflicts exist and ask the user how they want to proceed.
-
-### 2e: Report to the user
-
-- Current branch name
-- Whether there are uncommitted changes
-- Sync status: up to date / pulled N commits / rebased onto main
-- Any conflicts that were resolved or need attention
-- Last 10 commits (so we know where we left off)
-
-## Step 3: Recent Activity Summary
-
-Check what was worked on recently:
+### 2e: Check what changed since last session
 
 ```bash
-# Files changed today
-git log --since="midnight" --name-only --pretty=format:"" | sort -u
+# Last session's commits
+git log --since="yesterday" --oneline
 
-# Files changed in last 3 days (in case session spans days)
-git log --since="3 days ago" --oneline
+# Any uncommitted work
+git diff --stat HEAD
 ```
 
-## Step 4: Check & Start Dev Server
+## Step 3: Overnight Issue Detection
 
-Check if the dev server is already running:
+Check for common issues that accumulate between sessions:
+
+### 3a: Syntax check recently changed PHP files
+
+```bash
+# Check PHP syntax on files changed in the last 24 hours
+for file in $(git diff --name-only HEAD~5 -- '*.php' 2>/dev/null); do
+  php -l "$file" 2>&1 | grep -v "No syntax errors"
+done
+```
+
+### 3b: Check for broken imports/references
+
+```bash
+# Check for any PHP files referencing classes that don't exist
+# (catches namespace issues from merges)
+php artisan route:list --json 2>&1 | head -5
+```
+
+If `route:list` throws errors, there are broken references that need fixing before anything else.
+
+### 3c: Check migration status
+
+```bash
+php artisan migrate:status 2>&1 | grep -i "pending\|No\|error" | head -5
+```
+
+If there are pending migrations, report them but do NOT auto-run. Ask the user.
+
+### 3d: Check for merge conflict markers left in code
+
+```bash
+# Search for unresolved conflict markers
+grep -rn "<<<<<<< " --include="*.php" --include="*.vue" --include="*.js" app/ resources/ 2>/dev/null | head -10
+```
+
+If found, these MUST be fixed immediately — they will cause runtime errors.
+
+## Step 4: Database Seed
+
+Seed the database to ensure all reference data is current:
+
+```bash
+php artisan db:seed
+```
+
+If seeding fails, diagnose immediately:
+
+| Error | Fix |
+|-------|-----|
+| Table doesn't exist | `php artisan migrate && php artisan db:seed` |
+| Duplicate key | Safe to ignore — seeders use `updateOrCreate()` |
+| Connection refused | Check MySQL is running: `mysql.server start` |
+
+## Step 5: Start Dev Server
+
+Check if already running, then start if needed:
 
 ```bash
 # Check if Laravel/Vite are running
@@ -183,36 +172,67 @@ lsof -i :8000 2>/dev/null | head -3
 lsof -i :5173 2>/dev/null | head -3
 ```
 
-If not running, automatically start it in the background:
+If not running:
 
 ```bash
 ./dev.sh
 ```
 
-Run this in the background so the session bootstrap can continue without waiting.
+Run in background so bootstrap can continue.
 
-## Step 5: Session Context Display
+## Step 6: Quick Health Check
 
-Present a clean summary to the user:
+Run a fast compilation check to catch any broken Vue/JS:
+
+```bash
+# Check Vite can resolve all imports (will show errors in dev.sh output)
+# If dev.sh is running, check for compilation errors in its output
+```
+
+Also check for any TODO/FIXME items from the last session:
+
+```bash
+# Recent TODOs in changed files
+git diff --name-only HEAD~5 -- '*.php' '*.vue' 2>/dev/null | xargs grep -n "TODO\|FIXME\|HACK\|XXX" 2>/dev/null | head -10
+```
+
+## Step 7: Session Context Display
+
+Present a clean summary:
 
 ```markdown
 ## Session Ready
 
+**Date:** [today's date]
 **Branch:** `branch-name`
 **Status:** Clean / X uncommitted changes
 **Last work:** [summary of recent commits]
 
-**Database:** Seeded successfully (17 seeders)
-**Dev server:** Running on :8000/:5173 / Not running
+**Environment:**
+- Database: Seeded successfully
+- Dev server: Running on :8000/:5173
+- PHP syntax: All clear / X errors found
+- Migrations: Up to date / X pending
+- Conflict markers: None / X found (CRITICAL)
 
-**Recent changes:**
-- [list of recently changed files/features]
+**Stale worktrees:** None / X cleaned up / X need review
+**Stale branches:** None / X reported
+
+**Recent changes (last 24hrs):**
+- [list from git log]
+
+**Overnight issues found:**
+- [any issues from Step 3, or "None"]
+
+**Ready to work.** What would you like to do?
 ```
 
 ## Important
 
-- ALWAYS seed first. No exceptions. No "I'll do it later". Seed FIRST.
+- ALWAYS seed the database. No exceptions.
 - Do NOT run `migrate:fresh` or `migrate:refresh` — these destroy data.
-- Auto-start the dev server (`./dev.sh`) if it's not already running.
-- Do NOT make any code changes — this is a read-only bootstrap.
-- If the user has a specific task in mind, after displaying the summary, proceed to their request.
+- Do NOT auto-delete branches with uncommitted work — ask the user.
+- Do NOT make code changes in this skill — this is diagnostic and bootstrap only.
+- If overnight issues are found (conflict markers, broken imports), fix those FIRST before accepting new work.
+- Clean up worktrees that have no changes — they're from completed agent runs.
+- Report stale branches but let the user decide what to do with them.
