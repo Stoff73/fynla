@@ -24,6 +24,10 @@ class Role extends Model
 
     public const LEVEL_ADMIN = 100;
 
+    public const ROLE_ADVISOR = 'advisor';
+
+    public const LEVEL_ADVISOR = 25;
+
     protected $fillable = [
         'name',
         'display_name',
@@ -133,5 +137,13 @@ class Role extends Model
     public static function getAdminRole(): ?self
     {
         return self::findByName(self::ROLE_ADMIN);
+    }
+
+    /**
+     * Get the advisor role
+     */
+    public static function getAdvisorRole(): ?self
+    {
+        return self::findByName(self::ROLE_ADVISOR);
     }
 }

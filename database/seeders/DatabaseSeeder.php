@@ -71,6 +71,9 @@ class DatabaseSeeder extends Seeder
 
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
+
+            // Advisor-client relationships for preview personas
+            AdvisorClientSeeder::class,
         ]);
 
         // ============================================================

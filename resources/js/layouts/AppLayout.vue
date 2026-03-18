@@ -1,5 +1,8 @@
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div class="min-h-screen flex flex-col" :class="{ 'pt-[44px]': isImpersonating }">
+    <!-- Advisor Impersonation Banner -->
+    <AdvisorBanner v-if="isImpersonating" />
+
     <!-- Side Menu (teleported to body) -->
     <SideMenu
       :collapsed="sideMenuCollapsed"
@@ -75,6 +78,7 @@ import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
+import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import storage from '@/utils/storage';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
@@ -95,6 +99,7 @@ export default {
     SideMenu,
     SideMenuMobileToggle,
     OfflineBanner,
+    AdvisorBanner,
   },
 
   data() {
@@ -109,6 +114,10 @@ export default {
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
+
+    isImpersonating() {
+      return this.$store.state.advisor?.impersonating === true;
+    },
 
     contentMarginClass() {
       return this.sideMenuCollapsed

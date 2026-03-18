@@ -790,6 +790,23 @@ const routes = [
     },
   },
 
+  // ===========================
+  // Advisor Routes
+  // ===========================
+  {
+    path: '/advisor',
+    component: () => import('../layouts/AdvisorLayout.vue'),
+    meta: { requiresAuth: true, requiresAdvisor: true },
+    children: [
+      { path: '', name: 'AdvisorDashboard', component: () => import('../views/Advisor/AdvisorDashboard.vue') },
+      { path: 'clients', name: 'AdvisorClients', component: () => import('../views/Advisor/AdvisorClientList.vue') },
+      { path: 'clients/:id', name: 'AdvisorClientDetail', component: () => import('../views/Advisor/AdvisorClientDetail.vue') },
+      { path: 'activities', name: 'AdvisorActivities', component: () => import('../views/Advisor/AdvisorActivityLog.vue') },
+      { path: 'reviews', name: 'AdvisorReviews', component: () => import('../views/Advisor/AdvisorReviewsDue.vue') },
+      { path: 'reports', name: 'AdvisorReports', component: () => import('../views/Advisor/AdvisorReports.vue') },
+    ],
+  },
+
   // Preview routes - accessible without authentication
   // These routes load the same components as authenticated routes but in preview mode
   {
@@ -1066,6 +1083,9 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'Dashboard' });
   } else if (to.meta.requiresAdmin && !isAdmin) {
     // Redirect to dashboard if route requires admin access (preview mode cannot access admin)
+    next({ name: 'Dashboard' });
+  } else if (to.matched.some(r => r.meta.requiresAdvisor) && !store.getters['auth/isAdvisor']) {
+    // Redirect to dashboard if route requires advisor access
     next({ name: 'Dashboard' });
   } else {
     next();

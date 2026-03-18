@@ -1129,6 +1129,26 @@ Route::prefix('internal/agent')->middleware('agent.token')->group(function () {
     Route::get('/recommendations', [\App\Http\Controllers\Api\AgentInternalController::class, 'recommendations']);
 });
 
+// ===========================
+// Advisor Routes
+// ===========================
+Route::middleware(['auth:sanctum', 'advisor'])
+    ->prefix('advisor')
+    ->controller(\App\Http\Controllers\Api\AdvisorController::class)
+    ->group(function () {
+        Route::get('dashboard', 'dashboard');
+        Route::get('clients', 'clients');
+        Route::get('clients/{id}', 'clientDetail');
+        Route::get('clients/{id}/modules', 'clientModuleStatus');
+        Route::post('clients/{id}/enter', 'enterClient');
+        Route::post('exit', 'exitClient');
+        Route::get('activities', 'activities');
+        Route::post('activities', 'storeActivity');
+        Route::put('activities/{id}', 'updateActivity');
+        Route::get('reviews-due', 'reviewsDue');
+        Route::get('reports', 'reports');
+    });
+
 // Bug Report route (works for both authenticated and guest users)
 Route::post('/bug-report', [BugReportController::class, 'store'])
     ->middleware('throttle:bug-reports');

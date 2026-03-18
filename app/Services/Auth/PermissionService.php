@@ -71,6 +71,14 @@ class PermissionService
     }
 
     /**
+     * Check if user is an advisor via is_advisor boolean flag.
+     */
+    public function isAdvisor(User $user): bool
+    {
+        return (bool) $user->is_advisor;
+    }
+
+    /**
      * Check if user is at least support level
      */
     public function isSupport(User $user): bool
@@ -139,6 +147,15 @@ class PermissionService
             ]
         );
 
+        $advisorRole = Role::firstOrCreate(
+            ['name' => Role::ROLE_ADVISOR],
+            [
+                'display_name' => 'Advisor',
+                'description' => 'Financial advisor with client management access',
+                'level' => Role::LEVEL_ADVISOR,
+            ]
+        );
+
         // Create default permissions
         $permissions = [
             // User permissions
@@ -152,6 +169,9 @@ class PermissionService
             [Permission::ADMIN_TAX_CONFIG, 'Manage Tax Configuration', Permission::CATEGORY_ADMIN],
             [Permission::ADMIN_ERASURE_PROCESS, 'Process Erasure Requests', Permission::CATEGORY_ADMIN],
             [Permission::ADMIN_BACKUP, 'Manage Database Backups', Permission::CATEGORY_ADMIN],
+
+            // Advisor permissions
+            [Permission::ADVISOR_ACCESS, 'Access Advisor Dashboard', Permission::CATEGORY_ADMIN],
 
             // Settings permissions
             [Permission::SETTINGS_VIEW, 'View Settings', Permission::CATEGORY_SETTINGS],
@@ -173,6 +193,16 @@ class PermissionService
 
         $supportRole->syncPermissions(
             Permission::whereIn('name', $supportPermissions)->pluck('id')->toArray()
+        );
+
+        // Advisor role permissions
+        $advisorPermissions = [
+            Permission::ADVISOR_ACCESS,
+            Permission::USERS_VIEW,
+        ];
+
+        $advisorRole->syncPermissions(
+            Permission::whereIn('name', $advisorPermissions)->pluck('id')->toArray()
         );
 
         // Admin role gets all permissions

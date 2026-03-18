@@ -65,6 +65,8 @@ class PreviewWriteInterceptor
         'api/ai-chat/conversations', // Allow AI chat in preview — tool executor handles write blocking
         'api/v1/auth/refresh-token', // Allow mobile token refresh in preview mode
         'api/v1/mobile/devices',     // Allow device registration in preview mode
+        'api/advisor/clients/*/enter',    // Allow advisor impersonation start
+        'api/advisor/exit',                // Allow advisor impersonation end
     ];
 
     /**
@@ -104,7 +106,12 @@ class PreviewWriteInterceptor
         // Check if this route should be excluded from interception
         $currentPath = $request->path();
         foreach (self::EXCLUDED_ROUTES as $excludedRoute) {
-            if ($currentPath === $excludedRoute || str_starts_with($currentPath, $excludedRoute.'/')) {
+            if (str_contains($excludedRoute, '*')) {
+                // Support wildcard matching (e.g., 'api/advisor/clients/*/enter')
+                if (fnmatch($excludedRoute, $currentPath)) {
+                    return $next($request);
+                }
+            } elseif ($currentPath === $excludedRoute || str_starts_with($currentPath, $excludedRoute.'/')) {
                 return $next($request);
             }
         }
