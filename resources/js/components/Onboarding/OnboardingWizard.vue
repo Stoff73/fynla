@@ -347,7 +347,7 @@ import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 // =====================================================================
 const STEP_COMPONENTS = {
   'personal-info': () => import('@/components/UserProfile/PersonalInformation.vue'),
-  'student-loan': () => import('@/components/Estate/LiabilityForm.vue'),
+  'student-loan': () => import('@/components/Onboarding/steps/StudentLoanStep.vue'),
   'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
@@ -669,6 +669,8 @@ export default {
             county: formData.county || null,
             postcode: formData.postcode || null,
             education_level: formData.education_level || null,
+            university: formData.university || null,
+            student_number: formData.student_number || null,
           };
           const occupationData = {
             occupation: formData.occupation || null,
