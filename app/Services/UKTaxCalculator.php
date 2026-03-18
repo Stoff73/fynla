@@ -314,10 +314,11 @@ class UKTaxCalculator
         $config = $tracker->getConfig();
         $bandPosition = $tracker->getCurrentBandPosition();
 
-        // Determine PSA based on current band position
+        // Determine PSA based on current band position (from TaxConfigService)
+        $psaConfig = $this->taxConfig->getPersonalSavingsAllowance();
         $psa = match ($bandPosition) {
-            'personal_allowance', 'basic' => 1000,
-            'higher' => 500,
+            'personal_allowance', 'basic' => (int) ($psaConfig['basic'] ?? 1000),
+            'higher' => (int) ($psaConfig['higher'] ?? 500),
             default => 0,
         };
 

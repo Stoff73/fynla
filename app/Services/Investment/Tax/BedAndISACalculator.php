@@ -57,7 +57,7 @@ class BedAndISACalculator
 
         $cgtAllowance = $options['cgt_allowance'] ?? $cgtConfig['annual_exempt_amount'];
         $isaAllowance = $options['isa_allowance_remaining'] ?? $isaConfig['annual_allowance'];
-        $taxRate = $options['tax_rate'] ?? 0.20;
+        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['higher_rate'] ?? 0.20);
 
         // Get GIA holdings
         $giaHoldings = $this->getGIAHoldings($userId);
@@ -311,12 +311,17 @@ class BedAndISACalculator
      */
     private function estimateAnnualTaxSaving(float $transferValue, Holding $holding): float
     {
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $dividendConfig = $this->taxConfig->getDividendTax();
+        $cgtRate = (float) ($cgtConfig['higher_rate'] ?? 0.20);
+        $dividendBasicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
+
         $annualGrowth = $transferValue * $this->getDefaultExpectedReturn();
-        $cgtSaving = $annualGrowth * 0.20; // 20% CGT
+        $cgtSaving = $annualGrowth * $cgtRate;
 
         // Dividend tax saving
         $annualDividend = $transferValue * ($holding->dividend_yield ?? 0.02);
-        $dividendTaxSaving = $annualDividend * 0.0875; // 8.75% basic rate
+        $dividendTaxSaving = $annualDividend * $dividendBasicRate;
 
         return $cgtSaving + $dividendTaxSaving;
     }
@@ -343,6 +348,8 @@ class BedAndISACalculator
             'isa_allowance_used' => 0,
         ];
 
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtRate = (float) ($cgtConfig['higher_rate'] ?? 0.20);
         $remainingCGT = $cgtAllowance;
         $remainingISA = $isaAllowance;
 
@@ -357,7 +364,7 @@ class BedAndISACalculator
 
             // Recalculate CGT for actual transfer
             $actualGain = ($opp['gain'] / $opp['current_value']) * $actualTransferValue;
-            $cgtLiability = max(0, $actualGain - $remainingCGT) * 0.20;
+            $cgtLiability = max(0, $actualGain - $remainingCGT) * $cgtRate;
 
             // Only proceed if CGT is acceptable (within allowance or very small)
             if ($cgtLiability > 500) {

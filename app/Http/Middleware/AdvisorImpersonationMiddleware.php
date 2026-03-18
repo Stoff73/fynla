@@ -31,7 +31,18 @@ class AdvisorImpersonationMiddleware
 
         $cached = Cache::get("advisor_impersonation:{$tokenId}");
         if ($cached) {
-            $client = User::find($cached['client_id']);
+            $clientId = $cached['client_id'];
+
+            // Validate advisor actually has this client assigned
+            $isAssigned = $user->advisorClients()->where('client_id', $clientId)->exists();
+            if (! $isAssigned) {
+                // Invalid impersonation attempt - clear cache and continue as advisor
+                Cache::forget("advisor_impersonation:{$tokenId}");
+
+                return $next($request);
+            }
+
+            $client = User::find($clientId);
             if ($client) {
                 $request->attributes->set('advisor', $user);
                 auth()->setUser($client);

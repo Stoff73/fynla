@@ -74,7 +74,7 @@ class PostcodeLookupController extends Controller
         // Call GetAddress.io Autocomplete API
         try {
             $response = Http::timeout(10)
-                ->get("https://api.getaddress.io/autocomplete/{$postcode}", [
+                ->get("https://api.getaddress.io/autocomplete/" . urlencode($postcode), [
                     'api-key' => $apiKey,
                 ]);
 

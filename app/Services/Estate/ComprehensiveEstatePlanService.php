@@ -948,28 +948,35 @@ class ComprehensiveEstatePlanService
         $totalCosts = 0;
 
         // Priority 1: Immediate actions (Annual exemption + Trust within NRB)
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $giftingConfig = $this->taxConfig->getGiftingExemptions();
+        $annualExemption = (float) ($giftingConfig['annual_exemption'] ?? 3000);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $annualExemptionIHTSaving = $annualExemption * $ihtRate;
+        $availableNRB = $profile->available_nrb ?? $ihtConfig['nil_rate_band'];
+
         $recommendations[] = [
             'priority' => 1,
             'category' => 'Immediate Actions (Year 1)',
             'actions' => [
                 [
                     'action' => 'Start using annual gifting exemption',
-                    'details' => 'Gift £3,000 per year to beneficiaries using annual exemption',
-                    'iht_saving' => 3000 * 0.40,
+                    'details' => 'Gift £'.number_format($annualExemption, 0).' per year to beneficiaries using annual exemption',
+                    'iht_saving' => $annualExemptionIHTSaving,
                     'cost' => 0,
                     'timeframe' => 'Annual',
                 ],
                 [
                     'action' => 'Establish discretionary trust within NRB',
-                    'details' => 'Transfer £'.number_format($profile->available_nrb ?? $this->taxConfig->getInheritanceTax()['nil_rate_band'], 0).' to discretionary trust',
-                    'iht_saving' => ($profile->available_nrb ?? $this->taxConfig->getInheritanceTax()['nil_rate_band']) * 0.40,
+                    'details' => 'Transfer £'.number_format($availableNRB, 0).' to discretionary trust',
+                    'iht_saving' => $availableNRB * $ihtRate,
                     'cost' => 0,
                     'timeframe' => 'Once-off (Year 1)',
                 ],
             ],
         ];
 
-        $totalIHTSaving += 1200 + (($profile->available_nrb ?? $this->taxConfig->getInheritanceTax()['nil_rate_band']) * 0.40);
+        $totalIHTSaving += $annualExemptionIHTSaving + ($availableNRB * $ihtRate);
 
         // Priority 2: Medium-term strategy (PET cycles)
         if ($giftingPlan['summary']['total_gifted'] > 0) {
@@ -1221,7 +1228,9 @@ class ComprehensiveEstatePlanService
         $impactSummary = $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate');
 
         $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $giftingConfig = $this->taxConfig->getGiftingExemptions();
         $ihtRate = $ihtConfig['standard_rate'];
+        $annualGiftExemption = (float) ($giftingConfig['annual_exemption'] ?? 3000);
         $totalAllowances = ($ihtAnalysis['total_allowances'] ?? 0);
         $currentNetEstate = ($ihtAnalysis['total_net_estate'] ?? 0);
 
@@ -1265,7 +1274,7 @@ class ComprehensiveEstatePlanService
                         : 'Review your estate plan to ensure the additional funds are efficiently allocated',
                     'priority' => $ihtChange > 10000 ? 'high' : 'medium',
                 ];
-            } elseif (! $isIncome && $event['event_type'] === 'gift_given' && $amount >= 3000) {
+            } elseif (! $isIncome && $event['event_type'] === 'gift_given' && $amount >= $annualGiftExemption) {
                 $reviewTriggers[] = [
                     'event_name' => $event['event_name'],
                     'reason' => 'Planned gift of £'.number_format($amount).' is a Potentially Exempt Transfer',

@@ -227,12 +227,17 @@ class ISAAllowanceOptimizer
                 $remainingAllowance - $cumulativeValue
             );
 
+            $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+            $dividendConfig = $this->taxConfig->getDividendTax();
+            $cgtRate = (float) ($cgtConfig['higher_rate'] ?? 0.20);
+            $dividendBasicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
+
             $annualDividend = ($holding->dividend_yield ?? 0) * $transferValue;
             $estimatedAnnualGrowth = $transferValue * $this->getDefaultExpectedReturn();
 
             // Tax savings
-            $dividendTaxSaving = $annualDividend * 0.0875; // 8.75% basic rate
-            $cgtSaving = $estimatedAnnualGrowth * 0.20; // 20% CGT
+            $dividendTaxSaving = $annualDividend * $dividendBasicRate;
+            $cgtSaving = $estimatedAnnualGrowth * $cgtRate;
 
             $recommendations[] = [
                 'holding_id' => $holding->id,
@@ -452,16 +457,19 @@ class ISAAllowanceOptimizer
             ];
         }
 
-        // Assumptions
+        // Assumptions (sourced from TaxConfigService with fallbacks)
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $dividendConfig = $this->taxConfig->getDividendTax();
         $annualReturn = $options['expected_return'] ?? $this->getDefaultExpectedReturn();
         $dividendYield = $options['dividend_yield'] ?? 0.02; // 2% dividend yield
-        $taxRate = $options['tax_rate'] ?? 0.20; // 20% CGT / higher rate income tax
+        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['higher_rate'] ?? 0.20);
+        $dividendBasicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
 
         // Annual savings
         $annualGrowth = $remainingAllowance * $annualReturn;
         $annualDividends = $remainingAllowance * $dividendYield;
         $cgtSaving = $annualGrowth * $taxRate;
-        $dividendTaxSaving = $annualDividends * 0.0875; // 8.75% basic rate
+        $dividendTaxSaving = $annualDividends * $dividendBasicRate;
         $annualSaving = $cgtSaving + $dividendTaxSaving;
 
         // Compound over time (simplified - assumes all savings reinvested)

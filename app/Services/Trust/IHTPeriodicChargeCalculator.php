@@ -10,8 +10,7 @@ use Carbon\Carbon;
 
 class IHTPeriodicChargeCalculator
 {
-    // UK IHT trust charge rates (2025/26 tax year)
-    // These are statutory rates defined by HMRC for relevant property trusts
+    // UK IHT trust charge rates — fallback defaults if TaxConfigService unavailable
     private const IHT_RATE = 0.40; // Standard IHT rate
 
     private const PERIODIC_CHARGE_RATE = 0.06; // 10-year periodic charge (30% of lifetime rate)
@@ -23,6 +22,21 @@ class IHTPeriodicChargeCalculator
     public function __construct(
         private readonly TaxConfigService $taxConfig
     ) {}
+
+    /**
+     * Get trust charge rates from TaxConfigService with constant fallbacks
+     */
+    private function getTrustChargeRates(): array
+    {
+        $trustCharges = $this->taxConfig->getTrustCharges();
+
+        return [
+            'iht_rate' => (float) ($trustCharges['iht_rate'] ?? self::IHT_RATE),
+            'periodic_rate' => (float) ($trustCharges['periodic_rate'] ?? self::PERIODIC_CHARGE_RATE),
+            'entry_charge_max' => (float) ($trustCharges['entry_charge_max'] ?? self::ENTRY_CHARGE_MAX),
+            'exit_charge_max' => (float) ($trustCharges['exit_charge_max'] ?? self::EXIT_CHARGE_MAX),
+        ];
+    }
 
     /**
      * Get Nil Rate Band from config
@@ -74,14 +88,15 @@ class IHTPeriodicChargeCalculator
 
         // Effective rate is 30% of IHT rate (40% * 30% = 12%), applied over 10 years = 6%
         // But it's simplified to 6% of chargeable value every 10 years
-        $periodicCharge = $chargeableValue * self::PERIODIC_CHARGE_RATE;
+        $rates = $this->getTrustChargeRates();
+        $periodicCharge = $chargeableValue * $rates['periodic_rate'];
 
         return [
             'charge_applicable' => true,
             'trust_value' => $trustValue,
             'nil_rate_band' => $this->getNRB(),
             'chargeable_value' => $chargeableValue,
-            'periodic_charge_rate' => self::PERIODIC_CHARGE_RATE,
+            'periodic_charge_rate' => $rates['periodic_rate'],
             'charge_amount' => $periodicCharge,
             'charge_date' => $chargeDate,
             'years_since_creation' => $yearsSinceCreation,
@@ -121,11 +136,12 @@ class IHTPeriodicChargeCalculator
 
         // Exit charge is proportionate to time since last periodic charge
         // Rate = (Periodic charge rate) * (quarters since last charge / 40 quarters)
-        $effectiveRate = self::PERIODIC_CHARGE_RATE * ($quartersSinceLastCharge / 40);
+        $rates = $this->getTrustChargeRates();
+        $effectiveRate = $rates['periodic_rate'] * ($quartersSinceLastCharge / 40);
         $exitCharge = ($assetValue / $trustValue) * $chargeableValue * $effectiveRate;
 
-        // Cap at 6%
-        $exitCharge = min($exitCharge, $assetValue * self::EXIT_CHARGE_MAX);
+        // Cap at exit charge max rate
+        $exitCharge = min($exitCharge, $assetValue * $rates['exit_charge_max']);
 
         return [
             'charge_applicable' => true,
@@ -146,15 +162,16 @@ class IHTPeriodicChargeCalculator
     {
         // Entry charge applies to transfers into discretionary trusts
         // Calculated as 20% of IHT that would be due on the transfer
+        $rates = $this->getTrustChargeRates();
         $chargeableValue = max(0, $assetValue - $this->getNRB());
-        $entryCharge = $chargeableValue * self::IHT_RATE * (self::ENTRY_CHARGE_MAX / self::IHT_RATE);
+        $entryCharge = $chargeableValue * $rates['iht_rate'] * ($rates['entry_charge_max'] / $rates['iht_rate']);
 
         return [
             'charge_applicable' => $chargeableValue > 0,
             'asset_value' => $assetValue,
             'nil_rate_band' => $this->getNRB(),
             'chargeable_value' => $chargeableValue,
-            'entry_charge_rate' => self::ENTRY_CHARGE_MAX,
+            'entry_charge_rate' => $rates['entry_charge_max'],
             'charge_amount' => $entryCharge,
         ];
     }
