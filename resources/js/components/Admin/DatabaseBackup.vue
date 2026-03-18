@@ -288,7 +288,11 @@ export default {
         }
       } catch (error) {
         console.error('Failed to load backups:', error);
-        this.error = error.response?.data?.message || 'Failed to load backup list';
+        if (error.response?.status === 429) {
+          this.error = 'Please wait a moment before refreshing the backup list.';
+        } else {
+          this.error = error.response?.data?.message || 'Failed to load backup list';
+        }
       } finally {
         this.loading = false;
       }
@@ -309,7 +313,11 @@ export default {
         }
       } catch (error) {
         console.error('Failed to create backup:', error);
-        this.error = error.response?.data?.message || 'Failed to create backup';
+        if (error.response?.status === 429) {
+          this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
+        } else {
+          this.error = error.response?.data?.message || 'Failed to create backup';
+        }
       } finally {
         this.creatingBackup = false;
       }
@@ -339,7 +347,11 @@ export default {
         }
       } catch (error) {
         console.error('Failed to restore backup:', error);
-        this.error = error.response?.data?.message || 'Failed to restore backup';
+        if (error.response?.status === 429) {
+          this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
+        } else {
+          this.error = error.response?.data?.message || 'Failed to restore backup';
+        }
       } finally {
         this.restoring = false;
       }
@@ -369,7 +381,11 @@ export default {
         }
       } catch (error) {
         console.error('Failed to delete backup:', error);
-        this.error = error.response?.data?.message || 'Failed to delete backup';
+        if (error.response?.status === 429) {
+          this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
+        } else {
+          this.error = error.response?.data?.message || 'Failed to delete backup';
+        }
       } finally {
         this.deleting = false;
       }
