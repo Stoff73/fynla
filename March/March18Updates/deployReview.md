@@ -1,17 +1,19 @@
 # Code Review Remediation — Deployment Guide
 
 **Date:** 18 March 2026
-**Commits:** 11 commits (54249c6 → 91df362)
-**Total:** 73 files changed, 852 insertions, 597 deletions
+**Commits:** 14 commits (54249c6 → HEAD)
+**Total:** 100 files changed, 1,423 insertions, 821 deletions
+**Tasks:** 94/94 complete
 
 ---
 
 ## Files to Upload
 
-### PHP — Controllers (6 files)
+### PHP — Controllers (7 files)
 ```
 app/Http/Controllers/Api/AdminController.php
 app/Http/Controllers/Api/AuthController.php
+app/Http/Controllers/Api/EstateController.php
 app/Http/Controllers/Api/InvestmentController.php
 app/Http/Controllers/Api/MFAController.php
 app/Http/Controllers/Api/PaymentController.php
@@ -25,10 +27,14 @@ app/Http/Middleware/AgentTokenAuth.php
 app/Http/Middleware/PreviewWriteInterceptor.php
 ```
 
-### PHP — Resources (2 files — NEW)
+### PHP — Resources (6 files — 5 NEW)
 ```
-app/Http/Resources/AdminUserResource.php          ← NEW FILE
-app/Http/Resources/UserResource.php               ← EXISTING (modified)
+app/Http/Resources/AdminUserResource.php          ← NEW
+app/Http/Resources/UserResource.php               ← MODIFIED
+app/Http/Resources/Estate/AssetResource.php       ← NEW
+app/Http/Resources/Estate/GiftResource.php        ← NEW
+app/Http/Resources/Estate/LiabilityResource.php   ← NEW
+app/Http/Resources/Estate/TrustResource.php       ← NEW
 ```
 
 ### PHP — Jobs (1 file)
@@ -47,14 +53,32 @@ app/Models/StatePension.php
 app/Models/User.php
 ```
 
-### PHP — Agents (2 files)
+### PHP — Agents (3 files)
 ```
+app/Agents/CoordinatingAgent.php
 app/Agents/EstateAgent.php
 app/Agents/RetirementAgent.php
 ```
 
-### PHP — Services (20 files)
+### PHP — Traits (1 file)
 ```
+app/Traits/HasAiChat.php
+```
+
+### PHP — Console Commands (1 file)
+```
+app/Console/Commands/SendProtectionAlerts.php
+```
+
+### PHP — Config (1 file)
+```
+config/sanctum.php
+```
+
+### PHP — Services (22 files)
+```
+app/Services/Coordination/HouseholdPlanningService.php
+app/Services/Dashboard/DashboardAggregator.php
 app/Services/Estate/ComprehensiveEstatePlanService.php
 app/Services/Estate/GiftingStrategyOptimizer.php
 app/Services/Estate/IHTCalculationService.php
@@ -89,15 +113,18 @@ database/migrations/2026_03_18_100001_add_unique_constraints_to_has_one_tables.p
 database/migrations/2026_03_18_100002_fix_indexes_and_constraints.php              ← NEW
 ```
 
-### Vue — Components (22 files)
+### Vue — Components (28 files)
 ```
+resources/js/components/Admin/TaxSettings.vue
 resources/js/components/Cash/AccountGroupList.vue
 resources/js/components/Dashboard/FinancialHealthScore.vue
 resources/js/components/Dashboard/GoalsProjectionChartDashboard.vue
 resources/js/components/Estate/LpaDetailView.vue
+resources/js/components/Estate/WillBuilder/steps/WillBuilderReviewStep.vue
 resources/js/components/Goals/GoalsProjectionChart.vue
 resources/js/components/Investment/AllocationComparison.vue
 resources/js/components/Investment/AssetLocationOptimizer.vue
+resources/js/components/Investment/ContributionPlanner.vue
 resources/js/components/Investment/ISAOptimizationStrategy.vue
 resources/js/components/Investment/InvestmentRecommendationsTracker.vue
 resources/js/components/Investment/PlanSections/TaxStrategySection.vue
@@ -108,22 +135,38 @@ resources/js/components/Investment/TaxFees.vue
 resources/js/components/Investment/TaxOptimizationRecommendations.vue
 resources/js/components/NetWorth/InvestmentDetailInline.vue
 resources/js/components/NetWorth/InvestmentList.vue
+resources/js/components/Onboarding/OnboardingWizard.vue
 resources/js/components/Protection/PolicyFormModal.vue
+resources/js/components/Retirement/AnnualAllowanceTracker.vue
 resources/js/components/Retirement/DBPensionForm.vue
 resources/js/components/Retirement/RetirementIncomeTab.vue
 resources/js/components/Savings/SaveAccountModal.vue
 resources/js/components/Savings/SaveGoalModal.vue
+resources/js/components/UserProfile/LetterToSpouse.vue
 ```
 
-### Vue — Mobile (1 file)
+### Vue — Mobile (2 files)
 ```
+resources/js/mobile/layouts/MobileLayout.vue
 resources/js/mobile/views/MobileLoginScreen.vue
 ```
 
-### Vue — Stores (2 files)
+### Vue — Stores (3 files)
 ```
+resources/js/store/modules/auth.js
 resources/js/store/modules/netWorth.js
 resources/js/store/modules/preview.js
+```
+
+### Vue — Services (2 files — NEW)
+```
+resources/js/services/letterService.js     ← NEW
+resources/js/services/privacyService.js    ← NEW
+```
+
+### Vue — Utils (1 file — NEW)
+```
+resources/js/utils/sanitizeHtml.js         ← NEW
 ```
 
 ### Vue — Views (3 files)
@@ -139,9 +182,9 @@ resources/js/views/Trusts/TrustsDashboard.vue
 
 | Type | Count |
 |------|-------|
-| PHP files | 45 |
-| Vue/JS files | 28 |
-| **Total** | **73** |
+| PHP files | 58 |
+| Vue/JS files | 42 |
+| **Total** | **100** |
 
 ---
 

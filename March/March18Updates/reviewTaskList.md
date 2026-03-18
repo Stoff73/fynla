@@ -82,27 +82,27 @@
 
 ### Tax Compliance (Remaining Hardcoded Values)
 - [x] **TASK-53** Replace hardcoded trust charge rates in IHTPeriodicChargeCalculator
-- [ ] **TASK-54** Replace hardcoded trust tax rates in TrustService
+- [x] **TASK-54** Replace hardcoded trust tax rates in TrustService
 - [x] **TASK-55** Replace hardcoded PSA values in UKTaxCalculator
 - [x] **TASK-56** Replace hardcoded PA taper threshold in DividendTaxCalculator
-- [ ] **TASK-57** Fix fragile tax band parsing in HasAiChat trait
+- [x] **TASK-57** Fix fragile tax band parsing in HasAiChat trait
 - [x] **TASK-58** Replace hardcoded gift/IHT values in ComprehensiveEstatePlanService
 - [x] **TASK-59** Replace hardcoded CLT rate in GiftingStrategyOptimizer
 - [x] **TASK-60** Replace hardcoded CGT values in TaxAwareRebalancer + fix outdated comment
 - [x] **TASK-61** Replace hardcoded rates in BedAndISACalculator + ISAAllowanceOptimizer
-- [ ] **TASK-62** Replace hardcoded rates in HouseholdPlanningService
+- [x] **TASK-62** Replace hardcoded rates in HouseholdPlanningService
 
 ### Security & Backend
 - [x] **TASK-63** Tighten preview login rate limits (10/min → 3/min)
 - [x] **TASK-64** Add advisor-client relationship validation in AdvisorImpersonationMiddleware
-- [ ] **TASK-65** Validate column name in CoordinatingAgent whereRaw
+- [x] **TASK-65** Validate column name in CoordinatingAgent whereRaw
 - [x] **TASK-66** Add urlencode() to PostcodeLookupController
-- [ ] **TASK-67** Reduce Sanctum token expiration (480min → 240min)
-- [ ] **TASK-68** Remove legacy localStorage auth_token references
-- [ ] **TASK-69** Add DOMPurify to LpaDetailView and WillBuilderReviewStep v-html usage
-- [ ] **TASK-70** Fix RetirementController silent error handling (add report())
+- [x] **TASK-67** Reduce Sanctum token expiration (480min → 240min)
+- [x] **TASK-68** Remove legacy localStorage auth_token references
+- [x] **TASK-69** Add HTML sanitiser for LpaDetailView and WillBuilderReviewStep v-html usage
+- [x] **TASK-70** Fix RetirementController silent error handling — already had report($e)
 - [x] **TASK-71** Fix AdminController redundant name field (done in Sprint 2)
-- [ ] **TASK-72** Add declare(strict_types=1) to test files missing it
+- [x] **TASK-72** Add declare(strict_types=1) to test files — already present in all 172 files
 - [x] **TASK-73** Add readonly to MarkowitzOptimizer constructor dependencies
 
 ### Frontend Medium Priority
@@ -112,23 +112,23 @@
 - [x] **TASK-77** Replace hardcoded hex in RetirementIncomeTab accent-color
 - [x] **TASK-78** Replace hardcoded hex in TrustsDashboard
 - [x] **TASK-79** Replace hardcoded hex in LpaDetailView
-- [ ] **TASK-80** Move direct API calls to service layer in LetterToSpouse.vue
-- [ ] **TASK-81** Move direct API calls to service layer in OnboardingWizard.vue
-- [ ] **TASK-82** Move direct API calls to service layer in PrivacySettings.vue
-- [ ] **TASK-83** Fix index-as-key in TaxSettings.vue (5 occurrences)
-- [ ] **TASK-84** Fix index-as-key in ContributionPlanner.vue (6 occurrences)
-- [ ] **TASK-85** Fix AnnualAllowanceTracker getHistoricalContributions TODO stub
-- [ ] **TASK-86** Fix MobileLayout milestoneCount TODO stub
-- [ ] **TASK-87** Verify formatDCPensionType returns spelled-out labels in AssetsStep.vue
-- [ ] **TASK-88** Verify all tooltip title attributes use "Stocks & Shares ISA" not "S&S ISA"
+- [x] **TASK-80** Move direct API calls to service layer in LetterToSpouse.vue
+- [x] **TASK-81** Move direct API calls to service layer in OnboardingWizard.vue
+- [x] **TASK-82** Move direct API calls to service layer in PrivacySettings.vue
+- [x] **TASK-83** Fix index-as-key in TaxSettings.vue (5 occurrences)
+- [x] **TASK-84** Fix index-as-key in ContributionPlanner.vue (6 occurrences)
+- [x] **TASK-85** Fix AnnualAllowanceTracker getHistoricalContributions — shows "Not yet tracked" instead of £0
+- [x] **TASK-86** Fix MobileLayout milestoneCount — connected to goals store
+- [x] **TASK-87** Verify formatDCPensionType returns spelled-out labels — confirmed, no abbreviations
+- [x] **TASK-88** Verify all tooltip titles use "Stocks & Shares ISA" — confirmed, no "S&S" in user-facing text
 
 ### Backend (Lower Priority)
-- [ ] **TASK-89** Implement multi-source income for AnnualAllowanceChecker taper calculation
-- [ ] **TASK-90** Create Estate module Resource classes (AssetResource, LiabilityResource, GiftResource, TrustResource)
-- [ ] **TASK-91** Fix DashboardAggregator score exposure (verify API usage, replace with qualitative labels)
-- [ ] **TASK-92** Fix MySQL-specific DATE_ADD in SendProtectionAlerts command
+- [x] **TASK-89** Implement multi-source income for AnnualAllowanceChecker taper calculation
+- [x] **TASK-90** Create Estate module Resource classes (AssetResource, LiabilityResource, GiftResource, TrustResource)
+- [x] **TASK-91** Fix DashboardAggregator score exposure — replaced numeric scores with qualitative labels
+- [x] **TASK-92** Fix MySQL-specific DATE_ADD in SendProtectionAlerts command
 - [x] **TASK-93** Fix IHTStrategyGeneratorService hardcoded "£3,000" string
-- [ ] **TASK-94** Fix EstateAgent double-load of user data
+- [x] **TASK-94** Fix EstateAgent double-load of user data — consolidated to single query
 
 ---
 
@@ -138,8 +138,8 @@
 |--------|-------|------|-----------|
 | Sprint 1 (Critical) | 19 | 19 | 0 |
 | Sprint 2 (High) | 33 | 33 | 0 |
-| Sprint 3 (Medium) | 42 | 22 | 20 |
-| **Total** | **94** | **74** | **20** |
+| Sprint 3 (Medium) | 42 | 42 | 0 |
+| **Total** | **94** | **94** | **0** |
 
 ---
 
