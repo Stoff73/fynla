@@ -912,6 +912,18 @@ export default {
 
     studentLiability() {
       if (!this.isStudentPersona) return null;
+      // Check estate store liabilities first (real user data)
+      const estateLiabilities = this.$store.state.estate?.liabilities || [];
+      const storeLoan = estateLiabilities.find(l => (l.liability_type || '').includes('student'));
+      if (storeLoan) {
+        return {
+          balance: parseFloat(storeLoan.current_balance || 0),
+          name: storeLoan.liability_name || 'Student Loan',
+          interestRate: parseFloat(storeLoan.interest_rate || 0),
+          notes: storeLoan.notes || '',
+        };
+      }
+      // Fallback: net worth overview liabilities
       const overview = this.netWorthOverview;
       const liabilities = overview?.liabilities || [];
       const loan = liabilities.find(l => (l.liability_type || '').includes('student'));
@@ -923,7 +935,7 @@ export default {
           notes: loan.notes || '',
         };
       }
-      // Fallback: use persona JSON data
+      // Fallback: persona JSON data
       const personaLiabilities = this.effectivePersonaData?.liabilities || [];
       const personaLoan = personaLiabilities.find(l => (l.liability_type || '').includes('student'));
       if (personaLoan) {

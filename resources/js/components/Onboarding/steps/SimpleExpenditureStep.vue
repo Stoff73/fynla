@@ -117,12 +117,16 @@ export default {
       error.value = null;
 
       try {
-        await store.dispatch('onboarding/saveStepData', {
-          stepName: 'simple_expenditure',
-          data: {
+        // Save to onboarding step data + persist to user profile
+        await Promise.all([
+          store.dispatch('onboarding/saveStepData', {
+            stepName: 'simple_expenditure',
+            data: { monthly_expenditure: amount.value },
+          }),
+          store.dispatch('userProfile/updatePersonalInfo', {
             monthly_expenditure: amount.value,
-          },
-        });
+          }).catch(() => {}),
+        ]);
         emit('next');
       } catch (err) {
         error.value = err.message || 'Failed to save. Please try again.';
