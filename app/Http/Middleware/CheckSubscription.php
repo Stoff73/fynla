@@ -22,6 +22,7 @@ class CheckSubscription
         'api/bug-report',     // Users should always be able to report issues
         'api/gdpr/',          // GDPR: Users retain data portability/erasure rights regardless of subscription
         'api/admin/',         // Admin users are separately gated by permission middleware
+        'api/advisor/',       // Advisor users are separately gated by advisor middleware
     ];
 
     /**

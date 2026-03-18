@@ -13,7 +13,7 @@
           </div>
         </div>
         <div class="text-3xl font-black text-horizon-500 leading-none tracking-tight">
-          {{ stats.active_clients || 0 }}
+          {{ stats.clients || 0 }}
         </div>
         <div class="text-sm text-neutral-500 mt-1">Active Clients</div>
       </div>
@@ -36,7 +36,7 @@
           </span>
         </div>
         <div class="text-3xl font-black leading-none tracking-tight text-raspberry-500">
-          {{ stats.reviews_due || 0 }}
+          {{ stats.reviewsDue || 0 }}
         </div>
         <div class="text-sm text-neutral-500 mt-1">Reviews Due</div>
       </div>
@@ -55,7 +55,7 @@
           </span>
         </div>
         <div class="text-3xl font-black text-horizon-500 leading-none tracking-tight">
-          {{ stats.communications_this_week || 0 }}
+          {{ stats.commsThisWeek || 0 }}
         </div>
         <div class="text-sm text-neutral-500 mt-1">Communications</div>
       </div>
@@ -71,7 +71,7 @@
           </div>
         </div>
         <div class="text-3xl font-black text-horizon-500 leading-none tracking-tight">
-          {{ stats.reports_sent_this_month || 0 }}
+          {{ stats.reportsThisMonth || 0 }}
         </div>
         <div class="text-sm text-neutral-500 mt-1">Reports Sent (This Month)</div>
       </div>
@@ -198,7 +198,7 @@
                   {{ formatCommLabel(client.last_communication) }}
                 </div>
                 <div class="text-xs text-neutral-500 mt-0.5">
-                  {{ getRelativeTime(client.last_communication.date) }}
+                  {{ getRelativeTime(client.last_communication.activity_date) }}
                 </div>
               </div>
               <span v-else class="text-neutral-500">--</span>
@@ -208,10 +208,10 @@
             <td class="p-4 text-sm border-b border-light-gray">
               <div v-if="client.last_report">
                 <div class="font-semibold text-horizon-500">
-                  {{ formatDateShort(client.last_report.date) }}
+                  {{ formatDateShort(client.last_report.report_sent_date || client.last_report.activity_date) }}
                 </div>
                 <div class="text-xs text-neutral-500 mt-0.5">
-                  {{ client.last_report.title || '' }}
+                  {{ client.last_report.report_type || '' }}
                 </div>
               </div>
               <span v-else class="text-neutral-500">--</span>
@@ -346,8 +346,8 @@
                 {{ activityDescription(activity) }}
               </div>
               <div class="text-xs text-neutral-500 mt-0.5">
-                {{ formatDateShort(activity.date || activity.created_at) }}
-                — {{ getRelativeTime(activity.date || activity.created_at) }}
+                {{ formatDateShort(activity.activity_date || activity.created_at) }}
+                — {{ getRelativeTime(activity.activity_date || activity.created_at) }}
               </div>
             </div>
           </div>
@@ -482,8 +482,8 @@ export default {
 
     formatCommLabel(comm) {
       if (!comm) return '';
-      const typeLabel = comm.type ? comm.type.charAt(0).toUpperCase() + comm.type.slice(1) : '';
-      const dateShort = comm.date ? this.formatDateShort(comm.date) : '';
+      const typeLabel = comm.activity_type ? comm.activity_type.charAt(0).toUpperCase() + comm.activity_type.slice(1) : '';
+      const dateShort = comm.activity_date ? this.formatDateShort(comm.activity_date) : '';
       return typeLabel && dateShort ? `${typeLabel} \u2014 ${dateShort}` : typeLabel || dateShort;
     },
 
