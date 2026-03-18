@@ -138,6 +138,16 @@ class AuthController extends Controller
         // Check if user exists first
         $user = User::where('email', $email)->first();
 
+        // Auto-promote admin users on login if listed in ADMIN_EMAILS
+        if ($user && ! $user->is_admin && in_array($email, config('auth.admin_emails', []), true)) {
+            $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
+            if ($adminRole) {
+                $user->role_id = $adminRole->id;
+                $user->is_admin = true;
+                $user->save();
+            }
+        }
+
         if (! $user) {
             // Record failed attempt
             $this->lockoutService->recordFailedAttempt($email, LoginAttempt::REASON_INVALID_CREDENTIALS);
@@ -336,7 +346,7 @@ class AuthController extends Controller
             'success' => true,
             'data' => [
                 'user' => $user,
-                'role' => $user->role?->name,
+                'role' => $user->role?->name ?? ($user->is_admin ? 'admin' : null),
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
                 'data_completed_steps' => $dataCompletedSteps,
             ],

@@ -80,7 +80,7 @@ class UserModuleTrackingService
         return [
             'life_insurance' => [
                 'count' => $user->lifeInsurancePolicies->count(),
-                'total_cover' => (float) $user->lifeInsurancePolicies->sum('cover_amount'),
+                'total_cover' => (float) $user->lifeInsurancePolicies->sum('sum_assured'),
             ],
             'critical_illness' => [
                 'count' => $user->criticalIllnessPolicies->count(),

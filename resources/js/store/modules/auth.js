@@ -14,7 +14,7 @@ const getters = {
   isAuthenticated: (state) => !!state.token,
   currentUser: (state) => state.user,
   user: (state) => state.user, // Alias for currentUser
-  isAdmin: (state) => state.role === 'admin',
+  isAdmin: (state) => state.role === 'admin' || state.user?.is_admin === true,
   isSupport: (state) => state.role === 'support',
   isAdvisor: (state) => state.user?.is_advisor === true,
   role: (state) => state.role,

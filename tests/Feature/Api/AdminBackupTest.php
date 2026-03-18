@@ -35,9 +35,12 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    // Clean up any test backup files
+    // Clean up any test backup files and stale credential files
     $backupsDir = storage_path('app/backups');
     foreach (glob($backupsDir.'/backup_*.sql') as $file) {
+        @unlink($file);
+    }
+    foreach (glob($backupsDir.'/.my.cnf.*') as $file) {
         @unlink($file);
     }
 });
@@ -159,15 +162,16 @@ describe('Admin Backup API', function () {
             ->assertStatus(200);
     })->skip(! is_executable('/usr/local/bin/mysql') && ! is_executable('/usr/bin/mysql'), 'mysql client not available');
 
-    it('rate limits backup operations to 3 per minute', function () {
+    it('rate limits backup write operations to 3 per minute', function () {
+        // Backup write endpoints (create/restore/delete) are rate limited at 3/min
+        // Use delete with a non-existent file — will return 422 validation error but still counts toward rate limit
         for ($i = 0; $i < 3; $i++) {
             $this->actingAs($this->admin)
-                ->getJson('/api/admin/backup/list')
-                ->assertOk();
+                ->deleteJson('/api/admin/backup/delete', ['filename' => 'backup_2026-01-01_00-00-0'.$i.'.sql']);
         }
 
         $this->actingAs($this->admin)
-            ->getJson('/api/admin/backup/list')
+            ->deleteJson('/api/admin/backup/delete', ['filename' => 'backup_2026-01-01_00-00-03.sql'])
             ->assertStatus(429);
     });
 });

@@ -355,7 +355,7 @@ class AdminController extends Controller
 
             // Create mysqldump command using config file (password not visible in process list)
             $command = sprintf(
-                'mysqldump --defaults-extra-file=%s %s > %s',
+                'mysqldump --defaults-extra-file=%s --single-transaction %s > %s',
                 escapeshellarg($configFile),
                 escapeshellarg($database['database']),
                 escapeshellarg($fullPath)
@@ -414,7 +414,7 @@ class AdminController extends Controller
                     $fullPath = $path.'/'.$file;
                     $backups[] = [
                         'filename' => $file,
-                        'size' => $this->databaseMetrics->formatBytes(filesize($fullPath)),
+                        'size' => filesize($fullPath),
                         'created_at' => date('Y-m-d H:i:s', filemtime($fullPath)),
                         'path' => $fullPath,
                     ];

@@ -46,7 +46,7 @@ it('returns correct sub-area counts and values', function () {
     $user = User::factory()->create();
     \App\Models\LifeInsurancePolicy::factory()->count(3)->create([
         'user_id' => $user->id,
-        'cover_amount' => 100000,
+        'sum_assured' => 100000,
     ]);
 
     $result = $this->service->getModuleStatus($user);

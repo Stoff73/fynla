@@ -31,6 +31,11 @@ class HasPermission
             ], 401);
         }
 
+        // Admin users (via RBAC role or legacy is_admin flag) bypass permission checks
+        if ($this->permissionService->isAdmin($user)) {
+            return $next($request);
+        }
+
         if ($this->permissionService->hasAnyPermission($user, $permissions)) {
             return $next($request);
         }
