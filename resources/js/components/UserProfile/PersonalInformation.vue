@@ -154,13 +154,13 @@
               </div>
             </div>
             <!-- Domicile Info Box -->
-            <div v-if="isDeemedDomiciled" class="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p class="text-body-xs text-blue-700">
+            <div v-if="isDeemedDomiciled" class="mt-4 p-3 bg-violet-50 rounded-lg">
+              <p class="text-body-xs text-violet-700">
                 You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
               </p>
             </div>
-            <div v-else-if="yearsResident !== null && yearsResident < 15" class="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p class="text-body-xs text-blue-700">
+            <div v-else-if="yearsResident !== null && yearsResident < 15" class="mt-4 p-3 bg-violet-50 rounded-lg">
+              <p class="text-body-xs text-violet-700">
                 You will become deemed domiciled after {{ 15 - yearsResident }} more year(s) of UK residence.
               </p>
             </div>
@@ -454,6 +454,7 @@
                 <option value="employed">Employed</option>
                 <option value="part_time">Part-Time</option>
                 <option value="self_employed">Self-Employed</option>
+                <option value="student">Student</option>
                 <option value="retired">Retired</option>
                 <option value="unemployed">Unemployed</option>
                 <option value="other">Other</option>
@@ -526,10 +527,10 @@
                 <p v-if="yearsResident !== null" class="text-body-sm text-neutral-500 mt-1">
                   <strong>Years UK Resident:</strong> {{ yearsResident }} years
                 </p>
-                <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-blue-700">
+                <p v-if="isDeemedDomiciled" class="mt-2 text-body-sm text-violet-700">
                   You are considered deemed domiciled in the UK because you have been resident for at least 15 of the last 20 tax years.
                 </p>
-                <p v-else-if="yearsResident !== null && yearsResident < 15" class="mt-2 text-body-sm text-blue-700">
+                <p v-else-if="yearsResident !== null && yearsResident < 15" class="mt-2 text-body-sm text-violet-700">
                   You will become deemed domiciled after {{ 15 - yearsResident }} more year(s) of UK residence.
                 </p>
               </div>
@@ -734,6 +735,7 @@ export default {
         'employed': 'Employed',
         'part_time': 'Part-Time',
         'self_employed': 'Self-Employed',
+        'student': 'Student',
         'retired': 'Retired',
         'unemployed': 'Unemployed',
         'other': 'Other',

@@ -280,6 +280,28 @@ Check routes: `php artisan route:list --path=endpoint`
 
 ## Testing
 
+### CRITICAL — Browser Testing Rules (NON-NEGOTIABLE)
+
+**These rules override everything. Violating them is an absolute failure.**
+
+1. **"Browser tested" means you INTERACTED with the element in Playwright.** You CLICKED it. You FILLED the form. You SUBMITTED it. You verified the RESULT. Reading a code diff is NOT a browser test. Taking a snapshot without interacting is NOT a test.
+
+2. **You are NOT DONE until every form has been FILLED and SUBMITTED in the browser.** If login fails — ASK THE USER for the verification code. If registration needs help — ASK. Do NOT skip. Do NOT defer. Do NOT write "requires user assistance" and move on.
+
+3. **NEVER write a completion report until ALL testing is actually complete.** Reports are the LAST thing you do. Writing a report before testing is LYING.
+
+4. **Test EVERY journey end-to-end.** Register/login → select stage → fill EVERY field on EVERY step → submit → verify dashboard shows ALL entered data → verify sidebar → verify cards. No shortcuts.
+
+5. **If you cannot test something, say "I COULD NOT TEST THIS."** NEVER say "verified", "pass", or "confirmed" for untested items.
+
+6. **When you hit a blocker, STOP AND ASK THE USER.** Do not give up. Do not skip.
+
+7. **After ANY code change, re-test from Step 1.** Fixes break other things.
+
+8. **Every checkbox you mark [x] must have a corresponding Playwright interaction.**
+
+### Pest Tests
+
 ```bash
 ./vendor/bin/pest                                          # All tests (940+)
 ./vendor/bin/pest tests/Unit/Services/Estate/              # Module tests

@@ -189,7 +189,7 @@ export default {
     });
 
     const openWillBuilder = () => {
-      router.push('/estate/will-builder');
+      window.open('/estate/will-builder', '_blank');
     };
 
     return {

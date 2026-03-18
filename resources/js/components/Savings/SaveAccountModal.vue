@@ -4,7 +4,7 @@
     <!-- Background overlay (modal only) -->
     <div
       v-if="context !== 'onboarding'"
-      class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-black/50 transition-opacity"
     ></div>
 
     <!-- Modal container / inline container -->

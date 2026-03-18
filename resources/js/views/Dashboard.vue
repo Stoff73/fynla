@@ -898,7 +898,8 @@ export default {
     }),
 
     isStudentPersona() {
-      return this.currentUser?.preview_persona_id === 'student';
+      return this.currentUser?.preview_persona_id === 'student'
+        || this.currentUser?.life_stage === 'university';
     },
 
     recentTransactions() {
@@ -1749,6 +1750,7 @@ export default {
       // Student persona: only load modules they actually use
       const moduleLoaders = this.isStudentPersona ? [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
+        { name: 'estate', action: 'estate/fetchEstateData' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
@@ -1787,8 +1789,9 @@ export default {
         this.errors[key] = null;
       });
 
-      // Load financial commitments
+      // Load financial commitments and module completeness
       this.loadFinancialCommitments();
+      this.$store.dispatch('completeness/fetchCompleteness');
 
       const moduleActionCounts = {};
       moduleLoaders.forEach(loader => {

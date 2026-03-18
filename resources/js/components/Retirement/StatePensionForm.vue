@@ -1,5 +1,5 @@
 <template>
-  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'">
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in'">
     <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto'">
       <!-- Header -->
       <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between'">
@@ -147,6 +147,7 @@
 
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-light-gray">
+          <p v-if="validationError" class="text-sm text-raspberry-500 mt-2 mr-auto">{{ validationError }}</p>
           <button
             v-if="context !== 'onboarding'"
             type="button"
@@ -187,6 +188,7 @@ export default {
 
   data() {
     return {
+      validationError: null,
       formData: {
         forecast_weekly_amount: null,
         qualifying_years: null,
@@ -248,14 +250,16 @@ export default {
     },
 
     handleSubmit() {
+      this.validationError = null;
+
       // Basic validation
       if (!this.formData.forecast_weekly_amount || this.formData.forecast_weekly_amount < 0) {
-        alert('Please enter a valid forecast weekly amount');
+        this.validationError = 'Please enter a valid forecast weekly amount';
         return;
       }
 
       if (!this.formData.qualifying_years || this.formData.qualifying_years < 0) {
-        alert('Please enter valid qualifying years');
+        this.validationError = 'Please enter valid qualifying years';
         return;
       }
 
@@ -274,9 +278,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.fixed {
-  animation: fadeIn 0.3s ease-out;
-}
-</style>

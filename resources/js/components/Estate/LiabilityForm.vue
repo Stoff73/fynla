@@ -1,19 +1,19 @@
 <template>
-  <div class="liability-form">
-    <div class="form-header">
-      <h3>{{ isEditMode ? 'Edit Liability' : 'Add New Liability' }}</h3>
-      <p class="subtitle">Track debts and liabilities for estate planning and net worth calculation</p>
+  <div class="bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div class="mb-6 pb-4 border-b-2 border-light-gray">
+      <h3 class="text-xl font-semibold text-horizon-500 mb-2">{{ isEditMode ? 'Edit Liability' : 'Add New Liability' }}</h3>
+      <p class="text-sm text-neutral-500">Track debts and liabilities for estate planning and net worth calculation</p>
     </div>
 
     <form @submit.prevent="handleSubmit">
       <!-- Liability Type -->
-      <div class="form-group">
-        <label for="liability_type">Liability Type</label>
+      <div class="mb-5">
+        <label for="liability_type" class="block text-sm font-medium text-neutral-500 mb-1.5">Liability Type</label>
         <select
           id="liability_type"
           v-model="formData.liability_type"
-          class="form-control"
-          :class="{ 'is-invalid': errors.liability_type }"
+          class="input-field cursor-pointer"
+          :class="{ 'border-raspberry-500': errors.liability_type }"
           @change="handleLiabilityTypeChange"
         >
           <option value="">Select liability type...</option>
@@ -26,149 +26,149 @@
           <option value="business_loan">Business Loan</option>
           <option value="other">Other</option>
         </select>
-        <span v-if="errors.liability_type" class="error-message">
+        <span v-if="errors.liability_type" class="text-sm text-raspberry-500 mt-1 block">
           {{ errors.liability_type }}
         </span>
       </div>
 
       <!-- Liability Name -->
-      <div class="form-group">
-        <label for="liability_name">Liability Name / Description</label>
+      <div class="mb-5">
+        <label for="liability_name" class="block text-sm font-medium text-neutral-500 mb-1.5">Liability Name / Description</label>
         <input
           id="liability_name"
           v-model="formData.liability_name"
           type="text"
-          class="form-control"
-          :class="{ 'is-invalid': errors.liability_name }"
+          class="input-field"
+          :class="{ 'border-raspberry-500': errors.liability_name }"
           :placeholder="liabilityNamePlaceholder"
         />
-        <span v-if="errors.liability_name" class="error-message">
+        <span v-if="errors.liability_name" class="text-sm text-raspberry-500 mt-1 block">
           {{ errors.liability_name }}
         </span>
       </div>
 
       <!-- Current Balance -->
-      <div class="form-group">
-        <label for="current_balance">Current Balance Owed (£)</label>
-        <div class="input-with-icon">
-          <span class="input-icon">£</span>
+      <div class="mb-5">
+        <label for="current_balance" class="block text-sm font-medium text-neutral-500 mb-1.5">Current Balance Owed (£)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">£</span>
           <input
             id="current_balance"
             v-model.number="formData.current_balance"
             type="number"
-            class="form-control with-icon"
-            :class="{ 'is-invalid': errors.current_balance }"
+            class="input-field pl-8"
+            :class="{ 'border-raspberry-500': errors.current_balance }"
             placeholder="0"
             min="0"
             step="0.01"
           />
         </div>
-        <span v-if="errors.current_balance" class="error-message">
+        <span v-if="errors.current_balance" class="text-sm text-raspberry-500 mt-1 block">
           {{ errors.current_balance }}
         </span>
       </div>
 
       <!-- Monthly Payment -->
-      <div class="form-group">
-        <label for="monthly_payment">Monthly Payment (£)</label>
-        <div class="input-with-icon">
-          <span class="input-icon">£</span>
+      <div class="mb-5">
+        <label for="monthly_payment" class="block text-sm font-medium text-neutral-500 mb-1.5">Monthly Payment (£)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">£</span>
           <input
             id="monthly_payment"
             v-model.number="formData.monthly_payment"
             type="number"
-            class="form-control with-icon"
+            class="input-field pl-8"
             placeholder="0"
             min="0"
             step="0.01"
           />
         </div>
-        <small class="form-text">
+        <small class="block mt-1.5 text-xs text-neutral-500 leading-snug">
           Regular monthly payment amount (if applicable)
         </small>
       </div>
 
       <!-- Interest Rate -->
-      <div class="form-group">
-        <label for="interest_rate">Interest Rate (% per annum)</label>
-        <div class="input-with-icon">
-          <span class="input-icon">%</span>
+      <div class="mb-5">
+        <label for="interest_rate" class="block text-sm font-medium text-neutral-500 mb-1.5">Interest Rate (% per annum)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">%</span>
           <input
             id="interest_rate"
             v-model.number="formData.interest_rate"
             type="number"
-            class="form-control with-icon"
-            :class="{ 'is-invalid': errors.interest_rate }"
+            class="input-field pl-8"
+            :class="{ 'border-raspberry-500': errors.interest_rate }"
             placeholder="0.00"
             min="0"
             max="100"
             step="0.01"
           />
         </div>
-        <span v-if="errors.interest_rate" class="error-message">
+        <span v-if="errors.interest_rate" class="text-sm text-raspberry-500 mt-1 block">
           {{ errors.interest_rate }}
         </span>
       </div>
 
       <!-- Maturity Date -->
-      <div class="form-group">
-        <label for="maturity_date">Maturity / End Date</label>
+      <div class="mb-5">
+        <label for="maturity_date" class="block text-sm font-medium text-neutral-500 mb-1.5">Maturity / End Date</label>
         <input
           id="maturity_date"
           v-model="formData.maturity_date"
           type="date"
-          class="form-control"
+          class="input-field"
           :min="todayDate"
         />
-        <small class="form-text">
+        <small class="block mt-1.5 text-xs text-neutral-500 leading-snug">
           Expected date when this liability will be fully repaid
         </small>
       </div>
 
       <!-- Secured Against Asset -->
-      <div class="form-group">
-        <label for="secured_against">Secured Against Asset (Optional)</label>
+      <div class="mb-5">
+        <label for="secured_against" class="block text-sm font-medium text-neutral-500 mb-1.5">Secured Against Asset (Optional)</label>
         <input
           id="secured_against"
           v-model="formData.secured_against"
           type="text"
-          class="form-control"
+          class="input-field"
           placeholder="e.g., Main Residence, Investment Property"
         />
-        <small class="form-text">
+        <small class="block mt-1.5 text-xs text-neutral-500 leading-snug">
           Specify if this liability is secured against a particular asset
         </small>
       </div>
 
       <!-- Priority for Repayment -->
-      <div class="form-group">
-        <div class="checkbox-group">
+      <div class="mb-5">
+        <div class="flex items-center gap-2.5">
           <input
             id="is_priority_debt"
             v-model="formData.is_priority_debt"
             type="checkbox"
-            class="form-checkbox"
+            class="w-[18px] h-[18px] cursor-pointer"
           />
-          <label for="is_priority_debt" class="checkbox-label">
+          <label for="is_priority_debt" class="text-sm text-neutral-500 cursor-pointer !mb-0">
             Priority Debt
           </label>
         </div>
-        <small class="form-text">
+        <small class="block mt-1.5 text-xs text-neutral-500 leading-snug">
           {{ priorityDebtDescription }}
         </small>
       </div>
 
       <!-- Conditional: Mortgage-specific fields -->
-      <div v-if="formData.liability_type === 'mortgage'" class="conditional-fields">
-        <h4 class="section-title">Mortgage Details</h4>
+      <div v-if="formData.liability_type === 'mortgage'" class="mt-6 p-5 bg-eggshell-500 rounded-md border border-light-gray">
+        <h4 class="text-base font-semibold text-neutral-500 mt-0 mb-4 pb-2 border-b border-light-gray">Mortgage Details</h4>
 
-        <div class="form-row">
-          <div class="form-group half-width">
-            <label for="mortgage_type">Mortgage Type</label>
+        <div class="flex gap-4 flex-col sm:flex-row">
+          <div class="mb-5 flex-1">
+            <label for="mortgage_type" class="block text-sm font-medium text-neutral-500 mb-1.5">Mortgage Type</label>
             <select
               id="mortgage_type"
               v-model="formData.mortgage_type"
-              class="form-control"
+              class="input-field cursor-pointer"
             >
               <option value="">Select type...</option>
               <option value="repayment">Repayment</option>
@@ -179,61 +179,61 @@
             </select>
           </div>
 
-          <div class="form-group half-width">
-            <label for="fixed_until">Fixed Rate Until</label>
+          <div class="mb-5 flex-1">
+            <label for="fixed_until" class="block text-sm font-medium text-neutral-500 mb-1.5">Fixed Rate Until</label>
             <input
               id="fixed_until"
               v-model="formData.fixed_until"
               type="date"
-              class="form-control"
+              class="input-field"
             />
           </div>
         </div>
       </div>
 
       <!-- Notes -->
-      <div class="form-group">
-        <label for="notes">Additional Notes (Optional)</label>
+      <div class="mb-5">
+        <label for="notes" class="block text-sm font-medium text-neutral-500 mb-1.5">Additional Notes (Optional)</label>
         <textarea
           id="notes"
           v-model="formData.notes"
-          class="form-control"
+          class="input-field resize-y min-h-[80px]"
           rows="3"
           placeholder="Any additional information about this liability..."
         ></textarea>
       </div>
 
       <!-- Repayment Projection (if monthly payment provided) -->
-      <div v-if="showRepaymentProjection" class="repayment-projection">
-        <div class="projection-header">
+      <div v-if="showRepaymentProjection" class="my-5 p-4 bg-violet-50 border border-raspberry-200 rounded">
+        <div class="flex items-center gap-2 font-semibold text-violet-800 mb-3 text-sm">
           <i class="fas fa-calculator"></i>
           <span>Estimated Repayment Timeline</span>
         </div>
-        <div class="projection-content">
-          <div class="projection-row">
-            <span class="projection-label">Estimated Time to Repay:</span>
-            <span class="projection-value">{{ estimatedMonthsToRepay }} months ({{ estimatedYearsToRepay }} years)</span>
+        <div class="mb-2">
+          <div class="flex justify-between py-1.5 text-sm">
+            <span class="text-violet-900 font-medium">Estimated Time to Repay:</span>
+            <span class="text-violet-800 font-semibold">{{ estimatedMonthsToRepay }} months ({{ estimatedYearsToRepay }} years)</span>
           </div>
-          <div class="projection-row">
-            <span class="projection-label">Total Interest:</span>
-            <span class="projection-value">{{ formatCurrency(estimatedTotalInterest) }}</span>
+          <div class="flex justify-between py-1.5 text-sm">
+            <span class="text-violet-900 font-medium">Total Interest:</span>
+            <span class="text-violet-800 font-semibold">{{ formatCurrency(estimatedTotalInterest) }}</span>
           </div>
-          <div class="projection-row">
-            <span class="projection-label">Total Amount Payable:</span>
-            <span class="projection-value">{{ formatCurrency(estimatedTotalPayable) }}</span>
+          <div class="flex justify-between py-1.5 text-sm">
+            <span class="text-violet-900 font-medium">Total Amount Payable:</span>
+            <span class="text-violet-800 font-semibold">{{ formatCurrency(estimatedTotalPayable) }}</span>
           </div>
         </div>
-        <small class="projection-note">
+        <small class="block text-[11px] text-violet-900 italic">
           * Estimates assume fixed interest rate and regular monthly payments
         </small>
       </div>
 
       <!-- Form Actions -->
-      <div class="form-actions">
-        <button v-if="context !== 'onboarding'" type="button" class="btn btn-secondary" @click="handleCancel">
+      <div class="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-light-gray">
+        <button v-if="context !== 'onboarding'" type="button" class="border border-light-gray text-horizon-500 px-4 py-2 rounded-button font-semibold hover:bg-savannah-100 transition-colors inline-flex items-center gap-2" @click="handleCancel">
           Cancel
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+        <button type="submit" class="bg-raspberry-500 text-white px-4 py-2 rounded-button font-semibold hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2" :disabled="isSubmitting">
           <i v-if="!isSubmitting" class="fas fa-save"></i>
           <i v-else class="fas fa-spinner fa-spin"></i>
           {{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update Liability' : 'Add Liability') }}
@@ -480,265 +480,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.liability-form {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.form-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  @apply border-b-2 border-light-gray;
-}
-
-.form-header h3 {
-  font-size: 20px;
-  font-weight: 600;
-  @apply text-horizon-500;
-  margin: 0 0 8px 0;
-}
-
-.subtitle {
-  font-size: 14px;
-  @apply text-neutral-500;
-  margin: 0;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  @apply text-neutral-500;
-  margin: 24px 0 16px 0;
-  padding-bottom: 8px;
-  @apply border-b border-light-gray;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-}
-
-.half-width {
-  flex: 1;
-}
-
-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  @apply text-neutral-500;
-  margin-bottom: 6px;
-}
-
-label.required::after {
-  content: ' *';
-  @apply text-raspberry-500;
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  @apply border border-horizon-300;
-  border-radius: 6px;
-  transition: border-colour 0.2s;
-}
-
-.form-control:focus {
-  outline: none;
-  @apply border-raspberry-500;
-  @apply ring-2 ring-violet-500/20;
-}
-
-.form-control.is-invalid {
-  @apply border-raspberry-500;
-}
-
-.form-control.is-invalid:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.input-with-icon {
-  position: relative;
-}
-
-.input-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  @apply text-neutral-500;
-  font-weight: 500;
-  pointer-events: none;
-}
-
-.form-control.with-icon {
-  padding-left: 32px;
-}
-
-.error-message {
-  display: block;
-  margin-top: 6px;
-  font-size: 13px;
-  @apply text-raspberry-500;
-}
-
-.form-text {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  @apply text-neutral-500;
-  line-height: 1.4;
-}
-
-select.form-control {
-  cursor: pointer;
-}
-
-textarea.form-control {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.form-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.checkbox-label {
-  font-size: 14px;
-  @apply text-neutral-500;
-  cursor: pointer;
-  margin: 0;
-}
-
-.conditional-fields {
-  margin-top: 24px;
-  padding: 20px;
-  @apply bg-eggshell-500;
-  border-radius: 6px;
-  @apply border border-light-gray;
-}
-
-.repayment-projection {
-  margin: 20px 0;
-  padding: 16px;
-  @apply bg-violet-50;
-  @apply border border-raspberry-200;
-  border-radius: 4px;
-}
-
-.projection-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  @apply text-violet-800;
-  margin-bottom: 12px;
-  font-size: 14px;
-}
-
-.projection-content {
-  margin-bottom: 8px;
-}
-
-.projection-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 14px;
-}
-
-.projection-label {
-  @apply text-violet-900;
-  font-weight: 500;
-}
-
-.projection-value {
-  @apply text-violet-800;
-  font-weight: 600;
-}
-
-.projection-note {
-  display: block;
-  font-size: 11px;
-  @apply text-violet-900;
-  font-style: italic;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
-  padding-top: 20px;
-  @apply border-t border-light-gray;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  @apply bg-raspberry-500;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  @apply bg-raspberry-500;
-}
-
-.btn-secondary {
-  @apply bg-savannah-200;
-  @apply text-neutral-500;
-}
-
-.btn-secondary:hover {
-  @apply bg-savannah-300;
-}
-
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-  }
-
-  .half-width {
-    width: 100%;
-  }
-}
-</style>

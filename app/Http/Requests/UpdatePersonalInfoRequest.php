@@ -46,6 +46,9 @@ class UpdatePersonalInfoRequest extends FormRequest
             'education_level' => ['sometimes', 'nullable', Rule::in(['secondary', 'a_level', 'undergraduate', 'postgraduate', 'professional', 'other'])],
             'charitable_bequest' => ['sometimes', 'nullable', 'boolean'],
             'life_expectancy_override' => ['sometimes', 'nullable', 'integer', 'min:60', 'max:110'],
+            'monthly_expenditure' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'university' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'student_number' => ['sometimes', 'nullable', 'string', 'max:50'],
         ];
     }
 

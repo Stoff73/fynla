@@ -1,7 +1,7 @@
 <template>
   <!-- Onboarding: inline form, no modal. Regular: full modal wrapper. -->
-  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'">
-    <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'">
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in'">
+    <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin'">
       <!-- Header -->
       <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between'">
         <h3 class="text-xl font-semibold text-horizon-500">
@@ -333,6 +333,7 @@
 
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-light-gray">
+          <p v-if="validationError" class="text-sm text-raspberry-500 mt-2 mr-auto">{{ validationError }}</p>
           <button
             v-if="context !== 'onboarding'"
             type="button"
@@ -407,6 +408,7 @@ export default {
         beneficiary_id: null,
         beneficiary_name: '',
       },
+      validationError: null,
       validationErrors: {
         employee_contribution_percent: '',
         employer_contribution_percent: '',
@@ -585,6 +587,7 @@ export default {
     },
 
     handleSubmit() {
+      this.validationError = null;
 
       if (this.isWorkplacePension) {
         this.validateEmployeeContribution();
@@ -598,22 +601,22 @@ export default {
 
       // Basic validation
       if (!this.formData.scheme_type) {
-        alert('Please select a pension type');
+        this.validationError = 'Please select a pension type';
         return;
       }
 
       if (!this.formData.scheme_name) {
-        alert('Please enter a scheme name');
+        this.validationError = 'Please enter a scheme name';
         return;
       }
 
       if (!this.formData.current_fund_value || this.formData.current_fund_value < 0) {
-        alert('Please enter a valid current fund value');
+        this.validationError = 'Please enter a valid current fund value';
         return;
       }
 
       if (this.isWorkplacePension && (!this.formData.annual_salary || this.formData.annual_salary <= 0)) {
-        alert('Please enter your annual salary for workplace pension');
+        this.validationError = 'Please enter your annual salary for workplace pension';
         return;
       }
 
@@ -623,26 +626,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.fixed.inset-0 {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Scrollbar styling */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-savannah-100;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-</style>
