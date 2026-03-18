@@ -155,7 +155,7 @@ Route::prefix('auth')->group(function () {
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
     Route::get('/personas', [PreviewController::class, 'getPersonas']);
-    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/login/{personaId}', [PreviewController::class, 'login'])->middleware('throttle:3,1');
 
     // Authenticated preview routes
     Route::middleware('auth:sanctum')->group(function () {

@@ -14,9 +14,9 @@ use App\Services\Investment\Utilities\StatisticalFunctions;
 class MarkowitzOptimizer
 {
     public function __construct(
-        private MatrixOperations $matrix,
-        private StatisticalFunctions $stats,
-        private CovarianceMatrixCalculator $covCalculator
+        private readonly MatrixOperations $matrix,
+        private readonly StatisticalFunctions $stats,
+        private readonly CovarianceMatrixCalculator $covCalculator
     ) {}
 
     /**

@@ -5,19 +5,24 @@ declare(strict_types=1);
 namespace App\Services\Investment\Rebalancing;
 
 use App\Models\Investment\Holding;
+use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
 /**
  * Tax-aware rebalancing optimizer
  * Minimizes Capital Gains Tax liability when executing rebalancing trades
  *
- * UK CGT Rules (2024/25):
- * - Annual exemption: £12,300
+ * UK CGT Rules (2025/26):
+ * - Annual exemption: £3,000
  * - CGT rates: 10% (basic rate) or 20% (higher rate) for most assets
  * - Can offset losses against gains
  */
 class TaxAwareRebalancer
 {
+    public function __construct(
+        private readonly TaxConfigService $taxConfig
+    ) {}
+
     /**
      * Optimize rebalancing actions to minimize CGT
      *
@@ -31,8 +36,9 @@ class TaxAwareRebalancer
         Collection $holdings,
         array $options = []
     ): array {
-        $cgtAllowance = $options['cgt_allowance'] ?? 3000; // £12,300 for 2024/25
-        $taxRate = $options['tax_rate'] ?? 0.20; // 20% higher rate (default)
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
+        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['basic_rate'] ?? 0.10);
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
         // Separate buy and sell actions
@@ -449,8 +455,9 @@ class TaxAwareRebalancer
         Collection $holdings,
         array $options = []
     ): array {
-        $cgtAllowance = $options['cgt_allowance'] ?? 3000;
-        $taxRate = $options['tax_rate'] ?? 0.20;
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
+        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['basic_rate'] ?? 0.10);
 
         // Calculate CGT for all actions
         $actionsWithCGT = $this->calculateCGTForSellActions(

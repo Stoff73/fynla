@@ -286,23 +286,25 @@ class GiftingStrategyOptimizer
         float $remainingIHTLiability,
         float $ihtRate
     ): array {
-        // CLT attracts immediate 20% charge, then potentially 40% on death within 7 years
+        // CLT attracts immediate lifetime rate charge, then potentially full rate on death within 7 years
         // Amount needed to reduce estate to eliminate remaining IHT
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $cltRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
         $targetGiftAmount = $remainingIHTLiability / $ihtRate;
 
-        // CLT immediate charge (20%)
-        $immediateCLTCharge = $targetGiftAmount * 0.20;
+        // CLT immediate charge
+        $immediateCLTCharge = $targetGiftAmount * $cltRate;
 
-        // Net benefit: 40% IHT saved - 20% CLT charge paid now = 20% net saving
+        // Net benefit: full IHT rate saved - CLT charge paid now
         $netIHTSaved = ($targetGiftAmount * $ihtRate) - $immediateCLTCharge;
 
         return [
             'strategy_name' => 'Chargeable Lifetime Transfer (CLT) into Trust',
             'priority' => 4,
-            'description' => 'Transfer assets into discretionary trust (attracts immediate 20% charge)',
+            'description' => 'Transfer assets into discretionary trust (attracts immediate '.round($cltRate * 100).'% charge)',
             'gift_amount' => round($targetGiftAmount, 2),
             'immediate_clt_charge' => round($immediateCLTCharge, 2),
-            'clt_rate' => 0.20,
+            'clt_rate' => $cltRate,
             'total_gifted' => round($targetGiftAmount, 2),
             'iht_saved' => round($netIHTSaved, 2),
             'risk_level' => 'Medium-High',
@@ -310,12 +312,12 @@ class GiftingStrategyOptimizer
             'implementation_steps' => [
                 'Set up discretionary trust with professional trustees',
                 'Transfer £'.number_format($targetGiftAmount, 0).' into trust',
-                'Pay immediate 20% IHT charge on transfer',
+                'Pay immediate '.round($cltRate * 100).'% Inheritance Tax charge on transfer',
                 'Trust becomes exempt after 7 years',
                 'Consider 10-year anniversary charges (6% every 10 years)',
                 'Maintain trust administration and file IHT100 returns',
             ],
-            'notes' => 'CLT is a last resort strategy. The immediate 20% charge must be paid upfront, but it removes growth from your estate and becomes fully exempt after 7 years.',
+            'notes' => 'CLT is a last resort strategy. The immediate '.round($cltRate * 100).'% charge must be paid upfront, but it removes growth from your estate and becomes fully exempt after 7 years.',
             'cost_benefit_analysis' => [
                 'immediate_cost' => round($immediateCLTCharge, 2),
                 'future_iht_saved' => round($targetGiftAmount * $ihtRate, 2),

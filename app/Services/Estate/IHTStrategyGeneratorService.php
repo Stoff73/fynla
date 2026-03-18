@@ -46,8 +46,8 @@ class IHTStrategyGeneratorService
             'total_gifted' => $totalAnnualGifting,
             'iht_saved' => $annualIhtSaved,
             'implementation_steps' => [
-                'Gift £3,000 per year using annual exemption',
-                'Both spouses can gift £3,000 each (£6,000 total per year)',
+                'Gift £' . number_format($annualExemption) . ' per year using the annual gift exemption',
+                'Both spouses can gift £' . number_format($annualExemption) . ' each (£' . number_format($annualExemption * 2) . ' total per year)',
                 'Unused allowance from previous year can be carried forward one year',
                 "Total potential saving over {$yearsToProject} years: £".number_format($annualIhtSaved, 0),
             ],
