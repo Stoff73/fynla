@@ -951,7 +951,7 @@ export default {
     },
 
     hasAnyFinancialData() {
-      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData;
+      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData || this.hasSavingsData || this.hasActualGoals;
     },
 
     // Check if the user is currently retired
@@ -1374,6 +1374,11 @@ export default {
     hasGoalsData() {
       // Always show goals card - it has empty state
       return true;
+    },
+
+    hasActualGoals() {
+      const goals = this.$store.state.goals?.goals || [];
+      return goals.length > 0;
     },
 
     // ISA Allowance computed — uses server-calculated tracking data
