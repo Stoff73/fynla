@@ -669,8 +669,6 @@ export default {
             county: formData.county || null,
             postcode: formData.postcode || null,
             education_level: formData.education_level || null,
-            university: formData.university || null,
-            student_number: formData.student_number || null,
           };
           const occupationData = {
             occupation: formData.occupation || null,
