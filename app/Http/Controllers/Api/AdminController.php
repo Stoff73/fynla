@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Admin\DatabaseMetricsService;
+use App\Services\Admin\UserModuleTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -307,6 +308,19 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to fetch roles', $e);
         }
+    }
+
+    /**
+     * Get module status for a specific user.
+     */
+    public function moduleStatus(int $id, UserModuleTrackingService $service): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $service->getModuleStatus($user),
+        ]);
     }
 
     /**
