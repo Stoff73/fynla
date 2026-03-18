@@ -6,7 +6,7 @@
       <div class="flex-1 min-w-0">
         <h2 class="text-lg font-black text-horizon-500 truncate">{{ greeting }}, {{ firstName }}</h2>
         <p class="text-sm text-neutral-500 mt-0.5">
-          <span :class="'text-' + stageColour + '-500'" class="font-semibold">{{ stageLabel }}</span>
+          <span :class="stageTextClass" class="font-semibold">{{ stageLabel }}</span>
           <span class="mx-1.5">&middot;</span>
           <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
         </p>
@@ -16,7 +16,7 @@
       <div class="w-full sm:w-48 flex-shrink-0">
         <div class="flex justify-between text-xs mb-1">
           <span class="text-neutral-500">Journey</span>
-          <span :class="'text-' + stageColour + '-500'" class="font-bold">{{ progressPercentage }}%</span>
+          <span :class="stageTextClass" class="font-bold">{{ progressPercentage }}%</span>
         </div>
         <div class="h-1.5 bg-eggshell-500 rounded-full overflow-hidden">
           <div
@@ -45,7 +45,7 @@
       <!-- Step number circle -->
       <div
         class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-        :class="'bg-' + stageColour + '-500'"
+        :class="stageBgClass"
       >
         {{ nextStepNumber }}
       </div>
@@ -63,7 +63,7 @@
       <!-- Continue button for the next step -->
       <button
         class="flex-shrink-0 text-sm font-semibold hover:underline whitespace-nowrap"
-        :class="'text-' + stageColour + '-500'"
+        :class="stageTextClass"
         @click="continueJourney"
       >
         Continue
@@ -189,6 +189,28 @@ export default {
         horizon: 'bg-gradient-to-r from-horizon-500 to-horizon-400',
       };
       return gradients[colour] || 'bg-gradient-to-r from-raspberry-500 to-raspberry-400';
+    },
+
+    stageTextClass() {
+      const map = {
+        violet: 'text-violet-500',
+        spring: 'text-spring-500',
+        raspberry: 'text-raspberry-500',
+        'light-blue': 'text-light-blue-500',
+        horizon: 'text-horizon-500',
+      };
+      return map[this.stageColour] || 'text-raspberry-500';
+    },
+
+    stageBgClass() {
+      const map = {
+        violet: 'bg-violet-500',
+        spring: 'bg-spring-500',
+        raspberry: 'bg-raspberry-500',
+        'light-blue': 'bg-light-blue-500',
+        horizon: 'bg-horizon-500',
+      };
+      return map[this.stageColour] || 'bg-raspberry-500';
     },
   },
 

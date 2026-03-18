@@ -125,7 +125,9 @@ export default {
           }),
           store.dispatch('userProfile/updatePersonalInfo', {
             monthly_expenditure: amount.value,
-          }).catch(() => {}),
+          }).catch((err) => {
+            console.error('Failed to persist monthly expenditure:', err);
+          }),
         ]);
         emit('next');
       } catch (err) {

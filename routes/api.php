@@ -194,6 +194,7 @@ Route::middleware('auth:sanctum')->prefix('journeys')->group(function () {
 // Life Stage routes
 Route::middleware('auth:sanctum')->prefix('life-stage')->group(function () {
     Route::get('/progress', [LifeStageController::class, 'progress']);
+    Route::get('/completeness', [LifeStageController::class, 'completeness']);
     Route::post('/set', [LifeStageController::class, 'setStage']);
     Route::post('/complete-step', [LifeStageController::class, 'completeStep']);
 });

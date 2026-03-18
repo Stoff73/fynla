@@ -347,7 +347,7 @@ import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 // =====================================================================
 const STEP_COMPONENTS = {
   'personal-info': () => import('@/components/UserProfile/PersonalInformation.vue'),
-  'student-loan': () => import('@/components/Estate/LiabilityForm.vue'),
+  'student-loan': () => import('@/components/Onboarding/steps/StudentLoanStep.vue'),
   'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
@@ -490,7 +490,7 @@ export default {
       'personal-info',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals',
+      'goals', 'property-mortgage',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -632,6 +632,10 @@ export default {
     };
 
     const handleLifeStageSkip = () => {
+      const currentStepId = lifeStageSteps.value[lifeStageCurrentIndex.value];
+      if (currentStepId) {
+        store.dispatch('lifeStage/completeStep', currentStepId);
+      }
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
         router.push({ name: 'Dashboard' });
@@ -664,6 +668,9 @@ export default {
             city: formData.city || null,
             county: formData.county || null,
             postcode: formData.postcode || null,
+            education_level: formData.education_level || null,
+            university: formData.university || null,
+            student_number: formData.student_number || null,
           };
           const occupationData = {
             occupation: formData.occupation || null,
@@ -681,7 +688,13 @@ export default {
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
           await api.post('/savings/accounts', formData);
         } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
-          await api.post('/properties', formData);
+          // PropertyForm emits { property: {...}, mortgage: {...} }
+          const propertyData = formData.property || formData;
+          const response = await api.post('/properties', propertyData);
+          // If property has a mortgage, save it linked to the new property
+          if (formData.mortgage && response.data?.data?.id) {
+            await api.post(`/properties/${response.data.data.id}/mortgages`, formData.mortgage);
+          }
         } else if (stepId === 'protection-insurance' && formData) {
           // PolicyFormModal emits with policyType field
           const policyType = formData.policyType || formData.policy_type || 'life';
