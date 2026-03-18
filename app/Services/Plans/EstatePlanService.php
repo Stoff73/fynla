@@ -422,7 +422,8 @@ class EstatePlanService extends BasePlanService
 
         $totalAllowances = ($ihtCalc['nrb_available'] ?? 0) + ($ihtCalc['rnrb_available'] ?? 0);
         $ihtCalc['projected_taxable_estate'] = max(0, $ihtCalc['projected_net_estate'] - $totalAllowances);
-        $ihtCalc['projected_iht_liability'] = $ihtCalc['projected_taxable_estate'] * 0.40;
+        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? $this->taxConfig->getInheritanceTax()['standard_rate'] ?? 0.40);
+        $ihtCalc['projected_iht_liability'] = $ihtCalc['projected_taxable_estate'] * $ihtRate;
 
         // Build iht_summary matching IHTController response shape
         $ihtSummary = [

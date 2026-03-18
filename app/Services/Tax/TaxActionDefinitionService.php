@@ -337,17 +337,20 @@ class TaxActionDefinitionService
      */
     private function determineMarginalRate(float $grossIncome): int
     {
-        $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+        $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
         if ($grossIncome <= $personalAllowance) {
             return 0;
         }
 
-        if ($grossIncome <= $personalAllowance + TaxDefaults::BASIC_RATE_BAND) {
+        if ($grossIncome <= $basicRateLimit) {
             return 20;
         }
 
-        if ($grossIncome <= TaxDefaults::ADDITIONAL_RATE_THRESHOLD) {
+        if ($grossIncome <= $additionalThreshold) {
             return 40;
         }
 
@@ -359,17 +362,20 @@ class TaxActionDefinitionService
      */
     private function determineTaxBand(float $grossIncome): string
     {
-        $personalAllowance = TaxDefaults::PERSONAL_ALLOWANCE;
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
+        $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
         if ($grossIncome <= $personalAllowance) {
             return 'non-taxpayer';
         }
 
-        if ($grossIncome <= $personalAllowance + TaxDefaults::BASIC_RATE_BAND) {
+        if ($grossIncome <= $basicRateLimit) {
             return 'basic rate';
         }
 
-        if ($grossIncome <= TaxDefaults::ADDITIONAL_RATE_THRESHOLD) {
+        if ($grossIncome <= $additionalThreshold) {
             return 'higher rate';
         }
 

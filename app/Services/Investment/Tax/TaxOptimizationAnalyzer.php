@@ -306,7 +306,7 @@ class TaxOptimizationAnalyzer
                     'unrealized_gains' => $currentPosition['unrealized_gains'],
                     'cgt_allowance' => $currentPosition['cgt_allowance'],
                     'excess_gains' => $excessGains,
-                    'potential_tax' => $excessGains * 0.20,
+                    'potential_tax' => $excessGains * (float) ($this->taxConfig->getCapitalGainsTax()['basic_rate'] ?? 0.10),
                 ],
             ];
         }
@@ -322,13 +322,13 @@ class TaxOptimizationAnalyzer
                     number_format($currentPosition['annual_dividend_income'], 2),
                     number_format($currentPosition['dividend_excess'], 2)
                 ),
-                'potential_saving' => $currentPosition['dividend_excess'] * 0.0875, // 8.75% basic rate
+                'potential_saving' => $currentPosition['dividend_excess'] * (float) ($this->taxConfig->getDividendTax()['basic_rate'] ?? 0.0875),
                 'action' => 'Consider moving dividend-paying assets to ISA',
                 'details' => [
                     'dividend_income' => $currentPosition['annual_dividend_income'],
                     'dividend_allowance' => $currentPosition['dividend_allowance'],
                     'excess_dividends' => $currentPosition['dividend_excess'],
-                    'estimated_tax' => $currentPosition['dividend_excess'] * 0.0875,
+                    'estimated_tax' => $currentPosition['dividend_excess'] * (float) ($this->taxConfig->getDividendTax()['basic_rate'] ?? 0.0875),
                 ],
             ];
         }
@@ -413,10 +413,15 @@ class TaxOptimizationAnalyzer
 
         $transferableAmount = min($totalTransferable, $currentPosition['isa_remaining']);
 
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $dividendConfig = $this->taxConfig->getDividendTax();
+        $cgtRate = (float) ($cgtConfig['basic_rate'] ?? 0.10);
+        $dividendBasicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
+
         $annualGrowth = $transferableAmount * $this->getDefaultExpectedReturn();
         $annualDividends = $transferableAmount * 0.02;
-        $cgtSaving = $annualGrowth * 0.20; // 20% CGT on growth
-        $dividendTaxSaving = $annualDividends * 0.0875; // 8.75% dividend tax
+        $cgtSaving = $annualGrowth * $cgtRate;
+        $dividendTaxSaving = $annualDividends * $dividendBasicRate;
 
         return [
             'suitable_holdings' => $suitableHoldings,
@@ -434,12 +439,17 @@ class TaxOptimizationAnalyzer
      */
     private function estimateISATaxSaving(float $amount): float
     {
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $dividendConfig = $this->taxConfig->getDividendTax();
+        $cgtRate = (float) ($cgtConfig['basic_rate'] ?? 0.10);
+        $dividendBasicRate = (float) ($dividendConfig['basic_rate'] ?? 0.0875);
+
         $annualGrowth = $amount * $this->getDefaultExpectedReturn();
         $annualDividends = $amount * 0.02;
 
         // Tax savings
-        $cgtSaving = $annualGrowth * 0.20; // 20% CGT
-        $dividendTaxSaving = $annualDividends * 0.0875; // 8.75% basic rate
+        $cgtSaving = $annualGrowth * $cgtRate;
+        $dividendTaxSaving = $annualDividends * $dividendBasicRate;
 
         return round($cgtSaving + $dividendTaxSaving, 2);
     }
