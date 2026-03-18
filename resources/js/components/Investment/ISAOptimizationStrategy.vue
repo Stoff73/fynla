@@ -1,6 +1,6 @@
 <template>
   <div class="isa-optimization-strategy">
-    <h3 class="text-lg font-semibold text-horizon-500 mb-4">ISA Allowance Optimization</h3>
+    <h3 class="text-lg font-semibold text-horizon-500 mb-4">ISA Allowance Optimisation</h3>
 
     <!-- No Data State -->
     <div v-if="!strategy" class="text-center py-12 text-neutral-500">

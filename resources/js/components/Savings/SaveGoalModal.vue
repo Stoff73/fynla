@@ -11,7 +11,7 @@
 
       <!-- Modal panel -->
       <div
-        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto"
+        class="relative inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto scrollbar-thin"
       >
         <!-- Header -->
         <div class="bg-white px-6 pt-6">
@@ -315,28 +315,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Custom scrollbar for form content */
-.overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: theme('colors.horizon.300') theme('colors.savannah.100');
-}
-
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-eggshell-500;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  @apply bg-savannah-300;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-savannah-400;
-}
-</style>

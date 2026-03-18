@@ -12,7 +12,7 @@
         @click="resetOptimiser"
         class="px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-eggshell-500"
       >
-        New Optimization
+        New Optimisation
       </button>
     </div>
 
@@ -21,7 +21,7 @@
       <!-- Strategy Selection -->
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <label class="block text-sm font-medium text-horizon-500 mb-3">
-          Optimization Strategy
+          Optimisation Strategy
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <button

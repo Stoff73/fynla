@@ -1,3 +1,4 @@
+<!-- DEPRECATED: This component is not currently in use. Scores are banned per Rule 13. -->
 <template>
   <div class="financial-health-score bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">

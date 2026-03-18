@@ -33,7 +33,7 @@
           </div>
           <div class="text-center">
             <p class="text-2xl font-bold mb-1" :class="getScoreColour(analysis?.optimization_score?.score)">
-              {{ analysis?.optimization_score?.score || 0 }}/100
+              {{ optimisationLabel }}
             </p>
             <p class="text-sm text-neutral-500">{{ analysis?.optimization_score?.grade || 'N/A' }}</p>
           </div>
@@ -149,7 +149,7 @@
 
       <!-- Recommendations -->
       <div v-if="recommendations && recommendations.length > 0" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimization Recommendations</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimisation Recommendations</h3>
 
         <div class="space-y-4">
           <div v-for="(rec, index) in recommendations" :key="index" class="border-l-4 p-4 rounded-r-lg" :class="getRecommendationClass(rec.priority)">
@@ -287,7 +287,7 @@
 
       <!-- Action Plan -->
       <div v-if="analysis?.action_plan && analysis.action_plan.length > 0" class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimization Action Plan</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Optimisation Action Plan</h3>
 
         <div class="space-y-3">
           <div v-for="(step, index) in analysis.action_plan" :key="index" class="flex items-start p-4 bg-eggshell-500 rounded-lg border border-light-gray">
@@ -327,6 +327,14 @@ export default {
   computed: {
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
+    },
+
+    optimisationLabel() {
+      const score = this.analysis?.optimization_score?.score || 0;
+      if (score >= 80) return 'Well Optimised';
+      if (score >= 60) return 'Partially Optimised';
+      if (score >= 40) return 'Optimisation Possible';
+      return 'Needs Optimisation';
     },
 
     optimizationScoreChartOptions() {

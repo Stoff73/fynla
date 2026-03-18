@@ -700,12 +700,12 @@ export default {
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  @apply text-horizon-700;
   margin-bottom: 0.5rem;
 }
 
 .page-description {
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .settings-section {
@@ -723,12 +723,12 @@ export default {
 .section-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
   margin: 0;
 }
 
 .section-description {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 0.875rem;
   margin-bottom: 1rem;
 }
@@ -744,26 +744,26 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background-color: #f9fafb;
+  @apply bg-eggshell-50;
   border-radius: 0.375rem;
 }
 
 .consent-info h3 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
   margin: 0 0 0.25rem;
 }
 
 .consent-info p {
   font-size: 0.75rem;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
 }
 
 .toggle-label.always-on {
   font-size: 0.75rem;
-  color: #059669;
+  @apply text-spring-500;
   font-weight: 500;
 }
 
@@ -787,7 +787,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #d1d5db;
+  @apply bg-neutral-300;
   transition: 0.3s;
   border-radius: 24px;
 }
@@ -817,14 +817,12 @@ export default {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  @apply bg-spring-50 border border-spring-200;
   border-radius: 0.375rem;
 }
 
 .export-status.success {
-  background-color: #f0fdf4;
-  border-color: #bbf7d0;
+  @apply bg-spring-50 border-spring-200;
 }
 
 .status-icon {
@@ -832,21 +830,21 @@ export default {
 }
 
 .status-icon.pending {
-  color: #f59e0b;
+  @apply text-violet-500;
 }
 
 .status-icon.success {
-  color: #059669;
+  @apply text-spring-500;
 }
 
 .status-text strong {
   display: block;
-  color: #111827;
+  @apply text-horizon-700;
 }
 
 .status-text p {
   font-size: 0.75rem;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
 }
 
@@ -864,24 +862,22 @@ export default {
 
 .format-selector label {
   font-size: 0.875rem;
-  color: #374151;
+  @apply text-horizon-600;
 }
 
 .format-selector select {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  @apply border border-light-gray;
   border-radius: 0.375rem;
   font-size: 0.875rem;
 }
 
 .danger-section {
-  border: 1px solid #fecaca;
-  background-color: #fef2f2;
+  @apply border border-raspberry-200 bg-raspberry-50;
 }
 
 .info-section {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
+  @apply bg-violet-50 border border-violet-200;
 }
 
 .rights-list {
@@ -893,21 +889,21 @@ export default {
 .rights-list li {
   padding: 0.5rem 0;
   font-size: 0.875rem;
-  color: #1e40af;
+  @apply text-violet-700;
 }
 
 .rights-list li strong {
-  color: #1e3a8a;
+  @apply text-violet-800;
 }
 
 .contact-info {
   margin-top: 1rem;
   font-size: 0.875rem;
-  color: #1e40af;
+  @apply text-violet-700;
 }
 
 .contact-info a {
-  color: #2563eb;
+  @apply text-violet-500;
   text-decoration: underline;
 }
 
@@ -946,14 +942,14 @@ export default {
   padding: 0.5rem;
   background: none;
   border: none;
-  color: #6b7280;
+  @apply text-neutral-500;
   cursor: pointer;
   border-radius: 0.375rem;
   transition: color 0.2s;
 }
 
 .modal-close:hover {
-  color: #111827;
+  @apply text-horizon-700;
 }
 
 /* Step Indicator */
@@ -976,8 +972,7 @@ export default {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #e5e7eb;
-  color: #6b7280;
+  @apply bg-eggshell-100 text-neutral-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -992,13 +987,13 @@ export default {
 }
 
 .step.completed .step-number {
-  background-color: #10b981;
+  @apply bg-spring-500;
   color: white;
 }
 
 .step-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  @apply text-neutral-500;
 }
 
 .step.active .step-label {
@@ -1009,14 +1004,14 @@ export default {
 .step-line {
   flex: 1;
   height: 2px;
-  background-color: #e5e7eb;
+  @apply bg-eggshell-100;
   margin: 0 0.5rem;
   margin-bottom: 1.5rem;
   max-width: 60px;
 }
 
 .step-line.active {
-  background-color: #10b981;
+  @apply bg-spring-500;
 }
 
 /* Wizard Steps */
@@ -1027,7 +1022,7 @@ export default {
 .wizard-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
   margin-bottom: 1.5rem;
 }
 
@@ -1044,7 +1039,7 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 1.5rem;
-  border: 2px solid #e5e7eb;
+  @apply border-2 border-light-gray;
   border-radius: 0.75rem;
   background: white;
   cursor: pointer;
@@ -1053,31 +1048,26 @@ export default {
 }
 
 .deletion-option:hover {
-  @apply border-raspberry-500;
-  background-color: #f0f9ff;
+  @apply border-raspberry-500 bg-savannah-100;
 }
 
 .deletion-option.selected {
-  @apply border-raspberry-500;
-  background-color: #eff6ff;
+  @apply border-raspberry-500 bg-violet-50;
 }
 
 .deletion-option.danger:hover {
-  border-color: #dc2626;
-  background-color: #fef2f2;
+  @apply border-raspberry-500 bg-raspberry-50;
 }
 
 .deletion-option.danger.selected {
-  border-color: #dc2626;
-  background-color: #fef2f2;
+  @apply border-raspberry-500 bg-raspberry-50;
 }
 
 .option-icon {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: #dbeafe;
-  @apply text-raspberry-500;
+  @apply bg-violet-100 text-raspberry-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1085,20 +1075,19 @@ export default {
 }
 
 .option-icon.danger {
-  background-color: #fee2e2;
-  color: #dc2626;
+  @apply bg-raspberry-100 text-raspberry-500;
 }
 
 .deletion-option h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  @apply text-horizon-700;
   margin: 0 0 0.5rem;
 }
 
 .deletion-option p {
   font-size: 0.875rem;
-  color: #6b7280;
+  @apply text-neutral-500;
   margin: 0;
   line-height: 1.5;
 }
@@ -1112,8 +1101,7 @@ export default {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #dbeafe;
-  @apply text-raspberry-500;
+  @apply bg-violet-100 text-raspberry-500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1121,12 +1109,11 @@ export default {
 }
 
 .verification-icon.email {
-  background-color: #fef3c7;
-  color: #f59e0b;
+  @apply bg-violet-100 text-violet-500;
 }
 
 .verification-instruction {
-  color: #6b7280;
+  @apply text-neutral-500;
   font-size: 0.875rem;
 }
 
@@ -1143,7 +1130,7 @@ export default {
   text-align: center;
   font-size: 1.5rem;
   font-weight: 600;
-  border: 2px solid #d1d5db;
+  @apply border-2 border-light-gray;
   border-radius: 0.5rem;
   outline: none;
   transition: all 0.2s;
@@ -1151,12 +1138,11 @@ export default {
 
 .code-input:focus {
   @apply border-raspberry-500;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.1);
 }
 
 .code-input.error {
-  border-color: #dc2626;
-  background-color: #fef2f2;
+  @apply border-raspberry-500 bg-raspberry-50;
 }
 
 .verification-actions {
@@ -1175,8 +1161,7 @@ export default {
 .warning-box {
   display: flex;
   gap: 1rem;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  @apply bg-raspberry-50 border border-raspberry-200;
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -1185,11 +1170,11 @@ export default {
 
 .warning-icon {
   flex-shrink: 0;
-  color: #dc2626;
+  @apply text-raspberry-500;
 }
 
 .warning-content p {
-  color: #991b1b;
+  @apply text-raspberry-800;
   font-size: 0.875rem;
   margin: 0 0 0.5rem;
 }
@@ -1197,7 +1182,7 @@ export default {
 .warning-content ul {
   margin: 0.5rem 0;
   padding-left: 1.25rem;
-  color: #991b1b;
+  @apply text-raspberry-800;
   font-size: 0.75rem;
 }
 
@@ -1207,7 +1192,7 @@ export default {
 }
 
 .warning-note.info {
-  color: #1e40af !important;
+  @apply text-violet-700;
 }
 
 .confirmation-input {
@@ -1218,18 +1203,18 @@ export default {
 .confirmation-input label {
   display: block;
   font-size: 0.875rem;
-  color: #374151;
+  @apply text-horizon-600;
   margin-bottom: 0.5rem;
 }
 
 .confirmation-input strong {
-  color: #dc2626;
+  @apply text-raspberry-500;
 }
 
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  @apply border border-light-gray;
   border-radius: 0.375rem;
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -1238,7 +1223,7 @@ export default {
 .form-input:focus {
   outline: none;
   @apply border-raspberry-500;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(88, 84, 230, 0.1);
 }
 
 .confirmation-actions {
@@ -1252,9 +1237,7 @@ export default {
 
 /* Error & Loading States */
 .error-message {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  @apply bg-raspberry-50 border border-raspberry-200 text-raspberry-500;
   padding: 0.75rem 1rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -1266,7 +1249,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  color: #6b7280;
+  @apply text-neutral-500;
   padding: 1rem;
 }
 
@@ -1292,26 +1275,24 @@ export default {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
+  @apply bg-raspberry-600;
 }
 
 .btn-danger {
-  background-color: #dc2626;
+  @apply bg-raspberry-500;
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #b91c1c;
+  @apply bg-raspberry-700;
 }
 
 .btn-outline {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
+  @apply bg-white border border-light-gray text-horizon-600;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background-color: #f9fafb;
+  @apply bg-eggshell-50;
 }
 
 .btn-link {

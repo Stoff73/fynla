@@ -954,35 +954,6 @@ export default {
   @apply text-violet-800;
 }
 
-.badge-isa {
-  @apply bg-spring-100;
-  @apply text-spring-800;
-}
-
-.badge-gia {
-  @apply bg-violet-100;
-  @apply text-violet-800;
-}
-
-.badge-sipp {
-  @apply bg-purple-100;
-  @apply text-purple-800;
-}
-
-.badge-nsi {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
-}
-
-.badge-bond {
-  @apply bg-violet-100;
-  @apply text-violet-800;
-}
-
-.badge-vct {
-  @apply bg-pink-100;
-  @apply text-pink-800;
-}
 
 .badge-other {
   @apply bg-savannah-100;

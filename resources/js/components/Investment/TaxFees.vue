@@ -24,8 +24,8 @@
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Summary</h3>
         <div class="space-y-3">
           <div class="flex justify-between">
-            <span class="text-sm text-neutral-500">Tax Efficiency Score:</span>
-            <span class="text-sm font-medium text-horizon-500">{{ taxEfficiencyScore }}/100</span>
+            <span class="text-sm text-neutral-500">Tax Efficiency:</span>
+            <span class="text-sm font-medium text-horizon-500">{{ taxEfficiencyLabel }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-sm text-neutral-500">Unrealised Gains:</span>
@@ -110,7 +110,7 @@
 
     <!-- Tax Optimization Opportunities -->
     <div class="bg-white border border-light-gray rounded-lg p-6">
-      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Optimization Opportunities</h3>
+      <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Optimisation Opportunities</h3>
       <div v-if="taxOptimizations && taxOptimizations.length > 0" class="space-y-3">
         <div
           v-for="(opportunity, index) in taxOptimizations"
@@ -129,7 +129,7 @@
           </div>
         </div>
       </div>
-      <p v-else class="text-neutral-500 text-center py-6">No optimization opportunities identified</p>
+      <p v-else class="text-neutral-500 text-center py-6">No optimisation opportunities identified</p>
     </div>
   </div>
 </template>
@@ -152,6 +152,13 @@ export default {
       'isaAllowancePercentage',
       'analysis',
     ]),
+
+    taxEfficiencyLabel() {
+      if (this.taxEfficiencyScore >= 80) return 'Highly Efficient';
+      if (this.taxEfficiencyScore >= 60) return 'Moderately Efficient';
+      if (this.taxEfficiencyScore >= 40) return 'Could Be Improved';
+      return 'Needs Attention';
+    },
 
     feeBreakdown() {
       return this.analysis?.fee_analysis?.fee_breakdown || null;

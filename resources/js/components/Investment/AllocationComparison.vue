@@ -17,7 +17,7 @@
       </div>
 
       <!-- Legend / Details Table -->
-      <div v-if="allocations && allocations.length > 0" class="overflow-x-auto">
+      <div v-if="allocations && allocations.length > 0" class="overflow-x-auto scrollbar-thin">
         <table class="min-w-full divide-y divide-light-gray">
           <thead class="bg-eggshell-500">
             <tr>
@@ -270,23 +270,3 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Custom scrollbar for table */
-.overflow-x-auto::-webkit-scrollbar {
-  height: 8px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  @apply bg-savannah-100;
-  border-radius: 4px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  @apply bg-neutral-500;
-  border-radius: 4px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-horizon-700;
-}
-</style>

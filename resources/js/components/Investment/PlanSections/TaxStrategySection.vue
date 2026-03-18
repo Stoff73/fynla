@@ -1,6 +1,6 @@
 <template>
   <div class="tax-strategy-section">
-    <h4 class="text-md font-semibold text-horizon-500 mb-4">Tax Optimization Strategy</h4>
+    <h4 class="text-md font-semibold text-horizon-500 mb-4">Tax Optimisation Strategy</h4>
 
     <div v-if="!data" class="text-center py-8 text-neutral-500">
       <p>No tax strategy data available</p>
@@ -85,13 +85,13 @@
             </svg>
           </div>
           <p class="text-2xl font-bold text-horizon-500">{{ formatPercentage(data.location_efficiency || 0) }}%</p>
-          <p class="text-xs text-neutral-500 mt-1">Optimization score</p>
+          <p class="text-xs text-neutral-500 mt-1">Optimisation score</p>
         </div>
       </div>
 
       <!-- Key Recommendations -->
       <div v-if="data.recommendations && data.recommendations.length > 0" class="bg-white border border-light-gray rounded-lg p-5">
-        <h5 class="text-sm font-semibold text-neutral-500 mb-4">Tax Optimization Actions</h5>
+        <h5 class="text-sm font-semibold text-neutral-500 mb-4">Tax Optimisation Actions</h5>
         <div class="space-y-3">
           <div
             v-for="(rec, index) in data.recommendations.slice(0, 5)"
