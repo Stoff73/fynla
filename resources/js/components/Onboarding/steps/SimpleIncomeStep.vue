@@ -89,6 +89,24 @@
         </p>
       </div>
 
+      <!-- Registered Blind -->
+      <div class="border-t pt-4">
+        <div class="flex items-center gap-3">
+          <input
+            id="is_registered_blind"
+            v-model="formData.is_registered_blind"
+            type="checkbox"
+            class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+          >
+          <label for="is_registered_blind" class="text-body-sm text-horizon-500">
+            I am registered blind or severely sight impaired
+          </label>
+        </div>
+        <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+          This qualifies you for the Blind Person's Allowance, which reduces your taxable income
+        </p>
+      </div>
+
       <UsefulResources :links="STEP_RESOURCES.simpleIncome" />
     </div>
   </OnboardingStep>
@@ -121,6 +139,7 @@ export default {
       occupation: '',
       monthly_income: null,
       target_retirement_age: null,
+      is_registered_blind: false,
     });
 
     const loading = ref(false);
@@ -157,6 +176,7 @@ export default {
             ? formData.value.monthly_income * 12
             : null,
           target_retirement_age: formData.value.target_retirement_age,
+          is_registered_blind: formData.value.is_registered_blind,
         };
 
         if (showOccupation.value) {
@@ -190,6 +210,7 @@ export default {
         formData.value.employment_status = currentUser.employment_status || '';
         formData.value.occupation = currentUser.occupation || '';
         formData.value.target_retirement_age = currentUser.target_retirement_age || null;
+        formData.value.is_registered_blind = currentUser.is_registered_blind || false;
         if (currentUser.annual_employment_income) {
           formData.value.monthly_income = Math.round(currentUser.annual_employment_income / 12);
         }
@@ -203,6 +224,7 @@ export default {
           if (stepData.employment_status) formData.value.employment_status = stepData.employment_status;
           if (stepData.occupation) formData.value.occupation = stepData.occupation;
           if (stepData.target_retirement_age) formData.value.target_retirement_age = stepData.target_retirement_age;
+          if (stepData.is_registered_blind !== undefined) formData.value.is_registered_blind = stepData.is_registered_blind;
         }
       } catch {
         // No existing data

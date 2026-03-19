@@ -294,6 +294,24 @@
         </div>
       </div>
 
+      <!-- Registered Blind -->
+      <div class="border-t pt-4">
+        <div class="flex items-center gap-3">
+          <input
+            id="is_registered_blind"
+            v-model="formData.is_registered_blind"
+            type="checkbox"
+            class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+          >
+          <label for="is_registered_blind" class="text-body-sm text-horizon-500">
+            I am registered blind or severely sight impaired
+          </label>
+        </div>
+        <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+          This qualifies you for the Blind Person's Allowance, which reduces your taxable income
+        </p>
+      </div>
+
       <UsefulResources :links="STEP_RESOURCES.income" />
     </div>
   </OnboardingStep>
@@ -337,6 +355,7 @@ export default {
       annual_dividend_income: 0,
       annual_interest_income: 0,
       annual_other_income: 0,
+      is_registered_blind: false,
     });
 
     const loading = ref(false);

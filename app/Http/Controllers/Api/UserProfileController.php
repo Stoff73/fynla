@@ -149,6 +149,11 @@ class UserProfileController extends Controller
             unset($updateData['use_separate_expenditure']);
         }
 
+        // Ensure annual_expenditure is set when monthly_expenditure is provided
+        if (isset($updateData['monthly_expenditure']) && ! isset($updateData['annual_expenditure'])) {
+            $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
+        }
+
         $user->update($updateData);
 
         // Create/update expenditure profile with the total
@@ -390,6 +395,11 @@ class UserProfileController extends Controller
         if (isset($validated['use_simple_entry'])) {
             $updateData['expenditure_entry_mode'] = $validated['use_simple_entry'] ? 'simple' : 'category';
             unset($updateData['use_simple_entry']);
+        }
+
+        // Ensure annual_expenditure is set when monthly_expenditure is provided
+        if (isset($updateData['monthly_expenditure']) && ! isset($updateData['annual_expenditure'])) {
+            $updateData['annual_expenditure'] = (float) $updateData['monthly_expenditure'] * 12;
         }
 
         $spouse->update($updateData);

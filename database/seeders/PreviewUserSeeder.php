@@ -386,6 +386,11 @@ class PreviewUserSeeder extends Seeder
             $user->utilities = 0;
         }
 
+        // Charitable donations and registered blind status
+        $user->is_registered_blind = $userData['is_registered_blind'] ?? false;
+        $user->annual_charitable_donations = $userData['annual_charitable_donations'] ?? null;
+        $user->is_gift_aid = $userData['is_gift_aid'] ?? false;
+
         // Address
         if (! empty($userData['address'])) {
             $user->address_line_1 = $userData['address']['line_1'] ?? null;
@@ -497,6 +502,11 @@ class PreviewUserSeeder extends Seeder
             $spouse->rent = 0;
             $spouse->utilities = 0;
         }
+
+        // Charitable donations and registered blind status
+        $spouse->is_registered_blind = $spouseData['is_registered_blind'] ?? false;
+        $spouse->annual_charitable_donations = $spouseData['annual_charitable_donations'] ?? null;
+        $spouse->is_gift_aid = $spouseData['is_gift_aid'] ?? false;
 
         // Domicile information (spouse can have their own domicile data)
         if (! empty($spouseData['domicile'])) {

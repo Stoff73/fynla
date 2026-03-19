@@ -208,6 +208,13 @@
               :is-married="isMarried"
               indent
             />
+            <!-- Gift Aid indicator -->
+            <template v-if="formData.charitable_donations > 0 && isGiftAid">
+              <div class="col-label text-body-sm text-violet-600 py-1 pl-7">Gift Aid claimed</div>
+              <div class="col-value text-body-sm text-violet-600 py-1"></div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-violet-600 py-1"></div>
+              <div v-if="isMarried" class="col-total text-body-sm text-violet-600 py-1"></div>
+            </template>
           </ExpenditureSection>
 
           <!-- Manual Expenditure Total -->
@@ -535,6 +542,24 @@
           :active-person-tab="activePersonTab"
         />
 
+        <!-- Gift Aid toggle - shown when charitable donations > 0 -->
+        <div v-if="formData.charitable_donations > 0" class="card p-4 -mt-2 border-violet-200 bg-violet-50">
+          <div class="flex items-center gap-3">
+            <input
+              id="is_gift_aid"
+              v-model="isGiftAid"
+              type="checkbox"
+              class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+            >
+            <label for="is_gift_aid" class="text-body-sm text-horizon-500 font-medium">
+              I use Gift Aid for my charitable donations
+            </label>
+          </div>
+          <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+            Gift Aid lets charities claim 25p for every £1 you donate, and higher-rate taxpayers can claim back the difference
+          </p>
+        </div>
+
         <!-- Financial Commitments (Read-Only) - Edit Mode -->
         <div v-if="hasAnyCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
           <div class="flex items-center justify-between mb-4">
@@ -734,8 +759,38 @@
           </button>
         </div>
 
-        <!-- Auto-Adjustments Summary -->
-        <div v-if="retiredAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <!-- Simple Entry Mode: Show simple total for retirement -->
+        <div v-if="useSimpleEntry" class="space-y-4 mb-6">
+          <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
+            <p class="text-body-sm text-neutral-500 mb-3">Your current monthly expenditure entered as a simple total. For more detailed retirement planning, switch to detailed breakdown mode.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-3">
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Monthly Expenditure:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Retired Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 0.85) }}</span>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Annual Expenditure:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Retired Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 12 * 0.85) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mt-3">Estimated at 85% of current spending — a common rule of thumb for retirement. Switch to detailed mode for personalised adjustments.</p>
+          </div>
+        </div>
+
+        <!-- Auto-Adjustments Summary (detailed mode only) -->
+        <div v-if="!useSimpleEntry && retiredAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
             <li v-for="(adj, idx) in retiredAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
@@ -747,8 +802,8 @@
           </ul>
         </div>
 
-        <!-- Budget Grid -->
-        <div :class="isMarried ? 'retired-grid-married' : 'retired-grid-single'">
+        <!-- Budget Grid (detailed mode only) -->
+        <div v-if="!useSimpleEntry" :class="isMarried ? 'retired-grid-married' : 'retired-grid-single'">
           <!-- Column Headers -->
           <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
           <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
@@ -999,8 +1054,38 @@
           </button>
         </div>
 
-        <!-- Auto-Adjustments Summary -->
-        <div v-if="widowedAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <!-- Simple Entry Mode: Show simple total for widowed -->
+        <div v-if="useSimpleEntry" class="space-y-4 mb-6">
+          <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
+            <p class="text-body-sm text-neutral-500 mb-3">Your current monthly expenditure entered as a simple total. For more detailed widowed budget planning, switch to detailed breakdown mode.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-3">
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Household Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Widowed Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 0.7) }}</span>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Household Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Widowed Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 12 * 0.7) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mt-3">Estimated at 70% of current household spending for a single-person household. Switch to detailed mode for personalised adjustments.</p>
+          </div>
+        </div>
+
+        <!-- Auto-Adjustments Summary (detailed mode only) -->
+        <div v-if="!useSimpleEntry && widowedAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
             <li v-for="(adj, idx) in widowedAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
@@ -1012,8 +1097,8 @@
           </ul>
         </div>
 
-        <!-- Budget Grid - Single column for widowed (user only) -->
-        <div class="widowed-grid-single">
+        <!-- Budget Grid - Single column for widowed (detailed mode only) -->
+        <div v-if="!useSimpleEntry" class="widowed-grid-single">
           <!-- Column Headers -->
           <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
           <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
@@ -1289,6 +1374,7 @@ export default {
     const activePersonTab = ref('user');
     const simpleMonthlyExpenditure = ref(0);
     const spouseSimpleMonthlyExpenditure = ref(0);
+    const isGiftAid = ref(false);
     const financialCommitments = ref(null);
     const spouseFinancialCommitments = ref(null);
     const loadingCommitments = ref(false);
@@ -1369,7 +1455,8 @@ export default {
     ];
 
     const otherFields = [
-      { key: 'gifts_charity', label: 'Gifts & Charity', placeholder: '50', hint: 'Birthday gifts, charitable giving' },
+      { key: 'gifts_charity', label: 'Gifts & Presents', placeholder: '50', hint: 'Birthday and Christmas gifts' },
+      { key: 'charitable_donations', label: 'Charitable Donations', placeholder: '20', hint: 'Monthly charitable giving' },
       { key: 'other_expenditure', label: 'Other Expenditure', placeholder: '0', hint: 'Any other monthly expenses' },
     ];
 
@@ -1394,6 +1481,7 @@ export default {
       university_fees: 0,
       children_activities: 0,
       gifts_charity: 0,
+      charitable_donations: 0,
       other_expenditure: 0,
     });
 
@@ -1418,6 +1506,7 @@ export default {
       university_fees: 0,
       children_activities: 0,
       gifts_charity: 0,
+      charitable_donations: 0,
       other_expenditure: 0,
     });
 
@@ -1448,7 +1537,7 @@ export default {
 
     // Calculate sub-totals
     const calculateSubtotal = (fields, data) => {
-      return fields.reduce((sum, field) => sum + (data[field.key] || 0), 0);
+      return fields.reduce((sum, field) => sum + (parseFloat(data[field.key]) || 0), 0);
     };
 
     const essentialTotal = computed(() => calculateSubtotal(essentialFields.value, formData.value));
@@ -1502,8 +1591,8 @@ export default {
     const householdTotalAnnualWithCommitments = computed(() => (householdTotalMonthlyWithCommitments.value * 12) + commitmentsLumpSumTotal.value + (props.isMarried ? spouseCommitmentsLumpSumTotal.value : 0));
 
     const getHouseholdValue = (key) => {
-      const userVal = formData.value[key] || 0;
-      const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
+      const userVal = parseFloat(formData.value[key]) || 0;
+      const spouseVal = props.isMarried ? (parseFloat(spouseFormData.value[key]) || 0) : 0;
       return userVal + spouseVal;
     };
 
@@ -1579,7 +1668,8 @@ export default {
         { key: 'children_activities', label: 'Children\'s Activities', hint: 'Typically £0 by retirement age' },
       ],
       other: [
-        { key: 'gifts_charity', label: 'Gifts & Charity' },
+        { key: 'gifts_charity', label: 'Gifts & Presents' },
+        { key: 'charitable_donations', label: 'Charitable Donations' },
         { key: 'other_expenditure', label: 'Other Expenditure' },
       ],
     }));
@@ -1606,8 +1696,8 @@ export default {
     };
 
     const getCurrentBudgetValue = (key) => {
-      const userVal = formData.value[key] || 0;
-      const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
+      const userVal = parseFloat(formData.value[key]) || 0;
+      const spouseVal = props.isMarried ? (parseFloat(spouseFormData.value[key]) || 0) : 0;
       return userVal + spouseVal;
     };
 
@@ -1711,7 +1801,7 @@ export default {
     });
 
     const getRetiredUserValue = (key) => {
-      const currentValue = formData.value[key] || 0;
+      const currentValue = parseFloat(formData.value[key]) || 0;
       const rule = retiredAdjustmentRules[key];
       if (retiredBudgetOverrides.value[key] !== undefined) {
         const householdCurrent = getCurrentBudgetValue(key);
@@ -1726,7 +1816,7 @@ export default {
 
     const getRetiredSpouseValue = (key) => {
       if (!props.isMarried) return 0;
-      const currentValue = spouseFormData.value[key] || 0;
+      const currentValue = parseFloat(spouseFormData.value[key]) || 0;
       const rule = retiredAdjustmentRules[key];
       if (retiredBudgetOverrides.value[key] !== undefined) {
         const householdCurrent = getCurrentBudgetValue(key);
@@ -1858,7 +1948,8 @@ export default {
         { key: 'children_activities', label: 'Children\'s Activities' },
       ],
       other: [
-        { key: 'gifts_charity', label: 'Gifts & Charity' },
+        { key: 'gifts_charity', label: 'Gifts & Presents' },
+        { key: 'charitable_donations', label: 'Charitable Donations' },
         { key: 'other_expenditure', label: 'Other Expenditure' },
       ],
     }));
@@ -2182,6 +2273,17 @@ export default {
         emit('save', saveData);
       }
 
+      // Save charitable donations and Gift Aid to user profile
+      const monthlyCharitable = formData.value.charitable_donations || 0;
+      if (monthlyCharitable > 0 || isGiftAid.value) {
+        store.dispatch('userProfile/updatePersonalInfo', {
+          annual_charitable_donations: monthlyCharitable * 12,
+          is_gift_aid: isGiftAid.value,
+        }).catch((err) => {
+          console.error('Failed to save charitable donations to user profile:', err);
+        });
+      }
+
       if (!props.isOnboarding) {
         isEditing.value = false;
       }
@@ -2210,12 +2312,18 @@ export default {
       initializeFromProps();
       fetchCommitments();
       api.get('/properties').then(res => {
-        properties.value = res.data || [];
+        const data = res.data?.data || res.data;
+        properties.value = Array.isArray(data) ? data : [];
       }).catch(() => {});
       mountTimeout.value = setTimeout(() => {
         initializeRetiredBudget();
         initializeWidowedBudget();
       }, 100);
+
+      // Initialize Gift Aid from user profile
+      if (user.value) {
+        isGiftAid.value = user.value.is_gift_aid || false;
+      }
     });
 
     onBeforeUnmount(() => {
@@ -2231,6 +2339,7 @@ export default {
       useSeparateExpenditure,
       simpleMonthlyExpenditure,
       spouseSimpleMonthlyExpenditure,
+      isGiftAid,
       formData,
       spouseFormData,
       financialCommitments,

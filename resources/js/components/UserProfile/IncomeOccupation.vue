@@ -110,6 +110,11 @@
                 <span class="text-body-sm text-neutral-500">Child Benefit:</span>
                 <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
               </div>
+              <!-- Registered Blind -->
+              <div v-if="form.is_registered_blind" class="flex justify-between">
+                <span class="text-body-sm text-neutral-500">Registered Blind:</span>
+                <span class="text-body-sm text-violet-600 text-right">Blind Person's Allowance applied</span>
+              </div>
             </div>
 
             <!-- HICBC Warning -->
@@ -282,6 +287,24 @@
               <p class="text-body-xs text-neutral-500">Income received from trusts (taxable)</p>
             </div>
 
+            <!-- Registered Blind -->
+            <div class="col-span-full border-t pt-4">
+              <div class="flex items-center gap-3">
+                <input
+                  id="is_registered_blind"
+                  v-model="form.is_registered_blind"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+                >
+                <label for="is_registered_blind" class="text-body-sm text-horizon-500">
+                  I am registered blind or severely sight impaired
+                </label>
+              </div>
+              <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+                This qualifies you for the Blind Person's Allowance, which reduces your taxable income
+              </p>
+            </div>
+
             <!-- Total Annual Income -->
             <div class="pt-4 border-t border-light-gray">
               <div class="flex justify-between items-center">
@@ -341,20 +364,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Income Definitions Panel -->
+    <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
   </div>
 </template>
 
 <script>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
+import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
+import api from '@/services/api';
 
 export default {
   name: 'IncomeOccupation',
 
   components: {
     TaxIncomeCard,
+    IncomeDefinitionsPanel,
   },
 
   setup() {
@@ -363,6 +392,8 @@ export default {
     const submitting = ref(false);
     const successMessage = ref('');
     const errorMessage = ref('');
+
+    const incomeDefinitions = ref(null);
 
     let messageTimeout = null;
 
@@ -402,6 +433,7 @@ export default {
       annual_interest_income: 0,
       annual_pension_income: 0,
       annual_trust_income: 0,
+      is_registered_blind: false,
     });
 
     const totalIncomeValue = computed(() => {
@@ -464,6 +496,7 @@ export default {
           annual_interest_income: Number(incomeOccupation.value.annual_interest_income) || 0,
           annual_pension_income: Number(incomeOccupation.value.annual_pension_income) || 0,
           annual_trust_income: Number(incomeOccupation.value.annual_trust_income) || 0,
+          is_registered_blind: incomeOccupation.value.is_registered_blind || false,
         };
       }
     };
@@ -496,6 +529,8 @@ export default {
           annual_dividend_income: form.value.annual_dividend_income || 0,
           annual_interest_income: form.value.annual_interest_income || 0,
           annual_trust_income: form.value.annual_trust_income || 0,
+          // Registered blind
+          is_registered_blind: form.value.is_registered_blind || false,
           // Clear the income needs update flag since user is updating their income
           income_needs_update: false,
           previous_employment_status: null,
@@ -508,6 +543,14 @@ export default {
 
         successMessage.value = 'Income information updated successfully!';
         isEditing.value = false;
+
+        // Refresh income definitions after income update
+        try {
+          const response = await api.get('/tax/income-definitions');
+          incomeDefinitions.value = response.data.data;
+        } catch (defError) {
+          // Silently fail - income definitions are supplementary
+        }
 
         // Trigger protection analysis refresh if user has protection module data
         try {
@@ -540,6 +583,16 @@ export default {
       errorMessage.value = '';
     };
 
+    onMounted(async () => {
+      try {
+        const response = await api.get('/tax/income-definitions');
+        incomeDefinitions.value = response.data.data;
+      } catch (error) {
+        // Silently fail - income definitions are supplementary
+        console.error('Failed to fetch income definitions:', error);
+      }
+    });
+
     onBeforeUnmount(() => {
       if (messageTimeout) clearTimeout(messageTimeout);
     });
@@ -567,6 +620,7 @@ export default {
       hicbcCharge,
       hicbcNetBenefit,
       hicbcClawbackPercentage,
+      incomeDefinitions,
       handleSubmit,
       handleCancel,
       formatCurrency,

@@ -1,38 +1,55 @@
 # TODO — Fynla
 
-*Last updated: 18 March 2026 by session 05c97dda*
+*Last updated: 19 March 2026 (session 2)*
 
-## Outstanding from This Session
+## Completed This Session
 
-### Implementation Incomplete
-- [ ] `error-*` → `raspberry-*` token standardisation across 43 Vue files (deferred from code review — risk of UI breakage, needs careful visual testing)
-- [ ] PortfolioOptimization.vue:197 — rebalancing plan creation TODO (button shows "coming soon" toast but no backend implementation)
+### Simple Expenditure Bug — BROWSER TESTED, PASSING
+- [x] Register new user → onboard Starting Out → enter £1,500 simple expenditure → skip to dashboard → Expenditure tab
+- [x] Current Budget: Monthly £1,500, Annual £18,000
+- [x] Budget at Retirement: Monthly £1,275 (85%), Annual £15,300
+- [x] Entry mode label: "Simple Total" — correct
+- [x] No NaN values anywhere
+- [x] No widowed tab for single user — correct
+- [x] Screenshot saved: `.playwright-mcp/page-2026-03-19T14-12-10-191Z.png`
+
+### Bug Fixes
+- [x] **LetterToSpouse.vue:958** — `Error loading profile data: TypeError: this.profileData.properties.reduce is not a function` — Properties API returns `{ data: { properties: [] } }` (object) but code expected an array. Fixed: `propertiesRes.data?.properties || propertiesRes.data || propertiesRes || []`
+- [x] **UpdatePersonalInfoRequest.php:46** — `education_level` validation whitelist missing `doctorate`, `foundation`, `hnd` values that the frontend dropdown offers. Added to `Rule::in(...)`.
+
+## Outstanding
+
+### Must Verify — Income Definitions
+- [ ] `IncomeDefinitionsPanel` renders on income tab for real logged-in users (verified for preview personas only)
+- [ ] Charitable donations field saves correctly from ExpenditureForm
+- [ ] Blind Person's Allowance checkbox saves from IncomeStep/IncomeOccupation
+
+### Must Verify — UserResource Changes
+- [ ] Adding ~30 fields to UserResource doesn't break existing sessions or API consumers
+- [ ] Auth flow still works correctly with the larger response payload
 
 ### Tech Debt
-- [ ] `FinancialHealthScore.vue` — marked DEPRECATED, not imported anywhere. Can be deleted when confirmed unused.
-- [ ] Monte Carlo consolidation (TASK-33) — `MonteCarloSimulator` and `MonteCarloEngine` are still two separate implementations. Consolidate into one.
-- [ ] `HouseholdPlanningService` hardcoded rates at lines 253, 903 — IHT rate already uses config with fallback, but worth verifying all paths.
+- [ ] `ExpenditureForm.vue` — heavily modified by multiple agents, needs careful review
+- [ ] Retired/widowed budget for simple mode uses hardcoded 85%/70% estimates — should use TaxConfig or be configurable
 
-### Known Issues
-- [ ] 3 new database migrations need running on production (`2026_03_18_100000`, `100001`, `100002` — SoftDeletes, unique constraints, indexes)
-- [ ] `UserResource` in auth responses may break frontend if it expects fields that are no longer returned — needs browser testing after deploy
-- [ ] Sanctum token expiration reduced from 8hr to 4hr — may cause unexpected logouts for long sessions
+### Features (Backlog)
+- [ ] PortfolioOptimization.vue:197 — rebalancing plan (coming soon toast)
+- [ ] Scottish Income Tax support
+- [ ] Pull benefits warnings/thresholds into onboarding helper text and family dashboard
 
-### Deferred Items
-- [ ] Scottish Income Tax support — no Scottish rate bands implemented. If any users are Scottish taxpayers, rUK rates are applied incorrectly.
-- [ ] `console.log` cleanup — 292 raw calls across 146 Vue files were identified. Only the critical ones (MobileLoginScreen, netWorth.js, preview.js) were fixed. The remaining ~280 need gradual cleanup.
+### Production Deployment
+- [ ] 4 database migrations need running (3 from March 18 + 1 income definitions)
+- [ ] Deploy guide: `March/March19Updates/deploy.md`
+- [ ] `UserResource` changes — test auth flow after deploy
 
-## Context for Next Session
+## Notes
+- 422 on Step 1 save during onboarding could not be reproduced via API — likely transient auth timing after registration. Error is non-blocking (caught at OnboardingWizard.vue:728).
+- `origin/onboardFix` remote branch is stale (merged via PR #139) — can be deleted.
+- `origin/homepage` is a new remote branch fetched this session.
 
-This session completed a full codebase code review (96 findings) and fixed all 94 actionable items across 100 files. New skills were created (plan-and-build, vault-sync) and existing skills updated (session-start, session-end). The fynlaBrain vault is fully synced. Metrics in CLAUDE.md and README.md are current.
+## Active Branches
 
-The codebase is in good shape. The main deployment risk is the `UserResource` change in auth responses — the frontend may expect fields that are now stripped. Test the login flow thoroughly after deploying.
-
-Deploy guide is at `March/March18Updates/deployReview.md`. Run the 3 pending migrations and check for duplicate records before the unique constraints migration.
-
-## Files to Review
-
-- `app/Http/Resources/UserResource.php` — verify frontend compatibility
-- `app/Http/Resources/AdminUserResource.php` — verify admin panel still works
-- `config/sanctum.php` — token expiration changed from 480 to 240 minutes
-- `app/Services/Dashboard/DashboardAggregator.php` — scores replaced with qualitative labels, verify frontend handles the new response shape
+| Branch | Status | Description |
+|--------|--------|-------------|
+| `main` | Stable | onboardFix merged via PR #139 |
+| `logicFix` | Current | Simple expenditure TESTED + LetterToSpouse fix + education_level fix |

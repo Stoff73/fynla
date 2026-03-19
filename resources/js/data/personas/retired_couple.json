@@ -33,6 +33,8 @@
       "county": "Kent",
       "postcode": "TN1 2QE"
     },
+    "annual_charitable_donations": 1200.00,
+    "is_gift_aid": true,
     "domicile": {
       "country_of_birth": "South Africa",
       "uk_arrival_date": "2005-06-01",

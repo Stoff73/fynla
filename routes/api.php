@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
 use App\Http\Controllers\Api\HolisticPlanningController;
 use App\Http\Controllers\Api\HouseholdController;
+use App\Http\Controllers\Api\IncomeDefinitionsController;
 use App\Http\Controllers\Api\InfoGuideController;
 use App\Http\Controllers\Api\Investment\AssetLocationController;
 use App\Http\Controllers\Api\Investment\ContributionOptimizerController;
@@ -972,6 +973,7 @@ Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
 Route::middleware('auth:sanctum')->prefix('tax')->group(function () {
     Route::get('/optimisation-analysis', [TaxOptimisationController::class, 'getAnalysis']);
     Route::get('/strategies', [TaxOptimisationController::class, 'getStrategies']);
+    Route::get('/income-definitions', [IncomeDefinitionsController::class, 'show']);
 });
 
 // Payment routes

@@ -101,6 +101,11 @@ class UserProfileService
      */
     public function updatePersonalInfo(User $user, array $data): User
     {
+        // Ensure annual_expenditure is set when monthly_expenditure is provided
+        if (isset($data['monthly_expenditure']) && ! isset($data['annual_expenditure'])) {
+            $data['annual_expenditure'] = (float) $data['monthly_expenditure'] * 12;
+        }
+
         $user->update($data);
 
         return $user->fresh();

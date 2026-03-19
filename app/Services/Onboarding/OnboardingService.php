@@ -450,6 +450,7 @@ class OnboardingService
             'annual_dividend_income' => $data['annual_dividend_income'] ?? 0,
             'annual_interest_income' => $data['annual_interest_income'] ?? 0,
             'annual_other_income' => $data['annual_other_income'] ?? 0,
+            'is_registered_blind' => $data['is_registered_blind'] ?? false,
         ]);
 
         // Update or create retirement profile if retirement age is provided

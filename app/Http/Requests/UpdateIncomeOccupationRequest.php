@@ -38,6 +38,8 @@ class UpdateIncomeOccupationRequest extends FormRequest
             'annual_other_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'income_needs_update' => ['sometimes', 'nullable', 'boolean'],
             'previous_employment_status' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'annual_charitable_donations' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
+            'is_gift_aid' => ['nullable', 'boolean'],
         ];
     }
 

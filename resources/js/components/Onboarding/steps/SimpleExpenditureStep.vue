@@ -33,6 +33,46 @@
         </p>
       </div>
 
+      <!-- Charitable Donations -->
+      <div class="border-t pt-4">
+        <label for="charitable_donations" class="label">
+          Monthly Charitable Donations
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">&pound;</span>
+          <input
+            id="charitable_donations"
+            v-model.number="charitableDonations"
+            type="number"
+            min="0"
+            step="10"
+            class="input-field pl-8"
+            placeholder="0"
+          >
+        </div>
+        <p class="mt-1 text-body-sm text-neutral-500">
+          Regular monthly giving to charities
+        </p>
+
+        <!-- Gift Aid toggle - shown when charitable donations > 0 -->
+        <div v-if="charitableDonations > 0" class="mt-3 bg-violet-50 border border-violet-200 rounded-lg p-3">
+          <div class="flex items-center gap-3">
+            <input
+              id="is_gift_aid"
+              v-model="isGiftAid"
+              type="checkbox"
+              class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+            >
+            <label for="is_gift_aid" class="text-body-sm text-horizon-500 font-medium">
+              I use Gift Aid for my charitable donations
+            </label>
+          </div>
+          <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+            Gift Aid lets charities claim 25p for every £1 you donate, and higher-rate taxpayers can claim back the difference
+          </p>
+        </div>
+      </div>
+
       <!-- Surplus Preview -->
       <div v-if="monthlySurplus !== null" class="border-t pt-4">
         <div class="bg-eggshell-500 rounded-lg p-4">
@@ -87,6 +127,8 @@ export default {
     const store = useStore();
 
     const amount = ref(null);
+    const charitableDonations = ref(0);
+    const isGiftAid = ref(false);
     const loading = ref(false);
     const error = ref(null);
 
@@ -116,16 +158,34 @@ export default {
       error.value = null;
 
       try {
+        // Build user profile data — set both monthly and annual for downstream services
+        const profileData = {
+          monthly_expenditure: amount.value,
+          annual_expenditure: amount.value * 12,
+          expenditure_entry_mode: 'simple',
+        };
+
+        // Include charitable donations on user model if entered
+        if (charitableDonations.value > 0) {
+          profileData.annual_charitable_donations = charitableDonations.value * 12;
+          profileData.is_gift_aid = isGiftAid.value;
+        }
+
         // Save to onboarding step data + persist to user profile
         await Promise.all([
           store.dispatch('onboarding/saveStepData', {
             stepName: 'simple_expenditure',
-            data: { monthly_expenditure: amount.value },
+            data: {
+              monthly_expenditure: amount.value,
+              charitable_donations: charitableDonations.value,
+              is_gift_aid: isGiftAid.value,
+            },
           }),
-          store.dispatch('userProfile/updatePersonalInfo', {
-            monthly_expenditure: amount.value,
+          store.dispatch('userProfile/updatePersonalInfo', profileData).then(() => {
+            // Refresh auth user so expenditure_entry_mode is available in Vuex
+            store.dispatch('auth/fetchUser').catch(() => {});
           }).catch((err) => {
-            console.error('Failed to persist monthly expenditure:', err);
+            console.error('Failed to persist expenditure data:', err);
           }),
         ]);
         emit('next');
@@ -150,6 +210,12 @@ export default {
       if (currentUser?.monthly_expenditure) {
         amount.value = currentUser.monthly_expenditure;
       }
+      if (currentUser?.annual_charitable_donations) {
+        charitableDonations.value = Math.round(currentUser.annual_charitable_donations / 12);
+      }
+      if (currentUser?.is_gift_aid) {
+        isGiftAid.value = currentUser.is_gift_aid;
+      }
 
       // Load income from the previous step for surplus calculation
       try {
@@ -167,6 +233,12 @@ export default {
         if (stepData?.monthly_expenditure !== undefined) {
           amount.value = stepData.monthly_expenditure;
         }
+        if (stepData?.charitable_donations !== undefined) {
+          charitableDonations.value = stepData.charitable_donations;
+        }
+        if (stepData?.is_gift_aid !== undefined) {
+          isGiftAid.value = stepData.is_gift_aid;
+        }
       } catch {
         // No existing data
       }
@@ -174,6 +246,8 @@ export default {
 
     return {
       amount,
+      charitableDonations,
+      isGiftAid,
       loading,
       error,
       monthlySurplus,

@@ -33,6 +33,8 @@
       "city": "Manchester",
       "postcode": "M3 4LQ"
     },
+    "annual_charitable_donations": 600.00,
+    "is_gift_aid": true,
     "domicile": {
       "country_of_birth": "South Africa",
       "uk_arrival_date": "2018-03-15",
