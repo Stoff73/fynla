@@ -181,7 +181,10 @@ export default {
               is_gift_aid: isGiftAid.value,
             },
           }),
-          store.dispatch('userProfile/updatePersonalInfo', profileData).catch((err) => {
+          store.dispatch('userProfile/updatePersonalInfo', profileData).then(() => {
+            // Refresh auth user so expenditure_entry_mode is available in Vuex
+            store.dispatch('auth/fetchUser').catch(() => {});
+          }).catch((err) => {
             console.error('Failed to persist expenditure data:', err);
           }),
         ]);
