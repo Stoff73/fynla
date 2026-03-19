@@ -3,17 +3,48 @@
     <!-- STATE 1: Stage Selection (no stage chosen yet) -->
     <div v-if="!selectedStage" class="bg-white rounded-lg border border-light-gray shadow-sm p-6 mb-6">
       <!-- Welcome Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-h2 font-display text-horizon-500 mb-2">
-            Where are you in your financial journey?
+            Welcome to Fynla
           </h1>
           <p class="text-body text-neutral-500">
-            Choose the stage that best describes where you are right now.
+            Your personal financial companion — let's get you set up.
           </p>
         </div>
         <img :src="logoImage" alt="Fynla" class="h-24 w-auto hidden sm:block">
       </div>
+
+      <!-- Onboarding Intro -->
+      <div class="bg-eggshell-500 border border-light-gray rounded-lg p-5 mb-8">
+        <p class="text-body-sm text-horizon-500 mb-3">
+          In just a few minutes, we'll build a personalised picture of your finances. By the end, you'll have:
+        </p>
+        <ul class="space-y-2 text-body-sm text-neutral-500">
+          <li class="flex items-start">
+            <svg class="w-4 h-4 text-spring-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            A clear view of your income, spending, and savings
+          </li>
+          <li class="flex items-start">
+            <svg class="w-4 h-4 text-spring-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            Personalised insights tailored to your life stage
+          </li>
+          <li class="flex items-start">
+            <svg class="w-4 h-4 text-spring-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            Actionable goals and a dashboard to track your progress
+          </li>
+          <li class="flex items-start">
+            <svg class="w-4 h-4 text-spring-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            Links to helpful resources from Gov.uk, MoneyHelper, and more
+          </li>
+        </ul>
+        <p class="text-body-sm text-neutral-500 mt-3">
+          You can skip any step and come back to it later — nothing is locked in.
+        </p>
+      </div>
+
+      <!-- Stage Selection -->
+      <h2 class="text-lg font-bold text-horizon-500 mb-4">Where are you in your financial journey?</h2>
 
       <!-- Life Stage Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
