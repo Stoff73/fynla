@@ -134,14 +134,21 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'get_tax_information',
-                'description' => 'Get current UK tax year information for a specific topic. Use this when the user asks about tax thresholds, allowances, or rates.',
+                'description' => 'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'topic' => [
                             'type' => 'string',
-                            'enum' => ['income_tax', 'capital_gains', 'inheritance_tax', 'isa_allowances', 'pension_allowances'],
-                            'description' => 'The tax topic to retrieve information for',
+                            'enum' => [
+                                'income_tax', 'national_insurance', 'capital_gains', 'dividend_tax',
+                                'inheritance_tax', 'gifting_exemptions', 'stamp_duty',
+                                'isa_allowances', 'pension_allowances', 'state_pension',
+                                'benefits', 'savings_config', 'assumptions',
+                                'investment_bonds', 'venture_capital',
+                                'protection_config', 'retirement_config', 'domicile',
+                            ],
+                            'description' => 'The tax or financial configuration topic to retrieve',
                         ],
                     ],
                     'required' => ['topic'],

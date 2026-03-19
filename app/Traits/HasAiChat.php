@@ -18,6 +18,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\Property;
 use App\Models\User;
+use App\Constants\TaxDefaults;
 use App\Services\PrerequisiteGateService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -314,6 +315,7 @@ You are Fynla Assistant, a professional financial planning assistant built into 
 4. Risk warnings. When discussing investments or pensions, include an appropriate caveat that the value of investments can go down as well as up, and past performance is not a reliable indicator of future results.
 5. Tax caveats. Tax rules are based on current UK legislation and the 2025/26 tax year. Tax treatment depends on individual circumstances and may change. Always caveat tax-related guidance accordingly.
 6. No market timing. Never suggest that now is a good or bad time to invest, buy, or sell based on market conditions.
+7. Tax data accuracy. NEVER state tax rates, thresholds, allowances, or financial product details from memory. ALWAYS use the get_tax_information tool to retrieve current values from the centralised tax configuration before quoting any figures. This applies to income tax bands, National Insurance rates, Capital Gains Tax rates, Inheritance Tax thresholds, ISA allowances, pension limits, Stamp Duty Land Tax bands, benefits rates, and all investment product tax treatment (Individual Savings Accounts, General Investment Accounts, onshore/offshore bonds, Venture Capital Trusts, Enterprise Investment Schemes, Seed Enterprise Investment Schemes).
 </regulatory_compliance>
 
 <user_profile>
@@ -867,13 +869,13 @@ DATA_CREATION_GUIDANCE;
     {
         try {
             $incomeTax = $this->taxConfig->getIncomeTax();
-            $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
-            $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
-            $additionalRateLimit = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
+            $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
+            $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? TaxDefaults::BASIC_RATE_BAND);
+            $additionalRateLimit = (float) ($incomeTax['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
         } catch (\Exception) {
-            $personalAllowance = 12570.0;
-            $basicRateLimit = 50270.0;
-            $additionalRateLimit = 125140.0;
+            $personalAllowance = (float) TaxDefaults::PERSONAL_ALLOWANCE;
+            $basicRateLimit = (float) TaxDefaults::HIGHER_RATE_THRESHOLD;
+            $additionalRateLimit = (float) TaxDefaults::ADDITIONAL_RATE_THRESHOLD;
         }
 
         if ($totalIncome <= $personalAllowance) {

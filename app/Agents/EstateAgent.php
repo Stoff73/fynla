@@ -578,8 +578,11 @@ class EstateAgent extends BaseAgent
         if ($status === 'below' && $potentialSaving > 0) {
             // Show the IHT rate reduction calculation
             $taxableEstate = $ctx['taxable_estate'];
-            $currentTax = $taxableEstate * 0.40;
-            $reducedTax = $taxableEstate * 0.36;
+            $ihtConfig = $this->taxConfig->getInheritanceTax();
+            $standardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+            $reducedRate = (float) ($ihtConfig['reduced_rate_charity'] ?? 0.36);
+            $currentTax = $taxableEstate * $standardRate;
+            $reducedTax = $taxableEstate * $reducedRate;
 
             $trace[] = [
                 'question' => 'How much additional charitable giving is needed and what would it save?',
@@ -864,7 +867,8 @@ class EstateAgent extends BaseAgent
         $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
 
         // IHT saved at 40% rate
-        $potentialSavings = min($annualGiftingCapacity * 0.40, $remainingLiability);
+        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $potentialSavings = min($annualGiftingCapacity * $ihtRate, $remainingLiability);
 
         $coversLiability = $potentialSavings >= $remainingLiability;
 
@@ -994,7 +998,8 @@ class EstateAgent extends BaseAgent
 
         // Each cycle can gift up to NRB tax-efficiently
         $petCapacity = $sevenYearCycles * $nrb;
-        $potentialSavings = min($petCapacity * 0.40, $remainingLiability);
+        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $potentialSavings = min($petCapacity * $ihtRate, $remainingLiability);
 
         if ($sevenYearCycles >= 1) {
             $coversLiability = $potentialSavings >= $remainingLiability;
@@ -1154,8 +1159,8 @@ class EstateAgent extends BaseAgent
         $rnrbIndividual = (float) ($ihtCalc['rnrb_individual'] ?? 0);
         $totalAllowances = (float) ($ihtCalc['total_allowances'] ?? 0);
         $taxableEstate = (float) ($ihtCalc['taxable_estate'] ?? 0);
-        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? 0.40);
-        $ihtRatePercent = (int) ($ihtCalc['iht_rate_percent'] ?? 40);
+        $ihtRate = (float) ($ihtCalc['iht_rate'] ?? ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE));
+        $ihtRatePercent = (int) ($ihtRate * 100);
 
         // Build estate composition description
         $estateDesc = 'Gross estate £'.number_format($grossEstate, 0);
@@ -1475,7 +1480,8 @@ class EstateAgent extends BaseAgent
         $annualGiftAmount = $parameters['annual_gift'] ?? 3000;
 
         $totalGifted = $annualGiftAmount * $yearsOfGifting;
-        $ihtSaved = $totalGifted * 0.4; // 40% IHT rate
+        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtSaved = $totalGifted * $ihtRate;
 
         return [
             'name' => "Gifting Strategy ({$yearsOfGifting} years)",
@@ -1496,12 +1502,14 @@ class EstateAgent extends BaseAgent
         $current = $this->buildCurrentScenario($user);
         $equityRelease = $parameters['equity_release'] ?? 200000;
 
+        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+
         return [
             'name' => 'Property Downsizing',
             'gross_estate' => $current['gross_estate'] - $equityRelease,
             'net_estate' => $current['net_estate'] - $equityRelease,
-            'iht_liability' => max(0, $current['iht_liability'] - ($equityRelease * 0.4)),
-            'to_beneficiaries' => $current['net_estate'] - $equityRelease - max(0, $current['iht_liability'] - ($equityRelease * 0.4)),
+            'iht_liability' => max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
+            'to_beneficiaries' => $current['net_estate'] - $equityRelease - max(0, $current['iht_liability'] - ($equityRelease * $ihtRate)),
             'cash_released' => $equityRelease,
         ];
     }
@@ -1515,7 +1523,8 @@ class EstateAgent extends BaseAgent
         $trustValue = $parameters['trust_value'] ?? 325000;
 
         // Discretionary trust within NRB
-        $ihtReduction = min($trustValue * 0.4, $current['iht_liability']);
+        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtReduction = min($trustValue * $ihtRate, $current['iht_liability']);
 
         return [
             'name' => 'Trust Creation Strategy',

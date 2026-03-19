@@ -744,14 +744,34 @@ class CoordinatingAgent extends BaseAgent
     {
         $topic = $input['topic'];
 
-        return match ($topic) {
-            'income_tax' => $this->taxConfig->getIncomeTax(),
-            'capital_gains' => $this->taxConfig->getCapitalGainsTax(),
-            'inheritance_tax' => $this->taxConfig->getInheritanceTax(),
-            'isa_allowances' => $this->taxConfig->getISAAllowances(),
-            'pension_allowances' => $this->taxConfig->getPensionAllowances(),
-            default => ['error' => "Unknown tax topic: {$topic}"],
-        };
+        // Cache tax config lookups for 5 minutes to save token cost on repeated queries
+        return Cache::remember("ai_tax_info_{$topic}", 300, function () use ($topic) {
+            return match ($topic) {
+                'income_tax' => $this->taxConfig->getIncomeTax(),
+                'national_insurance' => $this->taxConfig->getNationalInsurance(),
+                'capital_gains' => $this->taxConfig->getCapitalGainsTax(),
+                'dividend_tax' => $this->taxConfig->getDividendTax(),
+                'inheritance_tax' => $this->taxConfig->getInheritanceTax(),
+                'gifting_exemptions' => $this->taxConfig->getGiftingExemptions(),
+                'stamp_duty' => $this->taxConfig->getStampDuty(),
+                'isa_allowances' => $this->taxConfig->getISAAllowances(),
+                'pension_allowances' => $this->taxConfig->getPensionAllowances(),
+                'state_pension' => $this->taxConfig->get('pension.state_pension', []),
+                'benefits' => $this->taxConfig->getBenefits(),
+                'savings_config' => $this->taxConfig->getSavingsConfig(),
+                'assumptions' => $this->taxConfig->getAssumptions(),
+                'investment_bonds' => [
+                    'onshore_bond_minimum' => $this->taxConfig->get('investment.waterfall.onshore_bond_minimum'),
+                    'offshore_bond_minimum' => $this->taxConfig->get('investment.waterfall.offshore_bond_minimum'),
+                    'tax_treatment' => 'Onshore bonds have 20% tax credit, 5% annual tax-deferred withdrawals, and top-slicing relief. Offshore bonds have gross roll-up with no tax credit, same 5% withdrawals, and time apportionment relief.',
+                ],
+                'venture_capital' => $this->taxConfig->get('investment.venture_capital', []),
+                'protection_config' => $this->taxConfig->getProtectionConfig(),
+                'retirement_config' => $this->taxConfig->getRetirementConfig(),
+                'domicile' => $this->taxConfig->getDomicile(),
+                default => ['error' => "Unknown tax topic: {$topic}"],
+            };
+        });
     }
 
     private function handleFinancialPlan(User $user): array
