@@ -478,6 +478,22 @@
                     />
                     <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.isa.lifetime_isa.government_bonus_rate * 100).toFixed(2) }}%</p>
                   </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Max Age to Open</label>
+                    <p class="font-medium">{{ currentConfig.isa?.lifetime_isa?.max_age_to_open }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Early Withdrawal Penalty</label>
+                    <p class="font-semibold text-raspberry-600">{{ ((currentConfig.isa?.lifetime_isa?.withdrawal_penalty ?? 0) * 100).toFixed(0) }}%</p>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t pt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Junior ISA Max Age</label>
+                    <p class="font-medium">{{ currentConfig.isa?.junior_isa?.max_age }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1100,6 +1116,29 @@
             </div>
           </div>
 
+          <!-- Pension Tax Relief -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Pension Tax Relief</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Basic Rate Relief</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.pension?.tax_relief?.basic_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Higher Rate Relief</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.pension?.tax_relief?.higher_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Additional Rate Relief</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.pension?.tax_relief?.additional_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- State Pension -->
           <div class="card">
             <div class="px-6 py-4 border-b border-light-gray">
@@ -1275,6 +1314,26 @@
                     class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                   />
                   <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.inheritance_tax.reduced_rate_charity * 100).toFixed(2) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Residence Nil Rate Band Taper Rate</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.inheritance_tax?.rnrb_taper_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Charity Threshold</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.inheritance_tax?.charity_threshold_percent ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Spouse Exemption</label>
+                  <p class="font-medium text-spring-600">{{ currentConfig.inheritance_tax?.spouse_exemption ? 'Unlimited' : 'Limited' }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Transferable Nil Rate Band</label>
+                  <p class="font-medium text-spring-600">{{ currentConfig.inheritance_tax?.transferable_nil_rate_band ? 'Yes' : 'No' }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Transferable Residence Nil Rate Band</label>
+                  <p class="font-medium text-spring-600">{{ currentConfig.inheritance_tax?.transferable_rnrb ? 'Yes' : 'No' }}</p>
                 </div>
               </div>
 
@@ -1528,6 +1587,20 @@
                     <p v-else class="text-sm font-semibold text-raspberry-600">{{ (band.rate * 100).toFixed(2) }}%</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Non-Resident Surcharge -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Non-Resident Surcharge</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div>
+                <label class="block text-sm text-neutral-500 mb-1">Non-Resident Surcharge Rate</label>
+                <input v-if="isEditing" v-model.number="editableConfig.stamp_duty.residential.non_resident_surcharge" type="number" step="0.01" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.stamp_duty?.residential?.non_resident_surcharge ?? 0) * 100).toFixed(0) }}%</p>
               </div>
             </div>
           </div>
@@ -1859,6 +1932,165 @@
           </div>
         </div>
 
+          <!-- Tax-Free Childcare -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Tax-Free Childcare</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Government Top-Up Rate</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.benefits?.tax_free_childcare?.government_top_up_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Max Government Contribution (£/quarter)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.tax_free_childcare?.quarterly_limit) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Max Disabled Child (£/quarter)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.tax_free_childcare?.quarterly_limit_disabled) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Child Age Limit</label>
+                  <p class="font-medium">{{ currentConfig.benefits?.tax_free_childcare?.child_age_limit }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Disabled Child Age Limit</label>
+                  <p class="font-medium">{{ currentConfig.benefits?.tax_free_childcare?.disabled_child_age_limit }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Max Income Threshold (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.tax_free_childcare?.max_income_threshold) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statutory Sick Pay -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Statutory Sick Pay</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Weekly Rate (£)</label>
+                  <p class="font-medium">£{{ currentConfig.benefits?.ssp?.weekly_rate }}/week</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Max Weeks</label>
+                  <p class="font-medium">{{ currentConfig.benefits?.ssp?.max_weeks }} weeks</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Lower Earnings Limit (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.ssp?.lower_earnings_limit) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ESA, PIP, Universal Credit, Bereavement Support -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Other Benefits</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+              <div>
+                <h4 class="font-medium text-horizon-500 mb-3">Employment &amp; Support Allowance</h4>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Assessment Rate (25+) (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.esa?.assessment_rate_25_plus }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Assessment Rate (Under 25) (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.esa?.assessment_rate_under_25 }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Support Group Supplement (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.esa?.support_group_supplement }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Work Related Activity Group Supplement (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.esa?.wrag_supplement }}/week</p>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Personal Independence Payment</h4>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Daily Living Standard (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.pip?.daily_living_standard }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Daily Living Enhanced (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.pip?.daily_living_enhanced }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Mobility Standard (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.pip?.mobility_standard }}/week</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Mobility Enhanced (£/week)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.pip?.mobility_enhanced }}/week</p>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Universal Credit</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Single (25+) (£/month)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.universal_credit?.standard_allowance_single_25_plus }}/month</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Couple (25+) (£/month)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.universal_credit?.standard_allowance_couple_one_25_plus }}/month</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Taper Rate</label>
+                    <p class="font-semibold text-raspberry-600">{{ ((currentConfig.benefits?.universal_credit?.taper_rate ?? 0) * 100).toFixed(0) }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Child Element (First) (£/month)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.universal_credit?.child_element_first }}/month</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Limited Capability for Work &amp; Work-Related Activity Element (£/month)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.universal_credit?.lcwra_element }}/month</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Carer Element (£/month)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.universal_credit?.carer_element }}/month</p>
+                  </div>
+                </div>
+              </div>
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Bereavement Support Payment</h4>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Higher Rate Lump Sum (£)</label>
+                    <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.bereavement_support?.higher_rate_lump_sum) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Higher Rate Monthly (£)</label>
+                    <p class="font-medium">£{{ currentConfig.benefits?.bereavement_support?.higher_rate_monthly }}/month</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Lower Rate Lump Sum (£)</label>
+                    <p class="font-medium">£{{ formatNumber(currentConfig.benefits?.bereavement_support?.lower_rate_lump_sum) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Payment Months</label>
+                    <p class="font-medium">{{ currentConfig.benefits?.bereavement_support?.payment_months }} months</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         <!-- Assumptions Tab -->
         <div v-if="activeTab === 'assumptions'">
           <div class="card">
@@ -1974,6 +2206,130 @@
                     <span class="text-sm text-neutral-500 capitalize">{{ strategy.replace(/_/g, ' ') }}</span>
                     <span class="font-semibold text-raspberry-600">{{ (rate * 100).toFixed(1) }}%</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Asset Class Yields -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Asset Class Yields</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div v-for="(yields, assetClass) in (currentConfig.investment?.asset_class_yields || {})" :key="assetClass" class="p-3 bg-savannah-100 rounded-lg text-center">
+                  <p class="text-xs text-neutral-500 capitalize mb-2">{{ assetClass.replace(/_/g, ' ') }}</p>
+                  <p class="text-sm">Growth: <span class="font-semibold text-raspberry-600">{{ ((yields.growth ?? 0) * 100).toFixed(1) }}%</span></p>
+                  <p class="text-sm">Income: <span class="font-semibold text-raspberry-600">{{ ((yields.income_yield ?? 0) * 100).toFixed(1) }}%</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investment Safety & Transfers -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Investment Safety &amp; Transfers</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Emergency Fund Months</label>
+                  <p class="font-medium">{{ currentConfig.investment?.safety?.emergency_fund_months }} months</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Emergency Fund Minimum (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.investment?.safety?.emergency_fund_minimum) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Critical Debt Rate</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.safety?.critical_debt_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Bed &amp; ISA Minimum Gain (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.investment?.transfers?.bed_and_isa_min_gain) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Cash Excess Buffer (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.investment?.transfers?.cash_excess_buffer) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Consolidation Minimum Accounts</label>
+                  <p class="font-medium">{{ currentConfig.investment?.transfers?.consolidation_min_accounts }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Retirement Annuity Estimates -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Retirement Annuity Rate Estimates</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div v-for="(rates, age) in (currentConfig.retirement?.annuity_rate_estimates || {})" :key="age" class="p-3 bg-savannah-100 rounded-lg text-center">
+                  <p class="text-sm font-medium text-horizon-500 mb-2">Age {{ age }}</p>
+                  <p class="text-xs">Single: <span class="font-semibold text-raspberry-600">{{ ((rates.single ?? 0) * 100).toFixed(1) }}%</span></p>
+                  <p class="text-xs">Joint: <span class="font-semibold text-raspberry-600">{{ ((rates.joint ?? 0) * 100).toFixed(1) }}%</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Domicile Rules -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Domicile Rules</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-medium text-horizon-500 mb-3">UK Domiciled</h4>
+                  <div class="space-y-2">
+                    <p class="text-sm"><span class="text-neutral-500">Spouse Exemption:</span> <span class="font-medium text-spring-600">{{ currentConfig.domicile?.uk_domiciled?.spouse_exemption_unlimited ? 'Unlimited' : 'Limited' }}</span></p>
+                    <p class="text-sm"><span class="text-neutral-500">Inheritance Tax Scope:</span> <span class="font-medium">{{ currentConfig.domicile?.uk_domiciled?.worldwide_assets_subject_to_iht ? 'Worldwide assets' : 'UK assets only' }}</span></p>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium text-horizon-500 mb-3">Non-UK Domiciled</h4>
+                  <div class="space-y-2">
+                    <p class="text-sm"><span class="text-neutral-500">Deemed Domicile:</span> <span class="font-medium">After {{ currentConfig.domicile?.non_uk_domiciled?.deemed_domicile_years }} years UK residence</span></p>
+                    <p class="text-sm"><span class="text-neutral-500">Spouse Exemption Limit:</span> <span class="font-medium">£{{ formatNumber(currentConfig.domicile?.non_uk_domiciled?.spouse_exemption_limit) }}</span></p>
+                    <p class="text-sm"><span class="text-neutral-500">Inheritance Tax Scope:</span> <span class="font-medium">{{ currentConfig.domicile?.non_uk_domiciled?.uk_assets_only_subject_to_iht ? 'UK assets only' : 'Worldwide' }}</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trust Types Reference -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Trust Types &amp; Tax Treatment</h3>
+            </div>
+            <div class="px-6 py-4 space-y-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Trust Tax-Free Allowance (£)</label>
+                  <p class="font-medium">£{{ formatNumber(currentConfig.trusts?.income_tax?.tax_free_allowance) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Discretionary Trust Income Tax Rate</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.trusts?.income_tax?.discretionary?.standard_rate ?? 0) * 100).toFixed(0) }}%</p>
+                </div>
+              </div>
+              <div v-for="(trust, trustType) in (currentConfig.trusts?.types || {})" :key="trustType" class="p-4 bg-savannah-100 rounded-lg">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-medium text-horizon-500">{{ trust.name }}</h4>
+                  <span v-if="trust.is_relevant_property_trust" class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700">Relevant Property</span>
+                </div>
+                <p class="text-xs text-neutral-500 mb-2">{{ trust.description }}</p>
+                <div class="flex gap-3 flex-wrap">
+                  <span class="text-xs px-2 py-1 rounded-full bg-eggshell-500 text-horizon-500">Income Tax: {{ trust.income_tax_treatment }}</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-eggshell-500 text-horizon-500">Capital Gains Tax: {{ trust.cgt_treatment }}</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-eggshell-500 text-horizon-500">Inheritance Tax: {{ trust.iht_treatment }}</span>
                 </div>
               </div>
             </div>
