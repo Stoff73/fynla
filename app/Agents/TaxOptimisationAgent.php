@@ -97,7 +97,7 @@ class TaxOptimisationAgent extends BaseAgent
             $scenarios[] = [
                 'name' => 'Maximise ISA Contributions',
                 'description' => sprintf('Invest the full remaining %s ISA allowance', '£'.number_format($isaRemaining, 0)),
-                'potential_tax_saved' => round($isaRemaining * 0.06 * 0.20, 2),
+                'potential_tax_saved' => round($isaRemaining * ($this->taxConfig->get('assumptions.investment_growth.balanced_portfolio', 0.04)) * ($this->taxConfig->get('income_tax.bands.0.rate', 0.20)), 2),
                 'action_required' => 'Fund ISA before end of tax year',
             ];
         }
@@ -107,7 +107,7 @@ class TaxOptimisationAgent extends BaseAgent
             $scenarios[] = [
                 'name' => 'Maximise Pension Contributions',
                 'description' => sprintf('Use the remaining %s pension Annual Allowance', '£'.number_format($pensionRemaining, 0)),
-                'potential_tax_saved' => round($pensionRemaining * 0.40, 2),
+                'potential_tax_saved' => round($pensionRemaining * ($this->taxConfig->get('income_tax.bands.1.rate', 0.40)), 2),
                 'action_required' => 'Increase pension contributions',
             ];
         }
@@ -118,7 +118,7 @@ class TaxOptimisationAgent extends BaseAgent
             $scenarios[] = [
                 'name' => 'Staged Capital Gains Realisation',
                 'description' => 'Realise gains up to the annual exempt amount each tax year',
-                'potential_tax_saved' => round($allowanceUsage['capital_gains']['annual_exempt_amount'] * 0.20, 2),
+                'potential_tax_saved' => round($allowanceUsage['capital_gains']['annual_exempt_amount'] * ($this->taxConfig->get('capital_gains_tax.higher_rate', 0.20)), 2),
                 'action_required' => 'Sell and repurchase holdings within CGT allowance',
             ];
         }
