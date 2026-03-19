@@ -31,7 +31,7 @@
         <!-- Mobile: stacked caption cards (shown below lg) -->
         <div class="flex flex-col gap-3 mt-6 pb-6 lg:hidden">
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
-            <p class="text-lg font-bold text-horizon-500 mb-1">One financial view</p>
+            <p class="text-lg font-bold text-horizon-500 mb-1">One financial view.</p>
             <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
           </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
@@ -39,7 +39,7 @@
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
           </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
-            <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice</p>
+            <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
             <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
         </div>
@@ -52,24 +52,26 @@
           <img
             src="/images/Website/Homepage-Header-Desktop.png"
             alt="Fynla Brain — your financial planning intelligence"
+            width="1315"
+            height="489"
             class="w-full h-auto block"
           />
           <!-- Caption card: left -->
-          <div class="absolute top-[4.5rem] left-[4.5rem] px-4 pt-24 py-3 max-w-xs">
-            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial view</p>
-            <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view<br/>all your financial data.</p>
+          <div class="absolute top-[4.5rem] left-[4%] px-4 lg:pt-16 xl:pt-24 py-3 max-w-[28%] xl:max-w-xs">
+            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial view.</p>
+            <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
           </div>
 
           <!-- Caption card: centre -->
-          <div class="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-3 max-w-xs text-center">
-            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
-            <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations<br/>so you don't have to.</p>
+          <div class="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-3 max-w-[28%] xl:max-w-xs text-center">
+            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
+            <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
           </div>
 
           <!-- Caption card: right -->
-          <div class="absolute top-[4.5rem] right-[4.5rem] px-4 pt-24 py-3 max-w-xs text-right">
-            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial voice</p>
-            <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
+          <div class="absolute top-[4.5rem] right-[4%] px-4 lg:pt-16 xl:pt-24 py-3 max-w-[28%] xl:max-w-xs text-right">
+            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial voice.</p>
+            <p class="text-xs xl:text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
         </div>
 
@@ -108,7 +110,7 @@
 
           <!-- Right: Fyn character -->
           <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center justify-end">
-            <img src="/images/Fyn/Design Character 001a.png" alt="Fyn — your AI financial companion" loading="lazy" class="h-[427px] w-auto lg:-mb-[3em]" />
+            <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn — your AI financial companion" loading="lazy" width="324" height="427" class="h-[427px] w-auto lg:-mb-[3em]" />
           </div>
 
         </div>
