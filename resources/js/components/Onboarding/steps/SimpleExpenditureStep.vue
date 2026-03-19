@@ -158,9 +158,10 @@ export default {
       error.value = null;
 
       try {
-        // Build user profile data
+        // Build user profile data — set both monthly and annual for downstream services
         const profileData = {
           monthly_expenditure: amount.value,
+          annual_expenditure: amount.value * 12,
         };
 
         // Include charitable donations on user model if entered
