@@ -122,8 +122,11 @@ class LifeStageController extends Controller
      */
     private function buildModuleCompleteness(\App\Models\User $user): array
     {
-        // Advice-level checks from PrerequisiteGateService (BLOCKING gates)
-        $adviceGates = [
+        // Full assessments from DataReadiness services (field-level detail)
+        $assessments = $this->prerequisiteGate->assessAll($user);
+
+        // Module gates (includes goals + tax which have no DataReadiness service)
+        $gates = [
             'protection' => $this->prerequisiteGate->canAnalyseProtection($user),
             'savings' => $this->prerequisiteGate->canAnalyseSavings($user),
             'retirement' => $this->prerequisiteGate->canAnalyseRetirement($user),
@@ -148,34 +151,28 @@ class LifeStageController extends Controller
                 || $user->savingsAccounts()->exists()
                 || $user->liabilities()->exists(),
             'goals' => $user->goals()->exists(),
-            'tax_optimisation' => $this->calculateTotalIncome($user) > 0,
+            'tax_optimisation' => $gates['tax_optimisation']['can_proceed'],
         ];
 
         $modules = [];
-        foreach ($adviceGates as $module => $gate) {
+        foreach ($gates as $module => $gate) {
+            $assessment = $assessments[$module] ?? null;
             $modules[$module] = [
                 'has_data' => $displayChecks[$module] ?? false,
                 'can_advise' => $gate['can_proceed'],
                 'missing' => $gate['missing'],
                 'guidance' => $gate['guidance'],
                 'required_actions' => $gate['required_actions'],
+                // Field-level detail from DataReadiness services
+                'completeness_percent' => $assessment['completeness_percent'] ?? null,
+                'blocking' => $assessment['blocking'] ?? [],
+                'warnings' => $assessment['warnings'] ?? [],
+                'total_checks' => $assessment['total_checks'] ?? null,
+                'passed_checks' => $assessment['passed_checks'] ?? null,
             ];
         }
 
         return $modules;
     }
 
-    /**
-     * Calculate total annual income from all sources.
-     */
-    private function calculateTotalIncome(\App\Models\User $user): float
-    {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
-    }
 }
