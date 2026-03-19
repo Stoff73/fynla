@@ -6,6 +6,7 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 
 /**
@@ -17,7 +18,8 @@ use App\Services\TaxConfigService;
 class AnnualAllowanceChecker
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly IncomeDefinitionsService $incomeDefinitions
     ) {}
 
     /**
@@ -82,10 +84,10 @@ class AnnualAllowanceChecker
         // Calculate total annual contributions
         $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
 
-        // Get user's income from all sources
-        $income = $this->getUserIncome($userId);
-        $thresholdIncome = $income;
-        $adjustedIncome = $income + $totalContributions;
+        // Get user's income definitions (threshold and adjusted income)
+        $definitions = $this->incomeDefinitions->calculate($userId);
+        $thresholdIncome = $definitions['threshold_income'];
+        $adjustedIncome = $definitions['adjusted_income'];
 
         // Check if tapering applies
         $standardAllowance = $this->getStandardAnnualAllowance();
@@ -257,25 +259,4 @@ class AnnualAllowanceChecker
         return $total;
     }
 
-    /**
-     * Get user's total annual income from all sources.
-     *
-     * Includes employment, self-employment, rental, dividend, interest,
-     * other income, and trust income for accurate tapering calculations.
-     */
-    private function getUserIncome(int $userId): float
-    {
-        $user = \App\Models\User::find($userId);
-        if (!$user) {
-            return 0.0;
-        }
-
-        return (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0);
-    }
 }

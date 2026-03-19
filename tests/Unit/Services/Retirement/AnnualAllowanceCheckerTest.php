@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 
 beforeEach(function () {
@@ -19,8 +20,11 @@ beforeEach(function () {
             ],
         ]);
 
-    // Inject the mocked service
-    $this->checker = new AnnualAllowanceChecker($mockTaxConfig);
+    // Mock IncomeDefinitionsService
+    $mockIncomeDefinitions = Mockery::mock(IncomeDefinitionsService::class);
+
+    // Inject the mocked services
+    $this->checker = new AnnualAllowanceChecker($mockTaxConfig, $mockIncomeDefinitions);
 });
 
 afterEach(function () {
