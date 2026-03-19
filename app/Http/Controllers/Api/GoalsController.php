@@ -49,6 +49,12 @@ class GoalsController extends Controller
     {
         $user = $request->user();
 
+        $request->validate([
+            'module' => 'nullable|string|in:savings,investment,retirement,protection,estate',
+            'status' => 'nullable|string|in:active,completed,paused,cancelled',
+            'priority' => 'nullable|string|in:critical,high,medium,low',
+        ]);
+
         $query = Goal::forUserOrJoint($user->id);
 
         // Filter by module

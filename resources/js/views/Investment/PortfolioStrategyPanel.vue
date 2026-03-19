@@ -63,17 +63,12 @@
           <p class="text-xs text-neutral-500 mt-1">require attention</p>
         </div>
 
-        <!-- Tax Efficiency Score -->
+        <!-- Tax Efficiency -->
         <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
           <p class="text-sm text-neutral-500 mb-1">Tax Efficiency</p>
-          <div class="flex items-baseline">
-            <p class="text-2xl font-bold" :class="getScoreClass(summary.tax_efficiency_score)">
-              {{ summary.tax_efficiency_score || 'N/A' }}
-            </p>
-            <span v-if="summary.tax_efficiency_grade" class="ml-2 text-lg font-semibold" :class="getGradeClass(summary.tax_efficiency_grade)">
-              Grade {{ summary.tax_efficiency_grade }}
-            </span>
-          </div>
+          <p class="text-lg font-bold" :class="getTaxEfficiencyClass(summary.tax_efficiency_score)">
+            {{ getTaxEfficiencyLabel(summary.tax_efficiency_score) }}
+          </p>
         </div>
 
         <!-- Days Remaining -->
@@ -398,21 +393,18 @@ export default {
       }
     },
 
-    getScoreClass(score) {
-      if (!score) return 'text-neutral-500';
-      if (score >= 80) return 'text-spring-600';
-      if (score >= 60) return 'text-violet-600';
-      if (score >= 40) return 'text-violet-600';
-      return 'text-raspberry-600';
+    getTaxEfficiencyLabel(score) {
+      if (!score && score !== 0) return 'N/A';
+      if (score >= 80) return 'Well optimised';
+      if (score >= 50) return 'Room for improvement';
+      return 'Review recommended';
     },
 
-    getGradeClass(grade) {
-      switch (grade) {
-        case 'A': return 'text-spring-600';
-        case 'B': return 'text-violet-600';
-        case 'C': return 'text-violet-600';
-        default: return 'text-raspberry-600';
-      }
+    getTaxEfficiencyClass(score) {
+      if (!score && score !== 0) return 'text-neutral-500';
+      if (score >= 80) return 'text-spring-600';
+      if (score >= 50) return 'text-violet-600';
+      return 'text-raspberry-600';
     },
 
     formatAccountType(type) {

@@ -1500,7 +1500,7 @@ class EstateAgent extends BaseAgent
     private function buildDownsizingScenario(User $user, array $parameters): array
     {
         $current = $this->buildCurrentScenario($user);
-        $equityRelease = $parameters['equity_release'] ?? 200000;
+        $equityRelease = $parameters['equity_release'] ?? $this->taxConfig->get('estate.onboarding_estimates.property', 200000);
 
         $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
 
@@ -1520,7 +1520,7 @@ class EstateAgent extends BaseAgent
     private function buildTrustScenario(User $user, array $parameters): array
     {
         $current = $this->buildCurrentScenario($user);
-        $trustValue = $parameters['trust_value'] ?? 325000;
+        $trustValue = $parameters['trust_value'] ?? ($this->taxConfig->getInheritanceTax()['nil_rate_band'] ?? 325000);
 
         // Discretionary trust within NRB
         $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);

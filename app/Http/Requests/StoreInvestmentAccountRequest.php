@@ -47,7 +47,7 @@ class StoreInvestmentAccountRequest extends FormRequest
 
             // ISA specific
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:20000',
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:' . \App\Constants\TaxDefaults::ISA_ALLOWANCE,
 
             // Ownership
             'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'trust'])],

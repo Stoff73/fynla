@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Trust;
 
+use App\Constants\TaxDefaults;
 use App\Models\Estate\Trust;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -11,11 +12,11 @@ use Carbon\Carbon;
 class IHTPeriodicChargeCalculator
 {
     // UK IHT trust charge rates — fallback defaults if TaxConfigService unavailable
-    private const IHT_RATE = 0.40; // Standard IHT rate
+    private const IHT_RATE = TaxDefaults::IHT_RATE; // Standard IHT rate
 
     private const PERIODIC_CHARGE_RATE = 0.06; // 10-year periodic charge (30% of lifetime rate)
 
-    private const ENTRY_CHARGE_MAX = 0.20; // Lifetime transfer rate (half of death rate)
+    private const ENTRY_CHARGE_MAX = TaxDefaults::CLT_RATE; // Lifetime transfer rate (half of death rate)
 
     private const EXIT_CHARGE_MAX = 0.06; // Exit/proportionate charge rate
 

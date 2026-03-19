@@ -61,11 +61,11 @@
 
             <!-- Has Holdings + Rebalancing Data -->
             <template v-else-if="rebalancingData">
-              <!-- Drift Score -->
+              <!-- Portfolio Drift Status -->
               <div class="text-center p-3 rounded-lg mb-3" :class="getDriftBgClass()">
                 <p class="text-xs text-neutral-500 mb-1">Portfolio Drift</p>
-                <p class="text-2xl font-bold" :class="getDriftStatusClass()">
-                  {{ rebalancingData.drift_analysis?.drift_score?.toFixed(1) || '0.0' }}%
+                <p class="text-lg font-bold" :class="getDriftStatusClass()">
+                  {{ getDriftLabel() }}
                 </p>
                 <p class="text-xs mt-1" :class="rebalancingData.drift_analysis?.needs_rebalancing ? 'text-violet-600 font-medium' : 'text-spring-600'">
                   {{ rebalancingData.drift_analysis?.needs_rebalancing ? 'Rebalancing Recommended' : 'On Track' }}
@@ -767,6 +767,15 @@ export default {
 
     goToRebalancingTab() {
       this.$emit('change-tab', 'rebalancing');
+    },
+
+    getDriftLabel() {
+      if (!this.rebalancingData?.drift_analysis) return 'N/A';
+      const score = this.rebalancingData.drift_analysis.drift_score;
+      // drift_score is a percentage where lower = better aligned
+      if (score < 5) return 'Well aligned';
+      if (score < 10) return 'Minor drift';
+      return 'Significant drift \u2014 review recommended';
     },
 
     getDriftStatusClass() {

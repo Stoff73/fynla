@@ -162,9 +162,10 @@ class TrustService
         $incomeTaxTreatment = $trustTypeConfig['income_tax_treatment'] ?? 'trust_discretionary';
 
         if ($incomeTaxTreatment === 'trust_iip' || $trustType === 'interest_in_possession') {
-            // Interest in Possession trusts have lower rates
+            // Interest in Possession trusts have lower rates — fallback to basic rate from TaxConfigService
+            $basicRate = (float) ($this->taxConfig->getIncomeTax()['bands'][0]['rate'] ?? 0.20);
             $incomeTaxRates = $trustsConfig['income_tax']['interest_in_possession'] ?? [
-                'standard_rate' => 0.20,
+                'standard_rate' => $basicRate,
                 'dividend_rate' => 0.0875,
             ];
         } elseif ($incomeTaxTreatment === 'beneficiary' || $trustType === 'bare') {

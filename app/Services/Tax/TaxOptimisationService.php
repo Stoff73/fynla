@@ -277,12 +277,16 @@ class TaxOptimisationService
             return null;
         }
 
-        // Tax relief rate depends on band
+        // Tax relief rate depends on band — use TaxConfigService with TaxDefaults fallback
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $basicRate = (float) ($incomeTax['bands'][0]['rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTax['bands'][1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTax['bands'][2]['rate'] ?? 0.45);
         $reliefRate = match ($taxBand) {
-            'basic' => 0.20,
-            'higher' => 0.40,
-            'additional' => 0.45,
-            default => 0.20,
+            'basic' => $basicRate,
+            'higher' => $higherRate,
+            'additional' => $additionalRate,
+            default => $basicRate,
         };
 
         // Estimate saving if user contributed more

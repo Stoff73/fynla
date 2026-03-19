@@ -1043,7 +1043,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
-Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/retirement-actions')->group(function () {
+Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/retirement-actions')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'show']);
     Route::post('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'store']);

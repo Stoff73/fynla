@@ -118,8 +118,10 @@ class AdvisorController extends Controller
     public function enterClient(Request $request, int $id): JsonResponse
     {
         try {
+            $advisor = $request->user();
+            $advisor->advisorClients()->where('client_id', $id)->where('status', 'active')->firstOrFail();
             $client = User::findOrFail($id);
-            $result = $this->impersonationService->enterClientProfile($request->user(), $client);
+            $result = $this->impersonationService->enterClientProfile($advisor, $client);
 
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {

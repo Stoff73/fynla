@@ -279,17 +279,22 @@ class AssetLocationController extends Controller
         $incomeTax = $this->taxConfig->getIncomeTax();
         $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
 
+        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
+        $retirementAge = (int) $this->taxConfig->get('pension.state_pension.current_spa', 66);
+        $expectedReturn = (float) $this->taxConfig->get('assumptions.investment_growth.balanced_portfolio', 0.04);
+        $basicRate = (float) $this->taxConfig->get('income_tax.bands.0.rate', 0.20);
+
         return [
             'annual_income' => $annualIncome,
             'income_tax_rate' => $this->calculateIncomeTaxRate($annualIncome),
             'cgt_rate' => $annualIncome <= $higherRateThreshold ? 0.10 : 0.20,
-            'isa_allowance_remaining' => 20000,
+            'isa_allowance_remaining' => $isaAllowance,
             'cgt_allowance_used' => 0,
             'dividend_allowance_used' => 0,
             'psa_used' => 0,
-            'expected_return' => 0.06,
-            'years_to_retirement' => max(0, 67 - $age),
-            'expected_withdrawal_tax_rate' => 0.20,
+            'expected_return' => $expectedReturn,
+            'years_to_retirement' => max(0, $retirementAge - $age),
+            'expected_withdrawal_tax_rate' => $basicRate,
             'prefer_pension' => false,
         ];
     }
