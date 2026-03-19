@@ -18,9 +18,15 @@
 ### Cleanup
 - [x] Branch cleanup — deleted 11 local branches, 3 remote branches, removed 10 worktrees. All merged into main.
 
-### UI Changes
-- [x] Removed age ranges from all journey/life stage cards — landing page, onboarding focus area selection, dashboard sidebar, persona selector dropdown, persona selection modal. Removed `ageRange` property from `lifeStageConfig.js`. Cards now show just name + tagline.
-- [x] Removed "Why this matters" helper text from all 14 onboarding form steps (17 occurrences). Redundant alongside field-level helper text; will be replaced with different contextual content later.
+### UI Changes (onboardFix branch — merged via PR #139)
+- [x] Removed age ranges from all journey/life stage cards (6 files)
+- [x] Removed "Why this matters" helper text from 14 onboarding form steps (17 occurrences)
+- [x] Added external resource links to 18 onboarding steps — centralised registry (`onboardingLinks.js`), shared `UsefulResources.vue` component, inline + grouped links from Gov.uk, MoneyHelper, MoneySavingExpert, Which?, StepChange
+- [x] Removed "focus on a specific area" section from onboarding welcome
+- [x] Added welcome message and onboarding intro ("Welcome to Fynla" + what you'll get out of it)
+
+### In Progress (logicFix branch)
+- [ ] Income definitions and adjusted allowances — design spec complete (`10-income-definitions-design.md`), awaiting implementation
 
 ## Outstanding
 
@@ -34,19 +40,26 @@
 - [ ] Sanctum token expiration reduced from 8hr to 4hr — may cause unexpected logouts for long sessions
 - [ ] Deploy guide: `March/March18Updates/deployReview.md` and `March/March18Updates/allDeploy.md`
 
-## Files Changed This Session
+## Change Documents
 
-### Commits on `main` (before `onboardFix` branch)
-- `6c96214` — error→raspberry tokens + FinancialHealthScore removal (57 files)
-- `fcba5d7` — AdvisorImpersonationMiddleware TransientToken fix
-- `628db8b` — PreviewUserSeeder updateOrCreate fix
-- `merge` — Monte Carlo consolidation (4 files)
-- `9ccf20a` — TODO.md update
+| # | File | Description |
+|---|------|-------------|
+| 01 | `01-error-raspberry-token-standardisation.md` | error-* → raspberry-* across 43 Vue files |
+| 02 | `02-financial-health-score-removal.md` | FinancialHealthScore feature deletion |
+| 03 | `03-dashboard-test-fix.md` | AdvisorImpersonationMiddleware TransientToken fix |
+| 04 | `04-seeder-unique-constraint-fix.md` | PreviewUserSeeder updateOrCreate fix |
+| 05 | `05-monte-carlo-consolidation.md` | MonteCarloSimulator extends MonteCarloEngine |
+| 06 | `06-journey-age-range-removal.md` | Age ranges removed from journey cards |
+| 07 | `07-branch-cleanup.md` | 11 branches + 10 worktrees cleaned up |
+| 08 | `08-why-this-matters-removal.md` | "Why this matters" helper text removed |
+| 09 | `09-onboarding-external-links-design.md` | External links design spec |
+| 09 | `09-onboarding-external-links-plan.md` | External links implementation plan |
+| 10 | `10-income-definitions-design.md` | Income definitions & adjusted allowances design spec |
+| — | `deploy.md` | Full deployment guide for this session |
 
-### On `onboardFix` branch (uncommitted)
-- `resources/js/constants/lifeStageConfig.js` — removed `ageRange` from all 5 stages
-- `resources/js/views/Public/LandingPage.vue` — removed age range display
-- `resources/js/components/Onboarding/FocusAreaSelection.vue` — removed age range display
-- `resources/js/components/SideMenu.vue` — removed age range from sidebar badge
-- `resources/js/components/Preview/PersonaSelector.vue` — removed age range from dropdown
-- `resources/js/components/Preview/PersonaSelectionModal.vue` — removed age range from modal
+## Active Branches
+
+| Branch | Status | Description |
+|--------|--------|-------------|
+| `main` | Up to date | All onboardFix changes merged |
+| `logicFix` | In progress | Income definitions design spec committed, awaiting implementation |
