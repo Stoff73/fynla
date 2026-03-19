@@ -72,6 +72,9 @@ echo "  DB_USERNAME:       $DB_USERNAME"
 echo "  CACHE_DRIVER:      $CACHE_DRIVER"
 echo ""
 
+# Add MySQL to PATH (Windows)
+export PATH="/c/Program Files/MySQL/MySQL Server 8.4/bin:$PATH"
+
 # Check if MySQL is running
 echo -e "${YELLOW}Checking MySQL connection...${NC}"
 if ! mysql -u root -e "SELECT 1;" > /dev/null 2>&1; then
@@ -106,7 +109,7 @@ echo ""
 
 # Start Laravel server in background with increased upload limits
 echo -e "${BLUE}Starting Laravel backend on http://127.0.0.1:8000${NC}"
-php -d upload_max_filesize=100M -d post_max_size=110M -d memory_limit=512M -d max_execution_time=300 -d max_input_time=300 artisan serve > /dev/null 2>&1 &
+php -d upload_max_filesize=100M -d post_max_size=110M -d memory_limit=512M -d max_execution_time=0 -d max_input_time=300 artisan serve > /dev/null 2>&1 &
 LARAVEL_PID=$!
 
 # Wait for Laravel to start
@@ -121,7 +124,7 @@ fi
 
 # Start Vite server in background
 echo -e "${BLUE}Starting Vite frontend on http://127.0.0.1:5173${NC}"
-npm run dev > /tmp/vite-output.log 2>&1 &
+npm run dev -- --port 5174 > /tmp/vite-output.log 2>&1 &
 VITE_PID=$!
 
 # Wait for Vite to compile
@@ -149,7 +152,7 @@ echo -e "${GREEN}===================================================${NC}"
 echo ""
 echo -e "${BLUE}Frontend:${NC}  http://localhost:8000"
 echo -e "${BLUE}API:${NC}       http://localhost:8000/api"
-echo -e "${BLUE}Vite HMR:${NC}  http://127.0.0.1:5173"
+echo -e "${BLUE}Vite HMR:${NC}  http://127.0.0.1:5174"
 echo ""
 echo -e "${YELLOW}Process IDs:${NC}"
 echo "  Laravel: $LARAVEL_PID"
