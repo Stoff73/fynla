@@ -25,17 +25,27 @@
 - [x] Removed "focus on a specific area" section from onboarding welcome
 - [x] Added welcome message and onboarding intro ("Welcome to Fynla" + what you'll get out of it)
 
-### In Progress (logicFix branch)
-- [ ] Income definitions and adjusted allowances — design spec complete (`10-income-definitions-design.md`), awaiting implementation
+### Income Definitions & Tax Logic (logicFix branch)
+- [x] Migration: `is_registered_blind`, `annual_charitable_donations`, `is_gift_aid` on users table
+- [x] TaxConfig: Blind Person's Allowance (£2,870 for 2025/26) + `getBlindPersonsAllowance()` helper
+- [x] `IncomeDefinitionsService`: 5 HMRC income definitions (Total, Net, Adjusted Net, Threshold, Adjusted) + PA/AA taper — 14 tests
+- [x] API endpoint: `GET /api/tax/income-definitions`
+- [x] `AnnualAllowanceChecker` refactored to use proper HMRC definitions
+- [x] `IncomeDefinitionsPanel.vue`: waterfall display at bottom of income tab
+- [x] Blind checkbox on income steps + charitable donations with Gift Aid toggle on expenditure steps
+- [x] Rental income computed from Property model, pension income from DB/State pensions (not stale User fields)
+- [x] Backend validation + OnboardingService whitelist + preview persona seed data
+- [x] Benefits config: Tax-Free Childcare, Early Years Funding, enhanced Child Benefit with age limits, earning thresholds, and structured warnings
 
 ## Outstanding
 
 ### Features (Backlog)
 - [ ] PortfolioOptimization.vue:197 — rebalancing plan creation (button shows "coming soon" toast, needs backend model/service/controller)
 - [ ] Scottish Income Tax support — no Scottish rate bands implemented. Needs `TaxConfigService` extension + income tax calculator updates.
+- [ ] Pull benefits warnings/thresholds into onboarding helper text and family dashboard (data now in TaxConfig, needs frontend integration)
 
 ### Production Deployment
-- [ ] 3 new database migrations need running (`2026_03_18_100000`, `100001`, `100002` — SoftDeletes, unique constraints, indexes)
+- [ ] 4 database migrations need running (3 from March 18 + 1 new income definitions migration)
 - [ ] `UserResource` in auth responses may break frontend if it expects fields that are no longer returned — needs browser testing after deploy
 - [ ] Sanctum token expiration reduced from 8hr to 4hr — may cause unexpected logouts for long sessions
 - [ ] Deploy guide: `March/March18Updates/deployReview.md` and `March/March18Updates/allDeploy.md`
@@ -55,6 +65,8 @@
 | 09 | `09-onboarding-external-links-design.md` | External links design spec |
 | 09 | `09-onboarding-external-links-plan.md` | External links implementation plan |
 | 10 | `10-income-definitions-design.md` | Income definitions & adjusted allowances design spec |
+| 10 | `10-income-definitions-plan.md` | Income definitions implementation plan |
+| 11 | `11-benefits-config-additions.md` | Tax-Free Childcare, Early Years, Child Benefit warnings |
 | — | `deploy.md` | Full deployment guide for this session |
 
 ## Active Branches
@@ -62,4 +74,4 @@
 | Branch | Status | Description |
 |--------|--------|-------------|
 | `main` | Up to date | All onboardFix changes merged |
-| `logicFix` | In progress | Income definitions design spec committed, awaiting implementation |
+| `logicFix` | In progress | Income definitions + benefits config complete, needs PR/merge |
