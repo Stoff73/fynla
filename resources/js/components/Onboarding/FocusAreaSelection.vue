@@ -30,29 +30,6 @@
         </button>
       </div>
 
-      <!-- Divider -->
-      <div class="relative mb-6">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-light-gray"></div>
-        </div>
-        <div class="relative flex justify-center">
-          <span class="bg-white px-4 text-sm text-neutral-500">or focus on a specific area</span>
-        </div>
-      </div>
-
-      <!-- Focus Area Pills -->
-      <div class="flex flex-wrap justify-center gap-3 mb-6">
-        <button
-          v-for="area in focusAreas"
-          :key="area.id"
-          type="button"
-          class="inline-flex items-center px-5 py-2.5 rounded-full border border-light-gray text-sm font-medium text-horizon-500 bg-white hover:bg-savannah-100 hover:border-savannah-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all duration-200"
-          @click="handleFocusClick(area.id)"
-        >
-          {{ area.label }}
-        </button>
-      </div>
-
       <!-- Skip -->
       <div class="text-center">
         <button
@@ -205,12 +182,6 @@ export default {
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
       selectedStage: null,
       selectedNodeIndex: null,
-      focusAreas: [
-        { id: 'budgeting', label: 'Cash & Budget' },
-        { id: 'protection', label: 'Protection' },
-        { id: 'investment', label: 'Investment' },
-        { id: 'retirement', label: 'Retirement' },
-      ],
     };
   },
 
@@ -433,11 +404,6 @@ export default {
       if (persona) {
         this.$store.dispatch('preview/enterPreviewMode', persona);
       }
-    },
-
-    handleFocusClick(areaId) {
-      this.$emit('focus-selected', areaId);
-      this.$emit('selected', areaId);
     },
 
     skipOnboarding() {
