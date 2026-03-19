@@ -101,6 +101,7 @@ export default {
           500: '#6C83BC',
         },
         'light-pink': {
+          50: '#FDF0F4',
           100: '#FAD6E0',
           400: '#EF7598',
         },
