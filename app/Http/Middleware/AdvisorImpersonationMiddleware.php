@@ -24,10 +24,11 @@ class AdvisorImpersonationMiddleware
             return $next($request);
         }
 
-        $tokenId = $user->currentAccessToken()?->id;
-        if (! $tokenId) {
+        $token = $user->currentAccessToken();
+        if (! $token || ! ($token instanceof \Laravel\Sanctum\PersonalAccessToken)) {
             return $next($request);
         }
+        $tokenId = $token->id;
 
         $cached = Cache::get("advisor_impersonation:{$tokenId}");
         if ($cached) {

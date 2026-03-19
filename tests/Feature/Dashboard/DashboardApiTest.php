@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create([
         'first_name' => 'Test',
         'surname' => 'User',
