@@ -57,8 +57,8 @@
       </div>
 
       <form class="mt-8 space-y-6" @submit.prevent="handleRegister">
-        <div v-if="errorMessage" class="rounded-lg bg-error-50 border border-error-200 p-4">
-          <p class="text-body-sm text-error-700">{{ errorMessage }}</p>
+        <div v-if="errorMessage" class="rounded-lg bg-raspberry-50 border border-raspberry-200 p-4">
+          <p class="text-body-sm text-raspberry-700">{{ errorMessage }}</p>
           <div v-if="emailExists" class="mt-3 flex flex-col gap-2 text-sm text-center">
             <router-link to="/login" class="font-medium text-raspberry-500 hover:text-raspberry-700 underline">
               Sign in to your account
@@ -79,10 +79,10 @@
                 type="text"
                 required
                 class="input-field"
-                :class="{ 'border-error-600': errors.first_name }"
+                :class="{ 'border-raspberry-600': errors.first_name }"
                 placeholder="John"
               >
-              <p v-if="errors.first_name" class="mt-1 text-body-sm text-error-600">
+              <p v-if="errors.first_name" class="mt-1 text-body-sm text-raspberry-600">
                 {{ errors.first_name[0] }}
               </p>
             </div>
@@ -96,10 +96,10 @@
                 v-model="form.middle_name"
                 type="text"
                 class="input-field"
-                :class="{ 'border-error-600': errors.middle_name }"
+                :class="{ 'border-raspberry-600': errors.middle_name }"
                 placeholder="David"
               >
-              <p v-if="errors.middle_name" class="mt-1 text-body-sm text-error-600">
+              <p v-if="errors.middle_name" class="mt-1 text-body-sm text-raspberry-600">
                 {{ errors.middle_name[0] }}
               </p>
             </div>
@@ -114,10 +114,10 @@
                 type="text"
                 required
                 class="input-field"
-                :class="{ 'border-error-600': errors.last_name }"
+                :class="{ 'border-raspberry-600': errors.last_name }"
                 placeholder="Smith"
               >
-              <p v-if="errors.last_name" class="mt-1 text-body-sm text-error-600">
+              <p v-if="errors.last_name" class="mt-1 text-body-sm text-raspberry-600">
                 {{ errors.last_name[0] }}
               </p>
             </div>
@@ -133,10 +133,10 @@
               type="email"
               required
               class="input-field"
-              :class="{ 'border-error-600': errors.email }"
+              :class="{ 'border-raspberry-600': errors.email }"
               placeholder="you@example.com"
             >
-            <p v-if="errors.email" class="mt-1 text-body-sm text-error-600">
+            <p v-if="errors.email" class="mt-1 text-body-sm text-raspberry-600">
               {{ errors.email[0] }}
             </p>
           </div>
@@ -151,13 +151,13 @@
               type="password"
               required
               class="input-field"
-              :class="{ 'border-error-600': errors.password }"
+              :class="{ 'border-raspberry-600': errors.password }"
               placeholder="••••••••"
             >
             <p v-if="!errors.password" class="mt-1 text-xs text-neutral-500">
               Must be at least 8 characters with one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)
             </p>
-            <p v-if="errors.password" class="mt-1 text-body-sm text-error-600">
+            <p v-if="errors.password" class="mt-1 text-body-sm text-raspberry-600">
               {{ errors.password[0] }}
             </p>
           </div>

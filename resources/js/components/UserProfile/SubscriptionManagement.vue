@@ -9,15 +9,15 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="rounded-md bg-error-100 border border-error-600/20 p-4">
+    <div v-else-if="error" class="rounded-md bg-raspberry-100 border border-raspberry-600/20 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-error-500" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-raspberry-500" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-body-sm font-medium text-error-600">{{ error }}</p>
+          <p class="text-body-sm font-medium text-raspberry-600">{{ error }}</p>
           <button @click="fetchSubscriptionData" class="mt-2 btn-secondary text-xs">Try Again</button>
         </div>
       </div>
@@ -129,7 +129,7 @@
 
         <button
           @click="showCancelModal = true"
-          class="text-body-sm text-error-600 hover:text-error-700 transition-colors"
+          class="text-body-sm text-raspberry-600 hover:text-raspberry-700 transition-colors"
         >
           Cancel Subscription
         </button>
@@ -194,7 +194,7 @@
       </div>
 
       <!-- PAST DUE (Overdue) State -->
-      <div v-else-if="subscriptionState === 'past_due'" class="bg-white rounded-lg border border-error-600/20 p-6">
+      <div v-else-if="subscriptionState === 'past_due'" class="bg-white rounded-lg border border-raspberry-600/20 p-6">
         <div class="flex justify-between items-start mb-6">
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Payment Issue</h3>
@@ -202,21 +202,21 @@
               Your most recent payment was unsuccessful
             </p>
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error-100 text-error-600">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-raspberry-100 text-raspberry-600">
             Payment Failed
           </span>
         </div>
 
-        <div class="bg-error-100 border border-error-600/20 rounded-lg p-4 mb-6">
+        <div class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-4 mb-6">
           <div class="flex gap-3">
-            <svg class="w-5 h-5 text-error-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-raspberry-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             <div>
-              <p class="text-body-sm font-medium text-error-600">
+              <p class="text-body-sm font-medium text-raspberry-600">
                 Your payment could not be processed. We will automatically retry within the next 7 days.
               </p>
-              <p class="mt-2 text-body-sm text-error-600">
+              <p class="mt-2 text-body-sm text-raspberry-600">
                 If the issue persists, please ensure your payment method is up to date. You retain full access during this period.
               </p>
             </div>
@@ -394,8 +394,8 @@
           </div>
 
           <!-- Cancel Error -->
-          <div v-if="cancelError" class="bg-error-100 border border-error-600/20 rounded-lg p-3 mb-4">
-            <p class="text-body-sm text-error-600">{{ cancelError }}</p>
+          <div v-if="cancelError" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-3 mb-4">
+            <p class="text-body-sm text-raspberry-600">{{ cancelError }}</p>
           </div>
 
           <!-- Actions -->

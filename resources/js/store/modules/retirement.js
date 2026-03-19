@@ -742,19 +742,6 @@ const getters = {
         return dcTotal;
     },
 
-    // Calculate retirement score from income gap (for FinancialHealthScore compatibility)
-    // Returns null when analysis is unavailable or can_proceed is false to avoid false positives
-    retirementReadinessScore: (state, getters) => {
-        // Guard: if analysis is null or can_proceed is false, return null (incomplete)
-        if (!state.analysis || state.canProceed === false) {
-            return null;
-        }
-        const gap = getters.incomeGap;
-        // Score: 100 if no gap, decreases as gap increases
-        // Every £500 gap reduces score by 1 point
-        return Math.max(0, Math.min(100, 100 - (gap / 500)));
-    },
-
     projectedIncome: (state) => {
         return state.analysis?.projected_income || 0;
     },

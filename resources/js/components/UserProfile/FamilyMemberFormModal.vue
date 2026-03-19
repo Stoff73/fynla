@@ -212,11 +212,11 @@
             </div>
 
             <!-- Error Message -->
-            <div v-if="errorMessage" class="rounded-md bg-error-50 p-4">
+            <div v-if="errorMessage" class="rounded-md bg-raspberry-50 p-4">
               <div class="flex">
                 <div class="ml-3">
-                  <h3 class="text-body-sm font-medium text-error-800">Error</h3>
-                  <div class="mt-2 text-body-sm text-error-700">
+                  <h3 class="text-body-sm font-medium text-raspberry-800">Error</h3>
+                  <div class="mt-2 text-body-sm text-raspberry-700">
                     <p>{{ errorMessage }}</p>
                   </div>
                 </div>

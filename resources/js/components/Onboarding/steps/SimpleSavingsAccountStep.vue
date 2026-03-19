@@ -12,12 +12,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Tracking your savings accounts helps us monitor your emergency fund, budget progress, and tax-free savings allowances.
-        </p>
-      </div>
-
       <!-- Saved Accounts List -->
       <div v-if="accounts.length > 0 && !showForm" class="space-y-3">
         <h4 class="text-body font-medium text-horizon-500">Your Accounts</h4>
@@ -95,6 +89,9 @@
               <option value="nsi">NS&amp;I Savings</option>
             </optgroup>
           </select>
+          <p class="mt-1 text-body-sm text-neutral-500">
+            Tax-free up to the <a :href="LINKS.GOV_ISA_ALLOWANCE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">annual ISA limit</a>
+          </p>
         </div>
 
         <!-- Current Balance -->
@@ -149,6 +146,8 @@
           </label>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.simpleSavings" />
     </div>
   </OnboardingStep>
 </template>
@@ -158,6 +157,8 @@
 import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 import savingsService from '@/services/savingsService';
 
@@ -166,6 +167,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -297,6 +299,8 @@ export default {
       handleSkip,
       formatCurrency,
       formatAccountType,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

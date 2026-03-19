@@ -46,7 +46,7 @@
 
       <!-- Liabilities Section -->
       <div class="card p-6 overflow-x-auto">
-        <h3 class="text-h5 font-semibold text-error-700 mb-4">Liabilities</h3>
+        <h3 class="text-h5 font-semibold text-raspberry-700 mb-4">Liabilities</h3>
         <table class="min-w-full divide-y divide-light-gray">
           <thead>
             <tr>
@@ -69,10 +69,10 @@
           <tfoot>
             <tr class="bg-eggshell-500 border-t-2 border-horizon-300">
               <td class="px-3 py-3 text-body-base font-semibold text-horizon-500">Total Liabilities</td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+              <td class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                 {{ formatCurrency(data.total_liabilities) }}
               </td>
-              <td v-if="hasSpouseData" class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+              <td v-if="hasSpouseData" class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                 {{ formatCurrency(spouseData.total_liabilities) }}
               </td>
             </tr>
@@ -96,7 +96,7 @@
               <td class="px-3 py-3 text-right">
                 <p
                   class="text-h2 font-display font-bold"
-                  :class="data.total_equity >= 0 ? 'text-success-700' : 'text-error-700'"
+                  :class="data.total_equity >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                 >
                   {{ formatCurrency(data.total_equity) }}
                 </p>
@@ -104,7 +104,7 @@
               <td v-if="hasSpouseData" class="px-3 py-3 text-right">
                 <p
                   class="text-h2 font-display font-bold"
-                  :class="spouseData.total_equity >= 0 ? 'text-success-700' : 'text-error-700'"
+                  :class="spouseData.total_equity >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                 >
                   {{ formatCurrency(spouseData.total_equity) }}
                 </p>

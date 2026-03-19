@@ -106,6 +106,8 @@
           @close="closeModal"
         />
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.family" />
     </div>
 
     <!-- Spouse Success Modal -->
@@ -124,6 +126,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '../UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModal.vue';
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
@@ -133,6 +137,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     FamilyMemberFormModal,
     SpouseSuccessModal,
   },
@@ -341,6 +346,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      STEP_RESOURCES,
     };
   },
 };

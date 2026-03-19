@@ -8,7 +8,7 @@
     {{ formatCurrency(value) }}
     <span
       v-if="changeIndicator !== null && changeIndicator !== 0"
-      :class="changeIndicator < 0 ? 'text-success-600' : 'text-error-600'"
+      :class="changeIndicator < 0 ? 'text-success-600' : 'text-raspberry-600'"
       class="text-xs ml-1"
     >
       ({{ changeIndicator < 0 ? '' : '+' }}{{ formatCurrency(changeIndicator) }})
@@ -18,7 +18,7 @@
     {{ formatCurrency(spouseValue) }}
     <span
       v-if="spouseChangeIndicator !== null && spouseChangeIndicator !== 0"
-      :class="spouseChangeIndicator < 0 ? 'text-success-600' : 'text-error-600'"
+      :class="spouseChangeIndicator < 0 ? 'text-success-600' : 'text-raspberry-600'"
       class="text-xs ml-1"
     >
       ({{ spouseChangeIndicator < 0 ? '' : '+' }}{{ formatCurrency(spouseChangeIndicator) }})

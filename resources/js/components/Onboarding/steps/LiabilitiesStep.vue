@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Liabilities reduce your taxable estate for Inheritance Tax purposes. We've already captured mortgages with your properties - here you can add other debts like personal loans, car finance, or credit cards.
-        </p>
-      </div>
-
       <!-- Added Liabilities List -->
       <div v-if="liabilities.length > 0" class="space-y-3">
         <h4 class="text-body font-medium text-horizon-500">
@@ -75,6 +69,8 @@
       <p v-if="liabilities.length === 0" class="text-body-sm text-neutral-500 italic">
         You can skip this step if you don't have any loans or credit card debt.
       </p>
+
+      <UsefulResources :links="STEP_RESOURCES.liabilities" />
     </div>
 
     <!-- Liability Form Modal -->
@@ -95,6 +91,8 @@
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import estateService from '@/services/estateService';
 import { formatCurrency } from '@/utils/currency';
@@ -104,6 +102,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     LiabilityForm,
   },
 
@@ -200,6 +199,7 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };

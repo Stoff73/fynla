@@ -2,7 +2,6 @@ import dashboardService from '@/services/dashboardService';
 
 const state = {
     overviewData: null,
-    financialHealthScore: null,
     alerts: [],
     loading: false,
     error: null,
@@ -13,7 +12,6 @@ const state = {
 
 const getters = {
     overviewData: (state) => state.overviewData,
-    financialHealthScore: (state) => state.financialHealthScore,
     alerts: (state) => state.alerts,
 
     // Get alerts by severity
@@ -52,28 +50,6 @@ const actions = {
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch dashboard data';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Fetch financial health score
-    async fetchFinancialHealthScore({ commit, state }) {
-        // Skip API call if in preview mode
-        if (state.isPreviewMode) {
-            return;
-        }
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await dashboardService.getFinancialHealthScore();
-            commit('setFinancialHealthScore', response.data);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch financial health score';
             commit('setError', errorMessage);
             throw error;
         } finally {
@@ -137,9 +113,6 @@ const actions = {
             if (result.overview) {
                 commit('setOverviewData', result.overview.data);
             }
-            if (result.financialHealthScore) {
-                commit('setFinancialHealthScore', result.financialHealthScore.data);
-            }
             if (result.alerts) {
                 commit('setAlerts', result.alerts.data);
             }
@@ -147,7 +120,6 @@ const actions = {
             // Collect any errors
             const errors = [];
             if (result.errors.overview) errors.push('Overview data failed to load');
-            if (result.errors.financialHealthScore) errors.push('Financial health score failed to load');
             if (result.errors.alerts) errors.push('Alerts failed to load');
 
             if (errors.length > 0) {
@@ -168,10 +140,6 @@ const actions = {
 const mutations = {
     setOverviewData(state, data) {
         state.overviewData = data;
-    },
-
-    setFinancialHealthScore(state, score) {
-        state.financialHealthScore = score;
     },
 
     setAlerts(state, alerts) {
@@ -199,9 +167,6 @@ const mutations = {
             // Set dashboard data from preview if available
             if (data.dashboard_overview) {
                 state.overviewData = data.dashboard_overview;
-            }
-            if (data.financial_health_score) {
-                state.financialHealthScore = data.financial_health_score;
             }
         } else if (!isPreview) {
             state.isPreviewMode = false;

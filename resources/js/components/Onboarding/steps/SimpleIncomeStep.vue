@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Your income helps us calculate your savings rate and understand how much you can put towards your financial goals.
-        </p>
-      </div>
-
       <!-- Employment Status -->
       <div>
         <label for="employment_status" class="label">
@@ -72,7 +66,7 @@
           >
         </div>
         <p class="mt-1 text-body-sm text-neutral-500">
-          The amount that actually comes into your bank account each month, after tax and deductions
+          The amount that actually comes into your bank account each month, after tax and deductions. Check your <a :href="LINKS.HMRC_P60" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">P60</a> for your annual figures
         </p>
       </div>
 
@@ -94,6 +88,8 @@
           Your planned retirement age, used for pension forecasts and investment timelines
         </p>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.simpleIncome" />
     </div>
   </OnboardingStep>
 </template>
@@ -102,6 +98,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '../UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 
 export default {
@@ -109,6 +107,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     OccupationAutocomplete,
   },
 
@@ -220,6 +219,8 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

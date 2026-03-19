@@ -114,10 +114,10 @@
               type="email"
               required
               class="input-field"
-              :class="{ 'border-error-600': errors.email }"
+              :class="{ 'border-raspberry-600': errors.email }"
               placeholder="you@example.com"
             >
-            <p v-if="errors.email" class="mt-1 text-body-sm text-error-600">
+            <p v-if="errors.email" class="mt-1 text-body-sm text-raspberry-600">
               {{ errors.email[0] }}
             </p>
           </div>
@@ -132,10 +132,10 @@
               type="password"
               required
               class="input-field"
-              :class="{ 'border-error-600': errors.password }"
+              :class="{ 'border-raspberry-600': errors.password }"
               placeholder="••••••••"
             >
-            <p v-if="errors.password" class="mt-1 text-body-sm text-error-600">
+            <p v-if="errors.password" class="mt-1 text-body-sm text-raspberry-600">
               {{ errors.password[0] }}
             </p>
           </div>

@@ -8,10 +8,10 @@
     </div>
 
     <!-- Total Liabilities Card -->
-    <div class="card p-6 mb-6 bg-gradient-to-r from-error-50 to-error-100">
+    <div class="card p-6 mb-6 bg-gradient-to-r from-raspberry-50 to-raspberry-100">
       <div class="text-center">
-        <p class="text-body-sm font-medium text-error-700">Total Liabilities</p>
-        <p class="text-h2 font-display font-bold text-error-900 mt-2">
+        <p class="text-body-sm font-medium text-raspberry-700">Total Liabilities</p>
+        <p class="text-h2 font-display font-bold text-raspberry-900 mt-2">
           {{ formatCurrency(liabilitiesSummary?.total || 0) }}
         </p>
       </div>

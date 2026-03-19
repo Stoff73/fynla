@@ -23,20 +23,6 @@ const dashboardService = {
     },
 
     /**
-     * Get financial health score calculated from all modules
-     * @returns {Promise} Financial health score and breakdown
-     */
-    async getFinancialHealthScore() {
-        try {
-            const response = await api.get(`${API_BASE_URL}/financial-health-score`);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to fetch financial health score:', error);
-            throw error;
-        }
-    },
-
-    /**
      * Get alerts from all modules, prioritized by severity
      * @returns {Promise} Array of alerts
      */
@@ -74,7 +60,6 @@ const dashboardService = {
         try {
             const promises = [
                 this.getDashboardData(),
-                this.getFinancialHealthScore(),
                 this.getAlerts(),
             ];
 
@@ -82,12 +67,10 @@ const dashboardService = {
 
             return {
                 overview: results[0].status === 'fulfilled' ? results[0].value : null,
-                financialHealthScore: results[1].status === 'fulfilled' ? results[1].value : null,
-                alerts: results[2].status === 'fulfilled' ? results[2].value : null,
+                alerts: results[1].status === 'fulfilled' ? results[1].value : null,
                 errors: {
                     overview: results[0].status === 'rejected' ? results[0].reason : null,
-                    financialHealthScore: results[1].status === 'rejected' ? results[1].reason : null,
-                    alerts: results[2].status === 'rejected' ? results[2].reason : null,
+                    alerts: results[1].status === 'rejected' ? results[1].reason : null,
                 },
             };
         } catch (error) {

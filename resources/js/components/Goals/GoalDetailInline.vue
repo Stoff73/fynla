@@ -16,7 +16,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="bg-savannah-100 rounded-card p-6 text-center border border-light-gray">
-      <p class="text-error-600">{{ error }}</p>
+      <p class="text-raspberry-600">{{ error }}</p>
       <button
         @click="loadGoalDetail"
         class="mt-4 btn-danger"

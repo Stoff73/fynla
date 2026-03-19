@@ -38,7 +38,7 @@
               v-if="pensionType !== 'state'"
               v-preview-disabled="'delete'"
               @click="confirmDelete"
-              class="px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+              class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
             >
               Delete
             </button>

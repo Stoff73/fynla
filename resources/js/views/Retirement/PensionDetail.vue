@@ -12,7 +12,7 @@
         <p class="text-raspberry-600">{{ error }}</p>
         <button
           @click="loadPension"
-          class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+          class="mt-4 px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
         >
           Retry
         </button>
@@ -48,7 +48,7 @@
               <button
                 v-if="pensionType !== 'state'"
                 @click="confirmDelete"
-                class="w-full sm:w-auto px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+                class="w-full sm:w-auto px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
               >
                 Delete
               </button>

@@ -35,20 +35,6 @@
 
       <!-- Retirement Tab -->
       <div v-show="activeTab === 'retirement'" class="space-y-4">
-        <!-- Why Retirement Info Matters -->
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-          <div class="flex">
-            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-            <div>
-              <p class="text-body-sm text-violet-800">
-                <strong>Why this matters:</strong> Your pension information is essential for accurate financial planning. It directly impacts your net worth calculations and retirement readiness projections. We also provide future calculations, income projections and tax optimised drawdown plans for retirement.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- Pensions Grid -->
         <div v-if="pensions.dc.length > 0 || pensions.db.length > 0 || pensions.state" class="pensions-grid">
           <!-- DC Pensions -->
@@ -201,26 +187,19 @@
           </button>
         </div>
 
+        <p class="text-body-sm text-neutral-500">
+          Request your <a :href="LINKS.GOV_BR19" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">BR19 State Pension forecast</a>
+        </p>
+
         <p v-if="pensions.dc.length === 0 && pensions.db.length === 0 && !pensions.state" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add pensions later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsPensions" />
       </div>
 
       <!-- Properties Tab -->
       <div v-show="activeTab === 'properties'" class="space-y-4">
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-          <div class="flex">
-            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-            <div>
-              <p class="text-body-sm text-violet-800">
-                <strong>Why this matters:</strong> Properties are usually the largest component of an estate. Adding property details helps us calculate your potential Inheritance Tax liability. Rental income can also be used for retirement planning, and releasing capital from properties may form part of your financial strategy.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- Added Properties List -->
         <div v-if="properties.length > 0" class="space-y-3">
           <h4 class="text-body font-medium text-horizon-500">
@@ -249,24 +228,12 @@
         <p v-if="properties.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add properties later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsProperties" />
       </div>
 
       <!-- Investments Tab -->
       <div v-show="activeTab === 'investments'" class="space-y-4">
-        <!-- Why Investment Info Matters -->
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-          <div class="flex">
-            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-            <div>
-              <p class="text-body-sm text-violet-800">
-                <strong>Why this matters:</strong> Your investment information feeds into our comprehensive analysis including future value calculations, risk assessment, fee comparisons, and tax optimisation strategies. This data also informs your net worth calculations and estate planning.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- Investments Grid -->
         <div v-if="investments.length > 0" class="accounts-grid">
           <div
@@ -347,23 +314,12 @@
         <p v-if="investments.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add investments later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsInvestments" />
       </div>
 
       <!-- Cash Tab -->
       <div v-show="activeTab === 'cash'" class="space-y-4">
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-          <div class="flex">
-            <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-            <div>
-              <p class="text-body-sm text-violet-800">
-                <strong>Why this matters:</strong> We use your cash and savings information to inform affordability calculations, provide budget tracking and assess emergency cash needs. Include all cash and bank accounts, including current accounts, Cash ISAs, easy access savings, and fixed-term deposits.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- Cash Accounts Grid -->
         <div v-if="savingsAccounts.length > 0" class="accounts-grid">
           <div
@@ -438,6 +394,8 @@
         <p v-if="savingsAccounts.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add accounts later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsCash" />
       </div>
     </div>
 
@@ -514,6 +472,8 @@ import DCPensionForm from '@/components/Retirement/DCPensionForm.vue';
 import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
 import savingsService from '@/services/savingsService';
@@ -534,6 +494,7 @@ export default {
     DBPensionForm,
     StatePensionForm,
     DocumentUploadModal,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -1072,6 +1033,9 @@ export default {
       // Common helpers
       formatOwnershipType,
       getOwnershipBadgeClass,
+      // Resource links
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

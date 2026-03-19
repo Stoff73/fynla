@@ -128,7 +128,7 @@
         <table class="min-w-full divide-y divide-light-gray">
           <thead>
             <tr>
-              <th class="px-3 py-2 text-left text-h5 font-semibold text-error-700" style="width: 40%">Liabilities</th>
+              <th class="px-3 py-2 text-left text-h5 font-semibold text-raspberry-700" style="width: 40%">Liabilities</th>
               <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500" style="width: 20%">{{ userName }}</th>
               <th v-if="hasSpouse" class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500" style="width: 20%">{{ spouseName }}</th>
               <th class="px-3 py-2 text-right text-body-sm font-semibold text-horizon-500" style="width: 20%">Combined</th>
@@ -149,15 +149,15 @@
             </tr>
           </tbody>
           <tfoot>
-            <tr class="bg-error-50 border-t-2 border-error-300">
-              <td class="px-3 py-3 text-body-base font-bold text-error-800">Total Liabilities</td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+            <tr class="bg-raspberry-50 border-t-2 border-raspberry-300">
+              <td class="px-3 py-3 text-body-base font-bold text-raspberry-800">Total Liabilities</td>
+              <td class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                 {{ formatCurrency(totalLiabilities.user) }}
               </td>
-              <td v-if="hasSpouse" class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+              <td v-if="hasSpouse" class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                 {{ formatCurrency(totalLiabilities.spouse) }}
               </td>
-              <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+              <td class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                 {{ formatCurrency(totalLiabilities.combined) }}
               </td>
             </tr>
@@ -182,7 +182,7 @@
               <td class="px-3 py-3 text-right">
                 <p
                   class="text-h5 font-bold"
-                  :class="netWorth.user >= 0 ? 'text-success-700' : 'text-error-700'"
+                  :class="netWorth.user >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                 >
                   {{ formatCurrency(netWorth.user) }}
                 </p>
@@ -190,7 +190,7 @@
               <td v-if="hasSpouse" class="px-3 py-3 text-right">
                 <p
                   class="text-h5 font-bold"
-                  :class="netWorth.spouse >= 0 ? 'text-success-700' : 'text-error-700'"
+                  :class="netWorth.spouse >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                 >
                   {{ formatCurrency(netWorth.spouse) }}
                 </p>
@@ -198,7 +198,7 @@
               <td class="px-3 py-3 text-right">
                 <p
                   class="text-h5 font-bold"
-                  :class="netWorth.combined >= 0 ? 'text-success-700' : 'text-error-700'"
+                  :class="netWorth.combined >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                 >
                   {{ formatCurrency(netWorth.combined) }}
                 </p>

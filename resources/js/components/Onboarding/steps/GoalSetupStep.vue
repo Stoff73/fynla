@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Setting clear goals helps you stay on track and gives you measurable targets to work towards. You can add more goals later from your Goals dashboard.
-        </p>
-      </div>
-
       <!-- Goal Type -->
       <div>
         <label for="goal_type" class="label">
@@ -102,6 +96,8 @@
           Based on {{ monthsRemaining }} {{ monthsRemaining === 1 ? 'month' : 'months' }} to your target date
         </p>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.goals" />
     </div>
   </OnboardingStep>
 </template>
@@ -111,6 +107,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import goalsService from '@/services/goalsService';
 import { formatCurrency } from '@/utils/currency';
 
@@ -119,6 +117,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -236,6 +235,7 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };

@@ -69,9 +69,6 @@
                                         >
                                             {{ group.stageLabel }}
                                         </span>
-                                        <span class="text-xs font-medium" :class="getStageHeaderColour(group.stageColour)">
-                                            Ages {{ group.ageRange }}
-                                        </span>
                                         <div class="flex-1 h-px" :class="getStageDividerColour(group.stageColour)"></div>
                                     </div>
 
@@ -203,7 +200,7 @@ export default {
     computed: {
         /**
          * Group personas by their life stage for display.
-         * Returns an array of { stageId, stageLabel, stageColour, ageRange, personas: [] }
+         * Returns an array of { stageId, stageLabel, stageColour, personas: [] }
          */
         personasByStage() {
             const groups = [];
@@ -227,7 +224,6 @@ export default {
                         stageId,
                         stageLabel: stageConfig.label,
                         stageColour: stageConfig.colour,
-                        ageRange: stageConfig.ageRange,
                         personas: personaMap[stageId],
                     });
                 }
@@ -240,7 +236,6 @@ export default {
                     stageId: 'other',
                     stageLabel: 'Other Scenarios',
                     stageColour: 'neutral',
-                    ageRange: '',
                     personas: unmapped,
                 });
             }

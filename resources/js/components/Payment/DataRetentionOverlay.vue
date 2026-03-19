@@ -60,8 +60,8 @@
           </button>
 
           <!-- Delete confirmation -->
-          <div v-if="showDeleteConfirmation" class="border border-error-600/20 rounded-lg p-4 bg-error-100/50">
-            <p class="text-body-sm font-medium text-error-600 mb-3">
+          <div v-if="showDeleteConfirmation" class="border border-raspberry-600/20 rounded-lg p-4 bg-raspberry-100/50">
+            <p class="text-body-sm font-medium text-raspberry-600 mb-3">
               This action is permanent and cannot be undone. All your financial plans, policies, pensions, investments, savings, goals, and documents will be deleted.
             </p>
             <label for="delete-password" class="block text-body-sm text-neutral-500 mb-1.5">
@@ -73,7 +73,7 @@
               type="password"
               autocomplete="current-password"
               class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
-                     focus:outline-none focus:ring-2 focus:ring-error-500 focus:border-error-500 mb-3"
+                     focus:outline-none focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 mb-3"
               placeholder="Your account password"
             />
             <label for="delete-confirm" class="block text-body-sm text-neutral-500 mb-1.5">
@@ -85,13 +85,13 @@
               type="text"
               autocomplete="off"
               class="w-full px-3 py-2 border border-horizon-300 rounded-md text-sm
-                     focus:outline-none focus:ring-2 focus:ring-error-500 focus:border-error-500 mb-3"
+                     focus:outline-none focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 mb-3"
               placeholder="Type DELETE here"
             />
 
             <!-- Delete error -->
-            <div v-if="deleteError" class="bg-error-100 border border-error-600/20 rounded-lg p-2 mb-3">
-              <p class="text-body-sm text-error-600">{{ deleteError }}</p>
+            <div v-if="deleteError" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-2 mb-3">
+              <p class="text-body-sm text-raspberry-600">{{ deleteError }}</p>
             </div>
 
             <div class="flex gap-3">
@@ -106,7 +106,7 @@
                 @click="confirmDeleteAll"
                 class="flex-1 py-2 px-4 text-sm font-medium text-white rounded-lg transition-colors"
                 :class="deleteConfirmText === 'DELETE' && currentPassword.length > 0
-                  ? 'bg-error-600 hover:bg-error-700'
+                  ? 'bg-raspberry-600 hover:bg-raspberry-700'
                   : 'bg-horizon-300 cursor-not-allowed'"
                 :disabled="deleteConfirmText !== 'DELETE' || !currentPassword || deleting"
               >

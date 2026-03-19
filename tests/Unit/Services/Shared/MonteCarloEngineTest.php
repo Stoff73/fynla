@@ -122,3 +122,14 @@ it('generates normally distributed values centred around mean', function () {
     $mean = array_sum($values) / count($values);
     expect($mean)->toBeGreaterThan(9.0)->toBeLessThan(11.0);
 });
+
+it('percentiles do not include final_value key in base engine', function () {
+    $values = range(1, 100);
+    $values = array_map('floatval', $values);
+    $percentiles = $this->engine->calculatePercentiles($values);
+
+    foreach ($percentiles as $p) {
+        expect($p)->toHaveKeys(['percentile', 'value']);
+        expect($p)->not->toHaveKey('final_value');
+    }
+});

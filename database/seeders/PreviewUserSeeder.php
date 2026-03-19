@@ -1229,34 +1229,38 @@ class PreviewUserSeeder extends Seeder
 
         // Create risk profile for primary user
         if (! empty($riskData['main_risk_level'])) {
-            RiskProfile::create([
-                'user_id' => $user->id,
-                'risk_level' => $riskData['main_risk_level'],
-                'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['main_risk_level']),
-                'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['main_risk_level']),
-                'time_horizon_years' => 10,
-                'knowledge_level' => 'intermediate',
-                'attitude_to_volatility' => 'comfortable',
-                'esg_preference' => false,
-                'risk_assessed_at' => now(),
-                'is_self_assessed' => true,
-            ]);
+            RiskProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'risk_level' => $riskData['main_risk_level'],
+                    'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['main_risk_level']),
+                    'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['main_risk_level']),
+                    'time_horizon_years' => 10,
+                    'knowledge_level' => 'intermediate',
+                    'attitude_to_volatility' => 'comfortable',
+                    'esg_preference' => false,
+                    'risk_assessed_at' => now(),
+                    'is_self_assessed' => true,
+                ]
+            );
         }
 
         // Create risk profile for spouse if they have one
         if ($spouse && ! empty($riskData['spouse_risk_level'])) {
-            RiskProfile::create([
-                'user_id' => $spouse->id,
-                'risk_level' => $riskData['spouse_risk_level'],
-                'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['spouse_risk_level']),
-                'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['spouse_risk_level']),
-                'time_horizon_years' => 10,
-                'knowledge_level' => 'intermediate',
-                'attitude_to_volatility' => 'comfortable',
-                'esg_preference' => false,
-                'risk_assessed_at' => now(),
-                'is_self_assessed' => true,
-            ]);
+            RiskProfile::updateOrCreate(
+                ['user_id' => $spouse->id],
+                [
+                    'risk_level' => $riskData['spouse_risk_level'],
+                    'risk_tolerance' => $this->mapRiskLevelToTolerance($riskData['spouse_risk_level']),
+                    'capacity_for_loss_percent' => $this->mapRiskLevelToCapacity($riskData['spouse_risk_level']),
+                    'time_horizon_years' => 10,
+                    'knowledge_level' => 'intermediate',
+                    'attitude_to_volatility' => 'comfortable',
+                    'esg_preference' => false,
+                    'risk_assessed_at' => now(),
+                    'is_self_assessed' => true,
+                ]
+            );
         }
     }
 

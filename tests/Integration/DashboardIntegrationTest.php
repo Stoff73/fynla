@@ -68,104 +68,6 @@ it('includes net worth in estate summary', function () {
     expect($data['estate']['net_worth'])->toBeNumeric();
 });
 
-it('calculates financial health score correctly', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData)->toBeArray();
-    expect($scoreData)->toHaveKeys([
-        'composite_score',
-        'breakdown',
-        'label',
-        'recommendation',
-    ]);
-});
-
-it('keeps composite score between 0 and 100', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $compositeScore = $scoreData['composite_score'];
-    expect($compositeScore)->toBeGreaterThanOrEqual(0);
-    expect($compositeScore)->toBeLessThanOrEqual(100);
-});
-
-it('includes all 5 modules in breakdown', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $breakdown = $scoreData['breakdown'];
-    expect($breakdown)->toHaveKeys([
-        'protection',
-        'emergency_fund',
-        'retirement',
-        'investment',
-        'estate',
-    ]);
-});
-
-it('has score, weight, and contribution in each module breakdown', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $breakdown = $scoreData['breakdown'];
-
-    foreach ($breakdown as $module => $data) {
-        expect($data)->toHaveKeys(['score', 'weight', 'contribution']);
-        expect($data['score'])->toBeNumeric();
-        expect($data['weight'])->toBeNumeric();
-        expect($data['contribution'])->toBeNumeric();
-    }
-});
-
-it('sums weights to 1.0', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $breakdown = $scoreData['breakdown'];
-    $totalWeight = array_sum(array_column($breakdown, 'weight'));
-
-    // Pest doesn't have toBeCloseTo, use toBe with delta check
-    expect(abs($totalWeight - 1.0))->toBeLessThan(0.01);
-});
-
-it('sums contributions to composite score', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $breakdown = $scoreData['breakdown'];
-    $compositeScore = $scoreData['composite_score'];
-
-    $totalContribution = array_sum(array_column($breakdown, 'contribution'));
-
-    // Pest doesn't have toBeCloseTo, use delta check
-    expect(abs($totalContribution - $compositeScore))->toBeLessThan(0.5);
-});
-
-it('sets protection weight to 20%', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['breakdown']['protection']['weight'])->toBe(0.20);
-});
-
-it('sets emergency fund weight to 15%', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['breakdown']['emergency_fund']['weight'])->toBe(0.15);
-});
-
-it('sets retirement weight to 25%', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['breakdown']['retirement']['weight'])->toBe(0.25);
-});
-
-it('sets investment weight to 20%', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['breakdown']['investment']['weight'])->toBe(0.20);
-});
-
-it('sets estate weight to 20%', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['breakdown']['estate']['weight'])->toBe(0.20);
-});
-
 it('includes all modules in alerts aggregation', function () {
     $alerts = $this->aggregator->aggregateAlerts($this->user->id);
 
@@ -254,7 +156,6 @@ it('fetches and caches dashboard data correctly', function () {
 it('invalidates cache correctly', function () {
     // Prime the cache
     $this->actingAs($this->user)->getJson('/api/dashboard');
-    $this->actingAs($this->user)->getJson('/api/dashboard/financial-health-score');
     $this->actingAs($this->user)->getJson('/api/dashboard/alerts');
 
     // Invalidate all caches
@@ -265,7 +166,6 @@ it('invalidates cache correctly', function () {
 
     // All caches should be cleared
     expect(Cache::has("dashboard_{$this->user->id}"))->toBeFalse();
-    expect(Cache::has("financial_health_score_{$this->user->id}"))->toBeFalse();
     expect(Cache::has("alerts_{$this->user->id}"))->toBeFalse();
 });
 
@@ -277,26 +177,3 @@ it('handles partial failures gracefully during parallel data loading', function 
     expect($data)->toBeArray();
 });
 
-it('matches financial health score label to score range', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    $score = $scoreData['composite_score'];
-    $label = $scoreData['label'];
-
-    if ($score >= 80) {
-        expect($label)->toBe('Excellent');
-    } elseif ($score >= 60) {
-        expect($label)->toBe('Good');
-    } elseif ($score >= 40) {
-        expect($label)->toBe('Fair');
-    } else {
-        expect($label)->toBe('Needs Improvement');
-    }
-});
-
-it('provides contextual financial health score recommendation', function () {
-    $scoreData = $this->aggregator->calculateFinancialHealthScore($this->user->id);
-
-    expect($scoreData['recommendation'])->toBeString();
-    expect(strlen($scoreData['recommendation']))->toBeGreaterThan(20);
-});

@@ -225,8 +225,8 @@
       </ul>
     </div>
 
-    <div v-if="error" class="mb-6 p-4 bg-error-50 border border-error-200 rounded-lg">
-      <p class="text-body-sm text-error-700">{{ error }}</p>
+    <div v-if="error" class="mb-6 p-4 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+      <p class="text-body-sm text-raspberry-700">{{ error }}</p>
     </div>
 
     <button

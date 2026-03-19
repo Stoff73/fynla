@@ -85,10 +85,10 @@
     </div>
 
     <!-- Danger Zone -->
-    <div class="bg-white rounded-lg border border-error-200 overflow-hidden">
-      <div class="px-6 py-4 border-b border-error-200 bg-error-50">
-        <h3 class="text-h4 font-semibold text-error-900">Danger Zone</h3>
-        <p class="mt-1 text-body-sm text-error-700">
+    <div class="bg-white rounded-lg border border-raspberry-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-raspberry-200 bg-raspberry-50">
+        <h3 class="text-h4 font-semibold text-raspberry-900">Danger Zone</h3>
+        <p class="mt-1 text-body-sm text-raspberry-700">
           Irreversible actions - proceed with caution
         </p>
       </div>
@@ -102,7 +102,7 @@
             </p>
           </div>
           <button
-            class="px-4 py-2 border border-error-600 text-error-700 rounded-button text-body-sm font-medium hover:bg-error-50 transition-colors"
+            class="px-4 py-2 border border-raspberry-600 text-raspberry-700 rounded-button text-body-sm font-medium hover:bg-raspberry-50 transition-colors"
             disabled
           >
             Clear Data

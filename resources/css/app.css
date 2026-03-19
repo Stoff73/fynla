@@ -85,11 +85,11 @@
   }
 
   .badge-error {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-error-100 text-error-700;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-raspberry-100 text-raspberry-700;
   }
 
   .badge-info {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-info-100 text-info-700;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-horizon-100 text-horizon-700;
   }
 
   /* Modal Component Styles */

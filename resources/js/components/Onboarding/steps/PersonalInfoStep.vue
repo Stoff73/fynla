@@ -9,12 +9,6 @@
     @next="handleNext"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Personal information helps us calculate your estate value, available tax reliefs, and provide personalized estate planning advice.
-        </p>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Date of Birth -->
         <div>
@@ -32,7 +26,7 @@
           >
           <p v-if="fieldErrors.date_of_birth" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.date_of_birth }}</p>
           <p v-else class="mt-1 text-body-sm text-neutral-500">
-            Used for age-based calculations and projections
+            Used for age-based calculations and projections. Check your <a :href="LINKS.GOV_STATE_PENSION_AGE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">State Pension age</a>
           </p>
         </div>
 
@@ -182,12 +176,6 @@
         <h4 class="text-body font-medium text-horizon-500 mb-4">
           Health & Lifestyle Information
         </h4>
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
-          <p class="text-body-sm text-violet-800">
-            <strong>Why this matters:</strong> Health and lifestyle information helps us provide accurate protection strategies and estimate insurance premium costs.
-          </p>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Health Status -->
           <div>
@@ -256,6 +244,8 @@
           </div>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.personalInfo" />
     </div>
   </OnboardingStep>
 </template>
@@ -265,12 +255,15 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '../UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 
 export default {
   name: 'PersonalInfoStep',
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -475,6 +468,8 @@ export default {
       formatPostcode,
       handleNext,
       handleAddressSelected,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

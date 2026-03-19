@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Student loans affect your monthly budget and net worth. Adding yours helps us give accurate financial guidance.
-        </p>
-      </div>
-
       <!-- Student Loan Plan Type -->
       <div>
         <label for="plan_type" class="label">
@@ -36,6 +30,9 @@
         </select>
         <p v-if="repaymentThreshold" class="mt-1 text-body-sm text-neutral-500">
           Repayment threshold: {{ formatCurrency(repaymentThreshold) }} per year
+        </p>
+        <p class="mt-1 text-body-sm text-neutral-500">
+          Not sure which plan? Check your <a :href="LINKS.GOV_STUDENT_LOAN_REPAY" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">repayment plan type</a>
         </p>
       </div>
 
@@ -118,6 +115,8 @@
           </div>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.studentLoan" />
     </div>
   </OnboardingStep>
 </template>
@@ -125,6 +124,8 @@
 <script>
 import { ref, computed } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 
 export default {
@@ -132,6 +133,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'save'],
@@ -216,6 +218,8 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

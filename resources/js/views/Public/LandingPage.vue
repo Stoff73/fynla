@@ -67,11 +67,6 @@
               {{ stage.label }}
             </h3>
 
-            <!-- Age Range -->
-            <p class="text-sm font-semibold text-center mb-2" :class="stageTextColourClass(stage)">
-              Ages {{ stage.ageRange }}
-            </p>
-
             <!-- Tagline -->
             <p class="text-xs text-neutral-500 text-center leading-relaxed">
               {{ stage.tagline }}

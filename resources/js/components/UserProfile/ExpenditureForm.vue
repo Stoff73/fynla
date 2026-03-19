@@ -773,10 +773,10 @@
                   <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
                 </div>
                 <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+                  {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
                 </div>
                 <div v-if="isMarried" class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+                  {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
                 </div>
                 <div v-if="isMarried" class="col-total text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
@@ -1037,7 +1037,7 @@
                   <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
                 </div>
                 <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-error-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+                  {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
                 </div>
               </template>
             </template>

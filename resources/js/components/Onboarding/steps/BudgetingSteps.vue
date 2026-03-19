@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Your income and spending patterns are used to calculate your savings rate, emergency fund needs, and how much you can put towards your goals.
-        </p>
-      </div>
-
       <!-- Monthly Income -->
       <div>
         <h4 class="text-body font-medium text-horizon-500 mb-4">Monthly Income</h4>
@@ -96,6 +90,8 @@
           </p>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.budgeting" />
     </div>
   </OnboardingStep>
 </template>
@@ -104,6 +100,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 
 export default {
@@ -111,6 +109,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -190,6 +189,7 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };

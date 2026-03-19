@@ -62,7 +62,7 @@
 
         <!-- Error -->
         <div v-else-if="error" class="text-center py-8">
-          <p class="text-body-sm text-error-600 mb-4">{{ error }}</p>
+          <p class="text-body-sm text-raspberry-600 mb-4">{{ error }}</p>
           <button @click="fetchPlans" class="btn-secondary text-sm">Try Again</button>
         </div>
 
