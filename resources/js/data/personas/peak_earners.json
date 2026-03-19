@@ -33,6 +33,8 @@
       "county": "Surrey",
       "postcode": "GU1 4RH"
     },
+    "annual_charitable_donations": 2400.00,
+    "is_gift_aid": true,
     "domicile": {
       "country_of_birth": "United Kingdom",
       "domicile_status": "uk_domiciled"
