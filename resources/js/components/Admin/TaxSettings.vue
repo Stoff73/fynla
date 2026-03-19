@@ -271,6 +271,30 @@
             </div>
           </div>
 
+          <!-- Scottish Income Tax -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Scottish Income Tax</h3>
+            </div>
+            <div class="px-6 py-4">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-sm text-neutral-500">Status:</span>
+                <span :class="currentConfig.income_tax?.scotland?.enabled ? 'text-spring-600' : 'text-neutral-500'" class="font-medium">
+                  {{ currentConfig.income_tax?.scotland?.enabled ? 'Enabled' : 'Not yet implemented' }}
+                </span>
+              </div>
+              <p v-if="!currentConfig.income_tax?.scotland?.enabled" class="text-sm text-neutral-500">Scottish rate bands are not yet configured. When enabled, Scottish taxpayers will use separate income tax bands (Starter, Basic, Intermediate, Higher, Advanced, Top).</p>
+              <div v-else>
+                <div v-for="(band, index) in currentConfig.income_tax.scotland.bands" :key="index" class="grid grid-cols-4 gap-3 p-2 bg-savannah-100 rounded mb-2">
+                  <span class="text-sm">{{ band.name }}</span>
+                  <span class="text-sm">£{{ formatNumber(band.lower_limit) }}</span>
+                  <span class="text-sm">{{ band.upper_limit ? '£' + formatNumber(band.upper_limit) : 'No limit' }}</span>
+                  <span class="text-sm font-semibold text-raspberry-600">{{ (band.rate * 100).toFixed(0) }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- National Insurance Section -->
           <div class="card">
             <div class="px-6 py-4 border-b border-light-gray">
@@ -655,6 +679,11 @@
                     <label class="block text-sm text-neutral-500 mb-1">Marginal Relief Multiplier</label>
                     <input v-if="isEditing" v-model.number="editableConfig.capital_gains_tax.chattel_marginal_relief_multiplier" type="number" step="0.1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
                     <p v-else class="font-medium">{{ currentConfig.capital_gains_tax?.chattel_marginal_relief_multiplier }}x</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Marginal Relief Limit (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.capital_gains_tax.chattel_marginal_relief_limit" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.capital_gains_tax?.chattel_marginal_relief_limit) }}</p>
                   </div>
                 </div>
               </div>
@@ -1043,10 +1072,10 @@
                   <p v-else class="font-medium">£{{ formatNumber(currentConfig.pension.annual_allowance) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-neutral-500 mb-1">Money Purchase Annual Allowance (£)</label>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Money Purchase Annual Allowance / MPAA (£)</label>
                   <input
                     v-if="isEditing"
-                    v-model.number="editableConfig.pension.money_purchase_annual_allowance"
+                    v-model.number="editableConfig.pension.mpaa"
                     type="number"
                     step="1"
                     class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
@@ -1794,6 +1823,7 @@
               <h3 class="text-lg font-semibold text-horizon-500">Quick Succession Relief</h3>
             </div>
             <div class="px-6 py-4">
+              <p class="text-sm text-neutral-500 mb-3">Maximum period: {{ currentConfig.inheritance_tax?.quick_succession_relief?.max_years }} years</p>
               <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div v-for="band in (currentConfig.inheritance_tax?.quick_succession_relief?.relief_rates || [])" :key="band.max_years" class="text-center p-3 bg-savannah-100 rounded-lg">
                   <p class="text-xs text-neutral-500 mb-1">Within {{ band.max_years }} year(s)</p>
@@ -1931,6 +1961,54 @@
             </div>
           </div>
         </div>
+
+          <!-- Early Years Funding -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Early Years Funding</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+              <div v-for="(scheme, schemeKey) in {
+                'universal_15hrs': 'Universal 15 Hours (All 3-4 Year Olds)',
+                'disadvantaged_2yr': 'Disadvantaged 2 Year Olds',
+                'working_parents_under_2': 'Working Parents (Under 2)',
+                'working_parents_2yr': 'Working Parents (2 Year Olds)',
+                'working_parents_30hrs': 'Working Parents 30 Hours (3-4 Year Olds)'
+              }" :key="schemeKey" class="p-3 bg-savannah-100 rounded-lg">
+                <h4 class="text-sm font-medium text-horizon-500 mb-2">{{ scheme }}</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <span class="text-neutral-500">Hours/Week:</span>
+                    <span class="font-medium ml-1">{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.hours_per_week }}</span>
+                  </div>
+                  <div>
+                    <span class="text-neutral-500">Weeks/Year:</span>
+                    <span class="font-medium ml-1">{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.weeks_per_year }}</span>
+                  </div>
+                  <div>
+                    <span class="text-neutral-500">Total Hours/Year:</span>
+                    <span class="font-medium ml-1">{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.total_hours_per_year }}</span>
+                  </div>
+                  <div v-if="currentConfig.benefits?.early_years_funding?.[schemeKey]?.max_income_threshold">
+                    <span class="text-neutral-500">Max Income:</span>
+                    <span class="font-medium ml-1">£{{ formatNumber(currentConfig.benefits?.early_years_funding?.[schemeKey]?.max_income_threshold) }}</span>
+                  </div>
+                  <div v-if="currentConfig.benefits?.early_years_funding?.[schemeKey]?.min_weekly_earnings">
+                    <span class="text-neutral-500">Min Weekly Earnings:</span>
+                    <span class="font-medium ml-1">£{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.min_weekly_earnings }}</span>
+                  </div>
+                  <div v-if="currentConfig.benefits?.early_years_funding?.[schemeKey]?.eligible_age_from !== undefined">
+                    <span class="text-neutral-500">Age From:</span>
+                    <span class="font-medium ml-1">{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.eligible_age_from_months ? currentConfig.benefits.early_years_funding[schemeKey].eligible_age_from_months + ' months' : currentConfig.benefits.early_years_funding[schemeKey].eligible_age_from }}</span>
+                  </div>
+                  <div v-if="currentConfig.benefits?.early_years_funding?.[schemeKey]?.eligible_age_to">
+                    <span class="text-neutral-500">Age To:</span>
+                    <span class="font-medium ml-1">{{ currentConfig.benefits?.early_years_funding?.[schemeKey]?.eligible_age_to }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Tax-Free Childcare -->
           <div class="card">
@@ -2197,6 +2275,18 @@
                 <div>
                   <label class="block text-sm text-neutral-500 mb-1">Monte Carlo Iterations</label>
                   <p class="font-medium">{{ formatNumber(currentConfig.retirement?.monte_carlo_iterations) }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Compounding Periods (per year)</label>
+                  <p class="font-medium">{{ currentConfig.retirement?.compounding_periods }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Accumulation to Decumulation (years)</label>
+                  <p class="font-medium">{{ currentConfig.retirement?.accumulation_to_decumulation_years }} years</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Employer Match Threshold</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.retirement?.employer_match_threshold ?? 0) * 100).toFixed(0) }}%</p>
                 </div>
               </div>
               <div class="border-t pt-4 mt-4">
