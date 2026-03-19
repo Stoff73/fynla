@@ -84,6 +84,7 @@ class PreviewWriteInterceptor
         '#/comparison$#',          // Comparison endpoints
         '#/monte-carlo#',          // Monte Carlo simulation endpoints
         '#/rebalance-preview$#',   // Rebalance preview (read-only)
+        '#/recalculate$#',         // Risk profile recalculation (read + write, needed for risk page)
     ];
 
     /**
