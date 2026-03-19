@@ -79,6 +79,9 @@
 - [x] Investment knowledge nudge on dashboard — asks beginner/intermediate/experienced when user has investment or pension accounts but no knowledge_level set
 - [x] Nudge checks DB first — only asks once, never shows again after answered
 
+### Risk Profile Fix (direct to main)
+- [x] Risk profile page empty for preview users — `PreviewWriteInterceptor` was blocking `POST /investment/risk/recalculate`, returning fake empty response. Added `/recalculate` to `EXCLUDED_PATTERNS`. Now shows level number, 9 factor breakdown cards, asset allocation, custom product overrides.
+
 ## Outstanding
 
 ### Features (Backlog)

@@ -84,6 +84,7 @@ app/Agents/CoordinatingAgent.php
 app/Agents/EstateAgent.php
 app/Agents/TaxOptimisationAgent.php
 app/Http/Controllers/Api/LifeStageController.php
+app/Http/Middleware/PreviewWriteInterceptor.php
 app/Http/Requests/UpdatePersonalInfoRequest.php
 app/Services/AI/AiToolDefinitions.php
 app/Services/PrerequisiteGateService.php
@@ -120,3 +121,4 @@ php artisan db:seed
 5. Check admin Tax Settings → IHT tab → PET taper relief shows year ranges with percentages
 6. Dashboard → user with investments but no knowledge_level → violet nudge banner appears with 3 buttons
 7. Click a knowledge level button → banner disappears and doesn't return
+8. Preview persona → Risk Profile page → shows level number (3), 9 factor breakdown cards, asset allocation
