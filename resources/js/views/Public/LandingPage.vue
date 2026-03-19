@@ -5,20 +5,20 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
 
         <!-- Heading -->
-        <h2 class="text-4xl sm:text-5xl lg:text-8xl leading-tight mb-3 text-white">
+        <h2 class="relative z-10 text-4xl sm:text-5xl lg:text-8xl leading-tight mb-3 text-white">
           Create your own<br />
           <span class="text-raspberry-300">financial freedom</span>
         </h2>
 
         <!-- Body paragraph -->
-        <p class="text-white/80 mb-4 max-w-2xl leading-relaxed">
+        <p class="relative z-10 text-white/80 mb-4 max-w-2xl leading-relaxed">
           We help create your path to financial freedom<br />
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
 
         <!-- CTA -->
-        <div class="flex flex-col items-start gap-3 mb-8">
-          <router-link to="/register" class="px-12 py-2.5 bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all">Sign up</router-link>
+        <div class="relative z-10 flex flex-col items-start gap-3 mb-0">
+          <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all">Sign up</router-link>
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
             <span class="text-white/40">|</span>
@@ -39,24 +39,30 @@
 
         <!-- Desktop: three-panel composite as background with caption cards on top -->
         <div
-          class="relative hidden lg:block bg-cover bg-top bg-no-repeat overflow-hidden"
-          :style="{ backgroundImage: 'url(/images/Website/Homepage-Header-Desktop.png)' }"
-          style="aspect-ratio: 1315 / 340;"
+          class="relative hidden lg:block overflow-hidden mx-auto"
+          style="width: 105%; margin-left: -2.5%; margin-top: -80px; margin-bottom: 8px;"
         >
-          <!-- Caption cards — positioned at top of the image -->
-          <div class="absolute inset-x-0 top-0 grid grid-cols-3 gap-6 px-4 pt-4">
-            <div class="bg-white/95 rounded-lg px-4 py-3 shadow-sm">
-              <p class="text-sm font-bold text-horizon-500 mb-1">One financial view</p>
-              <p class="text-xs text-neutral-500 leading-relaxed">Use Fynla to securely centralise and view all your financial data</p>
-            </div>
-            <div class="bg-white/95 rounded-lg px-4 py-3 shadow-sm text-center">
-              <p class="text-sm font-bold text-horizon-500 mb-1">One financial brain.</p>
-              <p class="text-xs text-neutral-500 leading-relaxed">Our proprietary brain does the calculations so you don't have to</p>
-            </div>
-            <div class="bg-white/95 rounded-lg px-4 py-3 shadow-sm text-right">
-              <p class="text-sm font-bold text-horizon-500 mb-1">One financial voice</p>
-              <p class="text-xs text-neutral-500 leading-relaxed">We will give you clear and simple advice for financial freedom</p>
-            </div>
+          <img
+            src="/images/Website/Homepage-Header-Desktop.png"
+            alt="Fynla Brain — your financial planning intelligence"
+            class="w-full h-auto block"
+          />
+          <!-- Caption card: left -->
+          <div class="absolute top-[4.5rem] left-[4.5rem] px-4 pt-24 py-3 max-w-xs">
+            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial view</p>
+            <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view<br/>all your financial data.</p>
+          </div>
+
+          <!-- Caption card: centre -->
+          <div class="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-3 max-w-xs text-center">
+            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
+            <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations<br/>so you don't have to.</p>
+          </div>
+
+          <!-- Caption card: right -->
+          <div class="absolute top-[4.5rem] right-[4.5rem] px-4 pt-24 py-3 max-w-xs text-right">
+            <p class="text-2xl font-bold text-horizon-500 mb-1">One financial voice</p>
+            <p class="text-sm text-neutral-500 leading-tight">We will give you clear and simple advice<br/>for financial freedom.</p>
           </div>
         </div>
 
@@ -64,13 +70,13 @@
     </div>
 
     <!-- Meet Fyn Section -->
-    <div id="meet-fyn" class="bg-light-pink-100 pt-6 pb-8 lg:-mt-2 lg:pt-0 lg:pb-0">
+    <div id="meet-fyn" class="bg-light-pink-100 pt-6 pb-8 lg:-mt-2 lg:pt-[10px] lg:pb-0">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-10">
 
           <!-- Left: Meet Fyn text + Ask Fyn input -->
           <div class="flex-1 self-center">
-            <h1 class="text-6xl lg:text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-4">Meet Fyn</h1>
+            <h1 class="text-6xl lg:text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-[24px]">Meet Fyn</h1>
             <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-neutral-500 mb-2">
               Your financial companion for life
             </p>
@@ -87,7 +93,7 @@
                 class="input-field flex-1 !py-3"
                 @keyup.enter="handleAskFyn"
               />
-              <button type="button" @click="handleAskFyn" class="px-8 py-3 bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap">
+              <button type="button" @click="handleAskFyn" class="px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap">
                 Ask Fyn
               </button>
             </div>
