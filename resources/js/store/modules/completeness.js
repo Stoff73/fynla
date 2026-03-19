@@ -87,6 +87,37 @@ const getters = {
     return Math.round((ready / total) * 100);
   },
 
+  /**
+   * Field-level completeness percentage for a module (from DataReadiness).
+   */
+  moduleCompleteness: (state) => (module) => {
+    return state.modules[module]?.completeness_percent ?? 0;
+  },
+
+  /**
+   * Blocking checks that failed for a module (field-level detail).
+   */
+  moduleBlocking: (state) => (module) => {
+    return (state.modules[module]?.blocking ?? []).filter(c => !c.passed);
+  },
+
+  /**
+   * Warning checks that failed for a module.
+   */
+  moduleWarnings: (state) => (module) => {
+    return (state.modules[module]?.warnings ?? []).filter(c => !c.passed);
+  },
+
+  /**
+   * Overall data completeness across all modules (average of DataReadiness percentages).
+   */
+  overallCompleteness: (state) => {
+    const modules = Object.values(state.modules).filter(m => m.completeness_percent !== null);
+    if (modules.length === 0) return 0;
+    const total = modules.reduce((sum, m) => sum + (m.completeness_percent ?? 0), 0);
+    return Math.round(total / modules.length);
+  },
+
   isLoading: (state) => state.loading,
 };
 

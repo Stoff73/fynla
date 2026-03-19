@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\ExpenditureProfile;
-use App\Models\Investment\RiskProfile;
 use App\Models\User;
+use App\Services\Estate\EstateDataReadinessService;
+use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDataReadinessService;
+use App\Services\Protection\ProtectionDataReadinessService;
+use App\Services\Retirement\RetirementDataReadinessService;
+use App\Services\Savings\SavingsDataReadinessService;
 
 /**
  * Centralised prerequisite enforcement for all module analysis, tool execution,
@@ -27,6 +30,14 @@ use App\Models\User;
  */
 class PrerequisiteGateService
 {
+    public function __construct(
+        private readonly ProtectionDataReadinessService $protectionReadiness,
+        private readonly SavingsDataReadinessService $savingsReadiness,
+        private readonly RetirementDataReadinessService $retirementReadiness,
+        private readonly InvestmentDataReadinessService $investmentReadiness,
+        private readonly EstateDataReadinessService $estateReadiness,
+    ) {}
+
     /**
      * Enforce prerequisites for a named action.
      *
@@ -52,151 +63,43 @@ class PrerequisiteGateService
     // module's DataReadinessService. Warning-level checks are not gated.
 
     /**
-     * Protection blocking: date_of_birth, income, marital_status
-     * Source: ProtectionDataReadinessService::blockingChecks()
+     * Protection: delegates to ProtectionDataReadinessService
      */
     public function canAnalyseProtection(User $user): array
     {
-        $missing = [];
-        $actions = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = 'date of birth';
-            $actions[] = ['label' => 'Complete your profile', 'route' => '/profile'];
-        }
-
-        if ($this->calculateTotalIncome($user) <= 0) {
-            $missing[] = 'annual income';
-            $actions[] = ['label' => 'Add your income details', 'route' => '/valuable-info?section=income'];
-        }
-
-        if (! $user->marital_status) {
-            $missing[] = 'marital status';
-            $actions[] = ['label' => 'Set your marital status', 'route' => '/profile'];
-        }
-
-        return $this->gate($missing, $actions, 'protection');
+        return $this->delegateToReadiness($this->protectionReadiness->assess($user), 'protection');
     }
 
     /**
-     * Savings blocking: date_of_birth, income, expenditure (3 sources)
-     * Source: SavingsDataReadinessService blocking checks
-     * Expenditure resolved via: ExpenditureProfile > User.monthly_expenditure > User.annual_expenditure
+     * Savings: delegates to SavingsDataReadinessService
      */
     public function canAnalyseSavings(User $user): array
     {
-        $missing = [];
-        $actions = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = 'date of birth';
-            $actions[] = ['label' => 'Complete your profile', 'route' => '/profile'];
-        }
-
-        if ($this->calculateTotalIncome($user) <= 0) {
-            $missing[] = 'annual income';
-            $actions[] = ['label' => 'Add your income details', 'route' => '/valuable-info?section=income'];
-        }
-
-        if (! $this->hasExpenditure($user)) {
-            $missing[] = 'monthly or annual expenditure';
-            $actions[] = ['label' => 'Add your expenditure', 'route' => '/valuable-info?section=expenditure'];
-        }
-
-        return $this->gate($missing, $actions, 'savings');
+        return $this->delegateToReadiness($this->savingsReadiness->assess($user), 'savings');
     }
 
     /**
-     * Retirement blocking: date_of_birth, marital_status, risk_profile
-     * Source: RetirementDataReadinessService blocking checks (date_of_birth, marital_status)
-     * Plus risk_profile added per product requirement for retirement analysis.
-     *
-     * Note: target_retirement_age and pensions are WARNING level in the agent —
-     * they do not block analysis, the agent uses defaults (State Pension age).
+     * Retirement: delegates to RetirementDataReadinessService
      */
     public function canAnalyseRetirement(User $user): array
     {
-        $missing = [];
-        $actions = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = 'date of birth';
-            $actions[] = ['label' => 'Complete your profile', 'route' => '/profile'];
-        }
-
-        if (! $user->marital_status) {
-            $missing[] = 'marital status';
-            $actions[] = ['label' => 'Set your marital status', 'route' => '/profile'];
-        }
-
-        if (! RiskProfile::where('user_id', $user->id)->exists()) {
-            $missing[] = 'completed risk profile';
-            $actions[] = ['label' => 'Complete your risk profile', 'route' => '/risk-profile'];
-        }
-
-        return $this->gate($missing, $actions, 'retirement');
+        return $this->delegateToReadiness($this->retirementReadiness->assess($user), 'retirement');
     }
 
     /**
-     * Investment blocking: date_of_birth, income, risk_profile, expenditure
-     * Source: InvestmentDataReadinessService blocking checks
+     * Investment: delegates to InvestmentDataReadinessService
      */
     public function canAnalyseInvestment(User $user): array
     {
-        $missing = [];
-        $actions = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = 'date of birth';
-            $actions[] = ['label' => 'Complete your profile', 'route' => '/profile'];
-        }
-
-        if ($this->calculateTotalIncome($user) <= 0) {
-            $missing[] = 'annual income';
-            $actions[] = ['label' => 'Add your income details', 'route' => '/valuable-info?section=income'];
-        }
-
-        if (! RiskProfile::where('user_id', $user->id)->exists()) {
-            $missing[] = 'completed risk profile';
-            $actions[] = ['label' => 'Complete your risk profile', 'route' => '/risk-profile'];
-        }
-
-        if (! $this->hasExpenditure($user)) {
-            $missing[] = 'monthly or annual expenditure';
-            $actions[] = ['label' => 'Add your expenditure', 'route' => '/valuable-info?section=expenditure'];
-        }
-
-        return $this->gate($missing, $actions, 'investment');
+        return $this->delegateToReadiness($this->investmentReadiness->assess($user), 'investment');
     }
 
     /**
-     * Estate blocking: date_of_birth, marital_status, at_least_one_asset
-     * Source: EstateDataReadinessService blocking checks
+     * Estate: delegates to EstateDataReadinessService
      */
     public function canAnalyseEstate(User $user): array
     {
-        $missing = [];
-        $actions = [];
-
-        if (! $user->date_of_birth) {
-            $missing[] = 'date of birth';
-            $actions[] = ['label' => 'Complete your profile', 'route' => '/profile'];
-        }
-
-        if (! $user->marital_status) {
-            $missing[] = 'marital status';
-            $actions[] = ['label' => 'Set your marital status', 'route' => '/profile'];
-        }
-
-        $hasAssets = $user->properties()->exists()
-            || $user->investmentAccounts()->exists()
-            || $user->savingsAccounts()->exists();
-        if (! $hasAssets) {
-            $missing[] = 'at least one asset (property, investment, or savings account)';
-            $actions[] = ['label' => 'Add an asset', 'route' => '/net-worth/wealth-summary'];
-        }
-
-        return $this->gate($missing, $actions, 'estate');
+        return $this->delegateToReadiness($this->estateReadiness->assess($user), 'estate');
     }
 
     /**
@@ -369,7 +272,8 @@ class PrerequisiteGateService
 
     public function buildCompletenessContext(User $user): string
     {
-        $modules = [
+        $assessments = $this->assessAll($user);
+        $gates = [
             'Protection' => $this->canAnalyseProtection($user),
             'Savings' => $this->canAnalyseSavings($user),
             'Retirement' => $this->canAnalyseRetirement($user),
@@ -380,20 +284,94 @@ class PrerequisiteGateService
         ];
 
         $lines = [];
-        foreach ($modules as $name => $gate) {
+        foreach ($gates as $name => $gate) {
+            $key = strtolower(str_replace(' ', '_', $name));
+            $assessment = $assessments[$key] ?? null;
+
             if ($gate['can_proceed']) {
-                $lines[] = "- {$name}: READY (all prerequisites met)";
+                $pct = $assessment['completeness_percent'] ?? 100;
+                $warnings = count($assessment['warnings'] ?? []);
+                $suffix = $warnings > 0 ? " ({$warnings} optional fields missing)" : '';
+                $lines[] = "- {$name}: READY ({$pct}% complete{$suffix})";
             } else {
-                $missingList = implode(', ', $gate['missing']);
+                $blockingItems = [];
+                foreach (($assessment['blocking'] ?? []) as $check) {
+                    if (! $check['passed']) {
+                        $blockingItems[] = $check['key'] . ': ' . $check['message'];
+                    }
+                }
+                $blockingList = ! empty($blockingItems) ? implode('; ', $blockingItems) : implode(', ', $gate['missing']);
                 $route = $gate['required_actions'][0]['route'] ?? '/profile';
-                $lines[] = "- {$name}: BLOCKED -- missing: {$missingList} -- navigate user to: {$route}";
+                $lines[] = "- {$name}: BLOCKED -- {$blockingList} -- navigate user to: {$route}";
             }
         }
 
         return implode("\n", $lines);
     }
 
+    // ─── Full assessment for enriched completeness ──────────────────
+
+    /**
+     * Return the full DataReadiness assessment for all 5 modules.
+     * Used by the completeness endpoint and AI prompt context.
+     */
+    public function assessAll(User $user): array
+    {
+        return [
+            'protection' => $this->normaliseAssessment($this->protectionReadiness->assess($user)),
+            'savings' => $this->normaliseAssessment($this->savingsReadiness->assess($user)),
+            'retirement' => $this->normaliseAssessment($this->retirementReadiness->assess($user)),
+            'investment' => $this->normaliseAssessment($this->investmentReadiness->assess($user)),
+            'estate' => $this->normaliseAssessment($this->estateReadiness->assess($user)),
+        ];
+    }
+
+    /**
+     * Normalise DataReadiness assessment to a consistent shape.
+     * Different services use slightly different key names.
+     */
+    private function normaliseAssessment(array $assessment): array
+    {
+        $totalChecks = $assessment['total_checks'] ?? count($assessment['checks'] ?? []);
+        $passedChecks = $assessment['passed_checks']
+            ?? count(array_filter($assessment['checks'] ?? [], fn ($c) => $c['passed'] ?? false));
+
+        $assessment['total_checks'] = $totalChecks;
+        $assessment['passed_checks'] = $passedChecks;
+        $assessment['completeness_percent'] = $assessment['completeness_percent']
+            ?? ($totalChecks > 0 ? (int) round(($passedChecks / $totalChecks) * 100) : 0);
+
+        return $assessment;
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Convert a DataReadinessService assessment into a gate response.
+     * Extracts blocking checks as the missing items with form links as actions.
+     */
+    private function delegateToReadiness(array $assessment, string $moduleName): array
+    {
+        if ($assessment['can_proceed']) {
+            return $this->pass();
+        }
+
+        $missing = [];
+        $actions = [];
+
+        foreach ($assessment['blocking'] as $check) {
+            // Only include checks that FAILED (some services include passed checks too)
+            if (! $check['passed']) {
+                $missing[] = $check['message'];
+                $actions[] = [
+                    'label' => $check['message'],
+                    'route' => $check['form_link'] ?? '/profile',
+                ];
+            }
+        }
+
+        return $this->gate($missing, $actions, $moduleName);
+    }
 
     private function gate(array $missing, array $actions, string $moduleName): array
     {
@@ -437,30 +415,6 @@ class PrerequisiteGateService
             + (float) $user->annual_trust_income;
     }
 
-    /**
-     * Check if user has expenditure data from any of the 3 sources.
-     * Mirrors the ResolvesExpenditure trait priority chain:
-     * 1. ExpenditureProfile.total_monthly_expenditure
-     * 2. User.monthly_expenditure
-     * 3. User.annual_expenditure
-     */
-    private function hasExpenditure(User $user): bool
-    {
-        $expenditureProfile = ExpenditureProfile::where('user_id', $user->id)->first();
-        if ($expenditureProfile && $expenditureProfile->total_monthly_expenditure > 0) {
-            return true;
-        }
-
-        if ($user->monthly_expenditure && $user->monthly_expenditure > 0) {
-            return true;
-        }
-
-        if ($user->annual_expenditure && $user->annual_expenditure > 0) {
-            return true;
-        }
-
-        return false;
-    }
 
     private function deduplicateActions(array $actions): array
     {

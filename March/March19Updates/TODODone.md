@@ -45,9 +45,37 @@
 - [x] Budget at Retirement: £1,275/month (85%), £15,300/year — correct
 - [x] No NaN values, no widowed tab for single user — correct
 
-### Bug Fixes
+### Bug Fixes (PR #140)
 - [x] `LetterToSpouse.vue:958` — `properties.reduce is not a function` — API returns `{ data: { properties: [] } }` but code expected flat array. Fixed extraction chain.
 - [x] `UpdatePersonalInfoRequest.php:46` — `education_level` validation missing `doctorate`, `foundation`, `hnd` values from frontend dropdown. Added to `Rule::in(...)`.
+
+### Tax Settings Admin Overhaul (PR #141)
+- [x] Fixed NaN in PET taper relief, trust charges — data structure mismatch
+- [x] Fixed rate formatting: 0.2% → 20% across income tax, CGT, dividends, trust rates
+- [x] 568/568 TaxConfigService values now visible in admin UI across 10 tabs
+- [x] 4 new tabs: Gifting Exemptions, Benefits, Assumptions, Module Config
+- [x] VCT/EIS/SEIS + onshore/offshore bond tax treatment sections
+- [x] Agent hardcoded values removed: EstateAgent (7), TaxOptimisationAgent (3), HasAiChat
+- [x] AI tax tool expanded: 5 → 18 topics with 5-minute caching
+- [x] System prompt rule 7: AI must use get_tax_information tool
+
+### AI CRUD Tools & Navigation (PR #142)
+- [x] 4 new create tools: family members, trusts, business interests, chattels
+- [x] Generic update_record + delete_record for all 18 entity types
+- [x] Profile update tool (personal, income, expenditure, domicile)
+- [x] Zero-token navigation: chatNavigationRouter.js for 25 routes
+- [x] Browser tested: "show me my goals" → instant navigation
+
+### UI Fixes (PR #143)
+- [x] Info guide button moved from floating bottom-right to top navbar
+- [x] Chat renamed "Fynla Assistant" → "Fyn"
+- [x] Chat session lifecycle: close clears state, open starts fresh, history fetches fresh data
+
+### Data Readiness Overhaul (dataReadiness branch — in progress)
+- [x] PrerequisiteGateService delegates to 5 DataReadiness services
+- [x] Completeness endpoint enriched with field-level blocking/warnings/completeness_percent
+- [x] AI prompt context shows field-level blocking detail
+- [x] Frontend completeness store: new getters for field-level data
 
 ## Outstanding
 
@@ -79,11 +107,16 @@
 | 10 | `10-income-definitions-design.md` | Income definitions & adjusted allowances design spec |
 | 10 | `10-income-definitions-plan.md` | Income definitions implementation plan |
 | 11 | `11-benefits-config-additions.md` | Tax-Free Childcare, Early Years, Child Benefit warnings |
-| — | `deploy.md` | Full deployment guide for this session |
+| 12 | `12-tax-settings-admin-overhaul.md` | Admin tax settings NaN fixes + 568/568 config coverage + agent hardcoded values |
+| 13 | `13-ai-crud-tools-navigation.md` | AI CRUD tools + zero-token navigation |
+| 14 | `14-ui-fixes-chat-rename.md` | Info guide to navbar + chat rename + session lifecycle |
+| 15 | `15-data-readiness-overhaul.md` | PrerequisiteGateService refactor (in progress) |
+| — | `deploy.md` | Deployment guide for session 1 |
+| — | `deployChanges.md` | Deployment guide for session 2 |
 
 ## Active Branches
 
 | Branch | Status | Description |
 |--------|--------|-------------|
-| `main` | Up to date | All onboardFix changes merged |
-| `logicFix` | In progress | Income definitions + benefits config complete, needs PR/merge |
+| `main` | Up to date | PRs #140, #141, #142, #143 merged |
+| `dataReadiness` | In progress | PrerequisiteGateService refactor — needs PR/merge |

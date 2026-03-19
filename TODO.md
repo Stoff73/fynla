@@ -1,55 +1,58 @@
 # TODO — Fynla
 
-*Last updated: 19 March 2026 (session 2)*
+*Last updated: 19 March 2026 (session 2 — evening)*
 
-## Completed This Session
+## In Progress
 
-### Simple Expenditure Bug — BROWSER TESTED, PASSING
-- [x] Register new user → onboard Starting Out → enter £1,500 simple expenditure → skip to dashboard → Expenditure tab
-- [x] Current Budget: Monthly £1,500, Annual £18,000
-- [x] Budget at Retirement: Monthly £1,275 (85%), Annual £15,300
-- [x] Entry mode label: "Simple Total" — correct
-- [x] No NaN values anywhere
-- [x] No widowed tab for single user — correct
-- [x] Screenshot saved: `.playwright-mcp/page-2026-03-19T14-12-10-191Z.png`
-
-### Bug Fixes
-- [x] **LetterToSpouse.vue:958** — `Error loading profile data: TypeError: this.profileData.properties.reduce is not a function` — Properties API returns `{ data: { properties: [] } }` (object) but code expected an array. Fixed: `propertiesRes.data?.properties || propertiesRes.data || propertiesRes || []`
-- [x] **UpdatePersonalInfoRequest.php:46** — `education_level` validation whitelist missing `doctorate`, `foundation`, `hnd` values that the frontend dropdown offers. Added to `Rule::in(...)`.
+### dataReadiness branch
+- [x] PrerequisiteGateService delegates to DataReadiness services
+- [x] Completeness endpoint returns field-level detail
+- [x] AI prompt context shows field-level blocking
+- [x] Frontend completeness store has new getters
+- [ ] Journey progress uses data completeness
+- [ ] Pest tests for refactored service
+- [ ] PR and merge
 
 ## Outstanding
 
-### Must Verify — Income Definitions
-- [ ] `IncomeDefinitionsPanel` renders on income tab for real logged-in users (verified for preview personas only)
-- [ ] Charitable donations field saves correctly from ExpenditureForm
-- [ ] Blind Person's Allowance checkbox saves from IncomeStep/IncomeOccupation
-
-### Must Verify — UserResource Changes
-- [ ] Adding ~30 fields to UserResource doesn't break existing sessions or API consumers
-- [ ] Auth flow still works correctly with the larger response payload
+### Must Verify
+- [ ] `IncomeDefinitionsPanel` renders for real logged-in users
+- [ ] Charitable donations + Blind Person's Allowance save correctly
+- [ ] UserResource ~30 new fields don't break existing sessions/auth
 
 ### Tech Debt
-- [ ] `ExpenditureForm.vue` — heavily modified by multiple agents, needs careful review
-- [ ] Retired/widowed budget for simple mode uses hardcoded 85%/70% estimates — should use TaxConfig or be configurable
+- [ ] `ExpenditureForm.vue` — heavily modified, needs review
+- [ ] Retired/widowed budget hardcoded 85%/70% — should use TaxConfig
+- [ ] 4 pre-existing Pest test failures (not caused by our changes)
 
 ### Features (Backlog)
-- [ ] PortfolioOptimization.vue:197 — rebalancing plan (coming soon toast)
+- [ ] PortfolioOptimization.vue:197 — rebalancing plan
 - [ ] Scottish Income Tax support
-- [ ] Pull benefits warnings/thresholds into onboarding helper text and family dashboard
+- [ ] Benefits warnings in onboarding + family dashboard
 
 ### Production Deployment
-- [ ] 4 database migrations need running (3 from March 18 + 1 income definitions)
+- [ ] 4 database migrations
 - [ ] Deploy guide: `March/March19Updates/deploy.md`
-- [ ] `UserResource` changes — test auth flow after deploy
+- [ ] UserResource auth flow test after deploy
 
-## Notes
-- 422 on Step 1 save during onboarding could not be reproduced via API — likely transient auth timing after registration. Error is non-blocking (caught at OnboardingWizard.vue:728).
-- `origin/onboardFix` remote branch is stale (merged via PR #139) — can be deleted.
-- `origin/homepage` is a new remote branch fetched this session.
+## Session Summary — 19 March 2026
+
+4 PRs merged (#140-#143) covering:
+- Simple expenditure bug fix (browser tested)
+- Admin tax settings: NaN fixes + 568/568 config coverage + 4 new tabs
+- Agent hardcoded tax values → TaxConfigService (EstateAgent, TaxOptimisationAgent)
+- AI tax tool: 5 → 18 topics with caching
+- AI CRUD tools: 4 new creates + generic update/delete + profile updates
+- Zero-token chat navigation (25 routes)
+- Info guide button moved to navbar
+- Chat renamed to "Fyn" + session lifecycle fixed
+- PrerequisiteGateService refactored to delegate to DataReadiness services
+
+Full details: `March/March20Updates/TODO.md`
 
 ## Active Branches
 
 | Branch | Status | Description |
 |--------|--------|-------------|
-| `main` | Stable | onboardFix merged via PR #139 |
-| `logicFix` | Current | Simple expenditure TESTED + LetterToSpouse fix + education_level fix |
+| `main` | Up to date | PRs #140-#143 merged |
+| `dataReadiness` | In progress | Needs journey progress fix + PR/merge |
