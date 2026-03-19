@@ -297,7 +297,9 @@ class PrerequisiteGateService
             'create_goal', 'create_life_event', 'create_savings_account',
             'create_investment_account', 'create_pension', 'create_property',
             'create_mortgage', 'create_protection_policy', 'create_estate_asset',
-            'create_estate_liability', 'create_estate_gift' => $this->pass(),
+            'create_estate_liability', 'create_estate_gift',
+            'create_family_member', 'create_trust', 'create_business_interest', 'create_chattel',
+            'update_record', 'delete_record', 'update_profile' => $this->pass(),
             default => $this->pass(),
         };
     }

@@ -19,6 +19,10 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\Estate\Trust;
+use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -669,6 +673,13 @@ class CoordinatingAgent extends BaseAgent
                 'create_estate_asset' => $this->handleCreateEstateAsset($input, $user, $isPreviewUser),
                 'create_estate_liability' => $this->handleCreateEstateLiability($input, $user, $isPreviewUser),
                 'create_estate_gift' => $this->handleCreateEstateGift($input, $user, $isPreviewUser),
+                'create_family_member' => $this->handleCreateFamilyMember($input, $user, $isPreviewUser),
+                'create_trust' => $this->handleCreateTrust($input, $user, $isPreviewUser),
+                'create_business_interest' => $this->handleCreateBusinessInterest($input, $user, $isPreviewUser),
+                'create_chattel' => $this->handleCreateChattel($input, $user, $isPreviewUser),
+                'update_record' => $this->handleUpdateRecord($input, $user, $isPreviewUser),
+                'delete_record' => $this->handleDeleteRecord($input, $user, $isPreviewUser),
+                'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1433,5 +1444,259 @@ class CoordinatingAgent extends BaseAgent
         }
 
         return $metrics;
+    }
+
+    // ─── Additional creation tool handlers ──────────────────────────────
+
+    private function handleCreateFamilyMember(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('family member');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'first_name' => 'required|string|max:255',
+            'relationship' => ['required', Rule::in(['spouse', 'child', 'parent', 'sibling', 'other'])],
+            'surname' => 'nullable|string|max:255',
+            'date_of_birth' => 'nullable|date',
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'is_dependent' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $member = FamilyMember::create([
+            'user_id' => $user->id,
+            'first_name' => $input['first_name'],
+            'surname' => $input['surname'] ?? $user->surname,
+            'relationship' => $input['relationship'],
+            'date_of_birth' => $input['date_of_birth'] ?? null,
+            'gender' => $input['gender'] ?? null,
+            'is_dependent' => $input['is_dependent'] ?? ($input['relationship'] === 'child'),
+        ]);
+
+        return ['created' => true, 'entity_type' => 'family_member', 'entity_id' => $member->id, 'name' => $member->first_name, 'message' => "Family member \"{$member->first_name}\" ({$member->relationship}) added."];
+    }
+
+    private function handleCreateTrust(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('trust');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'trust_name' => 'required|string|max:255',
+            'trust_type' => ['required', Rule::in(['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'])],
+            'current_value' => 'nullable|numeric|min:0|max:999999999.99',
+            'date_established' => 'nullable|date',
+            'settlor' => 'nullable|string|max:255',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $trust = Trust::create([
+            'user_id' => $user->id,
+            'trust_name' => $input['trust_name'],
+            'trust_type' => $input['trust_type'],
+            'current_value' => $input['current_value'] ?? 0,
+            'date_established' => $input['date_established'] ?? null,
+            'settlor' => $input['settlor'] ?? null,
+        ]);
+
+        return ['created' => true, 'entity_type' => 'trust', 'entity_id' => $trust->id, 'name' => $trust->trust_name, 'message' => "Trust \"{$trust->trust_name}\" created."];
+    }
+
+    private function handleCreateBusinessInterest(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('business interest');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'business_name' => 'required|string|max:255',
+            'business_type' => ['required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'estimated_value' => 'nullable|numeric|min:0|max:999999999.99',
+            'annual_profit' => 'nullable|numeric|min:0|max:999999999.99',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $business = BusinessInterest::create([
+            'user_id' => $user->id,
+            'business_name' => $input['business_name'],
+            'business_type' => $input['business_type'],
+            'ownership_percentage' => $input['ownership_percentage'] ?? 100,
+            'estimated_value' => $input['estimated_value'] ?? 0,
+            'annual_profit' => $input['annual_profit'] ?? 0,
+        ]);
+
+        return ['created' => true, 'entity_type' => 'business_interest', 'entity_id' => $business->id, 'name' => $business->business_name, 'message' => "Business interest \"{$business->business_name}\" recorded."];
+    }
+
+    private function handleCreateChattel(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('personal valuable');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'description' => 'required|string|max:255',
+            'estimated_value' => 'required|numeric|min:0|max:999999999.99',
+            'category' => ['nullable', Rule::in(['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'])],
+            'purchase_value' => 'nullable|numeric|min:0|max:999999999.99',
+            'is_insured' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $chattel = Chattel::create([
+            'user_id' => $user->id,
+            'description' => $input['description'],
+            'category' => $input['category'] ?? 'other',
+            'estimated_value' => $input['estimated_value'],
+            'purchase_value' => $input['purchase_value'] ?? null,
+            'is_insured' => $input['is_insured'] ?? false,
+        ]);
+
+        return ['created' => true, 'entity_type' => 'chattel', 'entity_id' => $chattel->id, 'name' => $chattel->description, 'message' => "Personal valuable \"{$chattel->description}\" recorded (£" . number_format($chattel->estimated_value, 0) . ').'];
+    }
+
+    // ─── Generic update/delete handlers ─────────────────────────────────
+
+    private function handleUpdateRecord(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('record');
+        }
+
+        $entityType = $input['entity_type'];
+        $entityId = (int) $input['entity_id'];
+        $fields = $input['fields'] ?? [];
+
+        if (empty($fields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+        }
+
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+        if (isset($model['error'])) {
+            return $model;
+        }
+
+        // Only allow updating fillable fields
+        $fillable = $model->getFillable();
+        $safeFields = array_intersect_key($fields, array_flip($fillable));
+        // Never allow changing user_id or id
+        unset($safeFields['user_id'], $safeFields['id']);
+
+        if (empty($safeFields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are editable.'];
+        }
+
+        $model->update($safeFields);
+
+        return ['updated' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'fields_updated' => array_keys($safeFields), 'message' => ucfirst(str_replace('_', ' ', $entityType)) . ' updated successfully.'];
+    }
+
+    private function handleDeleteRecord(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('record');
+        }
+
+        $entityType = $input['entity_type'];
+        $entityId = (int) $input['entity_id'];
+
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+        if (isset($model['error'])) {
+            return $model;
+        }
+
+        $name = $model->goal_name ?? $model->account_name ?? $model->trust_name ?? $model->business_name ?? $model->description ?? $model->first_name ?? "#{$entityId}";
+
+        $model->delete();
+
+        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " \"{$name}\" deleted."];
+    }
+
+    /**
+     * Resolve a model instance by entity type and ID, ensuring it belongs to the user.
+     */
+    private function resolveModel(string $entityType, int $entityId, int $userId): mixed
+    {
+        $modelClass = match ($entityType) {
+            'goal' => Goal::class,
+            'life_event' => LifeEvent::class,
+            'savings_account' => SavingsAccount::class,
+            'investment_account' => InvestmentAccount::class,
+            'dc_pension' => DCPension::class,
+            'db_pension' => DBPension::class,
+            'property' => Property::class,
+            'mortgage' => Mortgage::class,
+            'life_insurance' => LifeInsurancePolicy::class,
+            'critical_illness' => CriticalIllnessPolicy::class,
+            'income_protection' => IncomeProtectionPolicy::class,
+            'estate_asset' => Asset::class,
+            'estate_liability' => Liability::class,
+            'estate_gift' => Gift::class,
+            'family_member' => FamilyMember::class,
+            'trust' => Trust::class,
+            'business_interest' => BusinessInterest::class,
+            'chattel' => Chattel::class,
+            default => null,
+        };
+
+        if (! $modelClass) {
+            return ['error' => true, 'error_type' => 'invalid_entity', 'message' => "Unknown entity type: {$entityType}"];
+        }
+
+        $model = $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
+
+        if (! $model) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " not found or does not belong to you."];
+        }
+
+        return $model;
+    }
+
+    // ─── Profile update handler ─────────────────────────────────────────
+
+    private function handleUpdateProfile(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('profile');
+        }
+
+        $section = $input['section'];
+        $fields = $input['fields'] ?? [];
+
+        if (empty($fields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+        }
+
+        $allowedFields = match ($section) {
+            'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'national_insurance_number'],
+            'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_rental_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
+            'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
+            'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],
+            default => [],
+        };
+
+        if (empty($allowedFields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => "Unknown profile section: {$section}"];
+        }
+
+        $safeFields = array_intersect_key($fields, array_flip($allowedFields));
+        if (empty($safeFields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are valid for this profile section.'];
+        }
+
+        $user->update($safeFields);
+
+        return ['updated' => true, 'section' => $section, 'fields_updated' => array_keys($safeFields), 'message' => 'Profile (' . str_replace('_', ' ', $section) . ') updated successfully.'];
     }
 }

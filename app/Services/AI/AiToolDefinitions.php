@@ -19,7 +19,13 @@ class AiToolDefinitions
         ];
 
         if (! $isPreviewMode) {
-            $tools = array_merge($tools, $this->dataCreationTools());
+            $tools = array_merge(
+                $tools,
+                $this->dataCreationTools(),
+                $this->additionalCreationTools(),
+                $this->dataModificationTools(),
+                $this->profileTools(),
+            );
         }
 
         // Convert each tool to Anthropic format: parameters → input_schema
@@ -647,6 +653,149 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['gift_date', 'recipient', 'gift_type', 'gift_value'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    private function additionalCreationTools(): array
+    {
+        return [
+            [
+                'name' => 'create_family_member',
+                'description' => 'Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'first_name' => ['type' => 'string', 'description' => 'First name'],
+                        'surname' => ['type' => 'string', 'description' => 'Surname'],
+                        'relationship' => ['type' => 'string', 'enum' => ['spouse', 'child', 'parent', 'sibling', 'other'], 'description' => 'Relationship to the user'],
+                        'date_of_birth' => ['type' => 'string', 'description' => 'Date of birth (YYYY-MM-DD)'],
+                        'gender' => ['type' => 'string', 'enum' => ['male', 'female', 'other']],
+                        'is_dependent' => ['type' => 'boolean', 'description' => 'Whether this person is financially dependent on the user'],
+                    ],
+                    'required' => ['first_name', 'relationship'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'create_trust',
+                'description' => 'Record a trust for estate planning. Use when the user mentions trusts they have set up or want to document.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'trust_name' => ['type' => 'string', 'description' => 'Name of the trust'],
+                        'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'], 'description' => 'Type of trust'],
+                        'current_value' => ['type' => 'number', 'description' => 'Current value of assets in trust (£)'],
+                        'date_established' => ['type' => 'string', 'description' => 'Date trust was established (YYYY-MM-DD)'],
+                        'settlor' => ['type' => 'string', 'description' => 'Who settled the trust'],
+                    ],
+                    'required' => ['trust_name', 'trust_type'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'create_business_interest',
+                'description' => 'Record a business interest or ownership. Use when the user mentions business ownership, partnerships, or self-employment assets.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'business_name' => ['type' => 'string', 'description' => 'Name of the business'],
+                        'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp'], 'description' => 'Type of business entity'],
+                        'ownership_percentage' => ['type' => 'number', 'description' => 'Percentage owned (0-100)'],
+                        'estimated_value' => ['type' => 'number', 'description' => 'Estimated value of the interest (£)'],
+                        'annual_profit' => ['type' => 'number', 'description' => 'Annual profit/drawings (£)'],
+                    ],
+                    'required' => ['business_name', 'business_type'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'create_chattel',
+                'description' => 'Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'description' => ['type' => 'string', 'description' => 'Description of the item'],
+                        'category' => ['type' => 'string', 'enum' => ['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'], 'description' => 'Category of item'],
+                        'estimated_value' => ['type' => 'number', 'description' => 'Estimated current value (£)'],
+                        'purchase_value' => ['type' => 'number', 'description' => 'Original purchase value (£)'],
+                        'is_insured' => ['type' => 'boolean', 'description' => 'Whether the item is insured'],
+                    ],
+                    'required' => ['description', 'estimated_value'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    private function dataModificationTools(): array
+    {
+        return [
+            [
+                'name' => 'update_record',
+                'description' => 'Update an existing record. Use when the user wants to change details of an existing goal, account, property, pension, policy, or other financial record. Ask the user to confirm the changes before calling this tool.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'entity_type' => [
+                            'type' => 'string',
+                            'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                            'description' => 'The type of record to update',
+                        ],
+                        'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],
+                        'fields' => [
+                            'type' => 'object',
+                            'description' => 'Key-value pairs of fields to update. Only include fields that are changing.',
+                            'additionalProperties' => true,
+                        ],
+                    ],
+                    'required' => ['entity_type', 'entity_id', 'fields'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'delete_record',
+                'description' => 'Delete an existing record. ALWAYS confirm with the user before deleting. Use when the user explicitly asks to remove a goal, account, property, pension, policy, or other financial record.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'entity_type' => [
+                            'type' => 'string',
+                            'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                            'description' => 'The type of record to delete',
+                        ],
+                        'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
+                    ],
+                    'required' => ['entity_type', 'entity_id'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    private function profileTools(): array
+    {
+        return [
+            [
+                'name' => 'update_profile',
+                'description' => 'Update the user\'s profile information (personal details, income, expenditure, or domicile). Use when the user provides personal information like their age, income, spending, marital status, or address. Ask clarifying questions if needed to gather required fields.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'section' => [
+                            'type' => 'string',
+                            'enum' => ['personal', 'income_occupation', 'expenditure', 'domicile'],
+                            'description' => 'Which profile section to update. personal: name, DOB, gender, marital status, address, phone. income_occupation: employment status, income, employer. expenditure: monthly spending. domicile: country of birth, UK arrival date.',
+                        ],
+                        'fields' => [
+                            'type' => 'object',
+                            'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth (YYYY-MM-DD), gender (male/female/other), marital_status (single/married/divorced/widowed), phone, address_line_1, city, postcode. For income_occupation: employment_status (employed/self_employed/retired/unemployed), occupation, employer, annual_employment_income, annual_self_employment_income. For expenditure: monthly_expenditure, annual_expenditure. For domicile: country_of_birth, uk_arrival_date.',
+                            'additionalProperties' => true,
+                        ],
+                    ],
+                    'required' => ['section', 'fields'],
                     'additionalProperties' => false,
                 ],
             ],
