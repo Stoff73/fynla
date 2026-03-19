@@ -85,7 +85,20 @@
 
           <!-- Left: Meet Fyn text + Ask Fyn input -->
           <div class="flex-1 self-center">
-            <h2 class="text-6xl lg:text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-[24px]">Meet Fyn</h2>
+            <!-- Mobile: Meet Fyn heading + small Fyn character side by side -->
+            <div class="flex items-end justify-between lg:hidden mb-1">
+              <h2 class="text-6xl font-bold text-horizon-500 leading-none">Meet Fyn</h2>
+              <img
+                src="/images/Fyn/Design Character 001a.webp"
+                alt="Fyn — your AI financial companion"
+                loading="lazy"
+                width="324"
+                height="427"
+                class="h-28 w-auto -mb-2"
+              />
+            </div>
+            <!-- Desktop: Meet Fyn heading only (Fyn character shown separately on right) -->
+            <h2 class="hidden lg:block text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-[24px]">Meet Fyn</h2>
             <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-neutral-500 mb-2">
               Your financial companion for life
             </p>
