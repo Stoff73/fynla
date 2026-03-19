@@ -167,8 +167,14 @@ const actions = {
     /**
      * Toggle the history drawer.
      */
-    toggleHistory({ commit, state }) {
-        commit('SET_SHOW_HISTORY', !state.showHistory);
+    async toggleHistory({ commit, state, dispatch }) {
+        const newState = !state.showHistory;
+        commit('SET_SHOW_HISTORY', newState);
+
+        // Fetch fresh conversations when opening history
+        if (newState) {
+            await dispatch('fetchConversations');
+        }
     },
 
     /**

@@ -39,7 +39,7 @@
             <h3 :class="[
               'font-semibold text-horizon-500',
               isMobile ? 'text-base flex-1 text-center' : 'text-lg'
-            ]">Fynla Assistant</h3>
+            ]">Fyn</h3>
 
             <div class="flex items-center gap-1">
               <!-- New conversation -->
@@ -264,7 +264,7 @@
     >
       <!-- Docked Header -->
       <div class="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b border-light-gray">
-        <h3 class="text-sm font-semibold text-horizon-500">Fynla Assistant</h3>
+        <h3 class="text-sm font-semibold text-horizon-500">Fyn</h3>
         <div class="flex items-center gap-1">
           <button
             @click="startNew"
@@ -538,11 +538,9 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
+            // Always start a fresh conversation when opening the chat
             await this.fetchConversations();
-
-            if (!this.currentConversation) {
-                await this.startNewConversation();
-            }
+            await this.startNewConversation();
 
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
@@ -550,6 +548,11 @@ export default {
         },
 
         async startNew() {
+            // Clear current state and start fresh
+            this.$store.commit('aiChat/SET_MESSAGES', []);
+            this.$store.commit('aiChat/SET_SHOW_HISTORY', false);
+            this.$store.commit('aiChat/SET_STREAMING_TEXT', '');
+            this.$store.commit('aiChat/SET_ERROR', null);
             await this.startNewConversation();
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
@@ -557,6 +560,11 @@ export default {
         },
 
         closePanel() {
+            // Clear conversation state so next open starts fresh
+            this.$store.commit('aiChat/SET_CURRENT_CONVERSATION', null);
+            this.$store.commit('aiChat/SET_MESSAGES', []);
+            this.$store.commit('aiChat/SET_SHOW_HISTORY', false);
+            this.$store.commit('aiChat/SET_STREAMING_TEXT', '');
             this.close();
         },
 
