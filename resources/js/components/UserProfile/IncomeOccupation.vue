@@ -52,6 +52,9 @@
       </div>
     </div>
 
+    <!-- Income Definitions Panel -->
+    <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
+
     <!-- Income and Tax Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Income Information Card -->
@@ -345,16 +348,19 @@
 </template>
 
 <script>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
+import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
+import api from '@/services/api';
 
 export default {
   name: 'IncomeOccupation',
 
   components: {
     TaxIncomeCard,
+    IncomeDefinitionsPanel,
   },
 
   setup() {
@@ -363,6 +369,8 @@ export default {
     const submitting = ref(false);
     const successMessage = ref('');
     const errorMessage = ref('');
+
+    const incomeDefinitions = ref(null);
 
     let messageTimeout = null;
 
@@ -509,6 +517,14 @@ export default {
         successMessage.value = 'Income information updated successfully!';
         isEditing.value = false;
 
+        // Refresh income definitions after income update
+        try {
+          const response = await api.get('/api/tax/income-definitions');
+          incomeDefinitions.value = response.data.data;
+        } catch (defError) {
+          // Silently fail - income definitions are supplementary
+        }
+
         // Trigger protection analysis refresh if user has protection module data
         try {
           await store.dispatch('protection/fetchProtectionData');
@@ -540,6 +556,16 @@ export default {
       errorMessage.value = '';
     };
 
+    onMounted(async () => {
+      try {
+        const response = await api.get('/api/tax/income-definitions');
+        incomeDefinitions.value = response.data.data;
+      } catch (error) {
+        // Silently fail - income definitions are supplementary
+        console.error('Failed to fetch income definitions:', error);
+      }
+    });
+
     onBeforeUnmount(() => {
       if (messageTimeout) clearTimeout(messageTimeout);
     });
@@ -567,6 +593,7 @@ export default {
       hicbcCharge,
       hicbcNetBenefit,
       hicbcClawbackPercentage,
+      incomeDefinitions,
       handleSubmit,
       handleCancel,
       formatCurrency,
