@@ -1477,7 +1477,7 @@ export default {
 
     // Calculate sub-totals
     const calculateSubtotal = (fields, data) => {
-      return fields.reduce((sum, field) => sum + (data[field.key] || 0), 0);
+      return fields.reduce((sum, field) => sum + (parseFloat(data[field.key]) || 0), 0);
     };
 
     const essentialTotal = computed(() => calculateSubtotal(essentialFields.value, formData.value));
@@ -1531,8 +1531,8 @@ export default {
     const householdTotalAnnualWithCommitments = computed(() => (householdTotalMonthlyWithCommitments.value * 12) + commitmentsLumpSumTotal.value + (props.isMarried ? spouseCommitmentsLumpSumTotal.value : 0));
 
     const getHouseholdValue = (key) => {
-      const userVal = formData.value[key] || 0;
-      const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
+      const userVal = parseFloat(formData.value[key]) || 0;
+      const spouseVal = props.isMarried ? (parseFloat(spouseFormData.value[key]) || 0) : 0;
       return userVal + spouseVal;
     };
 
@@ -1636,8 +1636,8 @@ export default {
     };
 
     const getCurrentBudgetValue = (key) => {
-      const userVal = formData.value[key] || 0;
-      const spouseVal = props.isMarried ? (spouseFormData.value[key] || 0) : 0;
+      const userVal = parseFloat(formData.value[key]) || 0;
+      const spouseVal = props.isMarried ? (parseFloat(spouseFormData.value[key]) || 0) : 0;
       return userVal + spouseVal;
     };
 
@@ -1741,7 +1741,7 @@ export default {
     });
 
     const getRetiredUserValue = (key) => {
-      const currentValue = formData.value[key] || 0;
+      const currentValue = parseFloat(formData.value[key]) || 0;
       const rule = retiredAdjustmentRules[key];
       if (retiredBudgetOverrides.value[key] !== undefined) {
         const householdCurrent = getCurrentBudgetValue(key);
@@ -1756,7 +1756,7 @@ export default {
 
     const getRetiredSpouseValue = (key) => {
       if (!props.isMarried) return 0;
-      const currentValue = spouseFormData.value[key] || 0;
+      const currentValue = parseFloat(spouseFormData.value[key]) || 0;
       const rule = retiredAdjustmentRules[key];
       if (retiredBudgetOverrides.value[key] !== undefined) {
         const householdCurrent = getCurrentBudgetValue(key);
@@ -2252,7 +2252,8 @@ export default {
       initializeFromProps();
       fetchCommitments();
       api.get('/properties').then(res => {
-        properties.value = res.data || [];
+        const data = res.data?.data || res.data;
+        properties.value = Array.isArray(data) ? data : [];
       }).catch(() => {});
       mountTimeout.value = setTimeout(() => {
         initializeRetiredBudget();
