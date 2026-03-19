@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.9.2</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.9.3</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">16 March 2026</p>
+              <p class="text-body-base text-horizon-500">19 March 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
@@ -38,10 +38,10 @@
             </div>
           </div>
 
-          <!-- Lasting Power of Attorney -->
+          <!-- v0.9.3 Changes -->
           <div class="mb-6">
-            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Lasting Power of Attorney</h3>
-            <p class="text-body-sm text-neutral-500 mb-4">Full Lasting Power of Attorney management in the Estate Planning module — create, track, and manage both Property & Financial Affairs and Health & Welfare types with compliance checking against the Mental Capacity Act 2005.</p>
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Admin Tax Configuration</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Complete overhaul of the admin Tax Settings panel — all 568 TaxConfigService values now visible and editable across 10 tabs. Fixed NaN values in Inheritance Tax taper relief and trust charges. All rate displays corrected from decimals to percentages.</p>
             <ul class="space-y-2">
               <li class="flex items-start">
                 <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -277,7 +277,40 @@
           </div>
         </div>
 
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Fyn Artificial Intelligence Assistant</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Full create, update, and delete capabilities across all 18 entity types. Zero-token client-side navigation for instant page routing. Expanded tax information tool from 5 to 18 topics with caching. Investment knowledge nudge on dashboard.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Data Readiness &amp; Prerequisite Gates</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">PrerequisiteGateService refactored to delegate to DataReadiness services — single source of truth for module gates. Completeness endpoint returns field-level blocking, warnings, and completion percentages. Enriched Artificial Intelligence prompt context for accurate user guidance.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">User Interface Improvements</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Chat assistant renamed to Fyn with proper session lifecycle (close clears, open starts fresh). Info guide button moved from floating bottom-right to top navigation bar. Score displays replaced with descriptive text for Investment module compliance.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Security &amp; Code Quality</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Code review remediation: UserResource enforced on all user data endpoints, advisor client assignment verified before access, hardcoded tax values replaced with TaxConfigService across 12 services, rate limiting added to admin routes, filter validation on goals endpoint.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">March 18 Updates (included in v0.9.3)</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Full codebase code review remediation (94 tasks), advisor dashboard with client management, soft deletes on key models, unique constraints and database indexes, Monte Carlo consolidation, financial health score removal, onboarding external resource links, income definitions with HMRC waterfall display.</p>
+          </div>
+
         <!-- Version History Divider -->
+        <div class="border-t border-light-gray my-8"></div>
+
+        <!-- Previous Version: v0.9.2 -->
+        <div class="mb-8 px-6">
+          <h2 class="text-h3 font-display text-horizon-500 mb-4">Previous Release: v0.9.2</h2>
+          <p class="text-body-sm text-neutral-500">16 March 2026 — Lasting Power of Attorney management, Will Builder enhancements, Expression of Wishes, estate planning compliance checking.</p>
+        </div>
+
         <div class="border-t border-light-gray my-8"></div>
 
         <!-- Previous Version: v0.9.0 -->
