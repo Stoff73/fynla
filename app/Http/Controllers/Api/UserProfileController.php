@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateDomicileInfoRequest;
 use App\Http\Requests\UpdateIncomeOccupationRequest;
 use App\Http\Requests\UpdatePersonalInfoRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
@@ -179,7 +180,7 @@ class UserProfileController extends Controller
             'success' => true,
             'message' => 'Expenditure information updated successfully',
             'data' => [
-                'user' => $user->fresh(),
+                'user' => new UserResource($user->fresh()),
             ],
         ]);
     }
@@ -257,7 +258,7 @@ class UserProfileController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $user,
+                'user' => new UserResource($user),
             ],
         ]);
     }
@@ -427,7 +428,7 @@ class UserProfileController extends Controller
             'success' => true,
             'message' => 'Spouse expenditure information updated successfully',
             'data' => [
-                'user' => $spouse->fresh(),
+                'user' => new UserResource($spouse->fresh()),
             ],
         ]);
     }

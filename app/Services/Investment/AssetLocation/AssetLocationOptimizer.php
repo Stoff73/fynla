@@ -126,7 +126,8 @@ class AssetLocationOptimizer
                 $this->riskPreferenceService->getMainRiskLevel($user->id) ?? 'medium'
             )['expected_return_typical'] / 100,
             'years_to_retirement' => $yearsToRetirement,
-            'expected_withdrawal_tax_rate' => $options['expected_withdrawal_tax_rate'] ?? 0.20,
+            'expected_withdrawal_tax_rate' => $options['expected_withdrawal_tax_rate']
+                ?? (float) ($this->taxConfig->getIncomeTax()['bands'][0]['rate'] ?? 0.20),
             'prefer_pension' => $options['prefer_pension'] ?? false,
         ];
     }

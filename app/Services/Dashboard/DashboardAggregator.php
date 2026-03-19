@@ -264,7 +264,7 @@ class DashboardAggregator
 
         // ISA usage: calculate percentage of allowance used
         $isaUsed = (float) ($data['isa_allowance']['used'] ?? 0);
-        $isaAllowance = (float) ($data['isa_allowance']['total_allowance'] ?? 20000);
+        $isaAllowance = (float) ($data['isa_allowance']['total_allowance'] ?? \App\Constants\TaxDefaults::ISA_ALLOWANCE);
         $isaUsagePercent = $isaAllowance > 0 ? round(($isaUsed / $isaAllowance) * 100, 2) : 0;
 
         // Count goals on track (progress >= 75% indicates on track)
