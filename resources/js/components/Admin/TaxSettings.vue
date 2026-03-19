@@ -189,7 +189,7 @@
                         step="1"
                         class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
                       />
-                      <p v-else class="text-sm">{{ formatCurrency(band.upper_limit) }}</p>
+                      <p v-else class="text-sm">{{ band.upper_limit ? formatCurrency(band.upper_limit) : 'No limit' }}</p>
                     </div>
                     <div>
                       <label class="block text-xs text-neutral-500 mb-1">Rate (%)</label>
@@ -199,10 +199,10 @@
                         type="number"
                         step="0.01"
                         min="0"
-                        max="100"
+                        max="1"
                         class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
                       />
-                      <p v-else class="text-sm font-semibold text-raspberry-600">{{ band.rate }}%</p>
+                      <p v-else class="text-sm font-semibold text-raspberry-600">{{ (band.rate * 100).toFixed(0) }}%</p>
                     </div>
                   </div>
                 </div>
@@ -455,7 +455,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.capital_gains_tax.basic_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.capital_gains_tax.basic_rate * 100).toFixed(0) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Higher Rate Taxpayer (%)</label>
@@ -468,7 +468,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.capital_gains_tax.higher_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.capital_gains_tax.higher_rate * 100).toFixed(0) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Residential Property Basic Rate (%)</label>
@@ -481,7 +481,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.capital_gains_tax.residential_property_basic_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.capital_gains_tax.residential_property_basic_rate * 100).toFixed(0) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Residential Property Higher Rate (%)</label>
@@ -494,7 +494,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.capital_gains_tax.residential_property_higher_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.capital_gains_tax.residential_property_higher_rate * 100).toFixed(0) }}%</p>
                   </div>
                 </div>
               </div>
@@ -514,7 +514,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.capital_gains_tax.trust_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.capital_gains_tax.trust_rate * 100).toFixed(0) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Trust Annual Exempt Amount (£)</label>
@@ -576,7 +576,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.basic_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.basic_rate * 100).toFixed(2) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Higher Rate (%)</label>
@@ -589,7 +589,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.higher_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.higher_rate * 100).toFixed(2) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Additional Rate (%)</label>
@@ -602,7 +602,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.additional_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.additional_rate * 100).toFixed(2) }}%</p>
                   </div>
                 </div>
               </div>
@@ -622,7 +622,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.trust_dividend_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.trust_dividend_rate * 100).toFixed(2) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Trust Other Income Rate (%)</label>
@@ -635,7 +635,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.trust_other_income_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.trust_other_income_rate * 100).toFixed(2) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Trust De Minimis Allowance (£)</label>
@@ -659,7 +659,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.trust_management_expenses_dividend_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.trust_management_expenses_dividend_rate * 100).toFixed(2) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Trust Management Expenses - Other (%)</label>
@@ -672,7 +672,7 @@
                       max="100"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ currentConfig.dividend_tax.trust_management_expenses_other_rate }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.dividend_tax.trust_management_expenses_other_rate * 100).toFixed(2) }}%</p>
                   </div>
                 </div>
               </div>
@@ -891,33 +891,46 @@
                 <div class="space-y-2">
                   <div
                     v-for="(relief, index) in (isEditing ? editableConfig.inheritance_tax?.potentially_exempt_transfers?.taper_relief : currentConfig.inheritance_tax?.potentially_exempt_transfers?.taper_relief)"
-                    :key="`taper-${relief.years}-${index}`"
-                    class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-savannah-100 rounded-lg"
+                    :key="`taper-${relief.min_years}-${index}`"
+                    class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-savannah-100 rounded-lg"
                   >
                     <div>
                       <label class="block text-xs text-neutral-500 mb-1">Years Before Death</label>
-                      <input
-                        v-if="isEditing"
-                        v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].years"
-                        type="number"
-                        step="1"
-                        min="1"
-                        class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
-                      />
-                      <p v-else class="text-sm font-medium">{{ relief.years }} years</p>
+                      <div v-if="isEditing" class="flex gap-2 items-center">
+                        <input
+                          v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].min_years"
+                          type="number"
+                          step="1"
+                          min="0"
+                          class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
+                        />
+                        <span class="text-xs text-neutral-500">to</span>
+                        <input
+                          v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].max_years"
+                          type="number"
+                          step="1"
+                          min="0"
+                          class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
+                        />
+                      </div>
+                      <p v-else class="text-sm font-medium">{{ relief.min_years }}-{{ relief.max_years ?? '7+' }} years</p>
                     </div>
                     <div>
-                      <label class="block text-xs text-neutral-500 mb-1">Inheritance Tax Rate (as decimal)</label>
+                      <label class="block text-xs text-neutral-500 mb-1">Tax Rate (as decimal)</label>
                       <input
                         v-if="isEditing"
-                        v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].rate"
+                        v-model.number="editableConfig.inheritance_tax.potentially_exempt_transfers.taper_relief[index].tax_rate"
                         type="number"
                         step="0.01"
                         min="0"
                         max="1"
                         class="w-full px-2 py-1 text-sm border border-horizon-300 rounded focus:ring-2 focus:ring-violet-500"
                       />
-                      <p v-else class="text-sm font-semibold text-raspberry-600">{{ (relief.rate * 100).toFixed(0) }}%</p>
+                      <p v-else class="text-sm font-semibold text-raspberry-600">{{ (relief.tax_rate * 100).toFixed(0) }}%</p>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-neutral-500 mb-1">Description</label>
+                      <p class="text-sm text-neutral-500">{{ relief.description }}</p>
                     </div>
                   </div>
                 </div>
@@ -928,65 +941,65 @@
                 <h4 class="font-medium text-horizon-500 mb-3">Trust Inheritance Tax Charges</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label class="block text-sm text-neutral-500 mb-1">Entry Charge (as decimal)</label>
+                    <label class="block text-sm text-neutral-500 mb-1">Entry Charge Rate</label>
                     <input
                       v-if="isEditing"
-                      v-model.number="editableConfig.inheritance_tax.trust_entry_charge"
+                      v-model.number="editableConfig.inheritance_tax.trust_charges.entry.rate"
                       type="number"
                       step="0.01"
                       min="0"
                       max="1"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.inheritance_tax.trust_entry_charge * 100).toFixed(0) }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.inheritance_tax?.trust_charges?.entry?.rate ?? 0) * 100).toFixed(0) }}%</p>
                   </div>
                   <div>
-                    <label class="block text-sm text-neutral-500 mb-1">Periodic Charge Max (as decimal)</label>
+                    <label class="block text-sm text-neutral-500 mb-1">Periodic Charge Max Rate</label>
                     <input
                       v-if="isEditing"
-                      v-model.number="editableConfig.inheritance_tax.trust_periodic_charge_max"
+                      v-model.number="editableConfig.inheritance_tax.trust_charges.periodic.max_rate"
                       type="number"
                       step="0.01"
                       min="0"
                       max="1"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.inheritance_tax.trust_periodic_charge_max * 100).toFixed(0) }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.inheritance_tax?.trust_charges?.periodic?.max_rate ?? 0) * 100).toFixed(1) }}%</p>
                   </div>
                   <div>
-                    <label class="block text-sm text-neutral-500 mb-1">Exit Charge Max (as decimal)</label>
+                    <label class="block text-sm text-neutral-500 mb-1">Exit Charge Max Rate</label>
                     <input
                       v-if="isEditing"
-                      v-model.number="editableConfig.inheritance_tax.trust_exit_charge_max"
+                      v-model.number="editableConfig.inheritance_tax.trust_charges.exit.max_rate"
                       type="number"
                       step="0.01"
                       min="0"
                       max="1"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-semibold text-raspberry-600">{{ (currentConfig.inheritance_tax.trust_exit_charge_max * 100).toFixed(0) }}%</p>
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.inheritance_tax?.trust_charges?.exit?.max_rate ?? 0) * 100).toFixed(1) }}%</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">No Exit Charge Period (months)</label>
                     <input
                       v-if="isEditing"
-                      v-model.number="editableConfig.inheritance_tax.trust_no_exit_charge_period"
+                      v-model.number="editableConfig.inheritance_tax.trust_charges.exit.no_charge_periods.first_quarter"
                       type="number"
                       step="1"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-medium">{{ currentConfig.inheritance_tax.trust_no_exit_charge_period }} months</p>
+                    <p v-else class="font-medium">{{ currentConfig.inheritance_tax?.trust_charges?.exit?.no_charge_periods?.first_quarter }} months</p>
                   </div>
                   <div>
                     <label class="block text-sm text-neutral-500 mb-1">Will Trust No Exit Charge Period (months)</label>
                     <input
                       v-if="isEditing"
-                      v-model.number="editableConfig.inheritance_tax.trust_will_no_exit_charge_period"
+                      v-model.number="editableConfig.inheritance_tax.trust_charges.exit.no_charge_periods.will_trust_months"
                       type="number"
                       step="1"
                       class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                     />
-                    <p v-else class="font-medium">{{ currentConfig.inheritance_tax.trust_will_no_exit_charge_period }} months</p>
+                    <p v-else class="font-medium">{{ currentConfig.inheritance_tax?.trust_charges?.exit?.no_charge_periods?.will_trust_months }} months</p>
                   </div>
                 </div>
               </div>
@@ -1404,10 +1417,10 @@ export default {
         errors.push('Income tax must have at least 3 bands');
       }
 
-      // Validate tax rates (should be percentages, 0-100)
+      // Validate tax rates (stored as decimals 0-1)
       config.income_tax?.bands?.forEach((band, index) => {
-        if (band.rate < 0 || band.rate > 100) {
-          errors.push(`Income tax band ${index + 1} rate must be between 0 and 100`);
+        if (band.rate < 0 || band.rate > 1) {
+          errors.push(`Income tax band ${index + 1} rate must be between 0 and 1 (decimal format, e.g. 0.2 for 20%)`);
         }
       });
 
