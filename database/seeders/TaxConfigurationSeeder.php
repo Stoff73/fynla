@@ -604,10 +604,97 @@ class TaxConfigurationSeeder extends Seeder
                     'additional_child_weekly' => 17.25,          // Weekly rate for additional children
                     'eldest_child_annual' => 1354.60,            // Annual amount (52 weeks)
                     'additional_child_annual' => 897.00,         // Annual amount (52 weeks)
-                    'high_income_charge_threshold' => 60000,     // HICBC starts at this income level
+                    'high_income_charge_threshold' => 60000,     // HICBC starts at this income level (adjusted net income)
                     'high_income_full_clawback' => 80000,        // HICBC claws back 100% at this level
                     'clawback_increment' => 200,                 // 1% clawed back per £200 over threshold
-                    'notes' => 'Child Benefit is claimed for children under 16, or under 20 if in approved education/training. High Income Child Benefit Charge (HICBC) applies when either parent earns over £60,000.',
+                    'age_limit_standard' => 16,                  // Stops when child turns 16
+                    'age_limit_education' => 20,                 // Extends to 20 if in approved education/training
+                    'guardian_allowance_weekly' => 21.75,         // For those caring for an orphaned child
+                    'warnings' => [
+                        'does_not_auto_stop' => 'Child Benefit does not stop automatically when your income exceeds the threshold. You must either opt out of receiving it, or continue claiming and pay back the High Income Child Benefit Charge through your Self Assessment tax return.',
+                        'hicbc_both_parents' => 'The High Income Child Benefit Charge is based on the income of the higher earner. If either parent earns over £60,000, the charge applies regardless of who claims the benefit.',
+                        'still_claim_ni_credits' => 'Even if you opt out of receiving Child Benefit payments, you should still fill in the claim form to protect your National Insurance record. The parent who stays at home receives National Insurance credits towards their State Pension.',
+                        'two_child_limit' => 'For Universal Credit and tax credit claims made after 6 April 2017, the child element is limited to the first two children. Child Benefit itself is not subject to the two-child limit.',
+                    ],
+                ],
+
+                // Tax-Free Childcare
+                'tax_free_childcare' => [
+                    'government_top_up_rate' => 0.25,            // 25% top-up (20p per 80p)
+                    'max_government_contribution' => 2000,       // £2,000/year per child (£500/quarter)
+                    'max_disabled_contribution' => 4000,          // £4,000/year per disabled child
+                    'quarterly_limit' => 500,                    // £500 per quarter per child
+                    'quarterly_limit_disabled' => 1000,           // £1,000 per quarter per disabled child
+                    'child_age_limit' => 11,                     // Under 12 (stops 1 September after 11th birthday)
+                    'disabled_child_age_limit' => 16,             // Under 17 for disabled children
+                    'min_income_threshold' => 'national_minimum_wage_16hrs', // Each parent must earn at least NMW × 16 hours/week
+                    'min_weekly_earnings' => 183.04,             // £11.44 × 16 hours (2025/26 NMW for 21+)
+                    'min_quarterly_earnings' => 2388.52,         // Approx quarterly minimum
+                    'max_income_threshold' => 100000,            // Neither parent can earn over £100,000 adjusted net income
+                    'warnings' => [
+                        'cannot_combine' => 'You cannot use Tax-Free Childcare at the same time as Universal Credit childcare costs, childcare vouchers, or tax credits for childcare.',
+                        'both_parents_working' => 'Both parents must be working to qualify (or one working and one receiving certain benefits like Carer\'s Allowance, or incapacitated).',
+                        'income_limit' => 'If either parent earns over £100,000 adjusted net income, you cannot use Tax-Free Childcare. Consider claiming Child Benefit and paying the HICBC charge instead, as this may still be beneficial.',
+                        'reconfirm' => 'You must reconfirm your eligibility every 3 months or your account will be suspended.',
+                    ],
+                ],
+
+                // Free Early Years Education and Childcare
+                'early_years_funding' => [
+                    // Universal entitlement (all families)
+                    'universal_15hrs' => [
+                        'hours_per_week' => 15,
+                        'weeks_per_year' => 38,
+                        'total_hours_per_year' => 570,
+                        'eligible_age_from' => 3,                // From the term after child turns 3
+                        'eligible_age_to' => 4,                  // Until they start reception
+                        'income_test' => false,                  // No income test — available to ALL families
+                    ],
+                    // Extended entitlement for working parents
+                    'working_parents_30hrs' => [
+                        'hours_per_week' => 30,
+                        'weeks_per_year' => 38,
+                        'total_hours_per_year' => 1140,
+                        'eligible_age_from' => 3,
+                        'eligible_age_to' => 4,
+                        'income_test' => true,
+                        'min_weekly_earnings' => 183.04,         // NMW × 16 hours
+                        'max_income_threshold' => 100000,        // Neither parent over £100k adjusted net income
+                    ],
+                    // Working parents of 2 year olds
+                    'working_parents_2yr' => [
+                        'hours_per_week' => 15,
+                        'weeks_per_year' => 38,
+                        'total_hours_per_year' => 570,
+                        'eligible_age_from' => 2,
+                        'income_test' => true,
+                        'min_weekly_earnings' => 183.04,
+                        'max_income_threshold' => 100000,
+                    ],
+                    // Working parents of 9 months to 2 years
+                    'working_parents_under_2' => [
+                        'hours_per_week' => 15,                  // Expanding to 30 from September 2025
+                        'weeks_per_year' => 38,
+                        'total_hours_per_year' => 570,
+                        'eligible_age_from_months' => 9,
+                        'eligible_age_to' => 2,
+                        'income_test' => true,
+                        'min_weekly_earnings' => 183.04,
+                        'max_income_threshold' => 100000,
+                    ],
+                    // Disadvantaged 2 year olds (income-based)
+                    'disadvantaged_2yr' => [
+                        'hours_per_week' => 15,
+                        'weeks_per_year' => 38,
+                        'total_hours_per_year' => 570,
+                        'eligible_criteria' => 'On Universal Credit/tax credits with household income under £15,400, or child receives Disability Living Allowance, or child has an Education Health and Care plan, or child is looked after by the local authority.',
+                    ],
+                    'warnings' => [
+                        'term_start_dates' => 'Free hours start from the term after your child reaches the eligible age. Term start dates are 1 January, 1 April, and 1 September.',
+                        'stretched_hours' => 'You can choose to spread the hours across more weeks per year (up to 52 weeks) by taking fewer hours per week. This is called "stretched" funding.',
+                        'top_up_costs' => 'Childcare providers can charge for additional hours, meals, nappies, and activities on top of the funded hours. These costs are not covered by the government funding.',
+                        'income_threshold' => 'For working parent entitlements, each parent must earn at least the National Minimum Wage for 16 hours per week, and neither parent can earn over £100,000 adjusted net income per year.',
+                    ],
                 ],
 
                 // Statutory Sick Pay

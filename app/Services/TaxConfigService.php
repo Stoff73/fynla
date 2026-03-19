@@ -628,4 +628,33 @@ class TaxConfigService
             'clawback_increment' => 200,
         ]);
     }
+
+    /**
+     * Get Tax-Free Childcare configuration.
+     *
+     * @return array Contains top-up rates, limits, income thresholds, and warnings
+     */
+    public function getTaxFreeChildcare(): array
+    {
+        return $this->get('benefits.tax_free_childcare', [
+            'government_top_up_rate' => 0.25,
+            'max_government_contribution' => 2000,
+            'max_disabled_contribution' => 4000,
+            'child_age_limit' => 11,
+            'max_income_threshold' => 100000,
+        ]);
+    }
+
+    /**
+     * Get Early Years Funding configuration.
+     *
+     * @return array Contains funded hours entitlements, age ranges, income thresholds, and warnings
+     */
+    public function getEarlyYearsFunding(): array
+    {
+        return $this->get('benefits.early_years_funding', [
+            'universal_15hrs' => ['hours_per_week' => 15, 'weeks_per_year' => 38, 'income_test' => false],
+            'working_parents_30hrs' => ['hours_per_week' => 30, 'weeks_per_year' => 38, 'max_income_threshold' => 100000],
+        ]);
+    }
 }
