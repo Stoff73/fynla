@@ -57,8 +57,8 @@
             class="w-full h-auto block"
           />
           <!-- Caption card: left -->
-          <div class="absolute top-[4.5rem] left-[4%] px-4 lg:pt-16 xl:pt-24 py-3 max-w-[28%] xl:max-w-xs">
-            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial view.</p>
+          <div class="absolute top-[62px] xl:top-[4.5rem] left-[4%] px-4 lg:pt-[54px] xl:pt-24 py-3 max-w-[28%] xl:max-w-xs">
+            <p class="lg:text-base xl:text-2xl font-bold text-horizon-500 mb-1">One financial view.</p>
             <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
           </div>
 
@@ -69,8 +69,8 @@
           </div>
 
           <!-- Caption card: right -->
-          <div class="absolute top-[4.5rem] right-[4%] px-4 lg:pt-16 xl:pt-24 py-3 max-w-[28%] xl:max-w-xs text-right">
-            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial voice.</p>
+          <div class="absolute top-[62px] xl:top-[4.5rem] right-[4%] px-4 lg:pt-[54px] xl:pt-24 py-3 max-w-[28%] xl:max-w-xs text-right">
+            <p class="lg:text-base xl:text-2xl font-bold text-horizon-500 mb-1">One financial voice.</p>
             <p class="text-xs xl:text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
         </div>
