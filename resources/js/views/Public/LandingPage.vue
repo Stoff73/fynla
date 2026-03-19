@@ -28,19 +28,26 @@
           </p>
         </div>
 
-        <!-- Mobile: single card (shown below lg, no overlap on mobile) -->
-        <div class="flex justify-center lg:hidden">
-          <img
-            src="/images/Website/Homepage-Header-Mobile.png"
-            alt="Fynla Brain — your financial planning intelligence"
-            class="w-full max-w-sm"
-          />
+        <!-- Mobile: stacked caption cards (shown below lg) -->
+        <div class="flex flex-col gap-3 mt-6 pb-6 lg:hidden">
+          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+            <p class="text-lg font-bold text-horizon-500 mb-1">One financial view</p>
+            <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
+          </div>
+          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+            <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
+            <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+          </div>
+          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+            <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice</p>
+            <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
+          </div>
         </div>
 
         <!-- Desktop: three-panel composite as background with caption cards on top -->
         <div
           class="relative hidden lg:block overflow-hidden mx-auto"
-          style="width: 105%; margin-left: -2.5%; margin-top: -80px; margin-bottom: 8px;"
+          style="width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;"
         >
           <img
             src="/images/Website/Homepage-Header-Desktop.png"
@@ -62,7 +69,7 @@
           <!-- Caption card: right -->
           <div class="absolute top-[4.5rem] right-[4.5rem] px-4 pt-24 py-3 max-w-xs text-right">
             <p class="text-2xl font-bold text-horizon-500 mb-1">One financial voice</p>
-            <p class="text-sm text-neutral-500 leading-tight">We will give you clear and simple advice<br/>for financial freedom.</p>
+            <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
         </div>
 
