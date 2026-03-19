@@ -162,6 +162,7 @@ export default {
         const profileData = {
           monthly_expenditure: amount.value,
           annual_expenditure: amount.value * 12,
+          expenditure_entry_mode: 'simple',
         };
 
         // Include charitable donations on user model if entered
