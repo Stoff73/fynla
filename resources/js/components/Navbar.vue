@@ -65,8 +65,8 @@
           <button
             v-if="shouldShowInfoGuide"
             @click="toggleInfoGuide"
-            class="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-neutral-500 hover:text-raspberry-600 hover:bg-savannah-200 transition-colors"
-            :class="{ 'text-raspberry-600 bg-savannah-200': infoGuideOpen }"
+            class="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-raspberry-600 text-white hover:bg-raspberry-700 transition-colors"
+            :class="{ 'ring-2 ring-violet-200': infoGuideOpen }"
             :title="infoGuideOpen ? 'Close guide' : 'What data do I need?'"
           >
             <svg
