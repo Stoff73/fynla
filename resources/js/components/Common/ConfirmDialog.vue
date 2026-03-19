@@ -191,7 +191,7 @@ export default {
 
     confirmButtonClass() {
       const classes = {
-        danger: 'bg-error-600 hover:bg-error-700 focus:ring-error-500',
+        danger: 'bg-raspberry-600 hover:bg-raspberry-700 focus:ring-raspberry-500',
         warning: 'bg-violet-600 hover:bg-violet-700 focus:ring-violet-500',
         info: 'bg-raspberry-600 hover:bg-raspberry-700 focus:ring-violet-500',
         success: 'bg-spring-600 hover:bg-spring-700 focus:ring-spring-500',

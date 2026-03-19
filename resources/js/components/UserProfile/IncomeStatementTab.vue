@@ -82,7 +82,7 @@
 
         <!-- Outflows Section -->
         <div class="card p-6 overflow-x-auto">
-          <h3 class="text-h5 font-semibold text-error-700 mb-4">Outflows</h3>
+          <h3 class="text-h5 font-semibold text-raspberry-700 mb-4">Outflows</h3>
           <table class="min-w-full divide-y divide-light-gray">
             <thead>
               <tr>
@@ -103,12 +103,12 @@
               </tr>
             </tbody>
             <tfoot>
-              <tr class="bg-error-50 border-t-2 border-error-300">
-                <td class="px-3 py-3 text-body-base font-bold text-error-800 w-1/2">Total Outflows</td>
-                <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+              <tr class="bg-raspberry-50 border-t-2 border-raspberry-300">
+                <td class="px-3 py-3 text-body-base font-bold text-raspberry-800 w-1/2">Total Outflows</td>
+                <td class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                   {{ formatCurrency(totalOutflows.monthly) }}
                 </td>
-                <td class="px-3 py-3 text-right text-h5 font-bold text-error-700">
+                <td class="px-3 py-3 text-right text-h5 font-bold text-raspberry-700">
                   {{ formatCurrency(totalOutflows.annual) }}
                 </td>
               </tr>
@@ -133,7 +133,7 @@
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
-                    :class="cashFlowBeforeTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
+                    :class="cashFlowBeforeTax.monthly >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                   >
                     {{ formatCurrency(cashFlowBeforeTax.monthly) }}
                   </p>
@@ -141,7 +141,7 @@
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
-                    :class="cashFlowBeforeTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
+                    :class="cashFlowBeforeTax.annual >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                   >
                     {{ formatCurrency(cashFlowBeforeTax.annual) }}
                   </p>
@@ -151,7 +151,7 @@
               <tr>
                 <td class="px-3 py-2 text-body-base text-neutral-500 pl-4 w-1/2">Estimated Income Tax</td>
                 <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-400">-</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                <td class="px-3 py-2 text-right text-body-base font-medium text-raspberry-700">
                   {{ formatCurrencyNegative(estimatedIncomeTax) }}
                 </td>
               </tr>
@@ -159,7 +159,7 @@
               <tr>
                 <td class="px-3 py-2 text-body-base text-neutral-500 pl-4 w-1/2">Estimated Capital Gains Tax</td>
                 <td class="px-3 py-2 text-right text-body-base font-medium text-horizon-400">-</td>
-                <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                <td class="px-3 py-2 text-right text-body-base font-medium text-raspberry-700">
                   {{ formatCurrencyNegative(estimatedCapitalGainsTax) }}
                 </td>
               </tr>
@@ -169,7 +169,7 @@
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
-                    :class="cashFlowAfterTax.monthly >= 0 ? 'text-success-700' : 'text-error-700'"
+                    :class="cashFlowAfterTax.monthly >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                   >
                     {{ formatCurrency(cashFlowAfterTax.monthly) }}
                   </p>
@@ -177,7 +177,7 @@
                 <td class="px-3 py-3 text-right">
                   <p
                     class="text-h5 font-bold"
-                    :class="cashFlowAfterTax.annual >= 0 ? 'text-success-700' : 'text-error-700'"
+                    :class="cashFlowAfterTax.annual >= 0 ? 'text-success-700' : 'text-raspberry-700'"
                   >
                     {{ formatCurrency(cashFlowAfterTax.annual) }}
                   </p>
@@ -225,7 +225,7 @@
           </button>
         </div>
         <p v-if="forecastSummary" class="text-xs text-neutral-500">
-          <span v-if="forecastSummary.deficit_months > 0 || forecastSummary.deficit_years > 0" class="text-error-600 font-medium">
+          <span v-if="forecastSummary.deficit_months > 0 || forecastSummary.deficit_years > 0" class="text-raspberry-600 font-medium">
             {{ forecastSummary.deficit_months || forecastSummary.deficit_years }} deficit {{ forecastGranularity === 'monthly' ? 'months' : 'years' }}
           </span>
           <span v-else class="text-success-600 font-medium">No deficit periods</span>
@@ -255,7 +255,7 @@
             </div>
             <div>
               <p class="text-xs text-neutral-500 mb-1">Regular Expenditure</p>
-              <p class="text-sm font-semibold text-error-700">
+              <p class="text-sm font-semibold text-raspberry-700">
                 {{ formatCurrency(forecastSummary.monthly_regular_expenditure || forecastSummary.annual_regular_expenditure) }}
                 <span class="text-xs text-neutral-500 font-normal">/ {{ forecastGranularity === 'monthly' ? 'month' : 'year' }}</span>
               </p>
@@ -268,7 +268,7 @@
             </div>
             <div>
               <p class="text-xs text-neutral-500 mb-1">Life Event Expenses</p>
-              <p class="text-sm font-semibold text-error-700">
+              <p class="text-sm font-semibold text-raspberry-700">
                 {{ formatCurrency(forecastSummary.total_event_expense || 0) }}
               </p>
             </div>
@@ -293,7 +293,7 @@
             <tbody class="divide-y divide-light-gray">
               <template v-for="(period, index) in forecastPeriods" :key="'period-' + index">
                 <!-- Period row -->
-                <tr :class="period.is_deficit ? 'bg-error-50' : ''">
+                <tr :class="period.is_deficit ? 'bg-raspberry-50' : ''">
                   <td class="px-3 py-2 text-body-base text-horizon-500 font-medium">
                     <div class="flex items-center gap-1.5">
                       {{ period.month_label || period.year }}
@@ -307,13 +307,13 @@
                   <td class="px-3 py-2 text-right text-body-base font-medium text-success-700">
                     {{ formatCurrency(period.total_income) }}
                   </td>
-                  <td class="px-3 py-2 text-right text-body-base font-medium text-error-700">
+                  <td class="px-3 py-2 text-right text-body-base font-medium text-raspberry-700">
                     {{ formatCurrency(period.total_expenditure) }}
                   </td>
-                  <td class="px-3 py-2 text-right text-body-base font-semibold" :class="period.net_cash_flow >= 0 ? 'text-success-700' : 'text-error-700'">
+                  <td class="px-3 py-2 text-right text-body-base font-semibold" :class="period.net_cash_flow >= 0 ? 'text-success-700' : 'text-raspberry-700'">
                     {{ formatCurrency(period.net_cash_flow) }}
                   </td>
-                  <td class="px-3 py-2 text-right text-body-base font-medium" :class="period.cumulative_surplus >= 0 ? 'text-horizon-500' : 'text-error-700'">
+                  <td class="px-3 py-2 text-right text-body-base font-medium" :class="period.cumulative_surplus >= 0 ? 'text-horizon-500' : 'text-raspberry-700'">
                     {{ formatCurrency(period.cumulative_surplus) }}
                   </td>
                 </tr>
@@ -329,7 +329,7 @@
                       <span class="text-neutral-500">({{ event.certainty }})</span>
                     </div>
                   </td>
-                  <td class="px-3 py-1.5 text-right text-xs" :class="event.impact_type === 'income' ? 'text-success-600' : 'text-error-600'">
+                  <td class="px-3 py-1.5 text-right text-xs" :class="event.impact_type === 'income' ? 'text-success-600' : 'text-raspberry-600'">
                     {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
                   </td>
                   <td class="px-3 py-1.5 text-right text-xs text-neutral-500" colspan="2">

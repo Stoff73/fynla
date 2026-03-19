@@ -40,7 +40,7 @@
 
       <!-- Cash Outflows Section -->
       <div class="card p-6">
-        <h3 class="text-h5 font-semibold text-error-700 mb-4">Cash Outflows</h3>
+        <h3 class="text-h5 font-semibold text-raspberry-700 mb-4">Cash Outflows</h3>
         <div class="space-y-2">
           <div
             v-for="(item, index) in data.outflows"
@@ -55,7 +55,7 @@
         </div>
         <div class="mt-4 pt-4 border-t-2 border-horizon-300 flex justify-between items-center">
           <span class="text-body-base font-semibold text-horizon-500">Total Outflows</span>
-          <span class="text-h5 font-bold text-error-700">
+          <span class="text-h5 font-bold text-raspberry-700">
             {{ formatCurrency(data.total_outflows) }}
           </span>
         </div>
@@ -71,7 +71,7 @@
           <div>
             <p
               class="text-h2 font-display font-bold"
-              :class="data.net_cashflow >= 0 ? 'text-success-700' : 'text-error-700'"
+              :class="data.net_cashflow >= 0 ? 'text-success-700' : 'text-raspberry-700'"
             >
               {{ formatCurrency(data.net_cashflow) }}
             </p>

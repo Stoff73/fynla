@@ -335,7 +335,6 @@ Route::middleware('auth:sanctum')->prefix('chattels')->group(function () {
 // Dashboard routes (aggregated data from all modules)
 Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
-    Route::get('/financial-health-score', [DashboardController::class, 'financialHealthScore']);
     Route::get('/alerts', [DashboardController::class, 'alerts']);
     Route::post('/alerts/{id}/dismiss', [DashboardController::class, 'dismissAlert']);
     Route::post('/invalidate-cache', [DashboardController::class, 'invalidateCache']);

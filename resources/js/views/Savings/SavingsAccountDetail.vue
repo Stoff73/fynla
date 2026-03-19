@@ -12,7 +12,7 @@
         <p class="text-raspberry-600">{{ error }}</p>
         <button
           @click="loadAccount"
-          class="mt-4 px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+          class="mt-4 px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
         >
           Retry
         </button>
@@ -44,7 +44,7 @@
               </button>
               <button
                 @click="confirmDelete"
-                class="px-4 py-2 bg-error-600 text-white rounded-button hover:bg-error-700 transition-colors"
+                class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
               >
                 Delete
               </button>

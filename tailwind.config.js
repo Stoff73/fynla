@@ -112,24 +112,6 @@ export default {
           600: '#059669',
           700: '#047857',
         },
-        error: {
-          100: '#FCE7F3',
-          500: '#E83E6D',
-          600: '#DB2777',
-          700: '#BE185D',
-        },
-        warning: {
-          100: '#EDE9FE',
-          500: '#5854E6',
-          600: '#7C3AED',
-          700: '#6D28D9',
-        },
-        info: {
-          100: '#DDE2EF',
-          500: '#6C83BC',
-          600: '#5A6FA3',
-          700: '#4C5D8A',
-        },
 
         // === CHART COLORS (updated to new palette) ===
         chart: {

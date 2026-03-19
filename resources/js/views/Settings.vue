@@ -120,7 +120,7 @@
 
           <div class="flex items-center justify-between py-4">
             <div>
-              <h3 class="text-body-base font-medium text-error-700">Sign Out</h3>
+              <h3 class="text-body-base font-medium text-raspberry-700">Sign Out</h3>
               <p class="text-body-sm text-neutral-500">Sign out of your account on this device</p>
             </div>
             <button

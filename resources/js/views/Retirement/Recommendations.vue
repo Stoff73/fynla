@@ -116,7 +116,7 @@ export default {
       selectedPriority: 'all',
       priorities: [
         { value: 'all', label: 'All', activeClass: 'bg-violet-600 text-white' },
-        { value: 'High', label: 'High', activeClass: 'bg-error-600 text-white' },
+        { value: 'High', label: 'High', activeClass: 'bg-raspberry-600 text-white' },
         { value: 'Medium', label: 'Medium', activeClass: 'bg-raspberry-500 text-white' },
         { value: 'Low', label: 'Low', activeClass: 'bg-spring-600 text-white' },
       ],

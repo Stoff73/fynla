@@ -58,68 +58,6 @@ it('caches dashboard index data for 5 minutes', function () {
     $response2->assertStatus(200);
 });
 
-it('requires authentication for financial health score', function () {
-    $response = $this->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(401);
-});
-
-it('returns composite score from financial health score endpoint', function () {
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(200)
-        ->assertJsonStructure([
-            'success',
-            'data' => [
-                'composite_score',
-                'breakdown' => [
-                    'protection',
-                    'emergency_fund',
-                    'retirement',
-                    'investment',
-                    'estate',
-                ],
-                'label',
-                'recommendation',
-            ],
-        ]);
-});
-
-it('includes weighted breakdown in financial health score', function () {
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(200);
-
-    $data = $response->json('data');
-    $breakdown = $data['breakdown'];
-
-    // Check weights
-    expect($breakdown['protection']['weight'])->toBe(0.20);
-    expect($breakdown['emergency_fund']['weight'])->toBe(0.15);
-    expect($breakdown['retirement']['weight'])->toBe(0.25);
-    expect($breakdown['investment']['weight'])->toBe(0.20);
-    expect($breakdown['estate']['weight'])->toBe(0.20);
-
-    // Check contributions exist
-    expect($breakdown['protection'])->toHaveKey('contribution');
-    expect($breakdown['emergency_fund'])->toHaveKey('contribution');
-    expect($breakdown['retirement'])->toHaveKey('contribution');
-    expect($breakdown['investment'])->toHaveKey('contribution');
-    expect($breakdown['estate'])->toHaveKey('contribution');
-});
-
-it('caches financial health score data for 1 hour', function () {
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(200);
-
-    $cacheKey = "financial_health_score_{$this->user->id}";
-    expect(Cache::has($cacheKey))->toBeTrue();
-});
-
 it('requires authentication for alerts', function () {
     $response = $this->getJson('/api/dashboard/alerts');
 
@@ -219,15 +157,12 @@ it('requires authentication to invalidate cache', function () {
 it('clears all dashboard caches on invalidation', function () {
     // Prime all caches
     $this->actingAs($this->user)->getJson('/api/dashboard');
-    $this->actingAs($this->user)->getJson('/api/dashboard/financial-health-score');
     $this->actingAs($this->user)->getJson('/api/dashboard/alerts');
 
     $dashboardKey = "dashboard_{$this->user->id}";
-    $healthScoreKey = "financial_health_score_{$this->user->id}";
     $alertsKey = "alerts_{$this->user->id}";
 
     expect(Cache::has($dashboardKey))->toBeTrue();
-    expect(Cache::has($healthScoreKey))->toBeTrue();
     expect(Cache::has($alertsKey))->toBeTrue();
 
     // Invalidate cache
@@ -241,7 +176,6 @@ it('clears all dashboard caches on invalidation', function () {
 
     // All caches should be cleared
     expect(Cache::has($dashboardKey))->toBeFalse();
-    expect(Cache::has($healthScoreKey))->toBeFalse();
     expect(Cache::has($alertsKey))->toBeFalse();
 });
 
@@ -280,34 +214,3 @@ it('handles errors gracefully in dashboard', function () {
     expect($response->json('success'))->toBeTrue();
 });
 
-it('assigns correct label for financial health score', function () {
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(200);
-
-    $data = $response->json('data');
-    $score = $data['composite_score'];
-    $label = $data['label'];
-
-    if ($score >= 80) {
-        expect($label)->toBe('Excellent');
-    } elseif ($score >= 60) {
-        expect($label)->toBe('Good');
-    } elseif ($score >= 40) {
-        expect($label)->toBe('Fair');
-    } else {
-        expect($label)->toBe('Needs Improvement');
-    }
-});
-
-it('provides appropriate financial health score recommendation', function () {
-    $response = $this->actingAs($this->user)
-        ->getJson('/api/dashboard/financial-health-score');
-
-    $response->assertStatus(200);
-
-    $data = $response->json('data');
-    expect($data['recommendation'])->toBeString();
-    expect(strlen($data['recommendation']))->toBeGreaterThan(10);
-});

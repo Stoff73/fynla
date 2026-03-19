@@ -1,38 +1,40 @@
 # TODO — Fynla
 
-*Last updated: 18 March 2026 by session 05c97dda*
+*Last updated: 19 March 2026*
 
-## Outstanding from This Session
+## Completed This Session
+
+- [x] `error-*` → `raspberry-*` token standardisation across 43 Vue files + removed `error`/`warning`/`info` legacy color definitions from `tailwind.config.js` and `app.css`
+- [x] `FinancialHealthScore.vue` — deleted component, store, service, controller, route, and all tests (14 files modified/deleted). Rule 13 compliance.
+- [x] `HouseholdPlanningService` hardcoded rates — verified, already uses `TaxConfigService` with sensible fallback defaults. No change needed.
+- [x] `console.log` cleanup — already complete. Only 20 occurrences remain in infrastructure files (logger.js, consoleCapture.js, api.js, app.js, bootstrap.js, router/index.js) — all legitimate.
+- [x] Branch cleanup — deleted 11 local branches (8 agent worktrees, journeyBug, feature/life-stage-journey, worktree-journeyBug), 3 remote branches (feature/life-stage-journey, worktree-journeyBug, logo-update), removed 1 worktree (journeyBug). All were merged into main.
+
+## Outstanding
 
 ### Implementation Incomplete
-- [ ] `error-*` → `raspberry-*` token standardisation across 43 Vue files (deferred from code review — risk of UI breakage, needs careful visual testing)
 - [ ] PortfolioOptimization.vue:197 — rebalancing plan creation TODO (button shows "coming soon" toast but no backend implementation)
 
 ### Tech Debt
-- [ ] `FinancialHealthScore.vue` — marked DEPRECATED, not imported anywhere. Can be deleted when confirmed unused.
-- [ ] Monte Carlo consolidation (TASK-33) — `MonteCarloSimulator` and `MonteCarloEngine` are still two separate implementations. Consolidate into one.
-- [ ] `HouseholdPlanningService` hardcoded rates at lines 253, 903 — IHT rate already uses config with fallback, but worth verifying all paths.
+- [ ] Monte Carlo consolidation (TASK-33) — `MonteCarloSimulator` (Investment, has caching + scheduled injections) and `MonteCarloEngine` (Shared, simpler primitive) are still two separate implementations. Consolidate into one. Touches 6+ consumers.
+- [ ] `DashboardApiTest.php` — 10 tests failing with 500 errors due to missing `TaxConfigurationSeeder` in `beforeEach()`. Pre-existing issue, not caused by FHS removal.
 
-### Known Issues
+### Known Issues (Production Deployment)
 - [ ] 3 new database migrations need running on production (`2026_03_18_100000`, `100001`, `100002` — SoftDeletes, unique constraints, indexes)
 - [ ] `UserResource` in auth responses may break frontend if it expects fields that are no longer returned — needs browser testing after deploy
 - [ ] Sanctum token expiration reduced from 8hr to 4hr — may cause unexpected logouts for long sessions
 
 ### Deferred Items
 - [ ] Scottish Income Tax support — no Scottish rate bands implemented. If any users are Scottish taxpayers, rUK rates are applied incorrectly.
-- [ ] `console.log` cleanup — 292 raw calls across 146 Vue files were identified. Only the critical ones (MobileLoginScreen, netWorth.js, preview.js) were fixed. The remaining ~280 need gradual cleanup.
 
-## Context for Next Session
+## Context
 
-This session completed a full codebase code review (96 findings) and fixed all 94 actionable items across 100 files. New skills were created (plan-and-build, vault-sync) and existing skills updated (session-start, session-end). The fynlaBrain vault is fully synced. Metrics in CLAUDE.md and README.md are current.
+This session addressed all actionable TODO items from the previous session. The `error-*` → `raspberry-*` migration is complete and the legacy semantic color aliases (`error`, `warning`, `info`) have been removed from the Tailwind config. The FinancialHealthScore feature has been fully removed (component, store, service, controller, route, tests).
 
-The codebase is in good shape. The main deployment risk is the `UserResource` change in auth responses — the frontend may expect fields that are now stripped. Test the login flow thoroughly after deploying.
-
-Deploy guide is at `March/March18Updates/deployReview.md`. Run the 3 pending migrations and check for duplicate records before the unique constraints migration.
+Deploy guide is at `March/March18Updates/deployReview.md` and `March/March18Updates/allDeploy.md`. Run the 3 pending migrations and check for duplicate records before the unique constraints migration.
 
 ## Files to Review
 
 - `app/Http/Resources/UserResource.php` — verify frontend compatibility
 - `app/Http/Resources/AdminUserResource.php` — verify admin panel still works
 - `config/sanctum.php` — token expiration changed from 480 to 240 minutes
-- `app/Services/Dashboard/DashboardAggregator.php` — scores replaced with qualitative labels, verify frontend handles the new response shape

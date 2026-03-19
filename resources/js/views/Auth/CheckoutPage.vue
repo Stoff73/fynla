@@ -50,16 +50,16 @@
           <!-- Checkout Widget (right) -->
           <div class="lg:col-span-3">
             <!-- Initialisation Error -->
-            <div v-if="error" class="bg-error-100 border border-error-600/20 rounded-lg p-4 mb-4">
-              <p class="text-body-sm text-error-600">{{ error }}</p>
-              <button @click="initCheckout" class="mt-2 text-sm text-error-700 underline hover:no-underline">
+            <div v-if="error" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-4 mb-4">
+              <p class="text-body-sm text-raspberry-600">{{ error }}</p>
+              <button @click="initCheckout" class="mt-2 text-sm text-raspberry-700 underline hover:no-underline">
                 Try again
               </button>
             </div>
 
             <!-- Payment Error -->
-            <div v-if="paymentError" class="bg-error-100 border border-error-600/20 rounded-lg p-4 mb-4">
-              <p class="text-body-sm text-error-600">{{ paymentError }}</p>
+            <div v-if="paymentError" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-4 mb-4">
+              <p class="text-body-sm text-raspberry-600">{{ paymentError }}</p>
             </div>
 
             <!-- Widget Container -->

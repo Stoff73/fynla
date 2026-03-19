@@ -13,8 +13,8 @@
       <slot></slot>
     </div>
 
-    <div v-if="error" class="mt-4 p-4 bg-error-50 border border-error-200 rounded-lg">
-      <p class="text-body-sm text-error-700">{{ error }}</p>
+    <div v-if="error" class="mt-4 p-4 bg-raspberry-50 border border-raspberry-200 rounded-lg">
+      <p class="text-body-sm text-raspberry-700">{{ error }}</p>
     </div>
 
     <!-- Navigation -->

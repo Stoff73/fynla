@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-6">
     <!-- Error Message -->
-    <div v-if="error" class="rounded-md bg-error-50 p-4">
-      <p class="text-body-sm text-error-800">{{ error }}</p>
+    <div v-if="error" class="rounded-md bg-raspberry-50 p-4">
+      <p class="text-body-sm text-raspberry-800">{{ error }}</p>
     </div>
 
     <!-- Success Message -->
