@@ -70,7 +70,7 @@
         >
         <p v-if="fieldErrors.date_of_birth" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.date_of_birth }}</p>
         <p v-else class="mt-1 text-body-sm text-neutral-500">
-          Used for age-based calculations and projections
+          Used for age-based calculations and projections. Check your <a :href="LINKS.GOV_STATE_PENSION_AGE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">State Pension age</a>
         </p>
       </div>
 
@@ -144,6 +144,8 @@
           </div>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.simplePersonalInfo" />
     </div>
   </OnboardingStep>
 </template>
@@ -153,12 +155,15 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '../UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 
 export default {
   name: 'SimplePersonalInfoStep',
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -296,6 +301,8 @@ export default {
       showMaritalStatus,
       showHealthFields,
       handleNext,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

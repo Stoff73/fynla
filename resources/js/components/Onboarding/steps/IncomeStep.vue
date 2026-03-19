@@ -90,7 +90,7 @@
                 placeholder="65"
               >
               <p class="mt-1 text-body-sm text-neutral-500">
-                Planned retirement age, used for all pension forecast calculations.
+                Planned retirement age, used for all pension forecast calculations. Use the <a :href="LINKS.HMRC_TAX_CALC" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">HMRC tax calculator</a> to estimate your tax
               </p>
             </div>
           </template>
@@ -294,6 +294,7 @@
         </div>
       </div>
 
+      <UsefulResources :links="STEP_RESOURCES.income" />
     </div>
   </OnboardingStep>
 </template>
@@ -303,6 +304,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '../UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 import propertyService from '@/services/propertyService';
 import { formatCurrency } from '@/utils/currency';
@@ -312,6 +315,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     OccupationAutocomplete,
   },
 
@@ -492,6 +496,8 @@ export default {
       handleNext,
       handleBack,
       formatCurrency,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

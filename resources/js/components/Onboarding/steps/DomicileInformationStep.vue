@@ -24,7 +24,7 @@
             @update:model-value="handleCountryChange"
           />
           <p class="mt-1 text-body-sm text-neutral-500">
-            Your country of birth helps us determine your domicile status for tax purposes.
+            Your country of birth helps us determine your domicile status for tax purposes. Learn about <a :href="LINKS.GOV_DOMICILE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">UK domicile rules</a>
           </p>
         </div>
 
@@ -67,6 +67,8 @@
           </div>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.domicile" />
     </div>
   </OnboardingStep>
 </template>
@@ -75,6 +77,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 
 export default {
@@ -82,6 +86,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     CountrySelector,
   },
 
@@ -245,6 +250,8 @@ export default {
       handleCountryChange,
       handleNext,
       handleBack,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

@@ -187,9 +187,15 @@
           </button>
         </div>
 
+        <p class="text-body-sm text-neutral-500">
+          Request your <a :href="LINKS.GOV_BR19" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">BR19 State Pension forecast</a>
+        </p>
+
         <p v-if="pensions.dc.length === 0 && pensions.db.length === 0 && !pensions.state" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add pensions later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsPensions" />
       </div>
 
       <!-- Properties Tab -->
@@ -222,6 +228,8 @@
         <p v-if="properties.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add properties later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsProperties" />
       </div>
 
       <!-- Investments Tab -->
@@ -306,6 +314,8 @@
         <p v-if="investments.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add investments later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsInvestments" />
       </div>
 
       <!-- Cash Tab -->
@@ -384,6 +394,8 @@
         <p v-if="savingsAccounts.length === 0" class="text-body-sm text-neutral-500 italic">
           You can skip this step and add accounts later from your dashboard.
         </p>
+
+        <UsefulResources :links="STEP_RESOURCES.assetsCash" />
       </div>
     </div>
 
@@ -460,6 +472,8 @@ import DCPensionForm from '@/components/Retirement/DCPensionForm.vue';
 import DBPensionForm from '@/components/Retirement/DBPensionForm.vue';
 import StatePensionForm from '@/components/Retirement/StatePensionForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 import investmentService from '@/services/investmentService';
 import savingsService from '@/services/savingsService';
@@ -480,6 +494,7 @@ export default {
     DBPensionForm,
     StatePensionForm,
     DocumentUploadModal,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -1018,6 +1033,9 @@ export default {
       // Common helpers
       formatOwnershipType,
       getOwnershipBadgeClass,
+      // Resource links
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

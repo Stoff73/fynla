@@ -31,6 +31,9 @@
         <p v-if="repaymentThreshold" class="mt-1 text-body-sm text-neutral-500">
           Repayment threshold: {{ formatCurrency(repaymentThreshold) }} per year
         </p>
+        <p class="mt-1 text-body-sm text-neutral-500">
+          Not sure which plan? Check your <a :href="LINKS.GOV_STUDENT_LOAN_REPAY" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">repayment plan type</a>
+        </p>
       </div>
 
       <!-- Outstanding Balance -->
@@ -112,6 +115,8 @@
           </div>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.studentLoan" />
     </div>
   </OnboardingStep>
 </template>
@@ -119,6 +124,8 @@
 <script>
 import { ref, computed } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 
 export default {
@@ -126,6 +133,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip', 'save'],
@@ -210,6 +218,8 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

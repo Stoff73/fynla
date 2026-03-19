@@ -125,6 +125,8 @@
       <p v-if="hasNoPolicies" class="text-body-sm text-spring-700 bg-spring-50 p-3 rounded-lg">
         You've indicated you have no protection policies. The Protection module will help you understand your protection needs and recommend suitable coverage.
       </p>
+
+      <UsefulResources :links="STEP_RESOURCES.protection" />
     </div>
 
     <!-- Policy Form Modal -->
@@ -150,6 +152,8 @@
 <script>
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import protectionService from '@/services/protectionService';
@@ -160,6 +164,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     PolicyFormModal,
     DocumentUploadModal,
   },
@@ -427,6 +432,7 @@ export default {
       handleDocumentSaved,
       closeUploadModal,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };

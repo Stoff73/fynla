@@ -96,6 +96,8 @@
           Based on {{ monthsRemaining }} {{ monthsRemaining === 1 ? 'month' : 'months' }} to your target date
         </p>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.goals" />
     </div>
   </OnboardingStep>
 </template>
@@ -105,6 +107,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import goalsService from '@/services/goalsService';
 import { formatCurrency } from '@/utils/currency';
 
@@ -113,6 +117,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -230,6 +235,7 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };

@@ -230,6 +230,8 @@
           </template>
         </div>
       </template>
+
+      <UsefulResources :links="STEP_RESOURCES.simpleProperty" />
     </div>
   </OnboardingStep>
 </template>
@@ -239,6 +241,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import propertyService from '@/services/propertyService';
 
 export default {
@@ -246,6 +250,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -389,6 +394,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      STEP_RESOURCES,
     };
   },
 };

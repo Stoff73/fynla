@@ -89,6 +89,9 @@
               <option value="nsi">NS&amp;I Savings</option>
             </optgroup>
           </select>
+          <p class="mt-1 text-body-sm text-neutral-500">
+            Tax-free up to the <a :href="LINKS.GOV_ISA_ALLOWANCE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">annual ISA limit</a>
+          </p>
         </div>
 
         <!-- Current Balance -->
@@ -143,6 +146,8 @@
           </label>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.simpleSavings" />
     </div>
   </OnboardingStep>
 </template>
@@ -152,6 +157,8 @@
 import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 import savingsService from '@/services/savingsService';
 
@@ -160,6 +167,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -291,6 +299,8 @@ export default {
       handleSkip,
       formatCurrency,
       formatAccountType,
+      LINKS,
+      STEP_RESOURCES,
     };
   },
 };

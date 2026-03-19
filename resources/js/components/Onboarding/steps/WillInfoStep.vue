@@ -105,6 +105,8 @@
           </button>
         </div>
       </div>
+
+      <UsefulResources :links="STEP_RESOURCES.will" />
     </div>
   </OnboardingStep>
 </template>
@@ -114,12 +116,15 @@ import { ref, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 
 export default {
   name: 'WillInfoStep',
 
   components: {
     OnboardingStep,
+    UsefulResources,
   },
 
   emits: ['next', 'back', 'skip'],
@@ -200,6 +205,7 @@ export default {
       handleBack,
       handleSkip,
       openWillBuilder,
+      STEP_RESOURCES,
     };
   },
 };

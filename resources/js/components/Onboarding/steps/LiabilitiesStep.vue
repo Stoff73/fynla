@@ -69,6 +69,8 @@
       <p v-if="liabilities.length === 0" class="text-body-sm text-neutral-500 italic">
         You can skip this step if you don't have any loans or credit card debt.
       </p>
+
+      <UsefulResources :links="STEP_RESOURCES.liabilities" />
     </div>
 
     <!-- Liability Form Modal -->
@@ -89,6 +91,8 @@
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, onMounted } from 'vue';
 import OnboardingStep from '../OnboardingStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import estateService from '@/services/estateService';
 import { formatCurrency } from '@/utils/currency';
@@ -98,6 +102,7 @@ export default {
 
   components: {
     OnboardingStep,
+    UsefulResources,
     LiabilityForm,
   },
 
@@ -194,6 +199,7 @@ export default {
       handleBack,
       handleSkip,
       formatCurrency,
+      STEP_RESOURCES,
     };
   },
 };
