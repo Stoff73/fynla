@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Student loans affect your monthly budget and net worth. Adding yours helps us give accurate financial guidance.
-        </p>
-      </div>
-
       <!-- Student Loan Plan Type -->
       <div>
         <label for="plan_type" class="label">

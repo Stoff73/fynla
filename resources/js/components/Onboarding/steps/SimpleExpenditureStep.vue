@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Knowing your spending helps us calculate how much you can save each month and build a realistic budget.
-        </p>
-      </div>
-
       <!-- Expenditure Amount -->
       <div>
         <label for="expenditure" class="label">

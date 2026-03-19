@@ -50,7 +50,7 @@
       <!-- Stage badge & progress bar (expanded, when stage is set) -->
       <div v-if="!effectiveCollapsed && currentStage" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
         <div class="text-xs font-semibold" :class="stageLabelColourClass">
-          {{ stageLabel }} &middot; Ages {{ stageAgeRange }}
+          {{ stageLabel }}
         </div>
         <div class="mt-2">
           <div class="flex justify-between text-xs mb-1">
@@ -299,7 +299,6 @@ export default {
     const stageLabel = computed(() => store.getters['lifeStage/stageLabel']);
     const stageColour = computed(() => store.getters['lifeStage/stageColour']);
     const stageConfig = computed(() => store.getters['lifeStage/stageConfig']);
-    const stageAgeRange = computed(() => stageConfig.value?.ageRange || '');
     const progressPercentage = computed(() => store.getters['lifeStage/progressPercentage']);
 
     // Colour class mappings — Tailwind JIT needs full class names
@@ -660,7 +659,6 @@ export default {
       currentStage,
       stageLabel,
       stageColour,
-      stageAgeRange,
       progressPercentage,
       stageLabelColourClass,
       progressBarColourClass,

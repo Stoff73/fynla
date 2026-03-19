@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Your income helps us calculate your savings rate and understand how much you can put towards your financial goals.
-        </p>
-      </div>
-
       <!-- Employment Status -->
       <div>
         <label for="employment_status" class="label">

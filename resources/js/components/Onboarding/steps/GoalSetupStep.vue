@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Setting clear goals helps you stay on track and gives you measurable targets to work towards. You can add more goals later from your Goals dashboard.
-        </p>
-      </div>
-
       <!-- Goal Type -->
       <div>
         <label for="goal_type" class="label">

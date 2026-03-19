@@ -10,12 +10,6 @@
     @back="handleBack"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> UK domicile status determines which assets are subject to UK Inheritance Tax. Non-UK domiciled individuals only pay Inheritance Tax on UK assets, while UK domiciled individuals pay Inheritance Tax on worldwide assets.
-        </p>
-      </div>
-
       <div class="grid grid-cols-1 gap-6">
         <!-- Country of Birth -->
         <div>

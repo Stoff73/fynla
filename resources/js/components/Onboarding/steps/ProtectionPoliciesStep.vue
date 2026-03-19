@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Protection policies provide financial security for you and your family. We analyse your existing coverage to identify any gaps and provide recommendations based on your income, debts, and dependants.
-        </p>
-      </div>
-
       <!-- I have no policies checkbox -->
       <div class="border border-light-gray rounded-lg p-4 bg-violet-50">
         <label class="flex items-start gap-3 cursor-pointer">

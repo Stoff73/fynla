@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Your mortgage is often the largest financial commitment to protect. We use this to calculate how much life cover you may need. You can also enter your property details for a more complete picture.
-        </p>
-      </div>
-
       <!-- No Property Option -->
       <div class="flex items-center">
         <input

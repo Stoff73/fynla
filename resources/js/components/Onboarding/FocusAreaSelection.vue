@@ -26,10 +26,7 @@
           @click="selectStage(stage.id)"
         >
           <h3 class="text-base font-bold text-horizon-500 text-center mb-1 mt-2">{{ stage.label }}</h3>
-          <p class="text-sm font-semibold text-center mb-2" :class="stageTextColourClass(stage)">
-            Ages {{ stage.ageRange }}
-          </p>
-          <p class="text-xs text-neutral-500 text-center leading-relaxed">{{ stage.tagline }}</p>
+          <p class="text-xs text-neutral-500 text-center leading-relaxed mt-1">{{ stage.tagline }}</p>
         </button>
       </div>
 

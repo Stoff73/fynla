@@ -24,7 +24,7 @@
 export const LIFE_STAGES = {
 
   // ---------------------------------------------------------------------------
-  // STAGE 1: Starting Out (university / 18–25)
+  // STAGE 1: Starting Out (university)
   // Colour: violet-500
   // Persona: student (Janice Taylor, 21)
   // ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ export const LIFE_STAGES = {
     id: 'university',
     label: 'Starting Out',
     tagline: 'Build smart money habits from day one',
-    ageRange: '18–25',
+
     persona: 'student',
     icon: 'graduation-cap',
     colour: 'violet',
@@ -186,7 +186,7 @@ export const LIFE_STAGES = {
   },
 
   // ---------------------------------------------------------------------------
-  // STAGE 2: Building Foundations (early_career / 23–35)
+  // STAGE 2: Building Foundations (early_career)
   // Colour: spring-500
   // Persona: young_saver (John Morgan, ~28)
   // ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ export const LIFE_STAGES = {
     id: 'early_career',
     label: 'Building Foundations',
     tagline: 'Save for your first home and grow your career',
-    ageRange: '23–35',
+
     persona: 'young_saver',
     icon: 'briefcase',
     colour: 'spring',
@@ -358,7 +358,7 @@ export const LIFE_STAGES = {
   },
 
   // ---------------------------------------------------------------------------
-  // STAGE 3: Protecting What Matters (mid_career / 31–50)
+  // STAGE 3: Protecting What Matters (mid_career)
   // Colour: raspberry-500
   // Personas: young_family (James & Emily Carter), entrepreneur (Alex Chen)
   // ---------------------------------------------------------------------------
@@ -366,7 +366,7 @@ export const LIFE_STAGES = {
     id: 'mid_career',
     label: 'Protecting What Matters',
     tagline: 'Secure your family and grow your wealth',
-    ageRange: '31–50',
+
     persona: 'young_family',
     icon: 'shield',
     colour: 'raspberry',
@@ -547,7 +547,7 @@ export const LIFE_STAGES = {
   },
 
   // ---------------------------------------------------------------------------
-  // STAGE 4: Planning Your Future (peak / 46–65)
+  // STAGE 4: Planning Your Future (peak)
   // Colour: light-blue-500
   // Persona: peak_earners (David & Sarah Mitchell, late 40s)
   // ---------------------------------------------------------------------------
@@ -555,7 +555,7 @@ export const LIFE_STAGES = {
     id: 'peak',
     label: 'Planning Your Future',
     tagline: 'Maximise your wealth and prepare for retirement',
-    ageRange: '46–65',
+
     persona: 'peak_earners',
     icon: 'chart-line',
     colour: 'light-blue',
@@ -730,7 +730,7 @@ export const LIFE_STAGES = {
   },
 
   // ---------------------------------------------------------------------------
-  // STAGE 5: Enjoying Your Wealth (retirement / 65+)
+  // STAGE 5: Enjoying Your Wealth (retirement)
   // Colour: horizon-500
   // Persona: retired_couple (Robert & Patricia Williams / Patricia & Harold Bennett)
   // ---------------------------------------------------------------------------
@@ -738,7 +738,7 @@ export const LIFE_STAGES = {
     id: 'retirement',
     label: 'Enjoying Your Wealth',
     tagline: 'Make your money last and leave a legacy',
-    ageRange: '65+',
+
     persona: 'retired_couple',
     icon: 'sun',
     colour: 'horizon',

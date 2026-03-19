@@ -12,12 +12,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Tracking your savings accounts helps us monitor your emergency fund, budget progress, and tax-free savings allowances.
-        </p>
-      </div>
-
       <!-- Saved Accounts List -->
       <div v-if="accounts.length > 0 && !showForm" class="space-y-3">
         <h4 class="text-body font-medium text-horizon-500">Your Accounts</h4>

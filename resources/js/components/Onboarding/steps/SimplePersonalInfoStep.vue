@@ -99,12 +99,6 @@
 
       <!-- Conditional Health & Lifestyle (shown for protection journey) -->
       <div v-if="showHealthFields" class="space-y-6">
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-          <p class="text-body-sm text-violet-800">
-            <strong>Why this matters:</strong> Health and lifestyle information helps us estimate insurance premiums and identify the right type of cover for you.
-          </p>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Health Status -->
           <div>

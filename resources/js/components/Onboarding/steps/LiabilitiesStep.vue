@@ -11,12 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Liabilities reduce your taxable estate for Inheritance Tax purposes. We've already captured mortgages with your properties - here you can add other debts like personal loans, car finance, or credit cards.
-        </p>
-      </div>
-
       <!-- Added Liabilities List -->
       <div v-if="liabilities.length > 0" class="space-y-3">
         <h4 class="text-body font-medium text-horizon-500">

@@ -10,12 +10,6 @@
     @back="handleBack"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Income information is essential for calculating your estate's Inheritance Tax liability and understanding your protection needs.
-        </p>
-      </div>
-
       <!-- Employment Details Section -->
       <div class="border-t pt-4">
         <h4 class="text-body font-medium text-horizon-500 mb-4">

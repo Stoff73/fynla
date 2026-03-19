@@ -9,12 +9,6 @@
     @next="handleNext"
   >
     <div class="space-y-6">
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <p class="text-body-sm text-violet-800">
-          <strong>Why this matters:</strong> Personal information helps us calculate your estate value, available tax reliefs, and provide personalized estate planning advice.
-        </p>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Date of Birth -->
         <div>
@@ -182,12 +176,6 @@
         <h4 class="text-body font-medium text-horizon-500 mb-4">
           Health & Lifestyle Information
         </h4>
-        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
-          <p class="text-body-sm text-violet-800">
-            <strong>Why this matters:</strong> Health and lifestyle information helps us provide accurate protection strategies and estimate insurance premium costs.
-          </p>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Health Status -->
           <div>
