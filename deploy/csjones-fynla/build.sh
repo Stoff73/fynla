@@ -12,6 +12,9 @@
 
 set -e
 
+# Prevent Git Bash (MSYS2) from converting /build/ to C:/Program Files/Git/build/
+export MSYS_NO_PATHCONV=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 

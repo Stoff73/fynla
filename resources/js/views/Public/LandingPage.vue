@@ -1,13 +1,13 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500">
+    <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-x-hidden">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
 
         <!-- Heading -->
         <h1 class="relative z-10 text-4xl sm:text-5xl lg:text-8xl leading-tight mb-3 text-white">
-          Create your own<br />
-          <span class="text-raspberry-300">financial freedom</span>
+          Change your<br />
+          <span class="text-raspberry-300">financial future</span>
         </h1>
 
         <!-- Body paragraph -->
