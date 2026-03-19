@@ -587,6 +587,20 @@ const actions = {
         }
     },
 
+    async updateKnowledgeLevel({ commit, state }, level) {
+        try {
+            const currentProfile = state.riskProfile || {};
+            const response = await investmentService.saveRiskProfile({
+                ...currentProfile,
+                knowledge_level: level,
+            });
+            commit('setRiskProfile', response.data);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Phase 2 actions
 
     // Phase 2.1: Contribution Planning

@@ -48,6 +48,59 @@
         </div>
       </div>
 
+      <!-- Investment Knowledge Nudge -->
+      <div
+        v-if="showKnowledgeNudge"
+        class="mb-6 bg-violet-50 border border-violet-200 rounded-lg p-4 shadow-sm"
+      >
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-semibold text-violet-800">How would you describe your investment knowledge?</h3>
+            <p class="mt-1 text-sm text-violet-700">
+              This helps us tailor investment recommendations to your experience level.
+            </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                @click="setKnowledgeLevel('novice')"
+                :disabled="savingKnowledgeLevel"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+              >
+                Beginner — I'm new to investing
+              </button>
+              <button
+                @click="setKnowledgeLevel('intermediate')"
+                :disabled="savingKnowledgeLevel"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+              >
+                Intermediate — I understand the basics
+              </button>
+              <button
+                @click="setKnowledgeLevel('experienced')"
+                :disabled="savingKnowledgeLevel"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+              >
+                Experienced — I'm confident with investments
+              </button>
+            </div>
+          </div>
+          <button
+            @click="dismissKnowledgeNudge"
+            class="flex-shrink-0 text-violet-400 hover:text-violet-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
       <JourneyProgressHero v-if="currentStage" class="mb-3" />
 
@@ -881,6 +934,8 @@ export default {
       },
       dataLoaded: false,
       mfaBannerDismissed: storage.get('mfaBannerDismissed') === 'true',
+      knowledgeNudgeDismissed: storage.get('knowledgeNudgeDismissed') === 'true',
+      savingKnowledgeLevel: false,
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
@@ -996,6 +1051,19 @@ export default {
       if (user.is_preview_user) return false;
       if (this.mfaBannerDismissed) return false;
       return user.mfa_enabled !== true;
+    },
+
+    showKnowledgeNudge() {
+      const user = this.currentUser;
+      if (!user) return false;
+      if (user.is_preview_user) return false;
+      if (this.knowledgeNudgeDismissed) return false;
+      // Only show if user has investment or pension accounts
+      const hasInvestments = this.$store.getters['completeness/hasModuleData']?.('investment') || this.$store.getters['completeness/hasModuleData']?.('retirement');
+      if (!hasInvestments) return false;
+      // Show if knowledge_level is not set on risk profile
+      const riskProfile = this.$store.state.investment?.riskProfile;
+      return !riskProfile?.knowledge_level;
     },
 
     // Net Worth data
@@ -1711,6 +1779,24 @@ export default {
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
       storage.set('mfaBannerDismissed', 'true');
+    },
+
+    dismissKnowledgeNudge() {
+      this.knowledgeNudgeDismissed = true;
+      storage.set('knowledgeNudgeDismissed', 'true');
+    },
+
+    async setKnowledgeLevel(level) {
+      this.savingKnowledgeLevel = true;
+      try {
+        await this.$store.dispatch('investment/updateKnowledgeLevel', level);
+        this.knowledgeNudgeDismissed = true;
+        storage.set('knowledgeNudgeDismissed', 'true');
+      } catch (error) {
+        console.error('Failed to save investment knowledge level:', error);
+      } finally {
+        this.savingKnowledgeLevel = false;
+      }
     },
 
     navigateTo(path) {
