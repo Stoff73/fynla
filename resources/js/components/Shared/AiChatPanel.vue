@@ -375,6 +375,7 @@ import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
 
 import analyticsService from '@/services/analyticsService';
+import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
 
 export default {
     name: 'AiChatPanel',
@@ -568,6 +569,28 @@ export default {
 
             const message = this.inputMessage.trim();
             this.inputMessage = '';
+
+            // Check for navigation intent — handle locally without LLM call
+            const navMatch = matchNavigationIntent(message);
+            if (navMatch) {
+                // Add user message to chat
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'user_' + Date.now(),
+                    role: 'user',
+                    content: message,
+                    created_at: new Date().toISOString(),
+                });
+                // Add assistant response locally
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'nav_' + Date.now(),
+                    role: 'assistant',
+                    content: navMatch.response,
+                    created_at: new Date().toISOString(),
+                });
+                // Navigate
+                this.$router.push(navMatch.route);
+                return;
+            }
 
             analyticsService.trackChatMessageSent(message.length);
             await this.sendMessage(message);
