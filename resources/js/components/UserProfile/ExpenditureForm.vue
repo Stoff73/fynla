@@ -208,6 +208,13 @@
               :is-married="isMarried"
               indent
             />
+            <!-- Gift Aid indicator -->
+            <template v-if="formData.charitable_donations > 0 && isGiftAid">
+              <div class="col-label text-body-sm text-violet-600 py-1 pl-7">Gift Aid claimed</div>
+              <div class="col-value text-body-sm text-violet-600 py-1"></div>
+              <div v-if="isMarried" class="col-value-mid text-body-sm text-violet-600 py-1"></div>
+              <div v-if="isMarried" class="col-total text-body-sm text-violet-600 py-1"></div>
+            </template>
           </ExpenditureSection>
 
           <!-- Manual Expenditure Total -->
@@ -534,6 +541,24 @@
           :use-separate-expenditure="useSeparateExpenditure"
           :active-person-tab="activePersonTab"
         />
+
+        <!-- Gift Aid toggle - shown when charitable donations > 0 -->
+        <div v-if="formData.charitable_donations > 0" class="card p-4 -mt-2 border-violet-200 bg-violet-50">
+          <div class="flex items-center gap-3">
+            <input
+              id="is_gift_aid"
+              v-model="isGiftAid"
+              type="checkbox"
+              class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+            >
+            <label for="is_gift_aid" class="text-body-sm text-horizon-500 font-medium">
+              I use Gift Aid for my charitable donations
+            </label>
+          </div>
+          <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+            Gift Aid lets charities claim 25p for every £1 you donate, and higher-rate taxpayers can claim back the difference
+          </p>
+        </div>
 
         <!-- Financial Commitments (Read-Only) - Edit Mode -->
         <div v-if="hasAnyCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
@@ -1289,6 +1314,7 @@ export default {
     const activePersonTab = ref('user');
     const simpleMonthlyExpenditure = ref(0);
     const spouseSimpleMonthlyExpenditure = ref(0);
+    const isGiftAid = ref(false);
     const financialCommitments = ref(null);
     const spouseFinancialCommitments = ref(null);
     const loadingCommitments = ref(false);
@@ -1369,7 +1395,8 @@ export default {
     ];
 
     const otherFields = [
-      { key: 'gifts_charity', label: 'Gifts & Charity', placeholder: '50', hint: 'Birthday gifts, charitable giving' },
+      { key: 'gifts_charity', label: 'Gifts & Presents', placeholder: '50', hint: 'Birthday and Christmas gifts' },
+      { key: 'charitable_donations', label: 'Charitable Donations', placeholder: '20', hint: 'Monthly charitable giving' },
       { key: 'other_expenditure', label: 'Other Expenditure', placeholder: '0', hint: 'Any other monthly expenses' },
     ];
 
@@ -1394,6 +1421,7 @@ export default {
       university_fees: 0,
       children_activities: 0,
       gifts_charity: 0,
+      charitable_donations: 0,
       other_expenditure: 0,
     });
 
@@ -1418,6 +1446,7 @@ export default {
       university_fees: 0,
       children_activities: 0,
       gifts_charity: 0,
+      charitable_donations: 0,
       other_expenditure: 0,
     });
 
@@ -1579,7 +1608,8 @@ export default {
         { key: 'children_activities', label: 'Children\'s Activities', hint: 'Typically £0 by retirement age' },
       ],
       other: [
-        { key: 'gifts_charity', label: 'Gifts & Charity' },
+        { key: 'gifts_charity', label: 'Gifts & Presents' },
+        { key: 'charitable_donations', label: 'Charitable Donations' },
         { key: 'other_expenditure', label: 'Other Expenditure' },
       ],
     }));
@@ -1858,7 +1888,8 @@ export default {
         { key: 'children_activities', label: 'Children\'s Activities' },
       ],
       other: [
-        { key: 'gifts_charity', label: 'Gifts & Charity' },
+        { key: 'gifts_charity', label: 'Gifts & Presents' },
+        { key: 'charitable_donations', label: 'Charitable Donations' },
         { key: 'other_expenditure', label: 'Other Expenditure' },
       ],
     }));
@@ -2182,6 +2213,17 @@ export default {
         emit('save', saveData);
       }
 
+      // Save charitable donations and Gift Aid to user profile
+      const monthlyCharitable = formData.value.charitable_donations || 0;
+      if (monthlyCharitable > 0 || isGiftAid.value) {
+        store.dispatch('userProfile/updatePersonalInfo', {
+          annual_charitable_donations: monthlyCharitable * 12,
+          is_gift_aid: isGiftAid.value,
+        }).catch((err) => {
+          console.error('Failed to save charitable donations to user profile:', err);
+        });
+      }
+
       if (!props.isOnboarding) {
         isEditing.value = false;
       }
@@ -2216,6 +2258,11 @@ export default {
         initializeRetiredBudget();
         initializeWidowedBudget();
       }, 100);
+
+      // Initialize Gift Aid from user profile
+      if (user.value) {
+        isGiftAid.value = user.value.is_gift_aid || false;
+      }
     });
 
     onBeforeUnmount(() => {
@@ -2231,6 +2278,7 @@ export default {
       useSeparateExpenditure,
       simpleMonthlyExpenditure,
       spouseSimpleMonthlyExpenditure,
+      isGiftAid,
       formData,
       spouseFormData,
       financialCommitments,

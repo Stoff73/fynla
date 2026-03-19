@@ -113,6 +113,11 @@
                 <span class="text-body-sm text-neutral-500">Child Benefit:</span>
                 <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
               </div>
+              <!-- Registered Blind -->
+              <div v-if="form.is_registered_blind" class="flex justify-between">
+                <span class="text-body-sm text-neutral-500">Registered Blind:</span>
+                <span class="text-body-sm text-violet-600 text-right">Blind Person's Allowance applied</span>
+              </div>
             </div>
 
             <!-- HICBC Warning -->
@@ -285,6 +290,24 @@
               <p class="text-body-xs text-neutral-500">Income received from trusts (taxable)</p>
             </div>
 
+            <!-- Registered Blind -->
+            <div class="col-span-full border-t pt-4">
+              <div class="flex items-center gap-3">
+                <input
+                  id="is_registered_blind"
+                  v-model="form.is_registered_blind"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-light-gray text-violet-500 focus:ring-violet-500"
+                >
+                <label for="is_registered_blind" class="text-body-sm text-horizon-500">
+                  I am registered blind or severely sight impaired
+                </label>
+              </div>
+              <p class="mt-1 ml-7 text-body-sm text-neutral-500">
+                This qualifies you for the Blind Person's Allowance, which reduces your taxable income
+              </p>
+            </div>
+
             <!-- Total Annual Income -->
             <div class="pt-4 border-t border-light-gray">
               <div class="flex justify-between items-center">
@@ -410,6 +433,7 @@ export default {
       annual_interest_income: 0,
       annual_pension_income: 0,
       annual_trust_income: 0,
+      is_registered_blind: false,
     });
 
     const totalIncomeValue = computed(() => {
@@ -472,6 +496,7 @@ export default {
           annual_interest_income: Number(incomeOccupation.value.annual_interest_income) || 0,
           annual_pension_income: Number(incomeOccupation.value.annual_pension_income) || 0,
           annual_trust_income: Number(incomeOccupation.value.annual_trust_income) || 0,
+          is_registered_blind: incomeOccupation.value.is_registered_blind || false,
         };
       }
     };
@@ -504,6 +529,8 @@ export default {
           annual_dividend_income: form.value.annual_dividend_income || 0,
           annual_interest_income: form.value.annual_interest_income || 0,
           annual_trust_income: form.value.annual_trust_income || 0,
+          // Registered blind
+          is_registered_blind: form.value.is_registered_blind || false,
           // Clear the income needs update flag since user is updating their income
           income_needs_update: false,
           previous_employment_status: null,
