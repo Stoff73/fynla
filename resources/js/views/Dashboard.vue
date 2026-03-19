@@ -1057,13 +1057,14 @@ export default {
       const user = this.currentUser;
       if (!user) return false;
       if (user.is_preview_user) return false;
+      // Already answered — never ask again (check actual data, not just localStorage)
+      const riskProfile = this.$store.state.investment?.riskProfile;
+      if (riskProfile?.knowledge_level) return false;
+      // Dismissed this session — don't pester
       if (this.knowledgeNudgeDismissed) return false;
       // Only show if user has investment or pension accounts
       const hasInvestments = this.$store.getters['completeness/hasModuleData']?.('investment') || this.$store.getters['completeness/hasModuleData']?.('retirement');
-      if (!hasInvestments) return false;
-      // Show if knowledge_level is not set on risk profile
-      const riskProfile = this.$store.state.investment?.riskProfile;
-      return !riskProfile?.knowledge_level;
+      return hasInvestments;
     },
 
     // Net Worth data
