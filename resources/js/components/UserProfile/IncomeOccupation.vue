@@ -546,7 +546,7 @@ export default {
 
         // Refresh income definitions after income update
         try {
-          const response = await api.get('/api/tax/income-definitions');
+          const response = await api.get('/tax/income-definitions');
           incomeDefinitions.value = response.data.data;
         } catch (defError) {
           // Silently fail - income definitions are supplementary
@@ -585,7 +585,7 @@ export default {
 
     onMounted(async () => {
       try {
-        const response = await api.get('/api/tax/income-definitions');
+        const response = await api.get('/tax/income-definitions');
         incomeDefinitions.value = response.data.data;
       } catch (error) {
         // Silently fail - income definitions are supplementary
