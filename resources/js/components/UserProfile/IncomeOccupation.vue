@@ -52,9 +52,6 @@
       </div>
     </div>
 
-    <!-- Income Definitions Panel -->
-    <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
-
     <!-- Income and Tax Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Income Information Card -->
@@ -367,6 +364,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Income Definitions Panel -->
+    <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
   </div>
 </template>
 
