@@ -759,8 +759,38 @@
           </button>
         </div>
 
-        <!-- Auto-Adjustments Summary -->
-        <div v-if="retiredAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <!-- Simple Entry Mode: Show simple total for retirement -->
+        <div v-if="useSimpleEntry" class="space-y-4 mb-6">
+          <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
+            <p class="text-body-sm text-neutral-500 mb-3">Your current monthly expenditure entered as a simple total. For more detailed retirement planning, switch to detailed breakdown mode.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-3">
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Monthly Expenditure:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Retired Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 0.85) }}</span>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Annual Expenditure:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Retired Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 12 * 0.85) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mt-3">Estimated at 85% of current spending — a common rule of thumb for retirement. Switch to detailed mode for personalised adjustments.</p>
+          </div>
+        </div>
+
+        <!-- Auto-Adjustments Summary (detailed mode only) -->
+        <div v-if="!useSimpleEntry && retiredAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
             <li v-for="(adj, idx) in retiredAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
@@ -772,8 +802,8 @@
           </ul>
         </div>
 
-        <!-- Budget Grid -->
-        <div :class="isMarried ? 'retired-grid-married' : 'retired-grid-single'">
+        <!-- Budget Grid (detailed mode only) -->
+        <div v-if="!useSimpleEntry" :class="isMarried ? 'retired-grid-married' : 'retired-grid-single'">
           <!-- Column Headers -->
           <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
           <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
@@ -1024,8 +1054,38 @@
           </button>
         </div>
 
-        <!-- Auto-Adjustments Summary -->
-        <div v-if="widowedAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <!-- Simple Entry Mode: Show simple total for widowed -->
+        <div v-if="useSimpleEntry" class="space-y-4 mb-6">
+          <div class="bg-eggshell-500 border border-light-gray rounded-lg p-4">
+            <p class="text-body-sm text-neutral-500 mb-3">Your current monthly expenditure entered as a simple total. For more detailed widowed budget planning, switch to detailed breakdown mode.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-3">
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Household Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Widowed Monthly:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 0.7) }}</span>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Current Household Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-medium">{{ formatCurrency(simpleMonthlyExpenditure * 12) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Estimated Widowed Annual:</span>
+                  <span class="text-body-sm text-horizon-500 font-bold">{{ formatCurrency(simpleMonthlyExpenditure * 12 * 0.7) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mt-3">Estimated at 70% of current household spending for a single-person household. Switch to detailed mode for personalised adjustments.</p>
+          </div>
+        </div>
+
+        <!-- Auto-Adjustments Summary (detailed mode only) -->
+        <div v-if="!useSimpleEntry && widowedAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
             <li v-for="(adj, idx) in widowedAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
@@ -1037,8 +1097,8 @@
           </ul>
         </div>
 
-        <!-- Budget Grid - Single column for widowed (user only) -->
-        <div class="widowed-grid-single">
+        <!-- Budget Grid - Single column for widowed (detailed mode only) -->
+        <div v-if="!useSimpleEntry" class="widowed-grid-single">
           <!-- Column Headers -->
           <div class="col-label font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">Category</div>
           <div class="col-header font-semibold text-body-sm text-neutral-500 pb-2 border-b border-light-gray">{{ userName }}</div>
