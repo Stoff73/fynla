@@ -9,6 +9,10 @@ namespace App\Services\Shared;
  *
  * Provides core simulation primitives for any module needing
  * stochastic projections (investment, goals, retirement).
+ *
+ * This is the canonical Monte Carlo implementation. The Investment
+ * module's MonteCarloSimulator extends this class to add caching,
+ * scheduled injections, and multi-asset correlation features.
  */
 class MonteCarloEngine
 {
@@ -31,6 +35,40 @@ class MonteCarloEngine
         int $years,
         int $iterations = 1000
     ): array {
+        return $this->runCoreSimulation(
+            $startValue,
+            $monthlyContribution,
+            $expectedReturn,
+            $volatility,
+            $years,
+            $iterations
+        );
+    }
+
+    /**
+     * Core simulation logic shared by the base engine and subclasses.
+     *
+     * Extracted to allow subclasses to call this with scheduled injections
+     * without changing the public simulate() signature.
+     *
+     * @param  float  $startValue  Initial value
+     * @param  float  $monthlyContribution  Monthly contribution amount
+     * @param  float  $expectedReturn  Expected annual return (decimal, e.g. 0.07)
+     * @param  float  $volatility  Annual volatility (decimal, e.g. 0.15)
+     * @param  int  $years  Simulation horizon in years
+     * @param  int  $iterations  Number of simulation runs
+     * @param  array  $scheduledInjections  Optional year-indexed lump sum injections
+     * @return array{final_values: float[], year_by_year: array, percentiles: array, summary: array}
+     */
+    protected function runCoreSimulation(
+        float $startValue,
+        float $monthlyContribution,
+        float $expectedReturn,
+        float $volatility,
+        int $years,
+        int $iterations = 1000,
+        array $scheduledInjections = []
+    ): array {
         $monthlyReturn = $expectedReturn / 12;
         $monthlyVolatility = $volatility / sqrt(12);
         $totalMonths = $years * 12;
@@ -47,6 +85,7 @@ class MonteCarloEngine
                 $value = $value * (1 + $randomReturn) + $monthlyContribution;
 
                 if ($month % 12 === 0) {
+                    $value = $this->applyScheduledInjection($value, (int) ($month / 12), $scheduledInjections);
                     $yearlyValues[] = $value;
                 }
             }
@@ -89,9 +128,22 @@ class MonteCarloEngine
     }
 
     /**
+     * Apply a scheduled injection at a given simulation year boundary.
+     */
+    protected function applyScheduledInjection(float $portfolioValue, int $currentYear, array $scheduledInjections): float
+    {
+        if (isset($scheduledInjections[$currentYear])) {
+            $portfolioValue += $scheduledInjections[$currentYear];
+            $portfolioValue = max(0.0, $portfolioValue);
+        }
+
+        return $portfolioValue;
+    }
+
+    /**
      * Calculate the probability of reaching a target amount.
      *
-     * @param  float[]  $finalValues  Sorted array of simulation final values
+     * @param  float[]  $finalValues  Array of simulation final values (need not be sorted)
      * @param  float  $targetAmount  Target to reach
      * @return float Probability as percentage (0-100)
      */
@@ -115,7 +167,6 @@ class MonteCarloEngine
     public function calculatePercentiles(array $sortedValues): array
     {
         $count = count($sortedValues);
-        $empty = ['percentile' => '', 'value' => 0.0];
 
         if ($count === 0) {
             return array_map(fn ($p) => ['percentile' => "{$p}th", 'value' => 0.0], [10, 25, 50, 75, 90]);
