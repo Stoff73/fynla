@@ -376,6 +376,14 @@ class TaxConfigService
     }
 
     /**
+     * Get the Blind Person's Allowance for the active tax year.
+     */
+    public function getBlindPersonsAllowance(): float
+    {
+        return (float) ($this->get('income_tax.blind_persons_allowance') ?? 2870);
+    }
+
+    /**
      * Get Savings-specific configuration (FSCS, Premium Bonds, etc.)
      *
      * @param  string|null  $key  Optional dot-notation sub-key (e.g., 'fscs_deposit_protection')

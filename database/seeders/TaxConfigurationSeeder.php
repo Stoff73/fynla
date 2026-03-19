@@ -113,6 +113,9 @@ class TaxConfigurationSeeder extends Seeder
                     'band' => 5000,         // £5,000 starting rate band
                     'rate' => 0,            // 0% rate
                 ],
+
+                // Blind Person's Allowance
+                'blind_persons_allowance' => 2870,
             ],
 
             'national_insurance' => [
@@ -1110,7 +1113,9 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_to'] = '2025-04-05';
         $config['notes'] = 'UK Tax Year 2024/25 - Historical configuration';
 
-        // Same rates as 2025/26
+        // 2024/25 Blind Person's Allowance was £2,760
+        $config['income_tax']['blind_persons_allowance'] = 2760;
+
         return $config;
     }
 
@@ -1128,6 +1133,9 @@ class TaxConfigurationSeeder extends Seeder
         // 2023/24 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 6000;
 
+        // 2023/24 Blind Person's Allowance was £2,600
+        $config['income_tax']['blind_persons_allowance'] = 2600;
+
         return $config;
     }
 
@@ -1144,6 +1152,9 @@ class TaxConfigurationSeeder extends Seeder
 
         // 2022/23 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;
+
+        // 2022/23 Blind Person's Allowance was £2,600
+        $config['income_tax']['blind_persons_allowance'] = 2600;
 
         return $config;
     }
@@ -1167,6 +1178,9 @@ class TaxConfigurationSeeder extends Seeder
 
         // 2021/22 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;
+
+        // 2021/22 Blind Person's Allowance was £2,600
+        $config['income_tax']['blind_persons_allowance'] = 2600;
 
         return $config;
     }
