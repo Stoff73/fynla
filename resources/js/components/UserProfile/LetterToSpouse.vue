@@ -955,7 +955,7 @@ export default {
         // Extract savings accounts from nested structure
         this.profileData.savings = savingsRes.data?.accounts || savingsRes?.accounts || [];
         this.profileData.investments = investmentsRes.data?.accounts || investmentsRes?.accounts || [];
-        this.profileData.properties = propertiesRes.data || propertiesRes || [];
+        this.profileData.properties = propertiesRes.data?.properties || propertiesRes.data || propertiesRes || [];
 
         // Liabilities come from estate endpoint
         const estate = estateRes.data || estateRes || {};

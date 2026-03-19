@@ -43,7 +43,7 @@ class UpdatePersonalInfoRequest extends FormRequest
             'phone' => ['sometimes', 'nullable', 'string', 'regex:/^(\+44|0)[0-9]{10}$/'],
             'good_health' => ['sometimes', 'nullable', 'boolean'],
             'smoker' => ['sometimes', 'nullable', 'boolean'],
-            'education_level' => ['sometimes', 'nullable', Rule::in(['secondary', 'a_level', 'undergraduate', 'postgraduate', 'professional', 'other'])],
+            'education_level' => ['sometimes', 'nullable', Rule::in(['secondary', 'a_level', 'undergraduate', 'postgraduate', 'doctorate', 'foundation', 'hnd', 'professional', 'other'])],
             'charitable_bequest' => ['sometimes', 'nullable', 'boolean'],
             'is_registered_blind' => ['nullable', 'boolean'],
             'life_expectancy_override' => ['sometimes', 'nullable', 'integer', 'min:60', 'max:110'],

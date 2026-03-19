@@ -37,6 +37,18 @@
 - [x] Backend validation + OnboardingService whitelist + preview persona seed data
 - [x] Benefits config: Tax-Free Childcare, Early Years Funding, enhanced Child Benefit with age limits, earning thresholds, and structured warnings
 
+## Completed — Session 2 (19 March 2026)
+
+### Simple Expenditure Bug — BROWSER TESTED
+- [x] End-to-end Playwright test: Register → Starting Out → enter £1,500 → dashboard → Expenditure tab
+- [x] Current Budget: £1,500/month, £18,000/year — correct
+- [x] Budget at Retirement: £1,275/month (85%), £15,300/year — correct
+- [x] No NaN values, no widowed tab for single user — correct
+
+### Bug Fixes
+- [x] `LetterToSpouse.vue:958` — `properties.reduce is not a function` — API returns `{ data: { properties: [] } }` but code expected flat array. Fixed extraction chain.
+- [x] `UpdatePersonalInfoRequest.php:46` — `education_level` validation missing `doctorate`, `foundation`, `hnd` values from frontend dropdown. Added to `Rule::in(...)`.
+
 ## Outstanding
 
 ### Features (Backlog)
