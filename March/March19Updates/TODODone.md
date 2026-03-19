@@ -71,11 +71,13 @@
 - [x] Chat renamed "Fynla Assistant" → "Fyn"
 - [x] Chat session lifecycle: close clears state, open starts fresh, history fetches fresh data
 
-### Data Readiness Overhaul (dataReadiness branch — in progress)
-- [x] PrerequisiteGateService delegates to 5 DataReadiness services
+### Data Readiness Overhaul & Investment Knowledge Nudge (PR #144)
+- [x] PrerequisiteGateService delegates to 5 DataReadiness services (single source of truth)
 - [x] Completeness endpoint enriched with field-level blocking/warnings/completeness_percent
-- [x] AI prompt context shows field-level blocking detail
+- [x] AI prompt context shows field-level blocking detail + completion percentages
 - [x] Frontend completeness store: new getters for field-level data
+- [x] Investment knowledge nudge on dashboard — asks beginner/intermediate/experienced when user has investment or pension accounts but no knowledge_level set
+- [x] Nudge checks DB first — only asks once, never shows again after answered
 
 ## Outstanding
 
@@ -110,7 +112,7 @@
 | 12 | `12-tax-settings-admin-overhaul.md` | Admin tax settings NaN fixes + 568/568 config coverage + agent hardcoded values |
 | 13 | `13-ai-crud-tools-navigation.md` | AI CRUD tools + zero-token navigation |
 | 14 | `14-ui-fixes-chat-rename.md` | Info guide to navbar + chat rename + session lifecycle |
-| 15 | `15-data-readiness-overhaul.md` | PrerequisiteGateService refactor (in progress) |
+| 15 | `15-data-readiness-overhaul.md` | PrerequisiteGateService refactor + knowledge nudge |
 | — | `deploy.md` | Deployment guide for session 1 |
 | — | `deployChanges.md` | Deployment guide for session 2 |
 
@@ -118,5 +120,4 @@
 
 | Branch | Status | Description |
 |--------|--------|-------------|
-| `main` | Up to date | PRs #140, #141, #142, #143 merged |
-| `dataReadiness` | In progress | PrerequisiteGateService refactor — needs PR/merge |
+| `main` | Up to date | PRs #140, #141, #142, #143, #144 merged |

@@ -1,6 +1,6 @@
 # 15 — Data Readiness & Prerequisite Gate Overhaul
 
-**Branch: dataReadiness (in progress — not yet merged)**
+**PR #144 — dataReadiness → main**
 **Date:** 19 March 2026 (session 2)
 
 ## Summary
@@ -28,6 +28,13 @@ Refactored PrerequisiteGateService to delegate to the actual DataReadiness servi
 - New getters: `moduleCompleteness(module)`, `moduleBlocking(module)`, `moduleWarnings(module)`, `overallCompleteness`
 - Blocking/warning getters filter to only failed checks
 
+### Investment Knowledge Nudge (Dashboard.vue + investment.js)
+- Dashboard banner: violet card shown when user has investment/pension accounts but `knowledge_level` is null
+- Three inline buttons: Beginner / Intermediate / Experienced
+- Calls `investment/updateKnowledgeLevel` store action → `POST /api/investment/risk-profile`
+- Checks DB first (risk_profiles.knowledge_level) — only asks once, never shows after answered
+- Dismiss (X button) persists to localStorage for session only
+
 ## Files Changed
 
 | File | Lines Changed |
@@ -35,8 +42,5 @@ Refactored PrerequisiteGateService to delegate to the actual DataReadiness servi
 | `app/Services/PrerequisiteGateService.php` | Major refactor |
 | `app/Http/Controllers/Api/LifeStageController.php` | Enriched completeness |
 | `resources/js/store/modules/completeness.js` | +30 (new getters) |
-
-## Still To Do
-- Journey progress calculation using data completeness
-- Pest tests for refactored service
-- PR and merge
+| `resources/js/views/Dashboard.vue` | +87 (knowledge nudge) |
+| `resources/js/store/modules/investment.js` | +14 (updateKnowledgeLevel) |

@@ -64,12 +64,14 @@ resources/js/layouts/AppLayout.vue
 resources/js/store/modules/aiChat.js
 ```
 
-### PHP + JS Files — dataReadiness branch (when merged)
+### PHP + JS Files — PR #144 (dataReadiness)
 
 ```
 app/Services/PrerequisiteGateService.php       (already listed — upload latest)
 app/Http/Controllers/Api/LifeStageController.php
 resources/js/store/modules/completeness.js
+resources/js/store/modules/investment.js
+resources/js/views/Dashboard.vue
 ```
 
 ## Consolidated File List (deduplicated)
@@ -95,7 +97,9 @@ resources/js/components/UserProfile/LetterToSpouse.vue
 resources/js/layouts/AppLayout.vue
 resources/js/store/modules/aiChat.js
 resources/js/store/modules/completeness.js
+resources/js/store/modules/investment.js
 resources/js/utils/chatNavigationRouter.js
+resources/js/views/Dashboard.vue
 ```
 
 ## Post-Deployment
@@ -114,3 +118,5 @@ php artisan db:seed
 3. AI chat header shows "Fyn" not "Fynla Assistant"
 4. Info guide button (question mark) is in top navbar, not floating bottom-right
 5. Check admin Tax Settings → IHT tab → PET taper relief shows year ranges with percentages
+6. Dashboard → user with investments but no knowledge_level → violet nudge banner appears with 3 buttons
+7. Click a knowledge level button → banner disappears and doesn't return
