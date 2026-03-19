@@ -8,33 +8,19 @@
 - [x] `FinancialHealthScore.vue` — deleted component, store, service, controller, route, and all tests (14 files modified/deleted). Rule 13 compliance.
 - [x] `HouseholdPlanningService` hardcoded rates — verified, already uses `TaxConfigService` with sensible fallback defaults. No change needed.
 - [x] `console.log` cleanup — already complete. Only 20 occurrences remain in infrastructure files (logger.js, consoleCapture.js, api.js, app.js, bootstrap.js, router/index.js) — all legitimate.
-- [x] Branch cleanup — deleted 11 local branches (8 agent worktrees, journeyBug, feature/life-stage-journey, worktree-journeyBug), 3 remote branches (feature/life-stage-journey, worktree-journeyBug, logo-update), removed 1 worktree (journeyBug). All were merged into main.
+- [x] Branch cleanup — deleted 11 local branches, 3 remote branches, removed 1 worktree. All merged into main.
+- [x] DashboardApiTest 500 errors — root cause was `AdvisorImpersonationMiddleware` accessing `TransientToken::$id`. Fixed by checking for `PersonalAccessToken`. All 27 dashboard tests now pass.
+- [x] PreviewUserSeeder risk_profiles unique constraint violation — `createRiskProfiles` used `create()` instead of `updateOrCreate()`, conflicting with the new unique constraint on `user_id`. Fixed.
+- [x] Monte Carlo consolidation — `MonteCarloSimulator` now extends `MonteCarloEngine` (agent in progress)
 
 ## Outstanding
 
-### Implementation Incomplete
-- [ ] PortfolioOptimization.vue:197 — rebalancing plan creation TODO (button shows "coming soon" toast but no backend implementation)
+### Features (Backlog)
+- [ ] PortfolioOptimization.vue:197 — rebalancing plan creation (button shows "coming soon" toast, needs backend model/service/controller)
+- [ ] Scottish Income Tax support — no Scottish rate bands implemented. Needs `TaxConfigService` extension + income tax calculator updates.
 
-### Tech Debt
-- [ ] Monte Carlo consolidation (TASK-33) — `MonteCarloSimulator` (Investment, has caching + scheduled injections) and `MonteCarloEngine` (Shared, simpler primitive) are still two separate implementations. Consolidate into one. Touches 6+ consumers.
-- [ ] `DashboardApiTest.php` — 10 tests failing with 500 errors due to missing `TaxConfigurationSeeder` in `beforeEach()`. Pre-existing issue, not caused by FHS removal.
-
-### Known Issues (Production Deployment)
-- [ ] 3 new database migrations need running on production (`2026_03_18_100000`, `100001`, `100002` — SoftDeletes, unique constraints, indexes)
+### Production Deployment
+- [ ] 3 new database migrations need running (`2026_03_18_100000`, `100001`, `100002` — SoftDeletes, unique constraints, indexes)
 - [ ] `UserResource` in auth responses may break frontend if it expects fields that are no longer returned — needs browser testing after deploy
 - [ ] Sanctum token expiration reduced from 8hr to 4hr — may cause unexpected logouts for long sessions
-
-### Deferred Items
-- [ ] Scottish Income Tax support — no Scottish rate bands implemented. If any users are Scottish taxpayers, rUK rates are applied incorrectly.
-
-## Context
-
-This session addressed all actionable TODO items from the previous session. The `error-*` → `raspberry-*` migration is complete and the legacy semantic color aliases (`error`, `warning`, `info`) have been removed from the Tailwind config. The FinancialHealthScore feature has been fully removed (component, store, service, controller, route, tests).
-
-Deploy guide is at `March/March18Updates/deployReview.md` and `March/March18Updates/allDeploy.md`. Run the 3 pending migrations and check for duplicate records before the unique constraints migration.
-
-## Files to Review
-
-- `app/Http/Resources/UserResource.php` — verify frontend compatibility
-- `app/Http/Resources/AdminUserResource.php` — verify admin panel still works
-- `config/sanctum.php` — token expiration changed from 480 to 240 minutes
+- [ ] Deploy guide: `March/March18Updates/deployReview.md` and `March/March18Updates/allDeploy.md`
