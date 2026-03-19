@@ -5,10 +5,10 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
 
         <!-- Heading -->
-        <h2 class="relative z-10 text-4xl sm:text-5xl lg:text-8xl leading-tight mb-3 text-white">
+        <h1 class="relative z-10 text-4xl sm:text-5xl lg:text-8xl leading-tight mb-3 text-white">
           Create your own<br />
           <span class="text-raspberry-300">financial freedom</span>
-        </h2>
+        </h1>
 
         <!-- Body paragraph -->
         <p class="relative z-10 text-white/80 mb-4 max-w-2xl leading-relaxed">
@@ -76,7 +76,7 @@
 
           <!-- Left: Meet Fyn text + Ask Fyn input -->
           <div class="flex-1 self-center">
-            <h1 class="text-6xl lg:text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-[24px]">Meet Fyn</h1>
+            <h2 class="text-6xl lg:text-8xl font-bold text-horizon-500 leading-none mb-1 lg:-mt-[24px]">Meet Fyn</h2>
             <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-neutral-500 mb-2">
               Your financial companion for life
             </p>
@@ -101,7 +101,7 @@
 
           <!-- Right: Fyn character -->
           <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center justify-end">
-            <img src="/images/Fyn/Design Character 001a.png" alt="Fyn" class="h-[427px] w-auto lg:-mb-[3em]" />
+            <img src="/images/Fyn/Design Character 001a.png" alt="Fyn — your AI financial companion" loading="lazy" class="h-[427px] w-auto lg:-mb-[3em]" />
           </div>
 
         </div>
@@ -230,6 +230,9 @@
           <img
             :src="dashboardGifUrl"
             alt="Fynla dashboard walkthrough showing net worth, pensions, investments, protection, and estate planning modules"
+            loading="lazy"
+            width="1346"
+            height="665"
             class="w-full h-auto block"
           />
         </div>
@@ -243,31 +246,31 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
           <!-- Starting out -->
-          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
             <p class="text-2xl font-bold text-white mb-1">Starting out</p>
             <p class="text-xs text-white/70 leading-snug">Build strong financial habits for your future.</p>
           </div>
 
           <!-- Building foundations -->
-          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
             <p class="text-2xl font-bold text-white mb-1">Building foundations</p>
             <p class="text-xs text-white/70 leading-snug">Save, invest, and grow your wealth with confidence.</p>
           </div>
 
           <!-- Protecting what matters -->
-          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
             <p class="text-2xl font-bold text-white mb-1">Protecting what matters</p>
             <p class="text-xs text-white/70 leading-snug">Ensure your family and assets are fully covered.</p>
           </div>
 
           <!-- Planning your future -->
-          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
             <p class="text-2xl font-bold text-white mb-1">Planning your future</p>
             <p class="text-xs text-white/70 leading-snug">Retirement projections, pension tracking, and estate planning.</p>
           </div>
 
           <!-- Enjoying your wealth -->
-          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
             <p class="text-2xl font-bold text-white mb-1">Enjoying your wealth</p>
             <p class="text-xs text-white/70 leading-snug">Make the most of your financial success.</p>
           </div>

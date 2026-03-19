@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-eggshell-500">
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-light-gray sticky top-0 z-50">
+    <nav aria-label="Main navigation" class="bg-white shadow-sm border-b border-light-gray sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
@@ -202,9 +202,11 @@
           <div class="flex items-center md:hidden">
             <button
               @click="mobileMenuOpen = !mobileMenuOpen"
+              :aria-expanded="mobileMenuOpen"
+              :aria-label="mobileMenuOpen ? 'Close menu' : 'Open menu'"
               class="inline-flex items-center justify-center p-2 rounded-md text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100"
             >
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="h-6 w-6" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path v-if="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -227,6 +229,7 @@
           <div>
             <button
               type="button"
+              :aria-expanded="featuresOpen"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
               @click="featuresOpen = !featuresOpen"
             >
@@ -249,6 +252,7 @@
           <div>
             <button
               type="button"
+              :aria-expanded="solutionsOpen"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
               @click="solutionsOpen = !solutionsOpen"
             >
@@ -278,6 +282,7 @@
           <div>
             <button
               type="button"
+              :aria-expanded="learningOpen"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
               @click="learningOpen = !learningOpen"
             >
