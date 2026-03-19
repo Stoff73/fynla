@@ -1960,7 +1960,6 @@
               </div>
             </div>
           </div>
-        </div>
 
           <!-- Early Years Funding -->
           <div class="card">
@@ -2168,6 +2167,7 @@
               </div>
             </div>
           </div>
+        </div>
 
         <!-- Assumptions Tab -->
         <div v-if="activeTab === 'assumptions'">
