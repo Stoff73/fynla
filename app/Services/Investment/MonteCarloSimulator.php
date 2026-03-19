@@ -5,9 +5,21 @@ declare(strict_types=1);
 namespace App\Services\Investment;
 
 use App\Services\Investment\Utilities\MatrixOperations;
+use App\Services\Shared\MonteCarloEngine;
 use Illuminate\Support\Facades\DB;
 
-class MonteCarloSimulator
+/**
+ * Investment-specific Monte Carlo simulator.
+ *
+ * Extends the shared MonteCarloEngine with:
+ * - Database-backed result caching (24-hour TTL)
+ * - Scheduled lump-sum injections at year boundaries
+ * - Multi-asset correlated simulation (Cholesky decomposition)
+ *
+ * All core simulation math (random number generation, percentile
+ * calculation, goal probability) is inherited from MonteCarloEngine.
+ */
+class MonteCarloSimulator extends MonteCarloEngine
 {
     /**
      * Cache TTL in hours (24 hours)
@@ -15,7 +27,10 @@ class MonteCarloSimulator
     private const CACHE_TTL_HOURS = 24;
 
     /**
-     * Run Monte Carlo simulation with optional caching
+     * Run Monte Carlo simulation with optional caching and scheduled injections.
+     *
+     * Delegates core simulation math to MonteCarloEngine::runCoreSimulation(),
+     * then reshapes the output to the investment module format and adds caching.
      *
      * @param  float  $startValue  Initial portfolio value
      * @param  float  $monthlyContribution  Monthly contribution amount
@@ -24,6 +39,7 @@ class MonteCarloSimulator
      * @param  int  $years  Number of years to simulate
      * @param  int  $iterations  Number of simulation runs (default 1000)
      * @param  string|null  $cacheKey  Optional cache key for 24-hour caching
+     * @param  array  $scheduledInjections  Optional year-indexed lump sum injections
      * @return array Simulation results with percentiles
      */
     public function simulate(
@@ -44,8 +60,8 @@ class MonteCarloSimulator
             }
         }
 
-        // Run the actual simulation
-        $results = $this->runSimulation(
+        // Run simulation via parent engine core (handles scheduled injections)
+        $engineResult = $this->runCoreSimulation(
             $startValue,
             $monthlyContribution,
             $expectedReturn,
@@ -55,12 +71,67 @@ class MonteCarloSimulator
             $scheduledInjections
         );
 
+        // Reshape to the investment module format that all consumers expect
+        $results = $this->reshapeToInvestmentFormat($engineResult, $expectedReturn, $volatility);
+
         // Store in cache if key provided
         if ($cacheKey !== null) {
             $this->cacheResult($cacheKey, $results);
         }
 
         return $results;
+    }
+
+    /**
+     * Reshape engine results to the investment module format.
+     *
+     * Engine format:  {final_values, year_by_year, percentiles, summary}
+     * Investment format: {summary, year_by_year, iterations, final_percentiles, total_contributions, median_gain}
+     */
+    private function reshapeToInvestmentFormat(array $engineResult, float $expectedReturn, float $volatility): array
+    {
+        // Rebuild percentiles with the extra 'final_value' key that investment consumers expect
+        $finalPercentiles = [];
+        foreach ($engineResult['percentiles'] as $p) {
+            $finalPercentiles[] = [
+                'percentile' => $p['percentile'],
+                'value' => $p['value'],
+                'final_value' => $p['value'],
+            ];
+        }
+
+        // Rebuild year_by_year percentiles with 'final_value' key
+        $yearByYear = [];
+        foreach ($engineResult['year_by_year'] as $yearData) {
+            $percentiles = [];
+            foreach ($yearData['percentiles'] as $p) {
+                $percentiles[] = [
+                    'percentile' => $p['percentile'],
+                    'value' => $p['value'],
+                    'final_value' => $p['value'],
+                ];
+            }
+            $yearByYear[] = [
+                'year' => $yearData['year'],
+                'percentiles' => $percentiles,
+            ];
+        }
+
+        return [
+            'summary' => [
+                'start_value' => $engineResult['summary']['start_value'],
+                'monthly_contribution' => $engineResult['summary']['monthly_contribution'],
+                'years' => $engineResult['summary']['years'],
+                'iterations' => $engineResult['summary']['iterations'],
+                'expected_return' => $expectedReturn,
+                'volatility' => $volatility,
+            ],
+            'year_by_year' => $yearByYear,
+            'iterations' => $engineResult['summary']['iterations'],
+            'final_percentiles' => $finalPercentiles,
+            'total_contributions' => $engineResult['summary']['total_contributions'],
+            'median_gain' => $engineResult['summary']['median_gain'],
+        ];
     }
 
     /**
@@ -139,58 +210,10 @@ class MonteCarloSimulator
     }
 
     /**
-     * Run the actual Monte Carlo simulation (internal method)
-     */
-    private function runSimulation(
-        float $startValue,
-        float $monthlyContribution,
-        float $expectedReturn,
-        float $volatility,
-        int $years,
-        int $iterations,
-        array $scheduledInjections = []
-    ): array {
-        $results = [];
-        $monthlyReturn = $expectedReturn / 12;
-        $monthlyVolatility = $volatility / sqrt(12);
-        $totalMonths = $years * 12;
-
-        // Run simulations
-        for ($i = 0; $i < $iterations; $i++) {
-            $portfolioValue = $startValue;
-            $yearlyValues = [];
-
-            for ($month = 1; $month <= $totalMonths; $month++) {
-                // Generate random return using normal distribution
-                $randomReturn = $this->generateNormalDistribution($monthlyReturn, $monthlyVolatility);
-
-                // Apply return and add contribution
-                $portfolioValue = $portfolioValue * (1 + $randomReturn) + $monthlyContribution;
-
-                // Store value at end of each year and apply scheduled injections
-                if ($month % 12 === 0) {
-                    $portfolioValue = $this->applyScheduledInjection($portfolioValue, (int) ($month / 12), $scheduledInjections);
-                    $yearlyValues[] = $portfolioValue;
-                }
-            }
-
-            $results[] = [
-                'final_value' => $portfolioValue,
-                'yearly_values' => $yearlyValues,
-            ];
-        }
-
-        $output = $this->aggregateResults($results, $startValue, $monthlyContribution, $years, $iterations);
-
-        // Add single-asset-specific summary fields
-        $output['summary']['expected_return'] = $expectedReturn;
-        $output['summary']['volatility'] = $volatility;
-
-        return $output;
-    }
-
-    /**
      * Run multi-asset Monte Carlo simulation with correlated returns.
+     *
+     * Uses Cholesky decomposition of the covariance matrix to generate
+     * correlated random returns across multiple asset classes.
      *
      * @param  array  $assetClasses  Array of ['type', 'weight', 'expectedReturn', 'volatility']
      * @param  array  $correlationMatrix  N x N correlation matrix between asset classes
@@ -199,6 +222,7 @@ class MonteCarloSimulator
      * @param  int  $years  Simulation horizon
      * @param  int  $iterations  Number of simulation runs
      * @param  string|null  $cacheKey  Optional cache key
+     * @param  array  $scheduledInjections  Optional year-indexed lump sum injections
      * @return array Simulation results with percentiles
      */
     public function runMultiAssetSimulation(
@@ -233,17 +257,18 @@ class MonteCarloSimulator
         $monthlyReturns = array_map(fn ($ac) => $ac['expectedReturn'] / 12, $assetClasses);
         $weights = array_map(fn ($ac) => $ac['weight'], $assetClasses);
 
-        $results = [];
+        $finalValues = [];
+        $yearlyResults = [];
 
         for ($i = 0; $i < $iterations; $i++) {
             $portfolioValue = $startValue;
             $yearlyValues = [];
 
             for ($month = 1; $month <= $totalMonths; $month++) {
-                // Generate independent standard normal samples
+                // Generate independent standard normal samples using inherited method
                 $independentSamples = [];
                 for ($a = 0; $a < $n; $a++) {
-                    $independentSamples[] = $this->generateNormalDistribution(0, 1);
+                    $independentSamples[] = $this->generateNormal(0, 1);
                 }
 
                 // Transform to correlated samples using Cholesky: correlated = L * independent
@@ -265,13 +290,60 @@ class MonteCarloSimulator
                 }
             }
 
-            $results[] = [
-                'final_value' => $portfolioValue,
-                'yearly_values' => $yearlyValues,
+            $finalValues[] = $portfolioValue;
+            $yearlyResults[] = $yearlyValues;
+        }
+
+        sort($finalValues);
+
+        // Build year-by-year percentiles with 'final_value' key
+        $yearByYear = [];
+        for ($year = 1; $year <= $years; $year++) {
+            $yearIndex = $year - 1;
+            $yearValues = array_map(fn ($r) => $r[$yearIndex], $yearlyResults);
+            sort($yearValues);
+
+            $percentiles = [];
+            foreach ($this->calculatePercentiles($yearValues) as $p) {
+                $percentiles[] = [
+                    'percentile' => $p['percentile'],
+                    'value' => $p['value'],
+                    'final_value' => $p['value'],
+                ];
+            }
+
+            $yearByYear[] = [
+                'year' => $year,
+                'percentiles' => $percentiles,
             ];
         }
 
-        $output = $this->aggregateResults($results, $startValue, $monthlyContribution, $years, $iterations);
+        // Build final percentiles with 'final_value' key
+        $finalPercentiles = [];
+        foreach ($this->calculatePercentiles($finalValues) as $p) {
+            $finalPercentiles[] = [
+                'percentile' => $p['percentile'],
+                'value' => $p['value'],
+                'final_value' => $p['value'],
+            ];
+        }
+
+        $totalContributions = $startValue + ($monthlyContribution * $totalMonths);
+        $medianValue = $finalPercentiles[2]['value'] ?? 0;
+
+        $output = [
+            'summary' => [
+                'start_value' => round($startValue, 2),
+                'monthly_contribution' => round($monthlyContribution, 2),
+                'years' => $years,
+                'iterations' => $iterations,
+            ],
+            'year_by_year' => $yearByYear,
+            'iterations' => $iterations,
+            'final_percentiles' => $finalPercentiles,
+            'total_contributions' => round($totalContributions, 2),
+            'median_gain' => round($medianValue - $totalContributions, 2),
+        ];
 
         if ($cacheKey !== null) {
             $this->cacheResult($cacheKey, $output);
@@ -303,65 +375,6 @@ class MonteCarloSimulator
     }
 
     /**
-     * Apply a scheduled injection at a given simulation year boundary.
-     */
-    private function applyScheduledInjection(float $portfolioValue, int $currentYear, array $scheduledInjections): float
-    {
-        if (isset($scheduledInjections[$currentYear])) {
-            $portfolioValue += $scheduledInjections[$currentYear];
-            $portfolioValue = max(0.0, $portfolioValue);
-        }
-
-        return $portfolioValue;
-    }
-
-    /**
-     * Aggregate simulation results into percentile statistics.
-     */
-    private function aggregateResults(
-        array $results,
-        float $startValue,
-        float $monthlyContribution,
-        int $years,
-        int $iterations
-    ): array {
-        $finalValues = array_column($results, 'final_value');
-        sort($finalValues);
-
-        $percentiles = $this->calculatePercentiles($finalValues);
-
-        $yearByYearPercentiles = [];
-        for ($year = 1; $year <= $years; $year++) {
-            $yearIndex = $year - 1;
-            $yearValues = array_map(fn ($r) => $r['yearly_values'][$yearIndex], $results);
-            sort($yearValues);
-
-            $yearByYearPercentiles[] = [
-                'year' => $year,
-                'percentiles' => $this->calculatePercentiles($yearValues),
-            ];
-        }
-
-        $totalMonths = $years * 12;
-        $medianValue = $percentiles[2]['value'] ?? 0;
-        $totalContributions = $startValue + ($monthlyContribution * $totalMonths);
-
-        return [
-            'summary' => [
-                'start_value' => round($startValue, 2),
-                'monthly_contribution' => round($monthlyContribution, 2),
-                'years' => $years,
-                'iterations' => $iterations,
-            ],
-            'year_by_year' => $yearByYearPercentiles,
-            'iterations' => $iterations,
-            'final_percentiles' => $percentiles,
-            'total_contributions' => round($totalContributions, 2),
-            'median_gain' => round($medianValue - $totalContributions, 2),
-        ];
-    }
-
-    /**
      * Get default correlation matrix for common asset classes.
      *
      * @return array Correlation matrix for [equity, bond, cash]
@@ -377,61 +390,13 @@ class MonteCarloSimulator
     }
 
     /**
-     * Generate random number from normal distribution using Box-Muller transform
+     * Generate random number from normal distribution.
+     *
+     * Alias for parent's generateNormal() to maintain backward compatibility
+     * with any code calling generateNormalDistribution() directly.
      */
     public function generateNormalDistribution(float $mean, float $stdDev): float
     {
-        $u1 = mt_rand() / mt_getrandmax();
-        $u2 = mt_rand() / mt_getrandmax();
-        $u1 = max($u1, 1e-10);
-        $z0 = sqrt(-2.0 * log($u1)) * cos(2.0 * M_PI * $u2);
-
-        return $mean + ($z0 * $stdDev);
-    }
-
-    /**
-     * Calculate percentiles from sorted array of values
-     */
-    public function calculatePercentiles(array $sortedValues): array
-    {
-        $count = count($sortedValues);
-
-        if ($count == 0) {
-            return [
-                ['percentile' => '10th', 'value' => 0.0, 'final_value' => 0.0],
-                ['percentile' => '25th', 'value' => 0.0, 'final_value' => 0.0],
-                ['percentile' => '50th', 'value' => 0.0, 'final_value' => 0.0],
-                ['percentile' => '75th', 'value' => 0.0, 'final_value' => 0.0],
-                ['percentile' => '90th', 'value' => 0.0, 'final_value' => 0.0],
-            ];
-        }
-
-        $percentiles = [];
-        foreach ([10, 25, 50, 75, 90] as $p) {
-            $index = (int) ceil(($p / 100) * $count) - 1;
-            $index = max(0, min($index, $count - 1));
-            $value = round($sortedValues[$index], 2);
-            $percentiles[] = [
-                'percentile' => "{$p}th",
-                'value' => $value,
-                'final_value' => $value,
-            ];
-        }
-
-        return $percentiles;
-    }
-
-    /**
-     * Calculate probability of reaching a goal
-     */
-    public function calculateGoalProbability(array $finalValues, float $goalAmount): float
-    {
-        if (empty($finalValues)) {
-            return 0.0;
-        }
-
-        $successCount = count(array_filter($finalValues, fn ($v) => $v >= $goalAmount));
-
-        return round(($successCount / count($finalValues)) * 100, 2);
+        return $this->generateNormal($mean, $stdDev);
     }
 }

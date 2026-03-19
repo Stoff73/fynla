@@ -3,9 +3,37 @@
 declare(strict_types=1);
 
 use App\Services\Investment\MonteCarloSimulator;
+use App\Services\Shared\MonteCarloEngine;
 
 beforeEach(function () {
     $this->simulator = new MonteCarloSimulator;
+});
+
+describe('inheritance', function () {
+    it('extends MonteCarloEngine', function () {
+        expect($this->simulator)->toBeInstanceOf(MonteCarloEngine::class);
+    });
+
+    it('inherits calculateGoalProbability from engine', function () {
+        $values = [100.0, 200.0, 300.0];
+        expect($this->simulator->calculateGoalProbability($values, 200))->toBe(66.67);
+    });
+
+    it('inherits calculatePercentiles from engine', function () {
+        $values = array_map('floatval', range(1, 100));
+        $percentiles = $this->simulator->calculatePercentiles($values);
+        expect($percentiles)->toHaveCount(5);
+        expect($percentiles[0]['percentile'])->toBe('10th');
+    });
+
+    it('inherits generateNormal from engine', function () {
+        $values = [];
+        for ($i = 0; $i < 500; $i++) {
+            $values[] = $this->simulator->generateNormal(50.0, 5.0);
+        }
+        $mean = array_sum($values) / count($values);
+        expect($mean)->toBeGreaterThan(45.0)->toBeLessThan(55.0);
+    });
 });
 
 describe('simulate', function () {
@@ -31,6 +59,21 @@ describe('simulate', function () {
             ->and($results['year_by_year'])->toHaveCount(10);
     });
 
+    it('includes final_percentiles and total_contributions', function () {
+        $results = $this->simulator->simulate(
+            startValue: 100000,
+            monthlyContribution: 500,
+            expectedReturn: 0.07,
+            volatility: 0.12,
+            years: 5,
+            iterations: 50
+        );
+
+        expect($results)->toHaveKeys(['final_percentiles', 'total_contributions', 'median_gain']);
+        expect($results['final_percentiles'])->toHaveCount(5);
+        expect($results['total_contributions'])->toBe(130000.00); // 100000 + 500*60
+    });
+
     it('calculates percentiles correctly', function () {
         $results = $this->simulator->simulate(
             startValue: 100000,
@@ -45,9 +88,32 @@ describe('simulate', function () {
 
         expect($finalYear['year'])->toBe(5)
             ->and($finalYear['percentiles'])->toHaveCount(5)
-            ->and($finalYear['percentiles'][0])->toHaveKeys(['percentile', 'value'])
+            ->and($finalYear['percentiles'][0])->toHaveKeys(['percentile', 'value', 'final_value'])
             ->and($finalYear['percentiles'][0]['percentile'])->toBe('10th')
             ->and($finalYear['percentiles'][4]['percentile'])->toBe('90th');
+    });
+
+    it('includes final_value key in percentiles', function () {
+        $results = $this->simulator->simulate(
+            startValue: 50000,
+            monthlyContribution: 200,
+            expectedReturn: 0.05,
+            volatility: 0.10,
+            years: 3,
+            iterations: 50
+        );
+
+        foreach ($results['year_by_year'] as $yearData) {
+            foreach ($yearData['percentiles'] as $p) {
+                expect($p)->toHaveKeys(['percentile', 'value', 'final_value']);
+                expect($p['final_value'])->toBe($p['value']);
+            }
+        }
+
+        foreach ($results['final_percentiles'] as $p) {
+            expect($p)->toHaveKeys(['percentile', 'value', 'final_value']);
+            expect($p['final_value'])->toBe($p['value']);
+        }
     });
 
     it('shows increasing value ranges over time with positive returns', function () {
@@ -106,6 +172,37 @@ describe('simulate', function () {
         expect($results['summary']['start_value'])->toBe(0.0)
             ->and($results['year_by_year'][9]['percentiles'][2]['value'])->toBeGreaterThan(0);
     });
+
+    it('applies scheduled injections at year boundaries', function () {
+        // Simulate without injections
+        $without = $this->simulator->simulate(
+            startValue: 100000,
+            monthlyContribution: 0,
+            expectedReturn: 0.0,
+            volatility: 0.0,
+            years: 3,
+            iterations: 10
+        );
+
+        // Simulate with a £50,000 injection at year 2
+        $with = $this->simulator->simulate(
+            startValue: 100000,
+            monthlyContribution: 0,
+            expectedReturn: 0.0,
+            volatility: 0.0,
+            years: 3,
+            iterations: 10,
+            scheduledInjections: [2 => 50000]
+        );
+
+        // With zero return and zero volatility, values are deterministic
+        $withoutMedian = $without['year_by_year'][2]['percentiles'][2]['value'];
+        $withMedian = $with['year_by_year'][2]['percentiles'][2]['value'];
+
+        expect($withMedian)->toBeGreaterThan($withoutMedian);
+        // The injection should add exactly 50000
+        expect($withMedian - $withoutMedian)->toBe(50000.0);
+    });
 });
 
 describe('generateNormalDistribution', function () {
@@ -135,6 +232,25 @@ describe('generateNormalDistribution', function () {
         $highStdDev = sqrt(array_sum(array_map(fn ($x) => pow($x - 100, 2), $highVolatility)) / count($highVolatility));
 
         expect($highStdDev)->toBeGreaterThan($lowStdDev);
+    });
+
+    it('is equivalent to inherited generateNormal', function () {
+        // Both methods should use the same Box-Muller implementation
+        // Test by checking they produce valid distributions
+        $valuesA = [];
+        $valuesB = [];
+
+        for ($i = 0; $i < 500; $i++) {
+            $valuesA[] = $this->simulator->generateNormalDistribution(0, 1);
+            $valuesB[] = $this->simulator->generateNormal(0, 1);
+        }
+
+        $meanA = array_sum($valuesA) / count($valuesA);
+        $meanB = array_sum($valuesB) / count($valuesB);
+
+        // Both should be close to 0
+        expect($meanA)->toBeGreaterThan(-0.5)->toBeLessThan(0.5);
+        expect($meanB)->toBeGreaterThan(-0.5)->toBeLessThan(0.5);
     });
 });
 
