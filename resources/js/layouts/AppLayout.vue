@@ -54,8 +54,7 @@
       <AiChatPanel :docked="true" />
     </aside>
 
-    <!-- Information Guide (floating help button + panel) -->
-    <InfoGuideButton />
+    <!-- Information Guide panel (button moved to Navbar) -->
     <InfoGuidePanel />
 
     <!-- AI Chat floating button + panel (hidden when docked chat is active) -->
@@ -71,7 +70,6 @@ import Footer from '@/components/Footer.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
-import InfoGuideButton from '@/components/Shared/InfoGuideButton.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
 import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
@@ -92,7 +90,6 @@ export default {
     PreviewBanner,
     TrialCountdownBanner,
     DataRetentionOverlay,
-    InfoGuideButton,
     InfoGuidePanel,
     AiChatButton,
     AiChatPanel,
