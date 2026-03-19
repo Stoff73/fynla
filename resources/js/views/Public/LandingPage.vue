@@ -254,31 +254,31 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
           <!-- Starting out -->
           <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1">Starting out</p>
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Starting</span><br/>out</p>
             <p class="text-xs text-white/70 leading-snug">Build strong financial habits for your future.</p>
           </div>
 
           <!-- Building foundations -->
           <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1">Building foundations</p>
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Building</span><br/>foundations</p>
             <p class="text-xs text-white/70 leading-snug">Save, invest, and grow your wealth with confidence.</p>
           </div>
 
           <!-- Protecting what matters -->
           <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1">Protecting what matters</p>
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Protecting</span><br/>what matters</p>
             <p class="text-xs text-white/70 leading-snug">Ensure your family and assets are fully covered.</p>
           </div>
 
           <!-- Planning your future -->
           <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1">Planning your future</p>
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Planning</span><br/>your future</p>
             <p class="text-xs text-white/70 leading-snug">Retirement projections, pension tracking, and estate planning.</p>
           </div>
 
           <!-- Enjoying your wealth -->
           <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1">Enjoying your wealth</p>
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Enjoying</span><br/>your wealth</p>
             <p class="text-xs text-white/70 leading-snug">Make the most of your financial success.</p>
           </div>
         </div>
@@ -382,11 +382,35 @@ export default {
     },
 
     scrollToMeetFyn() {
-      document.getElementById('meet-fyn').scrollIntoView({ behavior: 'smooth' });
+      this.smoothScrollTo('meet-fyn');
     },
 
     scrollToDashboard() {
-      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
+      this.smoothScrollTo('dashboard', 2000);
+    },
+
+    smoothScrollTo(elementId, duration = 1500) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const target = el.getBoundingClientRect().top + window.scrollY;
+      const start = window.scrollY;
+      const distance = target - start;
+      const dur = duration;
+      let startTime = null;
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / dur, 1);
+        window.scrollTo(0, start + distance * easeInOutCubic(progress));
+        if (progress < 1) requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
     },
 
     enterPreviewMode() {
