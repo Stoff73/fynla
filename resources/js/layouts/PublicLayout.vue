@@ -94,65 +94,50 @@
                 </div>
               </div>
 
-              <!-- Solutions Mega Menu -->
+              <!-- Scenarios Mega Menu -->
               <div class="relative" @mouseenter="solutionsOpen = true" @mouseleave="solutionsOpen = false">
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 px-1 pt-1 text-base font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
                   :class="{ 'text-raspberry-500': solutionsOpen }"
                 >
-                  Solutions
+                  Scenarios
                   <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': solutionsOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 <div v-if="solutionsOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-[720px] z-50 pt-2">
                   <div class="bg-white rounded-xl shadow-lg border border-light-gray p-6">
-                    <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Choose your solution</p>
+                    <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Choose your scenario</p>
                     <div class="grid grid-cols-3 gap-3">
                       <a href="/#solutions" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="solutionsOpen = false">
-                        <div class="w-9 h-9 rounded-full bg-horizon-500 flex-shrink-0 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                        </div>
                         <div>
-                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Fynla Investor</p>
-                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Portfolio analysis, risk profiling, and investment strategy tools.</p>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Starting out</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Build strong financial habits for your future.</p>
                         </div>
                       </a>
                       <a href="/#solutions" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="solutionsOpen = false">
-                        <div class="w-9 h-9 rounded-full bg-raspberry-500 flex-shrink-0 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                        </div>
                         <div>
-                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Fynla Life</p>
-                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Protection, critical illness, and income cover analysis for your family.</p>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Building foundations</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Save, invest, and grow your wealth with confidence.</p>
                         </div>
                       </a>
                       <a href="/#solutions" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="solutionsOpen = false">
-                        <div class="w-9 h-9 rounded-full bg-spring-500 flex-shrink-0 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                        </div>
                         <div>
-                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Fynla Manager</p>
-                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Net worth tracking, savings goals, and financial oversight tools.</p>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Protecting what matters</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Ensure your family and assets are fully covered.</p>
                         </div>
                       </a>
                       <a href="/#solutions" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="solutionsOpen = false">
-                        <div class="w-9 h-9 rounded-full bg-violet-500 flex-shrink-0 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
                         <div>
-                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Fynla Planner</p>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Planning your future</p>
                           <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Retirement projections, pension tracking, and estate planning.</p>
                         </div>
                       </a>
                       <a href="/#solutions" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="solutionsOpen = false">
-                        <div class="w-9 h-9 rounded-full bg-savannah-500 flex-shrink-0 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
                         <div>
-                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Fynla Saver</p>
-                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Emergency funds, ISA allowances, and savings goal tracking.</p>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Enjoying your wealth</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Make the most of your financial success.</p>
                         </div>
                       </a>
                     </div>
@@ -260,24 +245,24 @@
             </div>
           </div>
 
-          <!-- Mobile: Solutions accordion -->
+          <!-- Mobile: Scenarios accordion -->
           <div>
             <button
               type="button"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
               @click="solutionsOpen = !solutionsOpen"
             >
-              Solutions
+              Scenarios
               <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': solutionsOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             <div v-if="solutionsOpen" class="pl-6 pb-1 space-y-0.5">
-              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Fynla Investor</a>
-              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Fynla Life</a>
-              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Fynla Manager</a>
-              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Fynla Planner</a>
-              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Fynla Saver</a>
+              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Starting out</a>
+              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Building foundations</a>
+              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Protecting what matters</a>
+              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Planning your future</a>
+              <a href="/#solutions" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; solutionsOpen = false">Enjoying your wealth</a>
             </div>
           </div>
 

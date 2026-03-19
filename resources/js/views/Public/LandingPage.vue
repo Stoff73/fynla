@@ -18,7 +18,7 @@
 
         <!-- CTA -->
         <div class="relative z-10 flex flex-col items-start gap-3 mb-0">
-          <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all">Sign up</router-link>
+          <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all">Get started</router-link>
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
             <span class="text-white/40">|</span>
@@ -111,7 +111,7 @@
     <!-- How Fyn Can Help You -->
     <div id="features" class="bg-gradient-to-r from-horizon-600 to-horizon-700 py-10 lg:py-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-center mb-4 text-white">How Fyn can help you</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-4 text-white">How Fyn can help you</h2>
         <p class="text-center text-white/70 text-sm max-w-2xl mx-auto mb-10 leading-relaxed">
           We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.
         </p>
@@ -219,7 +219,7 @@
     <!-- Your Fynla Dashboard -->
     <div id="dashboard" class="bg-eggshell-500 py-10 lg:py-12">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-center mb-12">Your Fynla dashboard</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your Fynla dashboard</h2>
         <div class="card-lg overflow-hidden p-0">
           <div class="flex items-center gap-2 px-4 py-2.5 bg-savannah-100 border-b border-light-gray">
             <span class="w-3 h-3 rounded-full bg-raspberry-500"></span>
@@ -236,60 +236,40 @@
       </div>
     </div>
 
-    <!-- Solutions Built Just For You -->
+    <!-- Scenarios -->
     <div id="solutions" class="bg-light-pink-100 pt-10 lg:pt-12 pb-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-center mb-12">Solutions</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Scenarios</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
-          <!-- Fynla Investor -->
-          <div class="bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-6 flex flex-col items-start cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <div class="w-16 h-16 rounded-lg bg-horizon-500 flex items-center justify-center mb-4">
-              <span class="w-8 h-8 rounded bg-white/20 block"></span>
-            </div>
-            <p class="text-sm font-bold text-white/60 tracking-wider mb-0.5">FYNLA</p>
-            <p class="text-base font-bold text-white mb-2">INVESTOR</p>
-            <p class="text-xs text-white/70 leading-relaxed">Portfolio analysis, risk profiling, and investment strategy tools.</p>
+          <!-- Starting out -->
+          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+            <p class="text-2xl font-bold text-white mb-1">Starting out</p>
+            <p class="text-xs text-white/70 leading-snug">Build strong financial habits for your future.</p>
           </div>
 
-          <!-- Fynla Life -->
-          <div class="bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-6 flex flex-col items-start cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <div class="w-16 h-16 rounded-lg bg-raspberry-500 flex items-center justify-center mb-4">
-              <span class="w-8 h-8 rounded bg-white/20 block"></span>
-            </div>
-            <p class="text-sm font-bold text-white/60 tracking-wider mb-0.5">FYNLA</p>
-            <p class="text-base font-bold text-white mb-2">LIFE</p>
-            <p class="text-xs text-white/70 leading-relaxed">Protection, critical illness, and income cover analysis for your family.</p>
+          <!-- Building foundations -->
+          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+            <p class="text-2xl font-bold text-white mb-1">Building foundations</p>
+            <p class="text-xs text-white/70 leading-snug">Save, invest, and grow your wealth with confidence.</p>
           </div>
 
-          <!-- Fynla Manager -->
-          <div class="bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-6 flex flex-col items-start cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <div class="w-16 h-16 rounded-lg bg-spring-500 flex items-center justify-center mb-4">
-              <span class="w-8 h-8 rounded bg-white/20 block"></span>
-            </div>
-            <p class="text-sm font-bold text-white/60 tracking-wider mb-0.5">FYNLA</p>
-            <p class="text-base font-bold text-white mb-2">MANAGER</p>
-            <p class="text-xs text-white/70 leading-relaxed">Net worth tracking, savings goals, and financial oversight tools.</p>
+          <!-- Protecting what matters -->
+          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+            <p class="text-2xl font-bold text-white mb-1">Protecting what matters</p>
+            <p class="text-xs text-white/70 leading-snug">Ensure your family and assets are fully covered.</p>
           </div>
 
-          <!-- Fynla Planner -->
-          <div class="bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-6 flex flex-col items-start cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <div class="w-16 h-16 rounded-lg bg-violet-500 flex items-center justify-center mb-4">
-              <span class="w-8 h-8 rounded bg-white/20 block"></span>
-            </div>
-            <p class="text-sm font-bold text-white/60 tracking-wider mb-0.5">FYNLA</p>
-            <p class="text-base font-bold text-white mb-2">PLANNER</p>
-            <p class="text-xs text-white/70 leading-relaxed">Retirement projections, pension tracking, and estate planning.</p>
+          <!-- Planning your future -->
+          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+            <p class="text-2xl font-bold text-white mb-1">Planning your future</p>
+            <p class="text-xs text-white/70 leading-snug">Retirement projections, pension tracking, and estate planning.</p>
           </div>
 
-          <!-- Fynla Saver -->
-          <div class="bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-6 flex flex-col items-start cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <div class="w-16 h-16 rounded-lg bg-savannah-500 flex items-center justify-center mb-4">
-              <span class="w-8 h-8 rounded bg-white/20 block"></span>
-            </div>
-            <p class="text-sm font-bold text-white/60 tracking-wider mb-0.5">FYNLA</p>
-            <p class="text-base font-bold text-white mb-2">SAVER</p>
-            <p class="text-xs text-white/70 leading-relaxed">Emergency funds, ISA allowances, and savings goal tracking.</p>
+          <!-- Enjoying your wealth -->
+          <div class="aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+            <p class="text-2xl font-bold text-white mb-1">Enjoying your wealth</p>
+            <p class="text-xs text-white/70 leading-snug">Make the most of your financial success.</p>
           </div>
         </div>
 
