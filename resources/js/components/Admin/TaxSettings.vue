@@ -780,6 +780,231 @@
               </div>
             </div>
           </div>
+
+          <!-- VCT / EIS / SEIS -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Venture Capital Schemes</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+              <!-- VCT -->
+              <div>
+                <h4 class="font-medium text-horizon-500 mb-3">Venture Capital Trust</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Income Tax Relief</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.vct.income_tax_relief" type="number" step="0.01" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.venture_capital?.vct?.income_tax_relief ?? 0) * 100).toFixed(0) }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Annual Limit (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.vct.annual_limit" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.venture_capital?.vct?.annual_limit) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Minimum Holding (years)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.vct.min_holding_years" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ currentConfig.investment?.venture_capital?.vct?.min_holding_years }} years</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex gap-4">
+                  <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700">Dividends: Tax-free</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700">Capital Gains Tax: Exempt</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-raspberry-100 text-raspberry-700">Inheritance Tax: Not exempt</span>
+                </div>
+              </div>
+
+              <!-- EIS -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Enterprise Investment Scheme</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Income Tax Relief</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.eis.income_tax_relief" type="number" step="0.01" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.venture_capital?.eis?.income_tax_relief ?? 0) * 100).toFixed(0) }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Annual Limit (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.eis.annual_limit" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.venture_capital?.eis?.annual_limit) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Capital Gains Tax Exempt After (years)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.eis.cgt_exempt_after_years" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ currentConfig.investment?.venture_capital?.eis?.cgt_exempt_after_years }} years</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Knowledge Intensive Limit (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.eis.knowledge_intensive_limit" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.venture_capital?.eis?.knowledge_intensive_limit) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Carry Back Years</label>
+                    <p class="font-medium">{{ currentConfig.investment?.venture_capital?.eis?.carry_back_years }} year</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex gap-4 flex-wrap">
+                  <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700">Capital Gains Tax: Exempt after 3 years</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700">Inheritance Tax: Exempt (Business Property Relief after 2 years)</span>
+                  <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700">Loss Relief: Available</span>
+                </div>
+              </div>
+
+              <!-- SEIS -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Seed Enterprise Investment Scheme</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Income Tax Relief</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.seis.income_tax_relief" type="number" step="0.01" min="0" max="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.venture_capital?.seis?.income_tax_relief ?? 0) * 100).toFixed(0) }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Annual Limit (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.seis.annual_limit" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.venture_capital?.seis?.annual_limit) }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Capital Gains Tax Exempt After (years)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.venture_capital.seis.cgt_exempt_after_years" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">{{ currentConfig.investment?.venture_capital?.seis?.cgt_exempt_after_years }} years</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investment Bond Tax Treatment -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Investment Bonds — Tax Treatment</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+              <!-- Onshore Bond -->
+              <div>
+                <h4 class="font-medium text-horizon-500 mb-3">Onshore Investment Bond</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Minimum Investment (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.waterfall.onshore_bond_minimum" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.waterfall?.onshore_bond_minimum) }}</p>
+                  </div>
+                </div>
+                <div class="bg-savannah-100 rounded-lg p-4 space-y-2">
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 whitespace-nowrap">Deferred</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Income Tax on Gains</p>
+                      <p class="text-xs text-neutral-500">Gains taxed as income with a 20% basic rate credit (already paid by the life fund). Basic rate taxpayers have no further tax to pay.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 whitespace-nowrap">Deferred</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">5% Tax-Deferred Withdrawals</p>
+                      <p class="text-xs text-neutral-500">Withdraw up to 5% of original investment annually without immediate tax. Allowance rolls over if unused.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700 whitespace-nowrap">Relief</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Top-Slicing Relief</p>
+                      <p class="text-xs text-neutral-500">Large gains spread over years held to determine effective tax rate, preventing unfair higher rate charges.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-raspberry-100 text-raspberry-700 whitespace-nowrap">Taxable</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Inheritance Tax</p>
+                      <p class="text-xs text-neutral-500">Forms part of estate for Inheritance Tax. Often used with trusts for Inheritance Tax planning.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Offshore Bond -->
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Offshore Investment Bond</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Minimum Investment (£)</label>
+                    <input v-if="isEditing" v-model.number="editableConfig.investment.waterfall.offshore_bond_minimum" type="number" step="1" class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500" />
+                    <p v-else class="font-medium">£{{ formatNumber(currentConfig.investment?.waterfall?.offshore_bond_minimum) }}</p>
+                  </div>
+                </div>
+                <div class="bg-savannah-100 rounded-lg p-4 space-y-2">
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 whitespace-nowrap">Deferred</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Income Tax on Gains</p>
+                      <p class="text-xs text-neutral-500">Gains taxed at full marginal rate with no tax credit. Gross roll-up means no tax during accumulation.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-violet-100 text-violet-700 whitespace-nowrap">Deferred</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">5% Tax-Deferred Withdrawals</p>
+                      <p class="text-xs text-neutral-500">Same 5% annual withdrawal allowance as onshore bonds. Cumulative unused allowance available.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-spring-100 text-spring-700 whitespace-nowrap">Relief</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Time Apportionment Relief</p>
+                      <p class="text-xs text-neutral-500">Gains reduced proportionally for periods of non-UK residence. Useful for those who have lived abroad.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <span class="text-xs px-2 py-1 rounded-full bg-raspberry-100 text-raspberry-700 whitespace-nowrap">Taxable</span>
+                    <div>
+                      <p class="text-sm font-medium text-horizon-500">Inheritance Tax</p>
+                      <p class="text-xs text-neutral-500">Forms part of estate for Inheritance Tax. Often used with trusts to exclude from estate.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investment Waterfall Thresholds -->
+          <div class="card">
+            <div class="px-6 py-4 border-b border-light-gray">
+              <h3 class="text-lg font-semibold text-horizon-500">Investment Thresholds &amp; Fees</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Low Cost Ongoing Charge Figure</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.fee_benchmarks?.low_cost_ocf ?? 0) * 100).toFixed(2) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">High Cost Ongoing Charge Figure</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.fee_benchmarks?.high_cost_ocf ?? 0) * 100).toFixed(2) }}%</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-neutral-500 mb-1">Typical Platform Fee</label>
+                  <p class="font-semibold text-raspberry-600">{{ ((currentConfig.investment?.fee_benchmarks?.platform_fee_typical ?? 0) * 100).toFixed(2) }}%</p>
+                </div>
+              </div>
+              <div class="border-t pt-4">
+                <h4 class="font-medium text-horizon-500 mb-3">Portfolio Thresholds</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Rebalancing Drift</label>
+                    <p class="font-medium">{{ currentConfig.investment?.portfolio_thresholds?.rebalancing_drift_percent }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Concentration Warning</label>
+                    <p class="font-medium">{{ currentConfig.investment?.portfolio_thresholds?.concentration_warning_percent }}%</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-neutral-500 mb-1">Minimum Diversification Holdings</label>
+                    <p class="font-medium">{{ currentConfig.investment?.portfolio_thresholds?.minimum_diversification_holdings }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Pensions Tab -->
