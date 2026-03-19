@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\Models\DCPension;
+use App\Models\Property;
 use App\Models\User;
 use App\Services\TaxConfigService;
 
@@ -16,10 +17,10 @@ class IncomeDefinitionsService
 
     public function calculate(int $userId): array
     {
-        $user = User::findOrFail($userId);
-        $pensionContributions = $this->getPensionContributions($userId);
+        $user = User::with(['dcPensions', 'dbPensions', 'statePension'])->findOrFail($userId);
+        $pensionContributions = $this->getPensionContributions($user);
 
-        // 1. Total Income
+        // 1. Total Income — from all sources including computed rental and pension income
         $components = $this->getIncomeComponents($user);
         $totalIncome = array_sum($components);
 
@@ -70,22 +71,75 @@ class IncomeDefinitionsService
         return [
             'employment' => round((float) ($user->annual_employment_income ?? 0), 2),
             'self_employment' => round((float) ($user->annual_self_employment_income ?? 0), 2),
-            'rental' => round((float) ($user->annual_rental_income ?? 0), 2),
+            'rental' => round($this->calculateRentalIncome($user), 2),
             'dividend' => round((float) ($user->annual_dividend_income ?? 0), 2),
             'interest' => round((float) ($user->annual_interest_income ?? 0), 2),
             'other' => round((float) ($user->annual_other_income ?? 0), 2),
             'trust' => round((float) ($user->annual_trust_income ?? 0), 2),
+            'pension_income' => round($this->calculatePensionIncome($user), 2),
         ];
     }
 
-    private function getPensionContributions(int $userId): array
+    /**
+     * Calculate annual rental income from buy-to-let properties.
+     * Uses monthly_rental_income from Property model, applying ownership share.
+     */
+    private function calculateRentalIncome(User $user): float
     {
-        $pensions = DCPension::where('user_id', $userId)->get();
+        $properties = Property::where('property_type', 'buy_to_let')
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->get();
 
+        $total = 0.0;
+        foreach ($properties as $property) {
+            $monthlyRental = (float) ($property->monthly_rental_income ?? 0);
+            $annualRental = $monthlyRental * 12;
+
+            // Apply ownership share for joint properties
+            if ($property->joint_owner_id && $property->ownership_percentage) {
+                $share = $property->user_id === $user->id
+                    ? (float) $property->ownership_percentage / 100
+                    : (100 - (float) $property->ownership_percentage) / 100;
+                $annualRental *= $share;
+            }
+
+            $total += $annualRental;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Calculate annual pension income from DB pensions in payment and state pension.
+     */
+    private function calculatePensionIncome(User $user): float
+    {
+        $income = 0.0;
+
+        // DB pensions in payment
+        foreach ($user->dbPensions as $dbPension) {
+            if ($dbPension->accrued_annual_pension > 0) {
+                $income += (float) $dbPension->accrued_annual_pension;
+            }
+        }
+
+        // State pension if receiving
+        if ($user->statePension && $user->statePension->already_receiving) {
+            $income += (float) ($user->statePension->state_pension_forecast_annual ?? 0);
+        }
+
+        return $income;
+    }
+
+    private function getPensionContributions(User $user): array
+    {
         $employee = 0.0;
         $employer = 0.0;
 
-        foreach ($pensions as $pension) {
+        foreach ($user->dcPensions as $pension) {
             $salary = (float) ($pension->annual_salary ?? 0);
             $employee += $salary * ((float) ($pension->employee_contribution_percent ?? 0) / 100);
             $employer += $salary * ((float) ($pension->employer_contribution_percent ?? 0) / 100);

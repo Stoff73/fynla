@@ -22,7 +22,6 @@ describe('Total Income', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 60000,
             'annual_self_employment_income' => 0,
-            'annual_rental_income' => 12000,
             'annual_dividend_income' => 5000,
             'annual_interest_income' => 2000,
             'annual_other_income' => 1000,
@@ -30,7 +29,8 @@ describe('Total Income', function () {
         ]);
 
         $result = $this->service->calculate($user->id);
-        expect($result['total_income'])->toBe(80000.00);
+        // 60000 + 5000 + 2000 + 1000 = 68000 (rental comes from Property model, pension from DB/State)
+        expect($result['total_income'])->toBe(68000.00);
     });
 
     it('returns zero for user with no income', function () {
@@ -204,18 +204,18 @@ describe('Adjusted Allowances', function () {
 });
 
 describe('Components breakdown', function () {
-    it('returns all income components', function () {
+    it('returns all income components including pension_income', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 50000,
-            'annual_rental_income' => 10000,
+            'annual_dividend_income' => 3000,
         ]);
 
         $result = $this->service->calculate($user->id);
         expect($result['components'])->toHaveKeys([
             'employment', 'self_employment', 'rental', 'dividend',
-            'interest', 'other', 'trust',
+            'interest', 'other', 'trust', 'pension_income',
         ]);
         expect($result['components']['employment'])->toBe(50000.00);
-        expect($result['components']['rental'])->toBe(10000.00);
+        expect($result['components']['dividend'])->toBe(3000.00);
     });
 });

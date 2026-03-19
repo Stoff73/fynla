@@ -141,6 +141,7 @@ export default {
         interest: 'Interest',
         other: 'Other',
         trust: 'Trust',
+        pension_income: 'Pension',
       };
       return labels[key] || key;
     },
