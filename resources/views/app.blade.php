@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Fynla') }} — UK Financial Planning Made Simple</title>
+    <title>Fyn, your financial companion</title>
     <meta name="description" content="Fynla helps you plan savings, investments, retirement, and estate with confidence. One platform for your complete financial picture, powered by our proprietary Fynla Brain.">
 
     <!-- Canonical & Hreflang -->
