@@ -481,8 +481,8 @@ export default {
 
     const isLifeStageMode = computed(() => {
       if (props.mode === 'life-stage') return true;
-      // If user has a stage but hasn't started in this session, show welcome first
-      if (currentLifeStage.value && !props.mode && lifeStageStarted.value) return true;
+      // If user has a life stage set, always use life stage mode
+      if (currentLifeStage.value) return true;
       return false;
     });
     const lifeStageSteps = computed(() => store.getters['lifeStage/onboardingSteps'] || []);
@@ -1157,7 +1157,11 @@ export default {
         // Pre-fetch user profile so PersonalInformation form auto-fills name/email
         await store.dispatch('userProfile/fetchProfile').catch(() => {});
 
-        // Life stage mode: steps come from lifeStage store
+        // Returning user with a stage already set — skip welcome, go straight to steps
+        if (currentLifeStage.value && lifeStageSteps.value.length > 0) {
+          lifeStageStarted.value = true;
+        }
+
         // Find the first uncompleted step to resume from
         const steps = lifeStageSteps.value;
         const completed = lifeStageCompletedSteps.value;
