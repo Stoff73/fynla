@@ -42,7 +42,7 @@ class OnboardingController extends Controller
     public function setFocusArea(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'focus_area' => 'required|in:estate,protection,retirement,investment,tax_optimisation',
+            'focus_area' => 'required|in:estate',  // Only estate has a fully implemented legacy flow
         ]);
 
         if ($validator->fails()) {
@@ -94,7 +94,7 @@ class OnboardingController extends Controller
         try {
             \Log::info('Saving step progress', [
                 'step_name' => $request->input('step_name'),
-                'data' => $request->input('data'),
+                'user_id' => $request->user()->id,
             ]);
 
             $progress = $this->onboardingService->saveStepProgress(

@@ -937,29 +937,31 @@ export default {
     }
 
     async function handleDocumentSaved(savedData) {
+      // Capture type before closing (closeUploadModal nulls it)
+      const type = uploadDocumentType.value;
       closeUploadModal();
 
       // Reload the appropriate data based on document type
-      if (uploadDocumentType.value === 'pension_statement') {
+      if (type === 'pension_statement') {
         await loadPensions();
-      } else if (uploadDocumentType.value === 'investment_statement') {
+      } else if (type === 'investment_statement') {
         await loadInvestments();
-      } else if (uploadDocumentType.value === 'savings_statement') {
+      } else if (type === 'savings_statement') {
         await loadSavingsAccounts();
       }
     }
 
     // Navigation
     function handleNext() {
-      // Define tab order for Assets & Wealth screen
-      const tabOrder = ['retirement', 'properties', 'investments', 'cash'];
+      // Use allowed tabs (filtered by life stage) not the full hardcoded list
+      const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
       const currentIndex = tabOrder.indexOf(activeTab.value);
 
-      // If not on the last tab, go to next tab
+      // If not on the last visible tab, go to next tab
       if (currentIndex < tabOrder.length - 1) {
         activeTab.value = tabOrder[currentIndex + 1];
       } else {
-        // On last tab (cash), proceed to next step (Liabilities)
+        // On last visible tab, proceed to next onboarding step
         emit('next');
       }
     }

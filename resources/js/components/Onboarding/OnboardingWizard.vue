@@ -727,7 +727,14 @@ export default {
             store.dispatch('userProfile/updateIncomeOccupation', occupationData),
           ]);
         } else if (stepId === 'student-loan' && formData) {
-          await estateService.createLiability(formData);
+          // Check for existing student loan to avoid duplicates on re-entry
+          const existingLiabilities = store.state.estate?.liabilities || [];
+          const existingLoan = existingLiabilities.find(l => l.liability_type === 'student_loan');
+          if (existingLoan?.id) {
+            await estateService.updateLiability(existingLoan.id, formData);
+          } else {
+            await estateService.createLiability(formData);
+          }
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
           await savingsService.createAccount(formData);
         } else if (stepId === 'protection-insurance' && formData) {
@@ -1164,17 +1171,22 @@ export default {
 
     onMounted(async () => {
       if (isLifeStageMode.value) {
-        // Pre-fetch user profile so PersonalInformation form auto-fills name/email
-        await store.dispatch('userProfile/fetchProfile').catch(() => {});
+        // Pre-fetch user profile and life stage progress (including field completeness)
+        await Promise.all([
+          store.dispatch('userProfile/fetchProfile').catch(() => {}),
+          store.dispatch('lifeStage/fetchStage').catch(() => {}),
+        ]);
 
         // Returning user with a stage already set — skip welcome, go straight to steps
         if (currentLifeStage.value && lifeStageSteps.value.length > 0) {
           lifeStageStarted.value = true;
         }
 
-        // Find the first uncompleted step to resume from
+        // Find the first uncompleted step to resume from.
+        // Use allCompletedSteps (union of explicit + data-readiness) so returning
+        // users with data but expired sessions don't restart from step 0.
         const steps = lifeStageSteps.value;
-        const completed = lifeStageCompletedSteps.value;
+        const completed = store.getters['lifeStage/allCompletedSteps'] || [];
         let resumeIndex = 0;
         for (let i = 0; i < steps.length; i++) {
           if (!completed.includes(steps[i])) {
@@ -1185,6 +1197,14 @@ export default {
             resumeIndex = steps.length - 1;
           }
         }
+
+        // Honour ?step= query param from dashboard "Continue Journey" link
+        const requestedStep = route.query?.step;
+        if (requestedStep) {
+          const idx = steps.indexOf(requestedStep);
+          if (idx !== -1) resumeIndex = idx;
+        }
+
         lifeStageCurrentIndex.value = resumeIndex;
         return;
       }

@@ -22,19 +22,14 @@ class LifeStageService
             throw new \InvalidArgumentException("Invalid life stage: {$stage}");
         }
 
-        // Set life stage and a default onboarding_focus_area so legacy
-        // onboarding endpoints don't fail with "Focus area not set"
-        $focusAreaMap = [
-            'university' => 'protection',
-            'early_career' => 'investment',
-            'mid_career' => 'protection',
-            'peak' => 'retirement',
-            'retirement' => 'estate',
-        ];
-
+        // Set life stage. Only set onboarding_focus_area for 'estate' stage
+        // which has a fully implemented legacy flow. Other stages use the
+        // life-stage onboarding system and don't need a focus area.
+        // Setting non-functional focus areas caused legacy step progression
+        // to get stuck at 0% for 4/5 stages.
         $user->update([
             'life_stage' => $stage,
-            'onboarding_focus_area' => $focusAreaMap[$stage] ?? 'protection',
+            'onboarding_focus_area' => $stage === 'retirement' ? 'estate' : null,
         ]);
     }
 

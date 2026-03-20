@@ -606,7 +606,7 @@ class OnboardingService
                     'address_line_1' => $propertyData['address_line_1'],
                     'address_line_2' => $propertyData['address_line_2'] ?? null,
                     'city' => $propertyData['city'] ?? null,
-                    'postcode' => $propertyData['postcode'],
+                    'postcode' => $propertyData['postcode'] ?? null,
                     'country' => $propertyData['country'] ?? 'United Kingdom',
                     'current_value' => $propertyData['current_value'],
                     'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
@@ -671,10 +671,13 @@ class OnboardingService
                 $isaAllowanceUsed = $investmentData['isa_allowance_used'] ?? 0;
                 $ownershipPercentage = 100.00;
 
+                // Per CLAUDE.md Rule #7: joint assets use a SINGLE record at full value
+                // with joint_owner_id and ownership_percentage. Never divide values.
+                $jointOwnerId = null;
                 if ($ownershipType === 'joint') {
-                    $currentValue = $currentValue / 2;
-                    $isaAllowanceUsed = $isaAllowanceUsed / 2;
                     $ownershipPercentage = 50.00;
+                    $jointOwnerId = $investmentData['joint_owner_id']
+                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
                 \App\Models\Investment\InvestmentAccount::create([
@@ -685,6 +688,7 @@ class OnboardingService
                     'current_value' => $currentValue,
                     'ownership_type' => $ownershipType,
                     'ownership_percentage' => $ownershipPercentage,
+                    'joint_owner_id' => $jointOwnerId,
                     'isa_subscription_current_year' => $isaAllowanceUsed,
                     'tax_year' => '2025/26',
                     'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
@@ -702,9 +706,11 @@ class OnboardingService
                 $currentBalance = $cashData['current_balance'];
                 $isaAllowanceUsed = $cashData['isa_allowance_used'] ?? 0;
 
+                // Per CLAUDE.md Rule #7: joint assets use a SINGLE record at full value
+                $jointOwnerId = null;
                 if ($ownershipType === 'joint') {
-                    $currentBalance = $currentBalance / 2;
-                    $isaAllowanceUsed = $isaAllowanceUsed / 2;
+                    $jointOwnerId = $cashData['joint_owner_id']
+                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
                 \App\Models\SavingsAccount::create([
@@ -715,6 +721,8 @@ class OnboardingService
                     'current_balance' => $currentBalance,
                     'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
                     'ownership_type' => $ownershipType,
+                    'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
+                    'joint_owner_id' => $jointOwnerId,
                     'is_isa' => $isCashISA,
                     'isa_type' => $isCashISA ? 'cash' : null,
                     'isa_subscription_year' => $isCashISA ? '2025/26' : null,

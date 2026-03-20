@@ -218,14 +218,18 @@ export default {
     };
 
     onMounted(async () => {
-      // Load any previously saved step data
-      try {
-        const stepData = await store.dispatch('onboarding/fetchStepData', 'goals');
-        if (stepData && Object.keys(stepData).length > 0) {
-          formData.value = { ...formData.value, ...stepData };
+      // Restore from wizard cache first (back navigation), then from store
+      if (props.savedData && Object.keys(props.savedData).length > 0) {
+        formData.value = { ...formData.value, ...props.savedData };
+      } else {
+        try {
+          const stepData = await store.dispatch('onboarding/fetchStepData', 'goals');
+          if (stepData && Object.keys(stepData).length > 0) {
+            formData.value = { ...formData.value, ...stepData };
+          }
+        } catch {
+          // No existing data
         }
-      } catch {
-        // No existing data
       }
     });
 
