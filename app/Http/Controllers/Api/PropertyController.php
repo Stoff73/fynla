@@ -159,6 +159,7 @@ class PropertyController extends Controller
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
+
         return response()->json([
             'success' => true,
             'message' => 'Property created successfully',
@@ -277,6 +278,7 @@ class PropertyController extends Controller
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
+
         return response()->json([
             'success' => true,
             'message' => 'Property updated successfully',
@@ -309,6 +311,7 @@ class PropertyController extends Controller
 
         // Sync rental income after deletion
         $this->syncUserRentalIncome($user);
+
 
         return response()->json([
             'success' => true,

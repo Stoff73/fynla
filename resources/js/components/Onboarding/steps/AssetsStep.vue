@@ -780,8 +780,8 @@ export default {
           ? await propertyService.updateProperty(editingProperty.value.id, data.property)
           : await propertyService.createProperty(data.property);
 
-        // Get property ID from response (API returns property directly, not wrapped in data)
-        const propertyId = editingProperty.value?.id || propertyResponse.data?.id || propertyResponse.id;
+        // Get property ID from response (API returns { data: { property: { id } } })
+        const propertyId = editingProperty.value?.id || propertyResponse.data?.property?.id || propertyResponse.data?.id || propertyResponse.id;
 
         // If mortgage data provided and property was saved successfully, save/update mortgage
         if (data.mortgage && propertyId) {

@@ -1,6 +1,8 @@
 # Deployment Guide — 20 March 2026
 
-Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections + 11 code review fixes.
+**STATUS: ✅ FULLY DEPLOYED — 20 March 2026 ~20:35 UTC**
+
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections + 11 code review fixes + 3 production hotfixes (estate 500, logout TransientToken, risk recalculate 429).
 
 ## Rebuild Required?
 
@@ -27,12 +29,19 @@ php artisan db:seed --class=OccupationCodeSeeder --force
 php artisan db:seed --class=TaxConfigurationSeeder --force
 ```
 
-## PHP Files to Upload (45)
+## PHP Files to Upload (47)
 
-### Services & Controllers (10)
+### Routes (1)
+
+```
+routes/api.php
+```
+
+### Services & Controllers (11)
 
 ```
 app/Agents/EstateAgent.php
+app/Http/Controllers/Api/AuthController.php
 app/Http/Controllers/Api/EstateController.php
 app/Http/Controllers/Api/LifeStageController.php
 app/Http/Controllers/Api/OnboardingController.php
@@ -283,6 +292,14 @@ Replaces binary step completion stamps with actual field-level tracking from the
 
 **CRITICAL:** Must run `php artisan db:seed --class=TaxConfigurationSeeder --force` on production. All tax calculations, estate planning, retirement projections, and protection needs analysis use these values via `TaxConfigService`.
 
+### Production Hotfixes (2 — deployed same day)
+
+| File | Error | Root Cause | Fix |
+|------|-------|------------|-----|
+| `EstateController.php:115` | `Call to a member function getKey() on array` — estate endpoint 500 | `LiabilityResource::collection()` returns an Eloquent Collection; its `merge()` calls `getKey()` on each item, but `$mortgageLiabilities` contains plain arrays, not models. Worked locally because test user had no mortgages (empty merge = no `getKey()` calls). | Replaced `->collection->map(fn ($r) => $r->resolve())->merge(...)` with `collect(LiabilityResource::collection($liabilities)->resolve())->merge(...)` — converts to base Support\Collection before merging. |
+| `AuthController.php:263` | `Undefined property: TransientToken::$id` — logout 500 | Session-authenticated users get a `TransientToken` (no `$id` property) from `currentAccessToken()`. Code tried `$token->id` for session cleanup. | Added `$token instanceof PersonalAccessToken` check — session-based users now skip token/session DB cleanup (not needed for session auth). |
+| `routes/api.php:687` | `/api/investment/risk/recalculate` returning 429 on first request | Route-specific `throttle:6,1` had a stale counter stuck in SiteGround's cache layer that `php artisan cache:clear` couldn't flush. The counter never reset, so every request was denied. | Removed route-specific `throttle:6,1` — the global `throttle:api` (300/min) already protects the endpoint. |
+
 ### Code Review Fixes (11 issues)
 
 | # | Severity | File | Fix |
@@ -324,3 +341,6 @@ Replaces binary step completion stamps with actual field-level tracking from the
 21. **Returning user**: log out, log back in, navigate to `/onboarding` → should resume at first incomplete step, not step 0
 22. **Student loan**: complete student loan step, go back, forward again → should NOT create duplicate liability
 23. **Goal back-nav**: fill goal form, go back, forward → goal form data should be preserved
+24. **Estate endpoint**: navigate to dashboard or estate page as user with mortgages → no 500 error, liabilities include mortgage data
+25. **Logout**: log out from any authentication method (session or token) → clean logout, no 500 error
+26. **Risk profile**: navigate to `/risk-profile` → page loads with risk level, no 429 error

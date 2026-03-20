@@ -258,15 +258,17 @@ class AuthController extends Controller
         // Audit log
         $this->auditService->logAuth(AuditLog::ACTION_LOGOUT, $user);
 
-        if ($token) {
-            // Delete the session first (if exists)
+        if ($token && $token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            // Delete the session record first (if exists)
             UserSession::where('token_id', $token->id)->delete();
 
             // Then delete the token
-            if (method_exists($token, 'delete')) {
-                $token->delete();
-            }
+            $token->delete();
         }
+
+        // Always invalidate the web session (handles both token and session-based auth)
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,

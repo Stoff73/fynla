@@ -154,6 +154,7 @@ class MortgageController extends Controller
         $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
         $mortgageData['is_primary_owner'] = true;
 
+
         return response()->json([
             'success' => true,
             'message' => 'Mortgage added successfully',
@@ -263,6 +264,7 @@ class MortgageController extends Controller
         $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
         $mortgageData['is_primary_owner'] = true;
 
+
         return response()->json([
             'success' => true,
             'message' => 'Mortgage updated successfully',
@@ -295,6 +297,7 @@ class MortgageController extends Controller
 
         // Single-record pattern: Just delete the one record
         $mortgage->delete();
+
 
         return response()->json([
             'success' => true,

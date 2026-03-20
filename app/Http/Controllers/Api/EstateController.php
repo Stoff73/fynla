@@ -109,9 +109,7 @@ class EstateController extends Controller
             'data' => [
                 'assets' => AssetResource::collection($assets),
                 'investment_accounts' => $investmentAccountsFormatted,
-                'liabilities' => LiabilityResource::collection($liabilities)
-                    ->collection
-                    ->map(fn ($r) => $r->resolve())
+                'liabilities' => collect(LiabilityResource::collection($liabilities)->resolve())
                     ->merge($mortgageLiabilities)
                     ->values()
                     ->all(),
