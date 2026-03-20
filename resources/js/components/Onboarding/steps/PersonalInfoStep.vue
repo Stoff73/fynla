@@ -10,6 +10,44 @@
   >
     <div class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- First Name (from registration) -->
+        <div>
+          <label class="label">First Name</label>
+          <input
+            :value="formData.first_name"
+            type="text"
+            class="input-field bg-eggshell-500 cursor-not-allowed"
+            disabled
+          >
+          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
+        </div>
+
+        <!-- Surname (from registration) -->
+        <div>
+          <label class="label">Surname</label>
+          <input
+            :value="formData.surname"
+            type="text"
+            class="input-field bg-eggshell-500 cursor-not-allowed"
+            disabled
+          >
+          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
+        </div>
+
+        <!-- Email (from registration) -->
+        <div>
+          <label class="label">Email Address</label>
+          <input
+            :value="formData.email"
+            type="text"
+            class="input-field bg-eggshell-500 cursor-not-allowed"
+            disabled
+          >
+          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Date of Birth -->
         <div>
           <label for="date_of_birth" class="label">
@@ -269,7 +307,11 @@ export default {
       return store.getters['lifeStage/isFieldVisible']('personalInfo', fieldName, 'onboarding');
     };
 
+    const currentUser = store.getters['auth/currentUser'];
     const formData = ref({
+      first_name: currentUser?.first_name || '',
+      surname: currentUser?.surname || currentUser?.last_name || '',
+      email: currentUser?.email || '',
       date_of_birth: '',
       gender: '',
       marital_status: '',
