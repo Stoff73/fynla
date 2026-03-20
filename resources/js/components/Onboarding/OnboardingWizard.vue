@@ -73,6 +73,7 @@
                 @back="handleLifeStageBack"
                 @skip="handleLifeStageSkip"
                 @close="handleLifeStageNext"
+                @sidebar-update="sidebarOverride = $event"
               />
               <div v-else class="py-12 text-center">
                 <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -123,6 +124,7 @@
               <LearningMilestoneSidebar
                 :step="lifeStageCurrentStepId"
                 :stage="currentLifeStage"
+                :override="sidebarOverride"
                 class="rounded-lg shadow-sm border border-light-gray"
               />
             </div>
@@ -452,6 +454,7 @@ export default {
 
     // Cache form data emitted by steps so back navigation can restore it
     const savedStepData = ref({});
+    const sidebarOverride = ref(null);
 
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
@@ -610,10 +613,12 @@ export default {
         return;
       }
 
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
     };
 
     const handleLifeStageBack = () => {
+      sidebarOverride.value = null;
       if (lifeStageCurrentIndex.value > 0) {
         lifeStageCurrentIndex.value -= 1;
       }
@@ -1189,6 +1194,7 @@ export default {
       stepHasOwnNav,
       lifeStageCurrentComponent,
       savedStepData,
+      sidebarOverride,
       stageColour,
       stageColourClasses,
       isLifeStageStepCompleted,

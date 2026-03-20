@@ -399,36 +399,40 @@
       </div>
     </div>
 
-    <!-- Property Form Modal -->
+    <!-- Inline Property Form (replaces cards when open) -->
     <PropertyForm
       v-if="showPropertyForm"
+      context="onboarding"
       :property="editingProperty"
       :user-address="userAddress"
       @close="closePropertyForm"
       @save="handlePropertySaved"
     />
 
-    <!-- Investment Account Form Modal -->
+    <!-- Inline Investment Form -->
     <AccountForm
       v-if="showInvestmentForm"
-      :show="showInvestmentForm"
+      context="onboarding"
+      :show="true"
       :account="editingInvestment"
       :is-onboarding="true"
       @close="closeInvestmentForm"
       @save="handleInvestmentSaved"
     />
 
-    <!-- Savings Account Form Modal -->
+    <!-- Inline Savings Form -->
     <SaveAccountModal
       v-if="showSavingsForm"
+      context="onboarding"
       :account="editingSavings"
       @close="closeSavingsForm"
       @save="handleSavingsSaved"
     />
 
-    <!-- Pension Form Modals -->
+    <!-- Inline Pension Forms -->
     <DCPensionForm
       v-if="showPensionForm && pensionFormType === 'dc'"
+      context="onboarding"
       :pension="editingPension"
       :is-onboarding="true"
       @close="closePensionForm"
@@ -437,6 +441,7 @@
 
     <DBPensionForm
       v-if="showPensionForm && pensionFormType === 'db'"
+      context="onboarding"
       :pension="editingPension"
       @close="closePensionForm"
       @save="handlePensionSaved"
@@ -444,6 +449,7 @@
 
     <StatePensionForm
       v-if="showPensionForm && pensionFormType === 'state'"
+      context="onboarding"
       :state-pension="editingPension"
       @close="closePensionForm"
       @save="handlePensionSaved"
@@ -462,7 +468,7 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import PropertyForm from '@/components/NetWorth/Property/PropertyForm.vue';
@@ -498,7 +504,7 @@ export default {
     UsefulResources,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -508,6 +514,62 @@ export default {
     const allowedTabs = computed(() => assetsConfig.value?.visibleTabs || null);
 
     const activeTab = ref('retirement');
+
+    // Sidebar content — defined here, wired up after refs are declared below
+    const SIDEBAR_CONTENT = {
+      'cash-list': {
+        didYouKnow: 'A six-month emergency fund is the single most important financial protection you can have. It means a redundancy, car breakdown, or boiler failure does not derail your longer-term plans.',
+        whyWeAsk: 'Knowing your savings lets us calculate exactly how many months of expenses you currently have covered, track progress towards your emergency fund target, and flag whether you are earning the best available interest rate.',
+        quickStat: { value: '£20,000', label: 'Your annual ISA allowance (2025/26)' },
+      },
+      'cash-form': {
+        didYouKnow: 'The best easy access savings accounts currently pay over 4.5% AER. If your money is sitting in a current account earning 0%, moving it could earn you hundreds per year.',
+        whyWeAsk: 'The institution, account type, and balance let us track your emergency fund progress, flag if you are missing ISA tax benefits, and monitor whether your rate is competitive.',
+        quickStat: { value: '4.5%+', label: 'Best easy access rates available right now' },
+      },
+      'retirement-list': {
+        didYouKnow: 'Auto-enrolment means your employer must contribute to your pension if you earn above £10,000 per year. The minimum total contribution is 8% of qualifying earnings. Opting out is almost always a mistake — you are walking away from free money.',
+        whyWeAsk: 'Your pension details let us project your retirement income, assess whether you are on track, and calculate how increasing contributions now compounds into significant extra income in retirement.',
+        quickStat: { value: '£60,000', label: 'Annual pension allowance (2025/26)' },
+      },
+      'retirement-form': {
+        didYouKnow: 'Every £1 of salary sacrifice into your pension saves income tax AND National Insurance. At the basic rate, that is 32p saved per £1 contributed. Your employer contributions are free money on top.',
+        whyWeAsk: 'Your scheme name, provider, fund value, and contribution percentages let us calculate your projected pension pot at retirement and identify if you should increase contributions.',
+        quickStat: { value: '32p', label: 'Saved per £1 via salary sacrifice at basic rate' },
+      },
+      'investments-list': {
+        didYouKnow: 'A Stocks and Shares ISA lets you invest up to £20,000 per year with all growth and income completely free of tax — forever. Investing £200/month from age 28 at a 7% average annual return would be worth over £500,000 by age 65.',
+        whyWeAsk: 'Knowing your existing investments lets us assess diversification, flag tax inefficiency, and incorporate your portfolio into net worth and retirement projections.',
+        quickStat: { value: '£20,000', label: 'Annual ISA allowance — all growth tax-free (2025/26)' },
+      },
+      'investments-form': {
+        didYouKnow: 'Platform fees compound over time just like returns. A 0.5% difference in annual fees on a £100,000 portfolio costs over £50,000 over 30 years.',
+        whyWeAsk: 'Your provider, account type, value, and fees let us calculate the true cost of your investments and identify where fee reductions could significantly improve long-term returns.',
+        quickStat: { value: '£50,000', label: 'Cost of 0.5% extra fees on £100k over 30 years' },
+      },
+      'properties-list': {
+        didYouKnow: 'Most homeowners overpay their mortgage by not reviewing their rate every two years. Even a 0.5% rate reduction on a £250,000 mortgage saves over £1,200 per year.',
+        whyWeAsk: 'Your property and mortgage details let us calculate your equity, net worth, potential remortgage savings, and whether a decreasing term life policy should be tied to your outstanding balance.',
+        quickStat: { value: '2 years', label: 'How often you should review your mortgage rate' },
+      },
+      'properties-form': {
+        didYouKnow: 'Your main residence is exempt from Capital Gains Tax when sold. Buy-to-let properties are not — and the rate is 24% for higher-rate taxpayers. Ownership structure matters.',
+        whyWeAsk: 'The address, value, ownership type, and mortgage details feed into your net worth, estate planning, protection needs calculation, and rental yield analysis.',
+        quickStat: { value: '24%', label: 'Capital Gains Tax on residential property for higher-rate taxpayers' },
+      },
+    };
+
+    const emitSidebarContent = () => {
+      const suffix = isFormOpen.value ? 'form' : 'list';
+      const key = `${activeTab.value}-${suffix}`;
+      const content = SIDEBAR_CONTENT[key] || SIDEBAR_CONTENT[`${activeTab.value}-list`];
+      if (content) {
+        emit('sidebar-update', content);
+      }
+    };
+
+    watch(activeTab, () => emitSidebarContent());
+    watch(isFormOpen, () => emitSidebarContent());
 
     const stepTitle = computed(() => {
       if (allowedTabs.value && allowedTabs.value.length === 1) {
@@ -553,6 +615,21 @@ export default {
     const pensionFormType = ref(null); // 'dc', 'db', or 'state'
     const editingPension = ref(null);
 
+    // Sidebar context tracking
+    const isFormOpen = computed(() => showPropertyForm.value || showInvestmentForm.value || showSavingsForm.value || showPensionForm.value);
+
+    const emitSidebarContent = () => {
+      const suffix = isFormOpen.value ? 'form' : 'list';
+      const key = `${activeTab.value}-${suffix}`;
+      const content = SIDEBAR_CONTENT[key] || SIDEBAR_CONTENT[`${activeTab.value}-list`];
+      if (content) {
+        emit('sidebar-update', content);
+      }
+    };
+
+    watch(activeTab, () => emitSidebarContent());
+    watch(isFormOpen, () => emitSidebarContent());
+
     // Tab counts
     const allTabs = [
       { id: 'retirement', name: 'Retirement' },
@@ -594,6 +671,9 @@ export default {
       } catch (err) {
         // Data loading errors are handled in individual methods
       }
+
+      // Emit initial sidebar content
+      emitSidebarContent();
     });
 
     // Pensions methods
