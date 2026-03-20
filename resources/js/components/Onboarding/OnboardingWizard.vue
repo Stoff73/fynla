@@ -68,6 +68,7 @@
                 :key="lifeStageCurrentStepId"
                 :context="'onboarding'"
                 :saved-data="savedStepData[lifeStageCurrentStepId] || null"
+                :visible-tabs="STEP_TAB_MAP[lifeStageCurrentStepId] || null"
                 @save="handleLifeStageStepSave"
                 @next="handleLifeStageNext"
                 @back="handleLifeStageBack"
@@ -339,16 +340,7 @@ import FamilyInfoStep from './steps/FamilyInfoStep.vue';
 import WillInfoStep from './steps/WillInfoStep.vue';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
-import QuickAssetsStep from './steps/QuickAssetsStep.vue';
-import BudgetingSteps from './steps/BudgetingSteps.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
-import JourneyCompletionStep from './steps/JourneyCompletionStep.vue';
-import SimplePersonalInfoStep from './steps/SimplePersonalInfoStep.vue';
-import SimpleIncomeStep from './steps/SimpleIncomeStep.vue';
-import SimpleExpenditureStep from './steps/SimpleExpenditureStep.vue';
-import SimpleSavingsAccountStep from './steps/SimpleSavingsAccountStep.vue';
-import SimplePropertyMortgageStep from './steps/SimplePropertyMortgageStep.vue';
-import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 
 // =====================================================================
 // LIFE STAGE STEP → COMPONENT MAPPING
@@ -356,30 +348,40 @@ import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 // unified form component that should render for that step.
 // =====================================================================
 const STEP_COMPONENTS = {
-  'personal-info': () => import('@/components/UserProfile/PersonalInformation.vue'),
+  'personal-info': () => import('@/components/Onboarding/steps/PersonalInfoStep.vue'),
   'student-loan': () => import('@/components/Onboarding/steps/StudentLoanStep.vue'),
   'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
-  'expenditure': () => import('@/components/Onboarding/steps/SimpleExpenditureStep.vue'),
-  'savings': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'savings-emergency': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'first-home-lisa': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'property-mortgage': () => import('@/components/Onboarding/steps/PropertyStep.vue'),
-  'property-portfolio': () => import('@/components/Onboarding/steps/PropertyStep.vue'),
-  'protection-insurance': () => import('@/components/Protection/PolicyFormModal.vue'),
-  'pensions': () => import('@/components/Onboarding/steps/PensionStep.vue'),
-  'pension-auto-enrolment': () => import('@/components/Onboarding/steps/PensionStep.vue'),
-  'pension-review': () => import('@/components/Onboarding/steps/PensionStep.vue'),
-  'pension-drawdown': () => import('@/components/Onboarding/steps/PensionStep.vue'),
+  'expenditure': () => import('@/components/Onboarding/steps/ExpenditureStep.vue'),
+  'savings': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'savings-emergency': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'first-home-lisa': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'property-mortgage': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'property-portfolio': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'protection-insurance': () => import('@/components/Onboarding/steps/ProtectionPoliciesStep.vue'),
+  'pensions': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'pension-auto-enrolment': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'pension-review': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'pension-drawdown': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'state-pension': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'investments': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'investments-isa': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
-  'investments': () => import('@/components/Onboarding/steps/InvestmentStep.vue'),
-  'investments-isa': () => import('@/components/Onboarding/steps/InvestmentStep.vue'),
-  'state-pension': () => import('@/components/Retirement/StatePensionForm.vue'),
+};
+
+// Maps step IDs to AssetsStep tab filter — null = show all tabs
+const STEP_TAB_MAP = {
+  'savings': 'cash',
+  'savings-emergency': 'cash',
+  'first-home-lisa': 'cash',
+  'pension-auto-enrolment': 'retirement',
+  'investments': 'investments',
+  'investments-isa': 'investments',
 };
 
 // Step label map for the progress bar
@@ -430,16 +432,7 @@ export default {
     WillInfoStep,
     TrustInfoStep,
     CompletionStep,
-    QuickAssetsStep,
-    BudgetingSteps,
     GoalSetupStep,
-    JourneyCompletionStep,
-    SimplePersonalInfoStep,
-    SimpleIncomeStep,
-    SimpleExpenditureStep,
-    SimpleSavingsAccountStep,
-    SimplePropertyMortgageStep,
-    BudgetingCompletionStep,
   },
 
   props: {
@@ -500,10 +493,15 @@ export default {
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
-      'personal-info',
+      'personal-info', 'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals', 'property-mortgage',
+      'goals',
+      'savings', 'savings-emergency', 'first-home-lisa',
+      'property-mortgage', 'property-portfolio',
+      'protection-insurance',
+      'pensions', 'pension-auto-enrolment', 'pension-review', 'pension-drawdown', 'state-pension',
+      'investments', 'investments-isa',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -1229,6 +1227,7 @@ export default {
       stepHasOwnNav,
       lifeStageCurrentComponent,
       savedStepData,
+      STEP_TAB_MAP,
       stageColour,
       stageColourClasses,
       isLifeStageStepCompleted,

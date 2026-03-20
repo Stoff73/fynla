@@ -11,8 +11,8 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <!-- Tabs for different asset types -->
-      <div class="border-b border-light-gray">
+      <!-- Tabs for different asset types (hidden when single tab) -->
+      <div v-if="assetTabs.length > 1" class="border-b border-light-gray">
         <nav class="-mb-px flex space-x-8" aria-label="Asset types">
           <button
             v-for="tab in assetTabs"
@@ -497,10 +497,17 @@ export default {
     UsefulResources,
   },
 
+  props: {
+    visibleTabs: {
+      type: String,
+      default: null,
+    },
+  },
+
   emits: ['next', 'back', 'skip'],
 
-  setup(_props, { emit }) {
-    const activeTab = ref('retirement');
+  setup(props, { emit }) {
+    const activeTab = ref(props.visibleTabs || 'retirement');
 
     // Properties state
     const properties = ref([]);
@@ -532,12 +539,27 @@ export default {
     const editingPension = ref(null);
 
     // Tab counts
-    const assetTabs = computed(() => [
-      { id: 'retirement', name: 'Retirement', count: pensions.value.dc.length + pensions.value.db.length + (pensions.value.state ? 1 : 0) },
-      { id: 'properties', name: 'Properties', count: properties.value.length },
-      { id: 'investments', name: 'Investments', count: investments.value.length },
-      { id: 'cash', name: 'Cash', count: savingsAccounts.value.length },
-    ]);
+    const allTabs = [
+      { id: 'retirement', name: 'Retirement' },
+      { id: 'properties', name: 'Properties' },
+      { id: 'investments', name: 'Investments' },
+      { id: 'cash', name: 'Cash' },
+    ];
+
+    const assetTabs = computed(() => {
+      const tabs = props.visibleTabs
+        ? allTabs.filter(t => t.id === props.visibleTabs)
+        : allTabs;
+
+      return tabs.map(t => ({
+        ...t,
+        count: t.id === 'retirement' ? pensions.value.dc.length + pensions.value.db.length + (pensions.value.state ? 1 : 0)
+          : t.id === 'properties' ? properties.value.length
+          : t.id === 'investments' ? investments.value.length
+          : t.id === 'cash' ? savingsAccounts.value.length
+          : 0,
+      }));
+    });
 
     // Load existing data
     onMounted(async () => {
