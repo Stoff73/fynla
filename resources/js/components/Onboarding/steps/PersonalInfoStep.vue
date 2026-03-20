@@ -48,7 +48,7 @@
         </div>
 
         <!-- Marital Status -->
-        <div>
+        <div v-if="isFieldVisible('marital_status')">
           <label for="marital_status" class="label">
             Marital Status          </label>
           <select
@@ -72,7 +72,7 @@
       </div>
 
       <!-- Address Section -->
-      <div class="border-t pt-6">
+      <div v-if="isFieldVisible('address_line_1')" class="border-t pt-6">
         <h4 class="text-body font-medium text-horizon-500 mb-4">
           Address
         </h4>
@@ -166,7 +166,7 @@
       </div>
 
       <!-- Health & Lifestyle Section -->
-      <div class="border-t pt-6">
+      <div v-if="isFieldVisible('health_status')" class="border-t pt-6">
         <h4 class="text-body font-medium text-horizon-500 mb-4">
           Health & Lifestyle Information
         </h4>
@@ -264,6 +264,10 @@ export default {
 
   setup(props, { emit }) {
     const store = useStore();
+
+    const isFieldVisible = (fieldName) => {
+      return store.getters['lifeStage/isFieldVisible']('personalInfo', fieldName, 'onboarding');
+    };
 
     const formData = ref({
       date_of_birth: '',
@@ -462,6 +466,7 @@ export default {
       formatPostcode,
       handleNext,
       handleAddressSelected,
+      isFieldVisible,
       LINKS,
       STEP_RESOURCES,
     };
