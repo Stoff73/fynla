@@ -1,7 +1,7 @@
 <template>
   <OnboardingStep
-    title="Assets & Wealth"
-    description="Add your properties, investments, and savings accounts"
+    :title="stepTitle"
+    :description="stepDescription"
     :can-go-back="true"
     :can-skip="true"
     :loading="loading"
@@ -509,6 +509,21 @@ export default {
   setup(props, { emit }) {
     const activeTab = ref(props.visibleTabs || 'retirement');
 
+    const TAB_TITLES = {
+      cash: 'Bank Accounts',
+      retirement: 'Pensions',
+      investments: 'Investments',
+      properties: 'Properties',
+    };
+    const TAB_DESCRIPTIONS = {
+      cash: 'Add your bank and savings accounts',
+      retirement: 'Add your pension schemes so we can project your retirement income',
+      investments: 'Add your investment accounts so we can analyse your portfolio',
+      properties: 'Add your properties and any mortgages',
+    };
+    const stepTitle = computed(() => props.visibleTabs ? TAB_TITLES[props.visibleTabs] || 'Assets & Wealth' : 'Assets & Wealth');
+    const stepDescription = computed(() => props.visibleTabs ? TAB_DESCRIPTIONS[props.visibleTabs] || 'Add your properties, investments, and savings accounts' : 'Add your properties, investments, and savings accounts');
+
     // Properties state
     const properties = ref([]);
     const showPropertyForm = ref(false);
@@ -994,6 +1009,8 @@ export default {
     };
 
     return {
+      stepTitle,
+      stepDescription,
       activeTab,
       assetTabs,
       // Pensions
