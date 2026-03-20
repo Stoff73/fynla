@@ -57,11 +57,10 @@
             v-model="formData.date_of_birth"
             type="date"
             class="input-field"
-            
             :max="maxDob"
             :min="minDob"
           >
-          <p v-else class="mt-1 text-body-sm text-neutral-500">
+          <p class="mt-1 text-body-sm text-neutral-500">
             Used for age-based calculations and projections. Check your <a :href="LINKS.GOV_STATE_PENSION_AGE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">State Pension age</a>
           </p>
         </div>
@@ -74,7 +73,6 @@
             id="gender"
             v-model="formData.gender"
             class="input-field"
-            
           >
             <option value="">Select gender</option>
             <option value="male">Male</option>
@@ -91,7 +89,6 @@
             id="marital_status"
             v-model="formData.marital_status"
             class="input-field"
-            
           >
             <option value="">Select marital status</option>
             <option value="single">Single</option>
@@ -99,7 +96,7 @@
             <option value="divorced">Divorced</option>
             <option value="widowed">Widowed</option>
           </select>
-          <p v-else class="mt-1 text-body-sm text-neutral-500">
+          <p class="mt-1 text-body-sm text-neutral-500">
             Affects spouse exemption and transferable nil rate band
           </p>
         </div>
