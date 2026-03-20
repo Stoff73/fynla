@@ -559,18 +559,6 @@ export default {
       },
     };
 
-    const emitSidebarContent = () => {
-      const suffix = isFormOpen.value ? 'form' : 'list';
-      const key = `${activeTab.value}-${suffix}`;
-      const content = SIDEBAR_CONTENT[key] || SIDEBAR_CONTENT[`${activeTab.value}-list`];
-      if (content) {
-        emit('sidebar-update', content);
-      }
-    };
-
-    watch(activeTab, () => emitSidebarContent());
-    watch(isFormOpen, () => emitSidebarContent());
-
     const stepTitle = computed(() => {
       if (allowedTabs.value && allowedTabs.value.length === 1) {
         const titles = { cash: 'Bank Accounts', retirement: 'Pensions', investments: 'Investments', properties: 'Properties' };
