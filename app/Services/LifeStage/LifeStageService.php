@@ -225,72 +225,301 @@ class LifeStageService
     }
 
     /**
-     * Get data completeness for each onboarding step.
+     * Get data completeness for each onboarding step (binary, for backward compat).
      *
-     * Uses actual DB queries (same as DataReadiness services and PrerequisiteGateService)
-     * to determine which steps have data. Returns an array of step IDs that are complete.
-     *
-     * This is the single source of truth for progress calculation — the frontend
-     * should NOT attempt to check Vuex store state for this.
+     * Returns an array of step IDs that have any data. Delegates to getStepCompleteness()
+     * and returns step IDs where status is 'partial' or 'complete'.
      */
     public function getDataCompleteness(User $user): array
     {
-        $hasPersonalInfo = $user->date_of_birth && $user->gender;
-        $hasIncome = $this->calculateTotalIncome($user) > 0 || $user->employment_status;
-        $hasExpenditure = $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user);
-        $hasSavings = $user->savingsAccounts()->exists();
-        $hasInvestments = $user->investmentAccounts()->exists();
-        $hasPensions = $user->dcPensions()->exists() || $user->dbPensions()->exists();
-        $hasProtection = $user->lifeInsurancePolicies()->exists()
-            || $user->criticalIllnessPolicies()->exists()
-            || $user->incomeProtectionPolicies()->exists();
-        $hasProperty = $this->hasProperty($user);
-        $hasGoals = $user->goals()->exists();
-        $hasFamily = $this->hasChildren($user) || $this->isMarried($user);
-        $hasEstate = $hasProperty || $hasInvestments || $hasSavings;
-        $hasLiabilities = $user->liabilities()->exists();
-        $hasStatePension = $user->statePension()->exists();
-
-        // Will data is stored in the Estate\Will model (via onboarding processWillInfo),
-        // not as a field on the user model. Check for a Will record instead.
-        $hasWill = \App\Models\Estate\Will::where('user_id', $user->id)->exists();
-
-        // Map every possible step ID to its data check
-        $stepChecks = [
-            'personal-info' => $hasPersonalInfo,
-            'student-loan' => $hasLiabilities,
-            'income' => $hasIncome,
-            'income-career' => $hasIncome,
-            'income-tax' => $hasIncome,
-            'expenditure' => $hasExpenditure,
-            'assets' => $hasSavings || $hasInvestments || $hasPensions || $hasProperty,
-            'goals' => $hasGoals,
-            'family' => $hasFamily,
-            'protection-insurance' => $hasProtection,
-            'will-estate' => $hasWill,
-            'estate-iht' => $hasEstate || $hasWill,
-            'estate-legacy' => $hasEstate || $hasWill,
-        ];
+        $stepCompleteness = $this->getStepCompleteness($user);
 
         $completed = [];
-        foreach ($stepChecks as $stepId => $hasData) {
-            if ($hasData) {
-                $completed[] = $stepId;
-            }
-        }
-
-        // Also include steps from the explicit completion list (life_stage_completed_steps).
-        // This ensures steps that were genuinely completed in the onboarding wizard
-        // but whose data doesn't match the DB checks (e.g. WillInfoStep saves via
-        // onboarding store, not user model) are still reported as complete.
-        $explicitSteps = $user->life_stage_completed_steps ?? [];
-        foreach ($explicitSteps as $stepId) {
-            if (! in_array($stepId, $completed, true)) {
+        foreach ($stepCompleteness as $stepId => $info) {
+            if ($info['status'] !== 'skipped') {
                 $completed[] = $stepId;
             }
         }
 
         return $completed;
+    }
+
+    /**
+     * Get field-level completeness for each onboarding step.
+     *
+     * Journey-aware: only tracks fields visible in the user's current journey.
+     * Returns per-step status (skipped / partial / complete) with filled/missing field lists.
+     *
+     * Used by: onboarding progress bar, dashboard nudges, decision engines, AI.
+     */
+    public function getStepCompleteness(User $user): array
+    {
+        $stage = $user->life_stage;
+        $stepFields = $this->getStepFieldConfig($stage);
+
+        $result = [];
+        foreach ($stepFields as $stepId => $fields) {
+            $filled = [];
+            $missing = [];
+
+            foreach ($fields as $field) {
+                if ($this->isFieldFilled($user, $field)) {
+                    $filled[] = $field;
+                } else {
+                    $missing[] = $field;
+                }
+            }
+
+            $total = count($fields);
+            $filledCount = count($filled);
+
+            $result[$stepId] = [
+                'status' => $this->determineStepStatus($filledCount, $total),
+                'filled' => $filled,
+                'missing' => $missing,
+                'filled_count' => $filledCount,
+                'total_count' => $total,
+                'percentage' => $total > 0 ? (int) round(($filledCount / $total) * 100) : 100,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get field-level completeness for ALL fields across ALL steps.
+     *
+     * NOT journey-filtered. Used by agents and AI to know every missing field
+     * and guide users to fill them, regardless of which journey they're on.
+     */
+    public function getFullFieldCompleteness(User $user): array
+    {
+        $allFields = $this->getAllFieldConfig();
+
+        $result = [];
+        foreach ($allFields as $stepId => $fields) {
+            $filled = [];
+            $missing = [];
+
+            foreach ($fields as $field) {
+                if ($this->isFieldFilled($user, $field)) {
+                    $filled[] = $field;
+                } else {
+                    $missing[] = $field;
+                }
+            }
+
+            $total = count($fields);
+            $filledCount = count($filled);
+
+            $result[$stepId] = [
+                'status' => $this->determineStepStatus($filledCount, $total),
+                'filled' => $filled,
+                'missing' => $missing,
+                'filled_count' => $filledCount,
+                'total_count' => $total,
+                'percentage' => $total > 0 ? (int) round(($filledCount / $total) * 100) : 100,
+                'form_link' => $this->getStepFormLink($stepId),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Determine step status from filled/total counts.
+     */
+    private function determineStepStatus(int $filled, int $total): string
+    {
+        if ($total === 0) {
+            return 'complete';
+        }
+        if ($filled === 0) {
+            return 'skipped';
+        }
+        if ($filled >= $total) {
+            return 'complete';
+        }
+
+        return 'partial';
+    }
+
+    /**
+     * Check whether a single tracked field has data for the user.
+     */
+    private function isFieldFilled(User $user, string $field): bool
+    {
+        return match ($field) {
+            // User model columns
+            'date_of_birth' => $user->date_of_birth !== null,
+            'gender' => ! empty($user->gender),
+            'marital_status' => ! empty($user->marital_status),
+            'employment_status' => ! empty($user->employment_status),
+            'address_line_1' => ! empty($user->address_line_1),
+            'city' => ! empty($user->city),
+            'postcode' => ! empty($user->postcode),
+            'phone' => ! empty($user->phone),
+            'health_status' => ! empty($user->health_status),
+            'smoking_status' => ! empty($user->smoking_status),
+            'occupation' => ! empty($user->occupation),
+            'employer' => ! empty($user->employer),
+            'target_retirement_age' => $user->target_retirement_age !== null,
+
+            // Income — any source > 0
+            'has_income' => $this->calculateTotalIncome($user) > 0,
+
+            // Expenditure
+            'has_expenditure' => $user->monthly_expenditure > 0 || $this->hasExpenditureProfile($user),
+
+            // Relationships (existence checks)
+            'has_family_members' => $user->familyMembers()->exists(),
+            'has_savings' => $user->savingsAccounts()->exists(),
+            'has_investments' => $user->investmentAccounts()->exists(),
+            'has_dc_pensions' => $user->dcPensions()->exists(),
+            'has_db_pensions' => $user->dbPensions()->exists(),
+            'has_state_pension' => $user->statePension()->exists(),
+            'has_pensions' => $user->dcPensions()->exists() || $user->dbPensions()->exists() || $user->statePension()->exists(),
+            'has_property' => $this->hasProperty($user),
+            'has_any_assets' => $user->savingsAccounts()->exists()
+                || $user->investmentAccounts()->exists()
+                || $user->dcPensions()->exists()
+                || $user->dbPensions()->exists()
+                || $this->hasProperty($user),
+            'has_goals' => $user->goals()->exists(),
+            'has_liabilities' => $user->liabilities()->exists(),
+            'has_will' => \App\Models\Estate\Will::where('user_id', $user->id)->exists(),
+            'has_protection' => $user->lifeInsurancePolicies()->exists()
+                || $user->criticalIllnessPolicies()->exists()
+                || $user->incomeProtectionPolicies()->exists(),
+
+            default => false,
+        };
+    }
+
+    /**
+     * Get tracked fields per step, filtered by the user's journey (life stage).
+     *
+     * Only includes fields that are VISIBLE during onboarding for that stage.
+     * Hidden fields (per onboardingHide in lifeStageConfig) are excluded.
+     */
+    private function getStepFieldConfig(?string $stage): array
+    {
+        // Base personal-info fields for all journeys
+        $personalInfoBase = ['date_of_birth', 'gender'];
+
+        // Stage-specific additions to personal-info
+        $personalInfoExtra = match ($stage) {
+            'university' => [],
+            'early_career' => ['marital_status'],
+            'mid_career' => ['marital_status', 'address_line_1', 'city', 'postcode', 'phone', 'health_status', 'smoking_status'],
+            'peak' => ['marital_status', 'address_line_1', 'city', 'postcode', 'phone', 'health_status', 'smoking_status'],
+            'retirement' => ['marital_status', 'address_line_1', 'city', 'postcode', 'phone', 'health_status', 'smoking_status'],
+            default => [],
+        };
+
+        $steps = [];
+
+        // Build step field lists per journey
+        match ($stage) {
+            'university' => $this->buildUniversitySteps($steps, $personalInfoBase, $personalInfoExtra),
+            'early_career' => $this->buildEarlyCareerSteps($steps, $personalInfoBase, $personalInfoExtra),
+            'mid_career' => $this->buildMidCareerSteps($steps, $personalInfoBase, $personalInfoExtra),
+            'peak' => $this->buildPeakSteps($steps, $personalInfoBase, $personalInfoExtra),
+            'retirement' => $this->buildRetirementSteps($steps, $personalInfoBase, $personalInfoExtra),
+            default => null,
+        };
+
+        return $steps;
+    }
+
+    private function buildUniversitySteps(array &$steps, array $base, array $extra): void
+    {
+        $steps['personal-info'] = array_merge($base, $extra);
+        $steps['student-loan'] = ['has_liabilities'];
+        $steps['income'] = ['employment_status', 'has_income'];
+        $steps['expenditure'] = ['has_expenditure'];
+        $steps['assets'] = ['has_savings'];
+        $steps['goals'] = ['has_goals'];
+    }
+
+    private function buildEarlyCareerSteps(array &$steps, array $base, array $extra): void
+    {
+        $steps['personal-info'] = array_merge($base, $extra);
+        $steps['income-career'] = ['employment_status', 'has_income'];
+        $steps['assets'] = ['has_any_assets'];
+        $steps['goals'] = ['has_goals'];
+    }
+
+    private function buildMidCareerSteps(array &$steps, array $base, array $extra): void
+    {
+        $steps['personal-info'] = array_merge($base, $extra);
+        $steps['family'] = ['has_family_members'];
+        $steps['income'] = ['employment_status', 'has_income'];
+        $steps['assets'] = ['has_any_assets'];
+        $steps['protection-insurance'] = ['has_protection'];
+        $steps['will-estate'] = ['has_will'];
+        $steps['goals'] = ['has_goals'];
+    }
+
+    private function buildPeakSteps(array &$steps, array $base, array $extra): void
+    {
+        $steps['personal-info'] = array_merge($base, $extra);
+        $steps['family'] = ['has_family_members'];
+        $steps['income-tax'] = ['employment_status', 'has_income'];
+        $steps['assets'] = ['has_any_assets'];
+        $steps['estate-iht'] = ['has_will'];
+        $steps['goals'] = ['has_goals'];
+    }
+
+    private function buildRetirementSteps(array &$steps, array $base, array $extra): void
+    {
+        $steps['personal-info'] = array_merge($base, $extra);
+        $steps['family'] = ['has_family_members'];
+        $steps['assets'] = ['has_any_assets'];
+        $steps['income-tax'] = ['employment_status', 'has_income'];
+        $steps['estate-legacy'] = ['has_will'];
+        $steps['goals'] = ['has_goals'];
+    }
+
+    /**
+     * Get ALL tracked fields across ALL steps (not journey-filtered).
+     *
+     * Used by agents and AI to identify any missing data regardless of journey.
+     */
+    private function getAllFieldConfig(): array
+    {
+        return [
+            'personal-info' => [
+                'date_of_birth', 'gender', 'marital_status',
+                'address_line_1', 'city', 'postcode', 'phone',
+                'health_status', 'smoking_status',
+            ],
+            'family' => ['has_family_members'],
+            'income' => ['employment_status', 'has_income'],
+            'expenditure' => ['has_expenditure'],
+            'assets' => ['has_savings', 'has_investments', 'has_pensions', 'has_property'],
+            'protection' => ['has_protection'],
+            'will-estate' => ['has_will'],
+            'goals' => ['has_goals'],
+        ];
+    }
+
+    /**
+     * Get the form/page link for a given step (for agent guidance).
+     */
+    private function getStepFormLink(string $stepId): string
+    {
+        return match ($stepId) {
+            'personal-info' => '/profile',
+            'family' => '/profile',
+            'income' => '/valuable-info?section=income',
+            'expenditure' => '/valuable-info?section=expenditure',
+            'assets' => '/net-worth/cash',
+            'protection' => '/protection',
+            'will-estate' => '/estate/will-builder',
+            'goals' => '/goals',
+            default => '/onboarding',
+        };
     }
 
     /**

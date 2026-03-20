@@ -20,10 +20,18 @@
                   class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
                   :class="getLifeStageStepCircleClass(stepId, index)"
                 >
-                  <!-- Tick for completed -->
-                  <svg v-if="isLifeStageStepCompleted(stepId)" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <!-- Tick for complete (all fields filled) -->
+                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                   </svg>
+                  <!-- Dash for skipped (no fields filled, already passed) -->
+                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Partial indicator (some fields filled) -->
+                  <span v-else-if="getLifeStageStepStatus(stepId, index) === 'partial'" class="text-xs font-bold text-white">
+                    {{ getStepCompletenessPercentage(stepId) }}%
+                  </span>
                   <!-- Number for current/upcoming -->
                   <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
                 </div>
@@ -539,8 +547,25 @@ export default {
       return selectedStageId.value ? LIFE_STAGES[selectedStageId.value] : null;
     });
 
-    const isLifeStageStepCompleted = (stepId) => {
-      return lifeStageCompletedSteps.value.includes(stepId);
+    // Get the display status for a step in the progress bar.
+    // Returns: 'complete' | 'partial' | 'skipped' | 'current' | 'upcoming'
+    const getLifeStageStepStatus = (stepId, index) => {
+      if (index === lifeStageCurrentIndex.value) return 'current';
+      if (index > lifeStageCurrentIndex.value) return 'upcoming';
+
+      // Past step — check field-level completeness from backend
+      const completeness = store.getters['lifeStage/stepCompleteness'];
+      const stepInfo = completeness[stepId];
+      if (stepInfo) return stepInfo.status; // 'complete' | 'partial' | 'skipped'
+
+      // Fallback if no completeness data yet — check binary completed list
+      if (lifeStageCompletedSteps.value.includes(stepId)) return 'complete';
+      return 'skipped';
+    };
+
+    const getStepCompletenessPercentage = (stepId) => {
+      const completeness = store.getters['lifeStage/stepCompleteness'];
+      return completeness[stepId]?.percentage || 0;
     };
 
     const isLifeStageCurrentStep = (index) => {
@@ -548,23 +573,37 @@ export default {
     };
 
     const getLifeStageStepCircleClass = (stepId, index) => {
-      if (isLifeStageCurrentStep(index)) {
-        return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+      const status = getLifeStageStepStatus(stepId, index);
+
+      switch (status) {
+        case 'current':
+          return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+        case 'complete':
+          return 'bg-spring-500 border-spring-500 text-white';
+        case 'partial':
+          return 'bg-raspberry-500 border-spring-500 text-white';
+        case 'skipped':
+          return 'bg-raspberry-500 border-raspberry-500 text-white';
+        default: // upcoming
+          return 'bg-white border-light-gray text-neutral-500';
       }
-      if (isLifeStageStepCompleted(stepId)) {
-        return 'bg-spring-500 border-spring-500 text-white';
-      }
-      return 'bg-white border-light-gray text-neutral-500';
     };
 
     const getLifeStageStepLabelClass = (stepId, index) => {
-      if (isLifeStageCurrentStep(index)) {
-        return stageColourClasses.value.text + ' font-semibold';
+      const status = getLifeStageStepStatus(stepId, index);
+
+      switch (status) {
+        case 'current':
+          return stageColourClasses.value.text + ' font-semibold';
+        case 'complete':
+          return 'text-spring-600';
+        case 'partial':
+          return 'text-violet-600';
+        case 'skipped':
+          return 'text-raspberry-500';
+        default:
+          return 'text-neutral-500';
       }
-      if (isLifeStageStepCompleted(stepId)) {
-        return 'text-spring-600';
-      }
-      return 'text-neutral-500';
     };
 
     const getLifeStageStepLabel = (stepId) => {
@@ -572,10 +611,15 @@ export default {
     };
 
     const getLifeStageConnectingLineClass = (index) => {
-      if (index < lifeStageCurrentIndex.value) {
-        return 'bg-spring-500';
-      }
-      return 'bg-light-gray';
+      if (index >= lifeStageCurrentIndex.value) return 'bg-light-gray';
+
+      // Past step — colour based on completeness
+      const stepId = lifeStageSteps.value[index];
+      const status = getLifeStageStepStatus(stepId, index);
+
+      if (status === 'complete') return 'bg-spring-500';
+      if (status === 'partial') return 'bg-violet-400';
+      return 'bg-raspberry-300'; // skipped
     };
 
     const handleLifeStageNext = async (formData) => {
@@ -596,9 +640,9 @@ export default {
         }
       }
 
-      if (currentStepId) {
-        await store.dispatch('lifeStage/completeStep', currentStepId);
-      }
+      // Refresh field-level completeness from backend (checks actual DB data).
+      // Do NOT blindly stamp as complete — let the backend determine status.
+      await store.dispatch('lifeStage/refreshCompleteness');
 
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
@@ -624,16 +668,17 @@ export default {
       }
     };
 
-    const handleLifeStageSkip = () => {
-      const currentStepId = lifeStageSteps.value[lifeStageCurrentIndex.value];
-      if (currentStepId) {
-        store.dispatch('lifeStage/completeStep', currentStepId);
-      }
+    const handleLifeStageSkip = async () => {
+      // Do NOT mark as complete — backend field checks will show 'skipped' status.
+      // Just refresh completeness so progress bar updates accurately.
+      await store.dispatch('lifeStage/refreshCompleteness');
+
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
         router.push({ name: 'Dashboard' });
         return;
       }
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
     };
 
@@ -1197,7 +1242,8 @@ export default {
       sidebarOverride,
       stageColour,
       stageColourClasses,
-      isLifeStageStepCompleted,
+      getLifeStageStepStatus,
+      getStepCompletenessPercentage,
       isLifeStageCurrentStep,
       getLifeStageStepCircleClass,
       getLifeStageStepLabelClass,

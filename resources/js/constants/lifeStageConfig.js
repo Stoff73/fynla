@@ -606,6 +606,7 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
+        'family',
         'income-tax',
         'assets',
         'estate-iht',
@@ -617,6 +618,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your date of birth and target retirement age determine how many years you have to build your pension pot. Your address affects property valuations and regional tax calculations. Health and smoking status impact protection policy costs. Employment and marital status shape tax relief opportunities and allowance transfers.',
           howItFits: 'Your target retirement age and date of birth determine exactly how many years you have to build your pension pot — and whether carry-forward strategies are worth pursuing. Your address feeds into property valuations for estate planning and potential downsizing calculations. Health and smoking status affect whether whole-of-life cover or critical illness protection is advisable and affordable. Employment details tell us your tax band, which determines the value of pension tax relief — 40% for higher-rate taxpayers versus 20% for basic rate.',
           quickStat: { value: '57', label: 'Minimum pension access age rising to in 2028 — check your plans' },
+        },
+        'family': {
+          didYouKnow: 'At this stage, your family structure directly shapes your estate plan. A married couple can pass up to £1 million inheritance tax-free using combined nil-rate bands — but only if the right ownership structures and wills are in place. Children becoming financially independent also changes your protection needs significantly.',
+          whyWeAsk: 'Your dependants, their ages, and their financial independence determine your protection requirements, pension beneficiary nominations, will and trust planning, and whether your estate plan needs updating as circumstances change.',
+          howItFits: 'Your family profile is central to estate planning at this stage. Dependent children may need trust arrangements; independent adult children change your life cover needs; and your spouse\'s financial position affects inheritance tax strategy.',
+          quickStat: { value: '£1M', label: 'Combined inheritance tax threshold for a married couple with qualifying property' },
         },
         'income-tax': {
           didYouKnow: 'Higher-rate taxpayers can claim 40% tax relief on pension contributions — meaning a £1,000 net contribution costs just £600. Salary sacrifice is even more efficient as it also saves National Insurance. If you\'re not maximising pension contributions at higher-rate income levels, you\'re leaving significant money with HMRC.',
@@ -786,6 +793,7 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
+        'family',
         'assets',
         'income-tax',
         'estate-legacy',
@@ -797,6 +805,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your date of birth drives life expectancy projections and State Pension eligibility. Your address is needed for property valuations and care cost estimates. Marital status determines inheritance tax allowance transfers and pension beneficiary rules. Health and smoking status affect longevity assumptions in your income projections.',
           howItFits: 'Your date of birth drives the longevity assumptions in your income projections — how long your money needs to last. Your address is essential for property valuations, local authority care cost estimates, and inheritance tax calculations on your estate. Marital status determines whether your spouse can inherit your pension tax-free and whether the transferable nil-rate band applies. Health and smoking status adjust our life expectancy models so your drawdown strategy is realistic, not optimistic.',
           quickStat: { value: '87+', label: 'Average life expectancy for a 65-year-old woman in the UK today' },
+        },
+        'family': {
+          didYouKnow: 'In retirement, your family structure determines everything from pension beneficiary nominations to inheritance tax planning. A surviving spouse can inherit your pension tax-free, but from 2027 unused pension funds will be included in your estate for inheritance tax. Getting nominations and ownership structures right now protects your family later.',
+          whyWeAsk: 'Your spouse, children, and grandchildren are the people your estate plan is designed to protect. Their ages, financial situations, and needs shape your will, trust arrangements, gifting strategy, and power of attorney decisions.',
+          howItFits: 'Legacy planning starts with knowing who you are planning for. Your family details feed directly into inheritance tax calculations, pension nomination decisions, and whether lifetime gifting or trust structures make sense for your situation.',
+          quickStat: { value: '£3,000', label: 'Annual inheritance tax-free gift exemption per person' },
         },
         'pension-drawdown': {
           didYouKnow: 'Flexi-access drawdown lets you take as much or as little as you like from your pension each year — but getting the amount right is critical. Withdraw too much and you may pay unnecessary tax (pension income is taxable above your Personal Allowance). Withdraw too little and you may leave money in an estate that faces inheritance tax, as unused pension funds from 2027 will be included in your estate for inheritance tax purposes.',

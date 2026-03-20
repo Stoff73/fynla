@@ -48,6 +48,9 @@ class DatabaseSeeder extends Seeder
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
 
+            // ONS SOC 2020 occupation codes for autocomplete
+            OccupationCodeSeeder::class,
+
             // Plan configuration - admin-configurable plan rates, benchmarks, and defaults
             PlanConfigurationSeeder::class,
 
@@ -105,6 +108,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
             SavingsMarketRatesSeeder::class,
+            OccupationCodeSeeder::class,
             PlanConfigurationSeeder::class,
             RetirementActionDefinitionSeeder::class,
             InvestmentActionDefinitionSeeder::class,

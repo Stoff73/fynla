@@ -119,3 +119,105 @@ The life stage journey system (OnboardingWizard.vue STEP_COMPONENTS mapping) map
 | 5. Direct form mapping | 17 Mar 2026 | STEP_COMPONENTS in wizard | Wrong approach. Should map to Era 1 steps. |
 
 **The answer has always been: use the Era 1 components. They work. They've been in the codebase for 5 months. They have cards, add another, edit, and use the same forms as the rest of the app.**
+
+---
+
+## Journey Step Definitions (from lifeStageConfig.js)
+
+### Journey 1: Starting Out (university) — 6 steps
+
+| # | Step ID | Current Mapping (BROKEN) | Correct Mapping (Era 1) |
+|---|---------|--------------------------|-------------------------|
+| 1 | `personal-info` | `PersonalInformation.vue` (standalone) | `PersonalInfoStep.vue` |
+| 2 | `student-loan` | `StudentLoanStep.vue` | `StudentLoanStep.vue` (correct) |
+| 3 | `income` | `IncomeStep.vue` | `IncomeStep.vue` (correct) |
+| 4 | `expenditure` | `SimpleExpenditureStep.vue` (DELETED) | `ExpenditureStep.vue` |
+| 5 | `savings` | `SaveAccountModal.vue` (standalone modal) | `AssetsStep.vue` (savings tab) |
+| 6 | `goals` | `GoalSetupStep.vue` | `GoalSetupStep.vue` (correct) |
+
+### Journey 2: Building Foundations (early_career) — 7 steps
+
+| # | Step ID | Current Mapping (BROKEN) | Correct Mapping (Era 1) |
+|---|---------|--------------------------|-------------------------|
+| 1 | `personal-info` | `PersonalInformation.vue` (standalone) | `PersonalInfoStep.vue` |
+| 2 | `income-career` | `IncomeStep.vue` | `IncomeStep.vue` (correct) |
+| 3 | `savings-emergency` | `SaveAccountModal.vue` (standalone modal) | `AssetsStep.vue` (savings tab) |
+| 4 | `first-home-lisa` | `SaveAccountModal.vue` (standalone modal) | `AssetsStep.vue` (savings tab) |
+| 5 | `pension-auto-enrolment` | `PensionStep.vue` (DELETED) | `AssetsStep.vue` (retirement tab) |
+| 6 | `investments` | `InvestmentStep.vue` (DELETED) | `AssetsStep.vue` (investments tab) |
+| 7 | `goals` | `GoalSetupStep.vue` | `GoalSetupStep.vue` (correct) |
+
+### Journey 3: Protecting What Matters (mid_career) — 8 steps
+
+| # | Step ID | Current Mapping (BROKEN) | Correct Mapping (Era 1) |
+|---|---------|--------------------------|-------------------------|
+| 1 | `personal-info` | `PersonalInformation.vue` (standalone) | `PersonalInfoStep.vue` |
+| 2 | `family` | `FamilyInfoStep.vue` | `FamilyInfoStep.vue` (correct) |
+| 3 | `income` | `IncomeStep.vue` | `IncomeStep.vue` (correct) |
+| 4 | `property-mortgage` | `PropertyStep.vue` (DELETED) | `AssetsStep.vue` (property tab) |
+| 5 | `protection-insurance` | `PolicyFormModal.vue` (standalone modal) | `ProtectionPoliciesStep.vue` |
+| 6 | `pensions` | `PensionStep.vue` (DELETED) | `AssetsStep.vue` (retirement tab) |
+| 7 | `will-estate` | `WillInfoStep.vue` | `WillInfoStep.vue` (correct) |
+| 8 | `goals` | `GoalSetupStep.vue` | `GoalSetupStep.vue` (correct) |
+
+### Journey 4: Planning Your Future (peak) — 7 steps
+
+| # | Step ID | Current Mapping (BROKEN) | Correct Mapping (Era 1) |
+|---|---------|--------------------------|-------------------------|
+| 1 | `personal-info` | `PersonalInformation.vue` (standalone) | `PersonalInfoStep.vue` |
+| 2 | `income-tax` | `IncomeStep.vue` | `IncomeStep.vue` (correct) |
+| 3 | `pension-review` | `PensionStep.vue` (DELETED) | `AssetsStep.vue` (retirement tab) |
+| 4 | `investments-isa` | `InvestmentStep.vue` (DELETED) | `AssetsStep.vue` (investments tab) |
+| 5 | `property-portfolio` | `PropertyStep.vue` (DELETED) | `AssetsStep.vue` (property tab) |
+| 6 | `estate-iht` | `WillInfoStep.vue` | `WillInfoStep.vue` (correct) |
+| 7 | `goals` | `GoalSetupStep.vue` | `GoalSetupStep.vue` (correct) |
+
+### Journey 5: Enjoying Your Wealth (retirement) — 6 steps
+
+| # | Step ID | Current Mapping (BROKEN) | Correct Mapping (Era 1) |
+|---|---------|--------------------------|-------------------------|
+| 1 | `personal-info` | `PersonalInformation.vue` (standalone) | `PersonalInfoStep.vue` |
+| 2 | `pension-drawdown` | `PensionStep.vue` (DELETED) | `AssetsStep.vue` (retirement tab) |
+| 3 | `state-pension` | `StatePensionForm.vue` (standalone) | `AssetsStep.vue` (retirement tab) |
+| 4 | `income-tax` | `IncomeStep.vue` | `IncomeStep.vue` (correct) |
+| 5 | `estate-legacy` | `WillInfoStep.vue` | `WillInfoStep.vue` (correct) |
+| 6 | `goals` | `GoalSetupStep.vue` | `GoalSetupStep.vue` (correct) |
+
+---
+
+## Remapping Summary
+
+### Steps that are already correct (no change needed)
+
+| Step ID | Component | Used in Journeys |
+|---------|-----------|-----------------|
+| `student-loan` | `StudentLoanStep.vue` | 1 |
+| `income`, `income-career`, `income-tax` | `IncomeStep.vue` | 1, 2, 3, 4, 5 |
+| `family` | `FamilyInfoStep.vue` | 3 |
+| `will-estate`, `estate-iht`, `estate-legacy` | `WillInfoStep.vue` | 3, 4, 5 |
+| `goals` | `GoalSetupStep.vue` | 1, 2, 3, 4, 5 |
+
+### Steps that need remapping
+
+| Step ID | FROM (broken/deleted) | TO (Era 1) | Used in Journeys |
+|---------|----------------------|------------|-----------------|
+| `personal-info` | `PersonalInformation.vue` | `PersonalInfoStep.vue` | 1, 2, 3, 4, 5 |
+| `expenditure` | `SimpleExpenditureStep.vue` (DELETED) | `ExpenditureStep.vue` | 1 |
+| `savings`, `savings-emergency`, `first-home-lisa` | `SaveAccountModal.vue` | `AssetsStep.vue` | 1, 2 |
+| `property-mortgage`, `property-portfolio` | `PropertyStep.vue` (DELETED) | `AssetsStep.vue` | 3, 4 |
+| `pensions`, `pension-auto-enrolment`, `pension-review`, `pension-drawdown` | `PensionStep.vue` (DELETED) | `AssetsStep.vue` | 2, 3, 4, 5 |
+| `investments`, `investments-isa` | `InvestmentStep.vue` (DELETED) | `AssetsStep.vue` | 2, 4 |
+| `protection-insurance` | `PolicyFormModal.vue` | `ProtectionPoliciesStep.vue` | 3 |
+| `state-pension` | `StatePensionForm.vue` | `AssetsStep.vue` | 5 |
+
+### AssetsStep.vue tab visibility per step ID
+
+AssetsStep.vue has 4 tabs: Retirement, Property, Investments, Savings. Each step ID should show only the relevant tab:
+
+| Step ID | Tab to show | Hide other tabs? |
+|---------|-------------|-----------------|
+| `savings`, `savings-emergency`, `first-home-lisa` | Savings | Yes |
+| `property-mortgage`, `property-portfolio` | Property | Yes |
+| `pensions`, `pension-auto-enrolment`, `pension-review`, `pension-drawdown` | Retirement | Yes |
+| `investments`, `investments-isa` | Investments | Yes |
+| `state-pension` | Retirement (State Pension section) | Yes |
