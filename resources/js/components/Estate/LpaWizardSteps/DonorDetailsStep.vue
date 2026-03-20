@@ -7,7 +7,7 @@
 
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-horizon-500 mb-1">Full Legal Name <span class="text-raspberry-500">*</span></label>
+        <label class="block text-sm font-medium text-horizon-500 mb-1">Full Legal Name</label>
         <input
           type="text"
           :value="modelValue.donor_full_name"
@@ -19,7 +19,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-horizon-500 mb-1">Date of Birth <span class="text-raspberry-500">*</span></label>
+        <label class="block text-sm font-medium text-horizon-500 mb-1">Date of Birth</label>
         <input
           type="date"
           :value="modelValue.donor_date_of_birth"

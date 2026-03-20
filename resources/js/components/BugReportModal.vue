@@ -73,8 +73,7 @@
                 <!-- Description -->
                 <div class="mb-4">
                   <label for="description" class="block text-sm font-medium text-neutral-500 mb-1">
-                    What went wrong? <span class="text-red-500">*</span>
-                  </label>
+                    What went wrong?                  </label>
                   <textarea
                     id="description"
                     v-model="form.description"

@@ -18,7 +18,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Beneficiary Name *</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Beneficiary Name</label>
             <input
               v-model="gift.beneficiary_name"
               type="text"
@@ -27,7 +27,7 @@
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Type *</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Type</label>
             <select
               v-model="gift.type"
               class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500 text-sm"

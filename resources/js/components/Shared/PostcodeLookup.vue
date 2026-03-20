@@ -6,7 +6,6 @@
       class="block text-body-sm font-medium text-neutral-500 mb-1"
     >
       {{ label }}
-      <span v-if="required" class="text-raspberry-500">*</span>
     </label>
 
     <div>

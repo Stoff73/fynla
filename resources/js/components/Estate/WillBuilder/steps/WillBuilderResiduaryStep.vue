@@ -31,7 +31,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Name *</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Name</label>
             <input
               v-model="beneficiary.beneficiary_name"
               type="text"
@@ -40,7 +40,7 @@
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Share (%) *</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Share (%)</label>
             <input
               v-model.number="beneficiary.percentage"
               type="number"

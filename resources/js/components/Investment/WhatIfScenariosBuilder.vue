@@ -293,7 +293,7 @@
           <!-- Scenario Details Form -->
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-neutral-500 mb-1">Scenario Name *</label>
+              <label class="block text-sm font-medium text-neutral-500 mb-1">Scenario Name</label>
               <input
                 v-model="newScenario.scenario_name"
                 type="text"

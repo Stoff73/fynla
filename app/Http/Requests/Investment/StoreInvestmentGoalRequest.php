@@ -26,10 +26,10 @@ class StoreInvestmentGoalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_name' => 'required|string|max:255',
-            'goal_type' => ['required', Rule::in(['retirement', 'education', 'wealth', 'home'])],
-            'target_amount' => 'required|numeric|min:0',
-            'target_date' => 'required|date',
+            'goal_name' => 'sometimes|string|max:255',
+            'goal_type' => ['sometimes', Rule::in(['retirement', 'education', 'wealth', 'home'])],
+            'target_amount' => 'sometimes|numeric|min:0',
+            'target_date' => 'sometimes|date',
             'priority' => ['nullable', Rule::in(['high', 'medium', 'low'])],
             'is_essential' => 'nullable|boolean',
             'linked_account_ids' => 'nullable|array',

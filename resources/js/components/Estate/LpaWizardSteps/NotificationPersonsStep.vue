@@ -19,7 +19,7 @@
 
       <div class="space-y-3">
         <div>
-          <label class="block text-xs font-medium text-horizon-500 mb-1">Full Name <span class="text-raspberry-500">*</span></label>
+          <label class="block text-xs font-medium text-horizon-500 mb-1">Full Name</label>
           <input
             type="text"
             :value="person.full_name"

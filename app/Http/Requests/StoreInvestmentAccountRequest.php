@@ -30,7 +30,7 @@ class StoreInvestmentAccountRequest extends FormRequest
     {
         return [
             // Core account fields
-            'account_type' => ['required', Rule::in($this->getAccountTypes())],
+            'account_type' => ['sometimes', Rule::in($this->getAccountTypes())],
             'account_type_other' => 'required_if:account_type,other|nullable|string|max:255',
             'provider' => 'required_unless:account_type,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu|nullable|string|max:255',
             'account_number' => 'nullable|string|max:255',

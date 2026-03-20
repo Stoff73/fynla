@@ -16,9 +16,9 @@ class StoreLiabilityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'liability_type' => 'required|in:mortgage,secured_loan,personal_loan,credit_card,overdraft,hire_purchase,student_loan,business_loan,other',
-            'liability_name' => 'required|string|max:255',
-            'current_balance' => 'required|numeric|min:0',
+            'liability_type' => 'sometimes|in:mortgage,secured_loan,personal_loan,credit_card,overdraft,hire_purchase,student_loan,business_loan,other',
+            'liability_name' => 'sometimes|string|max:255',
+            'current_balance' => 'sometimes|numeric|min:0',
             'monthly_payment' => 'nullable|numeric|min:0',
             'interest_rate' => 'nullable|numeric|min:0|max:100',
             'maturity_date' => 'nullable|date',

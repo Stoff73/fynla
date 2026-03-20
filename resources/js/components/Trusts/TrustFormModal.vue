@@ -69,8 +69,7 @@
             <div v-if="formData.trust_type === 'other'" class="space-y-4 p-4 bg-eggshell-500 rounded-lg border border-light-gray">
               <div>
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
-                  Trust Type Description <span class="text-red-500">*</span>
-                </label>
+                  Trust Type Description                </label>
                 <input
                   v-model="formData.other_type_description"
                   type="text"
@@ -82,8 +81,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
-                  Country <span class="text-red-500">*</span>
-                </label>
+                  Country                </label>
                 <select
                   v-model="formData.country"
                   required
@@ -111,8 +109,7 @@
               </div>
               <div v-if="formData.country === 'other'">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
-                  Other Country <span class="text-red-500">*</span>
-                </label>
+                  Other Country                </label>
                 <input
                   v-model="formData.other_country"
                   type="text"

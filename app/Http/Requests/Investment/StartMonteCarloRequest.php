@@ -25,11 +25,11 @@ class StartMonteCarloRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'start_value' => 'required|numeric|min:0',
-            'monthly_contribution' => 'required|numeric|min:0',
-            'expected_return' => 'required|numeric|min:0|max:0.5',
-            'volatility' => 'required|numeric|min:0|max:1',
-            'years' => 'required|integer|min:1|max:50',
+            'start_value' => 'sometimes|numeric|min:0',
+            'monthly_contribution' => 'sometimes|numeric|min:0',
+            'expected_return' => 'sometimes|numeric|min:0|max:0.5',
+            'volatility' => 'sometimes|numeric|min:0|max:1',
+            'years' => 'sometimes|integer|min:1|max:50',
             'iterations' => 'nullable|integer|min:100|max:10000',
             'goal_amount' => 'nullable|numeric|min:0',
         ];

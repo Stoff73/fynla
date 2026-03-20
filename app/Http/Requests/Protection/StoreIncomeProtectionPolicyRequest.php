@@ -11,8 +11,8 @@ class StoreIncomeProtectionPolicyRequest extends BasePolicyRequest
     public function rules(): array
     {
         return $this->mergeWithCommonRules([
-            'benefit_amount' => ['required', 'numeric', 'min:1000'],
-            'benefit_frequency' => ['required', Rule::in(['monthly', 'weekly'])],
+            'benefit_amount' => ['sometimes', 'numeric', 'min:1000'],
+            'benefit_frequency' => ['sometimes', Rule::in(['monthly', 'weekly'])],
             'deferred_period_weeks' => ['nullable', 'integer', 'min:0', 'max:104'],
             'benefit_period_months' => ['nullable', 'integer', 'min:1', 'max:720'],
             'occupation_class' => ['nullable', 'string', 'max:255'],

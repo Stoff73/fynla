@@ -6,8 +6,7 @@
       <div class="space-y-4">
         <div>
           <label for="employer_name" class="block text-sm font-medium text-neutral-500 mb-1">
-            Employer Name <span class="text-raspberry-500">*</span>
-          </label>
+            Employer Name          </label>
           <input
             id="employer_name"
             v-model="modelValue.employer_name"
@@ -91,8 +90,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="grant_date" class="block text-sm font-medium text-neutral-500 mb-1">
-              Grant Date <span class="text-raspberry-500">*</span>
-            </label>
+              Grant Date            </label>
             <input
               id="grant_date"
               v-model="modelValue.grant_date"
@@ -118,8 +116,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="units_granted" class="block text-sm font-medium text-neutral-500 mb-1">
-              Units Granted <span class="text-raspberry-500">*</span>
-            </label>
+              Units Granted            </label>
             <input
               id="units_granted"
               v-model.number="modelValue.units_granted"
@@ -133,8 +130,7 @@
           </div>
           <div v-if="isOptionsScheme">
             <label for="exercise_price" class="block text-sm font-medium text-neutral-500 mb-1">
-              Exercise Price <span class="text-raspberry-500">*</span>
-            </label>
+              Exercise Price            </label>
             <div class="relative">
               <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
               <input

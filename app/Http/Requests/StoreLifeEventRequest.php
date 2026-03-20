@@ -22,12 +22,12 @@ class StoreLifeEventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'event_name' => 'required|string|max:100',
-            'event_type' => 'required|string|in:inheritance,gift_received,bonus,redundancy_payment,property_sale,business_sale,pension_lump_sum,lottery_windfall,large_purchase,home_improvement,wedding,education_fees,gift_given,medical_expense,custom_income,custom_expense',
+            'event_name' => 'sometimes|string|max:100',
+            'event_type' => 'sometimes|string|in:inheritance,gift_received,bonus,redundancy_payment,property_sale,business_sale,pension_lump_sum,lottery_windfall,large_purchase,home_improvement,wedding,education_fees,gift_given,medical_expense,custom_income,custom_expense',
             'description' => 'nullable|string|max:1000',
-            'amount' => 'required|numeric|min:0.01|max:999999999.99',
+            'amount' => 'sometimes|numeric|min:0.01|max:999999999.99',
             'impact_type' => 'nullable|string|in:income,expense',
-            'expected_date' => 'required|date|after:today',
+            'expected_date' => 'sometimes|date|after:today',
             'certainty' => 'nullable|string|in:confirmed,likely,possible,speculative',
             'icon' => 'nullable|string|max:50',
             'show_in_projection' => 'nullable|boolean',

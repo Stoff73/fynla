@@ -58,8 +58,7 @@
       <!-- Conditional Date of Birth (shown for non-budgeting journeys) -->
       <div v-if="showDateOfBirth">
         <label for="date_of_birth" class="label">
-          Date of Birth <span class="text-raspberry-500">*</span>
-        </label>
+          Date of Birth        </label>
         <input
           id="date_of_birth"
           v-model="formData.date_of_birth"
@@ -77,8 +76,7 @@
       <!-- Conditional Marital Status (shown for protection/estate journeys) -->
       <div v-if="showMaritalStatus">
         <label for="marital_status" class="label">
-          Marital Status <span class="text-raspberry-500">*</span>
-        </label>
+          Marital Status        </label>
         <select
           id="marital_status"
           v-model="formData.marital_status"

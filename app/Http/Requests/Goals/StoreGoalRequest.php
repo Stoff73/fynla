@@ -16,13 +16,13 @@ class StoreGoalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_name' => 'required|string|max:100',
-            'goal_type' => 'required|string|in:emergency_fund,property_purchase,home_deposit,education,retirement,wealth_accumulation,wedding,holiday,car_purchase,debt_repayment,custom',
+            'goal_name' => 'sometimes|string|max:100',
+            'goal_type' => 'sometimes|string|in:emergency_fund,property_purchase,home_deposit,education,retirement,wealth_accumulation,wedding,holiday,car_purchase,debt_repayment,custom',
             'custom_goal_type_name' => 'nullable|required_if:goal_type,custom|string|max:100',
             'description' => 'nullable|string|max:500',
-            'target_amount' => 'required|numeric|min:1|max:100000000',
+            'target_amount' => 'sometimes|numeric|min:1|max:100000000',
             'current_amount' => 'nullable|numeric|min:0',
-            'target_date' => 'required|date|after:today',
+            'target_date' => 'sometimes|date|after:today',
             'start_date' => 'nullable|date',
             'assigned_module' => 'nullable|string|in:savings,investment,property,retirement',
             'module_override' => 'nullable|boolean',

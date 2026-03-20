@@ -25,9 +25,9 @@ class StoreBequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'beneficiary_name' => 'required|string|max:255',
+            'beneficiary_name' => 'sometimes|string|max:255',
             'beneficiary_user_id' => 'nullable|exists:users,id',
-            'bequest_type' => 'required|in:percentage,specific_amount,specific_asset,residuary',
+            'bequest_type' => 'sometimes|in:percentage,specific_amount,specific_asset,residuary',
             'percentage_of_estate' => 'nullable|numeric|min:0|max:100',
             'specific_amount' => 'nullable|numeric|min:0',
             'specific_asset_description' => 'nullable|string',

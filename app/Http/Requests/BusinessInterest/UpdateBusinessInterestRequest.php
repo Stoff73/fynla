@@ -24,8 +24,8 @@ class UpdateBusinessInterestRequest extends FormRequest
     {
         return [
             // Core business info
-            'business_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'business_type' => ['sometimes', 'required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp', 'other'])],
+            'business_name' => ['sometimes', 'string', 'max:255'],
+            'business_type' => ['sometimes', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp', 'other'])],
             'company_number' => ['nullable', 'string', 'max:50'],
             'industry_sector' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
@@ -38,8 +38,8 @@ class UpdateBusinessInterestRequest extends FormRequest
             'trust_id' => ['nullable', 'exists:trusts,id'],
 
             // Valuation
-            'current_valuation' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'valuation_date' => ['sometimes', 'required', 'date'],
+            'current_valuation' => ['sometimes', 'numeric', 'min:0'],
+            'valuation_date' => ['sometimes', 'date'],
             'valuation_method' => ['nullable', 'string', 'max:255'],
 
             // Financials

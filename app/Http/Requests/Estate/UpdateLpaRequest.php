@@ -44,8 +44,8 @@ class UpdateLpaRequest extends FormRequest
 
             // Nested attorneys
             'attorneys' => 'sometimes|array',
-            'attorneys.*.attorney_type' => 'required|in:primary,replacement',
-            'attorneys.*.full_name' => 'required|string|max:255',
+            'attorneys.*.attorney_type' => 'sometimes|in:primary,replacement',
+            'attorneys.*.full_name' => 'sometimes|string|max:255',
             'attorneys.*.date_of_birth' => 'nullable|date|before:today',
             'attorneys.*.address_line_1' => 'nullable|string|max:255',
             'attorneys.*.address_line_2' => 'nullable|string|max:255',
@@ -56,7 +56,7 @@ class UpdateLpaRequest extends FormRequest
 
             // Nested notification persons
             'notification_persons' => 'sometimes|array|max:5',
-            'notification_persons.*.full_name' => 'required|string|max:255',
+            'notification_persons.*.full_name' => 'sometimes|string|max:255',
             'notification_persons.*.address_line_1' => 'nullable|string|max:255',
             'notification_persons.*.address_line_2' => 'nullable|string|max:255',
             'notification_persons.*.address_city' => 'nullable|string|max:255',

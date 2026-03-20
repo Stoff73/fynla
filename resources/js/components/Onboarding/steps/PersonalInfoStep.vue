@@ -13,8 +13,7 @@
         <!-- Date of Birth -->
         <div>
           <label for="date_of_birth" class="label">
-            Date of Birth <span class="text-raspberry-500">*</span>
-          </label>
+            Date of Birth          </label>
           <input
             id="date_of_birth"
             v-model="formData.date_of_birth"
@@ -33,8 +32,7 @@
         <!-- Gender -->
         <div>
           <label for="gender" class="label">
-            Gender <span class="text-raspberry-500">*</span>
-          </label>
+            Gender          </label>
           <select
             id="gender"
             v-model="formData.gender"
@@ -52,8 +50,7 @@
         <!-- Marital Status -->
         <div>
           <label for="marital_status" class="label">
-            Marital Status <span class="text-raspberry-500">*</span>
-          </label>
+            Marital Status          </label>
           <select
             id="marital_status"
             v-model="formData.marital_status"
@@ -83,8 +80,7 @@
         <div class="grid grid-cols-1 gap-4">
           <div>
             <label for="address_line_1" class="label">
-              Address Line 1 <span class="text-raspberry-500">*</span>
-            </label>
+              Address Line 1            </label>
             <input
               id="address_line_1"
               v-model="formData.address_line_1"
@@ -112,8 +108,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label for="city" class="label">
-                City <span class="text-raspberry-500">*</span>
-              </label>
+                City              </label>
               <input
                 id="city"
                 v-model="formData.city"
@@ -140,8 +135,7 @@
 
             <div>
               <label for="postcode" class="label">
-                Postcode <span class="text-raspberry-500">*</span>
-              </label>
+                Postcode              </label>
               <input
                 id="postcode"
                 v-model="formData.postcode"

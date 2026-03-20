@@ -16,10 +16,10 @@ class StoreGiftRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'gift_date' => 'required|date|before_or_equal:today',
-            'recipient' => 'required|string|max:255',
-            'gift_type' => 'required|in:pet,clt,exempt,small_gift,annual_exemption',
-            'gift_value' => 'required|numeric|min:0',
+            'gift_date' => 'sometimes|date|before_or_equal:today',
+            'recipient' => 'sometimes|string|max:255',
+            'gift_type' => 'sometimes|in:pet,clt,exempt,small_gift,annual_exemption',
+            'gift_value' => 'sometimes|numeric|min:0',
             'status' => 'sometimes|in:within_7_years,survived_7_years',
             'taper_relief_applicable' => 'boolean',
             'notes' => 'nullable|string',

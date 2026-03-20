@@ -26,17 +26,17 @@ class StoreHoldingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'investment_account_id' => 'required|exists:investment_accounts,id',
-            'asset_type' => ['required', Rule::in($this->getAssetTypes())],
+            'investment_account_id' => 'sometimes|exists:investment_accounts,id',
+            'asset_type' => ['sometimes', Rule::in($this->getAssetTypes())],
             'sub_type' => ['nullable', 'string', 'required_if:asset_type,fund', Rule::in($this->getSubTypes())],
-            'security_name' => 'required|string|max:255',
+            'security_name' => 'sometimes|string|max:255',
             'ticker' => 'nullable|string|max:50',
             'isin' => 'nullable|string|max:50',
-            'allocation_percent' => 'required|numeric|min:0|max:100',
+            'allocation_percent' => 'sometimes|numeric|min:0|max:100',
             'purchase_price' => 'nullable|numeric|min:0',
             'purchase_date' => 'nullable|date',
             'current_price' => 'nullable|numeric|min:0',
-            'current_value' => 'required|numeric|min:0',
+            'current_value' => 'sometimes|numeric|min:0',
             'dividend_yield' => 'nullable|numeric|min:0|max:100',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];

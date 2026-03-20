@@ -72,7 +72,7 @@
               <h4 class="text-lg font-semibold text-horizon-500 mb-4">Basic Information</h4>
 
               <div>
-                <label for="business_name" class="block text-sm font-medium text-horizon-500 mb-1">Business Name *</label>
+                <label for="business_name" class="block text-sm font-medium text-horizon-500 mb-1">Business Name</label>
                 <input
                   id="business_name"
                   v-model="form.business_name"
@@ -83,7 +83,7 @@
               </div>
 
               <div>
-                <label for="business_type" class="block text-sm font-medium text-horizon-500 mb-1">Business Type *</label>
+                <label for="business_type" class="block text-sm font-medium text-horizon-500 mb-1">Business Type</label>
                 <select
                   id="business_type"
                   v-model="form.business_type"
@@ -257,7 +257,7 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="current_valuation" class="block text-sm font-medium text-horizon-500 mb-1">Current Valuation *</label>
+                  <label for="current_valuation" class="block text-sm font-medium text-horizon-500 mb-1">Current Valuation</label>
                   <input
                     id="current_valuation"
                     v-model.number="form.current_valuation"
@@ -273,7 +273,7 @@
                 </div>
 
                 <div>
-                  <label for="valuation_date" class="block text-sm font-medium text-horizon-500 mb-1">Valuation Date *</label>
+                  <label for="valuation_date" class="block text-sm font-medium text-horizon-500 mb-1">Valuation Date</label>
                   <input
                     id="valuation_date"
                     v-model="form.valuation_date"

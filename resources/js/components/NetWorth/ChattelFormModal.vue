@@ -28,7 +28,7 @@
 
           <!-- Type Selection -->
           <div>
-            <label class="block text-sm font-medium text-horizon-500 mb-2">Type *</label>
+            <label class="block text-sm font-medium text-horizon-500 mb-2">Type</label>
             <div class="grid grid-cols-3 gap-2">
               <button
                 v-for="type in chattelTypes"
@@ -48,7 +48,7 @@
           <!-- Basic Information -->
           <div class="space-y-4">
             <div>
-              <label for="name" class="block text-sm font-medium text-horizon-500 mb-1">Name *</label>
+              <label for="name" class="block text-sm font-medium text-horizon-500 mb-1">Name</label>
               <input
                 id="name"
                 v-model="form.name"
@@ -122,7 +122,7 @@
             <h4 class="font-medium text-horizon-500">Valuation</h4>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">Current Value *</label>
+                <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">Current Value</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-neutral-500">£</span>
                   <input

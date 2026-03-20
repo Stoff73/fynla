@@ -29,8 +29,7 @@
     <!-- Jointly for some details -->
     <div v-if="modelValue.attorney_decision_type === 'jointly_for_some'" class="mt-4">
       <label class="block text-sm font-medium text-horizon-500 mb-1">
-        Specify which decisions <span class="text-raspberry-500">*</span>
-      </label>
+        Specify which decisions      </label>
       <textarea
         :value="modelValue.jointly_for_some_details"
         @input="update('jointly_for_some_details', $event.target.value)"

@@ -16,8 +16,8 @@ class UploadLpaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lpa_type' => 'required|in:property_financial,health_welfare',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'lpa_type' => 'sometimes|in:property_financial,health_welfare',
+            'file' => 'sometimes|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ];
     }
 
