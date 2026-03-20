@@ -174,11 +174,12 @@ export default {
 
     onMounted(async () => {
       // Load user address from profile for pre-filling main residence
+      await store.dispatch('userProfile/fetchProfile').catch(() => {});
       const personalInfo = store.getters['userProfile/personalInfo'];
       if (personalInfo?.address) {
         userAddress.value = {
-          address_line_1: personalInfo.address.line_1 || '',
-          address_line_2: personalInfo.address.line_2 || '',
+          address_line_1: personalInfo.address.line_1 || personalInfo.address.address_line_1 || '',
+          address_line_2: personalInfo.address.line_2 || personalInfo.address.address_line_2 || '',
           city: personalInfo.address.city || '',
           county: personalInfo.address.county || '',
           postcode: personalInfo.address.postcode || '',

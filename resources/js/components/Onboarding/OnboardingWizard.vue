@@ -688,11 +688,9 @@ export default {
         if (stepId === 'personal-info' && formData) {
           // PersonalInformation emits raw form data — save via store dispatches
           // (same as the standalone component uses)
-          const nameParts = (formData.name || '').trim().split(/\s+/);
           const personalData = {
-            first_name: nameParts[0] || null,
-            surname: nameParts.length > 1 ? nameParts[nameParts.length - 1] : null,
-            middle_name: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : null,
+            first_name: formData.first_name || null,
+            surname: formData.surname || null,
             email: formData.email,
             date_of_birth: formData.date_of_birth || null,
             gender: formData.gender || null,

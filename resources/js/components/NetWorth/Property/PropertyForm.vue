@@ -1544,6 +1544,13 @@ export default {
       },
     },
 
+    // Auto-set main_residence when userAddress arrives (async from PropertyStep)
+    userAddress(newAddress) {
+      if (newAddress && this.context === 'onboarding' && !this.property && !this.form.property_type) {
+        this.form.property_type = 'main_residence';
+      }
+    },
+
     'form.ownership_type'(newVal) {
       // Set default ownership percentages based on ownership type
       if (newVal === 'individual') {
