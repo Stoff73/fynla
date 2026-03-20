@@ -36,6 +36,12 @@ class IHTCalculationService
 
     private const DEFAULT_PROPERTY_GROWTH_RATE = 3.0;
 
+    /** Fallback expenditure ratio when no expenditure profile exists (assume 70% spent, 30% saved) */
+    private const EXPENDITURE_FALLBACK_RATIO = 0.70;
+
+    /** Retirement phase expenditure fallback ratio (typically lower than pre-retirement) */
+    private const RETIREMENT_EXPENDITURE_FALLBACK_RATIO = 0.50;
+
     public function __construct(
         private readonly EstateAssetAggregatorService $aggregator,
         private readonly TaxConfigService $taxConfig,
@@ -677,15 +683,15 @@ class IHTCalculationService
         // This prevents unrealistic surplus accumulation
         if (! $hasUserProfile && ! $hasSpouseProfile) {
             $totalIncome = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
-            $expenses = $totalIncome * 0.70; // Assume 70% spent, 30% saved
+            $expenses = $totalIncome * self::EXPENDITURE_FALLBACK_RATIO; // Assume 70% spent, 30% saved
         } elseif (! $hasUserProfile && $hasSpouseProfile) {
             // User has no profile, estimate their portion
             $userIncome = $this->getUserAnnualIncome($user);
-            $expenses += $userIncome * 0.70;
+            $expenses += $userIncome * self::EXPENDITURE_FALLBACK_RATIO;
         } elseif ($hasUserProfile && ! $hasSpouseProfile && $dataSharingEnabled && $spouse) {
             // Spouse has no profile, estimate their portion
             $spouseIncome = $this->getUserAnnualIncome($spouse);
-            $expenses += $spouseIncome * 0.70;
+            $expenses += $spouseIncome * self::EXPENDITURE_FALLBACK_RATIO;
         }
 
         return $expenses;
@@ -766,7 +772,7 @@ class IHTCalculationService
         // If still no expenses, use 70% of pre-retirement income estimate
         if ($expenses <= 0) {
             $userIncome = $this->getUserAnnualIncome($user);
-            $expenses = $userIncome * 0.50; // Typically spend less in retirement
+            $expenses = $userIncome * self::RETIREMENT_EXPENDITURE_FALLBACK_RATIO; // Typically spend less in retirement
         }
 
         // Include spouse retirement expenses if data sharing enabled

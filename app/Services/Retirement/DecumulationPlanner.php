@@ -16,6 +16,9 @@ use Illuminate\Support\Collection;
  */
 class DecumulationPlanner
 {
+    /** Joint annuity rates are typically ~15% lower than single-life rates */
+    private const JOINT_ANNUITY_RATE_REDUCTION = 0.85;
+
     public function __construct(
         private readonly TaxConfigService $taxConfig
     ) {}
@@ -431,7 +434,7 @@ class DecumulationPlanner
         };
 
         if ($spouse) {
-            $baseRate *= 0.85;
+            $baseRate *= self::JOINT_ANNUITY_RATE_REDUCTION;
         }
 
         return $baseRate;

@@ -411,7 +411,7 @@ class RecommendationPersonaliser
         $selfEmploymentIncome = $user->annual_self_employment_income ?? 0;
         $employmentIncome = $user->annual_employment_income ?? 0;
 
-        if ($selfEmploymentIncome > 0 && $employmentIncome === 0.0) {
+        if ($selfEmploymentIncome > 0 && (float) $employmentIncome === 0.0) {
             $context[] = 'As a self-employed professional, income protection is particularly important as you have no employer sick pay or statutory sick pay entitlement.';
         } elseif ($selfEmploymentIncome > 0 && $employmentIncome > 0) {
             $context[] = sprintf(

@@ -215,10 +215,10 @@
     />
 
     <!-- Success/Error Messages -->
-    <div v-if="successMessage" class="notification success">
+    <div v-if="successMessage" class="notification success animate-slide-in-right">
       {{ successMessage }}
     </div>
-    <div v-if="errorMessage" class="notification error">
+    <div v-if="errorMessage" class="notification error animate-slide-in-right">
       {{ errorMessage }}
     </div>
   </div>
@@ -1265,7 +1265,6 @@ export default {
   font-weight: 600;
   z-index: 100;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  animation: slideIn 0.3s ease-out;
 }
 
 .notification.success {
@@ -1274,17 +1273,6 @@ export default {
 
 .notification.error {
   @apply bg-raspberry-500 text-white;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
 @media (max-width: 1024px) {

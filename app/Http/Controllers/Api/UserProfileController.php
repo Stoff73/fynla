@@ -135,6 +135,8 @@ class UserProfileController extends Controller
             'gifts_charity' => 'nullable|numeric|min:0',
             'regular_savings' => 'nullable|numeric|min:0',
             'other_expenditure' => 'nullable|numeric|min:0',
+            'retired_budget_overrides' => 'nullable|array',
+            'widowed_budget_overrides' => 'nullable|array',
         ]);
 
         // Map frontend field names to database column names

@@ -48,8 +48,8 @@
       <!-- VIEW MODE -->
       <div v-if="!isEditing">
         <!-- Notes Section (collapsed in view mode) -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p class="text-body-sm text-blue-800">
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
+          <p class="text-body-sm text-violet-800">
             <strong>Note:</strong> Financial commitments (mortgages, loans, pensions, investments, protection) are automatically pulled from other modules.
           </p>
         </div>
@@ -240,7 +240,7 @@
             @toggle="toggleSection('current', 'commitments')"
           >
             <template #badge>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-violet-800">
                 Auto-calculated
               </span>
             </template>
@@ -346,14 +346,14 @@
     <!-- EDIT MODE -->
     <div v-else>
       <!-- Notes Section -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> Understanding your expenditure helps us calculate your emergency fund needs, discretionary income, and protection requirements.
         </p>
       </div>
 
-      <div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
-        <p class="text-body-sm text-green-800">
+      <div class="bg-spring-50 border border-spring-200 rounded-lg p-4 mt-4">
+        <p class="text-body-sm text-spring-800">
           <strong>Note:</strong> Household expenditure such as Council Tax, utilities, and maintenance are entered in the Properties tab. Car loans/repayments, other loans, credit cards, and hire purchase are entered in the Liabilities section.
         </p>
       </div>
@@ -370,7 +370,7 @@
               :class="[
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 !useSeparateExpenditure
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-raspberry-500 text-white'
                   : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
@@ -382,7 +382,7 @@
               :class="[
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 useSeparateExpenditure
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-raspberry-500 text-white'
                   : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
@@ -404,7 +404,7 @@
               :class="[
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 !useSimpleEntry
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-raspberry-500 text-white'
                   : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
@@ -416,7 +416,7 @@
               :class="[
                 'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
                 useSimpleEntry
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-raspberry-500 text-white'
                   : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
               ]"
             >
@@ -561,7 +561,7 @@
         </div>
 
         <!-- Financial Commitments (Read-Only) - Edit Mode -->
-        <div v-if="hasAnyCommitments" class="card p-6 bg-blue-50 border-2 border-blue-200">
+        <div v-if="hasAnyCommitments" class="card p-6 bg-violet-50 border-2 border-violet-200">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h4 class="text-h5 font-semibold text-horizon-500">
@@ -686,7 +686,7 @@
           </div>
 
           <!-- Total Commitments -->
-          <div class="pt-4 border-t border-blue-300">
+          <div class="pt-4 border-t border-violet-300">
             <div class="flex justify-between items-center">
               <p class="text-body font-semibold text-horizon-500">Total Monthly Commitments</p>
               <p class="text-h4 font-display text-horizon-500">{{ formatCurrency(financialCommitments?.totals?.total || 0) }}</p>
@@ -738,8 +738,8 @@
     <!-- RETIRED BUDGET TAB -->
     <div v-if="activeBudgetTab === 'retired'" class="space-y-6">
       <!-- Info Banner -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Retired Budget</strong> shows your estimated expenses after retirement. We've automatically adjusted some costs based on your retirement age{{ retirementInfo.userRetirementAge ? ` (${retirementInfo.userRetirementAge})` : '' }}{{ isMarried && retirementInfo.spouseRetirementAge ? ` and your spouse's retirement age (${retirementInfo.spouseRetirementAge})` : '' }}.
         </p>
       </div>
@@ -790,11 +790,11 @@
         </div>
 
         <!-- Auto-Adjustments Summary (detailed mode only) -->
-        <div v-if="!useSimpleEntry && retiredAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
+        <div v-if="!useSimpleEntry && retiredAutoAdjustments.length > 0" class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-6">
+          <h4 class="text-body font-medium text-spring-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
-            <li v-for="(adj, idx) in retiredAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
-              <svg class="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <li v-for="(adj, idx) in retiredAutoAdjustments" :key="idx" class="text-body-sm text-spring-800 flex items-start gap-2">
+              <svg class="h-4 w-4 text-spring-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{{ adj.description }}</span>
@@ -825,13 +825,13 @@
                 <div class="col-label text-body-sm text-neutral-500 py-1 pl-7">
                   {{ field.label }}
                   <span v-if="retiredBudgetData[field.key]?.adjusted && !retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700">Auto</span>
-                  <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+                  <span v-if="retiredBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-spring-100 text-spring-600">Custom</span>
                 </div>
                 <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
+                  {{ formatCurrency(getRetiredUserValue(field.key)) }}<span v-if="getRetiredChange(field.key, false) !== 0" :class="getRetiredChange(field.key, false) < 0 ? 'text-spring-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, false) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, false)) }})</span>
                 </div>
                 <div v-if="isMarried" class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
+                  {{ formatCurrency(getRetiredSpouseValue(field.key)) }}<span v-if="getRetiredChange(field.key, true) !== 0" :class="getRetiredChange(field.key, true) < 0 ? 'text-spring-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getRetiredChange(field.key, true) < 0 ? '' : '+' }}{{ formatCurrency(getRetiredChange(field.key, true)) }})</span>
                 </div>
                 <div v-if="isMarried" class="col-total text-body-sm text-horizon-500 py-1 font-medium">
                   {{ formatCurrency(getRetiredUserValue(field.key) + getRetiredSpouseValue(field.key)) }}
@@ -851,14 +851,14 @@
           <ExpenditureSection
             title="Financial Commitments"
             :is-expanded="isSectionExpanded('retired', 'commitments')"
-            :user-total="financialCommitments?.totals?.protection || 0"
-            :spouse-total="spouseFinancialCommitments?.totals?.protection || 0"
-            :household-total="(financialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.protection || 0)"
+            :user-total="(financialCommitments?.totals?.protection || 0) + (financialCommitments?.totals?.investments || 0)"
+            :spouse-total="(spouseFinancialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
+            :household-total="(financialCommitments?.totals?.protection || 0) + (financialCommitments?.totals?.investments || 0) + (spouseFinancialCommitments?.totals?.protection || 0) + (spouseFinancialCommitments?.totals?.investments || 0)"
             :is-married="isMarried"
             @toggle="toggleSection('retired', 'commitments')"
           >
             <template #badge>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-spring-100 text-spring-800">
                 Retirement adjusted
               </span>
             </template>
@@ -867,10 +867,10 @@
             <template v-if="hasRetirementCommitments || spouseHasRetirementCommitments">
               <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Pension Contributions</div>
               <div class="col-value text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.retirement || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.retirement || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
@@ -879,10 +879,10 @@
             <template v-if="hasPropertyCommitments || spouseHasPropertyCommitments">
               <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Property Expenses</div>
               <div class="col-value text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.properties || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.properties || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.properties || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
@@ -933,10 +933,10 @@
             <template v-if="hasLiabilityCommitments || spouseHasLiabilityCommitments">
               <div class="col-label text-body-sm text-neutral-500 py-1 pl-7 line-through">Loan Repayments</div>
               <div class="col-value text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(financialCommitments?.totals?.liabilities || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-value-mid text-body-sm text-horizon-400 py-1">
-                {{ formatCurrency(0) }}<span class="text-success-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
+                {{ formatCurrency(0) }}<span class="text-spring-600 text-xs ml-1">(-{{ formatCurrency(spouseFinancialCommitments?.totals?.liabilities || 0) }})</span>
               </div>
               <div v-if="isMarried" class="col-total text-body-sm text-horizon-400 py-1">{{ formatCurrency(0) }}</div>
             </template>
@@ -955,14 +955,14 @@
           <div v-if="isMarried" class="col-total text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(retiredHouseholdTotalMonthly * 12) }}</div>
 
           <!-- Monthly Savings Row -->
-          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Savings in Retirement</div>
+          <div class="col-label text-body font-semibold text-spring-700 py-3">Monthly Savings in Retirement</div>
           <template v-if="isMarried">
             <div class="col-value py-3"></div>
             <div class="col-value py-3"></div>
-            <div class="col-total text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+            <div class="col-total text-body font-semibold text-spring-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
           </template>
-          <div v-else class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
-          <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less you'll need per month after retirement</div>
+          <div v-else class="col-value text-body font-semibold text-spring-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - retiredHouseholdTotalMonthly) }}</div>
+          <div class="col-span-full text-body-sm text-spring-600 -mt-2 mb-2">This is how much less you'll need per month after retirement</div>
         </div>
       </div>
 
@@ -1035,8 +1035,8 @@
     <!-- WIDOWED BUDGET TAB -->
     <div v-if="activeBudgetTab === 'widowed' && isMarried" class="space-y-6">
       <!-- Info Banner -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-body-sm text-blue-800">
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+        <p class="text-body-sm text-violet-800">
           <strong>Widowed Budget</strong> estimates your expenses if you were to lose your spouse. This is essential for calculating adequate life insurance cover and ensuring financial security for the surviving spouse.
         </p>
       </div>
@@ -1085,11 +1085,11 @@
         </div>
 
         <!-- Auto-Adjustments Summary (detailed mode only) -->
-        <div v-if="!useSimpleEntry && widowedAutoAdjustments.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <h4 class="text-body font-medium text-green-900 mb-2">Automatic Adjustments Applied</h4>
+        <div v-if="!useSimpleEntry && widowedAutoAdjustments.length > 0" class="bg-spring-50 border border-spring-200 rounded-lg p-4 mb-6">
+          <h4 class="text-body font-medium text-spring-900 mb-2">Automatic Adjustments Applied</h4>
           <ul class="space-y-1">
-            <li v-for="(adj, idx) in widowedAutoAdjustments" :key="idx" class="text-body-sm text-green-800 flex items-start gap-2">
-              <svg class="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <li v-for="(adj, idx) in widowedAutoAdjustments" :key="idx" class="text-body-sm text-spring-800 flex items-start gap-2">
+              <svg class="h-4 w-4 text-spring-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{{ adj.description }}</span>
@@ -1119,10 +1119,10 @@
                 <div class="col-label text-body-sm text-neutral-500 py-1 pl-7">
                   {{ field.label }}
                   <span v-if="widowedBudgetData[field.key]?.adjusted && !widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700">Auto</span>
-                  <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-success-100 text-success-700">Custom</span>
+                  <span v-if="widowedBudgetData[field.key]?.userModified" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-spring-100 text-spring-600">Custom</span>
                 </div>
                 <div class="col-value text-body-sm text-horizon-500 py-1 font-medium">
-                  {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-success-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
+                  {{ formatCurrency(getWidowedValue(field.key)) }}<span v-if="getWidowedChange(field.key) !== 0" :class="getWidowedChange(field.key) < 0 ? 'text-spring-600' : 'text-raspberry-600'" class="text-xs ml-1">({{ getWidowedChange(field.key) < 0 ? '' : '+' }}{{ formatCurrency(getWidowedChange(field.key)) }})</span>
                 </div>
               </template>
             </template>
@@ -1229,9 +1229,9 @@
           <div class="col-value text-body-sm text-raspberry-500 font-medium">{{ formatCurrency(widowedTotalMonthly * 12) }}</div>
 
           <!-- Monthly Reduction Row -->
-          <div class="col-label text-body font-semibold text-success-800 py-3">Monthly Reduction from Current</div>
-          <div class="col-value text-body font-semibold text-success-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
-          <div class="col-span-full text-body-sm text-success-700 -mt-2 mb-2">This is how much less {{ userName }} would need per month as a single-person household</div>
+          <div class="col-label text-body font-semibold text-spring-700 py-3">Monthly Reduction from Current</div>
+          <div class="col-value text-body font-semibold text-spring-600 py-3">{{ formatCurrency(householdTotalMonthlyWithCommitments - widowedTotalMonthly) }}</div>
+          <div class="col-span-full text-body-sm text-spring-600 -mt-2 mb-2">This is how much less {{ userName }} would need per month as a single-person household</div>
         </div>
       </div>
 
@@ -1391,7 +1391,7 @@ export default {
     };
 
     const isSectionExpanded = (tab, section) => {
-      return expandedSections.value[tab]?.[section] ?? true;
+      return expandedSections.value[tab]?.[section] ?? false;
     };
 
     const user = computed(() => store.getters['auth/currentUser']);
@@ -1762,23 +1762,6 @@ export default {
 
       return adjustments;
     });
-
-    const retiredCommitments = computed(() => {
-      const currentMortgage = financialCommitments.value?.totals?.properties || 0;
-      const mortgageAdjusted = currentMortgage > 0;
-
-      return {
-        mortgageAmount: 0,
-        mortgageAdjusted,
-        protectionAmount: financialCommitments.value?.totals?.protection || 0,
-        loansAmount: 0,
-        investmentsAmount: 0,
-      };
-    });
-
-    const getRetiredHouseholdValue = (key) => {
-      return retiredBudgetData.value[key]?.value || 0;
-    };
 
     // User's retired total: manual expenditure + protection premiums + investment contributions
     const retiredTotalMonthly = computed(() => {
@@ -2229,6 +2212,14 @@ export default {
         allFields.forEach(field => {
           formData.value[field.key] = props.initialData[field.key] || 0;
         });
+
+        // Restore persisted budget overrides
+        if (props.initialData.retired_budget_overrides && typeof props.initialData.retired_budget_overrides === 'object') {
+          retiredBudgetOverrides.value = { ...props.initialData.retired_budget_overrides };
+        }
+        if (props.initialData.widowed_budget_overrides && typeof props.initialData.widowed_budget_overrides === 'object') {
+          widowedBudgetOverrides.value = { ...props.initialData.widowed_budget_overrides };
+        }
       }
 
       if (props.spouseData) {
@@ -2254,7 +2245,16 @@ export default {
         saveData[field.key] = formData.value[field.key] || 0;
       });
 
+      // Include budget overrides if user has customised them
+      if (Object.keys(retiredBudgetOverrides.value).length > 0) {
+        saveData.retired_budget_overrides = { ...retiredBudgetOverrides.value };
+      }
+      if (Object.keys(widowedBudgetOverrides.value).length > 0) {
+        saveData.widowed_budget_overrides = { ...widowedBudgetOverrides.value };
+      }
+
       if (props.isMarried && useSeparateExpenditure.value) {
+        // Separate mode — each spouse has their own data
         const spouseData = {
           use_simple_entry: useSimpleEntry.value,
           monthly_expenditure: useSimpleEntry.value ? spouseSimpleMonthlyExpenditure.value : spouseTotalMonthlyExpenditure.value,
@@ -2263,6 +2263,22 @@ export default {
 
         allFields.forEach(field => {
           spouseData[field.key] = spouseFormData.value[field.key] || 0;
+        });
+
+        emit('save', {
+          userData: saveData,
+          spouseData: spouseData,
+        });
+      } else if (props.isMarried) {
+        // Joint mode — spouse gets the same expenditure values
+        const spouseData = {
+          use_simple_entry: useSimpleEntry.value,
+          monthly_expenditure: saveData.monthly_expenditure,
+          annual_expenditure: saveData.annual_expenditure,
+        };
+
+        allFields.forEach(field => {
+          spouseData[field.key] = formData.value[field.key] || 0;
         });
 
         emit('save', {
@@ -2399,10 +2415,8 @@ export default {
       retiredBudgetFields,
       allRetiredFields,
       retiredAutoAdjustments,
-      retiredCommitments,
       retiredSectionConfigs,
       getCurrentBudgetValue,
-      getRetiredHouseholdValue,
       getRetiredUserValue,
       getRetiredSpouseValue,
       getRetiredChange,

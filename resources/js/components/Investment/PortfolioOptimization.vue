@@ -135,7 +135,7 @@
     <!-- Info Notification -->
     <div
       v-if="showSuccessNotification"
-      class="fixed bottom-4 right-4 bg-violet-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3 z-50"
+      class="fixed bottom-4 right-4 bg-violet-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3 z-50 animate-slide-in-right"
     >
       <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -241,19 +241,4 @@ export default {
   min-height: 400px;
 }
 
-/* Animation for success notification */
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.fixed.bottom-4.right-4 {
-  animation: slideIn 0.3s ease-out;
-}
 </style>

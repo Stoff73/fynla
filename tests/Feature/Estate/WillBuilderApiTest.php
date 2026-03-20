@@ -172,6 +172,7 @@ describe('Will Builder API', function () {
         it('generates a mirror will for spouse', function () {
             $spouse = User::factory()->create([
                 'first_name' => 'Emily',
+                'middle_name' => null,
                 'surname' => 'Carter',
             ]);
             $user = User::factory()->create([

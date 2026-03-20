@@ -1,8 +1,8 @@
 # TODO — Fynla
 
-*Last updated: 19 March 2026 (session 2 end)*
+*Last updated: 20 March 2026 (session 1 end)*
 
-## Completed Today (6 PRs + direct commits)
+## Completed 19 March (6 PRs + direct commits)
 
 - [x] PR #140: Simple expenditure bug fix (browser tested), LetterToSpouse fix, education_level validation
 - [x] PR #141: Admin tax settings — 568/568 config coverage, NaN fixes, 10 tabs, agent hardcoded values removed, AI tax tool 18 topics
@@ -17,6 +17,39 @@
 - [x] Browser tab title: "Fyn, your financial companion"
 - [x] All stale branches cleaned up
 
+## Completed 20 March — Tech Debt Sweep
+
+### Test Fixes (8 failures → 0, 2029 passing)
+- [x] RecommendationPersonaliser (x2) — strict type `=== 0.0` fixed with `(float)` cast
+- [x] AdvisorController — `ModelNotFoundException` now caught → 403 (was 500)
+- [x] FamilyMembersController — `assertDatabaseMissing` → `assertSoftDeleted` (model uses SoftDeletes)
+- [x] CompletenessEndpoint — updated expected string to match DataReadiness service label
+- [x] WillBuilderApiTest — set `middle_name => null` on spouse factory
+- [x] InvestmentModuleTest — `RiskProfile::create` → `firstOrCreate` (observer already creates one)
+- [x] AdminBackupTest (x2) — order-dependent, resolved by InvestmentModule fix
+
+### ExpenditureForm.vue Review (7 fixes)
+- [x] Financial Commitments section header only summed `protection` — now includes `investments` too
+- [x] `isSectionExpanded` fallback `?? true` contradicted `false` init — changed to `?? false`
+- [x] Removed dead code: `retiredCommitments` computed + `getRetiredHouseholdValue`
+- [x] Replaced all off-palette color tokens: `blue-*` → `violet-*`, `green-*` → `spring-*`/`raspberry-*`, `success-*` → `spring-*`
+
+### Estate Hardcoded Rates (4 files, 30 instances)
+- [x] EstateAgent.php — 12 narrative strings now use `$ihtConfig['standard_rate']` / `['reduced_rate_charity']`
+- [x] GiftingStrategy.php — narrative + `* 0.04` calculation now use config values
+- [x] IHTStrategyGeneratorService.php — narrative uses config
+- [x] WillAnalysisService.php — 3 match expressions use config
+
+### Budget Constants (3 files)
+- [x] DecumulationPlanner.php — `0.85` → `JOINT_ANNUITY_RATE_REDUCTION`
+- [x] IHTFormattingService.php — `0.70` → `EXPENDITURE_FALLBACK_RATIO`
+- [x] IHTCalculationService.php — `0.70` → `EXPENDITURE_FALLBACK_RATIO`, `0.50` → `RETIREMENT_EXPENDITURE_FALLBACK_RATIO`
+
+### @keyframes Cleanup (8 files + app.css)
+- [x] 4 components: fadeIn/calcFadeIn/contentFadeIn/sectionFadeIn → `.animate-fade-in` / `.animate-fade-in-slide`
+- [x] 4 components: slideIn → new global `.animate-slide-in-right` (added to app.css)
+- [x] 8 remaining @keyframes are domain-specific (typing-bounce, voice-pulse, confetti-fall, etc.) — correctly kept as local
+
 ## Outstanding
 
 ### Must Verify on Production
@@ -25,13 +58,10 @@
 - [ ] Investment knowledge nudge appears for users with investments but no knowledge_level
 - [ ] Admin tax settings all 10 tabs render correctly on production
 
-### Tech Debt
-- [ ] 4 pre-existing Pest test failures (RecommendationPersonaliser x2, FamilyMembersController, InvestmentModule) — not caused by our changes
-- [ ] Journey progress calculation should use data completeness (Task 4 from dataReadiness plan — deferred)
-- [ ] `ExpenditureForm.vue` — heavily modified by multiple agents, needs careful review
-- [ ] Retired/widowed budget hardcoded 85%/70% — should use TaxConfig
-- [ ] 16 Vue components with custom @keyframes that should use global CSS (H3 from code review — deferred)
-- [ ] EstateAgent narrative strings contain hardcoded "40%", "36%" text (L3 from code review)
+### Tech Debt (remaining)
+- [ ] Journey progress calculation should use data completeness (Task 4 from dataReadiness plan — deferred, needs product decision)
+- [x] ExpenditureForm.vue: retired/widowed budget overrides now persist to DB via JSON columns and restore on load
+- [x] ExpenditureForm.vue: joint mode now saves expenditure for both user and spouse
 
 ### Features (Backlog)
 - [ ] PortfolioOptimization.vue:197 — rebalancing plan (coming soon toast)
@@ -41,11 +71,12 @@
 - [ ] AI chat feature tests (L6 from code review)
 
 ### Production Deployment
-- [ ] 4 database migrations pending (3 from March 18 + 1 income definitions)
-- [ ] Full deploy guide: `March/March19Updates/allDeploy.md`
+- [x] Database migrations run on production (confirmed by user)
+- [ ] Deploy today's changes: `March/March20Updates/deployFix.md` (rebuild needed, 11 PHP files + build dir + 1 migration)
+- [ ] Previous v0.9.3 deploy: `March/March19Updates/allDeploy.md` (if not yet uploaded)
 
 ## Context for Next Session
 
-v0.9.3 is built and ready for production upload. All code review issues (critical/high/medium) are fixed. The main outstanding work is: (1) verifying production after deploy, (2) journey progress using data completeness, and (3) the 4 pre-existing test failures.
+All tech debt from the 19 March code review is resolved, plus the two ExpenditureForm bugs discovered during review are now fixed. Test suite is fully green: 2029 passed, 0 failures. One new migration adds `retired_budget_overrides` and `widowed_budget_overrides` JSON columns to the users table.
 
-The codebase is clean — no uncommitted changes, no stale branches. `public/build/` is ready for upload. 21 PHP files + `resources/views/app.blade.php` + `public/build/` directory need uploading per `allDeploy.md`.
+Codebase has uncommitted changes from today's session. Needs commit, rebuild (`./deploy/fynla-org/build.sh`), and deploy per `deployFix.md`.

@@ -543,7 +543,7 @@ class EstateAgent extends BaseAgent
     }
 
     /**
-     * Step 1: Charitable Bequest Check - Rate Reduction from 40% to 36%
+     * Step 1: Charitable Bequest Check - Rate Reduction (standard to reduced charitable rate)
      */
     private function step1CharitableBequestCheck(array $charitableAnalysis, float $ihtLiability, array $ctx): ?array
     {
@@ -552,6 +552,12 @@ class EstateAgent extends BaseAgent
         }
 
         $trace = $this->buildEstateContextTrace($ctx);
+
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $standardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $reducedRate = (float) ($ihtConfig['reduced_rate_charity'] ?? 0.36);
+        $standardRatePercent = round($standardRate * 100);
+        $reducedRatePercent = round($reducedRate * 100);
 
         $status = $charitableAnalysis['status'] ?? 'below';
         $shortfall = $charitableAnalysis['shortfall'] ?? 0;
@@ -571,16 +577,13 @@ class EstateAgent extends BaseAgent
             'threshold' => '10% of baseline (£'.number_format($threshold, 0).')',
             'passed' => $status !== 'below',
             'explanation' => $status !== 'below'
-                ? $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0).' meets or exceeds the 10% threshold of £'.number_format($threshold, 0).', qualifying for the reduced 36% rate.'
+                ? $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0).' meets or exceeds the 10% threshold of £'.number_format($threshold, 0).', qualifying for the reduced '.$reducedRatePercent.'% rate.'
                 : $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0).' is '.round($currentPercentage, 1).'% of the £'.number_format($baseline, 0).' baseline (net estate minus Nil Rate Band). The 10% threshold is £'.number_format($threshold, 0).'.',
         ];
 
         if ($status === 'below' && $potentialSaving > 0) {
             // Show the IHT rate reduction calculation
             $taxableEstate = $ctx['taxable_estate'];
-            $ihtConfig = $this->taxConfig->getInheritanceTax();
-            $standardRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-            $reducedRate = (float) ($ihtConfig['reduced_rate_charity'] ?? 0.36);
             $currentTax = $taxableEstate * $standardRate;
             $reducedTax = $taxableEstate * $reducedRate;
 
@@ -591,10 +594,10 @@ class EstateAgent extends BaseAgent
                 'threshold' => '£0 (no shortfall)',
                 'passed' => false,
                 'explanation' => 'If '.$ctx['first_name'].' increases charitable bequests by £'.number_format($shortfall, 0)
-                    .' (to reach £'.number_format($threshold, 0).'), the Inheritance Tax rate drops from 40% to 36%.'
+                    .' (to reach £'.number_format($threshold, 0).'), the Inheritance Tax rate drops from '.$standardRatePercent.'% to '.$reducedRatePercent.'%.'
                     .' On the taxable estate of £'.number_format($taxableEstate, 0)
-                    .': at 40% = £'.number_format($currentTax, 0)
-                    .', at 36% = £'.number_format($reducedTax, 0)
+                    .': at '.$standardRatePercent.'% = £'.number_format($currentTax, 0)
+                    .', at '.$reducedRatePercent.'% = £'.number_format($reducedTax, 0)
                     .' — saving £'.number_format($potentialSaving, 0).'.',
             ];
 
@@ -603,11 +606,11 @@ class EstateAgent extends BaseAgent
                 'priority' => 'high',
                 'step' => 1,
                 'title' => 'Charitable Bequest Opportunity',
-                'description' => "Increase charitable giving by {$this->formatCurrency($shortfall)} to qualify for the reduced 36% Inheritance Tax rate and save {$this->formatCurrency($potentialSaving)}.",
+                'description' => "Increase charitable giving by {$this->formatCurrency($shortfall)} to qualify for the reduced {$reducedRatePercent}% Inheritance Tax rate and save {$this->formatCurrency($potentialSaving)}.",
                 'actions' => [
                     "Add {$this->formatCurrency($shortfall)} in charitable bequests to {$ctx['first_name']}'s will",
                     'Consider leaving to registered UK charities',
-                    'This reduces the Inheritance Tax rate from 40% to 36%',
+                    "This reduces the Inheritance Tax rate from {$standardRatePercent}% to {$reducedRatePercent}%",
                 ],
                 'potential_saving' => $potentialSaving,
                 'decision_trace' => $trace,
@@ -622,7 +625,7 @@ class EstateAgent extends BaseAgent
                 'threshold' => '£0',
                 'passed' => true,
                 'explanation' => $ctx['first_name'].'\'s charitable giving of £'.number_format($charitableTotal, 0)
-                    .' qualifies for the reduced 36% rate, saving £'.number_format($currentSaving, 0).' on the taxable estate of £'.number_format($ctx['taxable_estate'], 0).'.',
+                    .' qualifies for the reduced '.$reducedRatePercent.'% rate, saving £'.number_format($currentSaving, 0).' on the taxable estate of £'.number_format($ctx['taxable_estate'], 0).'.',
             ];
 
             return [
@@ -630,7 +633,7 @@ class EstateAgent extends BaseAgent
                 'priority' => 'low',
                 'step' => 1,
                 'title' => 'Charitable Rate Applied',
-                'description' => "{$ctx['first_name']}'s charitable giving qualifies for the reduced 36% Inheritance Tax rate, saving {$this->formatCurrency($currentSaving)}.",
+                'description' => "{$ctx['first_name']}'s charitable giving qualifies for the reduced {$reducedRatePercent}% Inheritance Tax rate, saving {$this->formatCurrency($currentSaving)}.",
                 'actions' => ['Your current charitable bequests are sufficient for the reduced rate'],
                 'current_saving' => $currentSaving,
                 'decision_trace' => $trace,
@@ -866,8 +869,10 @@ class EstateAgent extends BaseAgent
         // Annual exemption potential (including carry forward from unused previous year)
         $annualGiftingCapacity = $annualExemption * $yearsToLifeExpectancy;
 
-        // IHT saved at 40% rate
-        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        // IHT saved at standard rate
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtRatePercent = round($ihtRate * 100);
         $potentialSavings = min($annualGiftingCapacity * $ihtRate, $remainingLiability);
 
         $coversLiability = $potentialSavings >= $remainingLiability;
@@ -875,7 +880,7 @@ class EstateAgent extends BaseAgent
         $trace[] = [
             'question' => 'Can annual gifting fully offset '.$ctx['first_name'].'\'s remaining Inheritance Tax liability?',
             'data_field' => 'Annual gifting calculation',
-            'data_value' => '£'.number_format($annualExemption, 0).'/year × '.$yearsToLifeExpectancy.' years = £'.number_format($annualGiftingCapacity, 0).' total gifted, saving £'.number_format($potentialSavings, 0).' at 40%',
+            'data_value' => '£'.number_format($annualExemption, 0).'/year × '.$yearsToLifeExpectancy.' years = £'.number_format($annualGiftingCapacity, 0).' total gifted, saving £'.number_format($potentialSavings, 0).' at '.$ihtRatePercent.'%',
             'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability after prior steps)',
             'passed' => $coversLiability,
             'explanation' => $coversLiability
@@ -998,7 +1003,9 @@ class EstateAgent extends BaseAgent
 
         // Each cycle can gift up to NRB tax-efficiently
         $petCapacity = $sevenYearCycles * $nrb;
-        $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+        $ihtRatePercent = round($ihtRate * 100);
         $potentialSavings = min($petCapacity * $ihtRate, $remainingLiability);
 
         if ($sevenYearCycles >= 1) {
@@ -1007,7 +1014,7 @@ class EstateAgent extends BaseAgent
             $trace[] = [
                 'question' => 'Can Potentially Exempt Transfers cover '.$ctx['first_name'].'\'s remaining Inheritance Tax liability?',
                 'data_field' => 'Potentially Exempt Transfer calculation',
-                'data_value' => $sevenYearCycles.' cycles × £'.number_format($nrb, 0).' Nil Rate Band = £'.number_format($petCapacity, 0).' capacity, saving £'.number_format($potentialSavings, 0).' at 40%',
+                'data_value' => $sevenYearCycles.' cycles × £'.number_format($nrb, 0).' Nil Rate Band = £'.number_format($petCapacity, 0).' capacity, saving £'.number_format($potentialSavings, 0).' at '.$ihtRatePercent.'%',
                 'threshold' => '£'.number_format($remainingLiability, 0).' (remaining liability after steps 1-5)',
                 'passed' => $coversLiability,
                 'explanation' => $coversLiability
@@ -1086,9 +1093,12 @@ class EstateAgent extends BaseAgent
             'threshold' => '£'.number_format($nrb, 0).' (Nil Rate Band — no charge if within this amount)',
             'passed' => $excessOverNRB <= 0,
             'explanation' => $excessOverNRB > 0
-                ? 'A Chargeable Lifetime Transfer of £'.number_format($remainingLiability, 0).' for '.$ctx['first_name'].' exceeds the Nil Rate Band by £'.number_format($excessOverNRB, 0).', incurring an immediate charge of £'.number_format($immediateCharge, 0).' at '.round($cltRate * 100).'%. If '.$ctx['first_name'].' dies within 7 years, an additional charge applies (up to 40% total).'
+                ? 'A Chargeable Lifetime Transfer of £'.number_format($remainingLiability, 0).' for '.$ctx['first_name'].' exceeds the Nil Rate Band by £'.number_format($excessOverNRB, 0).', incurring an immediate charge of £'.number_format($immediateCharge, 0).' at '.round($cltRate * 100).'%. If '.$ctx['first_name'].' dies within 7 years, an additional charge applies (up to '.round(($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE) * 100).'% total).'
                 : 'The transfer amount is within the Nil Rate Band, so no immediate charge would apply for '.$ctx['first_name'].'.',
         ];
+
+        $standardRatePercent = round(($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE) * 100);
+        $cltRatePercent = round($cltRate * 100);
 
         $recommendation = [
             'category' => 'clt_trust',
@@ -1097,8 +1107,8 @@ class EstateAgent extends BaseAgent
             'title' => 'Chargeable Lifetime Transfer — Last Resort',
             'description' => 'A Chargeable Lifetime Transfer into trust can remove assets from '.$ctx['first_name'].'\'s estate, but comes with immediate tax charges.',
             'actions' => [
-                "Chargeable Lifetime Transfer of {$this->formatCurrency($remainingLiability)} would incur immediate {$this->formatCurrency($immediateCharge)} charge (20% on amount over Nil Rate Band)",
-                'Additional 20% charge if death within 7 years (40% total)',
+                "Chargeable Lifetime Transfer of {$this->formatCurrency($remainingLiability)} would incur immediate {$this->formatCurrency($immediateCharge)} charge ({$cltRatePercent}% on amount over Nil Rate Band)",
+                "Additional {$cltRatePercent}% charge if death within 7 years ({$standardRatePercent}% total)",
                 'Trust subject to periodic charges (max 6% every 10 years)',
                 'Exit charges apply when assets leave the trust',
                 'Seek professional advice before proceeding',

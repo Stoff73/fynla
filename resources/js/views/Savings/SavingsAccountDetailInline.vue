@@ -1,5 +1,5 @@
 <template>
-  <div class="savings-account-detail-inline">
+  <div class="savings-account-detail-inline animate-fade-in">
     <!-- Back Button -->
     <button
       @click="$emit('back')"
@@ -490,19 +490,6 @@ export default {
 </script>
 
 <style scoped>
-.savings-account-detail-inline {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 /* Smooth scrolling on iOS */
 .-webkit-overflow-scrolling-touch {
   -webkit-overflow-scrolling: touch;

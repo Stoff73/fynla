@@ -292,10 +292,13 @@ class WillAnalysisService
         float $threshold,
         float $potentialSaving
     ): string {
+        $ihtConfig = $this->taxConfig->getInheritanceTax();
+        $reducedRatePercent = round(((float) ($ihtConfig['reduced_rate_charity'] ?? 0.36)) * 100);
+
         return match ($status) {
-            'above' => 'Your charitable bequests exceed the 10% threshold by £'.number_format($excess).'. You qualify for the reduced 36% IHT rate, saving £'.number_format($potentialSaving).' in IHT.',
-            'at' => 'Your charitable bequests meet the 10% threshold of £'.number_format($threshold).'. You qualify for the reduced 36% IHT rate, saving £'.number_format($potentialSaving).' in IHT.',
-            'below' => 'Your charitable bequests are £'.number_format($shortfall).' below the 10% threshold of £'.number_format($threshold).'. Increase charitable giving by £'.number_format($shortfall).' to qualify for the reduced 36% rate and save £'.number_format($potentialSaving).' in IHT.',
+            'above' => 'Your charitable bequests exceed the 10% threshold by £'.number_format($excess).'. You qualify for the reduced '.$reducedRatePercent.'% IHT rate, saving £'.number_format($potentialSaving).' in IHT.',
+            'at' => 'Your charitable bequests meet the 10% threshold of £'.number_format($threshold).'. You qualify for the reduced '.$reducedRatePercent.'% IHT rate, saving £'.number_format($potentialSaving).' in IHT.',
+            'below' => 'Your charitable bequests are £'.number_format($shortfall).' below the 10% threshold of £'.number_format($threshold).'. Increase charitable giving by £'.number_format($shortfall).' to qualify for the reduced '.$reducedRatePercent.'% rate and save £'.number_format($potentialSaving).' in IHT.',
             default => 'Unable to determine charitable bequest status.',
         };
     }

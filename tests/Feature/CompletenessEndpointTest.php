@@ -74,7 +74,7 @@ describe('GET /api/life-stage/completeness', function () {
         // Savings blocks on: date_of_birth, income, expenditure
         // User has DOB + income but no expenditure → can_advise = false
         expect($savings['can_advise'])->toBeFalse();
-        expect($savings['missing'])->toContain('monthly or annual expenditure');
+        expect($savings['missing'])->toContain('Monthly expenditure is required to calculate savings capacity.');
     });
 
     it('returns can_advise true when all blocking fields present', function () {

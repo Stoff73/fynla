@@ -267,7 +267,7 @@ class IHTStrategyGeneratorService
                     'iht_saved' => $saving,
                     'charitable_amount_required' => $charitableAmount,
                     'implementation_complexity' => 'Low',
-                    'description' => 'Leave 10%+ of estate to charity to reduce IHT rate from 40% to 36%',
+                    'description' => sprintf('Leave 10%%+ of estate to charity to reduce IHT rate from %s%% to %s%%', round($standardRate * 100), round($charityRate * 100)),
                     'specific_actions' => [
                         'Update will to leave £'.number_format($charitableAmount, 0).' (10% of estate) to registered charities',
                         'Select charities and notify executors',

@@ -210,11 +210,14 @@ class GiftingStrategy
 
         // 2. Charitable Giving recommendation (if not already at 10%)
         $charitablePercent = (float) ($profile->charitable_giving_percent ?? 0);
+        $reducedRate = (float) ($this->ihtConfig['reduced_rate_charity'] ?? 0.36);
         if ($charitablePercent < 10 && $currentIHTLiability > 0) {
+            $standardRatePercent = round($ihtRate * 100);
+            $reducedRatePercent = round($reducedRate * 100);
             $recommendations[] = [
                 'strategy' => 'Charitable Giving',
-                'description' => 'Leave 10% to charity to reduce IHT rate from 40% to 36%',
-                'potential_savings' => round($taxableEstate * 0.04, 2),
+                'description' => "Leave 10% to charity to reduce IHT rate from {$standardRatePercent}% to {$reducedRatePercent}%",
+                'potential_savings' => round($taxableEstate * ($ihtRate - $reducedRate), 2),
             ];
             $priority[] = [
                 'strategy' => 'Charitable Giving',

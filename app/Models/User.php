@@ -98,6 +98,8 @@ class User extends Authenticatable
         'payday_day_of_month' => 'integer',
         'monthly_expenditure' => 'decimal:2',
         'annual_expenditure' => 'decimal:2',
+        'retired_budget_overrides' => 'array',
+        'widowed_budget_overrides' => 'array',
         'food_groceries' => 'decimal:2',
         'transport_fuel' => 'decimal:2',
         'healthcare_medical' => 'decimal:2',

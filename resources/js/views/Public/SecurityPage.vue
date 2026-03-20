@@ -78,7 +78,7 @@
         <!-- Detailed Security Sections -->
         <div class="space-y-8">
           <!-- Authentication & Account Security -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -143,7 +143,7 @@
           </div>
 
           <!-- Data Protection & Encryption -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-emerald-700 to-emerald-800 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -208,7 +208,7 @@
           </div>
 
           <!-- Access Control -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -262,7 +262,7 @@
           </div>
 
           <!-- Audit & Monitoring -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-blue-600 to-blue-600 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -316,7 +316,7 @@
           </div>
 
           <!-- GDPR & Privacy -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -381,7 +381,7 @@
           </div>
 
           <!-- API Security -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-blue-700 to-blue-800 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -435,7 +435,7 @@
           </div>
 
           <!-- Business Continuity -->
-          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section">
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden security-section animate-fade-in-slide">
             <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
               <div class="flex items-center">
                 <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
@@ -517,25 +517,10 @@ export default {
 </script>
 
 <style scoped>
-.security-section {
-  animation: sectionFadeIn 0.6s ease-out both;
-}
-
 .security-section:nth-child(1) { animation-delay: 0s; }
 .security-section:nth-child(2) { animation-delay: 0.1s; }
 .security-section:nth-child(3) { animation-delay: 0.2s; }
 .security-section:nth-child(4) { animation-delay: 0.3s; }
 .security-section:nth-child(5) { animation-delay: 0.4s; }
 .security-section:nth-child(6) { animation-delay: 0.5s; }
-
-@keyframes sectionFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 </style>

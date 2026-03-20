@@ -72,7 +72,7 @@
     <!-- Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <!-- Financial Planning Basics -->
-      <div v-if="activeCategory === 'basics'" class="space-y-8 content-enter" :key="'basics'">
+      <div v-if="activeCategory === 'basics'" class="space-y-8 animate-fade-in-slide" :key="'basics'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">What is Financial Planning?</h2>
@@ -208,7 +208,7 @@
       </div>
 
       <!-- Protection Planning -->
-      <div v-if="activeCategory === 'protection'" class="space-y-8 content-enter" :key="'protection'">
+      <div v-if="activeCategory === 'protection'" class="space-y-8 animate-fade-in-slide" :key="'protection'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Understanding Protection Planning</h2>
@@ -298,7 +298,7 @@
       </div>
 
       <!-- Retirement Planning -->
-      <div v-if="activeCategory === 'retirement'" class="space-y-8 content-enter" :key="'retirement'">
+      <div v-if="activeCategory === 'retirement'" class="space-y-8 animate-fade-in-slide" :key="'retirement'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-blue-600 to-blue-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Retirement Planning in the UK</h2>
@@ -409,7 +409,7 @@
       </div>
 
       <!-- Estate Planning -->
-      <div v-if="activeCategory === 'estate'" class="space-y-8 content-enter" :key="'estate'">
+      <div v-if="activeCategory === 'estate'" class="space-y-8 animate-fade-in-slide" :key="'estate'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-red-600 to-rose-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Estate Planning & Inheritance Tax</h2>
@@ -520,7 +520,7 @@
       </div>
 
       <!-- Investment Planning -->
-      <div v-if="activeCategory === 'investment'" class="space-y-8 content-enter" :key="'investment'">
+      <div v-if="activeCategory === 'investment'" class="space-y-8 animate-fade-in-slide" :key="'investment'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-purple-600 to-violet-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">Investment Planning Fundamentals</h2>
@@ -662,7 +662,7 @@
       </div>
 
       <!-- Tax Planning -->
-      <div v-if="activeCategory === 'tax'" class="space-y-8 content-enter" :key="'tax'">
+      <div v-if="activeCategory === 'tax'" class="space-y-8 animate-fade-in-slide" :key="'tax'">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-8 py-6">
             <h2 class="text-2xl font-bold text-white">UK Tax Planning Guide</h2>
@@ -986,19 +986,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.content-enter {
-  animation: contentFadeIn 0.5s ease-out both;
-}
-
-@keyframes contentFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

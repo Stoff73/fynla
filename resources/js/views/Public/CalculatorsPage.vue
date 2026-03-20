@@ -76,7 +76,7 @@
     <!-- Calculator Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <!-- Income Tax Calculator -->
-      <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'income-tax'">
+      <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'income-tax'">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Income Tax Calculator</h2>
           <p class="text-violet-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
@@ -174,7 +174,7 @@
       </div>
 
       <!-- Mortgage Calculator -->
-      <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'mortgage'">
+      <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'mortgage'">
         <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Mortgage Affordability Calculator</h2>
           <p class="text-indigo-100 mt-1">Calculate how much you can afford to borrow and your monthly repayments</p>
@@ -308,7 +308,7 @@
       </div>
 
       <!-- Loan Repayment Calculator -->
-      <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'loan'">
+      <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'loan'">
         <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Loan Repayment Calculator</h2>
           <p class="text-slate-200 mt-1">Calculate monthly payments and total interest on personal loans</p>
@@ -408,7 +408,7 @@
       </div>
 
       <!-- Emergency Fund Calculator -->
-      <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'emergency-fund'">
+      <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'emergency-fund'">
         <div class="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Emergency Fund Calculator</h2>
           <p class="text-spring-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
@@ -538,7 +538,7 @@
       </div>
 
       <!-- Pension Growth Calculator -->
-      <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden calc-enter" :key="'pension'">
+      <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension'">
         <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6">
           <h2 class="text-2xl font-bold text-white">Pension Growth Calculator</h2>
           <p class="text-purple-100 mt-1">Project your pension pot at retirement with regular contributions</p>
@@ -957,20 +957,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.calc-enter {
-  animation: calcFadeIn 0.5s ease-out both;
-}
-
-@keyframes calcFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
 

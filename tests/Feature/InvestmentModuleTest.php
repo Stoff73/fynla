@@ -313,9 +313,10 @@ describe('Portfolio Analysis', function () {
             'holdable_type' => InvestmentAccount::class,
         ]);
 
-        RiskProfile::factory()->create([
-            'user_id' => $this->user->id,
-        ]);
+        RiskProfile::query()->firstOrCreate(
+            ['user_id' => $this->user->id],
+            RiskProfile::factory()->make(['user_id' => $this->user->id])->toArray()
+        );
 
         $response = $this->postJson('/api/investment/analyze');
 

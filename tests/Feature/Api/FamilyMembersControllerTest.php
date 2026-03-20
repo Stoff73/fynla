@@ -308,12 +308,12 @@ describe('DELETE /api/user/family-members/{id}', function () {
                 'message' => 'Family member deleted successfully',
             ]);
 
-        // Verify database
-        $this->assertDatabaseMissing('family_members', [
+        // Verify soft delete
+        $this->assertSoftDeleted('family_members', [
             'id' => $this->child1->id,
         ]);
 
-        // Verify soft delete if applicable, or hard delete
+        // Verify model is not findable (SoftDeletes excludes it)
         expect(FamilyMember::find($this->child1->id))->toBeNull();
     });
 

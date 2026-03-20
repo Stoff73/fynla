@@ -124,7 +124,7 @@ fi
 
 # Start Vite server in background
 echo -e "${BLUE}Starting Vite frontend on http://127.0.0.1:5173${NC}"
-npm run dev -- --port 5174 > /tmp/vite-output.log 2>&1 &
+npm run dev > /tmp/vite-output.log 2>&1 &
 VITE_PID=$!
 
 # Wait for Vite to compile
@@ -152,7 +152,7 @@ echo -e "${GREEN}===================================================${NC}"
 echo ""
 echo -e "${BLUE}Frontend:${NC}  http://localhost:8000"
 echo -e "${BLUE}API:${NC}       http://localhost:8000/api"
-echo -e "${BLUE}Vite HMR:${NC}  http://127.0.0.1:5174"
+echo -e "${BLUE}Vite HMR:${NC}  http://127.0.0.1:5173"
 echo ""
 echo -e "${YELLOW}Process IDs:${NC}"
 echo "  Laravel: $LARAVEL_PID"

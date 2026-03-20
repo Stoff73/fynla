@@ -124,6 +124,8 @@ class AdvisorController extends Controller
             $result = $this->impersonationService->enterClientProfile($advisor, $client);
 
             return response()->json(['success' => true, 'data' => $result]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Client not assigned to you.'], 403);
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (\Exception $e) {

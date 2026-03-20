@@ -20,6 +20,9 @@ class IHTFormattingService
 {
     use CalculatesOwnershipShare;
 
+    /** Fallback expenditure ratio when no expenditure profile exists (assume 70% spent, 30% saved) */
+    private const EXPENDITURE_FALLBACK_RATIO = 0.70;
+
     /**
      * Format assets breakdown for response.
      *
@@ -286,7 +289,7 @@ class IHTFormattingService
             } elseif ($userExpProfile?->total_monthly_expenditure) {
                 $spouseIncome = (float) ($spouse->annual_employment_income ?? 0)
                     + (float) ($spouse->annual_self_employment_income ?? 0);
-                $preRetExpenses += $spouseIncome * 0.70;
+                $preRetExpenses += $spouseIncome * self::EXPENDITURE_FALLBACK_RATIO;
             }
         }
 
@@ -484,7 +487,7 @@ class IHTFormattingService
 
         return $expProfile?->total_monthly_expenditure
             ? (float) $expProfile->total_monthly_expenditure * 12
-            : $income * 0.70;
+            : $income * self::EXPENDITURE_FALLBACK_RATIO;
     }
 
     /**
