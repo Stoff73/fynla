@@ -65,6 +65,7 @@
         <PropertyForm
           context="onboarding"
           :user-address="userAddress"
+          :has-main-residence="hasMainResidence"
           @save="handlePropertySaved"
           @close="handleFormClose"
         />
@@ -74,7 +75,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import OnboardingStep from '../OnboardingStep.vue';
@@ -100,6 +101,10 @@ export default {
     const loading = ref(false);
     const error = ref(null);
     const userAddress = ref(null);
+
+    const hasMainResidence = computed(() => {
+      return properties.value.some(p => p.property_type === 'main_residence');
+    });
 
     const propertyTypeLabels = {
       main_residence: 'Main Residence',
@@ -201,6 +206,7 @@ export default {
       loading,
       error,
       userAddress,
+      hasMainResidence,
       formatPropertyType,
       handlePropertySaved,
       handleFormClose,

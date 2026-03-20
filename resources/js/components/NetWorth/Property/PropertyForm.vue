@@ -1330,6 +1330,10 @@ export default {
       type: Object,
       default: null,
     },
+    hasMainResidence: {
+      type: Boolean,
+      default: false,
+    },
     context: {
       type: String,
       default: 'standalone',
@@ -1541,9 +1545,9 @@ export default {
       },
     },
 
-    // Auto-set main_residence when userAddress arrives (async from PropertyStep)
+    // Auto-set main_residence when userAddress arrives — only if no main residence exists yet
     userAddress(newAddress) {
-      if (newAddress && this.context === 'onboarding' && !this.property && !this.form.property_type) {
+      if (newAddress && this.context === 'onboarding' && !this.property && !this.form.property_type && !this.hasMainResidence) {
         this.form.property_type = 'main_residence';
       }
     },
@@ -1651,7 +1655,7 @@ export default {
   mounted() {
     if (this.property) {
       this.populateForm();
-    } else if (this.context === 'onboarding' && this.userAddress) {
+    } else if (this.context === 'onboarding' && this.userAddress && !this.hasMainResidence) {
       this.form.property_type = 'main_residence';
     }
   },
