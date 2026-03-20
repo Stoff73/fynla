@@ -1,6 +1,6 @@
 # Deployment Guide — 20 March 2026
 
-Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections.
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections + 11 code review fixes.
 
 ## Rebuild Required?
 
@@ -27,16 +27,18 @@ php artisan db:seed --class=OccupationCodeSeeder --force
 php artisan db:seed --class=TaxConfigurationSeeder --force
 ```
 
-## PHP Files to Upload (43)
+## PHP Files to Upload (45)
 
-### Services & Controllers (8)
+### Services & Controllers (10)
 
 ```
 app/Agents/EstateAgent.php
 app/Http/Controllers/Api/EstateController.php
 app/Http/Controllers/Api/LifeStageController.php
+app/Http/Controllers/Api/OnboardingController.php
 app/Services/Goals/GoalsProjectionService.php
 app/Services/LifeStage/LifeStageService.php
+app/Services/Onboarding/OnboardingService.php
 app/Services/Plans/InvestmentPlanService.php
 app/Services/Plans/RetirementPlanService.php
 app/Services/Shared/CrossModuleAssetAggregator.php
@@ -281,6 +283,22 @@ Replaces binary step completion stamps with actual field-level tracking from the
 
 **CRITICAL:** Must run `php artisan db:seed --class=TaxConfigurationSeeder --force` on production. All tax calculations, estate planning, retirement projections, and protection needs analysis use these values via `TaxConfigService`.
 
+### Code Review Fixes (11 issues)
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 1 | Critical | `AssetsStep.vue:939` | Document upload: capture type before `closeUploadModal()` nulls it |
+| 2 | Critical | `AssetsStep.vue:953` | `handleNext` uses `allowedTabs` not hardcoded full tab order |
+| 3 | Critical | `OnboardingController.php:95` | Removed PII (data payload) from `Log::info` — logs only step_name + user_id |
+| 4 | Important | `OnboardingWizard.vue:1177` | Resume uses `allCompletedSteps` union + awaits `fetchStage` before resume calc |
+| 5 | Important | `OnboardingWizard.vue` | Student loan checks for existing liability before creating (prevents duplicates) |
+| 6 | Important | `OnboardingService.php:680-723` | Joint accounts set `joint_owner_id` per CLAUDE.md Rule #7, don't halve values |
+| 7 | Important | `OnboardingService.php:609` | Postcode access uses `?? null` fallback (prevents fatal error) |
+| 8 | Important | `OnboardingWizard.vue` | Honours `?step=` query param from dashboard "Continue Journey" link |
+| 9 | Important | `GoalSetupStep.vue` | Consumes `savedData` prop for back-navigation state restore |
+| 10 | Important | `LifeStageService.php:27` | Only sets `onboarding_focus_area` for estate stage (others have no flow) |
+| 11 | Important | `OnboardingController.php:45` | Restricts `setFocusArea` to `estate` only (others unimplemented) |
+
 ## Post-Deploy Verification
 
 1. Register new user → select each journey → verify step count matches
@@ -301,3 +319,8 @@ Replaces binary step completion stamps with actual field-level tracking from the
 16. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
 17. **Knowledge nudge**: add investment/pension → dashboard shows violet nudge → click any level → nudge disappears → check `/risk-profile` shows correct knowledge level
 18. **Tax values**: check Estate Planning card shows correct IHT calculation. Verify employer NI at 15% in any salary sacrifice pension calculation
+19. **Tab navigation**: Journey 2 Assets step — click Continue on last visible tab → should advance to next onboarding step, NOT show blank content
+20. **Document upload**: upload a statement on Assets step → data should refresh in the tab after upload completes
+21. **Returning user**: log out, log back in, navigate to `/onboarding` → should resume at first incomplete step, not step 0
+22. **Student loan**: complete student loan step, go back, forward again → should NOT create duplicate liability
+23. **Goal back-nav**: fill goal form, go back, forward → goal form data should be preserved

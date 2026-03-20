@@ -109,6 +109,23 @@
 - [x] Journey 4 (Peak): David Mitchell — 6 steps, all fields filled, dashboard 100%, SIPP £380k, property £1.85M
 - [x] Journey 5 (Retirement): Robert Williams — 6 steps, all fields filled, Net Worth £694,500, IHT £77,800
 
+### Code Review Fixes (11 issues)
+- [x] AssetsStep: document upload captures type before closeUploadModal nulls it
+- [x] AssetsStep: handleNext uses allowedTabs not hardcoded full tab order
+- [x] OnboardingController: removed PII (data payload) from Log::info
+- [x] OnboardingWizard: resume uses allCompletedSteps union + awaits fetchStage
+- [x] OnboardingWizard: honours ?step= query param from dashboard Continue Journey
+- [x] OnboardingWizard: student loan checks for existing liability before creating
+- [x] OnboardingService: joint accounts set joint_owner_id per Rule #7
+- [x] OnboardingService: postcode access uses ?? null fallback
+- [x] GoalSetupStep: consumes savedData prop for back-navigation restore
+- [x] LifeStageService: only sets onboarding_focus_area for estate stage
+- [x] OnboardingController: restricts setFocusArea to estate only
+
+### Tech Debt Audit
+- [x] Full codebase scan completed — 58 issues found (6 critical, 30 warning, 22 suggestion)
+- [x] Report saved to `docs/tech-debt-report-full.md`
+
 ## Outstanding
 
 ### Must Verify on Production
@@ -123,6 +140,15 @@
 - [ ] Step 3 label in journey overview shows "assets" (lowercase) instead of "Assets & Wealth"
 - [ ] State Pension sidebar shows DC pension sidebar content instead of `retirement-form-state`
 - [ ] Vue warnings: "Failed to resolve component" in console (likely stale JourneyCompletionStep reference)
+
+### Tech Debt Quick Wins (from full audit — `docs/tech-debt-report-full.md`)
+- [ ] Payment.php + Subscription.php: amount cast `integer` → `decimal:2` (5 min)
+- [ ] IHTCalculation.php: 15 currency fields cast `float` → `decimal:2` (15 min)
+- [ ] Liability.php: float casts → `decimal:2` (5 min)
+- [ ] Deduplicate `calculateAge` in FamilyMembers.vue + FamilyInfoStep.vue (10 min)
+- [ ] Remove orphaned `guidance.js` store module (10 min)
+- [ ] Consolidate duplicate `calculateEquity()` in PropertyCalculationService vs PropertyService (1 hr)
+- [ ] 15 Vue files with old colour tokens (`blue-*`, `green-*`, `purple-*`, `red-*`) need palette migration (3 hrs)
 
 ### Features (Backlog)
 - [ ] PortfolioOptimization.vue:197 — rebalancing plan (coming soon toast)
@@ -139,12 +165,13 @@
 
 ## Context for Next Session
 
-Session 2 completed a major onboarding refactor: consolidated to Era 1 components only, added inline forms with contextual sidebar, field-level completeness tracking (three states: skipped/partial/complete), family step for journeys 4+5, and corrected 5 tax config values. Knowledge nudge CTA fixed. All changes committed (7 commits today). Ready for deploy.
+Session 2 completed: onboarding refactor (Era 1 consolidation, inline forms, contextual sidebar), field-level completeness tracking (skipped/partial/complete), family step for journeys 4+5, tax config corrections, knowledge nudge fix, and 11 code review fixes (PII logging, hidden tab navigation, resume logic, duplicate liabilities, joint ownership). Full tech debt audit completed — report at `docs/tech-debt-report-full.md`. All changes committed. Ready for deploy.
 
-Key commits today:
+Key commits today (session 2):
 - `c719ed8` — remap all journeys to Era 1 components
 - `717d24f` — delete 9 duplicate components
 - `5b54cc3` — inline forms + contextual sidebar
 - `6444522` — field-level completeness tracking
 - `a00bd48` — knowledge nudge fix
 - `a5e41a0` — tax config corrections
+- `487c51f` — 11 code review fixes (PII, hidden tabs, resume, duplicates)
