@@ -1,6 +1,6 @@
 # Deployment Guide — 20 March 2026
 
-Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking.
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix.
 
 ## Rebuild Required?
 
@@ -126,6 +126,7 @@ These are compiled into `public/build/` — upload the build directory, not indi
 resources/js/constants/lifeStageConfig.js
 resources/js/store/modules/userProfile.js
 resources/js/store/modules/lifeStage.js
+resources/js/store/modules/investment.js
 resources/js/views/Dashboard.vue
 resources/js/components/Journey/JourneyProgressHero.vue
 resources/js/components/Onboarding/OnboardingWizard.vue
@@ -254,6 +255,14 @@ Replaces binary step completion stamps with actual field-level tracking from the
 | Current | Stage colour (pulsing) | Step number | Stage colour bold | — |
 | Upcoming | White bg, light-gray border | Step number | Neutral text | Light-gray |
 
+### Knowledge Nudge Fix
+
+| Change | Impact |
+|--------|--------|
+| `investment.js` — `updateKnowledgeLevel` | Was spreading entire risk profile object (including `factor_breakdown`, `risk_assessed_at`, etc.) into the API request, causing 422 validation error. Now sends only `{ knowledge_level: level }` |
+
+**Verified:** Click Beginner/Intermediate/Experienced on dashboard nudge → saves to DB → nudge disappears → risk profile page shows correct knowledge level in factor breakdown.
+
 ## Post-Deploy Verification
 
 1. Register new user → select each journey → verify step count matches
@@ -272,3 +281,4 @@ Replaces binary step completion stamps with actual field-level tracking from the
 14. Returning user sees their journey progress, not welcome screen
 15. **Occupation autocomplete**: type "soft" on Income step → should show "Software Developer", "Software Engineer" etc.
 16. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
+17. **Knowledge nudge**: add investment/pension → dashboard shows violet nudge → click any level → nudge disappears → check `/risk-profile` shows correct knowledge level
