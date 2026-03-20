@@ -58,3 +58,6 @@ ios/App/Pods/
 ios/App/App/public/
 
 .superpowers/
+
+# Local dev script
+dev.sh
