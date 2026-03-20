@@ -1,6 +1,6 @@
 # Deployment Guide — 20 March 2026
 
-Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix.
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections.
 
 ## Rebuild Required?
 
@@ -17,12 +17,14 @@ Then upload `public/build/` directory.
 1. `2026_03_20_074942_add_budget_overrides_to_users_table.php` — Adds `retired_budget_overrides` and `widowed_budget_overrides` JSON nullable columns. Safe.
 2. `2026_03_20_100000_make_enum_columns_nullable.php` — Makes 15 enum columns nullable (employment_status, marital_status, gender, etc.) to support optional onboarding fields. Safe.
 
-## Database Seeder (1 new — MUST RUN on production)
+## Database Seeders (2 — MUST RUN on production)
 
-`OccupationCodeSeeder` — Seeds 406 ONS SOC 2020 occupation codes into `occupation_codes` table. Required for the occupation autocomplete on the Income step. **This table is currently empty on production.**
+1. `OccupationCodeSeeder` — Seeds 406 ONS SOC 2020 occupation codes. Required for occupation autocomplete. **Table currently empty on production.**
+2. `TaxConfigurationSeeder` — Corrects 5 outdated tax values (Employer NI, CGT, BADR, Class 4 NI). **Currently serving wrong rates.**
 
 ```bash
 php artisan db:seed --class=OccupationCodeSeeder --force
+php artisan db:seed --class=TaxConfigurationSeeder --force
 ```
 
 ## PHP Files to Upload (43)
@@ -86,11 +88,12 @@ app/Http/Requests/V1/RegisterDeviceRequest.php
 app/Models/User.php
 ```
 
-### Seeders (2)
+### Seeders (3)
 
 ```
 database/seeders/DatabaseSeeder.php
 database/seeders/OccupationCodeSeeder.php
+database/seeders/TaxConfigurationSeeder.php
 ```
 
 ## Migration Files to Upload (2)
@@ -173,7 +176,7 @@ resources/css/app.css
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan migrate && php artisan db:seed --class=OccupationCodeSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan migrate && php artisan db:seed --class=OccupationCodeSeeder --force && php artisan db:seed --class=TaxConfigurationSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
 ## What Changed
@@ -263,6 +266,21 @@ Replaces binary step completion stamps with actual field-level tracking from the
 
 **Verified:** Click Beginner/Intermediate/Experienced on dashboard nudge → saves to DB → nudge disappears → risk profile page shows correct knowledge level in factor breakdown.
 
+### Tax Configuration Corrections
+
+5 outdated values corrected in `TaxConfigurationSeeder.php` for 2025/26:
+
+| Value | Was | Now | Source |
+|-------|-----|-----|--------|
+| Employer NI Rate | 13.8% | 15.0% | April 2025 (+1.2pp) |
+| Employer NI Secondary Threshold | £9,100 | £5,000 | Autumn Budget 2024 |
+| CGT Basic Rate (non-property) | 10% | 18% | 30 Oct 2024, aligned with residential |
+| CGT Higher Rate (non-property) | 20% | 24% | 30 Oct 2024, aligned with residential |
+| BADR Rate | 10% | 14% | 2025/26 (rises to 18% in 2026/27) |
+| Class 4 NI Main Rate | 9% | 6% | April 2024 cut |
+
+**CRITICAL:** Must run `php artisan db:seed --class=TaxConfigurationSeeder --force` on production. All tax calculations, estate planning, retirement projections, and protection needs analysis use these values via `TaxConfigService`.
+
 ## Post-Deploy Verification
 
 1. Register new user → select each journey → verify step count matches
@@ -282,3 +300,4 @@ Replaces binary step completion stamps with actual field-level tracking from the
 15. **Occupation autocomplete**: type "soft" on Income step → should show "Software Developer", "Software Engineer" etc.
 16. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
 17. **Knowledge nudge**: add investment/pension → dashboard shows violet nudge → click any level → nudge disappears → check `/risk-profile` shows correct knowledge level
+18. **Tax values**: check Estate Planning card shows correct IHT calculation. Verify employer NI at 15% in any salary sacrifice pension calculation
