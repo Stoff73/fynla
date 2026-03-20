@@ -57,11 +57,10 @@
             v-model="formData.date_of_birth"
             type="date"
             class="input-field"
-            :class="{ 'border-raspberry-300': fieldErrors.date_of_birth }"
+            
             :max="maxDob"
             :min="minDob"
           >
-          <p v-if="fieldErrors.date_of_birth" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.date_of_birth }}</p>
           <p v-else class="mt-1 text-body-sm text-neutral-500">
             Used for age-based calculations and projections. Check your <a :href="LINKS.GOV_STATE_PENSION_AGE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">State Pension age</a>
           </p>
@@ -75,14 +74,13 @@
             id="gender"
             v-model="formData.gender"
             class="input-field"
-            :class="{ 'border-raspberry-300': fieldErrors.gender }"
+            
           >
             <option value="">Select gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
-          <p v-if="fieldErrors.gender" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.gender }}</p>
         </div>
 
         <!-- Marital Status -->
@@ -93,7 +91,7 @@
             id="marital_status"
             v-model="formData.marital_status"
             class="input-field"
-            :class="{ 'border-raspberry-300': fieldErrors.marital_status }"
+            
           >
             <option value="">Select marital status</option>
             <option value="single">Single</option>
@@ -101,7 +99,6 @@
             <option value="divorced">Divorced</option>
             <option value="widowed">Widowed</option>
           </select>
-          <p v-if="fieldErrors.marital_status" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.marital_status }}</p>
           <p v-else class="mt-1 text-body-sm text-neutral-500">
             Affects spouse exemption and transferable nil rate band
           </p>
@@ -124,10 +121,9 @@
               v-model="formData.address_line_1"
               type="text"
               class="input-field"
-              :class="{ 'border-raspberry-300': fieldErrors.address_line_1 }"
+              
               placeholder="123 Test Street"
             >
-            <p v-if="fieldErrors.address_line_1" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.address_line_1 }}</p>
           </div>
 
           <div>
@@ -152,10 +148,9 @@
                 v-model="formData.city"
                 type="text"
                 class="input-field"
-                :class="{ 'border-raspberry-300': fieldErrors.city }"
+                
                 placeholder="London"
               >
-              <p v-if="fieldErrors.city" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.city }}</p>
             </div>
 
             <div>
@@ -179,12 +174,11 @@
                 v-model="formData.postcode"
                 type="text"
                 class="input-field"
-                :class="{ 'border-raspberry-300': fieldErrors.postcode }"
+                
                 placeholder="SW1A 1AA"
                 maxlength="8"
                 @input="formatPostcode"
               >
-              <p v-if="fieldErrors.postcode" class="mt-1 text-body-sm text-raspberry-500">{{ fieldErrors.postcode }}</p>
             </div>
           </div>
 
@@ -328,21 +322,6 @@ export default {
 
     const loading = ref(false);
     const error = ref(null);
-    const fieldErrors = ref({});
-
-    // Clear individual field errors as the user provides input
-    watch(formData, (newVal) => {
-      const requiredFields = ['date_of_birth', 'gender', 'marital_status', 'address_line_1', 'city', 'postcode'];
-      for (const field of requiredFields) {
-        if (fieldErrors.value[field] && newVal[field] && String(newVal[field]).trim()) {
-          delete fieldErrors.value[field];
-        }
-      }
-      // Clear the general error message when all field errors are resolved
-      if (Object.keys(fieldErrors.value).length === 0 && error.value === 'Please complete all required fields marked with *') {
-        error.value = null;
-      }
-    }, { deep: true });
 
     const maxDob = computed(() => {
       // Max DOB is 18 years ago (minimum age)
@@ -372,41 +351,7 @@ export default {
       formData.value.postcode = address.postcode || '';
     };
 
-    const validateForm = () => {
-      fieldErrors.value = {};
-
-      if (!formData.value.date_of_birth) {
-        fieldErrors.value.date_of_birth = 'Date of Birth is required';
-      }
-      if (!formData.value.gender) {
-        fieldErrors.value.gender = 'Gender is required';
-      }
-      if (!formData.value.marital_status) {
-        fieldErrors.value.marital_status = 'Marital Status is required';
-      }
-      if (!formData.value.address_line_1 || !formData.value.address_line_1.trim()) {
-        fieldErrors.value.address_line_1 = 'Address Line 1 is required';
-      }
-      if (!formData.value.city || !formData.value.city.trim()) {
-        fieldErrors.value.city = 'City is required';
-      }
-      if (!formData.value.postcode || !formData.value.postcode.trim()) {
-        fieldErrors.value.postcode = 'Postcode is required';
-      }
-
-      if (Object.keys(fieldErrors.value).length > 0) {
-        error.value = 'Please complete all required fields marked with *';
-        return false;
-      }
-
-      return true;
-    };
-
     const handleNext = async () => {
-      if (!validateForm()) {
-        return;
-      }
-
       loading.value = true;
       error.value = null;
 
@@ -502,7 +447,6 @@ export default {
       formData,
       loading,
       error,
-      fieldErrors,
       maxDob,
       minDob,
       formatPostcode,

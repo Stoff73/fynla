@@ -417,16 +417,7 @@ export default {
              retirementAge.value < 55;
     });
 
-    const validateForm = () => {
-      // All fields are optional - no validation required
-      return true;
-    };
-
     const handleNext = async () => {
-      if (!validateForm()) {
-        return;
-      }
-
       loading.value = true;
       error.value = null;
 
