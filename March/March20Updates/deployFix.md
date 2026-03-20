@@ -1,6 +1,6 @@
 # Deployment Guide — 20 March 2026
 
-Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix.
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking.
 
 ## Rebuild Required?
 
@@ -25,13 +25,14 @@ Then upload `public/build/` directory.
 php artisan db:seed --class=OccupationCodeSeeder --force
 ```
 
-## PHP Files to Upload (42)
+## PHP Files to Upload (43)
 
-### Services & Controllers (7)
+### Services & Controllers (8)
 
 ```
 app/Agents/EstateAgent.php
 app/Http/Controllers/Api/EstateController.php
+app/Http/Controllers/Api/LifeStageController.php
 app/Services/Goals/GoalsProjectionService.php
 app/Services/LifeStage/LifeStageService.php
 app/Services/Plans/InvestmentPlanService.php
@@ -124,7 +125,9 @@ These are compiled into `public/build/` — upload the build directory, not indi
 ```
 resources/js/constants/lifeStageConfig.js
 resources/js/store/modules/userProfile.js
+resources/js/store/modules/lifeStage.js
 resources/js/views/Dashboard.vue
+resources/js/components/Journey/JourneyProgressHero.vue
 resources/js/components/Onboarding/OnboardingWizard.vue
 resources/js/components/Onboarding/LearningMilestoneSidebar.vue
 resources/js/components/Onboarding/steps/AssetsStep.vue
@@ -226,6 +229,31 @@ See `onboardingFix.md` for full details. Summary:
 | `OccupationCodeSeeder` added to `DatabaseSeeder.php` | 406 ONS SOC 2020 codes now seeded on `db:seed` |
 | `occupation_codes` table was empty | Autocomplete on Income step now returns results |
 
+### Field-Level Completeness Tracking
+
+Replaces binary step completion stamps with actual field-level tracking from the database.
+
+| Change | Impact |
+|--------|--------|
+| `LifeStageService::getStepCompleteness()` | Per-step field checks, journey-aware (hidden fields excluded) |
+| `LifeStageService::getFullFieldCompleteness()` | All fields for agents/AI — not journey-filtered, includes `form_link` for guidance |
+| `LifeStageController::progress()` | Returns `step_completeness` alongside existing response |
+| `lifeStage.js` store | New `stepCompleteness` state, `refreshCompleteness` action, field-based `progressPercentage` |
+| `OnboardingWizard.vue` progress bar | Three states: green tick (complete), raspberry with % (partial), raspberry dash (skipped) |
+| `JourneyProgressHero.vue` | `completedCount` now counts only steps with `status === 'complete'` |
+| `handleLifeStageSkip` | No longer stamps step as complete — backend determines status from actual data |
+| `handleLifeStageNext` | Refreshes completeness from backend instead of blindly stamping |
+
+**Progress bar states:**
+
+| State | Circle | Content | Label | Connecting Line |
+|-------|--------|---------|-------|----------------|
+| Complete | Spring bg | Tick icon | Spring text | Spring |
+| Partial | Raspberry bg + spring border | Percentage | Violet text | Violet |
+| Skipped | Raspberry bg | Dash icon | Raspberry text | Raspberry |
+| Current | Stage colour (pulsing) | Step number | Stage colour bold | — |
+| Upcoming | White bg, light-gray border | Step number | Neutral text | Light-gray |
+
 ## Post-Deploy Verification
 
 1. Register new user → select each journey → verify step count matches
@@ -237,7 +265,10 @@ See `onboardingFix.md` for full details. Summary:
 7. Journey 4 + 5: Family step appears after About You
 8. Family sidebar shows tailored content per journey
 9. All forms submit without validation errors (no required fields)
-10. Dashboard shows correct step count and 100% after completing all steps
-11. Returning user sees their journey progress, not welcome screen
-12. **Occupation autocomplete**: type "soft" on Income step → should show "Software Developer", "Software Engineer" etc.
-13. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
+10. **Field completeness**: click Continue with empty fields → step shows raspberry with dash (skipped), NOT green tick
+11. **Field completeness**: fill some fields, click Continue → step shows raspberry with percentage (partial)
+12. **Field completeness**: fill all tracked fields, click Continue → step shows green tick (complete)
+13. **Dashboard progress**: shows actual percentage based on filled fields, not 100% for clicking through empty
+14. Returning user sees their journey progress, not welcome screen
+15. **Occupation autocomplete**: type "soft" on Income step → should show "Software Developer", "Software Engineer" etc.
+16. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
