@@ -233,7 +233,7 @@ class EstateAgent extends BaseAgent
             ])->values()->toArray();
 
             // Build itemised life policy list
-            $itemisedPolicies = $allPolicies->map(fn ($p) => [
+            $itemisedPolicies = $allLifePolicies->map(fn ($p) => [
                 'provider' => $p->provider ?? 'Unknown provider',
                 'policy_type' => $p->policy_type ?? 'life',
                 'sum_assured' => (float) ($p->sum_assured ?? 0),

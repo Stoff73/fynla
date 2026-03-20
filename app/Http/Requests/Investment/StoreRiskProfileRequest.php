@@ -26,10 +26,10 @@ class StoreRiskProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'risk_tolerance' => ['required', Rule::in(['cautious', 'balanced', 'adventurous'])],
-            'capacity_for_loss_percent' => 'required|numeric|min:0|max:100',
-            'time_horizon_years' => 'required|integer|min:0|max:100',
-            'knowledge_level' => ['required', Rule::in(['novice', 'intermediate', 'experienced'])],
+            'risk_tolerance' => ['sometimes', Rule::in(['cautious', 'balanced', 'adventurous'])],
+            'capacity_for_loss_percent' => 'sometimes|numeric|min:0|max:100',
+            'time_horizon_years' => 'sometimes|integer|min:0|max:100',
+            'knowledge_level' => ['sometimes', Rule::in(['novice', 'intermediate', 'experienced'])],
         ];
     }
 }

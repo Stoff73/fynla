@@ -67,6 +67,7 @@
                 :is="lifeStageCurrentComponent"
                 :key="lifeStageCurrentStepId"
                 :context="'onboarding'"
+                :saved-data="savedStepData[lifeStageCurrentStepId] || null"
                 @save="handleLifeStageStepSave"
                 @next="handleLifeStageNext"
                 @back="handleLifeStageBack"
@@ -364,20 +365,20 @@ const STEP_COMPONENTS = {
   'savings': () => import('@/components/Savings/SaveAccountModal.vue'),
   'savings-emergency': () => import('@/components/Savings/SaveAccountModal.vue'),
   'first-home-lisa': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'property-mortgage': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
-  'property-portfolio': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
+  'property-mortgage': () => import('@/components/Onboarding/steps/PropertyStep.vue'),
+  'property-portfolio': () => import('@/components/Onboarding/steps/PropertyStep.vue'),
   'protection-insurance': () => import('@/components/Protection/PolicyFormModal.vue'),
-  'pensions': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-auto-enrolment': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-review': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-drawdown': () => import('@/components/Retirement/DCPensionForm.vue'),
+  'pensions': () => import('@/components/Onboarding/steps/PensionStep.vue'),
+  'pension-auto-enrolment': () => import('@/components/Onboarding/steps/PensionStep.vue'),
+  'pension-review': () => import('@/components/Onboarding/steps/PensionStep.vue'),
+  'pension-drawdown': () => import('@/components/Onboarding/steps/PensionStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
-  'investments': () => import('@/components/Investment/AccountForm.vue'),
-  'investments-isa': () => import('@/components/Investment/AccountForm.vue'),
+  'investments': () => import('@/components/Onboarding/steps/InvestmentStep.vue'),
+  'investments-isa': () => import('@/components/Onboarding/steps/InvestmentStep.vue'),
   'state-pension': () => import('@/components/Retirement/StatePensionForm.vue'),
 };
 
@@ -488,6 +489,9 @@ export default {
     const lifeStageCompletedSteps = computed(() => store.state.lifeStage?.completedSteps || []);
 
     const lifeStageCurrentIndex = ref(0);
+
+    // Cache form data emitted by steps so back navigation can restore it
+    const savedStepData = ref({});
 
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
@@ -611,8 +615,24 @@ export default {
       return 'bg-light-gray';
     };
 
-    const handleLifeStageNext = async () => {
+    const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
+
+      if (formData && typeof formData === 'object' && currentStepId) {
+        savedStepData.value[currentStepId] = { ...formData };
+      }
+
+      if (currentStepId === 'family') {
+        try {
+          await Promise.all([
+            store.dispatch('userProfile/fetchFamilyMembers'),
+            store.dispatch('userProfile/fetchProfile'),
+          ]);
+        } catch {
+          // Non-blocking
+        }
+      }
+
       if (currentStepId) {
         await store.dispatch('lifeStage/completeStep', currentStepId);
       }
@@ -658,12 +678,21 @@ export default {
       // PersonalInformation emits form data — parent must save.
       // Deprecated steps (IncomeStep, SimpleExpenditureStep) save internally.
       const stepId = lifeStageCurrentStepId.value;
+
+      // Cache form data so back navigation can restore it
+      if (formData) {
+        savedStepData.value[stepId] = { ...formData };
+      }
+
       try {
         if (stepId === 'personal-info' && formData) {
           // PersonalInformation emits raw form data — save via store dispatches
           // (same as the standalone component uses)
+          const nameParts = (formData.name || '').trim().split(/\s+/);
           const personalData = {
-            name: formData.name,
+            first_name: nameParts[0] || null,
+            surname: nameParts.length > 1 ? nameParts[nameParts.length - 1] : null,
+            middle_name: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : null,
             email: formData.email,
             date_of_birth: formData.date_of_birth || null,
             gender: formData.gender || null,
@@ -693,14 +722,6 @@ export default {
           await estateService.createLiability(formData);
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
           await savingsService.createAccount(formData);
-        } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
-          // PropertyForm emits { property: {...}, mortgage: {...} }
-          const propertyData = formData.property || formData;
-          const response = await propertyService.createProperty(propertyData);
-          // If property has a mortgage, save it linked to the new property
-          if (formData.mortgage && response.data?.id) {
-            await propertyService.createPropertyMortgage(response.data.id, formData.mortgage);
-          }
         } else if (stepId === 'protection-insurance' && formData) {
           // PolicyFormModal emits with policyType field
           const policyType = formData.policyType || formData.policy_type || 'life';
@@ -713,10 +734,6 @@ export default {
           };
           const creator = policyCreators[policyType] || policyCreators.life;
           await creator(formData);
-        } else if ((stepId === 'pensions' || stepId === 'pension-auto-enrolment' || stepId === 'pension-review' || stepId === 'pension-drawdown') && formData) {
-          await retirementService.createDCPension(formData);
-        } else if ((stepId === 'investments' || stepId === 'investments-isa') && formData) {
-          await investmentService.createAccount(formData);
         } else if (stepId === 'state-pension' && formData) {
           await retirementService.updateStatePension(formData);
         } else if (stepId === 'goals' && formData) {
@@ -1139,6 +1156,9 @@ export default {
 
     onMounted(async () => {
       if (isLifeStageMode.value) {
+        // Pre-fetch user profile so PersonalInformation form auto-fills name/email
+        await store.dispatch('userProfile/fetchProfile').catch(() => {});
+
         // Life stage mode: steps come from lifeStage store
         // Find the first uncompleted step to resume from
         const steps = lifeStageSteps.value;
@@ -1206,6 +1226,7 @@ export default {
       lifeStageCurrentStepId,
       stepHasOwnNav,
       lifeStageCurrentComponent,
+      savedStepData,
       stageColour,
       stageColourClasses,
       isLifeStageStepCompleted,

@@ -501,8 +501,8 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
-                  <option v-if="!spouse" value="" disabled>No spouse linked - add spouse in Family Members</option>
+                  <option v-if="spouse && spouse.id" :value="spouse.id">{{ spouse.name }} (Spouse)</option>
+                  <option v-if="!spouse || !spouse.id" value="" disabled>Link your spouse's account to enable joint ownership</option>
                 </select>
                 <p class="text-sm text-neutral-500 mt-1">
                   Joint accounts will appear in both your and your spouse's accounts.
@@ -577,6 +577,10 @@ export default {
       type: String,
       default: 'standalone',
       validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
+    savedData: {
+      type: Object,
+      default: null,
     },
   },
 

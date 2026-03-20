@@ -215,8 +215,14 @@ class CrossModuleAssetAggregator
      */
     public function getMortgages(int $userId): Collection
     {
-        return Mortgage::forUserOrJoint($userId)
+        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+
+        $propertyIds = Property::forUserOrJoint($userId)->pluck('id');
+        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
+            ->whereNotIn('id', $directMortgages->pluck('id'))
             ->get();
+
+        return $directMortgages->concat($propertyMortgages);
     }
 
     /**
@@ -227,8 +233,14 @@ class CrossModuleAssetAggregator
      */
     public function calculateMortgageTotal(int $userId): float
     {
-        return Mortgage::forUserOrJoint($userId)
-            ->get()
+        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+
+        $propertyIds = Property::forUserOrJoint($userId)->pluck('id');
+        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
+            ->whereNotIn('id', $directMortgages->pluck('id'))
+            ->get();
+
+        return $directMortgages->concat($propertyMortgages)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $userId));
     }
 

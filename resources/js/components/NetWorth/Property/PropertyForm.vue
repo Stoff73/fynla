@@ -397,7 +397,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -478,7 +478,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Select co-owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -922,7 +922,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -1647,6 +1647,8 @@ export default {
   mounted() {
     if (this.property) {
       this.populateForm();
+    } else if (this.context === 'onboarding' && this.userAddress) {
+      this.form.property_type = 'main_residence';
     }
   },
 
@@ -1837,6 +1839,10 @@ export default {
         // Extract ID and set joint_owner_id
         this.form.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''));
         this.form.joint_owner_name = ''; // Clear free text field
+      } else if (this.jointOwnerSelection === 'spouse_name') {
+        // Spouse without linked account — use their name
+        this.form.joint_owner_id = null;
+        this.form.joint_owner_name = this.spouse?.name || '';
       } else if (this.jointOwnerSelection === 'other') {
         // Clear linked ID when using free text
         this.form.joint_owner_id = null;
@@ -1848,6 +1854,10 @@ export default {
         // Extract ID and set mortgage joint_owner_id
         this.mortgageForm.joint_owner_id = parseInt(this.mortgageJointOwnerSelection.replace('linked_', ''));
         this.mortgageForm.joint_owner_name = ''; // Clear free text field
+      } else if (this.mortgageJointOwnerSelection === 'spouse_name') {
+        // Spouse without linked account — use their name
+        this.mortgageForm.joint_owner_id = null;
+        this.mortgageForm.joint_owner_name = this.spouse?.name || '';
       } else if (this.mortgageJointOwnerSelection === 'other') {
         // Clear linked ID when using free text
         this.mortgageForm.joint_owner_id = null;

@@ -395,8 +395,8 @@
           </div>
         </div>
 
-        <!-- Occupation Section -->
-        <div v-if="isFieldVisible('occupation') || isFieldVisible('employment_status')" class="border-t border-light-gray pt-6">
+        <!-- Occupation Section (hidden in onboarding — asked separately on Income step) -->
+        <div v-if="context !== 'onboarding' && (isFieldVisible('occupation') || isFieldVisible('employment_status'))" class="border-t border-light-gray pt-6">
           <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Occupation</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -606,6 +606,10 @@ export default {
       type: String,
       default: 'standalone',
       validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
+    savedData: {
+      type: Object,
+      default: null,
     },
   },
 
@@ -820,9 +824,7 @@ export default {
 
     // Watch for changes in data and reinitialize form
     watch([personalInfo, incomeOccupation, user], () => {
-      if (!isEditing.value) {
-        initializeForm();
-      }
+      initializeForm();
     }, { immediate: true });
 
     /**
@@ -870,9 +872,12 @@ export default {
       errorMessage.value = '';
 
       try {
-        // Prepare personal info data
+        // Prepare personal info data — split full name into first/middle/surname
+        const nameParts = (form.value.name || '').trim().split(/\s+/);
         const personalData = {
-          name: form.value.name,
+          first_name: nameParts[0] || null,
+          surname: nameParts.length > 1 ? nameParts[nameParts.length - 1] : null,
+          middle_name: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : null,
           email: form.value.email,
           date_of_birth: form.value.date_of_birth || null,
           gender: form.value.gender || null,

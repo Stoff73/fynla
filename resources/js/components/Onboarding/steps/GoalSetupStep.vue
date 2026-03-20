@@ -120,6 +120,11 @@ export default {
     UsefulResources,
   },
 
+  props: {
+    savedData: { type: Object, default: null },
+    context: { type: String, default: null },
+  },
+
   emits: ['next', 'back', 'skip'],
 
   setup(props, { emit }) {

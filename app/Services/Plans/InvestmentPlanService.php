@@ -315,7 +315,7 @@ class InvestmentPlanService extends BasePlanService
                     'field' => 'holdings',
                     'label' => 'Investment holdings',
                     'description' => 'Add holdings to your investment accounts for detailed analysis.',
-                    'link' => '/investments',
+                    'link' => '/net-worth/investments',
                 ];
             }
         }
@@ -325,7 +325,7 @@ class InvestmentPlanService extends BasePlanService
                 'field' => 'investment_accounts',
                 'label' => 'Investment accounts',
                 'description' => 'Add your investment accounts to receive portfolio analysis.',
-                'link' => '/investments',
+                'link' => '/net-worth/investments',
             ];
         }
 
@@ -334,7 +334,7 @@ class InvestmentPlanService extends BasePlanService
                 'field' => 'risk_profile',
                 'label' => 'Risk profile',
                 'description' => 'Complete the risk questionnaire for personalised allocation recommendations.',
-                'link' => '/investments',
+                'link' => '/net-worth/investments',
             ];
         }
 

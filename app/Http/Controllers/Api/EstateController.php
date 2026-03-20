@@ -51,6 +51,25 @@ class EstateController extends Controller
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
         $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
+
+        // Include mortgages as liabilities for net worth display
+        $mortgages = \App\Models\Mortgage::whereHas('property', function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
+        })->with('property')->limit(100)->get();
+
+        $mortgageLiabilities = $mortgages->map(function ($mortgage) {
+            return [
+                'id' => 'mortgage_'.$mortgage->id,
+                'source' => 'property_module',
+                'liability_type' => 'mortgage',
+                'liability_name' => 'Mortgage - '.($mortgage->property->address_line_1 ?? 'Property'),
+                'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
+                'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
+                'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
+                'notes' => ucfirst($mortgage->mortgage_type ?? 'repayment').' mortgage',
+            ];
+        });
+
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
@@ -90,7 +109,12 @@ class EstateController extends Controller
             'data' => [
                 'assets' => AssetResource::collection($assets),
                 'investment_accounts' => $investmentAccountsFormatted,
-                'liabilities' => LiabilityResource::collection($liabilities),
+                'liabilities' => LiabilityResource::collection($liabilities)
+                    ->collection
+                    ->map(fn ($r) => $r->resolve())
+                    ->merge($mortgageLiabilities)
+                    ->values()
+                    ->all(),
                 'gifts' => GiftResource::collection($gifts),
                 'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,

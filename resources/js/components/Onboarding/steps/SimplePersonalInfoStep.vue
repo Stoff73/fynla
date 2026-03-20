@@ -166,6 +166,11 @@ export default {
     UsefulResources,
   },
 
+  props: {
+    savedData: { type: Object, default: null },
+    context: { type: String, default: null },
+  },
+
   emits: ['next', 'back', 'skip'],
 
   setup(props, { emit }) {
@@ -271,8 +276,11 @@ export default {
       // Pre-populate from user data
       const currentUser = store.getters['auth/currentUser'];
       if (currentUser) {
+        const nameParts = [currentUser.first_name, currentUser.middle_name, currentUser.last_name].filter(Boolean);
         formData.value.first_name = currentUser.first_name || '';
-        formData.value.surname = currentUser.surname || '';
+        formData.value.surname = currentUser.surname || currentUser.last_name || '';
+        formData.value.name = nameParts.join(' ') || '';
+        formData.value.email = currentUser.email || '';
         formData.value.phone = currentUser.phone || '';
         formData.value.date_of_birth = currentUser.date_of_birth || '';
         formData.value.marital_status = currentUser.marital_status || '';
@@ -288,6 +296,11 @@ export default {
         }
       } catch {
         // No existing data
+      }
+
+      // Restore from savedData prop (cached by wizard on back navigation)
+      if (props.savedData && Object.keys(props.savedData).length > 0) {
+        formData.value = { ...formData.value, ...props.savedData };
       }
     });
 

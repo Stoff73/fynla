@@ -337,6 +337,11 @@ export default {
     OccupationAutocomplete,
   },
 
+  props: {
+    savedData: { type: Object, default: null },
+    context: { type: String, default: null },
+  },
+
   emits: ['next', 'back', 'skip'],
 
   setup(props, { emit }) {
@@ -466,7 +471,7 @@ export default {
         }
       }
 
-      // ONLY load from backend API - single source of truth
+      // Load from backend API
       try {
         const stepData = await store.dispatch('onboarding/fetchStepData', 'income');
         if (stepData && Object.keys(stepData).length > 0) {
@@ -474,6 +479,16 @@ export default {
         }
       } catch (err) {
         // No existing data, use pre-populated values from user table
+      }
+
+      // Pre-populate employment details from profile (saved in About You step)
+      const profileData = store.getters['userProfile/incomeOccupation'];
+      if (profileData) {
+        if (!formData.value.employment_status && profileData.employment_status) formData.value.employment_status = profileData.employment_status;
+        if (!formData.value.occupation && profileData.occupation) formData.value.occupation = profileData.occupation;
+        if (!formData.value.employer && profileData.employer) formData.value.employer = profileData.employer;
+        if (!formData.value.industry && profileData.industry) formData.value.industry = profileData.industry;
+        if (!formData.value.target_retirement_age && profileData.target_retirement_age) formData.value.target_retirement_age = profileData.target_retirement_age;
       }
 
       // Fetch rental income directly from properties API using propertyService
