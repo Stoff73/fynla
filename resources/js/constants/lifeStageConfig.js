@@ -79,7 +79,7 @@ export const LIFE_STAGES = {
         'student-loan',
         'income',
         'expenditure',
-        'savings',
+        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -165,6 +165,9 @@ export const LIFE_STAGES = {
           'pension_income', 'state_pension',
         ],
       },
+      assets: {
+        visibleTabs: ['cash'],
+      },
       savings: {
         defaultTypes: ['current_account', 'easy_access', 'instant_access', 'cash_isa'],
         emergencyFundProminent: true,
@@ -240,10 +243,7 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'income-career',
-        'savings-emergency',
-        'first-home-lisa',
-        'pension-auto-enrolment',
-        'investments',
+        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -334,6 +334,9 @@ export const LIFE_STAGES = {
           'dividend_income', 'pension_income', 'state_pension',
         ],
       },
+      assets: {
+        visibleTabs: ['cash', 'retirement', 'investments'],
+      },
       savings: {
         defaultTypes: ['easy_access', 'cash_isa', 'lifetime_isa', 'fixed_rate', 'current_account'],
         emergencyFundProminent: true,
@@ -417,9 +420,8 @@ export const LIFE_STAGES = {
         'personal-info',
         'family',
         'income',
-        'property-mortgage',
+        'assets',
         'protection-insurance',
-        'pensions',
         'will-estate',
         'goals',
       ],
@@ -605,9 +607,7 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'income-tax',
-        'pension-review',
-        'investments-isa',
-        'property-portfolio',
+        'assets',
         'estate-iht',
         'goals',
       ],
@@ -786,8 +786,7 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
-        'pension-drawdown',
-        'state-pension',
+        'assets',
         'income-tax',
         'estate-legacy',
         'goals',

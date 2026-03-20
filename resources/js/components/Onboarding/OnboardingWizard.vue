@@ -68,7 +68,6 @@
                 :key="lifeStageCurrentStepId"
                 :context="'onboarding'"
                 :saved-data="savedStepData[lifeStageCurrentStepId] || null"
-                :visible-tabs="STEP_TAB_MAP[lifeStageCurrentStepId] || null"
                 @save="handleLifeStageStepSave"
                 @next="handleLifeStageNext"
                 @back="handleLifeStageBack"
@@ -354,34 +353,13 @@ const STEP_COMPONENTS = {
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'expenditure': () => import('@/components/Onboarding/steps/ExpenditureStep.vue'),
-  'savings': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'savings-emergency': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'first-home-lisa': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'property-mortgage': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'property-portfolio': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'assets': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
   'protection-insurance': () => import('@/components/Onboarding/steps/ProtectionPoliciesStep.vue'),
-  'pensions': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'pension-auto-enrolment': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'pension-review': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'pension-drawdown': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'state-pension': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'investments': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
-  'investments-isa': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
-};
-
-// Maps step IDs to AssetsStep tab filter — null = show all tabs
-const STEP_TAB_MAP = {
-  'savings': 'cash',
-  'savings-emergency': 'cash',
-  'first-home-lisa': 'cash',
-  'pension-auto-enrolment': 'retirement',
-  'investments': 'investments',
-  'investments-isa': 'investments',
 };
 
 // Step label map for the progress bar
@@ -392,24 +370,13 @@ const STEP_LABELS = {
   'income-career': 'Income',
   'income-tax': 'Income',
   'expenditure': 'Spending',
-  'savings': 'Savings',
-  'savings-emergency': 'Savings',
-  'first-home-lisa': 'First Home',
-  'pension-auto-enrolment': 'Pension',
-  'investments': 'Investments',
-  'investments-isa': 'Investments',
+  'assets': 'Assets',
   'goals': 'Goals',
   'family': 'Family',
-  'property-mortgage': 'Property',
-  'property-portfolio': 'Property',
   'protection-insurance': 'Protection',
-  'pensions': 'Pensions',
-  'pension-review': 'Pensions',
-  'pension-drawdown': 'Pensions',
   'will-estate': 'Will',
   'estate-iht': 'Estate',
   'estate-legacy': 'Estate',
-  'state-pension': 'State Pension',
 };
 
 export default {
@@ -496,12 +463,7 @@ export default {
       'personal-info', 'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals',
-      'savings', 'savings-emergency', 'first-home-lisa',
-      'property-mortgage', 'property-portfolio',
-      'protection-insurance',
-      'pensions', 'pension-auto-enrolment', 'pension-review', 'pension-drawdown', 'state-pension',
-      'investments', 'investments-isa',
+      'goals', 'assets', 'protection-insurance',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -1227,7 +1189,6 @@ export default {
       stepHasOwnNav,
       lifeStageCurrentComponent,
       savedStepData,
-      STEP_TAB_MAP,
       stageColour,
       stageColourClasses,
       isLifeStageStepCompleted,

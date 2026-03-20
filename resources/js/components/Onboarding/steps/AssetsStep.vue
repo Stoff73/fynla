@@ -497,32 +497,31 @@ export default {
     UsefulResources,
   },
 
-  props: {
-    visibleTabs: {
-      type: String,
-      default: null,
-    },
-  },
-
   emits: ['next', 'back', 'skip'],
 
   setup(props, { emit }) {
-    const activeTab = ref(props.visibleTabs || 'retirement');
+    const store = useStore();
 
-    const TAB_TITLES = {
-      cash: 'Bank Accounts',
-      retirement: 'Pensions',
-      investments: 'Investments',
-      properties: 'Properties',
-    };
-    const TAB_DESCRIPTIONS = {
-      cash: 'Add your bank and savings accounts',
-      retirement: 'Add your pension schemes so we can project your retirement income',
-      investments: 'Add your investment accounts so we can analyse your portfolio',
-      properties: 'Add your properties and any mortgages',
-    };
-    const stepTitle = computed(() => props.visibleTabs ? TAB_TITLES[props.visibleTabs] || 'Assets & Wealth' : 'Assets & Wealth');
-    const stepDescription = computed(() => props.visibleTabs ? TAB_DESCRIPTIONS[props.visibleTabs] || 'Add your properties, investments, and savings accounts' : 'Add your properties, investments, and savings accounts');
+    // Read which tabs to show from life stage config
+    const assetsConfig = computed(() => store.getters['lifeStage/formFields']?.('assets'));
+    const allowedTabs = computed(() => assetsConfig.value?.visibleTabs || null);
+
+    const activeTab = ref('retirement');
+
+    const stepTitle = computed(() => {
+      if (allowedTabs.value && allowedTabs.value.length === 1) {
+        const titles = { cash: 'Bank Accounts', retirement: 'Pensions', investments: 'Investments', properties: 'Properties' };
+        return titles[allowedTabs.value[0]] || 'Assets & Wealth';
+      }
+      return 'Assets & Wealth';
+    });
+    const stepDescription = computed(() => {
+      if (allowedTabs.value && allowedTabs.value.length === 1) {
+        const descs = { cash: 'Add your bank and savings accounts', retirement: 'Add your pension schemes so we can project your retirement income', investments: 'Add your investment accounts so we can analyse your portfolio', properties: 'Add your properties and any mortgages' };
+        return descs[allowedTabs.value[0]] || 'Add your properties, investments, and savings accounts';
+      }
+      return 'Add your properties, investments, and savings accounts';
+    });
 
     // Properties state
     const properties = ref([]);
@@ -562,8 +561,8 @@ export default {
     ];
 
     const assetTabs = computed(() => {
-      const tabs = props.visibleTabs
-        ? allTabs.filter(t => t.id === props.visibleTabs)
+      const tabs = allowedTabs.value
+        ? allTabs.filter(t => allowedTabs.value.includes(t.id))
         : allTabs;
 
       return tabs.map(t => ({
@@ -578,6 +577,11 @@ export default {
 
     // Load existing data
     onMounted(async () => {
+      // Set default tab to first allowed tab
+      if (allowedTabs.value && allowedTabs.value.length > 0) {
+        activeTab.value = allowedTabs.value[0];
+      }
+
       try {
         await Promise.all([
           loadPensions(),
