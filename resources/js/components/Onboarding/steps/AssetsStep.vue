@@ -463,6 +463,7 @@
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
 import { ref, computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import PropertyForm from '@/components/NetWorth/Property/PropertyForm.vue';
 import PropertyCard from '@/components/NetWorth/PropertyCard.vue';
