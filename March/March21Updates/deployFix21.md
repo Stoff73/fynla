@@ -48,7 +48,7 @@ tests/Unit/Agents/EstateAgentGoalsTest.php
 tests/Unit/Agents/RetirementAgentGoalsTest.php
 ```
 
-### Modified Files (18)
+### Modified Files (20)
 
 ```
 app/Agents/SavingsAgent.php
@@ -57,6 +57,7 @@ app/Agents/EstateAgent.php
 app/Agents/RetirementAgent.php
 app/Agents/CoordinatingAgent.php
 app/Services/AI/AiToolDefinitions.php
+app/Services/PrerequisiteGateService.php
 app/Services/UserProfile/PersonalAccountsService.php
 app/Services/UserProfile/UserProfileService.php
 app/Services/Goals/LifeEventIntegrationService.php
@@ -82,11 +83,13 @@ resources/js/components/Dashboard/GoalsOverviewCard.vue
 resources/js/components/WhatIf/ScenarioCard.vue
 resources/js/components/WhatIf/ScenarioDetail.vue
 resources/js/components/WhatIf/ModuleComparison.vue
+resources/js/components/Shared/AiChatPanel.vue
 resources/js/views/Planning/WhatIfDashboard.vue
 resources/js/views/Planning/WhatIfScenarioDetailView.vue
 resources/js/store/modules/whatIf.js
 resources/js/store/index.js
 resources/js/services/whatIfService.js
+resources/js/utils/chatNavigationRouter.js
 resources/js/router/index.js
 resources/js/layouts/AppLayout.vue
 ```
@@ -137,6 +140,20 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - Card grid list → dedicated detail page with back button
 - AI auto-navigation: Fyn creates scenario and navigates user to detail view
 
+### Fyn AI Navigation (PR #152)
+- Query string parsing fixed for `/valuable-info?section=income` style URLs
+- Client-side router: all 37 sidebar pages mapped to zero-token keyword matches
+- Added missing keywords: savings, retirement, sipp, life events, individual plans, help
+- AI tool route list: comprehensive with categories, legacy redirect warnings
+- System prompt: always navigate first, offer help on empty modules, module dependency guidance
+
+### Fyn AI Goals & Life Events Context (PR #153)
+- All active goals included in system prompt with IDs, progress, status, contributions
+- All upcoming life events included in system prompt with IDs, amounts, timing
+- New `list_goals` tool: lightweight goal listing without full agent analysis
+- New `list_life_events` tool: lightweight event listing without full agent analysis
+- Fyn can reference goals/events by ID for updates and deletes without a prior tool call
+
 ## Post-Deploy Verification
 
 1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable
@@ -145,3 +162,7 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 4. **What-If**: As real user, ask Fyn "What if I retire at 55?" → verify scenario created, auto-navigated to detail page with AI narrative + module comparisons
 5. **What-If list**: Navigate to /planning/what-if → verify scenario card in grid, click navigates to detail page, back button returns to list
 6. **Life Events**: Create a new life event → verify affected module caches cleared
+7. **Navigation**: Ask Fyn "show me my income" → verify navigates to `/valuable-info?section=income` (not `/profile`)
+8. **Navigation**: Ask Fyn "show me my life events" → verify navigates to `/goals?tab=events`
+9. **Navigation**: Ask Fyn "show me my retirement plan" → verify navigates to `/plans/retirement` (not `/holistic-plan`)
+10. **Goals context**: Ask Fyn "what are my goals?" → verify Fyn lists goals with names, amounts, and status without needing a tool call
