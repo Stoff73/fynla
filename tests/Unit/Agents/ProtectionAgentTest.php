@@ -233,6 +233,7 @@ describe('analyze', function () {
             'adequacy_score',
             'recommendations',
             'scenarios',
+            'goal_commitments',
             'policies',
             'profile_completeness',
         ]);
