@@ -61,17 +61,14 @@ const actions = {
     commit('SET_ERROR', null);
     try {
       const response = await whatIfService.getScenarioComparison(scenarioId);
-      const data = response.data || response;
-      // The API returns { scenario: {...}, comparison: {...} } — extract the comparison
-      // and merge in ai_narrative and affected_modules from the scenario
-      const comparison = data.comparison || data;
-      if (data.scenario?.ai_narrative && !comparison.ai_narrative) {
-        comparison.ai_narrative = data.scenario.ai_narrative;
-      }
+      // API returns { success, data: { scenario, comparison } }
+      // Service unwraps axios .data, so response = { success, data: { scenario, comparison } }
+      const comparison = response?.data?.comparison || response?.comparison || response?.data || response;
+      console.log('[WhatIf] Comparison data:', JSON.stringify(comparison).substring(0, 200));
       commit('SET_COMPARISON_DATA', comparison);
     } catch (error) {
+      console.error('[WhatIf] fetchScenarioComparison error:', error);
       commit('SET_ERROR', error.message);
-      throw error;
     } finally {
       commit('SET_LOADING', false);
     }
