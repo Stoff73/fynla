@@ -227,6 +227,10 @@ class AiToolDefinitions
                             'enum' => ['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'],
                             'description' => 'Type of goal',
                         ],
+                        'monthly_contribution' => [
+                            'type' => 'number',
+                            'description' => 'Optional monthly contribution amount in pounds. If provided, Fyn will assess whether this is sufficient to reach the target by the deadline.',
+                        ],
                     ],
                     'required' => ['name', 'target_amount', 'target_date', 'priority', 'goal_type'],
                     'additionalProperties' => false,
