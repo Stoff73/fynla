@@ -397,6 +397,16 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'estate_liability' && fill.fields) {
+          // Pre-set critical fields before highlight sequence
+          if (fill.fields.liability_type) {
+            this.formData.liability_type = fill.fields.liability_type;
+          }
+          if (fill.fields.liability_name) {
+            this.formData.liability_name = fill.fields.liability_name;
+          }
+          if (fill.fields.current_balance !== undefined) {
+            this.formData.current_balance = fill.fields.current_balance;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }

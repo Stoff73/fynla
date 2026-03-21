@@ -1327,12 +1327,12 @@ class CoordinatingAgent extends BaseAgent
     private function handleCreateEstateLiability(array $input, User $user, bool $isPreview): array
     {
         if ($isPreview) {
-            return $this->previewBlocked('estate liability');
+            return $this->previewBlocked('liability');
         }
 
         $validationError = $this->validateToolInput($input, [
             'liability_name' => 'required|string|max:255',
-            'liability_type' => ['required', Rule::in(['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'other'])],
+            'liability_type' => ['required', Rule::in(['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'secured_loan', 'overdraft', 'hire_purchase', 'business_loan', 'other'])],
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
             'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
             'interest_rate' => 'nullable|numeric|min:0|max:50',
