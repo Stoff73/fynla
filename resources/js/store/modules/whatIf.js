@@ -46,7 +46,7 @@ const actions = {
     commit('SET_ERROR', null);
     try {
       const response = await whatIfService.getScenarios();
-      commit('SET_SCENARIOS', response.data || response.scenarios || []);
+      commit('SET_SCENARIOS', response.data?.scenarios || response.data || []);
     } catch (error) {
       commit('SET_ERROR', error.message);
       throw error;
@@ -61,10 +61,14 @@ const actions = {
     commit('SET_ERROR', null);
     try {
       const response = await whatIfService.getScenarioComparison(scenarioId);
-      commit('SET_COMPARISON_DATA', response.data || response);
+      // API returns { success, data: { scenario, comparison } }
+      // Service unwraps axios .data, so response = { success, data: { scenario, comparison } }
+      const comparison = response?.data?.comparison || response?.comparison || response?.data || response;
+      console.log('[WhatIf] Comparison data:', JSON.stringify(comparison).substring(0, 200));
+      commit('SET_COMPARISON_DATA', comparison);
     } catch (error) {
+      console.error('[WhatIf] fetchScenarioComparison error:', error);
       commit('SET_ERROR', error.message);
-      throw error;
     } finally {
       commit('SET_LOADING', false);
     }

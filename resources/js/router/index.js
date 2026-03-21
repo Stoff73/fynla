@@ -663,6 +663,19 @@ const routes = [
     },
   },
   {
+    path: '/planning/what-if/:id',
+    name: 'WhatIfScenarioDetail',
+    component: () => import('@/views/Planning/WhatIfScenarioDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'What If Scenarios', path: '/planning/what-if' },
+        { label: 'Scenario Detail' },
+      ],
+    },
+  },
+  {
     path: '/plans',
     name: 'Plans',
     component: () => import('@/views/Plans/PlansDashboard.vue'),
