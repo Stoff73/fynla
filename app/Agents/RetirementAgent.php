@@ -6,6 +6,7 @@ namespace App\Agents;
 
 use App\Constants\TaxDefaults;
 use App\Models\DCPension;
+use App\Models\Goal;
 use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Investment\AssetAllocationOptimizer;
@@ -79,6 +80,7 @@ class RetirementAgent extends BaseAgent
                     'annual_allowance' => null,
                     'profile' => null,
                     'decumulation' => null,
+                    'post_retirement_goals' => [],
                 ]);
             }
         }
@@ -198,6 +200,29 @@ class RetirementAgent extends BaseAgent
                 ];
             }
 
+            // Post-retirement goal detection
+            $postRetirementGoals = [];
+            $currentAge = $user->date_of_birth ? (int) now()->diffInYears($user->date_of_birth) : null;
+
+            if ($currentAge) {
+                $yearsToRetirementForGoals = max(0, $retirementAge - $currentAge);
+                $retirementDate = now()->addYears($yearsToRetirementForGoals);
+
+                $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
+                foreach ($activeGoals as $goal) {
+                    if ($goal->target_date && $goal->target_date->gt($retirementDate)) {
+                        $postRetirementGoals[] = [
+                            'name' => $goal->goal_name,
+                            'target_amount' => round((float) $goal->target_amount, 2),
+                            'outstanding' => round(max(0, (float) $goal->target_amount - (float) $goal->current_amount), 2),
+                            'monthly_contribution' => round((float) ($goal->monthly_contribution ?? 0), 2),
+                            'annual_cost' => round((float) ($goal->monthly_contribution ?? 0) * 12, 2),
+                            'target_date' => $goal->target_date->format('Y-m-d'),
+                        ];
+                    }
+                }
+            }
+
             return $this->response(true, 'Retirement analysis completed', [
                 'summary' => $summary,
                 'income_projection' => $incomeProjection,
@@ -205,6 +230,7 @@ class RetirementAgent extends BaseAgent
                 'annual_allowance' => $allowance,
                 'profile' => $profile,
                 'decumulation' => $decumulation,
+                'post_retirement_goals' => $postRetirementGoals,
             ]);
         }, null, $cacheTags);
     }

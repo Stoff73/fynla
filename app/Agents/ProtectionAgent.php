@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Models\Goal;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
 use App\Services\Protection\AdequacyScorer;
@@ -135,6 +136,24 @@ class ProtectionAgent extends BaseAgent
             // Check profile completeness
             $profileCompleteness = $this->completenessChecker->checkCompleteness($user);
 
+            // Calculate goal commitments for coverage consideration
+            $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
+            $goalCommitments = [
+                'total_outstanding' => round($activeGoals->sum(fn ($g) => max(0, (float) $g->target_amount - (float) $g->current_amount)), 2),
+                'goals' => $activeGoals->map(fn ($g) => [
+                    'name' => $g->goal_name,
+                    'outstanding' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
+                ])->filter(fn ($g) => $g['outstanding'] > 0)->values()->toArray(),
+                'count' => $activeGoals->count(),
+                'coverage_note' => null,
+            ];
+            if ($goalCommitments['total_outstanding'] > 0) {
+                $count = $goalCommitments['count'];
+                $goalWord = $count === 1 ? 'goal' : 'goals';
+                $meetWord = $count === 1 ? 'this goal' : 'these goals';
+                $goalCommitments['coverage_note'] = "You have {$count} active {$goalWord} with {$this->formatCurrency($goalCommitments['total_outstanding'])} outstanding. Your protection cover should account for these commitments to ensure your family can meet {$meetWord} if the unexpected happens.";
+            }
+
             return $this->response(
                 true,
                 'Protection analysis completed successfully.',
@@ -168,6 +187,7 @@ class ProtectionAgent extends BaseAgent
                         'other' => (float) $otherDebt,
                         'total' => (float) ($mortgageDebt + $otherDebt),
                     ],
+                    'goal_commitments' => $goalCommitments,
                     'policies' => [
                         'life_insurance' => $user->lifeInsurancePolicies->map(fn ($p) => [
                             'id' => $p->id,
