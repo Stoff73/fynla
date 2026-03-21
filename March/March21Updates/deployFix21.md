@@ -1,10 +1,10 @@
 # Deployment Guide — 21 March 2026
 
-**STATUS: DEPLOYED — 21 March 2026**
+**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if)**
 
 ## Rebuild Required?
 
-**Yes** — `IncomeOccupation.vue` and `IncomeStatementTab.vue` changed. Run:
+**Yes** — Multiple Vue components changed. Run:
 
 ```bash
 ./deploy/fynla-org/build.sh
@@ -12,85 +12,136 @@
 
 Then upload `public/build/` directory.
 
-## Database Migrations
+## Database Migrations (2 pending)
 
-None.
+```bash
+php artisan migrate
+```
+
+1. `2026_03_21_000001_add_new_life_event_types.php` — Adds divorce, marriage, new_child, job_loss, income_change to life_events enum
+2. `2026_03_21_000002_create_what_if_scenarios_table.php` — Creates what_if_scenarios table for persistent scenarios
 
 ## Database Seeders
 
-None required — no new seed data.
+```bash
+php artisan db:seed
+```
 
-## PHP Files to Upload (2)
+Reseed all data after migrations to ensure preview personas and tax config are current.
+
+## PHP Files to Upload
+
+### New Files (12)
 
 ```
+app/Models/WhatIfScenario.php
+app/Services/WhatIf/WhatIfScenarioService.php
+app/Http/Controllers/Api/WhatIfScenarioController.php
+app/Http/Requests/StoreWhatIfScenarioRequest.php
+app/Http/Resources/WhatIfScenarioResource.php
+database/factories/WhatIfScenarioFactory.php
+database/migrations/2026_03_21_000001_add_new_life_event_types.php
+database/migrations/2026_03_21_000002_create_what_if_scenarios_table.php
+tests/Unit/Agents/SavingsAgentGoalsTest.php
+tests/Unit/Agents/ProtectionAgentGoalsTest.php
+tests/Unit/Agents/EstateAgentGoalsTest.php
+tests/Unit/Agents/RetirementAgentGoalsTest.php
+```
+
+### Modified Files (18)
+
+```
+app/Agents/SavingsAgent.php
+app/Agents/ProtectionAgent.php
+app/Agents/EstateAgent.php
+app/Agents/RetirementAgent.php
+app/Agents/CoordinatingAgent.php
+app/Services/AI/AiToolDefinitions.php
 app/Services/UserProfile/PersonalAccountsService.php
 app/Services/UserProfile/UserProfileService.php
+app/Services/Goals/LifeEventIntegrationService.php
+app/Models/LifeEvent.php
+app/Observers/LifeEventMonteCarloObserver.php
+app/Traits/HasAiChat.php
+routes/api.php
+tests/Pest.php
+tests/Architecture/Phase02ArchitectureTest.php
+tests/Unit/Services/PersonalAccountsServiceTest.php
 ```
-
-**Note:** `PersonalAccountsService.php` now has a constructor dependency on `UKTaxCalculator`. Laravel auto-resolves this via the service container — no registration needed. `composer dump-autoload` should have been run yesterday for the NetWorthCacheObserver.
 
 ## Frontend (via build)
 
-These are compiled into `public/build/` — upload the build directory:
+All compiled into `public/build/` — upload the build directory:
 
 ```
 resources/js/components/UserProfile/IncomeOccupation.vue
 resources/js/components/UserProfile/IncomeStatementTab.vue
+resources/js/components/Goals/GoalsOverview.vue
+resources/js/components/Goals/GoalCard.vue
+resources/js/components/Dashboard/GoalsOverviewCard.vue
+resources/js/components/WhatIf/ScenarioCard.vue
+resources/js/components/WhatIf/ScenarioDetail.vue
+resources/js/components/WhatIf/ModuleComparison.vue
+resources/js/views/Planning/WhatIfDashboard.vue
+resources/js/views/Planning/WhatIfScenarioDetailView.vue
+resources/js/store/modules/whatIf.js
+resources/js/store/index.js
+resources/js/services/whatIfService.js
+resources/js/router/index.js
+resources/js/layouts/AppLayout.vue
 ```
 
 ## Upload Order
 
-1. Upload 2 PHP files to matching paths on server
-2. Run `./deploy/fynla-org/build.sh` locally
-3. Upload `public/build/` directory
-4. SSH and clear caches:
+1. Upload all PHP files to matching paths on server
+2. Upload 2 migration files
+3. Run `composer dump-autoload` on server (new model + service classes)
+4. Run `./deploy/fynla-org/build.sh` locally
+5. Upload `public/build/` directory
+6. SSH and run migrations + seed + clear caches:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan migrate && php artisan db:seed && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
 ## What Changed
 
-### IncomeOccupation.vue — Other Income was completely missing + zero-value cleanup
+### Income Fix (PR #147)
+- Other Income added to IncomeOccupation.vue (was completely missing)
+- `annual_other_income` added to UserProfileService API response + tax calculation
+- Interest, Pension, Trust income added to PersonalAccountsService P&L
+- Hardcoded frontend tax calculator replaced with backend UKTaxCalculator
+- All income lines hidden when zero in view mode
 
-The Income page (`/valuable-info?section=income`) had no support for Other Income at all — no display line, no edit field, not in the form data, not in the total, not sent on save. Now fully wired up: view line (shown when > 0), edit field with helper text, included in total and submit.
+### Goals Module Integration (PR #148)
+- SavingsAgent: goal shortfall + emergency fund + life event cash buffer recommendations
+- ProtectionAgent: goal commitments in coverage analysis
+- EstateAgent: goal liquidity risk flagging
+- RetirementAgent: post-retirement goal detection
+- GoalCard: inline monthly contribution input
+- Goals banner: specific goal names + remaining amounts
+- AI create_goal tool: monthly_contribution with affordability assessment
+- Chat icon hidden for preview users
 
-All income line items in view mode now hide when their value is zero. Previously Employment, Self-Employment, Dividend, Interest, and Trust always showed even at £0, cluttering the page. Now only income types the user actually has appear. All fields remain visible in edit mode.
+### Life Events Expansion (PR #149)
+- 5 new event types: divorce, marriage, new_child, job_loss, income_change
+- Module cache invalidation on life event changes
+- AI context enriched with per-module life event impact summaries
 
-### UserProfileService.php — Other Income missing from API + tax
-
-The backend API that feeds the Income page was also missing `annual_other_income`:
-- Not returned in the response (frontend couldn't display it even if it tried)
-- Not included in `$totalAnnualIncome` (total was wrong)
-- Not passed to `UKTaxCalculator` (tax calculation was wrong)
-
-Now included in all three.
-
-### PersonalAccountsService.php — 3 missing income types + backend tax
-
-Added Interest Income, Pension Income (from DB pensions + state pension), and Trust Income to P&L and cashflow statements. Injected `UKTaxCalculator` to return proper tax data instead of relying on frontend hardcoded values. This fixes the orphaned `IncomeStatementTab.vue` for when it's wired into a view.
-
-### IncomeStatementTab.vue — Hardcoded tax removed
-
-Replaced 42-line JavaScript tax calculator (hardcoded PA £12,570, rates 20%/40%/45%) with 2-line computed that reads backend tax data from `TaxConfigService`.
+### What-If Scenario System (PR #150, #151)
+- New what_if_scenarios table with persistent scenarios
+- WhatIfScenarioService: living Now vs What-If comparisons
+- create_what_if_scenario AI tool (replaces run_what_if_scenario)
+- Card grid list → dedicated detail page with back button
+- AI auto-navigation: Fyn creates scenario and navigates user to detail view
 
 ## Post-Deploy Verification
 
-1. Log in as peak_earners (David Mitchell) → Income page → verify Employment £145,000 and Rental £14,290 shown, zero-value types (Self-Employment, Dividend, Interest, Trust, Other) hidden
-2. Click Edit → verify all 8 income fields visible including Other Income
-3. Verify tax breakdown shows correct 2025/26 bands (PA, Basic, Higher, Additional) with Section 24 credit
-4. Log in as retired_couple (Patricia Bennett) → Income page → verify Pension Income £30,000 shown
-5. Verify "No NI" badge on Patricia's tax card (pension income doesn't attract NI)
-6. Verify zero-amount income types are hidden where appropriate (Rental, Pension, Other only show when > 0)
-
-## Also Pending from Yesterday
-
-The following files from the 20 March session were uploaded today (confirmed by user):
-
-- [x] `app/Observers/NetWorthCacheObserver.php`
-- [x] `app/Providers/EventServiceProvider.php`
-- [x] `app/Http/Controllers/Api/MortgageController.php`
-- [x] `app/Http/Controllers/Api/PropertyController.php`
-- [x] `composer dump-autoload` on server
+1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable
+2. **Goals**: Goals page → verify behind-schedule banner shows specific goal names with remaining amounts
+3. **Chat**: Preview mode → verify no chat icon. Real user → verify docked Fyn chat
+4. **What-If**: As real user, ask Fyn "What if I retire at 55?" → verify scenario created, auto-navigated to detail page with AI narrative + module comparisons
+5. **What-If list**: Navigate to /planning/what-if → verify scenario card in grid, click navigates to detail page, back button returns to list
+6. **Life Events**: Create a new life event → verify affected module caches cleared
