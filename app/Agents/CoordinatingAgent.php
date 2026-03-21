@@ -1118,7 +1118,7 @@ class CoordinatingAgent extends BaseAgent
         return [
             'action' => 'fill_form',
             'entity_type' => $entityType,
-            'route' => '/net-worth/pensions',
+            'route' => '/net-worth/retirement',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$input['scheme_name']}\" pension now.",
         ];
@@ -1684,7 +1684,7 @@ class CoordinatingAgent extends BaseAgent
         return [
             'action' => 'fill_form',
             'entity_type' => 'chattel',
-            'route' => '/net-worth/valuables',
+            'route' => '/net-worth/chattels',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
         ];
