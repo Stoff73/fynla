@@ -17,6 +17,17 @@ const ENTITY_LABELS = {
   estate_gift: 'gift',
 };
 
+// Multi-step form: map logical step numbers to field keys
+const STEP_FIELD_MAP = {
+  property: {
+    1: ['property_type', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'current_value', 'purchase_price', 'purchase_date'],
+    2: ['ownership_type', 'ownership_percentage'],
+    3: ['mortgage_provider', 'mortgage_type', 'outstanding_balance', 'mortgage_rate', 'rate_type', 'monthly_payment', 'mortgage_term_remaining', 'mortgage_start_date'],
+    4: ['council_tax_band', 'council_tax_annual', 'annual_insurance', 'annual_service_charge', 'annual_ground_rent', 'annual_maintenance'],
+    5: ['monthly_rental_income', 'annual_letting_agent_fees', 'annual_void_period_weeks'],
+  },
+};
+
 const state = {
   pendingFill: null,      // { entityType, fields, route, mode, entityId }
   filling: false,
@@ -30,6 +41,7 @@ const getters = {
   isFillingForm: (state) => state.filling,
   currentHighlight: (state) => state.highlightedField,
   fillDataForField: (state) => (key) => state.pendingFill?.fields?.[key] ?? null,
+  stepFieldMap: () => (entityType) => STEP_FIELD_MAP[entityType] || null,
 };
 
 const mutations = {
@@ -101,6 +113,38 @@ const actions = {
 
   advanceStep({ commit, state: s }) {
     commit('SET_CURRENT_STEP', s.currentStep + 1);
+  },
+
+  /**
+   * For multi-step forms: fill fields for one step, then signal step complete.
+   * The form component calls this per step and advances its own wizard.
+   */
+  fillStepFields({ commit, state: s, dispatch }, { stepNumber, fieldOrder }) {
+    // Only fill fields that have AI data
+    const fieldsWithData = fieldOrder.filter(k => {
+      const val = s.pendingFill?.fields?.[k];
+      return val !== null && val !== undefined && val !== '';
+    });
+
+    if (fieldsWithData.length === 0) {
+      // No fields for this step — signal step complete immediately
+      commit('SET_CURRENT_STEP', stepNumber);
+      return;
+    }
+
+    commit('SET_FIELD_ORDER', fieldsWithData);
+    commit('SET_CURRENT_FIELD_INDEX', 0);
+    commit('SET_FILLING', true);
+    commit('SET_CURRENT_STEP', stepNumber);
+    dispatch('fillNextField');
+  },
+
+  /**
+   * Get the field keys for a specific step of a multi-step entity type.
+   */
+  getStepFields(_, { entityType, stepNumber }) {
+    const map = STEP_FIELD_MAP[entityType];
+    return map?.[stepNumber] || [];
   },
 
   completeFill({ commit, state: s, rootCommit }) {
