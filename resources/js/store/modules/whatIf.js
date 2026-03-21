@@ -46,7 +46,7 @@ const actions = {
     commit('SET_ERROR', null);
     try {
       const response = await whatIfService.getScenarios();
-      commit('SET_SCENARIOS', response.data || response.scenarios || []);
+      commit('SET_SCENARIOS', response.data?.scenarios || response.data || []);
     } catch (error) {
       commit('SET_ERROR', error.message);
       throw error;
@@ -61,7 +61,14 @@ const actions = {
     commit('SET_ERROR', null);
     try {
       const response = await whatIfService.getScenarioComparison(scenarioId);
-      commit('SET_COMPARISON_DATA', response.data || response);
+      const data = response.data || response;
+      // The API returns { scenario: {...}, comparison: {...} } — extract the comparison
+      // and merge in ai_narrative and affected_modules from the scenario
+      const comparison = data.comparison || data;
+      if (data.scenario?.ai_narrative && !comparison.ai_narrative) {
+        comparison.ai_narrative = data.scenario.ai_narrative;
+      }
+      commit('SET_COMPARISON_DATA', comparison);
     } catch (error) {
       commit('SET_ERROR', error.message);
       throw error;
