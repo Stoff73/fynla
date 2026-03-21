@@ -1040,24 +1040,22 @@ class CoordinatingAgent extends BaseAgent
 
         $accountType = $input['account_type'] ?? 'personal_investment_account';
 
-        $account = InvestmentAccount::create([
-            'user_id' => $user->id,
+        $fields = [
             'account_name' => $input['account_name'],
             'account_type' => $accountType,
             'provider' => $input['provider'] ?? null,
-            'current_value' => $input['current_value'],
-            'monthly_contribution_amount' => $input['monthly_contribution_amount'] ?? 0,
-            'contribution_frequency' => 'monthly',
-            'platform_fee_percent' => $input['platform_fee_percent'] ?? null,
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100,
-            'country' => 'GB',
-            'tax_year' => $this->taxConfig->getTaxYear(),
-        ]);
+            'current_value' => (float) $input['current_value'],
+            'monthly_contribution_amount' => isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : 0,
+            'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
+        ];
 
-        $this->invalidateModuleCache($user->id, 'investment');
-
-        return ['created' => true, 'entity_type' => 'investment_account', 'entity_id' => $account->id, 'name' => $account->account_name, 'message' => "Investment account \"{$account->account_name}\" created with a value of £".number_format((float) $account->current_value, 2).'.'];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'investment_account',
+            'route' => '/net-worth/investments',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['account_name']}\" investment account now.",
+        ];
     }
 
     private function handleCreatePension(array $input, User $user, bool $isPreview): array
@@ -1089,36 +1087,32 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $category = $input['pension_category'] ?? 'dc';
+        $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
+
+        $fields = [
+            'scheme_name' => $input['scheme_name'],
+        ];
 
         if ($category === 'db') {
-            $pension = DBPension::create([
-                'user_id' => $user->id,
-                'scheme_name' => $input['scheme_name'],
-                'scheme_type' => $input['scheme_type'] ?? 'final_salary',
-                'accrued_annual_pension' => $input['accrued_annual_pension'] ?? 0,
-                'normal_retirement_age' => $input['normal_retirement_age'] ?? 67,
-                'pensionable_service_years' => $input['pensionable_service_years'] ?? null,
-            ]);
-
-            $this->invalidateModuleCache($user->id, 'retirement');
-
-            return ['created' => true, 'entity_type' => 'db_pension', 'entity_id' => $pension->id, 'name' => $pension->scheme_name, 'message' => "Defined Benefit pension \"{$pension->scheme_name}\" created".($pension->accrued_annual_pension > 0 ? ' with an accrued pension of £'.number_format((float) $pension->accrued_annual_pension, 2).' per year' : '').'.'];
+            $fields['scheme_type'] = $input['scheme_type'] ?? 'final_salary';
+            $fields['annual_income'] = isset($input['accrued_annual_pension']) ? (float) $input['accrued_annual_pension'] : 0;
+            $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
+            $fields['employer_name'] = $input['scheme_name'];
+        } else {
+            $fields['pension_type'] = $input['scheme_type'] ?? 'workplace';
+            $fields['provider'] = $input['provider'] ?? null;
+            $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
+            $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
+            $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
         }
 
-        $pension = DCPension::create([
-            'user_id' => $user->id,
-            'scheme_name' => $input['scheme_name'],
-            'scheme_type' => $input['scheme_type'] ?? 'workplace',
-            'provider' => $input['provider'] ?? null,
-            'current_fund_value' => $input['current_fund_value'] ?? 0,
-            'employee_contribution_percent' => $input['employee_contribution_percent'] ?? null,
-            'employer_contribution_percent' => $input['employer_contribution_percent'] ?? null,
-            'retirement_age' => $input['normal_retirement_age'] ?? 67,
-        ]);
-
-        $this->invalidateModuleCache($user->id, 'retirement');
-
-        return ['created' => true, 'entity_type' => 'dc_pension', 'entity_id' => $pension->id, 'name' => $pension->scheme_name, 'message' => "Defined Contribution pension \"{$pension->scheme_name}\" created".($pension->current_fund_value > 0 ? ' with a fund value of £'.number_format((float) $pension->current_fund_value, 2) : '').'.'];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => $entityType,
+            'route' => '/net-worth/pensions',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['scheme_name']}\" pension now.",
+        ];
     }
 
     private function handleCreateProperty(array $input, User $user, bool $isPreview): array
@@ -1139,41 +1133,37 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $property = Property::create([
-            'user_id' => $user->id,
-            'property_type' => $input['property_type'] ?? 'main_residence',
-            'current_value' => $input['current_value'],
-            'purchase_price' => $input['purchase_price'] ?? null,
-            'purchase_date' => $input['purchase_date'] ?? null,
+        $propertyType = $input['property_type'] ?? 'main_residence';
+        $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
+
+        // Build property form fields
+        $fields = [
+            'property_type' => $propertyType,
+            'current_value' => (float) $input['current_value'],
             'address_line_1' => $input['address_line_1'] ?? null,
             'postcode' => $input['postcode'] ?? null,
-            'outstanding_mortgage' => $input['outstanding_mortgage'] ?? 0,
-            'monthly_rental_income' => $input['monthly_rental_income'] ?? null,
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100,
-            'country' => 'GB',
-        ]);
+            'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
+            'purchase_date' => $input['purchase_date'] ?? null,
+            'monthly_rental_income' => isset($input['monthly_rental_income']) ? (float) $input['monthly_rental_income'] : null,
+        ];
 
-        $mortgageMessage = '';
+        // Add mortgage fields if provided
         if (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0) {
-            Mortgage::create([
-                'property_id' => $property->id,
-                'user_id' => $user->id,
-                'outstanding_balance' => $input['outstanding_mortgage'],
-                'interest_rate' => $input['mortgage_rate'] ?? null,
-                'lender_name' => $input['mortgage_lender'] ?? null,
-                'mortgage_type' => 'repayment',
-                'rate_type' => 'fixed',
-                'ownership_type' => 'individual',
-                'ownership_percentage' => 100,
-                'country' => 'GB',
-            ]);
-            $mortgageMessage = ' A linked mortgage of £'.number_format((float) $input['outstanding_mortgage'], 2).' was also created.';
+            $fields['has_mortgage'] = true;
+            $fields['mortgage_outstanding_balance'] = (float) $input['outstanding_mortgage'];
+            $fields['mortgage_interest_rate'] = isset($input['mortgage_rate']) ? (float) $input['mortgage_rate'] : null;
+            $fields['mortgage_lender_name'] = $input['mortgage_lender'] ?? null;
+            $fields['mortgage_type'] = 'repayment';
+            $fields['mortgage_rate_type'] = 'fixed';
         }
 
-        $this->invalidateModuleCache($user->id, 'property');
-
-        return ['created' => true, 'entity_type' => 'property', 'entity_id' => $property->id, 'name' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $input['property_type'] ?? 'main_residence')), 'message' => 'Property created with a value of £'.number_format((float) $property->current_value, 2).'.'.$mortgageMessage];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'property',
+            'route' => '/net-worth/property',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your property at \"{$addressLabel}\" now.",
+        ];
     }
 
     private function handleCreateMortgage(array $input, User $user, bool $isPreview): array
@@ -1194,30 +1184,25 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $propertyId = $this->resolvePropertyId($user, $input['property_address_hint'] ?? null);
+        $lenderName = $input['lender_name'] ?? 'Mortgage';
 
-        if (! $propertyId) {
-            return ['error' => true, 'error_type' => 'missing_dependency', 'message' => 'Could not find a matching property. Please create the property first.'];
-        }
-
-        $mortgage = Mortgage::create([
-            'property_id' => $propertyId,
-            'user_id' => $user->id,
-            'lender_name' => $input['lender_name'] ?? null,
-            'outstanding_balance' => $input['outstanding_balance'],
-            'interest_rate' => $input['interest_rate'] ?? null,
+        $fields = [
+            'has_mortgage' => true,
+            'mortgage_lender_name' => $lenderName,
+            'mortgage_outstanding_balance' => (float) $input['outstanding_balance'],
+            'mortgage_interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
-            'rate_type' => $input['rate_type'] ?? 'fixed',
-            'monthly_payment' => $input['monthly_payment'] ?? null,
-            'remaining_term_months' => $input['remaining_term_months'] ?? null,
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100,
-            'country' => 'GB',
-        ]);
+            'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
+            'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
+        ];
 
-        $this->invalidateModuleCache($user->id, 'property');
-
-        return ['created' => true, 'entity_type' => 'mortgage', 'entity_id' => $mortgage->id, 'name' => ($input['lender_name'] ?? 'Mortgage').' mortgage', 'message' => 'Mortgage created with an outstanding balance of £'.number_format((float) $mortgage->outstanding_balance, 2).'.'];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'mortgage',
+            'route' => '/net-worth/property',
+            'fields' => $fields,
+            'message' => "I'll fill in the mortgage details for \"{$lenderName}\" now.",
+        ];
     }
 
     private function handleCreateProtectionPolicy(array $input, User $user, bool $isPreview): array
@@ -1239,51 +1224,52 @@ class CoordinatingAgent extends BaseAgent
 
         $policyType = $input['policy_type'];
 
-        if ($policyType === 'income_protection') {
-            $policy = IncomeProtectionPolicy::create([
-                'user_id' => $user->id,
-                'provider' => $input['provider'] ?? null,
-                'benefit_amount' => $input['benefit_amount'] ?? 0,
-                'benefit_frequency' => 'monthly',
-                'premium_amount' => $input['premium_amount'] ?? null,
-            ]);
-            $this->invalidateModuleCache($user->id, 'protection');
+        // Map AI policy_type to the form's policyType select values
+        $formPolicyType = match ($policyType) {
+            'income_protection' => 'incomeProtection',
+            'standalone_ci', 'accelerated_ci' => 'criticalIllness',
+            default => 'life', // level_term, term, whole_of_life, decreasing_term, family_income_benefit
+        };
 
-            return ['created' => true, 'entity_type' => 'income_protection_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Income protection').' policy', 'message' => 'Income protection policy created'.($policy->benefit_amount > 0 ? ' with a monthly benefit of £'.number_format((float) $policy->benefit_amount, 2) : '').'.'];
-        }
-
-        if (in_array($policyType, ['standalone_ci', 'accelerated_ci'])) {
-            $ciType = $policyType === 'standalone_ci' ? 'standalone' : 'accelerated';
-            $policy = CriticalIllnessPolicy::create([
-                'user_id' => $user->id,
-                'policy_type' => $ciType,
-                'provider' => $input['provider'] ?? null,
-                'sum_assured' => $input['sum_assured'] ?? 0,
-                'premium_amount' => $input['premium_amount'] ?? null,
-                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
-                'policy_term_years' => $input['policy_term_years'] ?? null,
-            ]);
-            $this->invalidateModuleCache($user->id, 'protection');
-
-            return ['created' => true, 'entity_type' => 'critical_illness_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Critical illness').' policy', 'message' => 'Critical illness policy created'.($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.'];
-        }
-
-        // Life insurance (term, whole of life, etc.)
-        $policy = LifeInsurancePolicy::create([
-            'user_id' => $user->id,
-            'policy_type' => $policyType,
+        // Build fields that map to PolicyFormModal's formData keys
+        $fields = [
+            'policyType' => $formPolicyType,
             'provider' => $input['provider'] ?? null,
-            'sum_assured' => $input['sum_assured'] ?? 0,
-            'premium_amount' => $input['premium_amount'] ?? null,
+            'premium_amount' => isset($input['premium_amount']) ? (float) $input['premium_amount'] : null,
             'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
-            'policy_term_years' => $input['policy_term_years'] ?? null,
-            'in_trust' => $input['in_trust'] ?? false,
-        ]);
-        $this->invalidateModuleCache($user->id, 'protection');
+        ];
 
-        $typeLabel = str_replace('_', ' ', $policyType);
+        // Coverage amount: benefit_amount for income protection, sum_assured for others
+        if ($policyType === 'income_protection') {
+            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0;
+        } else {
+            $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
+        }
 
-        return ['created' => true, 'entity_type' => 'life_insurance_policy', 'entity_id' => $policy->id, 'name' => ($input['provider'] ?? 'Life insurance').' - '.$typeLabel, 'message' => 'Life insurance policy created'.($policy->sum_assured > 0 ? ' for £'.number_format((float) $policy->sum_assured, 2) : '').'.'];
+        // Life insurance sub-type
+        if ($formPolicyType === 'life') {
+            $fields['life_policy_type'] = $policyType;
+        }
+
+        // Term years (for life and critical illness)
+        if (isset($input['policy_term_years'])) {
+            $fields['term_years'] = (int) $input['policy_term_years'];
+        }
+
+        // In trust (for life insurance)
+        if (isset($input['in_trust'])) {
+            $fields['in_trust'] = (bool) $input['in_trust'];
+        }
+
+        $providerLabel = $input['provider'] ?? str_replace('_', ' ', $policyType);
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'protection_policy',
+            'route' => '/protection',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$providerLabel}\" protection policy now.",
+        ];
     }
 
     private function handleCreateEstateAsset(array $input, User $user, bool $isPreview): array
@@ -1301,19 +1287,22 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $asset = Asset::create([
-            'user_id' => $user->id,
+        $fields = [
             'asset_name' => $input['asset_name'],
             'asset_type' => $input['asset_type'],
-            'current_value' => $input['current_value'],
-            'is_iht_exempt' => $input['is_iht_exempt'] ?? false,
-            'exemption_reason' => $input['exemption_reason'] ?? null,
+            'current_value' => (float) $input['current_value'],
             'ownership_type' => 'individual',
             'valuation_date' => now()->toDateString(),
-        ]);
-        $this->invalidateModuleCache($user->id, 'estate');
+            'is_iht_exempt' => $input['is_iht_exempt'] ?? false,
+        ];
 
-        return ['created' => true, 'entity_type' => 'estate_asset', 'entity_id' => $asset->id, 'name' => $asset->asset_name, 'message' => "Estate asset \"{$asset->asset_name}\" created with a value of £".number_format((float) $asset->current_value, 2).'.'];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'estate_asset',
+            'route' => '/estate',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['asset_name']}\" estate asset now.",
+        ];
     }
 
     private function handleCreateEstateLiability(array $input, User $user, bool $isPreview): array
@@ -1333,19 +1322,27 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $liability = Liability::create([
-            'user_id' => $user->id,
-            'liability_name' => $input['liability_name'],
-            'liability_type' => $input['liability_type'],
-            'current_balance' => $input['current_balance'],
-            'monthly_payment' => $input['monthly_payment'] ?? null,
-            'interest_rate' => $input['interest_rate'] ?? null,
-            'ownership_type' => 'individual',
-            'country' => 'GB',
-        ]);
-        $this->invalidateModuleCache($user->id, 'estate');
+        // Map AI liability_type to form-compatible values
+        $formLiabilityType = match ($input['liability_type']) {
+            'loan' => 'personal_loan',
+            default => $input['liability_type'],
+        };
 
-        return ['created' => true, 'entity_type' => 'estate_liability', 'entity_id' => $liability->id, 'name' => $liability->liability_name, 'message' => "Estate liability \"{$liability->liability_name}\" created with a balance of £".number_format((float) $liability->current_balance, 2).'.'];
+        $fields = [
+            'liability_name' => $input['liability_name'],
+            'liability_type' => $formLiabilityType,
+            'current_balance' => (float) $input['current_balance'],
+            'monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
+            'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
+        ];
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'estate_liability',
+            'route' => '/net-worth/liabilities',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['liability_name']}\" liability now.",
+        ];
     }
 
     private function handleCreateEstateGift(array $input, User $user, bool $isPreview): array
@@ -1364,18 +1361,24 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $gift = Gift::create([
-            'user_id' => $user->id,
+        $fields = [
             'gift_date' => substr($input['gift_date'], 0, 10),
             'recipient' => $input['recipient'],
             'gift_type' => $input['gift_type'] ?? 'pet',
-            'gift_value' => $input['gift_value'],
-            'status' => 'within_7_years',
-            'notes' => $input['notes'] ?? null,
-        ]);
-        $this->invalidateModuleCache($user->id, 'estate');
+            'gift_value' => (float) $input['gift_value'],
+        ];
 
-        return ['created' => true, 'entity_type' => 'estate_gift', 'entity_id' => $gift->id, 'name' => "Gift to {$gift->recipient}", 'message' => 'Gift of £'.number_format((float) $gift->gift_value, 2)." to {$gift->recipient} recorded."];
+        if (isset($input['notes'])) {
+            $fields['notes'] = $input['notes'];
+        }
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'estate_gift',
+            'route' => '/estate',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your gift to \"{$input['recipient']}\" now.",
+        ];
     }
 
     // ─── Tool execution helpers ──────────────────────────────────────
@@ -1584,16 +1587,21 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $trust = Trust::create([
-            'user_id' => $user->id,
+        $fields = [
             'trust_name' => $input['trust_name'],
             'trust_type' => $input['trust_type'],
-            'current_value' => $input['current_value'] ?? 0,
-            'date_established' => $input['date_established'] ?? null,
-            'settlor' => $input['settlor'] ?? null,
-        ]);
+            'current_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
+            'trust_creation_date' => $input['date_established'] ?? null,
+            'initial_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
+        ];
 
-        return ['created' => true, 'entity_type' => 'trust', 'entity_id' => $trust->id, 'name' => $trust->trust_name, 'message' => "Trust \"{$trust->trust_name}\" created."];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'trust',
+            'route' => '/trusts',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.",
+        ];
     }
 
     private function handleCreateBusinessInterest(array $input, User $user, bool $isPreview): array
@@ -1613,16 +1621,21 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $business = BusinessInterest::create([
-            'user_id' => $user->id,
+        $fields = [
             'business_name' => $input['business_name'],
             'business_type' => $input['business_type'],
-            'ownership_percentage' => $input['ownership_percentage'] ?? 100,
-            'estimated_value' => $input['estimated_value'] ?? 0,
-            'annual_profit' => $input['annual_profit'] ?? 0,
-        ]);
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100,
+            'current_valuation' => isset($input['estimated_value']) ? (float) $input['estimated_value'] : 0,
+            'annual_profit' => isset($input['annual_profit']) ? (float) $input['annual_profit'] : 0,
+        ];
 
-        return ['created' => true, 'entity_type' => 'business_interest', 'entity_id' => $business->id, 'name' => $business->business_name, 'message' => "Business interest \"{$business->business_name}\" recorded."];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'business_interest',
+            'route' => '/net-worth/business',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['business_name']}\" business interest now.",
+        ];
     }
 
     private function handleCreateChattel(array $input, User $user, bool $isPreview): array
@@ -1642,16 +1655,30 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $chattel = Chattel::create([
-            'user_id' => $user->id,
-            'description' => $input['description'],
-            'category' => $input['category'] ?? 'other',
-            'estimated_value' => $input['estimated_value'],
-            'purchase_value' => $input['purchase_value'] ?? null,
-            'is_insured' => $input['is_insured'] ?? false,
-        ]);
+        // Map AI category values to form chattel_type values
+        $chattelType = match ($input['category'] ?? 'other') {
+            'jewellery' => 'jewellery',
+            'art' => 'art',
+            'antiques' => 'antique',
+            'collectibles' => 'collectible',
+            'vehicles' => 'vehicle',
+            default => 'other',
+        };
 
-        return ['created' => true, 'entity_type' => 'chattel', 'entity_id' => $chattel->id, 'name' => $chattel->description, 'message' => "Personal valuable \"{$chattel->description}\" recorded (£" . number_format($chattel->estimated_value, 0) . ').'];
+        $fields = [
+            'chattel_type' => $chattelType,
+            'name' => $input['description'],
+            'current_value' => (float) $input['estimated_value'],
+            'purchase_price' => isset($input['purchase_value']) ? (float) $input['purchase_value'] : null,
+        ];
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'chattel',
+            'route' => '/net-worth/valuables',
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
+        ];
     }
 
     // ─── Generic update/delete handlers ─────────────────────────────────

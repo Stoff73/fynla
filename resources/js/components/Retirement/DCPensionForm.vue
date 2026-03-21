@@ -22,7 +22,7 @@
       <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'p-6'">
         <div class="space-y-6">
           <!-- Pension Type -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'pension_type' }">
             <label for="pension_type" class="block text-sm font-medium text-neutral-500 mb-2">
               Pension Type
             </label>
@@ -44,7 +44,7 @@
           </div>
 
           <!-- Scheme Name -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_name' }">
             <label for="scheme_name" class="block text-sm font-medium text-neutral-500 mb-2">
               Scheme Name
             </label>
@@ -59,7 +59,7 @@
 
           <!-- Provider and Policy Number -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'provider' }">
               <label for="provider" class="block text-sm font-medium text-neutral-500 mb-2">
                 Provider
               </label>
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Current Fund Value -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_fund_value' }">
             <label for="current_fund_value" class="block text-sm font-medium text-neutral-500 mb-2">
               Current Fund Value (£)
             </label>
@@ -120,7 +120,7 @@
 
           <!-- Workplace Pension: Percentage Contributions -->
           <div v-if="isWorkplacePension" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employee_contribution_percent' }">
               <label for="employee_contribution_percent" class="block text-sm font-medium text-neutral-500 mb-2">
                 Employee Contribution (%)
               </label>
@@ -143,7 +143,7 @@
               </p>
               <p v-else class="text-xs text-neutral-500 mt-1">Enter as percentage of salary (0-100)</p>
             </div>
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employer_contribution_percent' }">
               <label for="employer_contribution_percent" class="block text-sm font-medium text-neutral-500 mb-2">
                 Employer Contribution (%)
               </label>
@@ -355,7 +355,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -422,6 +422,7 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
     ...mapGetters('auth', ['currentUser']),
 
     isEdit() {
@@ -481,6 +482,30 @@ export default {
           });
         }
       },
+    },
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'dc_pension' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'dc_pension') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 

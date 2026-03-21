@@ -10,7 +10,7 @@
             {{ trust ? 'Edit Trust' : 'Create New Trust' }}
           </h2>
           <button
-            @click="$emit('close')"
+            @click="handleClose"
             class="text-horizon-400 hover:text-neutral-500"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
         <form @submit.prevent="handleSubmit">
           <div class="space-y-4">
             <!-- Trust Name -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'trust_name' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Trust Name
               </label>
@@ -42,7 +42,7 @@
             </div>
 
             <!-- Trust Type -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'trust_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Trust Type
               </label>
@@ -122,7 +122,7 @@
 
             <!-- Creation Date and Initial Value -->
             <div class="grid grid-cols-2 gap-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'trust_creation_date' }">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Creation Date
                 </label>
@@ -133,7 +133,7 @@
                   class="input-field"
                 />
               </div>
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'initial_value' }">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Initial Value
                 </label>
@@ -150,7 +150,7 @@
             </div>
 
             <!-- Current Value -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Current Value
               </label>
@@ -222,7 +222,7 @@
           <div class="mt-6 flex justify-end space-x-3">
             <button
               type="button"
-              @click="$emit('close')"
+              @click="handleClose"
               class="btn-secondary"
             >
               Cancel
@@ -242,6 +242,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'TrustFormModal',
   emits: ['save', 'close'],
@@ -275,6 +277,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     predefinedCountries() {
       return [
         'United Kingdom', 'United States', 'Ireland', 'Jersey', 'Guernsey',
@@ -294,6 +298,33 @@ export default {
         this.formData.other_country = '';
       }
     },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'trust' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'trust') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
   },
 
   mounted() {
@@ -308,6 +339,13 @@ export default {
   },
 
   methods: {
+    handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
+      this.$emit('close');
+    },
+
     async handleSubmit() {
       this.submitting = true;
       this.error = null;

@@ -36,7 +36,7 @@
         <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'px-6 pb-6'">
           <div class="space-y-4 pr-2">
             <!-- Policy Type Selection (only for new policies) -->
-            <div v-if="!isEditing">
+            <div v-if="!isEditing" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'policyType' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Policy Type
               </label>
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Life Policy Type (appears when Life Insurance is selected) -->
-            <div v-if="showLifePolicyType">
+            <div v-if="showLifePolicyType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'life_policy_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Life Policy Type
               </label>
@@ -81,7 +81,7 @@
             </div>
 
             <!-- Provider -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'provider' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Provider
               </label>
@@ -107,7 +107,7 @@
             </div>
 
             <!-- Sum Assured / Benefit Amount -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'coverage_amount' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 {{ coverageLabel }}
               </label>
@@ -172,7 +172,7 @@
             </div>
 
             <!-- Premium Amount -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'premium_amount' }">
               <div>
                 <label class="block text-sm font-medium text-neutral-500 mb-1">
                   Premium Amount
@@ -476,6 +476,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'PolicyFormModal',
 
@@ -530,6 +532,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     stageFormConfig() {
       return this.$store.getters['lifeStage/formFields']('protection') || {};
     },
@@ -629,6 +633,35 @@ export default {
       // For life insurance, show for term-based policies, hide for whole_of_life
       const lifeType = this.formData.life_policy_type;
       return lifeType === 'decreasing_term' || lifeType === 'term' || lifeType === 'level_term';
+    },
+  },
+
+  watch: {
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'protection_policy' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'protection_policy') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 
@@ -838,6 +871,9 @@ export default {
     },
 
     handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.$emit('close');
     },
   },

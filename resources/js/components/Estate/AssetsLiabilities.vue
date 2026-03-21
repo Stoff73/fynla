@@ -313,6 +313,22 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'estate_asset') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.assets.find(a => a.id === fill.entityId);
+          if (record) {
+            this.editAsset(record);
+          }
+        } else {
+          this.editingAsset = null;
+          this.showAssetForm = true;
+        }
+      }
+    },
+  },
+
   beforeUnmount() {
     if (this.successTimeout) clearTimeout(this.successTimeout);
     if (this.errorTimeout) clearTimeout(this.errorTimeout);
@@ -337,6 +353,11 @@ export default {
           // Create new asset
           await this.createAsset(assetData);
           this.successMessage = 'Asset created successfully';
+        }
+
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
 
         this.closeAssetForm();

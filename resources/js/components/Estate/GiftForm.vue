@@ -7,7 +7,7 @@
 
     <form @submit.prevent="handleSubmit">
       <!-- Gift Date -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'gift_date' }">
         <label for="gift_date">Gift Date</label>
         <input
           id="gift_date"
@@ -26,7 +26,7 @@
       </div>
 
       <!-- Recipient -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'recipient' }">
         <label for="recipient">Recipient Name</label>
         <input
           id="recipient"
@@ -42,7 +42,7 @@
       </div>
 
       <!-- Gift Value -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'gift_value' }">
         <label for="gift_value">Gift Value (£)</label>
         <div class="input-with-icon">
           <span class="input-icon">£</span>
@@ -63,7 +63,7 @@
       </div>
 
       <!-- Gift Type -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'gift_type' }">
         <label for="gift_type">Gift Type</label>
         <select
           id="gift_type"
@@ -133,6 +133,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'GiftForm',
 
@@ -164,6 +166,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.mode === 'edit' && this.gift !== null;
     },
@@ -204,6 +208,33 @@ export default {
           this.populateForm(newGift);
         }
       },
+    },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'estate_gift' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'estate_gift') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 
@@ -293,6 +324,9 @@ export default {
     },
 
     handleCancel() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.resetForm();
       this.$emit('cancel');
     },

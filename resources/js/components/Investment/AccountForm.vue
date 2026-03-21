@@ -29,7 +29,7 @@
         <form @submit.prevent="submitForm">
           <div class="bg-white px-6 py-4 space-y-4">
             <!-- Account Type -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'account_type' }">
               <label for="account_type" class="block text-sm font-medium text-neutral-500 mb-1">
                 Account Type
               </label>
@@ -104,6 +104,7 @@
               :cash-isa-used="cashISAUsed"
               :total-stocks-isa-used="totalStocksISAUsed"
               :account="account"
+              :highlighted-field="highlightedField"
               @confirm-fee="confirmFeeAndSubmit"
               @switch-fee-to-fixed="switchFeeToFixed"
             />
@@ -135,6 +136,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
@@ -335,6 +337,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return !!this.account;
     },
@@ -722,6 +726,30 @@ export default {
     'formData.platform_fee_percent'() {
       this.feePercentageWarning = false;
     },
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'investment_account' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'investment_account') {
+        setTimeout(() => {
+          this.submitForm();
+        }, 250);
+      }
+    },
   },
 
   async mounted() {
@@ -887,6 +915,9 @@ export default {
     },
 
     closeModal() {
+      if (this.$store.state.aiFormFill.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.$emit('close');
       this.resetForm();
     },

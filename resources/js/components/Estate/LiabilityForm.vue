@@ -7,7 +7,7 @@
 
     <form @submit.prevent="handleSubmit">
       <!-- Liability Type -->
-      <div class="mb-5">
+      <div class="mb-5" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'liability_type' }">
         <label for="liability_type" class="block text-sm font-medium text-neutral-500 mb-1.5">Liability Type</label>
         <select
           id="liability_type"
@@ -32,7 +32,7 @@
       </div>
 
       <!-- Liability Name -->
-      <div class="mb-5">
+      <div class="mb-5" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'liability_name' }">
         <label for="liability_name" class="block text-sm font-medium text-neutral-500 mb-1.5">Liability Name / Description</label>
         <input
           id="liability_name"
@@ -48,7 +48,7 @@
       </div>
 
       <!-- Current Balance -->
-      <div class="mb-5">
+      <div class="mb-5" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_balance' }">
         <label for="current_balance" class="block text-sm font-medium text-neutral-500 mb-1.5">Current Balance Owed (£)</label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">£</span>
@@ -69,7 +69,7 @@
       </div>
 
       <!-- Monthly Payment -->
-      <div class="mb-5">
+      <div class="mb-5" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_payment' }">
         <label for="monthly_payment" class="block text-sm font-medium text-neutral-500 mb-1.5">Monthly Payment (£)</label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">£</span>
@@ -89,7 +89,7 @@
       </div>
 
       <!-- Interest Rate -->
-      <div class="mb-5">
+      <div class="mb-5" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'interest_rate' }">
         <label for="interest_rate" class="block text-sm font-medium text-neutral-500 mb-1.5">Interest Rate (% per annum)</label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium pointer-events-none">%</span>
@@ -244,6 +244,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -291,6 +292,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.mode === 'edit' && this.liability !== null;
     },
@@ -390,6 +393,33 @@ export default {
         }
       },
     },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'estate_liability' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'estate_liability') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
   },
 
   methods: {
@@ -457,6 +487,9 @@ export default {
     },
 
     handleCancel() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.resetForm();
       this.$emit('cancel');
     },

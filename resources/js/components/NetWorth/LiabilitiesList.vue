@@ -175,6 +175,21 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'estate_liability') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.liabilities.find(l => l.id === fill.entityId);
+          if (record) {
+            this.openEditModal(record);
+          }
+        } else {
+          this.openAddModal();
+        }
+      }
+    },
+  },
+
   mounted() {
     this.fetchData();
     this.applyRouteFilter();
@@ -219,6 +234,10 @@ export default {
           await this.updateLiability({ id: this.editingLiability.id, liabilityData: formData });
         } else {
           await this.createLiability(formData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
       } catch (error) {

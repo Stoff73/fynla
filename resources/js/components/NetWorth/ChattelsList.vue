@@ -114,6 +114,22 @@ export default {
     };
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'chattel') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.chattels.find(c => c.id === fill.entityId);
+          if (record) {
+            this.editingChattel = record;
+          }
+        } else {
+          this.editingChattel = null;
+        }
+        this.showFormModal = true;
+      }
+    },
+  },
+
   computed: {
     ...mapState('chattels', ['chattels', 'loading', 'error']),
 
@@ -169,6 +185,10 @@ export default {
           await this.updateChattel({ id: this.editingChattel.id, data: formData });
         } else {
           await this.createChattel(formData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
       } catch (error) {
