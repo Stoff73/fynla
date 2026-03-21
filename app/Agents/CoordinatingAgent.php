@@ -737,7 +737,7 @@ class CoordinatingAgent extends BaseAgent
             'scenario_id' => $result['scenario_id'],
             'comparison' => $result,
             'action' => 'navigate',
-            'route_path' => '/planning/what-if?scenario=' . $result['scenario_id'],
+            'route_path' => '/planning/what-if/' . $result['scenario_id'],
         ];
     }
 

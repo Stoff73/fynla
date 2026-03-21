@@ -31,43 +31,24 @@
         </p>
       </div>
 
-      <!-- Scenario List + Detail -->
-      <div v-else class="flex gap-6">
-        <!-- Sidebar List -->
-        <div class="w-72 flex-shrink-0 space-y-3">
-          <ScenarioCard
-            v-for="scenario in scenarios"
-            :key="scenario.id"
-            :scenario="scenario"
-            :class="{ 'ring-2 ring-raspberry-500': activeScenarioId === scenario.id }"
-            @select="selectScenario"
-            @delete="handleDelete"
-          />
-        </div>
-
-        <!-- Detail Panel -->
-        <div class="flex-1 min-w-0">
-          <div v-if="activeScenario" class="mb-4 flex items-center justify-between">
-            <h2 class="text-h4 font-semibold text-horizon-500">{{ activeScenario.name }}</h2>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-savannah-100 text-neutral-500 capitalize">
-              {{ activeScenario.scenario_type }}
-            </span>
-          </div>
-          <ScenarioDetail
-            :comparison="comparisonData"
-            :loading="detailLoading"
-          />
-        </div>
+      <!-- Scenario Cards Grid -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ScenarioCard
+          v-for="scenario in scenarios"
+          :key="scenario.id"
+          :scenario="scenario"
+          @select="viewScenario"
+          @delete="handleDelete"
+        />
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script>
-import { mapState, mapGetters, mapActions } from 'vuex';
+import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ScenarioCard from '@/components/WhatIf/ScenarioCard.vue';
-import ScenarioDetail from '@/components/WhatIf/ScenarioDetail.vue';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 
 export default {
@@ -76,35 +57,29 @@ export default {
   components: {
     AppLayout,
     ScenarioCard,
-    ScenarioDetail,
   },
 
   mixins: [previewModeMixin],
 
   computed: {
-    ...mapState('whatIf', ['scenarios', 'activeScenarioId', 'comparisonData', 'loading']),
-    ...mapGetters('whatIf', ['activeScenario']),
-
-    detailLoading() {
-      return this.loading && this.activeScenarioId !== null;
-    },
+    ...mapState('whatIf', ['scenarios', 'loading']),
   },
 
   mounted() {
     this.fetchScenarios();
 
-    // Check for scenario ID in query params (from AI auto-navigation)
+    // If AI navigated here with a scenario ID, go straight to detail
     const scenarioId = this.$route.query.scenario;
     if (scenarioId) {
-      this.selectScenario(Number(scenarioId));
+      this.$router.replace({ name: 'WhatIfScenarioDetail', params: { id: scenarioId } });
     }
   },
 
   methods: {
-    ...mapActions('whatIf', ['fetchScenarios', 'fetchScenarioComparison', 'deleteScenario']),
+    ...mapActions('whatIf', ['fetchScenarios', 'deleteScenario']),
 
-    selectScenario(id) {
-      this.fetchScenarioComparison(id);
+    viewScenario(id) {
+      this.$router.push({ name: 'WhatIfScenarioDetail', params: { id } });
     },
 
     async handleDelete(id) {
