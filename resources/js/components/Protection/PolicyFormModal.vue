@@ -640,6 +640,14 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'protection_policy' && fill.fields) {
+          // Set policyType immediately before the field sequence starts —
+          // this controls which conditional fields are visible in the form
+          if (fill.fields.policyType) {
+            this.formData.policyType = fill.fields.policyType;
+          }
+          if (fill.fields.life_policy_type) {
+            this.formData.life_policy_type = fill.fields.life_policy_type;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
@@ -786,7 +794,7 @@ export default {
         const policyData = this.preparePolicyData();
         this.$emit('save', policyData);
       } catch (error) {
-        console.error('Form submission error:', error);
+        console.error('[PolicyFormModal] handleSubmit error:', error);
       } finally {
         this.submitting = false;
       }
