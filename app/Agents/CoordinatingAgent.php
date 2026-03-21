@@ -1706,9 +1706,40 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are editable.'];
         }
 
-        $model->update($safeFields);
+        $route = $this->getRouteForEntityType($entityType);
 
-        return ['updated' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'fields_updated' => array_keys($safeFields), 'message' => ucfirst(str_replace('_', ' ', $entityType)) . ' updated successfully.'];
+        return [
+            'action' => 'fill_form',
+            'mode' => 'edit',
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'route' => $route,
+            'fields' => $safeFields,
+            'message' => "I'll update the " . str_replace('_', ' ', $entityType) . ' for you now.',
+        ];
+    }
+
+    /**
+     * Map entity types to their frontend page routes.
+     */
+    private function getRouteForEntityType(string $entityType): string
+    {
+        return match ($entityType) {
+            'savings_account' => '/net-worth/cash',
+            'investment_account' => '/net-worth/investments',
+            'dc_pension', 'db_pension' => '/net-worth/retirement',
+            'property', 'mortgage' => '/net-worth/property',
+            'life_insurance', 'critical_illness', 'income_protection', 'protection_policy' => '/protection',
+            'goal' => '/goals',
+            'life_event' => '/goals?tab=events',
+            'family_member' => '/profile',
+            'trust' => '/trusts',
+            'business_interest' => '/net-worth/business',
+            'chattel' => '/net-worth/chattels',
+            'estate_asset', 'estate_gift' => '/estate',
+            'estate_liability' => '/net-worth/liabilities',
+            default => '/dashboard',
+        };
     }
 
     private function handleDeleteRecord(array $input, User $user, bool $isPreview): array
