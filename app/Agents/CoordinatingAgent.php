@@ -1098,8 +1098,10 @@ class CoordinatingAgent extends BaseAgent
         $category = $input['pension_category'] ?? 'dc';
         $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
 
+        $schemeName = !empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
+
         $fields = [
-            'scheme_name' => $input['scheme_name'],
+            'scheme_name' => $schemeName,
         ];
 
         if ($category === 'db') {
@@ -1117,7 +1119,7 @@ class CoordinatingAgent extends BaseAgent
                 default => 'occupational',
             };
             $fields['pension_type'] = $formPensionType;
-            $fields['provider'] = $input['provider'] ?? null;
+            $fields['provider'] = !empty($input['provider']) ? $input['provider'] : $schemeName;
             $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
             $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
             $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
