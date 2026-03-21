@@ -16,9 +16,9 @@ const ROUTE_MAP = [
 
   // Net Worth / Assets
   { keywords: ['wealth summary', 'net worth', 'total wealth', 'wealth overview'], route: '/net-worth/wealth-summary', label: 'Wealth Summary' },
-  { keywords: ['bank account', 'cash', 'bank balance', 'current account', 'easy access', 'savings account', 'cash savings'], route: '/net-worth/cash', label: 'Bank Accounts & Savings' },
+  { keywords: ['bank account', 'savings', 'cash', 'bank balance', 'current account', 'easy access', 'savings account', 'cash savings'], route: '/net-worth/cash', label: 'Bank Accounts & Savings' },
   { keywords: ['investment', 'portfolio', 'stocks', 'shares', 'stocks and shares'], route: '/net-worth/investments', label: 'Investments' },
-  { keywords: ['pension', 'retirement fund', 'workplace pension', 'defined contribution', 'defined benefit'], route: '/net-worth/retirement', label: 'Pensions & Retirement' },
+  { keywords: ['pension', 'retirement', 'retirement fund', 'sipp', 'workplace pension', 'defined contribution', 'defined benefit'], route: '/net-worth/retirement', label: 'Pensions & Retirement' },
   { keywords: ['property', 'properties', 'house', 'flat', 'real estate', 'buy to let', 'main residence'], route: '/net-worth/property', label: 'Property' },
   { keywords: ['business', 'company', 'sole trader', 'partnership', 'business interest'], route: '/net-worth/business', label: 'Business Interests' },
   { keywords: ['valuable', 'chattel', 'jewellery', 'art', 'collectible', 'personal valuable'], route: '/net-worth/chattels', label: 'Personal Valuables' },
