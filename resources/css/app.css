@@ -337,6 +337,11 @@
   /* Animation utilities */
   .animate-fade-in { animation: fadeIn 0.3s ease-out; }
   .animate-fade-in-slide { animation: fadeInSlideUp 0.3s ease-out; }
+
+  /* AI Form Fill — field highlight during Fyn auto-fill */
+  .ai-fill-highlight {
+    @apply ring-2 ring-violet-400 ring-offset-1 bg-violet-50 transition-all duration-200;
+  }
 }
 
 /* Shared keyframes */

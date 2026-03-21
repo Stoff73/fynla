@@ -321,6 +321,23 @@ const actions = {
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
                                 break;
 
+                            case 'fill_form':
+                                // Navigate to the page first
+                                if (event.route) {
+                                    commit('SET_PENDING_NAVIGATION', event.route);
+                                }
+                                // Dispatch fill after a short delay to let navigation complete
+                                setTimeout(() => {
+                                    dispatch('aiFormFill/startFill', {
+                                        entityType: event.entity_type,
+                                        fields: event.fields,
+                                        route: event.route,
+                                        mode: event.mode || 'create',
+                                        entityId: event.entity_id || null,
+                                    }, { root: true });
+                                }, 500);
+                                break;
+
                             case 'entity_created':
                                 commit('ADD_MESSAGE', {
                                     id: 'entity_' + Date.now(),

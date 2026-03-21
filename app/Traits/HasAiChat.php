@@ -208,6 +208,18 @@ trait HasAiChat
                         ];
                     }
 
+                    // Handle form fill results (AI fills form visually instead of saving directly)
+                    if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
+                        yield [
+                            'type' => 'fill_form',
+                            'entity_type' => $toolResult['entity_type'],
+                            'route' => $toolResult['route'],
+                            'fields' => $toolResult['fields'],
+                            'mode' => $toolResult['mode'] ?? 'create',
+                            'entity_id' => $toolResult['entity_id'] ?? null,
+                        ];
+                    }
+
                     // Handle entity creation results
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         yield [

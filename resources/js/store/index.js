@@ -32,6 +32,7 @@ import advisor from './modules/advisor';
 import lifeStage from './modules/lifeStage';
 import completeness from './modules/completeness';
 import whatIf from './modules/whatIf';
+import aiFormFill from './modules/aiFormFill';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -87,6 +88,7 @@ const store = createStore({
     lifeStage,
     completeness,
     whatIf,
+    aiFormFill,
   },
   plugins: [
     createPersistedState({
