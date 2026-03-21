@@ -286,14 +286,34 @@ All 15 create tools covered.
 
 ---
 
+## Edit/Update Flow
+
+When Fyn updates an existing record via the `update_record` tool, the same visual flow applies:
+
+1. Fyn navigates to the page where the record lives
+2. The edit modal opens pre-populated with existing data
+3. Only the **changed fields** animate — each changed field highlights and its value updates (250ms per field). Unchanged fields remain as-is with no highlight.
+4. 250ms pause, then auto-submit
+5. Fyn confirms: "Updated your Nationwide Cash ISA — balance changed from £15,000 to £18,500"
+
+**Backend change:** The `update_record` tool handler returns `{ action: 'fill_form', mode: 'edit', entity_type, entity_id, fields }` where `fields` contains only the changed key-value pairs. The frontend opens the edit modal (existing `openEditModal(record)` pattern), then animates only the changed fields.
+
+**Store addition:** The `pendingFill` object gains:
+- `mode: 'create' | 'edit'` — whether this is a new record or an update
+- `entityId: number | null` — the ID of the record being edited (null for create)
+
+The page component watches `pendingFill` and calls `openEditModal(record)` instead of `openCreateModal()` when `mode === 'edit'`. It fetches the existing record by ID to populate the form first, then the AI fill sequence animates only the changed fields.
+
+---
+
 ## Files Affected
 
 ### New Files
 - `resources/js/store/modules/aiFormFill.js` — Coordination store
 - `resources/css` addition — `.ai-fill-highlight` class in `app.css`
 
-### Modified Files — Backend (1)
-- `app/Agents/CoordinatingAgent.php` — All 15 create tool handlers return `fill_form` instead of saving
+### Modified Files — Backend (2)
+- `app/Agents/CoordinatingAgent.php` — All 15 create tool handlers + `update_record` handler return `fill_form` instead of saving
 - `app/Traits/HasAiChat.php` — New `fill_form` SSE event type
 
 ### Modified Files — Frontend (17+)
@@ -303,9 +323,9 @@ All 15 create tools covered.
 
 ---
 
-## Out of Scope
+## Out of Scope (v2)
 
-- Edit/update flows (only create is covered — updates use `update_record` tool which works differently)
 - Undo/revert after auto-submit
 - Mobile app form filling
 - Batch creation (creating multiple records in sequence)
+- Delete flows with visual confirmation
