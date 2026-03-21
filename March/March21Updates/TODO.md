@@ -1,6 +1,6 @@
 # TODO — Fynla
 
-*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if upgrade)*
+*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation)*
 
 ## Completed This Session
 
@@ -40,6 +40,15 @@
 - [x] AI auto-navigation: Fyn creates scenario → navigates to detail page
 - [x] Browser tested end-to-end: "What if I retire at 55?" → scenario created → detail page with AI narrative + module comparisons
 
+### Fyn AI Navigation Upgrade (PR #152)
+- [x] Query string parsing fixed: `handleNavigation()` properly parses `?section=income` for Vue Router
+- [x] Client router: added savings, retirement, sipp, life events, individual plans, help, security settings, planning assumptions
+- [x] AI tool definition: comprehensive categorised route list with legacy redirect warnings
+- [x] System prompt: always navigate first (never refuse), offer to help on empty modules
+- [x] Module dependency guidance: Fyn explains what estate/protection/retirement need from other modules
+- [x] All 37 sidebar-accessible pages mapped to zero-token client-side keyword matches
+- [x] Fixed "plan" keyword ambiguity (specific plans match before generic)
+
 ### Uploads from Previous Session (confirmed by user)
 - [x] `app/Observers/NetWorthCacheObserver.php`
 - [x] `app/Providers/EventServiceProvider.php`
@@ -54,7 +63,7 @@
 - [ ] `app/Services/UserProfile/UserProfileService.php`
 - [ ] Rebuild frontend and upload `public/build/`
 
-### Goals + Life Events + What-If (build + PHP upload + migration)
+### Goals + Life Events + What-If + Fyn AI (build + PHP upload + migration)
 - [ ] Run migrations on server (`what_if_scenarios` table + life event enum extension)
 - [ ] Run `composer dump-autoload` on server (new model + service classes)
 - [ ] Rebuild frontend and upload `public/build/`
@@ -77,11 +86,11 @@
 
 ## Context for Next Session
 
-Major upgrade completed across 5 PRs. The Goals & Life Events systems are now integrated into all module agents (Savings, Protection, Estate, Retirement). A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern.
+Major upgrade completed across 7 PRs. The Goals & Life Events systems are now integrated into all module agents. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved with proactive help offers and cross-module dependency guidance.
 
 **Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
 **Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
-**Deploy guide:** `March/March21Updates/deployFix21.md` (income fix — needs updating for goals/what-if)
+**Deploy guide:** `March/March21Updates/deployFix21.md`
 
 ## PRs Merged This Session
 | PR | Branch | What |
@@ -91,3 +100,4 @@ Major upgrade completed across 5 PRs. The Goals & Life Events systems are now in
 | #149 | lifeEventsExpansion | 5 new life event types, module cache, AI context |
 | #150 | whatIfScenarios | What-If: DB, service, API, AI tool, dashboard |
 | #151 | whatIfFixes | What-If: detail page, URL fixes, data flow |
+| #152 | fynAI | Fyn AI navigation: routes, query parsing, empty module behaviour |
