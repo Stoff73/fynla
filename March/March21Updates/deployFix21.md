@@ -154,15 +154,21 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - New `list_life_events` tool: lightweight event listing without full agent analysis
 - Fyn can reference goals/events by ID for updates and deletes without a prior tool call
 
+### Chat History Fix (PR #154)
+- History drawer was missing from the docked chat panel (only existed in floating panel)
+- Real users clicking the history icon saw nothing — state toggled but no UI rendered
+- Added full history drawer to docked panel: conversation list with titles, times, delete buttons
+
 ## Post-Deploy Verification
 
 1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable
 2. **Goals**: Goals page → verify behind-schedule banner shows specific goal names with remaining amounts
 3. **Chat**: Preview mode → verify no chat icon. Real user → verify docked Fyn chat
-4. **What-If**: As real user, ask Fyn "What if I retire at 55?" → verify scenario created, auto-navigated to detail page with AI narrative + module comparisons
-5. **What-If list**: Navigate to /planning/what-if → verify scenario card in grid, click navigates to detail page, back button returns to list
-6. **Life Events**: Create a new life event → verify affected module caches cleared
-7. **Navigation**: Ask Fyn "show me my income" → verify navigates to `/valuable-info?section=income` (not `/profile`)
-8. **Navigation**: Ask Fyn "show me my life events" → verify navigates to `/goals?tab=events`
-9. **Navigation**: Ask Fyn "show me my retirement plan" → verify navigates to `/plans/retirement` (not `/holistic-plan`)
-10. **Goals context**: Ask Fyn "what are my goals?" → verify Fyn lists goals with names, amounts, and status without needing a tool call
+4. **Chat history**: As real user → send a message to Fyn → click history icon (clock) → verify conversation appears in list → click it → verify messages reload
+5. **What-If**: As real user, ask Fyn "What if I retire at 55?" → verify scenario created, auto-navigated to detail page with AI narrative + module comparisons
+6. **What-If list**: Navigate to /planning/what-if → verify scenario card in grid, click navigates to detail page, back button returns to list
+7. **Life Events**: Create a new life event → verify affected module caches cleared
+8. **Navigation**: Ask Fyn "show me my income" → verify navigates to `/valuable-info?section=income` (not `/profile`)
+9. **Navigation**: Ask Fyn "show me my life events" → verify navigates to `/goals?tab=events`
+10. **Navigation**: Ask Fyn "show me my retirement plan" → verify navigates to `/plans/retirement` (not `/holistic-plan`)
+11. **Goals context**: Ask Fyn "what are my goals?" → verify Fyn lists goals with names, amounts, and status without needing a tool call

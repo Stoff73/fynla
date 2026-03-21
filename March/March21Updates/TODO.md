@@ -1,6 +1,6 @@
 # TODO — Fynla
 
-*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation + Fyn goals context)*
+*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation + goals context + chat history fix)*
 
 ## Completed This Session
 
@@ -57,6 +57,11 @@
 - [x] PrerequisiteGateService: both new tools pass through without blocking
 - [x] Fyn can now reference goals/events by ID for updates and deletes without a prior tool call
 
+### Chat History Fix (PR #154)
+- [x] Root cause: history drawer only existed in the floating panel template, not the docked panel used by real users
+- [x] Added full history drawer to docked panel: conversation list with titles, relative times, delete buttons
+- [x] Browser tested: history opens, shows conversations, clicking loads full message history
+
 ### Uploads from Previous Session (confirmed by user)
 - [x] `app/Observers/NetWorthCacheObserver.php`
 - [x] `app/Providers/EventServiceProvider.php`
@@ -94,7 +99,7 @@
 
 ## Context for Next Session
 
-Major upgrade completed across 8 PRs. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
+Major upgrade completed across 9 PRs. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
 
 **Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
 **Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
@@ -110,3 +115,4 @@ Major upgrade completed across 8 PRs. The Goals & Life Events systems are now fu
 | #151 | whatIfFixes | What-If: detail page, URL fixes, data flow |
 | #152 | fynAI | Fyn AI navigation: routes, query parsing, empty module behaviour |
 | #153 | fynGoals | Fyn goals/events: context in prompt, list tools, IDs |
+| #154 | fynChatHistoryFix | Chat history: drawer missing from docked panel |
