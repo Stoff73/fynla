@@ -66,6 +66,7 @@ use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
 use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -1118,6 +1119,16 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])
 // Occupation search (SOC 2020)
 Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
+
+// What-If Scenarios
+Route::middleware('auth:sanctum')->prefix('what-if-scenarios')->group(function () {
+    Route::get('/', [WhatIfScenarioController::class, 'index']);
+    Route::get('/count', [WhatIfScenarioController::class, 'count']);
+    Route::get('/{id}', [WhatIfScenarioController::class, 'show']);
+    Route::post('/', [WhatIfScenarioController::class, 'store']);
+    Route::put('/{id}', [WhatIfScenarioController::class, 'update']);
+    Route::delete('/{id}', [WhatIfScenarioController::class, 'destroy']);
+});
 
 // AI Chat routes
 Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
