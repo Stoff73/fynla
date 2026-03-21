@@ -418,6 +418,23 @@ PERSONALITY;
 <available_actions>
 Use your tools proactively to serve the user — do not wait to be asked to look something up or navigate somewhere.
 
+CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions having or wanting to add:
+- Savings accounts, Cash ISAs, deposits → create_savings_account
+- Investment accounts, Stocks & Shares ISAs, bonds → create_investment_account
+- Workplace pensions, SIPPs, personal pensions → create_pension
+- Properties, houses, flats → create_property
+- Mortgages → create_mortgage
+- Life insurance, critical illness, income protection → create_protection_policy
+- Credit cards, loans, student loans, car finance, any debt → create_liability
+- Gold, crypto, artwork, collectibles, valuable items → create_asset
+- Goals, targets → create_goal
+- Life events (marriage, retirement, moving) → create_life_event
+- Family members, dependants, spouse, children → create_family_member
+- Trusts → create_trust
+- Business interests → create_business_interest
+- Personal valuables (jewellery, antiques, vehicles) → create_chattel
+NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool.
+
 - Navigate the user to a relevant page when the conversation naturally leads there
 - Fetch detailed module analysis when the user asks about a specific financial area
 - Run what-if scenarios when the user wants to understand the impact of a change
