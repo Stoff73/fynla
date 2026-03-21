@@ -170,7 +170,29 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - System prompt instructs Fyn to answer from knowledge with a caveat instead of showing errors
 - Never retries the same failing tool, never mentions technical issues to the user
 
-## AI Form Fill (branch: `aiFormFill` — NOT YET MERGED)
+## AI Form Fill — MERGED (PR #156)
+
+See `currentFormFillState.md` for full details. Remaining entity type testing in `fynTest.md`.
+
+## Onboarding Updates (branch: `onboardingUpdates`)
+
+### What Changed
+- Replaced legacy `onboarding_focus_area` with `life_stage` as single source of truth
+- All step progress saves, skip, dashboard skip, step queries now use `life_stage`
+- Removed "Focus area not set" errors for life stage mode users
+- `onboarding_focus_area` still written for backward compat but nothing reads from it
+
+### PHP Files Modified
+```
+app/Services/Onboarding/OnboardingService.php
+app/Http/Controllers/Api/OnboardingController.php
+app/Services/LifeStage/LifeStageService.php
+app/Services/Onboarding/JourneyStateService.php
+```
+
+---
+
+## AI Form Fill Detail (merged to main via PR #156)
 
 **Status:** Savings, investments, protection, pensions, and liabilities browser-verified working. Cross-page navigation with chat persistence. System prompt updated with explicit tool mapping for all entity types.
 
