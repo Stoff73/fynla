@@ -1943,6 +1943,9 @@ export default {
     };
     window.addEventListener('resize', this._handleResize);
 
+    // Always refresh journey progress when returning to dashboard
+    // (e.g. after onboarding, adding data via Fyn, etc.)
+    this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
   },
 
   beforeUnmount() {
