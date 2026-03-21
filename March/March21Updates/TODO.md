@@ -67,10 +67,20 @@
 - [x] User messages scroll to bottom (so user sees their message sent)
 - [x] During streaming: no auto-scroll (user reads at own pace)
 
+### Chat Scroll Anchor (PR #155)
+- [x] Chat now scrolls to top of Fyn's response instead of bottom
+- [x] User messages scroll to bottom (so user sees their message sent)
+- [x] During streaming: no auto-scroll (user reads at own pace)
+
 ### Tool Error Handling (direct to main)
 - [x] Tool results with errors get `is_error: true` flag for the Anthropic API
 - [x] System prompt: never show errors to user, answer from knowledge with caveat instead
 - [x] No more "let me try that again" stuttering on tool failures
+
+### AI Form Fill — Spec + Plan Written
+- [x] Design spec: `docs/superpowers/specs/2026-03-21-ai-form-fill-design.md`
+- [x] Implementation plan: `docs/superpowers/plans/2026-03-21-ai-form-fill.md`
+- [ ] Implementation: scheduled for next session
 
 ### Uploads from Previous Session (confirmed by user)
 - [x] `app/Observers/NetWorthCacheObserver.php`
@@ -109,7 +119,7 @@
 
 ## Context for Next Session
 
-Major upgrade completed across 10 PRs + 1 direct commit. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
+Major upgrade completed across 10 PRs + direct commits. AI Form Fill spec and plan written for next session. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
 
 **Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
 **Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
