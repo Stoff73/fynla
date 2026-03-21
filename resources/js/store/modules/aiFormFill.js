@@ -1,3 +1,22 @@
+const ENTITY_LABELS = {
+  savings_account: 'savings account',
+  investment_account: 'investment account',
+  dc_pension: 'pension',
+  db_pension: 'pension',
+  property: 'property',
+  mortgage: 'mortgage',
+  protection_policy: 'protection policy',
+  goal: 'goal',
+  life_event: 'life event',
+  family_member: 'family member',
+  trust: 'trust',
+  business_interest: 'business interest',
+  chattel: 'valuable item',
+  estate_asset: 'estate asset',
+  estate_liability: 'liability',
+  estate_gift: 'gift',
+};
+
 const state = {
   pendingFill: null,      // { entityType, fields, route, mode, entityId }
   filling: false,
@@ -84,7 +103,31 @@ const actions = {
     commit('SET_CURRENT_STEP', s.currentStep + 1);
   },
 
-  completeFill({ commit }) {
+  completeFill({ commit, state: s, rootCommit }) {
+    // Add confirmation message to chat
+    if (s.pendingFill) {
+      const entityType = s.pendingFill.entityType;
+      const mode = s.pendingFill.mode || 'create';
+      const label = ENTITY_LABELS[entityType] || entityType.replace(/_/g, ' ');
+      const verb = mode === 'edit' ? 'updated' : 'added';
+      const name = s.pendingFill.fields?.institution
+        || s.pendingFill.fields?.account_name
+        || s.pendingFill.fields?.goal_name
+        || s.pendingFill.fields?.trust_name
+        || s.pendingFill.fields?.business_name
+        || s.pendingFill.fields?.description
+        || s.pendingFill.fields?.first_name
+        || '';
+      const suffix = name ? ` "${name}"` : '';
+
+      commit('aiChat/ADD_MESSAGE', {
+        id: 'fill_confirm_' + Date.now(),
+        role: 'assistant',
+        content: `Done — your ${label}${suffix} has been ${verb} successfully.`,
+        created_at: new Date().toISOString(),
+      }, { root: true });
+    }
+
     clearTimeout(fallbackTimer);
     commit('CLEAR');
   },
