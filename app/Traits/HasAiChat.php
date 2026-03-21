@@ -579,6 +579,46 @@ DATA_CREATION_GUIDANCE;
                 }
             }
 
+            // Goals
+            $activeGoals = \App\Models\Goal::forUserOrJoint($user->id)
+                ->where('status', 'active')
+                ->orderBy('priority')
+                ->get();
+
+            if ($activeGoals->isNotEmpty()) {
+                $onTrack = $activeGoals->filter(fn ($g) => $g->is_on_track)->count();
+                $lines[] = '';
+                $lines[] = "Goals: {$activeGoals->count()} active ({$onTrack} on track)";
+                foreach ($activeGoals as $goal) {
+                    $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
+                    $status = $goal->is_on_track ? 'on track' : 'behind';
+                    $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
+                    $lines[] = "  [ID:{$goal->id}] {$goal->goal_name}: £".number_format((float) $goal->current_amount, 0)
+                        .' of £'.number_format((float) $goal->target_amount, 0)
+                        ." ({$status}){$contribution}"
+                        .($goal->target_date ? ' — target: '.$goal->target_date->format('M Y') : '');
+                }
+            } else {
+                $lines[] = '- Goals: None set';
+            }
+
+            // Life Events
+            $activeEvents = \App\Models\LifeEvent::forUserOrJoint($user->id)
+                ->active()
+                ->orderBy('expected_date')
+                ->get();
+
+            if ($activeEvents->isNotEmpty()) {
+                $lines[] = '';
+                $lines[] = "Life Events: {$activeEvents->count()} upcoming";
+                foreach ($activeEvents->take(10) as $event) {
+                    $monthsUntil = max(0, (int) now()->diffInMonths($event->expected_date));
+                    $sign = $event->impact_type === 'income' ? '+' : '-';
+                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}£".number_format((float) $event->amount, 0)
+                        ." — in {$monthsUntil} months ({$event->certainty})";
+                }
+            }
+
             // Ranked recommendations with decision traces
             $recommendations = $analysis['ranked_recommendations'] ?? [];
             if (! empty($recommendations)) {

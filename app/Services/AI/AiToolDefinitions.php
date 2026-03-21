@@ -78,6 +78,24 @@ class AiToolDefinitions
     {
         return [
             [
+                'name' => 'list_goals',
+                'description' => 'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal. This is a lightweight call — use it instead of get_module_analysis(goals) when you just need the goal list.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object) [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'list_life_events',
+                'description' => 'List all of the user\'s life events with dates, amounts, and IDs. Use this when the user asks about their life events, upcoming events, or before updating/deleting a specific event. This is a lightweight call — use it instead of get_module_analysis(goals) when you just need the event list.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object) [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
                 'name' => 'get_module_analysis',
                 'description' => 'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
                 'parameters' => [
