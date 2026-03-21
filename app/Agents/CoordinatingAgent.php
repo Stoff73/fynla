@@ -1123,10 +1123,6 @@ class CoordinatingAgent extends BaseAgent
             $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
             $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
             $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
-            // Workplace pensions need annual salary for % contribution calculations
-            if ($formPensionType === 'occupational') {
-                $fields['annual_salary'] = (float) ($input['annual_salary'] ?? $user->annual_income ?? 0);
-            }
         }
 
         return [

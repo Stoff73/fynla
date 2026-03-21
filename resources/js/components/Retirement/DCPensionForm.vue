@@ -652,11 +652,6 @@ export default {
         return;
       }
 
-      if (this.isWorkplacePension && (!this.formData.annual_salary || this.formData.annual_salary <= 0)) {
-        this.validationError = 'Please enter your annual salary for workplace pension';
-        return;
-      }
-
       this.$emit('save', this.formData);
     },
   },
