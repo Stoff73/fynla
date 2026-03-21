@@ -1,6 +1,6 @@
 # TODO — Fynla
 
-*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation)*
+*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation + Fyn goals context)*
 
 ## Completed This Session
 
@@ -49,6 +49,14 @@
 - [x] All 37 sidebar-accessible pages mapped to zero-token client-side keyword matches
 - [x] Fixed "plan" keyword ambiguity (specific plans match before generic)
 
+### Fyn AI Goals & Life Events Context (PR #153)
+- [x] Goals summary in financial context: all active goals with ID, name, progress, status, contribution, target date in prompt
+- [x] Life events in financial context: all upcoming events with ID, name, amount, months until, certainty in prompt
+- [x] New `list_goals` tool: lightweight goal listing with IDs (no full agent analysis needed)
+- [x] New `list_life_events` tool: lightweight event listing with IDs (no full agent analysis needed)
+- [x] PrerequisiteGateService: both new tools pass through without blocking
+- [x] Fyn can now reference goals/events by ID for updates and deletes without a prior tool call
+
 ### Uploads from Previous Session (confirmed by user)
 - [x] `app/Observers/NetWorthCacheObserver.php`
 - [x] `app/Providers/EventServiceProvider.php`
@@ -86,7 +94,7 @@
 
 ## Context for Next Session
 
-Major upgrade completed across 7 PRs. The Goals & Life Events systems are now integrated into all module agents. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved with proactive help offers and cross-module dependency guidance.
+Major upgrade completed across 8 PRs. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
 
 **Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
 **Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
@@ -101,3 +109,4 @@ Major upgrade completed across 7 PRs. The Goals & Life Events systems are now in
 | #150 | whatIfScenarios | What-If: DB, service, API, AI tool, dashboard |
 | #151 | whatIfFixes | What-If: detail page, URL fixes, data flow |
 | #152 | fynAI | Fyn AI navigation: routes, query parsing, empty module behaviour |
+| #153 | fynGoals | Fyn goals/events: context in prompt, list tools, IDs |
