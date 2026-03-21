@@ -288,6 +288,44 @@
         </div>
       </div>
 
+      <!-- Docked History Drawer -->
+      <div v-if="showHistory" class="border-b border-light-gray bg-savannah-100 max-h-48 overflow-y-auto flex-shrink-0">
+        <div v-if="loadingConversations" class="p-4 text-center">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-raspberry-600 mx-auto"></div>
+        </div>
+        <div v-else-if="conversations.length === 0" class="p-4 text-center text-sm text-neutral-500">
+          No previous conversations
+        </div>
+        <div v-else>
+          <button
+            v-for="conv in conversations"
+            :key="conv.id"
+            @click="loadConversation(conv.id)"
+            class="w-full text-left px-4 py-2.5 hover:bg-savannah-200 border-b border-light-gray
+                   transition-colors flex items-center justify-between group"
+            :class="{ 'bg-violet-50': currentConversation?.id === conv.id }"
+          >
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-horizon-500 truncate">
+                {{ conv.title || 'New conversation' }}
+              </p>
+              <p class="text-xs text-neutral-500 mt-0.5">
+                {{ formatRelativeTime(conv.last_message_at || conv.created_at) }}
+              </p>
+            </div>
+            <button
+              @click.stop="deleteConversation(conv.id)"
+              class="p-1 text-horizon-400 hover:text-raspberry-500 opacity-0 group-hover:opacity-100 transition-all"
+              title="Delete conversation"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
+          </button>
+        </div>
+      </div>
+
       <!-- Docked Messages -->
       <div ref="dockedMessagesContainer" class="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-thin">
         <!-- Empty state -->
