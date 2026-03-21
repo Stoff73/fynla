@@ -451,49 +451,8 @@ export default {
       });
     });
 
-    // Estimated taxes (annual only, shown in annual column)
-    const estimatedTaxes = computed(() => {
-      const taxes = [];
-      const totalAnnualIncome = profitAndLossData.value?.total_income || 0;
-
-      // Simple income tax estimate based on UK tax bands 2025/26
-      if (totalAnnualIncome > 0) {
-        let incomeTax = 0;
-        const personalAllowance = 12570;
-        const basicRateLimit = 50270;
-        const higherRateLimit = 125140;
-
-        const taxableIncome = Math.max(0, totalAnnualIncome - personalAllowance);
-        if (taxableIncome > 0) {
-          // Basic rate (20%)
-          const basicRateTaxable = Math.min(taxableIncome, basicRateLimit - personalAllowance);
-          incomeTax += basicRateTaxable * 0.20;
-
-          // Higher rate (40%)
-          if (taxableIncome > basicRateLimit - personalAllowance) {
-            const higherRateTaxable = Math.min(taxableIncome - (basicRateLimit - personalAllowance), higherRateLimit - basicRateLimit);
-            incomeTax += higherRateTaxable * 0.40;
-          }
-
-          // Additional rate (45%)
-          if (taxableIncome > higherRateLimit - personalAllowance) {
-            const additionalRateTaxable = taxableIncome - (higherRateLimit - personalAllowance);
-            incomeTax += additionalRateTaxable * 0.45;
-          }
-        }
-
-        if (incomeTax > 0) {
-          taxes.push({
-            line_item: 'Estimated Income Tax',
-            monthlyAmount: null,
-            annualAmount: incomeTax,
-            annualOnly: true,
-          });
-        }
-      }
-
-      return taxes;
-    });
+    // Tax data from backend (uses TaxConfigService rates)
+    const taxData = computed(() => profitAndLossData.value?.tax || null);
 
     const totalIncome = computed(() => {
       const annual = Number(profitAndLossData.value?.total_income) || 0;
@@ -517,11 +476,8 @@ export default {
       annual: totalIncome.value.annual - totalOutflows.value.annual,
     }));
 
-    // Estimated Income Tax (annual only - using the calculation from estimatedTaxes)
-    const estimatedIncomeTax = computed(() => {
-      const taxItem = estimatedTaxes.value.find(t => t.line_item === 'Estimated Income Tax');
-      return taxItem?.annualAmount || 0;
-    });
+    // Income tax from backend TaxConfigService calculation
+    const estimatedIncomeTax = computed(() => taxData.value?.income_tax || 0);
 
     // Estimated Capital Gains Tax (placeholder - would need actual gains data)
     const estimatedCapitalGainsTax = computed(() => 0);

@@ -1,32 +1,38 @@
 # TODO — Fynla
 
-*Last updated: 20 March 2026 by session 3 (production testing + hotfixes)*
+*Last updated: 21 March 2026 — session 4 (income fix)*
 
-## Outstanding from This Session
+## Completed This Session
 
-### Needs Upload to Production
-- [ ] `app/Observers/NetWorthCacheObserver.php` (NEW) — auto-invalidates net worth cache on asset/liability changes
-- [ ] `app/Providers/EventServiceProvider.php` — registers NetWorthCacheObserver on all asset/liability models
-- [ ] `app/Http/Controllers/Api/MortgageController.php` — reverted manual cache invalidation (observer handles it)
-- [ ] `app/Http/Controllers/Api/PropertyController.php` — reverted manual cache invalidation (observer handles it)
-- [ ] Run `composer dump-autoload` on server after upload (new observer class)
+### Income Statement Fix
+- [x] Added Interest Income, Pension Income, Trust Income to P&L and cashflow (was only 5 of 8 types)
+- [x] Replaced hardcoded frontend tax calculator with backend `UKTaxCalculator` using `TaxConfigService`
+- [x] All 20 PersonalAccountsService tests passing (57 assertions)
 
-### Known Issues
+### Uploads from Previous Session (confirmed by user)
+- [x] `app/Observers/NetWorthCacheObserver.php`
+- [x] `app/Providers/EventServiceProvider.php`
+- [x] `app/Http/Controllers/Api/MortgageController.php`
+- [x] `app/Http/Controllers/Api/PropertyController.php`
+- [x] `composer dump-autoload` on server
+
+## Needs Upload to Production
+- [ ] `app/Services/UserProfile/PersonalAccountsService.php` — 3 new income types + tax from backend
+- [ ] Rebuild frontend (`./deploy/fynla-org/build.sh`) and upload `public/build/`
+- [ ] Clear caches on server
+
+## Known Issues
 - [ ] PropertyForm edit 422 — editing a property via the UI form returns 422 validation error. Direct API call with same data succeeds. Needs investigation of what extra fields the form sends.
-- [ ] Income page: "Other Income" not shown as line item in main breakdown (j1 testing)
 - [ ] Goals page: Goals from onboarding not visible on dedicated Goals page (j1 testing)
 - [ ] Sidebar journey %: intermittently shows 0% on some pages (race condition with life-stage/progress fetch)
 
-### Tech Debt
+## Tech Debt
 - [ ] OnboardingWizard.vue: dynamic and static imports warning for 8 step components
 - [ ] PropertyForm sends all form fields including empty strings for nullable fields — clean up before submission
 
 ## Context for Next Session
 
-Seven production hotfixes were deployed during browser testing of 5 onboarding journeys. The critical mortgage bug (property ID extraction at `data.property.id` vs `data.id` in AssetsStep) was the root cause of Net Worth always showing Liabilities £0. The fix is deployed in the build. A `NetWorthCacheObserver` was created to auto-invalidate net worth cache on any asset/liability model change — this needs uploading to production.
+Income statement now shows all 8 income types as separate line items and uses the backend `UKTaxCalculator` (via `TaxConfigService`) for tax estimates instead of hardcoded frontend values. This ensures tax figures stay correct across tax year changes without code changes.
 
-All 5 journey types have been tested end-to-end with screenshots in `March/March20Updates/testFix/`.
-
-## Files to Review
-- `app/Observers/NetWorthCacheObserver.php` — new file, needs production upload
-- `app/Providers/EventServiceProvider.php` — observer registration, needs production upload
+Deploy guide: `March/March21Updates/deployFix21.md`
+Detailed fix notes: `March/March21Updates/incomeFix.md`

@@ -355,12 +355,13 @@ class UserProfileService
         $dividendIncome = (float) ($user->annual_dividend_income ?? 0);
         $interestIncome = (float) ($user->annual_interest_income ?? 0);
         $trustIncome = (float) ($user->annual_trust_income ?? 0);
+        $otherIncome = (float) ($user->annual_other_income ?? 0);
 
         // Get primary trust type if user has trusts (for correct tax treatment)
         $trustType = $this->getPrimaryTrustType($user);
 
         $totalAnnualIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome
-            + $dividendIncome + $interestIncome + $trustIncome + $pensionIncome;
+            + $dividendIncome + $interestIncome + $trustIncome + $pensionIncome + $otherIncome;
 
         // Get detailed tax breakdown (new method with per-income breakdowns)
         $detailedTax = $this->taxCalculator->calculateDetailedNetIncome(
@@ -383,7 +384,7 @@ class UserProfileService
             $rentalIncome,
             $dividendIncome,
             $interestIncome,
-            $trustIncome + $pensionIncome
+            $trustIncome + $pensionIncome + $otherIncome
         );
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)
@@ -409,6 +410,7 @@ class UserProfileService
             'annual_dividend_income' => $user->annual_dividend_income,
             'annual_interest_income' => $user->annual_interest_income,
             'annual_trust_income' => $user->annual_trust_income,
+            'annual_other_income' => $user->annual_other_income,
             'annual_pension_income' => $pensionIncome,
             'annual_pension_contributions' => $pensionContributions,
             'total_annual_income' => $totalAnnualIncome,
