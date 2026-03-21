@@ -587,7 +587,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_estate_asset',
-                'description' => 'Create an estate planning asset. Use this for assets being tracked specifically for Inheritance Tax and estate planning purposes (e.g., collectibles, business interests, or other assets not captured elsewhere).',
+                'description' => 'Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -619,7 +619,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_estate_liability',
-                'description' => 'Create an estate planning liability. Use this for debts and liabilities being tracked for estate planning purposes.',
+                'description' => 'Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
