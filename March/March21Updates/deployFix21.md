@@ -159,6 +159,17 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - Real users clicking the history icon saw nothing — state toggled but no UI rendered
 - Added full history drawer to docked panel: conversation list with titles, times, delete buttons
 
+### Chat Scroll Anchor (PR #155)
+- Chat was scrolling to the bottom of Fyn's response, forcing users to scroll up to read
+- Now anchors to the top of the response so users read downward naturally
+- User messages still scroll to bottom; streaming doesn't auto-scroll
+
+### Tool Error Handling
+- When a tool call fails, Fyn was showing raw error text ("let me try that again...")
+- Tool results with errors now get `is_error: true` flag for the Anthropic API
+- System prompt instructs Fyn to answer from knowledge with a caveat instead of showing errors
+- Never retries the same failing tool, never mentions technical issues to the user
+
 ## Post-Deploy Verification
 
 1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable

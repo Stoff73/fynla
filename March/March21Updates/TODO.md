@@ -62,6 +62,16 @@
 - [x] Added full history drawer to docked panel: conversation list with titles, relative times, delete buttons
 - [x] Browser tested: history opens, shows conversations, clicking loads full message history
 
+### Chat Scroll Anchor (PR #155)
+- [x] Chat now scrolls to top of Fyn's response instead of bottom
+- [x] User messages scroll to bottom (so user sees their message sent)
+- [x] During streaming: no auto-scroll (user reads at own pace)
+
+### Tool Error Handling (direct to main)
+- [x] Tool results with errors get `is_error: true` flag for the Anthropic API
+- [x] System prompt: never show errors to user, answer from knowledge with caveat instead
+- [x] No more "let me try that again" stuttering on tool failures
+
 ### Uploads from Previous Session (confirmed by user)
 - [x] `app/Observers/NetWorthCacheObserver.php`
 - [x] `app/Providers/EventServiceProvider.php`
@@ -99,7 +109,7 @@
 
 ## Context for Next Session
 
-Major upgrade completed across 9 PRs. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
+Major upgrade completed across 10 PRs + 1 direct commit. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
 
 **Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
 **Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
@@ -116,3 +126,5 @@ Major upgrade completed across 9 PRs. The Goals & Life Events systems are now fu
 | #152 | fynAI | Fyn AI navigation: routes, query parsing, empty module behaviour |
 | #153 | fynGoals | Fyn goals/events: context in prompt, list tools, IDs |
 | #154 | fynChatHistoryFix | Chat history: drawer missing from docked panel |
+| #155 | fynScrollFix | Chat scroll: anchor to top of response |
+| — | main | Tool error handling: graceful fallback, no stuttering |
