@@ -280,6 +280,12 @@ class OnboardingController extends Controller
         try {
             $user = $request->user();
 
+            // Life stage mode fallback
+            if (! $user->onboarding_focus_area && $user->life_stage) {
+                $user->update(['onboarding_focus_area' => $user->life_stage]);
+                $user->refresh();
+            }
+
             if (! $user->onboarding_focus_area) {
                 return response()->json([
                     'success' => false,
@@ -311,6 +317,12 @@ class OnboardingController extends Controller
     {
         try {
             $user = $request->user();
+
+            // Life stage mode fallback
+            if (! $user->onboarding_focus_area && $user->life_stage) {
+                $user->update(['onboarding_focus_area' => $user->life_stage]);
+                $user->refresh();
+            }
 
             if (! $user->onboarding_focus_area) {
                 return response()->json([

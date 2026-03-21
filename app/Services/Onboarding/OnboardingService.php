@@ -90,6 +90,12 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
+        // Life stage mode users may not have a legacy focus_area set — use life_stage as fallback
+        if (! $user->onboarding_focus_area && $user->life_stage) {
+            $user->update(['onboarding_focus_area' => $user->life_stage]);
+            $user->refresh();
+        }
+
         if (! $user->onboarding_focus_area) {
             throw new \Exception('Focus area not set');
         }
@@ -937,6 +943,12 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
+        // Life stage mode fallback
+        if (! $user->onboarding_focus_area && $user->life_stage) {
+            $user->update(['onboarding_focus_area' => $user->life_stage]);
+            $user->refresh();
+        }
+
         if (! $user->onboarding_focus_area) {
             throw new \Exception('Focus area not set');
         }
@@ -976,6 +988,12 @@ class OnboardingService
     public function skipToDashboard(int $userId): User
     {
         $user = User::findOrFail($userId);
+
+        // Life stage mode fallback
+        if (! $user->onboarding_focus_area && $user->life_stage) {
+            $user->update(['onboarding_focus_area' => $user->life_stage]);
+            $user->refresh();
+        }
 
         if (! $user->onboarding_focus_area) {
             throw new \Exception('Focus area not set');
