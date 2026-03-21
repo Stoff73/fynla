@@ -249,7 +249,7 @@ const actions = {
     /**
      * Send a message and handle the streaming response.
      */
-    async sendMessage({ commit, state, rootState }, message) {
+    async sendMessage({ commit, dispatch, state, rootState }, message) {
         if (!state.currentConversation) return;
 
         // Add user message to local state immediately
