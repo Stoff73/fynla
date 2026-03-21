@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeEvent;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
+use App\Services\Goals\GoalProgressService;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Savings\FSCSAssessor;
@@ -36,7 +39,8 @@ class SavingsAgent extends BaseAgent
         private readonly ?SavingsActionDefinitionService $actionDefinitionService = null,
         private readonly ?PSACalculator $psaCalculator = null,
         private readonly ?FSCSAssessor $fscsAssessor = null,
-        private readonly ?PlanConfigService $planConfig = null
+        private readonly ?PlanConfigService $planConfig = null,
+        private readonly ?GoalProgressService $goalProgressService = null
     ) {
         if ($this->planConfig) {
             $this->cacheTtl = $this->planConfig->getSavingsCacheTTL();
@@ -212,7 +216,10 @@ class SavingsAgent extends BaseAgent
                 $userId
             );
 
-            return $result['recommendations'] ?? [];
+            $recommendations = $result['recommendations'] ?? [];
+            $goalRecommendations = $this->buildGoalRecommendations($analysisData, $userId);
+
+            return array_merge($recommendations, $goalRecommendations);
         }
 
         // Fallback: inline recommendation logic for backward compatibility
@@ -290,7 +297,11 @@ class SavingsAgent extends BaseAgent
             ];
         }
 
-        return $recommendations;
+        // Goal-aware recommendations
+        $userId = $analysisData['user_id'] ?? 0;
+        $goalRecommendations = $this->buildGoalRecommendations($analysisData, $userId);
+
+        return array_merge($recommendations, $goalRecommendations);
     }
 
     /**
@@ -481,5 +492,90 @@ class SavingsAgent extends BaseAgent
             $score >= 50 => 'Your emergency fund needs attention. Priority: Medium.',
             default => 'Your emergency fund is critical. Immediate action recommended.',
         };
+    }
+
+    /**
+     * Build goal-aware recommendations: behind-schedule goals, emergency fund
+     * suggestion, and life event cash buffer.
+     *
+     * @return array<int, array{category: string, priority: string, title: string, description: string, action: string}>
+     */
+    private function buildGoalRecommendations(array $analysisData, int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $recommendations = [];
+
+        // Goal behind-schedule recommendations
+        $activeGoals = Goal::forUserOrJoint($userId)
+            ->where('status', 'active')
+            ->where('assigned_module', 'savings')
+            ->get();
+
+        if ($this->goalProgressService) {
+            foreach ($activeGoals as $goal) {
+                $progress = $this->goalProgressService->calculateProgress($goal);
+                if (! $progress['is_on_track'] && $progress['current_amount'] > 0) {
+                    $remaining = $progress['target_amount'] - $progress['current_amount'];
+                    $monthsLeft = max(1, $progress['days_remaining'] / 30);
+                    $requiredMonthly = round($remaining / $monthsLeft, 2);
+
+                    $recommendations[] = [
+                        'category' => 'goal_behind_schedule',
+                        'priority' => $goal->priority ?? 'medium',
+                        'title' => "{$goal->goal_name} is behind schedule",
+                        'description' => "Your {$goal->goal_name} goal needs {$this->formatCurrency($remaining)} more to reach its target. Consider increasing your monthly contribution to {$this->formatCurrency($requiredMonthly)} per month.",
+                        'action' => 'Increase monthly contribution',
+                    ];
+                }
+            }
+        }
+
+        // Suggest emergency fund goal if none exists and runway is short
+        $hasEmergencyFundGoal = Goal::forUserOrJoint($userId)
+            ->where('goal_type', 'emergency_fund')
+            ->where('status', 'active')
+            ->exists();
+
+        $runwayMonths = $analysisData['emergency_fund']['runway_months'] ?? 0;
+        if (! $hasEmergencyFundGoal && $runwayMonths < 3) {
+            $monthlyExpenditure = $analysisData['summary']['monthly_expenditure'] ?? 0;
+            $targetAmount = $monthlyExpenditure * 3;
+            if ($targetAmount > 0) {
+                $recommendations[] = [
+                    'category' => 'create_emergency_fund_goal',
+                    'priority' => 'high',
+                    'title' => 'Create an emergency fund goal',
+                    'description' => 'You have '.round($runwayMonths, 1)." months of emergency savings. Consider creating an emergency fund goal of {$this->formatCurrency($targetAmount)} to cover 3 months of expenses.",
+                    'action' => 'Create emergency fund goal',
+                ];
+            }
+        }
+
+        // Life event cash buffer recommendations (expense events within 12 months)
+        $upcomingEvents = LifeEvent::forUserOrJoint($userId)
+            ->where('impact_type', 'expense')
+            ->where('expected_date', '>', now())
+            ->where('expected_date', '<=', now()->addMonths(12))
+            ->whereIn('certainty', ['confirmed', 'likely'])
+            ->active()
+            ->get();
+
+        foreach ($upcomingEvents as $event) {
+            $monthsUntil = max(1, (int) now()->diffInMonths($event->expected_date));
+            $monthlySaving = round((float) $event->amount / $monthsUntil, 2);
+
+            $recommendations[] = [
+                'category' => 'life_event_cash_buffer',
+                'priority' => 'high',
+                'title' => "Build cash reserve for {$event->event_name}",
+                'description' => "{$event->event_name} is expected in {$monthsUntil} months costing {$this->formatCurrency((float) $event->amount)}. Consider saving {$this->formatCurrency($monthlySaving)} per month to prepare.",
+                'action' => 'Set up savings for upcoming event',
+            ];
+        }
+
+        return $recommendations;
     }
 }
