@@ -425,8 +425,8 @@ const actions = {
 
         try {
             const response = await estateService.createLiability(liabilityData);
-            commit('addLiability', response.data.data);
-            // Refresh net worth after adding liability
+            // Don't use addLiability here — the component re-fetches after save
+            // which gives us clean data from the API with correct resource shape
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {

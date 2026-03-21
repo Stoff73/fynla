@@ -246,6 +246,8 @@ export default {
           this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
+        // Re-fetch to ensure clean data after save
+        await this.fetchData();
       } catch (error) {
         console.error('Failed to save liability:', error);
       }
