@@ -913,40 +913,19 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $goal = Goal::create([
-            'user_id' => $user->id,
-            'goal_name' => $input['name'],
-            'goal_type' => $input['goal_type'],
-            'target_amount' => $input['target_amount'],
-            'target_date' => $input['target_date'],
-            'priority' => $input['priority'],
-            'status' => 'active',
-            'current_amount' => 0,
-            'start_date' => now()->toDateString(),
-        ]);
-
-        $toolResult = ['created' => true, 'entity_type' => 'goal', 'entity_id' => $goal->id, 'name' => $goal->goal_name, 'message' => "Goal \"{$goal->goal_name}\" created successfully."];
-
-        if (isset($input['monthly_contribution']) && $input['monthly_contribution'] > 0) {
-            $goal->monthly_contribution = $input['monthly_contribution'];
-            $goal->save();
-
-            $affordabilityService = app(\App\Services\Goals\GoalAffordabilityService::class);
-            $progressService = app(\App\Services\Goals\GoalProgressService::class);
-
-            $affordability = $affordabilityService->analyzeAffordability($goal, $user);
-            $progress = $progressService->calculateProgress($goal);
-
-            $toolResult['contribution_assessment'] = [
-                'monthly_amount' => $input['monthly_contribution'],
-                'is_on_track' => $progress['is_on_track'],
-                'status' => $progress['status'],
-                'affordability_category' => $affordability['category'] ?? 'unknown',
-                'required_monthly' => $affordability['required_monthly'] ?? null,
-            ];
-        }
-
-        return $toolResult;
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'goal',
+            'route' => '/goals',
+            'fields' => [
+                'goal_name' => $input['name'],
+                'goal_type' => $input['goal_type'],
+                'target_amount' => $input['target_amount'],
+                'target_date' => $input['target_date'],
+                'priority' => $input['priority'],
+                'monthly_contribution' => $input['monthly_contribution'] ?? null,
+            ],
+        ];
     }
 
     private function handleCreateLifeEvent(array $input, User $user, bool $isPreview): array
@@ -965,21 +944,19 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $impactType = in_array($input['event_type'], LifeEvent::INCOME_EVENT_TYPES) ? 'income' : 'expense';
-
-        $lifeEvent = LifeEvent::create([
-            'user_id' => $user->id,
-            'event_name' => $input['description'],
-            'event_type' => $input['event_type'],
-            'description' => $input['description'],
-            'amount' => $input['estimated_cost'] ?? 0,
-            'impact_type' => $impactType,
-            'expected_date' => $input['event_date'],
-            'certainty' => 'likely',
-            'status' => 'planned',
-        ]);
-
-        return ['created' => true, 'entity_type' => 'life_event', 'entity_id' => $lifeEvent->id, 'name' => $lifeEvent->event_name, 'message' => "Life event \"{$lifeEvent->event_name}\" created successfully."];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'life_event',
+            'route' => '/goals?tab=events',
+            'fields' => [
+                'event_name' => $input['description'],
+                'event_type' => $input['event_type'],
+                'description' => $input['description'],
+                'amount' => $input['estimated_cost'] ?? 0,
+                'expected_date' => $input['event_date'],
+                'certainty' => 'likely',
+            ],
+        ];
     }
 
     private function handleCreateSavingsAccount(array $input, User $user, bool $isPreview): array
@@ -1575,17 +1552,19 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $member = FamilyMember::create([
-            'user_id' => $user->id,
-            'first_name' => $input['first_name'],
-            'surname' => $input['surname'] ?? $user->surname,
-            'relationship' => $input['relationship'],
-            'date_of_birth' => $input['date_of_birth'] ?? null,
-            'gender' => $input['gender'] ?? null,
-            'is_dependent' => $input['is_dependent'] ?? ($input['relationship'] === 'child'),
-        ]);
-
-        return ['created' => true, 'entity_type' => 'family_member', 'entity_id' => $member->id, 'name' => $member->first_name, 'message' => "Family member \"{$member->first_name}\" ({$member->relationship}) added."];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'family_member',
+            'route' => '/profile',
+            'fields' => [
+                'first_name' => $input['first_name'],
+                'last_name' => $input['surname'] ?? '',
+                'relationship' => $input['relationship'],
+                'date_of_birth' => $input['date_of_birth'] ?? null,
+                'gender' => $input['gender'] ?? null,
+                'is_dependent' => $input['is_dependent'] ?? ($input['relationship'] === 'child'),
+            ],
+        ];
     }
 
     private function handleCreateTrust(array $input, User $user, bool $isPreview): array

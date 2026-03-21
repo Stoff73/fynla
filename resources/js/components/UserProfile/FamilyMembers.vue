@@ -385,6 +385,9 @@ export default {
           }
         }
 
+        if (store.state.aiFormFill?.pendingFill) {
+          store.dispatch('aiFormFill/cancelFill');
+        }
         closeModal();
         // Refresh family members list directly via API (not fetchProfile)
         // Using fetchProfile would set loading=true, which unmounts this component
@@ -453,6 +456,21 @@ export default {
       if (errorTimeout) clearTimeout(errorTimeout);
       if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
     });
+
+    // Watch for AI form fill requests targeting family_member
+    watch(
+      () => store.state.aiFormFill?.pendingFill,
+      (fill) => {
+        if (fill && fill.entityType === 'family_member') {
+          if (fill.mode === 'edit' && fill.entityId) {
+            const member = familyMembers.value?.find(m => m.id === fill.entityId);
+            if (member) openEditModal(member);
+          } else {
+            openAddModal();
+          }
+        }
+      }
+    );
 
     onMounted(async () => {
       await loadFamilyMembers();
