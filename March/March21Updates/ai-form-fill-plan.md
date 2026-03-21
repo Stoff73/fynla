@@ -118,6 +118,14 @@ const actions = {
   startFill({ commit, dispatch }, { entityType, fields, route, mode, entityId }) {
     commit('SET_PENDING_FILL', { entityType, fields, route, mode: mode || 'create', entityId: entityId || null });
     // Navigation happens via pendingNavigation or router — the page watcher opens the modal
+    // If the fill hasn't started within 3 seconds (page didn't load/modal didn't open),
+    // clear state so the backend fallback can handle it
+    setTimeout(() => {
+      if (!commit.state?.filling) {
+        // Form didn't pick up the fill — likely navigation failed
+        commit('CLEAR');
+      }
+    }, 3000);
   },
 
   beginFieldSequence({ commit, state, dispatch }, fieldOrder) {
