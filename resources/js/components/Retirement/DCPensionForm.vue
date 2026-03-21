@@ -492,6 +492,12 @@ export default {
             this.formData.pension_type = fill.fields.pension_type;
             this.handlePensionTypeChange();
           }
+          // Pre-set scheme_name — required for validation, may come from provider fallback
+          if (fill.fields.scheme_name) {
+            this.formData.scheme_name = fill.fields.scheme_name;
+          } else if (fill.fields.provider) {
+            this.formData.scheme_name = fill.fields.provider;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
