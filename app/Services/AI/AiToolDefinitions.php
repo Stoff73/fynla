@@ -586,7 +586,7 @@ class AiToolDefinitions
     {
         return [
             [
-                'name' => 'create_estate_asset',
+                'name' => 'create_asset',
                 'description' => 'Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track.',
                 'parameters' => [
                     'type' => 'object',
@@ -618,7 +618,7 @@ class AiToolDefinitions
                 ],
             ],
             [
-                'name' => 'create_estate_liability',
+                'name' => 'create_liability',
                 'description' => 'Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed.',
                 'parameters' => [
                     'type' => 'object',
