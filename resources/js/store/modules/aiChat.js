@@ -249,7 +249,7 @@ const actions = {
     /**
      * Send a message and handle the streaming response.
      */
-    async sendMessage({ commit, state, rootState }, message) {
+    async sendMessage({ commit, dispatch, state, rootState }, message) {
         if (!state.currentConversation) return;
 
         // Add user message to local state immediately
@@ -319,6 +319,23 @@ const actions = {
                                     created_at: new Date().toISOString(),
                                 });
                                 commit('SET_PENDING_NAVIGATION', event.route_path);
+                                break;
+
+                            case 'fill_form':
+                                // Navigate to the page first
+                                if (event.route) {
+                                    commit('SET_PENDING_NAVIGATION', event.route);
+                                }
+                                // Dispatch fill after a short delay to let navigation complete
+                                setTimeout(() => {
+                                    dispatch('aiFormFill/startFill', {
+                                        entityType: event.entity_type,
+                                        fields: event.fields,
+                                        route: event.route,
+                                        mode: event.mode || 'create',
+                                        entityId: event.entity_id || null,
+                                    }, { root: true });
+                                }, 500);
                                 break;
 
                             case 'entity_created':

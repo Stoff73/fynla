@@ -18,7 +18,7 @@
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Relationship -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'relationship' }">
               <label for="relationship" class="block text-body-sm font-medium text-neutral-500 mb-1">
                 Relationship
               </label>
@@ -62,7 +62,7 @@
             <!-- Name Fields -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- First Name -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'first_name' }">
                 <label for="first_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   First Name
                 </label>
@@ -88,7 +88,7 @@
               </div>
 
               <!-- Last Name -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'last_name' }">
                 <label for="last_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Last Name
                 </label>
@@ -103,7 +103,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Date of Birth -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'date_of_birth' }">
                 <label for="date_of_birth" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Date of Birth
                 </label>
@@ -118,7 +118,7 @@
               </div>
 
               <!-- Gender -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'gender' }">
                 <label for="gender" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Gender
                 </label>
@@ -236,7 +236,7 @@
               <button
                 v-if="context !== 'onboarding'"
                 type="button"
-                @click="$emit('close')"
+                @click="handleClose"
                 :disabled="submitting"
                 class="btn-secondary w-full mt-3 sm:mt-0 sm:col-start-1"
               >
@@ -252,6 +252,7 @@
 
 <script>
 import { ref, computed, watch } from 'vue';
+import { useStore } from 'vuex';
 
 export default {
   name: 'FamilyMemberFormModal',
@@ -271,10 +272,16 @@ export default {
   emits: ['save', 'close'],
 
   setup(props, { emit }) {
+    const store = useStore();
     const submitting = ref(false);
     const errorMessage = ref('');
 
     const isEditing = computed(() => !!props.member);
+
+    // AI Form Fill state
+    const pendingFill = computed(() => store.state.aiFormFill?.pendingFill);
+    const highlightedField = computed(() => store.state.aiFormFill?.highlightedField);
+    const filling = computed(() => store.state.aiFormFill?.filling);
 
     // Date constraints - both min and max depend on relationship
     const minDob = computed(() => {
@@ -446,6 +453,38 @@ export default {
       }
     };
 
+    // AI Form Fill watchers
+    watch(pendingFill, (fill) => {
+      if (fill && fill.entityType === 'family_member' && fill.fields) {
+        const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+        store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+      }
+    });
+
+    watch(highlightedField, (fieldKey) => {
+      if (fieldKey && pendingFill.value?.fields) {
+        const value = pendingFill.value.fields[fieldKey];
+        if (value !== undefined) {
+          form.value[fieldKey] = value;
+        }
+      }
+    });
+
+    watch(filling, (isFilling) => {
+      if (!isFilling && pendingFill.value) {
+        setTimeout(() => {
+          handleSubmit();
+        }, 250);
+      }
+    });
+
+    const handleClose = () => {
+      if (pendingFill.value) {
+        store.dispatch('aiFormFill/cancelFill');
+      }
+      emit('close');
+    };
+
     return {
       form,
       isEditing,
@@ -454,6 +493,10 @@ export default {
       minDob,
       maxDobForRelationship,
       handleSubmit,
+      handleClose,
+      pendingFill,
+      highlightedField,
+      filling,
     };
   },
 };

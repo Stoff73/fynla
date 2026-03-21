@@ -410,7 +410,29 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'savings_account') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.accounts.find(a => a.id === fill.entityId);
+          if (record) {
+            this.editingAccount = record;
+            this.showAccountModal = true;
+          }
+        } else {
+          this.openAddAccountModal('');
+        }
+      }
+    },
+  },
+
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'savings_account' && fill.mode !== 'edit') {
+      this.openAddAccountModal('');
+    }
+
     await this.loadAllData();
   },
 
@@ -488,6 +510,10 @@ export default {
           await this.updateAccount({ id: this.editingAccount.id, accountData });
         } else {
           await this.createAccount(accountData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeAccountModal();
         await this.fetchSavingsData();

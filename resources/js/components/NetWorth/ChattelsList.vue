@@ -114,6 +114,22 @@ export default {
     };
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'chattel') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.chattels.find(c => c.id === fill.entityId);
+          if (record) {
+            this.editingChattel = record;
+          }
+        } else {
+          this.editingChattel = null;
+        }
+        this.showFormModal = true;
+      }
+    },
+  },
+
   computed: {
     ...mapState('chattels', ['chattels', 'loading', 'error']),
 
@@ -132,6 +148,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'chattel' && fill.mode !== 'edit') {
+      this.editingChattel = null;
+      this.showFormModal = true;
+    }
+
     this.fetchData();
     // Fetch family members to ensure spouse data is available for joint ownership dropdown
     await this.$store.dispatch('userProfile/fetchFamilyMembers');
@@ -169,6 +192,10 @@ export default {
           await this.updateChattel({ id: this.editingChattel.id, data: formData });
         } else {
           await this.createChattel(formData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
       } catch (error) {

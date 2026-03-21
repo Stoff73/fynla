@@ -7,7 +7,7 @@
 
     <form @submit.prevent="handleSubmit">
       <!-- Asset Type -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'asset_type' }">
         <label for="asset_type" class="required">Asset Type</label>
         <select
           id="asset_type"
@@ -33,7 +33,7 @@
       </div>
 
       <!-- Asset Name -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'asset_name' }">
         <label for="asset_name" class="required">Asset Name / Description</label>
         <input
           id="asset_name"
@@ -50,7 +50,7 @@
       </div>
 
       <!-- Current Value -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
         <label for="current_value" class="required">Current Value (£)</label>
         <div class="input-with-icon">
           <span class="input-icon">£</span>
@@ -72,7 +72,7 @@
       </div>
 
       <!-- Ownership Type -->
-      <div class="form-group">
+      <div class="form-group" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_type' }">
         <label for="ownership_type" class="required">Ownership</label>
         <select
           id="ownership_type"
@@ -225,6 +225,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 
 export default {
   name: 'AssetForm',
@@ -268,6 +269,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.mode === 'edit' && this.asset !== null;
     },
@@ -319,6 +322,33 @@ export default {
           this.populateForm(newAsset);
         }
       },
+    },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'estate_asset' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'estate_asset') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 
@@ -439,6 +469,9 @@ export default {
     },
 
     handleCancel() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.resetForm();
       this.$emit('cancel');
     },

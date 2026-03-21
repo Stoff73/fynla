@@ -9,7 +9,7 @@
               {{ isEditMode ? 'Edit Business Interest' : 'Add Business Interest' }}
             </h3>
             <button
-              @click="$emit('close')"
+              @click="handleClose"
               class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +71,7 @@
             <div v-show="currentStep === 1" class="space-y-4">
               <h4 class="text-lg font-semibold text-horizon-500 mb-4">Basic Information</h4>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'business_name' }">
                 <label for="business_name" class="block text-sm font-medium text-horizon-500 mb-1">Business Name</label>
                 <input
                   id="business_name"
@@ -82,7 +82,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'business_type' }">
                 <label for="business_type" class="block text-sm font-medium text-horizon-500 mb-1">Business Type</label>
                 <select
                   id="business_type"
@@ -256,7 +256,7 @@
               <h4 class="text-lg font-semibold text-horizon-500 mb-4">Valuation</h4>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_valuation' }">
                   <label for="current_valuation" class="block text-sm font-medium text-horizon-500 mb-1">Current Valuation</label>
                   <input
                     id="current_valuation"
@@ -327,7 +327,7 @@
                   />
                 </div>
 
-                <div>
+                <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'annual_profit' }">
                   <label for="annual_profit" class="block text-sm font-medium text-horizon-500 mb-1">Annual Profit</label>
                   <input
                     id="annual_profit"
@@ -539,7 +539,7 @@
             <div class="flex space-x-2 ml-auto">
               <button
                 type="button"
-                @click="$emit('close')"
+                @click="handleClose"
                 class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-button hover:bg-savannah-100 transition-colors"
               >
                 Cancel
@@ -580,6 +580,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'BusinessInterestForm',
 
@@ -631,6 +633,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.business !== null;
     },
@@ -665,9 +669,43 @@ export default {
         this.form.ownership_percentage = 0;
       }
     },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'business_interest' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.form[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'business_interest') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
   },
 
   methods: {
+    handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
+      this.$emit('close');
+    },
+
     populateForm() {
       this.form.business_name = this.business.business_name || '';
       this.form.business_type = this.business.business_type || '';

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- Provider -->
-    <div>
+    <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'provider' }">
       <label for="provider" class="block text-sm font-medium text-neutral-500 mb-1">
         Provider
       </label>
@@ -42,7 +42,7 @@
     </div>
 
     <!-- Current Value -->
-    <div>
+    <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
       <label for="current_value" class="block text-sm font-medium text-neutral-500 mb-1">
         Current Value (£)
       </label>
@@ -121,7 +121,7 @@
       <h4 class="text-sm font-semibold text-horizon-500">Regular Contributions</h4>
 
       <!-- Monthly Contribution Amount and Frequency -->
-      <div>
+      <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_contribution_amount' }">
         <label for="monthly_contribution_amount" class="block text-sm font-medium text-neutral-500 mb-1">
           Regular Contribution Amount (£)
         </label>
@@ -187,7 +187,7 @@
     </div>
 
     <!-- Platform Fee Section (not shown for NS&I) -->
-    <div v-if="!isNSIType">
+    <div v-if="!isNSIType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'platform_fee_percent' }">
       <label class="block text-sm font-medium text-neutral-500 mb-1">
         Platform Fee
       </label>
@@ -565,6 +565,10 @@ export default {
     },
     account: {
       type: Object,
+      default: null,
+    },
+    highlightedField: {
+      type: String,
       default: null,
     },
   },

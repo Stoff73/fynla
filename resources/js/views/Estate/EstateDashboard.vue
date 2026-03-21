@@ -131,7 +131,27 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'estate_asset') {
+        // Switch to IHT tab (which contains AssetsLiabilities with AssetForm)
+        this.activeTab = 'iht';
+      } else if (fill && fill.entityType === 'estate_gift') {
+        // Switch to gifting tab (which contains GiftingStrategy with GiftForm)
+        this.activeTab = 'gifting';
+      }
+    },
+  },
+
   mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'estate_asset') {
+      this.activeTab = 'iht';
+    } else if (fill && fill.entityType === 'estate_gift') {
+      this.activeTab = 'gifting';
+    }
+
     // Check for tab query param (e.g. /estate?tab=power-of-attorney)
     if (this.$route.query.tab && this.tabs.some(t => t.id === this.$route.query.tab)) {
       this.activeTab = this.$route.query.tab;

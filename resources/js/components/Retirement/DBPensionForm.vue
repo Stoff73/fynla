@@ -33,7 +33,7 @@
       <form @submit.prevent="handleSubmit" class="p-6">
         <div class="space-y-6">
           <!-- Employer Name -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employer_name' }">
             <label for="employer_name" class="block text-sm font-medium text-neutral-500 mb-2">
               Employer / Scheme Name
             </label>
@@ -63,7 +63,7 @@
                 <option value="In Payment">In Payment</option>
               </select>
             </div>
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_type' }">
               <label for="scheme_type" class="block text-sm font-medium text-neutral-500 mb-2">
                 Scheme Type
               </label>
@@ -79,7 +79,7 @@
           </div>
 
           <!-- Annual Income -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'annual_income' }">
             <label for="annual_income" class="block text-sm font-medium text-neutral-500 mb-2">
               Annual Income at Retirement (£)
             </label>
@@ -97,7 +97,7 @@
 
           <!-- Service Years and Final/Pensionable Salary -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'service_years' }">
               <label for="service_years" class="block text-sm font-medium text-neutral-500 mb-2">
                 Service Years
               </label>
@@ -215,7 +215,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 
 export default {
   name: 'DBPensionForm',
@@ -247,6 +247,7 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
     ...mapGetters('auth', ['currentUser']),
 
     isEdit() {
@@ -263,6 +264,30 @@ export default {
           this.formData = { ...newPension };
         }
       },
+    },
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'db_pension' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'db_pension') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 

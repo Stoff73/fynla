@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PersonalInformation from '@/components/UserProfile/PersonalInformation.vue';
@@ -132,6 +132,16 @@ export default {
         }
       }
     });
+
+    // Watch for AI form fill requests targeting family_member
+    watch(
+      () => store.state.aiFormFill?.pendingFill,
+      (fill) => {
+        if (fill && fill.entityType === 'family_member') {
+          activeTab.value = 'family';
+        }
+      }
+    );
 
     return {
       activeTab,

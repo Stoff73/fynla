@@ -654,6 +654,23 @@ export default {
         });
       }
     },
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && (fill.entityType === 'dc_pension' || fill.entityType === 'db_pension')) {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const pensions = fill.entityType === 'dc_pension' ? this.dcPensions : this.dbPensions;
+          const record = pensions.find(p => p.id === fill.entityId);
+          if (record) {
+            this.editingPension = record;
+            this.initialPensionType = fill.entityType === 'dc_pension' ? 'dc' : 'db';
+            this.showPensionForm = true;
+          }
+        } else {
+          this.editingPension = null;
+          this.initialPensionType = fill.entityType === 'dc_pension' ? 'dc' : 'db';
+          this.showPensionForm = true;
+        }
+      }
+    },
   },
 
   beforeUnmount() {
@@ -717,6 +734,9 @@ export default {
     },
 
     closePensionForm() {
+      if (this.$store.state.aiFormFill.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.showPensionForm = false;
       this.editingPension = null;
       this.initialPensionType = null;
@@ -740,6 +760,12 @@ export default {
         } else if (pensionType === 'db') {
           await this.createDBPension(data);
         }
+
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
+        }
+
         await this.fetchRetirementData();
         await this.loadProjectionsAndStrategies();
         this.successMessage = 'Pension saved successfully';
@@ -815,6 +841,14 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && (fill.entityType === 'dc_pension' || fill.entityType === 'db_pension') && fill.mode !== 'edit') {
+      this.editingPension = null;
+      this.initialPensionType = fill.entityType === 'dc_pension' ? 'dc' : 'db';
+      this.showPensionForm = true;
+    }
+
     this.setDetailView(false);
     await this.fetchRetirementData();
     await this.loadProjectionsAndStrategies();

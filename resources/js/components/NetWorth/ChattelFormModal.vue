@@ -9,7 +9,7 @@
               {{ isEditing ? 'Edit Valuable' : 'Add Valuable' }}
             </h3>
             <button
-              @click="$emit('close')"
+              @click="handleClose"
               class="text-horizon-400 hover:text-neutral-500 transition-colors"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +27,7 @@
           </div>
 
           <!-- Type Selection -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'chattel_type' }">
             <label class="block text-sm font-medium text-horizon-500 mb-2">Type</label>
             <div class="grid grid-cols-3 gap-2">
               <button
@@ -47,7 +47,7 @@
 
           <!-- Basic Information -->
           <div class="space-y-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'name' }">
               <label for="name" class="block text-sm font-medium text-horizon-500 mb-1">Name</label>
               <input
                 id="name"
@@ -121,7 +121,7 @@
           <div class="space-y-4">
             <h4 class="font-medium text-horizon-500">Valuation</h4>
             <div class="grid grid-cols-2 gap-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
                 <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">Current Value</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-neutral-500">£</span>
@@ -146,7 +146,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               </div>
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'purchase_price' }">
                 <label for="purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Price</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-neutral-500">£</span>
@@ -285,7 +285,7 @@
         <div class="bg-savannah-100 border-t border-light-gray px-6 py-4 flex justify-end gap-3 rounded-b-lg">
           <button
             type="button"
-            @click="$emit('close')"
+            @click="handleClose"
             class="px-4 py-2 border border-horizon-300 rounded-md text-neutral-500 hover:bg-savannah-100 transition-colors"
           >
             Cancel
@@ -304,6 +304,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'ChattelFormModal',
 
@@ -355,6 +357,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     spouse() {
       return this.$store.getters['userProfile/spouse'];
     },
@@ -375,6 +379,33 @@ export default {
         this.form.ownership_percentage = 50;
       }
     },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'chattel' && fill.fields) {
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.form[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'chattel') {
+        setTimeout(() => {
+          this.handleSave();
+        }, 250);
+      }
+    },
   },
 
   created() {
@@ -384,6 +415,13 @@ export default {
   },
 
   methods: {
+    handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
+      this.$emit('close');
+    },
+
     populateForm() {
       this.form = {
         chattel_type: this.chattel.chattel_type || 'other',

@@ -13,7 +13,7 @@
             </h3>
 
             <!-- Goal Name -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'goal_name' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Goal Name</label>
               <input
                 v-model="form.goal_name"
@@ -25,7 +25,7 @@
             </div>
 
             <!-- Goal Type -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'goal_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Goal Type</label>
               <select
                 v-model="form.goal_type"
@@ -64,7 +64,7 @@
 
             <!-- Target Amount & Current Amount -->
             <div class="grid grid-cols-2 gap-4 mb-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'target_amount' }">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">Target Amount</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-neutral-500">£</span>
@@ -97,7 +97,7 @@
 
             <!-- Target Date & Monthly Contribution -->
             <div class="grid grid-cols-2 gap-4 mb-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'target_date' }">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">Target Date</label>
                 <input
                   v-model="form.target_date"
@@ -107,7 +107,7 @@
                   required
                 />
               </div>
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_contribution' }">
                 <label class="block text-sm font-medium text-neutral-500 mb-1">Monthly Contribution</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-neutral-500">£</span>
@@ -124,7 +124,7 @@
             </div>
 
             <!-- Priority -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'priority' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Priority</label>
               <div class="grid grid-cols-4 gap-2">
                 <button
@@ -391,6 +391,7 @@ export default {
 
   computed: {
     ...mapState('goals', ['goalTypes', 'goals']),
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
 
     isEditing() {
       return !!this.goal;
@@ -454,6 +455,30 @@ export default {
         this.loadDependencies();
       },
       immediate: true,
+    },
+
+    pendingFill(fill) {
+      if (fill && fill.entityType === 'goal' && fill.fields) {
+        const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+        this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+      }
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined) {
+          this.form[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (!isFilling && this.pendingFill) {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 
@@ -612,6 +637,9 @@ export default {
     },
 
     close() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.$emit('close');
     },
   },

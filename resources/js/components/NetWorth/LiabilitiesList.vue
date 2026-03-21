@@ -175,7 +175,28 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'estate_liability') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.liabilities.find(l => l.id === fill.entityId);
+          if (record) {
+            this.openEditModal(record);
+          }
+        } else {
+          this.openAddModal();
+        }
+      }
+    },
+  },
+
   mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'estate_liability' && fill.mode !== 'edit') {
+      this.openAddModal();
+    }
+
     this.fetchData();
     this.applyRouteFilter();
   },
@@ -220,7 +241,13 @@ export default {
         } else {
           await this.createLiability(formData);
         }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
+        }
         this.closeFormModal();
+        // Re-fetch to ensure clean data after save
+        await this.fetchData();
       } catch (error) {
         console.error('Failed to save liability:', error);
       }

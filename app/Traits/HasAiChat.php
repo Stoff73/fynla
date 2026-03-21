@@ -208,6 +208,18 @@ trait HasAiChat
                         ];
                     }
 
+                    // Handle form fill results (AI fills form visually instead of saving directly)
+                    if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
+                        yield [
+                            'type' => 'fill_form',
+                            'entity_type' => $toolResult['entity_type'],
+                            'route' => $toolResult['route'],
+                            'fields' => $toolResult['fields'],
+                            'mode' => $toolResult['mode'] ?? 'create',
+                            'entity_id' => $toolResult['entity_id'] ?? null,
+                        ];
+                    }
+
                     // Handle entity creation results
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         yield [
@@ -405,6 +417,23 @@ PERSONALITY;
 
 <available_actions>
 Use your tools proactively to serve the user — do not wait to be asked to look something up or navigate somewhere.
+
+CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions having or wanting to add:
+- Savings accounts, Cash ISAs, deposits → create_savings_account
+- Investment accounts, Stocks & Shares ISAs, bonds → create_investment_account
+- Workplace pensions, SIPPs, personal pensions → create_pension
+- Properties, houses, flats → create_property
+- Mortgages → create_mortgage
+- Life insurance, critical illness, income protection → create_protection_policy
+- Credit cards, loans, student loans, car finance, any debt → create_liability
+- Gold, crypto, artwork, collectibles, valuable items → create_asset
+- Goals, targets → create_goal
+- Life events (marriage, retirement, moving) → create_life_event
+- Family members, dependants, spouse, children → create_family_member
+- Trusts → create_trust
+- Business interests → create_business_interest
+- Personal valuables (jewellery, antiques, vehicles) → create_chattel
+NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool.
 
 - Navigate the user to a relevant page when the conversation naturally leads there
 - Fetch detailed module analysis when the user asks about a specific financial area

@@ -289,6 +289,22 @@ export default {
     };
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'trust') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.safeTrusts.find(t => t.id === fill.entityId);
+          if (record) {
+            this.selectedTrust = record;
+          }
+        } else {
+          this.selectedTrust = null;
+        }
+        this.showTrustModal = true;
+      }
+    },
+  },
+
   computed: {
     ...mapState('trusts', ['trusts']),
 
@@ -330,6 +346,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'trust' && fill.mode !== 'edit') {
+      this.selectedTrust = null;
+      this.showTrustModal = true;
+    }
+
     await this.loadData();
   },
 
@@ -371,6 +394,10 @@ export default {
           await this.updateTrust({ id: this.selectedTrust.id, data: trustData });
         } else {
           await this.createTrust(trustData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeTrustModal();
         await this.loadData();

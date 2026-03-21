@@ -11,7 +11,7 @@
           </h3>
           <button
             v-if="context !== 'onboarding'"
-            @click="$emit('close')"
+            @click="handleClose"
             class="text-horizon-400 hover:text-neutral-500 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +73,7 @@
           <div v-show="currentStep === stepMapping[1]" class="space-y-4">
             <h4 class="text-lg font-semibold text-horizon-500 mb-4">Basic Information</h4>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'property_type' }">
               <label for="property_type" class="block text-sm font-medium text-horizon-500 mb-1">Property Type</label>
               <select
                 id="property_type"
@@ -89,7 +89,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'address_line_1' }">
                 <label for="address_line_1" class="block text-sm font-medium text-horizon-500 mb-1">Address Line 1</label>
                 <input
                   id="address_line_1"
@@ -133,7 +133,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'postcode' }">
                 <label for="postcode" class="block text-sm font-medium text-horizon-500 mb-1">Postcode</label>
                 <input
                   id="postcode"
@@ -169,7 +169,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'purchase_date' }">
                 <label for="purchase_date" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Date</label>
                 <input
                   id="purchase_date"
@@ -180,7 +180,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'purchase_price' }">
                 <label for="purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Price (£)</label>
                 <input
                   id="purchase_price"
@@ -193,7 +193,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
                 <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">
                   {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }}                </label>
                 <input
@@ -223,7 +223,7 @@
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg">
+            <div :class="['mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg', { 'ai-fill-highlight': highlightedField === 'has_mortgage' }]">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -578,7 +578,7 @@
           <div v-if="hasMortgage" v-show="currentStep === stepMapping[3]" class="space-y-4">
             <h4 class="text-lg font-semibold text-horizon-500 mb-4">Mortgage Details</h4>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_lender_name' }">
               <label for="lender_name" class="block text-sm font-medium text-horizon-500 mb-1">
                 Lender Name
               </label>
@@ -600,7 +600,7 @@
               />
             </div>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_type' }">
               <label for="mortgage_type" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Type</label>
               <select
                 id="mortgage_type"
@@ -685,7 +685,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_outstanding_balance' }">
                 <label for="outstanding_balance" class="block text-sm font-medium text-horizon-500 mb-1">
                   {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }}                </label>
                 <input
@@ -704,7 +704,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Hide standard interest rate when mixed rate type is selected -->
-              <div v-if="mortgageForm.rate_type !== 'mixed'">
+              <div v-if="mortgageForm.rate_type !== 'mixed'" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_interest_rate' }">
                 <label for="interest_rate" class="block text-sm font-medium text-horizon-500 mb-1">Interest Rate (%)</label>
                 <input
                   id="interest_rate"
@@ -717,7 +717,7 @@
                 />
               </div>
 
-              <div :class="{ 'md:col-span-2': mortgageForm.rate_type === 'mixed' }">
+              <div :class="[{ 'md:col-span-2': mortgageForm.rate_type === 'mixed' }, { 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_rate_type' }]">
                 <label for="rate_type" class="block text-sm font-medium text-horizon-500 mb-1">Rate Type</label>
                 <select
                   id="rate_type"
@@ -838,7 +838,7 @@
               </div>
             </div>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_monthly_payment' }">
               <label for="monthly_payment" class="block text-sm font-medium text-horizon-500 mb-1">
                 Monthly Payment (£)              </label>
               <input
@@ -1123,7 +1123,7 @@
 
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_rental_income' }">
                   <label for="monthly_rental_income" class="block text-sm font-medium text-horizon-500 mb-1">Monthly Rental Income (£)</label>
                   <input
                     id="monthly_rental_income"
@@ -1266,7 +1266,7 @@
             <button
               v-if="context !== 'onboarding'"
               type="button"
-              @click="$emit('close')"
+              @click="handleClose"
               class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-button hover:bg-savannah-100 transition-colors"
             >
               Cancel
@@ -1307,6 +1307,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -1421,6 +1422,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.property !== null;
     },
@@ -1648,6 +1651,58 @@ export default {
       // Sync the dropdown selection
       if (newVal && !this.form.joint_owner_id) {
         this.mortgageJointOwnerSelection = 'other';
+      }
+    },
+
+    // AI Form Fill: begin field sequence when pendingFill arrives
+    pendingFill: {
+      handler(fill) {
+        if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.fields) {
+          // Set has_mortgage toggle immediately — it controls whether mortgage step renders
+          if (fill.fields.has_mortgage) {
+            this.hasMortgage = true;
+          }
+          // Build the field order from non-null fields
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    // AI Form Fill: set form value when a field is highlighted
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          // Map fill fields to form/mortgageForm fields
+          if (fieldKey === 'has_mortgage') {
+            this.hasMortgage = !!value;
+          } else if (fieldKey === 'mortgage_outstanding_balance') {
+            this.mortgageForm.outstanding_balance = value;
+          } else if (fieldKey === 'mortgage_interest_rate') {
+            this.mortgageForm.interest_rate = value;
+          } else if (fieldKey === 'mortgage_lender_name') {
+            this.mortgageForm.lender_name = value;
+          } else if (fieldKey === 'mortgage_type') {
+            this.mortgageForm.mortgage_type = value;
+          } else if (fieldKey === 'mortgage_rate_type') {
+            this.mortgageForm.rate_type = value;
+          } else if (fieldKey === 'mortgage_monthly_payment') {
+            this.mortgageForm.monthly_payment = value;
+          } else if (fieldKey in this.form) {
+            this.form[fieldKey] = value;
+          }
+        }
+      }
+    },
+
+    // AI Form Fill: auto-submit when filling completes
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill && (this.pendingFill.entityType === 'property' || this.pendingFill.entityType === 'mortgage')) {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
       }
     },
   },
@@ -1915,6 +1970,13 @@ export default {
 
       this.error = null;
       return true;
+    },
+
+    handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
+      this.$emit('close');
     },
 
     async handleSubmit() {

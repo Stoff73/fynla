@@ -1,6 +1,6 @@
 # Deployment Guide — 21 March 2026
 
-**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if)**
+**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch)**
 
 ## Rebuild Required?
 
@@ -169,6 +169,54 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - Tool results with errors now get `is_error: true` flag for the Anthropic API
 - System prompt instructs Fyn to answer from knowledge with a caveat instead of showing errors
 - Never retries the same failing tool, never mentions technical issues to the user
+
+## AI Form Fill (branch: `aiFormFill` — NOT YET MERGED)
+
+**Status:** Savings, investments, protection, pensions, and liabilities browser-verified working. Cross-page navigation with chat persistence. System prompt updated with explicit tool mapping for all entity types.
+
+**23 commits on branch.** 80 agent tests passing.
+
+### What Changed
+- All 16 `handleCreate*` methods in CoordinatingAgent now return `fill_form` instead of saving directly
+- New `aiFormFill` Vuex store coordinates field-by-field fill with 250ms highlight animation
+- `fill_form` SSE event type in HasAiChat.php + aiChat.js
+- 10 page components with `pendingFill` watchers + mounted checks to open modals
+- 15 form components with highlight bindings + auto-submit
+- `.ai-fill-highlight` CSS class (violet ring)
+- Conditional field pre-setting for protection (policyType), pension (pension_type), property (hasMortgage)
+- Field mapping fixes: investment account_type, pension scheme_type, route corrections
+- DC pension: removed annual salary as required field (salary is on user profile)
+- Fallback timeout increased from 3s to 10s
+- Chat panel preserves conversation on cross-page navigation (was starting new conversation on every page change)
+- Savings institution field now persists (pre-set before highlight sequence)
+- Renamed create_estate_liability→create_liability, create_estate_asset→create_asset (AI wasn't using tools with "estate" in name for general debts)
+- System prompt: added explicit tool mapping so AI knows which tool to use for every entity type
+- Liability form: pre-set fields, expanded type validation, fixed Vue rendering crash after save
+- `app/Services/AI/AiToolDefinitions.php` — tool renames + description updates
+- `app/Services/PrerequisiteGateService.php` — updated tool names
+- `resources/js/store/modules/estate.js` — removed addLiability intermediate commit (fixes Vue crash)
+
+### Additional PHP Files (when merging aiFormFill)
+
+```
+app/Agents/CoordinatingAgent.php (modified — all 16 handlers)
+app/Traits/HasAiChat.php (modified — fill_form SSE event)
+```
+
+### Additional Frontend Files (compiled into build)
+
+```
+resources/js/store/modules/aiFormFill.js (NEW)
+resources/js/store/modules/aiChat.js (modified — fill_form handler, dispatch fix)
+resources/js/store/index.js (modified — register aiFormFill)
+resources/css/app.css (modified — .ai-fill-highlight class)
++ 10 page components (watchers + mounted checks)
++ 15 form components (highlight bindings + fill watchers)
+```
+
+See `currentFormFillState.md` for full file list and current status.
+
+---
 
 ## Post-Deploy Verification
 

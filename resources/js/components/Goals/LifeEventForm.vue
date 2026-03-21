@@ -13,7 +13,7 @@
             </h3>
 
             <!-- Event Name -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'event_name' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Event Name</label>
               <input
                 v-model="form.event_name"
@@ -25,7 +25,7 @@
             </div>
 
             <!-- Event Type -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'event_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Event Type</label>
               <select
                 v-model="form.event_type"
@@ -50,7 +50,7 @@
             </div>
 
             <!-- Amount -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'amount' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Expected Amount</label>
               <div class="relative">
                 <span class="absolute left-3 top-2 text-neutral-500">£</span>
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Expected Date -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'expected_date' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">Expected Date</label>
               <input
                 v-model="form.expected_date"
@@ -79,7 +79,7 @@
             </div>
 
             <!-- Certainty -->
-            <div class="mb-4">
+            <div class="mb-4" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'certainty' }">
               <label class="block text-sm font-medium text-neutral-500 mb-2">How certain is this event?</label>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
@@ -199,6 +199,7 @@ export default {
 
   computed: {
     ...mapState('goals', ['eventTypes']),
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
 
     isEditing() {
       return !!this.event;
@@ -231,6 +232,30 @@ export default {
         this.initForm();
       },
       immediate: true,
+    },
+
+    pendingFill(fill) {
+      if (fill && fill.entityType === 'life_event' && fill.fields) {
+        const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+        this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+      }
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined) {
+          this.form[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (!isFilling && this.pendingFill) {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
     },
   },
 
@@ -293,6 +318,9 @@ export default {
     },
 
     close() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.$emit('close');
     },
   },
