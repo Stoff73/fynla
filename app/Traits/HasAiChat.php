@@ -628,6 +628,36 @@ DATA_CREATION_GUIDANCE;
                 }
             }
 
+            // Enrich with per-module life event impact summaries
+            try {
+                $integrationService = app(\App\Services\Goals\LifeEventIntegrationService::class);
+                $impactModules = ['savings', 'investment', 'retirement', 'protection', 'estate'];
+                $lifeEventImpacts = [];
+
+                foreach ($impactModules as $module) {
+                    $impact = $integrationService->getModuleImpactSummary($user->id, $module);
+                    if ($impact['event_count'] > 0) {
+                        $lifeEventImpacts[$module] = $impact;
+                    }
+                }
+
+                if (!empty($lifeEventImpacts)) {
+                    $lines[] = '';
+                    $lines[] = 'LIFE EVENT IMPACTS BY MODULE:';
+                    foreach ($lifeEventImpacts as $module => $impact) {
+                        $sign = $impact['net_impact'] >= 0 ? '+' : '-';
+                        $amount = number_format(abs($impact['net_impact']), 0);
+                        $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}£{$amount}";
+                        if (isset($impact['next_event'])) {
+                            $line .= " (next: {$impact['next_event']['event_name']} in {$impact['next_event']['months_until']} months)";
+                        }
+                        $lines[] = $line;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Don't fail AI context building if life event enrichment fails
+            }
+
             return ! empty($lines) ? implode("\n", $lines) : 'No financial data recorded yet.';
         });
     }
