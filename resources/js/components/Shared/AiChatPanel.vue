@@ -516,7 +516,7 @@ export default {
 
         pendingNavigation(routePath) {
             if (routePath) {
-                this.$router.push(routePath);
+                this.handleNavigation(routePath);
                 this.$store.commit('aiChat/SET_PENDING_NAVIGATION', null);
             }
         },
@@ -596,7 +596,7 @@ export default {
                     created_at: new Date().toISOString(),
                 });
                 // Navigate
-                this.$router.push(navMatch.route);
+                this.handleNavigation(navMatch.route);
                 return;
             }
 
@@ -610,7 +610,17 @@ export default {
         },
 
         handleNavigation(routePath) {
-            this.$router.push(routePath);
+            // Parse query strings properly for Vue Router
+            if (routePath && routePath.includes('?')) {
+                const [path, queryString] = routePath.split('?');
+                const query = {};
+                new URLSearchParams(queryString).forEach((value, key) => {
+                    query[key] = value;
+                });
+                this.$router.push({ path, query });
+            } else {
+                this.$router.push(routePath);
+            }
         },
 
         scrollToBottom() {
