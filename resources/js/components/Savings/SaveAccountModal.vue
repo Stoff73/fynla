@@ -863,6 +863,13 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'savings_account' && fill.fields) {
+          // Pre-set critical fields before the highlight sequence
+          if (fill.fields.institution) {
+            this.formData.institution = fill.fields.institution;
+          }
+          if (fill.fields.account_type) {
+            this.formData.account_type = fill.fields.account_type;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
