@@ -639,13 +639,26 @@ const routes = [
   },
   {
     path: '/planning/what-if',
-    name: 'WhatIfScenarios',
+    name: 'WhatIfDashboard',
+    component: () => import('@/views/Planning/WhatIfDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'What If Scenarios', path: '/planning/what-if' },
+      ],
+    },
+  },
+  {
+    path: '/planning/what-if/death-of-spouse',
+    name: 'DeathOfSpouseScenario',
     component: () => import('@/views/Planning/WhatIfScenarios.vue'),
     meta: {
       requiresAuth: true,
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'What If Scenarios', path: '/planning/what-if' },
+        { label: 'Death of Spouse', path: '/planning/what-if/death-of-spouse' },
       ],
     },
   },
