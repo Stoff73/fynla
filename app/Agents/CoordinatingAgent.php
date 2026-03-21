@@ -827,6 +827,7 @@ class CoordinatingAgent extends BaseAgent
             'target_date' => 'required|date|after:today',
             'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
             'goal_type' => ['required', Rule::in(['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'])],
+            'monthly_contribution' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
@@ -844,7 +845,28 @@ class CoordinatingAgent extends BaseAgent
             'start_date' => now()->toDateString(),
         ]);
 
-        return ['created' => true, 'entity_type' => 'goal', 'entity_id' => $goal->id, 'name' => $goal->goal_name, 'message' => "Goal \"{$goal->goal_name}\" created successfully."];
+        $toolResult = ['created' => true, 'entity_type' => 'goal', 'entity_id' => $goal->id, 'name' => $goal->goal_name, 'message' => "Goal \"{$goal->goal_name}\" created successfully."];
+
+        if (isset($input['monthly_contribution']) && $input['monthly_contribution'] > 0) {
+            $goal->monthly_contribution = $input['monthly_contribution'];
+            $goal->save();
+
+            $affordabilityService = app(\App\Services\Goals\GoalAffordabilityService::class);
+            $progressService = app(\App\Services\Goals\GoalProgressService::class);
+
+            $affordability = $affordabilityService->analyzeAffordability($goal, $user);
+            $progress = $progressService->calculateProgress($goal);
+
+            $toolResult['contribution_assessment'] = [
+                'monthly_amount' => $input['monthly_contribution'],
+                'is_on_track' => $progress['is_on_track'],
+                'status' => $progress['status'],
+                'affordability_category' => $affordability['category'] ?? 'unknown',
+                'required_monthly' => $affordability['required_monthly'] ?? null,
+            ];
+        }
+
+        return $toolResult;
     }
 
     private function handleCreateLifeEvent(array $input, User $user, bool $isPreview): array
