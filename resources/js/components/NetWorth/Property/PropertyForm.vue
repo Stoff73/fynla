@@ -1658,6 +1658,10 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.fields) {
+          // Set has_mortgage toggle immediately — it controls whether mortgage step renders
+          if (fill.fields.has_mortgage) {
+            this.hasMortgage = true;
+          }
           // Build the field order from non-null fields
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);

@@ -486,6 +486,10 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'dc_pension' && fill.fields) {
+          // Set pension_type immediately — it controls which conditional fields render
+          if (fill.fields.pension_type) {
+            this.formData.pension_type = fill.fields.pension_type;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }

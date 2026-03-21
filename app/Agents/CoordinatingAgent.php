@@ -1108,7 +1108,15 @@ class CoordinatingAgent extends BaseAgent
             $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
             $fields['employer_name'] = $input['scheme_name'];
         } else {
-            $fields['pension_type'] = $input['scheme_type'] ?? 'workplace';
+            // Map AI scheme_type to form pension_type select values
+            $formPensionType = match ($input['scheme_type'] ?? 'workplace') {
+                'workplace', 'occupational' => 'occupational',
+                'sipp', 'self_invested' => 'sipp',
+                'personal' => 'personal',
+                'stakeholder' => 'stakeholder',
+                default => 'occupational',
+            };
+            $fields['pension_type'] = $formPensionType;
             $fields['provider'] = $input['provider'] ?? null;
             $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
             $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
