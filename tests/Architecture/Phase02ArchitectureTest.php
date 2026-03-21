@@ -179,12 +179,13 @@ describe('Phase 02 Architecture Tests', function () {
     });
 
     describe('Services use dependency injection', function () {
-        it('PersonalAccountsService has no dependencies (standalone calculations)', function () {
+        it('PersonalAccountsService uses UKTaxCalculator for tax calculations', function () {
             $reflection = new ReflectionClass(PersonalAccountsService::class);
             $constructor = $reflection->getConstructor();
 
-            // PersonalAccountsService doesn't need dependencies for calculations
-            expect($constructor === null || $constructor->getNumberOfParameters() === 0)->toBeTrue();
+            // PersonalAccountsService depends on UKTaxCalculator for proper tax calculation
+            expect($constructor)->not->toBeNull();
+            expect($constructor->getNumberOfParameters())->toBe(1);
         });
 
         it('UserProfileService uses dependency injection for cross-module services', function () {
