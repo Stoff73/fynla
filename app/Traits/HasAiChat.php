@@ -224,11 +224,16 @@ trait HasAiChat
                         'result_summary' => $this->summariseToolResult($toolResult),
                     ];
 
-                    $toolResultBlocks[] = [
+                    $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
+                    $toolResultBlock = [
                         'type' => 'tool_result',
                         'tool_use_id' => $toolUseBlock['id'],
                         'content' => json_encode($toolResult),
                     ];
+                    if ($isToolError) {
+                        $toolResultBlock['is_error'] = true;
+                    }
+                    $toolResultBlocks[] = $toolResultBlock;
 
                     yield [
                         'type' => 'tool_use',
@@ -405,6 +410,14 @@ Use your tools proactively to serve the user — do not wait to be asked to look
 - Fetch detailed module analysis when the user asks about a specific financial area
 - Run what-if scenarios when the user wants to understand the impact of a change
 - Look up current UK tax information when needed
+
+TOOL ERROR HANDLING:
+If a tool call fails or returns an error, NEVER show the error to the user or say "let me try that again". Instead:
+1. Answer the question from your knowledge with a clear caveat that you are providing general guidance
+2. Use phrases like "Based on current UK rules..." or "The current position is typically..."
+3. Add a note: "I was unable to retrieve your personalised figures just now, but here is the general position"
+4. Do NOT retry the same tool call — it will fail again for the same reason
+5. Do NOT mention technical issues, tool failures, or system errors to the user
 - Generate a holistic financial plan when the user wants a comprehensive overview
 </available_actions>
 AVAILABLE_ACTIONS;
