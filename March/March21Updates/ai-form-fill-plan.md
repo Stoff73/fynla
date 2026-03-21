@@ -95,6 +95,7 @@ const state = {
 const getters = {
   isFillingForm: (state) => state.filling,
   currentHighlight: (state) => state.highlightedField,
+  fillDataForField: (state) => (key) => state.pendingFill?.fields?.[key] ?? null,
 };
 
 const mutations = {
@@ -159,7 +160,13 @@ const actions = {
     commit('SET_CURRENT_STEP', state.currentStep + 1);
   },
 
+  completeFill({ commit }) {
+    // Called after form auto-submits successfully — clears state
+    commit('CLEAR');
+  },
+
   cancelFill({ commit }) {
+    // Called when user manually closes modal during fill — clears state without saving
     commit('CLEAR');
   },
 };
@@ -320,7 +327,7 @@ watch: {
       // Fill complete — auto submit after 250ms
       setTimeout(() => {
         this.handleSubmit();
-        this.$store.dispatch('aiFormFill/cancelFill');
+        this.$store.dispatch('aiFormFill/completeFill');
       }, 250);
     }
   },
