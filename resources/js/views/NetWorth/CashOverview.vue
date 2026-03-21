@@ -427,6 +427,12 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'savings_account' && fill.mode !== 'edit') {
+      this.openAddAccountModal('');
+    }
+
     await this.loadAllData();
   },
 

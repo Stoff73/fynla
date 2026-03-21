@@ -148,6 +148,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'chattel' && fill.mode !== 'edit') {
+      this.editingChattel = null;
+      this.showFormModal = true;
+    }
+
     this.fetchData();
     // Fetch family members to ensure spouse data is available for joint ownership dropdown
     await this.$store.dispatch('userProfile/fetchFamilyMembers');

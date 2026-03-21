@@ -131,6 +131,12 @@ export default {
   },
 
   mounted() {
+    // Check for pending AI form fill (in case pendingFill was set before mount)
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'protection_policy' && fill.mode !== 'edit') {
+      this.handleAddPolicy();
+    }
+
     this.loadProtectionData();
     // Skip profile completeness in preview mode
     if (!this.isPreviewMode) {

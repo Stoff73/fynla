@@ -80,7 +80,7 @@ const actions = {
       if (!s.filling) {
         commit('CLEAR');
       }
-    }, 3000);
+    }, 10000);
   },
 
   beginFieldSequence({ commit, state: s, dispatch }, fieldOrder) {

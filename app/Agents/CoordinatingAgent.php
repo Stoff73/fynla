@@ -1001,7 +1001,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'savings_account',
             'route' => '/net-worth/cash',
             'fields' => [
-                'institution' => $input['institution'] ?? $input['account_name'],
+                'institution' => !empty($input['institution']) ? $input['institution'] : (!empty($input['provider']) ? $input['provider'] : $input['account_name']),
                 'account_type' => $formAccountType,
                 'current_balance' => (float) $input['current_balance'],
                 'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
@@ -1040,10 +1040,19 @@ class CoordinatingAgent extends BaseAgent
 
         $accountType = $input['account_type'] ?? 'personal_investment_account';
 
+        // Map AI account_type values to form select values
+        $formAccountType = match ($accountType) {
+            'stocks_shares_isa', 'lifetime_isa' => 'isa',
+            'personal_investment_account' => 'gia',
+            default => $accountType,
+        };
+
+        // Form uses 'provider' as the main name field — map account_name to it
+        $provider = $input['provider'] ?? $input['account_name'];
+
         $fields = [
-            'account_name' => $input['account_name'],
-            'account_type' => $accountType,
-            'provider' => $input['provider'] ?? null,
+            'account_type' => $formAccountType,
+            'provider' => $provider,
             'current_value' => (float) $input['current_value'],
             'monthly_contribution_amount' => isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : 0,
             'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
@@ -1054,7 +1063,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'investment_account',
             'route' => '/net-worth/investments',
             'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['account_name']}\" investment account now.",
+            'message' => "I'll fill in the form for your \"{$provider}\" investment account now.",
         ];
     }
 

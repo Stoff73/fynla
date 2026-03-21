@@ -150,6 +150,13 @@ export default {
   },
 
   mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'business_interest' && fill.mode !== 'edit') {
+      this.editingBusiness = null;
+      this.showFormModal = true;
+    }
+
     this.fetchData();
   },
 

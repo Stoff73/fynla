@@ -760,6 +760,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
+      this.editingAccount = null;
+      this.showAccountForm = true;
+    }
+
     this.setDetailView(false);
     await this.loadData();
   },

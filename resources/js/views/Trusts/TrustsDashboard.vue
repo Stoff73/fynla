@@ -346,6 +346,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'trust' && fill.mode !== 'edit') {
+      this.selectedTrust = null;
+      this.showTrustModal = true;
+    }
+
     await this.loadData();
   },
 
