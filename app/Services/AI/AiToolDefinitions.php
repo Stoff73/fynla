@@ -21,6 +21,7 @@ class AiToolDefinitions
         if (! $isPreviewMode) {
             $tools = array_merge(
                 $tools,
+                $this->whatIfTools(),
                 $this->dataCreationTools(),
                 $this->additionalCreationTools(),
                 $this->dataModificationTools(),
@@ -81,49 +82,6 @@ class AiToolDefinitions
                 ],
             ],
             [
-                'name' => 'run_what_if_scenario',
-                'description' => 'Run a what-if scenario to show the user how changes would affect their financial plan. For example: "What if I increase pension contributions by £200/month?" or "What if I retire at 60 instead of 67?"',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'module' => [
-                            'type' => 'string',
-                            'enum' => ['protection', 'savings', 'investment', 'retirement'],
-                            'description' => 'The module to run the scenario against',
-                        ],
-                        'parameters' => [
-                            'type' => 'object',
-                            'description' => 'Scenario parameters. For retirement: additional_contribution, later_retirement_age, lower_target_income. For savings: additional_savings. For investment: growth_rate_override.',
-                            'properties' => [
-                                'additional_contribution' => [
-                                    'type' => 'number',
-                                    'description' => 'Additional monthly contribution in pounds',
-                                ],
-                                'later_retirement_age' => [
-                                    'type' => 'integer',
-                                    'description' => 'Alternative retirement age to model',
-                                ],
-                                'lower_target_income' => [
-                                    'type' => 'number',
-                                    'description' => 'Alternative target retirement income in pounds per year',
-                                ],
-                                'additional_savings' => [
-                                    'type' => 'number',
-                                    'description' => 'Additional monthly savings amount in pounds',
-                                ],
-                                'growth_rate_override' => [
-                                    'type' => 'number',
-                                    'description' => 'Alternative annual growth rate as a percentage (e.g. 7 for 7%)',
-                                ],
-                            ],
-                            'additionalProperties' => false,
-                        ],
-                    ],
-                    'required' => ['module', 'parameters'],
-                    'additionalProperties' => false,
-                ],
-            ],
-            [
                 'name' => 'get_recommendations',
                 'description' => 'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
                 'parameters' => [
@@ -173,6 +131,40 @@ class AiToolDefinitions
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object) [],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    private function whatIfTools(): array
+    {
+        return [
+            [
+                'name' => 'create_what_if_scenario',
+                'description' => 'Create a persistent what-if scenario showing how changes would affect the user\'s financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison. Use this when the user asks "what if" questions about their finances.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => [
+                            'type' => 'string',
+                            'description' => 'Short descriptive name for the scenario (e.g. "Retire at 55", "Sell Main Residence")',
+                        ],
+                        'scenario_type' => [
+                            'type' => 'string',
+                            'enum' => ['retirement', 'property', 'family', 'income', 'custom'],
+                            'description' => 'Category of the what-if scenario',
+                        ],
+                        'parameters' => [
+                            'type' => 'object',
+                            'description' => 'The what-if parameter overrides. Keys: retirement_age, pension_contribution, sell_property, buy_property, divorce, marriage, new_child, income_change, job_loss, inheritance',
+                        ],
+                        'description' => [
+                            'type' => 'string',
+                            'description' => 'Your explanation of what this scenario models and the key assumptions',
+                        ],
+                    ],
+                    'required' => ['name', 'scenario_type', 'parameters', 'description'],
                     'additionalProperties' => false,
                 ],
             ],

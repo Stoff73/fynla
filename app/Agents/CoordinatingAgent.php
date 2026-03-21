@@ -658,7 +658,7 @@ class CoordinatingAgent extends BaseAgent
             return match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
-                'run_what_if_scenario' => $this->handleWhatIfScenario($input, $user),
+                'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
                 'get_tax_information' => $this->handleTaxInformation($input),
                 'generate_financial_plan' => $this->handleFinancialPlan($user),
@@ -720,24 +720,25 @@ class CoordinatingAgent extends BaseAgent
         return $this->summariseToolAnalysis($module, $analysis);
     }
 
-    private function handleWhatIfScenario(array $input, User $user): array
+    private function handleCreateWhatIfScenario(array $input, User $user): array
     {
-        $module = $input['module'];
-        $parameters = $input['parameters'] ?? [];
+        $service = app(\App\Services\WhatIf\WhatIfScenarioService::class);
 
-        $agent = match ($module) {
-            'protection' => $this->protectionAgent,
-            'savings' => $this->savingsAgent,
-            'investment' => $this->investmentAgent,
-            'retirement' => $this->retirementAgent,
-            default => null,
-        };
+        $result = $service->createScenario($user, [
+            'name' => $input['name'],
+            'scenario_type' => $input['scenario_type'] ?? 'custom',
+            'parameters' => $input['parameters'],
+            'created_via' => 'ai_chat',
+            'ai_narrative' => $input['description'] ?? null,
+        ]);
 
-        if (! $agent) {
-            return ['error' => "Scenarios not available for module: {$module}"];
-        }
-
-        return $agent->buildScenarios($user->id, $parameters);
+        return [
+            'success' => true,
+            'scenario_id' => $result['scenario_id'],
+            'comparison' => $result,
+            'action' => 'navigate',
+            'route_path' => '/planning/what-if?scenario=' . $result['scenario_id'],
+        ];
     }
 
     private function handleRecommendations(User $user): array
