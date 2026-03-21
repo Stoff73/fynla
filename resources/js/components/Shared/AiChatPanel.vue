@@ -589,9 +589,16 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
-            // Always start a fresh conversation when opening the chat
+            // If there's already an active conversation with messages or streaming,
+            // don't replace it — just fetch the conversation list for history
+            const hasActiveConversation = this.$store.state.aiChat.currentConversation
+                && (this.$store.state.aiChat.messages.length > 0 || this.$store.state.aiChat.streaming);
+
             await this.fetchConversations();
-            await this.startNewConversation();
+
+            if (!hasActiveConversation) {
+                await this.startNewConversation();
+            }
 
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
