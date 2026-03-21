@@ -991,7 +991,7 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver'])],
+            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver', 'savings_account', 'current_account', 'instant_access', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'])],
             'interest_rate' => 'nullable|numeric|min:0|max:25',
             'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
         ]);
@@ -1007,29 +1007,36 @@ class CoordinatingAgent extends BaseAgent
         $isIsa = $input['is_isa'] ?? false;
         $accountType = $input['account_type'] ?? 'easy_access';
 
-        $account = SavingsAccount::create([
-            'user_id' => $user->id,
-            'account_name' => $input['account_name'],
-            'account_type' => $accountType,
-            'institution' => $input['institution'] ?? null,
-            'current_balance' => $input['current_balance'],
-            'interest_rate' => $input['interest_rate'] ?? null,
-            'access_type' => match ($accountType) {
-                'notice' => 'notice', 'fixed_term' => 'fixed', default => 'immediate'
-            },
-            'is_isa' => $isIsa,
-            'isa_type' => $isIsa ? 'cash' : null,
-            'is_emergency_fund' => $input['is_emergency_fund'] ?? false,
-            'regular_contribution_amount' => $input['regular_contribution_amount'] ?? null,
-            'contribution_frequency' => isset($input['regular_contribution_amount']) ? 'monthly' : null,
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100,
-            'country' => 'GB',
-        ]);
+        // Map AI account_type to form-compatible account_type
+        $formAccountType = match ($accountType) {
+            'fixed_term' => 'fixed',
+            'regular_saver' => 'easy_access',
+            default => $accountType,
+        };
 
-        $this->invalidateModuleCache($user->id, 'savings');
+        // If ISA, set account_type to cash_isa so the form shows ISA fields
+        if ($isIsa && !in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
+            $formAccountType = 'cash_isa';
+        }
 
-        return ['created' => true, 'entity_type' => 'savings_account', 'entity_id' => $account->id, 'name' => $account->account_name, 'message' => "Savings account \"{$account->account_name}\" created with a balance of £".number_format((float) $account->current_balance, 2).'.'];
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'savings_account',
+            'route' => '/net-worth/cash',
+            'fields' => [
+                'institution' => $input['institution'] ?? $input['account_name'],
+                'account_type' => $formAccountType,
+                'current_balance' => (float) $input['current_balance'],
+                'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
+                'is_isa' => $isIsa,
+                'is_emergency_fund' => $input['is_emergency_fund'] ?? false,
+                'regular_contribution_amount' => isset($input['regular_contribution_amount']) ? (float) $input['regular_contribution_amount'] : null,
+                'access_type' => match ($formAccountType) {
+                    'notice' => 'notice', 'fixed' => 'fixed', default => 'immediate'
+                },
+            ],
+            'message' => "I'll fill in the form for your \"{$input['account_name']}\" account now.",
+        ];
     }
 
     private function handleCreateInvestmentAccount(array $input, User $user, bool $isPreview): array
