@@ -657,6 +657,8 @@ class CoordinatingAgent extends BaseAgent
         try {
             return match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                'list_goals' => $this->handleListGoals($user),
+                'list_life_events' => $this->handleListLifeEvents($user),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
@@ -700,6 +702,83 @@ class CoordinatingAgent extends BaseAgent
     private function handleNavigation(array $input): array
     {
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    private function handleListGoals(User $user): array
+    {
+        $goals = \App\Models\Goal::forUserOrJoint($user->id)
+            ->orderByRaw("FIELD(status, 'active', 'paused', 'completed', 'abandoned')")
+            ->orderBy('priority')
+            ->get();
+
+        if ($goals->isEmpty()) {
+            return [
+                'has_goals' => false,
+                'count' => 0,
+                'goals' => [],
+                'message' => 'No goals set yet. You can create goals to track savings targets, house deposits, holidays, and more.',
+            ];
+        }
+
+        return [
+            'has_goals' => true,
+            'count' => $goals->count(),
+            'active_count' => $goals->where('status', 'active')->count(),
+            'on_track_count' => $goals->filter(fn ($g) => $g->is_on_track)->count(),
+            'goals' => $goals->map(fn ($g) => [
+                'id' => $g->id,
+                'name' => $g->goal_name,
+                'type' => $g->goal_type,
+                'status' => $g->status,
+                'priority' => $g->priority,
+                'target_amount' => round((float) $g->target_amount, 2),
+                'current_amount' => round((float) $g->current_amount, 2),
+                'remaining' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
+                'progress_percentage' => $g->progress_percentage,
+                'is_on_track' => $g->is_on_track,
+                'monthly_contribution' => round((float) ($g->monthly_contribution ?? 0), 2),
+                'target_date' => $g->target_date?->format('Y-m-d'),
+                'assigned_module' => $g->assigned_module,
+            ])->toArray(),
+        ];
+    }
+
+    private function handleListLifeEvents(User $user): array
+    {
+        $events = \App\Models\LifeEvent::forUserOrJoint($user->id)
+            ->orderBy('expected_date')
+            ->get();
+
+        if ($events->isEmpty()) {
+            return [
+                'has_events' => false,
+                'count' => 0,
+                'events' => [],
+                'message' => 'No life events recorded. You can add upcoming events like weddings, property purchases, inheritance, or career changes to see how they affect your financial plan.',
+            ];
+        }
+
+        $active = $events->whereIn('status', ['expected', 'confirmed']);
+        $completed = $events->where('status', 'completed');
+
+        return [
+            'has_events' => true,
+            'count' => $events->count(),
+            'active_count' => $active->count(),
+            'completed_count' => $completed->count(),
+            'events' => $events->map(fn ($e) => [
+                'id' => $e->id,
+                'name' => $e->event_name,
+                'type' => $e->event_type,
+                'display_type' => $e->display_event_type,
+                'status' => $e->status,
+                'impact_type' => $e->impact_type,
+                'amount' => round((float) $e->amount, 2),
+                'expected_date' => $e->expected_date?->format('Y-m-d'),
+                'months_until' => $e->expected_date ? max(0, (int) now()->diffInMonths($e->expected_date, false)) : null,
+                'certainty' => $e->certainty,
+            ])->toArray(),
+        ];
     }
 
     private function handleModuleAnalysis(array $input, User $user): array

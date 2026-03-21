@@ -197,6 +197,8 @@ class PrerequisiteGateService
             'generate_financial_plan' => $this->canGenerateHolisticPlan($user),
             'get_tax_information' => $this->pass(),
             'navigate_to_page' => $this->pass(),
+            'list_goals' => $this->pass(),
+            'list_life_events' => $this->pass(),
             'create_goal', 'create_life_event', 'create_savings_account',
             'create_investment_account', 'create_pension', 'create_property',
             'create_mortgage', 'create_protection_policy', 'create_estate_asset',
