@@ -149,8 +149,9 @@ class ProtectionAgent extends BaseAgent
             ];
             if ($goalCommitments['total_outstanding'] > 0) {
                 $count = $goalCommitments['count'];
-                $goalCommitments['coverage_note'] = "You have {$count} active ".($count === 1 ? 'goal' : 'goals').
-                    " with {$this->formatCurrency($goalCommitments['total_outstanding'])} outstanding. Your protection cover should account for these commitments to ensure your family can meet these goals if the unexpected happens.";
+                $goalWord = $count === 1 ? 'goal' : 'goals';
+                $meetWord = $count === 1 ? 'this goal' : 'these goals';
+                $goalCommitments['coverage_note'] = "You have {$count} active {$goalWord} with {$this->formatCurrency($goalCommitments['total_outstanding'])} outstanding. Your protection cover should account for these commitments to ensure your family can meet {$meetWord} if the unexpected happens.";
             }
 
             return $this->response(

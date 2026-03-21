@@ -96,7 +96,7 @@ describe('goal liquidity risk in estate analysis', function () {
         Goal::create([
             'user_id' => $this->user->id,
             'goal_name' => 'House Deposit',
-            'goal_type' => 'house_deposit',
+            'goal_type' => 'home_deposit',
             'target_amount' => 50000.00,
             'current_amount' => 20000.00,
             'target_date' => now()->addYears(3),

@@ -18,6 +18,7 @@ beforeEach(function () {
         'household_id' => $this->household->id,
         'monthly_expenditure' => 2000,
         'annual_employment_income' => 40000,
+        'date_of_birth' => now()->subYears(35),
     ]);
 });
 
