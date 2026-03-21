@@ -6,6 +6,7 @@ namespace App\Agents;
 
 use App\Constants\TaxDefaults;
 use App\Models\Estate\Will;
+use App\Models\Goal;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Coordination\RecommendationPersonaliser;
@@ -89,6 +90,7 @@ class EstateAgent extends BaseAgent
                 'will_review_status' => null,
                 'life_cover' => null,
                 'pension_amendment' => null,
+                'goal_liquidity' => null,
                 'profile' => null,
             ]);
         }
@@ -255,6 +257,16 @@ class EstateAgent extends BaseAgent
                 'current_value' => (float) ($t->current_value ?? 0),
             ])->values()->toArray();
 
+            // Goal liquidity risk — outstanding goal funding that may compete with estate liquidity
+            $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
+            $goalLiquidity = [
+                'total_outstanding' => round($activeGoals->sum(fn ($g) => max(0, (float) $g->target_amount - (float) $g->current_amount)), 2),
+                'goals' => $activeGoals->map(fn ($g) => [
+                    'name' => $g->goal_name,
+                    'outstanding' => round(max(0, (float) $g->target_amount - (float) $g->current_amount), 2),
+                ])->filter(fn ($g) => $g['outstanding'] > 0)->values()->toArray(),
+            ];
+
             // Build user context for recommendation traces
             $userContext = [
                 'first_name' => $user->first_name ?? 'User',
@@ -299,6 +311,7 @@ class EstateAgent extends BaseAgent
                         'policy_assessment' => $policyAssessment,
                     ],
                     'pension_amendment' => $pensionAmendment,
+                    'goal_liquidity' => $goalLiquidity,
                     'profile' => [
                         'current_age' => $currentAge,
                         'life_expectancy' => $user->life_expectancy_override ?? self::DEFAULT_LIFE_EXPECTANCY,
