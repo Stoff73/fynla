@@ -544,12 +544,25 @@ export default {
             }
         },
 
-        messages() {
-            this.$nextTick(() => this.scrollToBottom());
+        messages(newMessages, oldMessages) {
+            // When a new user message is added, scroll to bottom so they see it
+            // When assistant message is added (stream complete), scroll to top of that message
+            if (!newMessages || !oldMessages) return;
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (!lastMsg) return;
+
+            if (lastMsg.role === 'user') {
+                this.$nextTick(() => this.scrollToBottom());
+            } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
+                this.$nextTick(() => this.scrollToLastAssistantMessage());
+            }
         },
 
-        streamingText() {
-            this.$nextTick(() => this.scrollToBottom());
+        streaming(isStreaming) {
+            // When streaming starts, scroll to show the top of the response area
+            if (isStreaming) {
+                this.$nextTick(() => this.scrollToLastAssistantMessage());
+            }
         },
 
         pendingNavigation(routePath) {
@@ -664,6 +677,26 @@ export default {
         scrollToBottom() {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        },
+
+        scrollToLastAssistantMessage() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+
+            // Find the last assistant message element (or streaming indicator)
+            const messageElements = container.querySelectorAll('.flex.justify-start');
+            const lastAssistant = messageElements[messageElements.length - 1];
+
+            if (lastAssistant) {
+                // Scroll so the top of the assistant's response is visible with a small offset
+                const containerRect = container.getBoundingClientRect();
+                const messageRect = lastAssistant.getBoundingClientRect();
+                const offset = messageRect.top - containerRect.top + container.scrollTop - 8;
+                container.scrollTop = offset;
+            } else {
+                // Fallback to bottom if no assistant message found
                 container.scrollTop = container.scrollHeight;
             }
         },
