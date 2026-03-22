@@ -1,6 +1,6 @@
 # Deployment Guide — 21 March 2026
 
-**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch) | NOT YET DEPLOYED (sidebar revert)**
+**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (everything else) — see March/March22Updates/deployAll.md for full deployment guide**
 
 ## Rebuild Required?
 
