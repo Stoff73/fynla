@@ -622,6 +622,8 @@ export default {
       editingSavings.value = null;
       editingPension.value = null;
       emitSidebarContent();
+      // Scroll to top on tab change (mobile stacked layout)
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     watch(isFormOpen, () => emitSidebarContent());
 

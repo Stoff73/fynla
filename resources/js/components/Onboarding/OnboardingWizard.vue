@@ -657,6 +657,11 @@ export default {
       return 'bg-raspberry-300'; // skipped
     };
 
+    // Scroll to top when step changes (important on mobile where cards stack)
+    watch(lifeStageCurrentIndex, () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
 
