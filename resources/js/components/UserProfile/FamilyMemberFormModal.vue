@@ -20,7 +20,7 @@
             <!-- Relationship -->
             <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'relationship' }">
               <label for="relationship" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Relationship
+                Relationship <span class="text-raspberry-500">*</span>
               </label>
               <select
                 id="relationship"
@@ -45,7 +45,7 @@
             <!-- Email (only for spouse) -->
             <div v-if="form.relationship === 'spouse'">
               <label for="email" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Email Address
+                Email Address <span class="text-raspberry-500">*</span>
               </label>
               <input
                 id="email"
@@ -64,7 +64,7 @@
               <!-- First Name -->
               <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'first_name' }">
                 <label for="first_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  First Name
+                  First Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="first_name"
@@ -90,7 +90,7 @@
               <!-- Last Name -->
               <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'last_name' }">
                 <label for="last_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  Last Name
+                  Last Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="last_name"
