@@ -38,7 +38,9 @@
                 :stroke-dashoffset="106.8 - (106.8 * progressPercentage / 100)"
                 stroke-linecap="round" />
             </svg>
-            <img :src="faviconUrl" alt="Fynla" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5" />
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-[9px] font-bold text-raspberry-500">{{ progressPercentage }}%</span>
+            </div>
           </div>
           <!-- Collapsed: no stage, just favicon -->
           <img v-else-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
@@ -61,11 +63,6 @@
             <div class="h-1 rounded-full transition-all duration-500" :class="progressBarColourClass" :style="{ width: progressPercentage + '%' }"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Collapsed: tiny progress percentage below ring -->
-      <div v-if="effectiveCollapsed && currentStage" class="text-center flex-shrink-0 -mt-1 mb-1">
-        <span class="text-[9px] font-bold text-raspberry-500">{{ progressPercentage }}%</span>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
