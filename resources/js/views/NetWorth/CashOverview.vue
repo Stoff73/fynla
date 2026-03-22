@@ -307,6 +307,7 @@ export default {
     ...mapGetters('savings', ['totalSavings']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Filter accounts by type for real users view
     currentAccounts() {
@@ -407,6 +408,15 @@ export default {
       }
 
       return commitments;
+    },
+  },
+
+  watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addAccount') {
+        this.openAddAccountModal('current_account');
+        this.$store.dispatch('subNav/consumeCta');
+      }
     },
   },
 
