@@ -615,7 +615,18 @@ export default {
       }
     };
 
-    watch(activeTab, () => emitSidebarContent());
+    watch(activeTab, () => {
+      // Close all open forms when switching tabs
+      showPropertyForm.value = false;
+      showInvestmentForm.value = false;
+      showSavingsForm.value = false;
+      showPensionForm.value = false;
+      editingProperty.value = null;
+      editingInvestment.value = null;
+      editingSavings.value = null;
+      editingPension.value = null;
+      emitSidebarContent();
+    });
     watch(isFormOpen, () => emitSidebarContent());
 
     // Tab counts
