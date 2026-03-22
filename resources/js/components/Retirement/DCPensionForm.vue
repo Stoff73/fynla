@@ -552,6 +552,11 @@ export default {
   async mounted() {
     // Load risk profile when component mounts (auto-calculated if none exists)
     await this.loadRiskProfile();
+
+    // Default retirement age from profile for new personal pensions
+    if (!this.isEdit && !this.formData.retirement_age && this.profileRetirementAge) {
+      this.formData.retirement_age = this.profileRetirementAge;
+    }
   },
 
   methods: {
