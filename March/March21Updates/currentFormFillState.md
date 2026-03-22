@@ -1,8 +1,9 @@
 # AI Form Fill — Current State Assessment
 
-**Date:** 21 March 2026 (updated end of session)
-**Branch:** `aiFormFill` (22 commits ahead of main)
-**Status:** Savings, investments, protection, pensions, and liabilities working end-to-end. Cross-page navigation working with chat persistence. Tool descriptions and system prompt updated so AI uses correct tools for all entity types.
+**Date:** 22 March 2026
+**AI Form Fill Branch:** `aiFormFill` — MERGED to main (PR #156, 24 commits)
+**Onboarding Branch:** `onboardingUpdates` (6 commits, in progress)
+**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: focus_area legacy removed, journey resumption working, clickable step indicators added.
 
 ---
 

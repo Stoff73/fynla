@@ -176,11 +176,21 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
+**6 commits.** Browser verified: fill personal info → dashboard shows 69% / 3 of 7 complete → Continue Journey goes to Family (step 2) not About You → clickable step indicators jump between steps → all data retained.
+
 ### What Changed
 - Replaced legacy `onboarding_focus_area` with `life_stage` as single source of truth
 - All step progress saves, skip, dashboard skip, step queries now use `life_stage`
 - Removed "Focus area not set" errors for life stage mode users
-- `onboarding_focus_area` still written for backward compat but nothing reads from it
+- Changed `focus_area` DB column from enum to varchar (enum didn't include life stage values)
+- Dashboard refreshes journey completeness on every mount (was stale after onboarding/Fyn data entry)
+- Clickable step indicators in onboarding progress bar — users can jump to any step
+
+### Database Migration
+```bash
+php artisan migrate
+```
+- `2026_03_21_214000_change_focus_area_to_varchar` — changes `onboarding_progress.focus_area` and `users.onboarding_focus_area` from enum to varchar(50)
 
 ### PHP Files Modified
 ```
@@ -188,6 +198,12 @@ app/Services/Onboarding/OnboardingService.php
 app/Http/Controllers/Api/OnboardingController.php
 app/Services/LifeStage/LifeStageService.php
 app/Services/Onboarding/JourneyStateService.php
+```
+
+### Frontend Files Modified
+```
+resources/js/views/Dashboard.vue (refreshCompleteness on mount)
+resources/js/components/Onboarding/OnboardingWizard.vue (clickable step indicators)
 ```
 
 ---
