@@ -1,6 +1,6 @@
 # Deployment Guide — 21 March 2026
 
-**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch)**
+**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch) | NOT YET DEPLOYED (sidebar revert)**
 
 ## Rebuild Required?
 
@@ -328,6 +328,57 @@ See `currentFormFillState.md` for full file list and current status.
 
 ---
 
+## Sidebar Revert (branch: `sidebarRevert`)
+
+Removed journey-based sidebar filtering. All menu items now always visible under their section headings regardless of life stage. Keeps all new items (Liabilities, Personal Valuables, Power of Attorney, Will, Business, etc.) and the stage badge/progress bar.
+
+### Frontend Files Modified
+```
+resources/js/components/SideMenu.vue (removed isPrimaryItem/isSectionVisible/Explore section filtering)
+```
+
+No migrations. Rebuild required.
+
+---
+
+## Info Guide Link Fixes (branch: `sidebarRevert`)
+
+Fixed all navigation links in the "What powers this view?" panel. Links were pointing to outdated routes (/net-worth, /savings, /profile) instead of the correct sub-pages.
+
+### PHP Files Modified
+```
+app/Services/UserProfile/ModuleDataRequirementsService.php
+```
+
+Key changes:
+- Income fields → `/valuable-info?section=income` (was `/profile`)
+- Expenditure fields → `/valuable-info?section=expenditure` (was `/profile`)
+- Savings accounts → `/net-worth/cash` (was `/savings`)
+- Properties/mortgages → `/net-worth/property` (was `/net-worth`)
+- Investments → `/net-worth/investments` (was `/net-worth`)
+- Pensions → `/net-worth/retirement` (was `/net-worth`)
+- Liabilities → `/net-worth/liabilities` (was `/net-worth`)
+- Business interests → `/net-worth/business` (was `/net-worth/business-interests`)
+- Occupation/employment status → `/valuable-info?section=income` (was `/profile`)
+
+No migrations. No rebuild required (PHP only).
+
+---
+
+## Remove Suggested Goals Card (branch: `sidebarRevert`)
+
+Removed the static "Suggested for You" goals card from the dashboard. It showed hardcoded goal suggestions per life stage with no personalisation.
+
+### Frontend Files Modified
+```
+resources/js/views/Dashboard.vue (removed suggested goals card, stageSuggestedGoals getter, handleSuggestedGoal method)
+resources/js/components/Dashboard/GoalsCard.vue (removed suggested goals section, suggestedGoals getter, add-suggested-goal emit)
+```
+
+No migrations. Rebuild required.
+
+---
+
 ## Post-Deploy Verification
 
 1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable
@@ -341,3 +392,7 @@ See `currentFormFillState.md` for full file list and current status.
 9. **Navigation**: Ask Fyn "show me my life events" → verify navigates to `/goals?tab=events`
 10. **Navigation**: Ask Fyn "show me my retirement plan" → verify navigates to `/plans/retirement` (not `/holistic-plan`)
 11. **Goals context**: Ask Fyn "what are my goals?" → verify Fyn lists goals with names, amounts, and status without needing a tool call
+12. **Sidebar**: Verify all menu items visible under headings (Cash Management, Finances, Family/Admin, Planning) regardless of life stage
+13. **Info Guide**: Open "What powers this view?" on Protection page → click "Add now" on missing liabilities → verify navigates to `/net-worth/liabilities` (not `/net-worth`)
+14. **Info Guide**: Open on Retirement page → click "Add now" on missing pensions → verify navigates to `/net-worth/retirement`
+15. **Info Guide**: Open on any page with income requirement → click "Add now" → verify navigates to `/valuable-info?section=income` (not `/profile`)
