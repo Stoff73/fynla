@@ -102,7 +102,12 @@
       </div>
 
       <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
-      <JourneyProgressHero v-if="currentStage" class="mb-3" />
+      <JourneyProgressHero
+        v-if="currentStage"
+        class="mb-3"
+        :suggested-goals="stageSuggestedGoals"
+        @suggested-goal="handleSuggestedGoal"
+      />
 
       <!-- Empty Dashboard (no financial data) -->
       <template v-if="showEmptyDashboard">
