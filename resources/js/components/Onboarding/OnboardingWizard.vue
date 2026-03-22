@@ -1,5 +1,26 @@
 <template>
-  <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-eggshell-500">
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white border-b border-light-gray">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <router-link to="/dashboard" class="flex-shrink-0">
+          <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="h-10" />
+        </router-link>
+        <h1 class="text-base font-bold text-horizon-500 absolute left-1/2 -translate-x-1/2">Your Journey</h1>
+        <router-link
+          to="/dashboard"
+          class="text-sm text-neutral-500 hover:text-horizon-500 transition-colors flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span class="hidden sm:inline">Exit</span>
+        </router-link>
+      </div>
+    </div>
+
+    <div class="py-8 px-4 sm:px-6 lg:px-8">
 
     <!-- ================================================================== -->
     <!-- LIFE STAGE MODE: Progress bar, two-column layout, learning sidebar -->
@@ -319,6 +340,7 @@
       @continue="showSkipToDashboardModal = false"
       @skip-to-dashboard="handleSkipToDashboard"
     />
+    </div>
   </div>
 </template>
 
