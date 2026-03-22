@@ -622,8 +622,8 @@ export default {
 
 .add-account-button {
   padding: 12px 24px;
-  @apply bg-raspberry-500;
-  color: white;
+  background: #FAD6E0;
+  @apply text-horizon-500;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -633,7 +633,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-raspberry-500;
+  background: #F5B3C5;
 }
 
 @media (max-width: 768px) {
