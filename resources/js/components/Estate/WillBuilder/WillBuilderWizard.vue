@@ -160,6 +160,14 @@ export default {
       if (reviewIndex >= 0) {
         this.currentStepIndex = reviewIndex;
       }
+    } else if (this.initialData && this.initialData.status === 'draft') {
+      // Resume from the first step that needs attention
+      // Steps with data: intro (domicile_confirmed), personal (testator_full_name),
+      // executors (executors array), gifts, residuary, funeral, digital
+      const resumeIndex = this.findResumeStep();
+      if (resumeIndex > 0) {
+        this.currentStepIndex = resumeIndex;
+      }
     }
   },
 
@@ -170,6 +178,46 @@ export default {
   },
 
   methods: {
+    findResumeStep() {
+      const d = this.initialData;
+      const steps = this.visibleSteps;
+
+      // Check each step's key data fields to find the first incomplete one
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        switch (step.name) {
+          case 'intro':
+            if (!d.domicile_confirmed) return i;
+            break;
+          case 'personal':
+            if (!d.testator_full_name) return i;
+            break;
+          case 'executors':
+            if (!d.executors || d.executors.length === 0 || !d.executors[0]?.name) return i;
+            break;
+          case 'gifts':
+            // Gifts are optional — skip past if executors are done
+            break;
+          case 'residuary':
+            if (!d.residuary_estate || d.residuary_estate.length === 0) return i;
+            break;
+          case 'funeral':
+            if (!d.funeral_preference) return i;
+            break;
+          case 'digital':
+            // Digital is optional
+            break;
+          case 'review':
+            return i;
+          case 'signing':
+            return i;
+        }
+      }
+      // Default: gifts step (first optional step after required ones)
+      const giftsIndex = steps.findIndex(s => s.name === 'gifts');
+      return giftsIndex > 0 ? giftsIndex : 0;
+    },
+
     buildInitialFormData() {
       if (this.initialData) {
         return { ...this.initialData };
