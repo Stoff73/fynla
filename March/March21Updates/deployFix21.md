@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**47 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix, will builder save/resume/completion, will dashboard document details, View Will button, liabilities dashboard with sidebar nav, liabilities onboarding step in journeys 3 and 4.
+**49 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix, will builder save/resume/completion, will dashboard document details, View Will button, liabilities dashboard with sidebar nav, liabilities onboarding step in journeys 3 and 4, onboarding top nav bar.
 
 ### What Changed
 
@@ -228,6 +228,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Fixed mortgage type notes — replaced underscores with spaces ("Interest only" not "Interest_only")
 - Added `liabilities` to explore section of all 5 life stage sidebar configs
 - Liabilities onboarding step ("Debts") added to Journey 3 (Protecting What Matters) and Journey 4 (Planning Your Future) — appears after Assets with tailored learning milestones
+- Top navigation bar added to onboarding wizard — Fynla logo (left), "Your Journey" heading (centred), Exit link (right) so users know they are still in the app
 
 ### Database Migration
 ```bash
@@ -273,7 +274,7 @@ resources/js/components/NetWorth/LiabilityCard.vue (external source badge, mortg
 resources/js/components/NetWorth/LiabilitiesList.vue (mortgage filter, info banner, hasMortgageLiabilities)
 resources/js/components/NetWorth/LiabilityDetailInline.vue (interest rate display fix)
 resources/js/constants/lifeStageConfig.js (liabilities in all 5 stage explore sections + onboarding step in journeys 3 & 4)
-resources/js/components/Onboarding/OnboardingWizard.vue (liabilities in STEP_COMPONENTS, STEP_LABELS, stepsWithOwnNav)
+resources/js/components/Onboarding/OnboardingWizard.vue (liabilities step wiring, top nav bar)
 + 12 onboarding step files (removed inline UsefulResources)
 ```
 
