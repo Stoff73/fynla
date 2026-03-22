@@ -1,5 +1,5 @@
 <template>
-  <div v-if="links && links.length" class="bg-eggshell-500 border border-light-gray rounded-lg p-4 mt-6">
+  <div v-if="links && links.length" class="bg-white border border-light-gray rounded-lg shadow-sm p-4">
     <h4 class="text-xs font-bold text-horizon-500 uppercase tracking-wide mb-3">Useful Resources</h4>
     <ul class="space-y-2">
       <li v-for="link in links" :key="link.url" class="flex items-center">
