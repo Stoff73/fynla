@@ -365,6 +365,20 @@ No migrations. No rebuild required (PHP only).
 
 ---
 
+## Remove Suggested Goals Card (branch: `sidebarRevert`)
+
+Removed the static "Suggested for You" goals card from the dashboard. It showed hardcoded goal suggestions per life stage with no personalisation.
+
+### Frontend Files Modified
+```
+resources/js/views/Dashboard.vue (removed suggested goals card, stageSuggestedGoals getter, handleSuggestedGoal method)
+resources/js/components/Dashboard/GoalsCard.vue (removed suggested goals section, suggestedGoals getter, add-suggested-goal emit)
+```
+
+No migrations. Rebuild required.
+
+---
+
 ## Post-Deploy Verification
 
 1. **Income**: Log in as preview persona → Income tab → verify zero-value types hidden, Other Income editable
