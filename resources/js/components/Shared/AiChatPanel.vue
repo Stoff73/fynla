@@ -263,8 +263,11 @@
       class="flex flex-col bg-white w-full h-full"
     >
       <!-- Docked Header -->
-      <div class="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b border-light-gray">
-        <h3 class="text-sm font-semibold text-horizon-500">Fyn</h3>
+      <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray">
+        <div class="flex items-center gap-2">
+          <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+          <h3 class="text-sm font-bold text-horizon-500">Fyn</h3>
+        </div>
         <div class="flex items-center gap-1">
           <button
             @click="startNew"
@@ -283,6 +286,15 @@
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button
+            @click="$emit('collapse')"
+            class="ml-1 w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
+            title="Collapse Fyn chat"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M6 5l7 7-7 7" />
             </svg>
           </button>
         </div>

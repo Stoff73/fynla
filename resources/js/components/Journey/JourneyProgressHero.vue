@@ -1,79 +1,57 @@
 <template>
-  <div class="bg-white rounded-lg border border-light-gray shadow-sm p-6">
-    <!-- Main hero row: greeting + progress bar + CTA -->
+  <div class="bg-light-pink-100 rounded-xl p-6">
+    <!-- Main hero row: progress ring + greeting + step info + CTA -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-      <!-- Left: Greeting + stage label + step count -->
+      <!-- Left: Circular progress ring -->
+      <div class="flex-shrink-0 relative w-24 h-24">
+        <svg viewBox="0 0 96 96" class="w-24 h-24 -rotate-90">
+          <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
+          <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
+            :class="progressRingClass"
+            :stroke-dasharray="251.3"
+            :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
+            stroke-linecap="round" />
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center text-xl font-extrabold" :class="stageTextClass">
+          {{ progressPercentage }}%
+        </div>
+      </div>
+
+      <!-- Centre: Greeting + stage label + next step -->
       <div class="flex-1 min-w-0">
-        <h2 class="text-lg font-black text-horizon-500 truncate">{{ greeting }}, {{ firstName }}</h2>
-        <p class="text-sm text-neutral-500 mt-0.5">
-          <span :class="stageTextClass" class="font-semibold">{{ stageLabel }}</span>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 truncate">{{ greeting }}, {{ firstName }}</h2>
+        <p class="text-sm text-neutral-500 mt-1">
+          <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
           <span class="mx-1.5">&middot;</span>
           <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
         </p>
-      </div>
 
-      <!-- Centre: Progress bar -->
-      <div class="w-full sm:w-48 flex-shrink-0">
-        <div class="flex justify-between text-xs mb-1">
-          <span class="text-neutral-500">Journey</span>
-          <span :class="stageTextClass" class="font-bold">{{ progressPercentage }}%</span>
-        </div>
-        <div class="h-1.5 bg-eggshell-500 rounded-full overflow-hidden">
+        <!-- Next step info (merged into same card) -->
+        <div v-if="nextStep" class="flex items-center gap-2 mt-3">
           <div
-            class="h-full rounded-full transition-all duration-500"
-            :class="progressBarClass"
-            :style="{ width: progressPercentage + '%' }"
-          ></div>
+            class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            :class="stageBgClass"
+          >
+            {{ nextStepNumber }}
+          </div>
+          <span class="text-sm text-horizon-500">{{ nextStepTitle }}</span>
         </div>
       </div>
 
-      <!-- Right: Continue Journey button (when steps remain) -->
+      <!-- Right: Continue Journey button -->
       <button
         v-if="nextStep"
-        class="flex-shrink-0 bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+        class="flex-shrink-0 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
         @click="continueJourney"
       >
         Continue Journey
       </button>
     </div>
 
-    <!-- Next step CTA row (below the main row, when steps remain) -->
-    <div
-      v-if="nextStep && nextStepMilestone"
-      class="mt-4 pt-4 border-t border-light-gray flex flex-col sm:flex-row sm:items-center gap-3"
-    >
-      <!-- Step number circle -->
-      <div
-        class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-        :class="stageBgClass"
-      >
-        {{ nextStepNumber }}
-      </div>
-
-      <!-- Step info -->
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-horizon-500">
-          Next: {{ nextStepTitle }}
-        </p>
-        <p v-if="nextStepMilestone.didYouKnow" class="text-xs text-neutral-500 mt-0.5 line-clamp-1">
-          {{ truncateText(nextStepMilestone.didYouKnow, 120) }}
-        </p>
-      </div>
-
-      <!-- Continue button for the next step -->
-      <button
-        class="flex-shrink-0 text-sm font-semibold hover:underline whitespace-nowrap"
-        :class="stageTextClass"
-        @click="continueJourney"
-      >
-        Continue
-      </button>
-    </div>
-
     <!-- Journey complete message (all steps done) -->
     <div
       v-if="isJourneyComplete"
-      class="mt-4 pt-4 border-t border-light-gray flex flex-col sm:flex-row sm:items-center gap-3"
+      class="mt-4 pt-4 border-t border-white/30 flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <div
         class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500"
@@ -143,7 +121,6 @@ export default {
 
     nextStepTitle() {
       if (!this.nextStep) return '';
-      // Convert step ID to readable title
       const titles = {
         'personal-info': 'About You',
         'student-loan': 'Student Loan',
@@ -173,22 +150,15 @@ export default {
       return titles[this.nextStep] || this.nextStep.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     },
 
-    nextStepMilestone() {
-      if (!this.nextStep) return null;
-      return this.learningMilestone(this.nextStep);
-    },
-
-    progressBarClass() {
-      const colour = this.stageColour || 'raspberry';
-      // Map stage colours to gradient classes
-      const gradients = {
-        violet: 'bg-gradient-to-r from-violet-500 to-violet-400',
-        spring: 'bg-gradient-to-r from-spring-500 to-spring-400',
-        raspberry: 'bg-gradient-to-r from-raspberry-500 to-raspberry-400',
-        'light-blue': 'bg-gradient-to-r from-light-blue-500 to-violet-400',
-        horizon: 'bg-gradient-to-r from-horizon-500 to-horizon-400',
+    progressRingClass() {
+      const map = {
+        violet: 'stroke-violet-500',
+        spring: 'stroke-spring-500',
+        raspberry: 'stroke-raspberry-500',
+        'light-blue': 'stroke-light-blue-500',
+        horizon: 'stroke-horizon-500',
       };
-      return gradients[colour] || 'bg-gradient-to-r from-raspberry-500 to-raspberry-400';
+      return map[this.stageColour] || 'stroke-raspberry-500';
     },
 
     stageTextClass() {
@@ -219,11 +189,6 @@ export default {
       if (this.nextStep) {
         this.$router.push({ path: '/onboarding', query: { step: this.nextStep } });
       }
-    },
-
-    truncateText(text, maxLength) {
-      if (!text || text.length <= maxLength) return text;
-      return text.substring(0, maxLength).trim() + '...';
     },
   },
 };

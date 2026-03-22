@@ -26,7 +26,7 @@
       ]"
     >
       <!-- Logo -->
-      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
+      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'pl-[13px] pr-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
           <!-- Collapsed: progress ring around favicon (when stage is set) -->
           <div v-if="effectiveCollapsed && currentStage" class="relative" :title="`Journey: ${progressPercentage}% complete`">
@@ -43,7 +43,7 @@
           <!-- Collapsed: no stage, just favicon -->
           <img v-else-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
           <!-- Expanded: full logo -->
-          <img v-else :src="logoUrl" alt="Fynla" class="h-20 w-auto mt-3" />
+          <img v-else :src="logoUrl" alt="Fynla" class="h-14 w-auto" />
         </router-link>
       </div>
 
@@ -55,7 +55,7 @@
         <div class="mt-2">
           <div class="flex justify-between text-xs mb-1">
             <span class="text-neutral-500">Journey Progress</span>
-            <span :class="stageLabelColourClass" class="font-bold">{{ progressPercentage }}%</span>
+            <span class="font-bold text-raspberry-500">{{ progressPercentage }}%</span>
           </div>
           <div class="h-1 bg-light-gray rounded-full overflow-hidden">
             <div class="h-1 rounded-full transition-all duration-500" :class="progressBarColourClass" :style="{ width: progressPercentage + '%' }"></div>
@@ -65,7 +65,7 @@
 
       <!-- Collapsed: tiny progress percentage below ring -->
       <div v-if="effectiveCollapsed && currentStage" class="text-center flex-shrink-0 -mt-1 mb-1">
-        <span class="text-[9px] font-bold" :class="stageLabelColourClass">{{ progressPercentage }}%</span>
+        <span class="text-[9px] font-bold text-raspberry-500">{{ progressPercentage }}%</span>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
@@ -333,9 +333,9 @@ export default {
       },
     };
 
-    const stageLabelColourClass = computed(() => COLOUR_CLASSES.text[stageColour.value] || 'text-horizon-500');
-    const progressBarColourClass = computed(() => COLOUR_CLASSES.bg[stageColour.value] || 'bg-horizon-500');
-    const progressRingColourClass = computed(() => COLOUR_CLASSES.stroke[stageColour.value] || 'stroke-horizon-500');
+    const stageLabelColourClass = computed(() => 'text-horizon-500');
+    const progressBarColourClass = computed(() => 'bg-raspberry-500');
+    const progressRingColourClass = computed(() => 'stroke-raspberry-500');
     // ---------------------------------------------------------------
     // Active state detection (used by both legacy and stage layouts)
     // ---------------------------------------------------------------

@@ -5,21 +5,42 @@
     @close="handleLogoutModalClose"
   />
 
-  <nav class="bg-eggshell-500 shadow-sm border-b border-light-gray">
+  <nav class="bg-light-blue-100 shadow-sm border-b border-light-gray">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+      <div class="flex items-center justify-between py-[15px]">
 
         <!-- Page Title -->
-        <h1 v-if="pageTitle" class="text-lg font-semibold text-horizon-500">{{ pageTitle }}</h1>
+        <h1 v-if="pageTitle" class="text-2xl font-semibold text-horizon-500">{{ pageTitle }}</h1>
         <div v-else></div>
 
         <div class="flex items-center">
         <div class="hidden sm:flex sm:items-center space-x-4">
+          <!-- Trial countdown (inline) -->
+          <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
+            <div>
+              <p class="text-xs font-medium text-horizon-500">
+                Your {{ trialPlanName }} trial ends in {{ trialData.days_remaining }} {{ trialData.days_remaining === 1 ? 'day' : 'days' }}
+              </p>
+              <div class="mt-1 w-36 bg-white/50 rounded-full h-1">
+                <div
+                  class="bg-violet-500 h-1 rounded-full transition-all duration-500"
+                  :style="{ width: trialData.progress + '%' }"
+                ></div>
+              </div>
+            </div>
+            <button
+              @click="showPlanModal = true"
+              class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-violet-500 hover:bg-violet-600 transition-colors"
+            >
+              Upgrade Now
+            </button>
+          </div>
+
           <!-- 2FA Reminder -->
           <router-link
             v-if="showMFAReminder"
             to="/settings/security"
-            class="inline-flex items-center px-3 py-2 border border-spring-600 text-body-sm font-medium rounded-button text-white bg-spring-600 hover:bg-spring-700 transition-colors"
+            class="inline-flex items-center px-3 py-2 border border-light-blue-500 text-body-sm font-medium rounded-button text-white bg-light-blue-500 hover:bg-light-blue-600 transition-colors"
             title="Secure your account with two-factor authentication"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,16 +49,6 @@
             Enable 2FA
           </router-link>
 
-          <router-link
-            v-if="showCompleteSetupButton"
-            to="/onboarding"
-            class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-            Complete Setup
-          </router-link>
           <router-link
             v-if="isAdvisor"
             to="/advisor"
@@ -210,6 +221,11 @@
     </div>
 
   </nav>
+  <PlanSelectionModal
+    v-if="showPlanModal"
+    @select="handlePlanSelect"
+    @close="showPlanModal = false"
+  />
 </template>
 
 <script>
@@ -217,6 +233,8 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
+import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
+import api from '@/services/api';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
 export default {
@@ -224,6 +242,7 @@ export default {
 
   components: {
     LogoutSuccessModal,
+    PlanSelectionModal,
   },
 
   setup() {
@@ -232,6 +251,27 @@ export default {
     const router = useRouter();
 
     const userDropdownOpen = ref(false);
+    const trialData = ref(null);
+    const showPlanModal = ref(false);
+
+    const trialPlanName = computed(() => {
+      if (!trialData.value) return '';
+      return trialData.value.plan.charAt(0).toUpperCase() + trialData.value.plan.slice(1);
+    });
+
+    const fetchTrialStatus = async () => {
+      try {
+        const response = await api.get('/payment/trial-status');
+        trialData.value = response.data;
+      } catch {
+        // Silently fail
+      }
+    };
+
+    const handlePlanSelect = ({ plan, billingCycle }) => {
+      showPlanModal.value = false;
+      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
+    };
 
     const pageTitle = computed(() => {
       const path = route.path;
@@ -282,26 +322,6 @@ export default {
 
     const isAdvisor = computed(() => {
       return store.getters['auth/isAdvisor'];
-    });
-
-    const onboardingCompleted = computed(() => {
-      const user = store.getters['auth/currentUser'];
-      return user?.onboarding_completed || false;
-    });
-
-    // Show "Complete Setup" button if onboarding is not done OR if sections were skipped
-    // Never show for preview users (they don't have onboarding data)
-    const showCompleteSetupButton = computed(() => {
-      const user = store.getters['auth/currentUser'];
-      if (!user) return false;
-      // Never show for preview users
-      if (user.is_preview_user) return false;
-      if (!user.onboarding_completed) {
-        return true; // Not completed yet
-      }
-      // Check if there are skipped sections from the user's data
-      const skippedSteps = user?.onboarding_skipped_steps;
-      return Array.isArray(skippedSteps) && skippedSteps.length > 0;
     });
 
     // Info Guide (question mark button)
@@ -355,6 +375,7 @@ export default {
 
     onMounted(() => {
       document.addEventListener('click', handleClickOutside);
+      fetchTrialStatus();
     });
 
     onBeforeUnmount(() => {
@@ -368,8 +389,10 @@ export default {
       userName,
       isAdmin,
       isAdvisor,
-      onboardingCompleted,
-      showCompleteSetupButton,
+      trialData,
+      trialPlanName,
+      showPlanModal,
+      handlePlanSelect,
       showMFAReminder,
       infoGuideOpen,
       infoGuideMissingCount,
