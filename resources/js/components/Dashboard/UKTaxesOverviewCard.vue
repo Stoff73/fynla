@@ -1,6 +1,6 @@
 <template>
   <div
-    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 border border-light-gray"
+    class="card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 border border-light-gray"
     @click="navigateToModule"
   >
     <div class="flex items-center justify-between mb-4">

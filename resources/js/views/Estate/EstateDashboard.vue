@@ -39,7 +39,7 @@
         <div v-if="!hasWillDocument" class="mb-6">
           <router-link
             to="/estate/will-builder"
-            class="block bg-white border border-light-gray rounded-lg p-5 hover:border-raspberry-300 hover:shadow-sm transition-all group"
+            class="block bg-white border border-light-gray rounded-lg p-5 hover:bg-[#EEEEEE] hover:shadow-sm transition-all group"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-4">

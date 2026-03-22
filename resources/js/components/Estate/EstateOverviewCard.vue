@@ -1,6 +1,6 @@
 <template>
   <div
-    class="estate-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 border border-light-gray"
+    class="estate-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 border border-light-gray"
     @click="navigateToEstate"
   >
     <!-- Taxable Estate Now (Primary Value with border) -->

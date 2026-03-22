@@ -83,7 +83,7 @@
             v-for="goal in topGoals"
             :key="goal.id"
             @click="$emit('view-goal', goal)"
-            class="bg-white border border-light-gray rounded-lg p-4 hover:shadow-md hover:border-raspberry-300 cursor-pointer transition-all"
+            class="bg-white border border-light-gray rounded-lg p-4 hover:shadow-md hover:bg-[#EEEEEE] cursor-pointer transition-all"
           >
             <div class="flex items-center gap-2 mb-2">
               <span class="text-lg">{{ getGoalIcon(goal.goal_type) }}</span>

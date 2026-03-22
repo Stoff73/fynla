@@ -1,6 +1,6 @@
 <template>
   <div
-    class="investment-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-light-gray hover:shadow-lg hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200"
+    class="investment-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer border border-light-gray hover:shadow-lg hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200"
     @click="navigateToInvestment"
   >
     <div class="flex justify-between items-start mb-4">
