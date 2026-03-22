@@ -13,7 +13,8 @@
               <div
                 v-for="(stepId, index) in lifeStageSteps"
                 :key="stepId"
-                class="flex-1 flex flex-col items-center relative min-w-[80px]"
+                class="flex-1 flex flex-col items-center relative min-w-[80px] cursor-pointer"
+                @click="goToStep(index)"
               >
                 <!-- Step Circle -->
                 <div
@@ -668,6 +669,11 @@ export default {
       }
     };
 
+    const goToStep = (index) => {
+      sidebarOverride.value = null;
+      lifeStageCurrentIndex.value = index;
+    };
+
     const handleLifeStageSkip = async () => {
       // Do NOT mark as complete — backend field checks will show 'skipped' status.
       // Just refresh completeness so progress bar updates accurately.
@@ -1271,6 +1277,7 @@ export default {
       getLifeStageConnectingLineClass,
       handleLifeStageNext,
       handleLifeStageBack,
+      goToStep,
       handleLifeStageSkip,
       handleLifeStageStepSave,
 
