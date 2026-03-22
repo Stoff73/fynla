@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**21 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators.
+**24 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age.
 
 ### What Changed
 
@@ -202,6 +202,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Useful Resources moved from inside step forms to own sidebar card below Learning Milestones (12 step files updated)
 - Useful Resources card styled white with shadow to match sidebar cards
 - Family member form: red asterisks on required fields (Relationship, Email, First Name, Last Name)
+- DC pension form: Planned Access Age field for SIPP/personal/stakeholder pensions (min 55, defaults from user profile retirement age, stored per-pension for individual accumulation/decumulation calcs)
 
 ### Database Migration
 ```bash
@@ -231,6 +232,7 @@ resources/js/store/modules/estate.js (read will_info from estate data)
 resources/js/components/Savings/SaveAccountModal.vue (hide NS&I irrelevant fields)
 resources/js/components/Onboarding/UsefulResources.vue (white bg, moved to sidebar)
 resources/js/components/UserProfile/FamilyMemberFormModal.vue (required field asterisks)
+resources/js/components/Retirement/DCPensionForm.vue (pension access age field)
 + 12 onboarding step files (removed inline UsefulResources)
 ```
 
