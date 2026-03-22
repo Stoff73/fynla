@@ -47,7 +47,7 @@
 
 - Fyn now navigates you to the correct page when you ask to see something
 - Fyn knows about your goals and life events and can reference them by name
-- Fyn can create financial records for you by filling in forms visually with a highlight animation
+- Fyn can create financial records for you by filling in forms visually with a highlight animation for protection policies, investments and money purchase pensions. I still have to map the following: DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow.
 - Chat history is now accessible from the docked chat panel
 - Fyn's responses now anchor at the top so you read downward naturally
 - When something goes wrong behind the scenes, Fyn answers from general knowledge instead of showing an error
