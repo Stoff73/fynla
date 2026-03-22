@@ -55,9 +55,17 @@ export default {
     await this.loadData();
   },
 
+  watch: {
+    '$route.query.view'() {
+      this.loadData();
+    },
+  },
+
   methods: {
     async loadData() {
       this.loading = true;
+      this.hasExistingWill = false;
+      this.startAtReview = false;
       try {
         // Check if user already has a will record
         // Skip this check if ?view=document is set (viewing completed will in builder)

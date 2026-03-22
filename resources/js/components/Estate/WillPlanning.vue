@@ -126,8 +126,8 @@
               <div v-if="willDocument.residuary_estate && willDocument.residuary_estate.length > 0">
                 <div class="text-sm font-medium text-neutral-500 mb-1">Residuary Estate Beneficiaries</div>
                 <div v-for="(ben, i) in willDocument.residuary_estate" :key="i" class="text-sm text-horizon-500">
-                  {{ ben.name || 'Unnamed' }} — {{ ben.percentage }}%
-                  <span v-if="ben.substitute" class="text-neutral-500">(if predeceased: {{ ben.substitute }})</span>
+                  {{ ben.beneficiary_name || ben.name || 'Not specified' }} — {{ ben.percentage }}%
+                  <span v-if="ben.substitution_beneficiary || ben.substitute" class="text-neutral-500">(if predeceased: {{ ben.substitution_beneficiary || ben.substitute }})</span>
                 </div>
               </div>
               <div v-if="willDocument.specific_gifts && willDocument.specific_gifts.length > 0">
