@@ -52,79 +52,48 @@
         :key="member.id"
         class="card p-4"
       >
-        <div class="flex justify-between items-start">
-          <div class="flex-1">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h3 class="text-h5 font-semibold text-horizon-500">{{ member.name }}</h3>
+        <!-- Header: Name, badges, and actions -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+          <div>
+            <h3 class="text-h5 font-semibold text-horizon-500">{{ member.name }}</h3>
+            <div class="flex flex-wrap items-center gap-2 mt-1">
               <span
-                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
                 :class="getRelationshipBadgeClass(member.relationship)"
               >
                 {{ formatRelationship(member.relationship) }}
               </span>
               <span
                 v-if="member.is_dependent"
-                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-800"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-raspberry-100 text-raspberry-800"
               >
                 Dependent
               </span>
               <span
                 v-if="member.is_shared && member.owner === 'spouse'"
-                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                title="This family member is managed by your spouse"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
               >
-                <span class="hidden sm:inline">Shared from Spouse</span>
-                <span class="sm:hidden">Shared</span>
+                Shared from Spouse
               </span>
-              <!-- Child Benefit Badge -->
               <span
                 v-if="member.receives_child_benefit"
-                class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                title="Child Benefit is claimed for this child"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
               >
-                <span class="hidden sm:inline">Child Benefit</span>
-                <span class="sm:hidden">CB</span>
+                Child Benefit
               </span>
-              <!-- Linked Account Indicator for Spouse -->
               <span
                 v-if="member.relationship === 'spouse' && member.email"
-                class="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                title="Spouse account is linked"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
-                <span class="hidden sm:inline">Account Linked</span>
-                <span class="sm:hidden">Linked</span>
+                Account Linked
               </span>
-            </div>
-
-            <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div v-if="member.date_of_birth">
-                <p class="text-body-xs text-neutral-500">Date of Birth</p>
-                <p class="text-body-sm text-horizon-500">{{ formatDate(member.date_of_birth) }}</p>
-                <p class="text-body-xs text-neutral-500">Age: {{ calculateAge(member.date_of_birth) }}</p>
-              </div>
-
-              <div v-if="member.gender">
-                <p class="text-body-xs text-neutral-500">Gender</p>
-                <p class="text-body-sm text-horizon-500 capitalize">{{ member.gender }}</p>
-              </div>
-
-              <div v-if="member.annual_income">
-                <p class="text-body-xs text-neutral-500">Annual Income</p>
-                <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
-              </div>
-
-            </div>
-
-            <div v-if="member.notes" class="mt-3">
-              <p class="text-body-xs text-neutral-500">Notes</p>
-              <p class="text-body-sm text-horizon-500">{{ member.notes }}</p>
             </div>
           </div>
 
-          <div v-if="!member.is_shared && member.relationship !== 'spouse'" class="flex space-x-2 ml-4">
+          <div v-if="!member.is_shared && member.relationship !== 'spouse'" class="flex space-x-2 flex-shrink-0">
             <button
               v-preview-disabled="'edit'"
               @click="openEditModal(member)"
@@ -140,17 +109,39 @@
               Delete
             </button>
           </div>
-          <div v-else-if="member.relationship === 'spouse'" class="ml-4">
-            <p class="text-body-xs text-neutral-500 italic">
-              Linked account — can only be edited or deleted by logging into the spouse's account
-            </p>
+        </div>
+
+        <!-- Details grid -->
+        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div v-if="member.date_of_birth">
+            <p class="text-body-xs text-neutral-500">Date of Birth</p>
+            <p class="text-body-sm text-horizon-500">{{ formatDate(member.date_of_birth) }}</p>
+            <p class="text-body-xs text-neutral-500">Age: {{ calculateAge(member.date_of_birth) }}</p>
           </div>
-          <div v-else class="ml-4">
-            <p class="text-body-xs text-neutral-500 italic">
-              Managed by spouse
-            </p>
+
+          <div v-if="member.gender">
+            <p class="text-body-xs text-neutral-500">Gender</p>
+            <p class="text-body-sm text-horizon-500 capitalize">{{ member.gender }}</p>
+          </div>
+
+          <div v-if="member.annual_income">
+            <p class="text-body-xs text-neutral-500">Annual Income</p>
+            <p class="text-body-sm text-horizon-500">{{ formatCurrency(member.annual_income) }}</p>
           </div>
         </div>
+
+        <div v-if="member.notes" class="mt-3">
+          <p class="text-body-xs text-neutral-500">Notes</p>
+          <p class="text-body-sm text-horizon-500">{{ member.notes }}</p>
+        </div>
+
+        <!-- Linked account notice -->
+        <p v-if="member.relationship === 'spouse'" class="mt-3 text-body-xs text-neutral-500 italic border-t border-light-gray pt-3">
+          Linked account — can only be edited or deleted by logging into the spouse's account
+        </p>
+        <p v-else-if="member.is_shared" class="mt-3 text-body-xs text-neutral-500 italic border-t border-light-gray pt-3">
+          Managed by spouse
+        </p>
       </div>
       </div>
 
