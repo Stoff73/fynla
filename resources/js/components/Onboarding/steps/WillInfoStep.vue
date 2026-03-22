@@ -53,16 +53,34 @@
       </div>
 
       <div v-if="formData.has_will">
-        <label for="executor_name" class="label">
-          Who is your executor?
+        <label class="label">
+          {{ formData.executors.length > 1 ? 'Who are your executors?' : 'Who is your executor?' }}
         </label>
-        <input
-          id="executor_name"
-          v-model="formData.executor_name"
-          type="text"
-          class="input-field"
-          placeholder="Executor name"
+        <div v-for="(executor, index) in formData.executors" :key="index" class="flex items-center gap-2 mb-2">
+          <input
+            v-model="formData.executors[index]"
+            type="text"
+            class="input-field flex-1"
+            :placeholder="index === 0 ? 'Primary executor name' : 'Additional executor name'"
+          >
+          <button
+            v-if="formData.executors.length > 1"
+            type="button"
+            @click="formData.executors.splice(index, 1)"
+            class="p-2 text-neutral-500 hover:text-raspberry-500 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <button
+          type="button"
+          @click="formData.executors.push('')"
+          class="text-sm text-raspberry-500 hover:text-raspberry-600 font-medium transition-colors"
         >
+          + Add executor
+        </button>
       </div>
 
       <div v-if="formData.has_will === false" class="space-y-4">
@@ -119,7 +137,7 @@ export default {
     const formData = ref({
       has_will: null,
       will_last_updated: null,
-      executor_name: '',
+      executors: [''],
     });
 
     const loading = ref(false);
@@ -130,9 +148,16 @@ export default {
       error.value = null;
 
       try {
+        // Convert executors array to comma-separated string for backend
+        const payload = {
+          ...formData.value,
+          executor_name: formData.value.executors.filter(e => e.trim()).join(', '),
+        };
+        delete payload.executors;
+
         await store.dispatch('onboarding/saveStepData', {
           stepName: 'will_info',
-          data: formData.value,
+          data: payload,
         });
 
         emit('next');
@@ -171,6 +196,12 @@ export default {
         // Format date field if exists
         if (existingData.will_last_updated) {
           existingData.will_last_updated = formatDate(existingData.will_last_updated);
+        }
+        // Convert executor_name string to executors array
+        if (existingData.executor_name) {
+          existingData.executors = existingData.executor_name.split(',').map(e => e.trim()).filter(Boolean);
+          if (existingData.executors.length === 0) existingData.executors = [''];
+          delete existingData.executor_name;
         }
         Object.assign(formData.value, existingData);
       }
