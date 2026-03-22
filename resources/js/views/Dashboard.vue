@@ -112,7 +112,7 @@
       </template>
 
       <!-- Three-column dashboard grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-else class="dashboard-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <!-- Areas to Complete Card (shown first when user has skipped steps) -->
         <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-6">
           <AreasToCompleteCard />
@@ -690,6 +690,7 @@
           v-if="isCardVisible('tax-allowances')"
           title="Allowances"
           :loading="loading.taxAllowances"
+          :clickable="false"
         >
           <div v-if="hasAllowancesData" class="space-y-4">
             <!-- Lifetime ISA Allowance (eligible users only) -->
@@ -1225,8 +1226,8 @@ export default {
                 },
                 value: {
                   show: true,
-                  fontSize: '20px',
-                  fontWeight: 700,
+                  fontSize: '22px',
+                  fontWeight: 900,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   offsetY: 24,
                   formatter: () => vm.formatCurrency(netWorth),
@@ -1235,8 +1236,8 @@ export default {
                   show: true,
                   showAlways: true,
                   label: '',
-                  fontSize: '20px',
-                  fontWeight: 700,
+                  fontSize: '22px',
+                  fontWeight: 900,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   formatter: () => vm.formatCurrency(netWorth),
                 },
@@ -1992,5 +1993,19 @@ export default {
 </script>
 
 <style scoped>
-/* Card styling inherited from DashboardCard component */
+/* Dashboard grid gap fix: last card(s) expand to fill remaining row space.
+   Uses :not([class*="col-span"]) to exclude cards that already span multiple columns. */
+@media (min-width: 1024px) {
+  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(3n+1) {
+    grid-column: span 3;
+  }
+  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(3n+2) {
+    grid-column: span 2;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(2n+1) {
+    grid-column: span 2;
+  }
+}
 </style>
