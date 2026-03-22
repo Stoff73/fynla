@@ -21,10 +21,10 @@
     <!-- Expanded: full hero -->
     <template v-else>
     <!-- Main hero row: progress ring + greeting + step info + CTA -->
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 pr-6">
+    <div class="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 pr-6">
       <!-- Left: Circular progress ring -->
-      <div class="flex-shrink-0 relative w-[101px] h-[101px]">
-        <svg viewBox="0 0 96 96" class="w-[101px] h-[101px] -rotate-90">
+      <div class="flex-shrink-0 relative w-[160px] h-[160px]">
+        <svg viewBox="0 0 96 96" class="w-[160px] h-[160px] -rotate-90">
           <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
           <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
             :class="progressRingClass"
@@ -32,7 +32,7 @@
             :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
             stroke-linecap="round" />
         </svg>
-        <div class="absolute inset-0 flex items-center justify-center text-xl font-extrabold" :class="stageTextClass">
+        <div class="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold" :class="stageTextClass">
           {{ progressPercentage }}%
         </div>
       </div>
@@ -56,6 +56,19 @@
           </div>
           <span class="text-sm text-horizon-500">{{ nextStepTitle }}</span>
         </div>
+
+        <!-- Journey complete message (inline, all steps done) -->
+        <div v-if="isJourneyComplete" class="flex items-center gap-2 mt-2">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-spring-600">Journey complete</p>
+            <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps. Explore your dashboard to review your financial plan.</p>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Continue Journey button -->
@@ -68,13 +81,13 @@
       </button>
 
       <!-- Right: Suggested for You (desktop only) -->
-      <div v-if="suggestedGoals.length && !heroCollapsed" class="hidden lg:block flex-shrink-0 w-64 border-l border-white/30 pl-5 ml-2">
+      <div v-if="suggestedGoals.length && !heroCollapsed" class="hidden lg:block flex-shrink-0 w-64 pl-5 ml-2">
         <h4 class="text-sm font-semibold text-horizon-500 mb-2">Suggested for You</h4>
         <div class="space-y-1.5">
           <div
             v-for="suggestion in suggestedGoals.slice(0, 3)"
             :key="suggestion.id"
-            class="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-white/40 transition-colors"
+            class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-eggshell-500 hover:bg-light-pink-200 transition-colors"
             @click="$emit('suggested-goal', suggestion)"
           >
             <div class="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
@@ -82,34 +95,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
-            <span class="text-xs font-medium text-horizon-500 truncate">{{ suggestion.label }}</span>
+            <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ suggestion.label }}</span>
           </div>
         </div>
       </div>
     </div>
     </template>
 
-    <!-- Journey complete message (all steps done) -->
-    <div
-      v-if="isJourneyComplete"
-      class="mt-4 pt-4 border-t border-white/30 flex flex-col sm:flex-row sm:items-center gap-3"
-    >
-      <div
-        class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500"
-      >
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-spring-600">
-          Journey complete
-        </p>
-        <p class="text-xs text-neutral-500 mt-0.5">
-          You have completed all onboarding steps. Explore your dashboard to review your financial plan.
-        </p>
-      </div>
-    </div>
   </div>
 </template>
 

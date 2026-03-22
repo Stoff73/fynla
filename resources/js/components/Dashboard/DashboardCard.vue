@@ -1,9 +1,11 @@
 <template>
   <div
     class="dashboard-card rounded-lg border border-light-gray p-6 transition-all duration-200"
-    :class="clickable
-      ? 'bg-white cursor-pointer hover:bg-[#EEEEEE] hover:shadow-md hover:-translate-y-0.5'
-      : 'bg-light-blue-100'"
+    :class="empty
+      ? 'bg-light-pink-100/50 cursor-pointer hover:bg-light-pink-200/50 hover:shadow-md hover:-translate-y-0.5'
+      : (clickable
+        ? 'bg-white cursor-pointer hover:bg-[#EEEEEE] hover:shadow-md hover:-translate-y-0.5'
+        : 'bg-light-blue-100')"
     @click="clickable ? $emit('click') : null"
     :role="clickable ? 'button' : undefined"
     :tabindex="clickable ? 0 : undefined"
@@ -50,6 +52,10 @@ export default {
     clickable: {
       type: Boolean,
       default: true,
+    },
+    empty: {
+      type: Boolean,
+      default: false,
     },
   },
 

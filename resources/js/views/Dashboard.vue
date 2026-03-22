@@ -214,6 +214,7 @@
           v-if="!isStudentPersona && isCardVisible('net-worth')"
           title="Net Worth"
           :loading="loading.netWorth"
+          :empty="!hasNetWorthData"
           @click="navigateTo('/net-worth/wealth-summary')"
         >
           <div v-if="hasNetWorthData">
@@ -258,7 +259,7 @@
           <!-- Empty state when no assets or liabilities -->
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No assets or liabilities added yet.</p>
-            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Assets &amp; Liabilities
             </router-link>
           </div>
@@ -269,13 +270,23 @@
           v-if="isCardVisible('protection')"
           title="Protection"
           :loading="loading.protection"
+          :empty="!hasProtectionData"
           @click="navigateTo('/protection')"
         >
           <div v-if="hasProtectionData" class="space-y-4">
             <div class="border-b border-light-gray pb-4">
-              <span class="text-sm text-neutral-500">Total Coverage</span>
-              <div class="mt-1">
-                <span class="text-xl font-bold text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl bg-light-blue-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-8 h-8 text-horizon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-neutral-500">Total Coverage</span>
+                  <div class="mt-0.5">
+                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -283,7 +294,7 @@
               <span class="font-medium text-horizon-500">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-neutral-500">Policies</span>
+              <span class="font-semibold text-horizon-500">Policies</span>
               <span class="font-medium text-horizon-500">{{ protectionData.policyCount }}</span>
             </div>
             <!-- Actions -->
@@ -316,7 +327,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No protection policies added yet.</p>
-            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Protection Policy
             </router-link>
           </div>
@@ -327,6 +338,7 @@
           v-if="isCardVisible('cash-savings') || isCardVisible('savings')"
           title="Cash & Savings"
           :loading="loading.taxAllowances"
+          :empty="!hasSavingsData"
           @click="navigateTo('/net-worth/cash')"
         >
           <div v-if="hasSavingsData" class="space-y-4">
@@ -346,7 +358,7 @@
               </div>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-neutral-500">Accounts</span>
+              <span class="font-semibold text-horizon-500">Accounts</span>
               <span class="font-medium text-horizon-500">{{ savingsAccountCount }}</span>
             </div>
             <!-- Actions -->
@@ -379,7 +391,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No savings accounts added yet.</p>
-            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Savings Account
             </router-link>
           </div>
@@ -390,6 +402,7 @@
           v-if="isCardVisible('investments')"
           title="Investments"
           :loading="loading.investment"
+          :empty="!hasInvestmentData"
           @click="navigateTo('/net-worth/investments')"
         >
           <div v-if="hasInvestmentData" class="space-y-4">
@@ -409,7 +422,7 @@
               </div>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-neutral-500">Accounts</span>
+              <span class="font-semibold text-horizon-500">Accounts</span>
               <span class="font-medium text-horizon-500">{{ investmentAccountCount }}</span>
             </div>
             <!-- Actions -->
@@ -442,7 +455,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No investment accounts added yet.</p>
-            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Investment Account
             </router-link>
           </div>
@@ -453,16 +466,26 @@
           v-if="isCardVisible('estate')"
           title="Estate Planning"
           :loading="loading.estate"
+          :empty="!hasEstateData"
           @click="navigateTo('/estate')"
         >
           <div v-if="hasEstateData" class="space-y-4">
             <!-- Taxable Estate Now -->
             <div class="border-b border-light-gray pb-4">
-              <span class="text-sm text-neutral-500">Taxable Estate on Joint Death Now</span>
-              <div class="mt-1">
-                <span class="text-xl font-bold text-raspberry-500">
-                  {{ formatCurrency(estateData.taxableEstate) }}
-                </span>
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl bg-raspberry-50 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-neutral-500">Taxable Estate on Joint Death</span>
+                  <div class="mt-0.5">
+                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-raspberry-500">
+                      {{ formatCurrency(estateData.taxableEstate) }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -502,7 +525,7 @@
             <p class="text-sm text-neutral-500 mb-4">
               No estate details added yet.
             </p>
-            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Estate Details
             </router-link>
           </div>
@@ -540,6 +563,7 @@
           v-if="(userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
           :title="retirementCardTitle"
           :loading="loading.retirement"
+          :empty="!hasRetirementData"
           @click="navigateTo('/net-worth/retirement')"
         >
           <template v-if="hasRetirementData">
@@ -604,47 +628,41 @@
             </div>
           </div>
 
-          <!-- NON-RETIRED USER: Show projections -->
+          <!-- NON-RETIRED USER: Show projections with progress bars -->
           <div v-else class="space-y-4">
-            <!-- Income row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-light-gray pb-4">
-              <div>
-                <span class="text-sm text-neutral-500">Projected Income</span>
-                <div class="flex items-baseline gap-1 mt-1">
-                  <span class="text-xl font-bold text-spring-600">
-                    {{ formatCurrency(retirementData.projectedIncome) }}
-                  </span>
-                  <span class="text-xs text-neutral-500">/yr</span>
+            <!-- Income progress bar -->
+            <div>
+              <div class="flex justify-between items-baseline mb-1.5">
+                <span class="text-sm font-medium text-horizon-500">Income</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(retirementData.projectedIncome) }}</span>
+                  <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.targetIncome) }}/yr</span>
                 </div>
               </div>
-              <div class="text-right">
-                <span class="text-sm text-neutral-500">Required Income</span>
-                <div class="flex items-baseline justify-end gap-1 mt-1">
-                  <span class="text-xl font-bold text-horizon-500">
-                    {{ formatCurrency(retirementData.targetIncome) }}
-                  </span>
-                  <span class="text-xs text-neutral-500">/yr</span>
-                </div>
+              <div class="w-full bg-neutral-100 rounded-full h-3">
+                <div
+                  class="h-3 rounded-full transition-all duration-500"
+                  :class="retirementIncomePercent >= 100 ? 'bg-spring-500' : 'bg-violet-500'"
+                  :style="{ width: Math.min(retirementIncomePercent, 100) + '%' }"
+                ></div>
               </div>
             </div>
 
-            <!-- Capital row: Projected and Required inline -->
-            <div class="flex justify-between border-b border-light-gray pb-4">
-              <div>
-                <span class="text-sm text-neutral-500">Projected Capital</span>
-                <div class="mt-1">
-                  <span class="text-xl font-bold text-spring-600">
-                    {{ formatCurrency(retirementData.projectedCapital) }}
-                  </span>
+            <!-- Capital progress bar -->
+            <div>
+              <div class="flex justify-between items-baseline mb-1.5">
+                <span class="text-sm font-medium text-horizon-500">Capital</span>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(retirementData.projectedCapital) }}</span>
+                  <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.capitalRequired) }}</span>
                 </div>
               </div>
-              <div class="text-right">
-                <span class="text-sm text-neutral-500">Capital Required</span>
-                <div class="mt-1">
-                  <span class="text-xl font-bold text-horizon-500">
-                    {{ formatCurrency(retirementData.capitalRequired) }}
-                  </span>
-                </div>
+              <div class="w-full bg-neutral-100 rounded-full h-3">
+                <div
+                  class="h-3 rounded-full transition-all duration-500"
+                  :class="retirementCapitalPercent >= 100 ? 'bg-spring-500' : 'bg-violet-500'"
+                  :style="{ width: Math.min(retirementCapitalPercent, 100) + '%' }"
+                ></div>
               </div>
             </div>
 
@@ -684,7 +702,7 @@
           </template>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No pension data added yet.</p>
-            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
               Add Pension
             </router-link>
           </div>
@@ -877,35 +895,6 @@
             <p class="text-xs text-neutral-500">Track your financial goals and life events</p>
           </div>
         </DashboardCard>
-
-        <!-- Suggested Goals Card (3rd column next to the goals chart) -->
-        <div v-if="currentStage && isCardVisible('goals')" class="bg-white rounded-card border border-light-gray shadow-sm p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-semibold text-horizon-500">Suggested for You</h3>
-            <button @click="navigateTo('/goals?addGoal=true')" class="text-xs font-semibold text-raspberry-500 hover:text-raspberry-600">+ Add goal</button>
-          </div>
-          <div class="space-y-2">
-            <div
-              v-for="suggestion in stageSuggestedGoals"
-              :key="suggestion.id"
-              class="flex items-start gap-3 p-3 border border-dashed border-light-gray rounded-lg cursor-pointer hover:bg-savannah-100 hover:border-savannah-400 transition-all"
-              @click="handleSuggestedGoal(suggestion)"
-            >
-              <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg class="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-horizon-500">{{ suggestion.label }}</p>
-                <p v-if="suggestion.description" class="text-xs text-neutral-500 mt-0.5">{{ suggestion.description }}</p>
-              </div>
-              <svg class="w-4 h-4 text-neutral-500 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </div>
-        </div>
 
         <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
         <LifeTimelineCard
@@ -1354,6 +1343,16 @@ export default {
       return (this.dcPensions && this.dcPensions.length > 0) ||
              (this.dbPensions && this.dbPensions.length > 0) ||
              !!this.statePension;
+    },
+
+    retirementIncomePercent() {
+      if (!this.retirementData?.targetIncome || this.retirementData.targetIncome === 0) return 0;
+      return Math.round((this.retirementData.projectedIncome / this.retirementData.targetIncome) * 100);
+    },
+
+    retirementCapitalPercent() {
+      if (!this.retirementData?.capitalRequired || this.retirementData.capitalRequired === 0) return 0;
+      return Math.round((this.retirementData.projectedCapital / this.retirementData.capitalRequired) * 100);
     },
 
     // Retired user income breakdown - calculates actual income from pension sources

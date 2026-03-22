@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-white rounded-lg border border-light-gray shadow-sm p-6">
+  <div class="rounded-lg border border-light-gray shadow-sm p-6" :class="timelineEvents.length > 0 ? 'bg-white' : 'bg-light-pink-100/50'"
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-horizon-500">Life Timeline</h3>
-      <div class="flex items-center gap-3">
+      <div v-if="timelineEvents.length > 0" class="flex items-center gap-3">
         <button
           class="text-xs font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
           @click="$router.push('/goals?view=projection')"
@@ -137,16 +137,28 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="text-center py-4">
-      <div class="mx-auto w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center mb-3">
-        <svg class="w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+    <div v-else class="py-4">
+      <!-- CTA button centred above -->
+      <div class="flex justify-center mb-4">
+        <button
+          class="bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-semibold hover:bg-raspberry-600 transition-colors"
+          @click="$router.push('/goals?addEvent=true')"
+        >
+          Add Life Event
+        </button>
       </div>
-      <h4 class="text-sm font-semibold text-horizon-500 mb-1">No Life Events Yet</h4>
-      <p class="text-xs text-neutral-500">
-        Add life events to see how they affect your financial plan
-      </p>
+      <!-- Icon + text on same line -->
+      <div class="flex items-center justify-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-horizon-500">No Life Events Yet</h4>
+          <p class="text-xs text-neutral-500">Add life events to see how they affect your financial plan</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>

@@ -10,7 +10,7 @@
       <div class="flex items-center justify-between py-[15px]">
 
         <!-- Page Title -->
-        <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500">{{ pageTitle }}</h1>
+        <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500 pl-12 sm:pl-0">{{ pageTitle }}</h1>
         <div v-else></div>
 
         <div class="flex items-center">
@@ -30,7 +30,7 @@
             </div>
             <button
               @click="showPlanModal = true"
-              class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 hover:underline underline-offset-[3px] px-3 py-1.5 rounded-md transition-all"
+              class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             >
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -46,7 +46,7 @@
           <router-link
             v-if="showMFAReminder"
             to="/settings/security"
-            class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 hover:underline underline-offset-[3px] px-3 py-1.5 rounded-md transition-all"
+            class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             title="Secure your account with two-factor authentication"
           >
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
