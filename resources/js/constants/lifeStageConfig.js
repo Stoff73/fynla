@@ -123,29 +123,6 @@ export const LIFE_STAGES = {
       },
     },
 
-    suggestedGoals: [
-      {
-        id: 'emergency-fund',
-        label: 'Build an emergency fund',
-        description: '3 months of living costs',
-      },
-      {
-        id: 'save-for-car',
-        label: 'Save for a car',
-        description: 'Set a target and timeline',
-      },
-      {
-        id: 'graduate-debt-free',
-        label: 'Graduate debt-free',
-        description: 'Beyond your student loan',
-      },
-      {
-        id: 'travel-fund',
-        label: 'Travel fund',
-        description: 'Post-graduation plans',
-      },
-    ],
-
     formFields: {
       personalInfo: {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
@@ -300,29 +277,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'house-deposit-lisa',
-        label: 'House deposit',
-        description: 'Save into a Lifetime ISA for the 25% bonus',
-      },
-      {
-        id: 'six-month-emergency-fund',
-        label: '6-month emergency fund',
-        description: 'Your financial safety net',
-      },
-      {
-        id: 'start-investing-isa',
-        label: 'Start investing',
-        description: 'Stocks & Shares ISA — tax-free growth',
-      },
-      {
-        id: 'wedding-fund',
-        label: 'Wedding fund',
-        description: 'Plan ahead with a dedicated savings goal',
-      },
-    ],
 
     formFields: {
       personalInfo: {
@@ -500,29 +454,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'pay-off-mortgage-early',
-        label: 'Pay off mortgage early',
-        description: 'Reduce the term and save thousands in interest',
-      },
-      {
-        id: 'childrens-education-fund',
-        label: 'Children\'s education fund',
-        description: 'University or private schooling costs',
-      },
-      {
-        id: 'retire-at-60',
-        label: 'Retire at 60',
-        description: 'Plan the pension contributions needed today',
-      },
-      {
-        id: 'close-protection-gaps',
-        label: 'Close protection gaps',
-        description: 'Full life, critical illness, and income protection cover',
-      },
-    ],
 
     formFields: {
       personalInfo: {
@@ -703,29 +634,6 @@ export const LIFE_STAGES = {
       },
     },
 
-    suggestedGoals: [
-      {
-        id: 'maximise-pension-contributions',
-        label: 'Maximise pension contributions',
-        description: 'Use carry-forward and salary sacrifice',
-      },
-      {
-        id: 'downsize-property',
-        label: 'Downsize property',
-        description: 'Release equity and reduce costs',
-      },
-      {
-        id: 'fund-care-costs',
-        label: 'Fund care costs',
-        description: 'Plan for later-life care needs',
-      },
-      {
-        id: 'leave-inheritance',
-        label: 'Leave an inheritance',
-        description: 'Minimise inheritance tax, maximise legacy',
-      },
-    ],
-
     formFields: {
       personalInfo: {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
@@ -891,29 +799,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'sustainable-income-target',
-        label: 'Sustainable income target',
-        description: 'Set a monthly income that your portfolio can support indefinitely',
-      },
-      {
-        id: 'gift-to-family',
-        label: 'Gift to family',
-        description: 'Tax-efficient lifetime giving to reduce your estate',
-      },
-      {
-        id: 'fund-care-needs',
-        label: 'Fund care needs',
-        description: 'Plan and ring-fence funds for later-life care',
-      },
-      {
-        id: 'legacy-plan',
-        label: 'Legacy plan',
-        description: 'Define what you want to leave and to whom',
-      },
-    ],
 
     formFields: {
       personalInfo: {

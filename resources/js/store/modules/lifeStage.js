@@ -17,11 +17,8 @@ const getters = {
   stageColour: (state, getters) => getters.stageConfig?.colour || 'horizon',
   stageTagline: (state, getters) => getters.stageConfig?.tagline || '',
 
-  sidebarPrimary: (state, getters) => getters.stageConfig?.sidebar?.primary || [],
-  sidebarExplore: (state, getters) => getters.stageConfig?.sidebar?.explore || [],
   dashboardCards: (state, getters) => getters.stageConfig?.dashboard?.cards || [],
   onboardingSteps: (state, getters) => getters.stageConfig?.onboarding?.steps || [],
-  suggestedGoals: (state, getters) => getters.stageConfig?.suggestedGoals || [],
   learningMilestone: (state, getters) => (stepId) => getters.stageConfig?.onboarding?.learningMilestones?.[stepId] || null,
   formFields: (state, getters) => (formName) => getters.stageConfig?.formFields?.[formName] || {},
 
@@ -77,50 +74,6 @@ const getters = {
     // Find first step that is not 'complete'
     return steps.find(step => completeness[step]?.status !== 'complete') || null;
   },
-
-  // Dynamic promotion: merge primary + user-data-promoted modules
-  effectiveSidebarPrimary: (state, getters, rootState, rootGetters) => {
-    const primary = [...(getters.sidebarPrimary || [])];
-    const explore = getters.sidebarExplore || [];
-    const flags = getters.userDataFlags;
-
-    const moduleToFlag = {
-      'property': 'properties',
-      'protection': 'protection',
-      'investments': 'investments',
-      'retirement': 'pensions',
-      'will': 'will',
-      'estate': 'will',
-      'trusts': 'trusts',
-      'business': 'business',
-      'savings': 'savings',
-    };
-
-    explore.forEach(moduleId => {
-      const flagKey = moduleToFlag[moduleId];
-      if (flagKey && flags[flagKey] && !primary.includes(moduleId)) {
-        primary.push(moduleId);
-      }
-    });
-
-    return primary;
-  },
-
-  effectiveSidebarExplore: (state, getters) => {
-    const effectivePrimary = getters.effectiveSidebarPrimary;
-    return (getters.sidebarExplore || []).filter(id => !effectivePrimary.includes(id));
-  },
-
-  userDataFlags: (state, getters, rootState) => ({
-    properties: (rootState.netWorth?.properties?.length || 0) > 0,
-    savings: (rootState.savings?.accounts?.length || 0) > 0,
-    investments: (rootState.investment?.accounts?.length || 0) > 0,
-    pensions: (rootState.retirement?.pensions?.length || 0) > 0,
-    protection: (rootState.protection?.policies?.length || 0) > 0,
-    will: rootState.estate?.will !== null && rootState.estate?.will !== undefined,
-    trusts: (rootState.estate?.trusts?.length || 0) > 0,
-    business: (rootState.netWorth?.businessInterests?.length || 0) > 0,
-  }),
 
   isFieldVisible: (state, getters) => (formName, fieldName, context) => {
     if (context === 'standalone') return true;

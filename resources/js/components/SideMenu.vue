@@ -194,37 +194,6 @@ import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
-// Map sidebar item IDs (from lifeStageConfig) to route paths, icons, and labels.
-// Icon names must match SideMenuIcon.vue template names exactly.
-const SIDEBAR_ITEMS = {
-  'dashboard':     { icon: 'home',            label: 'Dashboard',          to: '/dashboard' },
-  'bank-accounts': { icon: 'banknotes',       label: 'Bank Accounts',      to: '/net-worth/cash' },
-  'income':        { icon: 'currency-pound',   label: 'Income',             to: { path: '/valuable-info', query: { section: 'income' } } },
-  'expenditure':   { icon: 'arrow-up-tray',    label: 'Expenditure',        to: { path: '/valuable-info', query: { section: 'expenditure' } } },
-  'savings':       { icon: 'banknotes',        label: 'Savings',            to: '/net-worth/cash' },
-  'investments':   { icon: 'trending-up',      label: 'Investments',        to: '/net-worth/investments' },
-  'retirement':    { icon: 'clock',            label: 'Retirement',         to: '/net-worth/retirement' },
-  'property':      { icon: 'home-modern',      label: 'Property',           to: '/net-worth/property' },
-  'protection':    { icon: 'shield-check',     label: 'Protection',         to: '/protection' },
-  'will':          { icon: 'document-check',   label: 'Will',               to: '/estate/will-builder' },
-  'estate':        { icon: 'document-text',    label: 'Estate Planning',    to: '/estate' },
-  'goals':         { icon: 'flag',             label: 'Goals',              to: '/goals' },
-  'risk-profile':  { icon: 'chart-pie',        label: 'Risk Profile',       to: '/risk-profile' },
-  'plans':         { icon: 'clipboard-list',   label: 'Plans',              to: '/plans' },
-  'business':      { icon: 'briefcase',        label: 'Business',           to: '/net-worth/business' },
-  'trusts':        { icon: 'building-library', label: 'Trusts',             to: '/trusts' },
-  'liabilities':     { icon: 'credit-card',      label: 'Liabilities',        to: '/net-worth/liabilities' },
-  'chattels':        { icon: 'cube',             label: 'Personal Valuables', to: '/net-worth/chattels' },
-  'letter':          { icon: 'envelope',         label: 'Expression of Wishes', to: { path: '/valuable-info', query: { section: 'letter' } } },
-  'power-of-attorney': { icon: 'key',            label: 'Power of Attorney',  to: '/estate/power-of-attorney' },
-  'holistic-plan':   { icon: 'puzzle-piece',     label: 'Holistic Plan',      to: '/holistic-plan' },
-  'actions':         { icon: 'lightning-bolt',    label: 'Actions',            to: '/actions' },
-  'life-events':     { icon: 'calendar',         label: 'Life Events',        to: { path: '/goals', query: { tab: 'events' } } },
-  'journeys':        { icon: 'map',              label: 'Journeys',           to: '/planning/journeys' },
-  'what-if':         { icon: 'beaker',           label: 'What If Scenarios',  to: '/planning/what-if' },
-  'net-worth':       { icon: 'chart-bar',        label: 'Net Worth',          to: '/net-worth/wealth-summary' },
-};
-
 export default {
   name: 'SideMenu',
 
@@ -255,7 +224,6 @@ export default {
     const logoUrl = '/images/logos/LogoHiResFynlaDark.png';
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
-    const exploreExpanded = ref(false);
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isAdvisor = computed(() => store.getters['auth/isAdvisor']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
@@ -272,7 +240,6 @@ export default {
     const currentStage = computed(() => store.getters['lifeStage/currentStage']);
     const stageLabel = computed(() => store.getters['lifeStage/stageLabel']);
     const stageColour = computed(() => store.getters['lifeStage/stageColour']);
-    const stageConfig = computed(() => store.getters['lifeStage/stageConfig']);
     const progressPercentage = computed(() => store.getters['lifeStage/progressPercentage']);
 
     // Colour class mappings — Tailwind JIT needs full class names
@@ -395,91 +362,6 @@ export default {
     const isGoalsEventsActive = computed(() => {
       return currentPath.value.startsWith('/goals') && route.query.tab === 'events';
     });
-
-    // Active state for stage-driven sidebar items (maps item ID to route check)
-    const isItemActive = (itemId) => {
-      switch (itemId) {
-        case 'dashboard':     return isExactActive('/dashboard');
-        case 'bank-accounts': return isActive('/net-worth/cash');
-        case 'savings':       return isActive('/net-worth/cash');
-        case 'income':        return isValuableInfoSection('income');
-        case 'expenditure':   return isValuableInfoSection('expenditure');
-        case 'investments':   return isInvestmentsActive.value;
-        case 'retirement':    return isActive('/net-worth/retirement');
-        case 'property':      return isActive('/net-worth/property');
-        case 'protection':    return isActive('/protection');
-        case 'will':          return isWillBuilderActive.value;
-        case 'estate':        return isEstateActive.value;
-        case 'goals':         return isGoalsOverviewActive.value;
-        case 'risk-profile':  return isActive('/risk-profile');
-        case 'plans':         return isActive('/plans');
-        case 'business':      return isActive('/net-worth/business');
-        case 'trusts':        return isActive('/trusts');
-        case 'liabilities':   return isLiabilitiesActive.value;
-        case 'chattels':      return isActive('/net-worth/chattels');
-        default:              return false;
-      }
-    };
-
-    // ---------------------------------------------------------------
-    // Stage-driven visibility: when a stage is set, only show items
-    // that are in the primary or explore lists. When no stage, show all.
-    // ---------------------------------------------------------------
-    const allStageItems = computed(() => {
-      if (!currentStage.value) return null; // null = show everything
-      const primary = store.getters['lifeStage/effectiveSidebarPrimary'] || [];
-      const explore = store.getters['lifeStage/effectiveSidebarExplore'] || [];
-      return new Set([...primary, ...explore]);
-    });
-
-    const primaryItemSet = computed(() => {
-      if (!currentStage.value) return null;
-      return new Set(store.getters['lifeStage/effectiveSidebarPrimary'] || []);
-    });
-
-    const exploreItemSet = computed(() => {
-      if (!currentStage.value) return null;
-      return new Set(store.getters['lifeStage/effectiveSidebarExplore'] || []);
-    });
-
-    const isStageItemVisible = (itemId) => {
-      // No stage set = show everything (legacy mode)
-      if (!allStageItems.value) return true;
-      // Only show items that are in the stage's primary or explore list
-      return allStageItems.value.has(itemId);
-    };
-
-    // In stage mode: only show PRIMARY items in the main sections.
-    // Explore items go in the separate "Explore" section below.
-    const isPrimaryItem = (itemId) => {
-      if (!primaryItemSet.value) return true; // no stage = show all
-      return primaryItemSet.value.has(itemId);
-    };
-
-    // Items that belong in the "Explore" section
-    const isExploreItem = (itemId) => {
-      if (!exploreItemSet.value) return false; // no stage = no explore section
-      return exploreItemSet.value.has(itemId);
-    };
-
-    // The resolved explore items for the Explore section template
-    const resolvedExploreItems = computed(() => {
-      if (!exploreItemSet.value) return [];
-      const ids = store.getters['lifeStage/effectiveSidebarExplore'] || [];
-      return ids.map(id => {
-        const config = SIDEBAR_ITEMS[id];
-        if (!config) return null;
-        return { id, ...config };
-      }).filter(Boolean);
-    });
-
-    const hasExploreItems = computed(() => resolvedExploreItems.value.length > 0);
-
-    // Section visibility — hide entire section heading when no PRIMARY items are visible
-    const isSectionVisible = (sectionItemIds) => {
-      if (!primaryItemSet.value) return true; // no stage = show all sections
-      return sectionItemIds.some(id => primaryItemSet.value.has(id));
-    };
 
     // ---------------------------------------------------------------
     // Section expand/collapse state
@@ -645,15 +527,6 @@ export default {
       stageLabelColourClass,
       progressBarColourClass,
       progressRingColourClass,
-      exploreExpanded,
-      isItemActive,
-      isStageItemVisible,
-      isPrimaryItem,
-      isExploreItem,
-      resolvedExploreItems,
-      hasExploreItems,
-      isSectionVisible,
-
       // Active state
       isExactActive,
       isActive,

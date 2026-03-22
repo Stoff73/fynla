@@ -820,7 +820,7 @@
 
         <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
 
-        <!-- Stage-curated: Goals projection chart (spans 2 columns) + Suggested goals card (1 column) -->
+        <!-- Goals projection chart (spans 2 columns) -->
         <DashboardCard
           v-if="currentStage && isCardVisible('goals')"
           title="Goals & Life Events"
@@ -868,7 +868,6 @@ import { getRelativeTime } from '@/utils/dateFormatter';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
-import GoalsCard from '@/components/Dashboard/GoalsCard.vue';
 import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 export default {
@@ -882,7 +881,6 @@ export default {
     ProfileCompletionCards,
     EmptyDashboard,
     JourneyProgressHero,
-    GoalsCard,
     LifeTimelineCard,
   },
 
