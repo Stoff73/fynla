@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**24 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age.
+**27 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date.
 
 ### What Changed
 
@@ -203,6 +203,8 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Useful Resources card styled white with shadow to match sidebar cards
 - Family member form: red asterisks on required fields (Relationship, Email, First Name, Last Name)
 - DC pension form: Planned Access Age field for SIPP/personal/stakeholder pensions (min 55, defaults from user profile retirement age, stored per-pension for individual accumulation/decumulation calcs)
+- Onboarding: scroll to top on step and tab changes (mobile stacked layout fix)
+- Property form: leasehold now asks for expiry date, calculates and displays remaining years automatically (removed manual remaining years input)
 
 ### Database Migration
 ```bash
@@ -233,6 +235,7 @@ resources/js/components/Savings/SaveAccountModal.vue (hide NS&I irrelevant field
 resources/js/components/Onboarding/UsefulResources.vue (white bg, moved to sidebar)
 resources/js/components/UserProfile/FamilyMemberFormModal.vue (required field asterisks)
 resources/js/components/Retirement/DCPensionForm.vue (pension access age field)
+resources/js/components/NetWorth/Property/PropertyForm.vue (leasehold expiry date, auto-calc remaining years)
 + 12 onboarding step files (removed inline UsefulResources)
 ```
 
