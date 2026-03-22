@@ -470,7 +470,9 @@ export default {
     },
 
     profileRetirementAge() {
-      return this.$store.state.userProfile?.profile?.target_retirement_age || null;
+      return this.$store.state.userProfile?.incomeOccupation?.target_retirement_age
+        || this.$store.getters['auth/user']?.target_retirement_age
+        || null;
     },
 
     calculatedEmployeeContribution() {
@@ -552,6 +554,11 @@ export default {
   async mounted() {
     // Load risk profile when component mounts (auto-calculated if none exists)
     await this.loadRiskProfile();
+
+    // Ensure user profile is loaded for retirement age default
+    if (!this.$store.state.userProfile?.incomeOccupation) {
+      await this.$store.dispatch('userProfile/fetchProfile').catch(() => {});
+    }
 
     // Default retirement age from profile for new personal pensions
     if (!this.isEdit && !this.formData.retirement_age && this.profileRetirementAge) {
