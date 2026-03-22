@@ -1,10 +1,30 @@
 <template>
-  <div class="bg-light-pink-100 rounded-xl p-6">
+  <div class="bg-light-pink-100 rounded-xl p-6 relative">
+    <!-- Minimise/Expand toggle -->
+    <button
+      @click="toggleCollapsed"
+      class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-md text-neutral-400 hover:text-horizon-500 hover:bg-white/50 transition-colors"
+      :title="heroCollapsed ? 'Expand' : 'Minimise'"
+    >
+      <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': heroCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+      </svg>
+    </button>
+
+    <!-- Collapsed: slim bar with greeting + percentage -->
+    <div v-if="heroCollapsed" class="flex items-center gap-3 pr-8">
+      <h2 class="text-lg font-bold text-horizon-500">{{ greeting }}, {{ firstName }}</h2>
+      <span class="text-sm font-extrabold" :class="stageTextClass">{{ progressPercentage }}%</span>
+      <span class="text-sm text-neutral-500">{{ stageLabel }}</span>
+    </div>
+
+    <!-- Expanded: full hero -->
+    <template v-else>
     <!-- Main hero row: progress ring + greeting + step info + CTA -->
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 pr-6">
       <!-- Left: Circular progress ring -->
-      <div class="flex-shrink-0 relative w-24 h-24">
-        <svg viewBox="0 0 96 96" class="w-24 h-24 -rotate-90">
+      <div class="flex-shrink-0 relative w-[101px] h-[101px]">
+        <svg viewBox="0 0 96 96" class="w-[101px] h-[101px] -rotate-90">
           <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
           <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
             :class="progressRingClass"
@@ -19,7 +39,7 @@
 
       <!-- Centre: Greeting + stage label + next step -->
       <div class="flex-1 min-w-0">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 truncate">{{ greeting }}, {{ firstName }}</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 -mt-[4px]">{{ greeting }}, {{ firstName }}</h2>
         <p class="text-sm text-neutral-500 mt-1">
           <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
           <span class="mx-1.5">&middot;</span>
@@ -47,6 +67,7 @@
         Continue Journey
       </button>
     </div>
+    </template>
 
     <!-- Journey complete message (all steps done) -->
     <div
@@ -74,9 +95,16 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import storage from '@/utils/storage';
 
 export default {
   name: 'JourneyProgressHero',
+
+  data() {
+    return {
+      heroCollapsed: storage.get('heroCollapsed') === 'true',
+    };
+  },
 
   computed: {
     ...mapGetters('auth', { currentUser: 'currentUser' }),
@@ -151,25 +179,11 @@ export default {
     },
 
     progressRingClass() {
-      const map = {
-        violet: 'stroke-violet-500',
-        spring: 'stroke-spring-500',
-        raspberry: 'stroke-raspberry-500',
-        'light-blue': 'stroke-light-blue-500',
-        horizon: 'stroke-horizon-500',
-      };
-      return map[this.stageColour] || 'stroke-raspberry-500';
+      return 'stroke-raspberry-500';
     },
 
     stageTextClass() {
-      const map = {
-        violet: 'text-violet-500',
-        spring: 'text-spring-500',
-        raspberry: 'text-raspberry-500',
-        'light-blue': 'text-light-blue-500',
-        horizon: 'text-horizon-500',
-      };
-      return map[this.stageColour] || 'text-raspberry-500';
+      return 'text-raspberry-500';
     },
 
     stageBgClass() {
@@ -189,6 +203,11 @@ export default {
       if (this.nextStep) {
         this.$router.push({ path: '/onboarding', query: { step: this.nextStep } });
       }
+    },
+
+    toggleCollapsed() {
+      this.heroCollapsed = !this.heroCollapsed;
+      storage.set('heroCollapsed', this.heroCollapsed);
     },
   },
 };

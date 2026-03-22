@@ -251,26 +251,22 @@
           </div>
 
           <!-- Empty state when no assets or liabilities -->
-          <div v-else class="space-y-4">
-            <div class="border-b border-light-gray pb-4">
-              <span class="text-xl font-bold text-horizon-400">
-                {{ formatCurrency(0) }}
-              </span>
-            </div>
-            <p class="text-sm text-neutral-500">
-              Add your assets and liabilities to see your net worth here.
-            </p>
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">No assets or liabilities added yet.</p>
+            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Assets &amp; Liabilities
+            </router-link>
           </div>
         </DashboardCard>
 
         <!-- Protection Card — maps to 'protection' -->
         <DashboardCard
-          v-if="hasProtectionData && isCardVisible('protection')"
+          v-if="isCardVisible('protection')"
           title="Protection"
           :loading="loading.protection"
           @click="navigateTo('/protection')"
         >
-          <div class="space-y-4">
+          <div v-if="hasProtectionData" class="space-y-4">
             <div class="border-b border-light-gray pb-4">
               <span class="text-sm text-neutral-500">Total Coverage</span>
               <div class="mt-1">
@@ -313,20 +309,35 @@
               </div>
             </div>
           </div>
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">No protection policies added yet.</p>
+            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Protection Policy
+            </router-link>
+          </div>
         </DashboardCard>
 
         <!-- Cash & Savings Card — maps to 'cash-savings' / 'savings' -->
         <DashboardCard
-          v-if="hasSavingsData && (isCardVisible('cash-savings') || isCardVisible('savings'))"
+          v-if="isCardVisible('cash-savings') || isCardVisible('savings')"
           title="Cash & Savings"
           :loading="loading.taxAllowances"
           @click="navigateTo('/net-worth/cash')"
         >
-          <div class="space-y-4">
+          <div v-if="hasSavingsData" class="space-y-4">
             <div class="border-b border-light-gray pb-4">
-              <span class="text-sm text-neutral-500">Total Savings</span>
-              <div class="mt-1">
-                <span class="text-xl font-bold text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl bg-spring-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-neutral-500">Total Savings</span>
+                  <div class="mt-0.5">
+                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -361,20 +372,35 @@
               </div>
             </div>
           </div>
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">No savings accounts added yet.</p>
+            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Savings Account
+            </router-link>
+          </div>
         </DashboardCard>
 
         <!-- Investment Card — maps to 'investments' -->
         <DashboardCard
-          v-if="hasInvestmentData && isCardVisible('investments')"
+          v-if="isCardVisible('investments')"
           title="Investments"
           :loading="loading.investment"
           @click="navigateTo('/net-worth/investments')"
         >
-          <div class="space-y-4">
+          <div v-if="hasInvestmentData" class="space-y-4">
             <div class="border-b border-light-gray pb-4">
-              <span class="text-sm text-neutral-500">Portfolio Value</span>
-              <div class="mt-1">
-                <span class="text-xl font-bold text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-8 h-8 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-neutral-500">Portfolio Value</span>
+                  <div class="mt-0.5">
+                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="flex justify-between text-sm">
@@ -409,11 +435,17 @@
               </div>
             </div>
           </div>
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">No investment accounts added yet.</p>
+            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Investment Account
+            </router-link>
+          </div>
         </DashboardCard>
 
         <!-- Estate Planning Card — maps to 'estate' -->
         <DashboardCard
-          v-if="hasEstateData && isCardVisible('estate')"
+          v-if="isCardVisible('estate')"
           title="Estate Planning"
           :loading="loading.estate"
           @click="navigateTo('/estate')"
@@ -461,18 +493,13 @@
           </div>
 
           <!-- Empty state when no estate data -->
-          <div v-else class="space-y-4">
-            <div class="border-b border-light-gray pb-4">
-              <span class="text-sm text-neutral-500">Taxable Estate</span>
-              <div class="mt-1">
-                <span class="text-xl font-bold text-horizon-400">
-                  {{ formatCurrency(0) }}
-                </span>
-              </div>
-            </div>
-            <p class="text-sm text-neutral-500">
-              Add your assets and liabilities to see your estate value and inheritance tax position.
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">
+              No estate details added yet.
             </p>
+            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Estate Details
+            </router-link>
           </div>
 
           <!-- Will question when not yet answered -->
@@ -505,11 +532,12 @@
 
         <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
         <DashboardCard
-          v-if="hasRetirementData && (userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
+          v-if="(userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           @click="navigateTo('/net-worth/retirement')"
         >
+          <template v-if="hasRetirementData">
           <!-- RETIRED USER: Show income breakdown -->
           <div v-if="isRetired" class="space-y-3">
             <!-- Income Sources Breakdown -->
@@ -647,6 +675,13 @@
                 </div>
               </div>
             </div>
+          </div>
+          </template>
+          <div v-else class="text-center py-6">
+            <p class="text-sm text-neutral-500 mb-4">No pension data added yet.</p>
+            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-light-pink-100 text-neutral-500 text-sm font-medium rounded-button hover:bg-light-pink-200 transition-colors" @click.stop>
+              Add Pension
+            </router-link>
           </div>
         </DashboardCard>
 
@@ -1190,7 +1225,7 @@ export default {
                 },
                 value: {
                   show: true,
-                  fontSize: '16px',
+                  fontSize: '20px',
                   fontWeight: 700,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   offsetY: 24,
@@ -1200,7 +1235,7 @@ export default {
                   show: true,
                   showAlways: true,
                   label: '',
-                  fontSize: '16px',
+                  fontSize: '20px',
                   fontWeight: 700,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   formatter: () => vm.formatCurrency(netWorth),

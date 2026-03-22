@@ -10,7 +10,7 @@
       <div class="flex items-center justify-between py-[15px]">
 
         <!-- Page Title -->
-        <h1 v-if="pageTitle" class="text-2xl font-semibold text-horizon-500">{{ pageTitle }}</h1>
+        <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500">{{ pageTitle }}</h1>
         <div v-else></div>
 
         <div class="flex items-center">
@@ -21,29 +21,35 @@
               <p class="text-xs font-medium text-horizon-500">
                 Your {{ trialPlanName }} trial ends in {{ trialData.days_remaining }} {{ trialData.days_remaining === 1 ? 'day' : 'days' }}
               </p>
-              <div class="mt-1 w-36 bg-white/50 rounded-full h-1">
+              <div class="mt-1 w-full bg-white/50 rounded-full h-1">
                 <div
                   class="bg-violet-500 h-1 rounded-full transition-all duration-500"
-                  :style="{ width: trialData.progress + '%' }"
+                  :style="{ width: (100 - trialData.progress) + '%' }"
                 ></div>
               </div>
             </div>
             <button
               @click="showPlanModal = true"
-              class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-violet-500 hover:bg-violet-600 transition-colors"
+              class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 hover:underline underline-offset-[3px] px-3 py-1.5 rounded-md transition-all"
             >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
               Upgrade Now
             </button>
           </div>
+
+          <!-- Pipe separator -->
+          <span v-if="(trialData && trialData.status === 'trialing') && showMFAReminder" class="text-horizon-500 text-lg font-light">|</span>
 
           <!-- 2FA Reminder -->
           <router-link
             v-if="showMFAReminder"
             to="/settings/security"
-            class="inline-flex items-center px-3 py-2 border border-light-blue-500 text-body-sm font-medium rounded-button text-white bg-light-blue-500 hover:bg-light-blue-600 transition-colors"
+            class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 hover:underline underline-offset-[3px] px-3 py-1.5 rounded-md transition-all"
             title="Secure your account with two-factor authentication"
           >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             Enable 2FA
@@ -76,7 +82,7 @@
           <button
             v-if="shouldShowInfoGuide"
             @click="toggleInfoGuide"
-            class="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-raspberry-600 text-white hover:bg-raspberry-700 transition-colors"
+            class="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-horizon-500 text-white hover:bg-horizon-600 transition-colors"
             :class="{ 'ring-2 ring-violet-200': infoGuideOpen }"
             :title="infoGuideOpen ? 'Close guide' : 'What data do I need?'"
           >
@@ -256,7 +262,7 @@ export default {
 
     const trialPlanName = computed(() => {
       if (!trialData.value) return '';
-      return trialData.value.plan.charAt(0).toUpperCase() + trialData.value.plan.slice(1);
+      return trialData.value.plan;
     });
 
     const fetchTrialStatus = async () => {

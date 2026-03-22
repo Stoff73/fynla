@@ -55,19 +55,19 @@
     <!-- Collapsed chat strip -->
     <aside
       v-if="showDockedChat && chatCollapsed"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-10 bg-light-blue-100 border-l border-light-gray z-30 items-center pt-3 gap-3 transition-all duration-300"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-10 bg-[#EEEEEE] border-l border-light-gray z-30 items-center pt-3 gap-3 transition-all duration-300"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
-      <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
       <button
         @click="toggleChat"
-        class="w-7 h-7 flex items-center justify-center rounded-md bg-white/50 text-horizon-500 hover:bg-white transition-colors"
+        class="w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
         title="Expand Fyn chat"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
         </svg>
       </button>
+      <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
     </aside>
 
     <!-- Information Guide panel (button moved to Navbar) -->
@@ -119,7 +119,7 @@ export default {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
-      chatCollapsed: storage.get('fynChatCollapsed') === 'true',
+      chatCollapsed: storage.get('fynChatCollapsed') === null ? false : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
     };
@@ -170,10 +170,11 @@ export default {
 
     // Track header height + footer visibility for docked chat positioning
     this._updateChatOffsets = () => {
-      // Header: measure actual height of navbar + banners
+      // Header: use visible portion of header (shrinks to 0 as header scrolls out)
       const header = this.$refs.appHeader;
       if (header) {
-        this.headerOffset = header.offsetHeight;
+        const headerRect = header.getBoundingClientRect();
+        this.headerOffset = Math.max(0, headerRect.bottom);
       }
 
       // Footer: adjust bottom when footer scrolls into view

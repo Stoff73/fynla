@@ -26,7 +26,7 @@
       ]"
     >
       <!-- Logo -->
-      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'pl-[13px] pr-4'">
+      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'pl-[8px] pr-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
           <!-- Collapsed: progress ring around favicon (when stage is set) -->
           <div v-if="effectiveCollapsed && currentStage" class="relative" :title="`Journey: ${progressPercentage}% complete`">
@@ -188,6 +188,22 @@
           <SideMenuItem icon="shield-exclamation" label="Admin Panel" to="/admin" :collapsed="effectiveCollapsed" :active="isActive('/admin')" @navigate="closeMobile" />
           <SideMenuItem icon="calculator" label="UK Taxes" to="/uk-taxes" :collapsed="effectiveCollapsed" :active="isActive('/uk-taxes')" @navigate="closeMobile" />
         </SideMenuSection>
+      </div>
+
+      <!-- Upgrade Now link -->
+      <div class="border-t border-light-gray p-2 flex-shrink-0">
+        <router-link
+          to="/pricing"
+          class="flex items-center w-full rounded-md px-3 py-2.5 text-horizon-500 hover:bg-savannah-100 transition-colors"
+          :class="effectiveCollapsed ? 'justify-center' : ''"
+          :title="effectiveCollapsed ? 'Upgrade Now' : ''"
+          @click="closeMobile"
+        >
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Upgrade Now</span>
+        </router-link>
       </div>
 
       <!-- Logout button -->

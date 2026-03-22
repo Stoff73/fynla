@@ -260,10 +260,10 @@
     <!-- Docked mode: full-height inline panel, always visible -->
     <div
       v-if="docked"
-      class="flex flex-col bg-white w-full h-full"
+      class="flex flex-col bg-eggshell-500 w-full h-full"
     >
       <!-- Docked Header -->
-      <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray">
+      <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray bg-[#EEEEEE]">
         <div class="flex items-center gap-2">
           <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
           <h3 class="text-sm font-bold text-horizon-500">Fyn</h3>
@@ -348,35 +348,70 @@
         </button>
       </div>
 
-      <!-- Docked Input -->
-      <div class="flex-shrink-0 border-t border-light-gray p-4">
-        <div class="flex items-end gap-2">
-          <textarea
-            ref="dockedInputField"
-            v-model="inputMessage"
-            @keydown.enter.exact.prevent="send"
-            placeholder="Ask Fyn anything..."
-            rows="1"
-            class="flex-1 min-w-0 resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
-                   focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
-                   disabled:bg-savannah-100 disabled:cursor-not-allowed"
-            :class="{ 'opacity-60': streaming }"
-          ></textarea>
-          <button
-            @click="send"
-            :disabled="!canSend"
-            class="flex-shrink-0 p-2.5 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
-                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                   flex items-center justify-center"
+      <!-- Suggestions panel (collapsible, above input) -->
+      <div v-if="suggestedPrompts.length > 0" class="flex-shrink-0 border-t border-light-gray">
+        <button
+          @click="suggestionsCollapsed = !suggestionsCollapsed"
+          class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:bg-savannah-100 transition-colors"
+        >
+          Suggestions
+          <svg
+            class="w-3 h-3 transition-transform duration-200"
+            :class="{ 'rotate-180': !suggestionsCollapsed }"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-            </svg>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div v-if="!suggestionsCollapsed" class="px-4 pb-3 space-y-1.5">
+          <button
+            v-for="prompt in suggestedPrompts"
+            :key="prompt"
+            @click="sendSuggested(prompt)"
+            class="w-full text-left px-3 py-2 text-sm bg-savannah-100 hover:bg-savannah-200 border border-light-gray rounded-lg transition-colors text-neutral-500"
+          >
+            {{ prompt }}
           </button>
         </div>
-        <p class="text-xs text-horizon-400 mt-1.5">
-          Not regulated financial advice. Press Enter to send.
-        </p>
+      </div>
+
+      <!-- Docked Input -->
+      <div data-docked-input class="flex-shrink-0 border-t border-light-gray" :style="dockedInputHeight ? { height: dockedInputHeight + 'px' } : {}">
+        <!-- Drag handle -->
+        <div
+          class="flex items-center justify-center h-3 cursor-row-resize group"
+          @mousedown.prevent="startInputResize"
+        >
+          <div class="w-10 h-1 rounded-full bg-neutral-300 group-hover:bg-neutral-400 transition-colors"></div>
+        </div>
+        <div class="flex flex-col h-[calc(100%-12px)] px-4 pb-4">
+          <div class="flex items-end gap-2 flex-1 min-h-0">
+            <textarea
+              ref="dockedInputField"
+              v-model="inputMessage"
+              @keydown.enter.exact.prevent="send"
+              placeholder="Ask Fyn anything..."
+              class="flex-1 min-w-0 h-full resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
+                     focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                     disabled:bg-savannah-100 disabled:cursor-not-allowed"
+              :class="{ 'opacity-60': streaming }"
+            ></textarea>
+            <button
+              @click="send"
+              :disabled="!canSend"
+              class="flex-shrink-0 p-2.5 bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700
+                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                     flex items-center justify-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-xs text-horizon-400 mt-1.5 flex-shrink-0">
+            Not regulated financial advice. Press Enter to send.
+          </p>
+        </div>
       </div>
     </div>
   </component>
@@ -408,6 +443,12 @@ export default {
             inputMessage: '',
             windowWidth: window.innerWidth,
             Teleport: 'Teleport',
+            dockedInputHeight: 0,
+            _defaultInputHeight: 0,
+            suggestionsCollapsed: true,
+            _resizing: false,
+            _resizeStartY: 0,
+            _resizeStartHeight: 0,
         };
     },
 
@@ -502,12 +543,28 @@ export default {
         if (this.docked) {
             this.$store.dispatch('aiChat/open');
             this.onOpen();
+
+            // Measure natural input height after render to use as default & minimum
+            this.$nextTick(() => {
+                const inputContainer = this.$el?.querySelector('[data-docked-input]');
+                if (inputContainer) {
+                    const naturalHeight = inputContainer.offsetHeight;
+                    this._defaultInputHeight = naturalHeight;
+                    this.dockedInputHeight = naturalHeight;
+                }
+            });
         }
     },
 
     beforeUnmount() {
         if (this.handleResize) {
             window.removeEventListener('resize', this.handleResize);
+        }
+        if (this._onResizeMove) {
+            document.removeEventListener('mousemove', this._onResizeMove);
+        }
+        if (this._onResizeEnd) {
+            document.removeEventListener('mouseup', this._onResizeEnd);
         }
     },
 
@@ -546,6 +603,29 @@ export default {
             'sendMessage',
             'abortStreaming',
         ]),
+
+        startInputResize(e) {
+            this._resizing = true;
+            this._resizeStartY = e.clientY;
+            this._resizeStartHeight = this.dockedInputHeight;
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            this._onResizeMove = (ev) => {
+                if (!this._resizing) return;
+                const delta = this._resizeStartY - ev.clientY;
+                const newHeight = Math.max(this._defaultInputHeight, Math.min(400, this._resizeStartHeight + delta));
+                this.dockedInputHeight = newHeight;
+            };
+            this._onResizeEnd = () => {
+                this._resizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', this._onResizeMove);
+                document.removeEventListener('mouseup', this._onResizeEnd);
+            };
+            document.addEventListener('mousemove', this._onResizeMove);
+            document.addEventListener('mouseup', this._onResizeEnd);
+        },
 
         async onOpen() {
             analyticsService.trackChatOpened();

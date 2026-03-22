@@ -1,6 +1,6 @@
 <template>
   <div class="col-span-full">
-    <div class="bg-white rounded-lg border border-light-gray p-8 text-center max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg border border-light-gray p-8 text-center">
       <!-- Illustration area -->
       <div class="flex items-center justify-center gap-4 mb-6">
         <!-- Chart icon -->
@@ -18,7 +18,7 @@
       </div>
 
       <!-- Heading -->
-      <h2 class="text-xl font-bold text-horizon-500 mb-2">Welcome to Fynla</h2>
+      <h2 class="text-2xl font-bold text-horizon-500 mb-2">Welcome to Fynla</h2>
       <p class="text-sm text-neutral-500 mb-6">
         Let's get started with your financial plan
       </p>
@@ -28,7 +28,7 @@
         <router-link
           to="/onboarding/welcome"
           v-preview-disabled
-          class="inline-flex items-center px-6 py-3 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
+          class="inline-flex items-center px-6 py-3 bg-spring-500 text-white text-sm font-medium rounded-button hover:bg-spring-600 transition-colors"
         >
           Start a Planning Journey
           <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@
         <router-link
           to="/goals"
           v-preview-disabled
-          class="inline-flex items-center px-6 py-3 border border-raspberry-500 text-raspberry-500 text-sm font-medium rounded-button hover:bg-raspberry-50 transition-colors"
+          class="inline-flex items-center px-6 py-3 bg-light-pink-100 text-raspberry-500 text-sm font-medium rounded-button border border-light-pink-100 hover:bg-light-pink-200 transition-colors"
         >
           Set a Financial Goal
         </router-link>
