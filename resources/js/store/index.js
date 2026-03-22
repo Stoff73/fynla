@@ -31,6 +31,7 @@ import mobileNotifications from './modules/mobileNotifications';
 import advisor from './modules/advisor';
 import lifeStage from './modules/lifeStage';
 import completeness from './modules/completeness';
+import subNav from './modules/subNav';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -85,6 +86,7 @@ const store = createStore({
     advisor,
     lifeStage,
     completeness,
+    subNav,
   },
   plugins: [
     createPersistedState({
