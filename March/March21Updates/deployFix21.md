@@ -176,15 +176,24 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**6 commits.** Browser verified: fill personal info → dashboard shows 69% / 3 of 7 complete → Continue Journey goes to Family (step 2) not About You → clickable step indicators jump between steps → all data retained.
+**13 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors.
 
 ### What Changed
+
+**Onboarding Journey:**
 - Replaced legacy `onboarding_focus_area` with `life_stage` as single source of truth
 - All step progress saves, skip, dashboard skip, step queries now use `life_stage`
 - Removed "Focus area not set" errors for life stage mode users
 - Changed `focus_area` DB column from enum to varchar (enum didn't include life stage values)
 - Dashboard refreshes journey completeness on every mount (was stale after onboarding/Fyn data entry)
 - Clickable step indicators in onboarding progress bar — users can jump to any step
+
+**Will Planning:**
+- Multiple executors support — "+ Add executor" button with remove option in both onboarding and estate will views
+- Stored as comma-separated string in existing `executor_name` column
+- Will sidebar link now shows WillPlanning overview when user has a will, Will Builder when they don't
+- Estate data API now returns `will_info` so dashboard recognises existing wills
+- "Build Your Will" banner hidden when user already has a will record
 
 ### Database Migration
 ```bash
@@ -198,12 +207,17 @@ app/Services/Onboarding/OnboardingService.php
 app/Http/Controllers/Api/OnboardingController.php
 app/Services/LifeStage/LifeStageService.php
 app/Services/Onboarding/JourneyStateService.php
+app/Http/Controllers/Api/EstateController.php (will_info in estate data response)
 ```
 
 ### Frontend Files Modified
 ```
 resources/js/views/Dashboard.vue (refreshCompleteness on mount)
 resources/js/components/Onboarding/OnboardingWizard.vue (clickable step indicators)
+resources/js/components/Onboarding/steps/WillInfoStep.vue (multiple executors)
+resources/js/components/Estate/WillPlanning.vue (multiple executors)
+resources/js/views/Estate/WillBuilderView.vue (show WillPlanning when user has will)
+resources/js/store/modules/estate.js (read will_info from estate data)
 ```
 
 ---

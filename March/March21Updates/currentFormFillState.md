@@ -2,8 +2,8 @@
 
 **Date:** 22 March 2026
 **AI Form Fill Branch:** `aiFormFill` — MERGED to main (PR #156, 24 commits)
-**Onboarding Branch:** `onboardingUpdates` (6 commits, in progress)
-**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: focus_area legacy removed, journey resumption working, clickable step indicators added.
+**Onboarding Branch:** `onboardingUpdates` (13 commits, in progress)
+**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: journey resumption working, clickable steps, multiple executors, will overview on sidebar, estate will_info API fix.
 
 ---
 
