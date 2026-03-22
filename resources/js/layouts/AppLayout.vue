@@ -21,6 +21,7 @@
     >
       <div ref="appHeader">
         <Navbar />
+        <SubNavBar />
 
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
@@ -93,6 +94,7 @@ import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
+import SubNavBar from '@/components/SubNavBar.vue';
 import storage from '@/utils/storage';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
@@ -113,6 +115,7 @@ export default {
     SideMenuMobileToggle,
     OfflineBanner,
     AdvisorBanner,
+    SubNavBar,
   },
 
   data() {
