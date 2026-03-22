@@ -48,7 +48,7 @@
         />
 
         <!-- Main Content -->
-        <div v-else-if="!loading && !error" class="bg-white rounded-lg shadow">
+        <div v-else-if="!loading && !error" class="bg-white rounded-lg border border-light-gray">
           <!-- Tab Navigation -->
           <div class="border-b border-light-gray">
             <nav class="-mb-px flex overflow-x-auto scrollbar-hide" aria-label="Tabs">

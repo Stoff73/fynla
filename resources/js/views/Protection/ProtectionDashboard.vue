@@ -49,13 +49,11 @@
           :impact-summary="lifeEventImpact"
         />
 
-      <div class="bg-white rounded-lg shadow">
-        <div class="p-6">
-          <CurrentSituation
-            @add-policy="handleAddPolicy"
-            @edit-policy="handleEditPolicy"
-          />
-        </div>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <CurrentSituation
+          @add-policy="handleAddPolicy"
+          @edit-policy="handleEditPolicy"
+        />
       </div>
       </div> <!-- v-else -->
 

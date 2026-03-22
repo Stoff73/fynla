@@ -207,7 +207,7 @@
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
+        <div class="bg-white rounded-lg border border-light-gray p-6">
           <div class="flex items-start justify-between mb-4">
             <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
             <span class="text-xs font-medium text-neutral-500 bg-savannah-100 px-2 py-1 rounded">Coming Soon</span>
@@ -540,9 +540,9 @@ export default {
 
 .account-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  @apply border border-light-gray;
   display: flex;
   flex-direction: column;
   align-items: center;
