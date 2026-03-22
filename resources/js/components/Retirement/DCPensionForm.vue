@@ -222,6 +222,29 @@
             <p class="text-xs text-neutral-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
+          <!-- Pension Access Age (SIPP and personal pensions only) -->
+          <div v-if="isPersonalPension">
+            <label for="retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
+              Planned Access Age
+            </label>
+            <input
+              id="retirement_age"
+              v-model.number="formData.retirement_age"
+              type="number"
+              min="55"
+              max="75"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              :placeholder="profileRetirementAge ? `Default: ${profileRetirementAge}` : 'e.g., 60'"
+            />
+            <p class="text-xs text-neutral-500 mt-1">
+              When you plan to access this pension (minimum 55).
+              <span v-if="profileRetirementAge"> Your profile retirement age is {{ profileRetirementAge }}.</span>
+            </p>
+            <p v-if="formData.retirement_age && formData.retirement_age < 55" class="text-xs text-raspberry-500 mt-1">
+              Minimum pension access age is 55
+            </p>
+          </div>
+
           <!-- Risk Level Section (hidden during onboarding) -->
           <template v-if="!isOnboarding">
             <div v-if="hasRiskProfile" class="pt-4 border-t border-light-gray">
@@ -402,6 +425,7 @@ export default {
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
         expected_return_percent: 5.0,
+        retirement_age: null,
         salary_sacrifice: false,
         notes: '',
         risk_preference: null,
@@ -443,6 +467,10 @@ export default {
 
     isPersonalPension() {
       return this.formData.pension_type === 'sipp' || this.formData.pension_type === 'personal' || this.formData.pension_type === 'stakeholder';
+    },
+
+    profileRetirementAge() {
+      return this.$store.state.userProfile?.profile?.target_retirement_age || null;
     },
 
     calculatedEmployeeContribution() {
@@ -556,6 +584,11 @@ export default {
         this.formData.employer_contribution_percent = null;
       }
 
+      // Default retirement age from profile for personal pensions
+      if (this.isPersonalPension && !this.formData.retirement_age && this.profileRetirementAge) {
+        this.formData.retirement_age = this.profileRetirementAge;
+      }
+
       // Set scheme_type for backward compatibility
       if (this.formData.pension_type === 'occupational') {
         this.formData.scheme_type = 'workplace';
@@ -649,6 +682,11 @@ export default {
 
       if (!this.formData.current_fund_value || this.formData.current_fund_value < 0) {
         this.validationError = 'Please enter a valid current fund value';
+        return;
+      }
+
+      if (this.isPersonalPension && this.formData.retirement_age && this.formData.retirement_age < 55) {
+        this.validationError = 'Minimum pension access age is 55';
         return;
       }
 
