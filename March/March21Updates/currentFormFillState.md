@@ -2,8 +2,8 @@
 
 **Date:** 22 March 2026
 **AI Form Fill Branch:** `aiFormFill` — MERGED to main (PR #156, 24 commits)
-**Onboarding Branch:** `onboardingUpdates` (27 commits, in progress)
-**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: journey resumption, clickable steps, multiple executors, will overview, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field asterisks, pension access age, mobile scroll anchoring, leasehold expiry date calc.
+**Onboarding Branch:** `onboardingUpdates` (30 commits, in progress)
+**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: journey resumption, clickable steps, multiple executors, will overview, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field asterisks, pension access age, mobile scroll anchoring, leasehold expiry date calc, expenditure in all journeys, £0.00 display fix.
 
 ---
 

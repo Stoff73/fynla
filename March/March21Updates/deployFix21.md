@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**27 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date.
+**30 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix.
 
 ### What Changed
 
@@ -205,6 +205,8 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - DC pension form: Planned Access Age field for SIPP/personal/stakeholder pensions (min 55, defaults from user profile retirement age, stored per-pension for individual accumulation/decumulation calcs)
 - Onboarding: scroll to top on step and tab changes (mobile stacked layout fix)
 - Property form: leasehold now asks for expiry date, calculates and displays remaining years automatically (removed manual remaining years input)
+- Expenditure step added to all 5 life stage journeys with tailored learning milestones
+- Expenditure inputs: fixed £0.00 display — all fields now show £0 consistently (parseFloat on API data load, displayValue normalisation on input components)
 
 ### Database Migration
 ```bash
@@ -236,6 +238,10 @@ resources/js/components/Onboarding/UsefulResources.vue (white bg, moved to sideb
 resources/js/components/UserProfile/FamilyMemberFormModal.vue (required field asterisks)
 resources/js/components/Retirement/DCPensionForm.vue (pension access age field)
 resources/js/components/NetWorth/Property/PropertyForm.vue (leasehold expiry date, auto-calc remaining years)
+resources/js/constants/lifeStageConfig.js (expenditure step + milestones for all stages)
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue (displayValue normalisation)
+resources/js/components/UserProfile/ExpenditureForm.vue (parseFloat on data load)
+resources/js/components/Shared/CurrencyInputField.vue (displayValue normalisation)
 + 12 onboarding step files (removed inline UsefulResources)
 ```
 
