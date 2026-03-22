@@ -12,33 +12,13 @@
 
     <!-- Investment List View (default) -->
     <template v-else>
-      <div class="list-header">
-        <div class="title-row">
-          <h2 class="list-title">Investments</h2>
-          <router-link
-            to="/risk-profile"
-            class="risk-profile-link"
-          >
-            <svg class="risk-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Risk Profile
-          </router-link>
-        </div>
-        <div class="header-buttons">
-          <button @click="showAccountForm = true" class="add-account-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Account
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload Statement
-          </button>
-        </div>
+      <div class="flex justify-end mb-2">
+        <router-link to="/risk-profile" class="inline-flex items-center gap-1 text-sm font-medium text-horizon-500 hover:text-horizon-600 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Risk Profile
+        </router-link>
       </div>
 
       <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-5">
@@ -288,6 +268,7 @@ export default {
       'totalPortfolioValue',
       'holdingsCount',
     ]),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {
@@ -362,6 +343,18 @@ export default {
       }
 
       return totalValue > 0 ? totalWeightedReturn / totalValue : null;
+    },
+  },
+
+  watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addAccount') {
+        this.showAccountForm = true;
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadStatement') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
     },
   },
 
@@ -752,98 +745,6 @@ export default {
   max-width: 100%;
 }
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.list-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-horizon-500;
-  margin: 0;
-}
-
-.risk-profile-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  @apply bg-violet-50;
-  @apply text-violet-600;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.risk-profile-link:hover {
-  @apply bg-violet-100;
-}
-
-.risk-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.add-account-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  @apply bg-raspberry-500;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.add-account-button:hover {
-  @apply bg-raspberry-500;
-}
-
-.upload-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: white;
-  @apply text-raspberry-500;
-  @apply border-2 border-raspberry-500;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.upload-button:hover {
-  @apply bg-violet-50;
-}
-
-.button-icon {
-  width: 20px;
-  height: 20px;
-}
 
 /* Two-column layout: Account Cards (left) + Performance Chart (right) */
 .main-content-grid {
@@ -1294,22 +1195,6 @@ export default {
 @media (max-width: 768px) {
   .investment-list {
     padding: 16px;
-  }
-
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-buttons {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .add-account-button,
-  .upload-button {
-    width: 100%;
-    justify-content: center;
   }
 
   .main-content-grid {
