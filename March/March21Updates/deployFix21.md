@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**30 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix.
+**46 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix, will builder save/resume/completion, will dashboard document details, View Will button, liabilities dashboard with sidebar nav.
 
 ### What Changed
 
@@ -195,6 +195,15 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Estate data API now returns `will_info` so dashboard recognises existing wills
 - "Build Your Will" banner hidden when user already has a will record
 
+**Will Builder:**
+- Draft save/resume — builder resumes at the correct step based on which fields have data (`findResumeStep()`)
+- Success modal — Teleport modal appears after completing the Review step with options to view signing instructions or return to estate planning
+- Will dashboard now loads and displays full WillDocument data: residuary estate beneficiaries, specific gifts, funeral wishes, executors
+- `markComplete()` syncs executor names from WillDocument JSON to Will record
+- "View Will" button on will dashboard links to `/estate/will-builder?view=document` — shows completed will in builder review mode with Print/Edit buttons
+- Fixed beneficiary name display (`ben.beneficiary_name` not `ben.name`)
+- Route query watcher reloads data when `?view=document` is added/removed
+
 **Goals & Forms:**
 - Goals step: clicking Continue without a goal shows skip confirmation modal ("Go Back" / "Skip Anyway") instead of validation error
 - Assets step: switching tabs closes any open forms (was leaving forms open across tabs)
@@ -208,6 +217,17 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Expenditure step added to all 5 life stage journeys with tailored learning milestones
 - Expenditure inputs: fixed £0.00 display — all fields now show £0 consistently (parseFloat on API data load, displayValue normalisation on input components)
 
+**Liabilities Dashboard:**
+- New sidebar navigation item with credit card icon under Finances section
+- Dashboard shows all liabilities: user-created (personal loans, credit cards, etc.) and mortgages from Property module
+- Mortgage cards display "Property" source badge, mortgage type description, and "Edit in Property" link — not clickable for detail/edit
+- User-created liabilities can be added, edited, and deleted directly from the dashboard
+- Info banner explains mortgages are managed in Property and shown here for a complete view
+- Filter dropdown includes Mortgages option alongside all other liability types
+- Fixed interest rate display across LiabilityCard and LiabilityDetailInline — was dividing by 100 erroneously (showed 0.07% instead of 6.50%)
+- Fixed mortgage type notes — replaced underscores with spaces ("Interest only" not "Interest_only")
+- Added `liabilities` to explore section of all 5 life stage sidebar configs
+
 ### Database Migration
 ```bash
 php artisan migrate
@@ -220,7 +240,8 @@ app/Services/Onboarding/OnboardingService.php
 app/Http/Controllers/Api/OnboardingController.php
 app/Services/LifeStage/LifeStageService.php
 app/Services/Onboarding/JourneyStateService.php
-app/Http/Controllers/Api/EstateController.php (will_info in estate data response)
+app/Http/Controllers/Api/EstateController.php (will_info in estate data response, mortgage notes underscore fix)
+app/Services/Estate/WillDocumentService.php (markComplete syncs executor names to Will record)
 ```
 
 ### Frontend Files Modified
@@ -242,6 +263,15 @@ resources/js/constants/lifeStageConfig.js (expenditure step + milestones for all
 resources/js/components/UserProfile/ExpenditureCategoryCard.vue (displayValue normalisation)
 resources/js/components/UserProfile/ExpenditureForm.vue (parseFloat on data load)
 resources/js/components/Shared/CurrencyInputField.vue (displayValue normalisation)
+resources/js/components/Estate/WillBuilder/WillBuilderWizard.vue (findResumeStep, success modal)
+resources/js/views/Estate/WillBuilderView.vue (route query watcher, WillPlanning vs Builder logic)
+resources/js/components/Estate/WillPlanning.vue (load WillDocument, display beneficiaries/gifts/funeral, View Will button)
+resources/js/components/SideMenu.vue (liabilities nav item, isLiabilitiesActive, Finances section)
+resources/js/components/SideMenuIcon.vue (credit-card icon)
+resources/js/components/NetWorth/LiabilityCard.vue (external source badge, mortgage styling, Edit in Property link, interest rate fix)
+resources/js/components/NetWorth/LiabilitiesList.vue (mortgage filter, info banner, hasMortgageLiabilities)
+resources/js/components/NetWorth/LiabilityDetailInline.vue (interest rate display fix)
+resources/js/constants/lifeStageConfig.js (liabilities in all 5 stage explore sections)
 + 12 onboarding step files (removed inline UsefulResources)
 ```
 

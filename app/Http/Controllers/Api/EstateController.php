@@ -66,7 +66,7 @@ class EstateController extends Controller
                 'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
                 'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
                 'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
-                'notes' => ucfirst($mortgage->mortgage_type ?? 'repayment').' mortgage',
+                'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
             ];
         });
 
