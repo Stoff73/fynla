@@ -116,7 +116,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.studentLoan" />
     </div>
   </OnboardingStep>
 </template>

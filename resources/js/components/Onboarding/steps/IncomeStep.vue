@@ -312,7 +312,6 @@
         </p>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.income" />
     </div>
   </OnboardingStep>
 </template>

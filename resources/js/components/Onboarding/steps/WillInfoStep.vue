@@ -107,7 +107,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.will" />
     </div>
   </OnboardingStep>
 </template>

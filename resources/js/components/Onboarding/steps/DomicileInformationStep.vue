@@ -68,7 +68,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.domicile" />
     </div>
   </OnboardingStep>
 </template>

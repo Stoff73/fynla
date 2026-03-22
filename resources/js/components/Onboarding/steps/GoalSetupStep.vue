@@ -97,7 +97,6 @@
         </p>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.goals" />
     </div>
 
     <!-- Skip confirmation modal -->

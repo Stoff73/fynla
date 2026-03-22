@@ -268,7 +268,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.personalInfo" />
     </div>
   </OnboardingStep>
 </template>

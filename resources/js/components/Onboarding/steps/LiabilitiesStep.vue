@@ -70,7 +70,6 @@
         You can skip this step if you don't have any loans or credit card debt.
       </p>
 
-      <UsefulResources :links="STEP_RESOURCES.liabilities" />
     </div>
 
     <!-- Liability Form Modal -->

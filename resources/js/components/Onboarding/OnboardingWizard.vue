@@ -127,14 +127,18 @@
             </div>
           </div>
 
-          <!-- Right Column: Learning Sidebar (desktop) -->
+          <!-- Right Column: Learning Sidebar + Useful Resources (desktop) -->
           <div class="w-full lg:w-[340px] flex-shrink-0">
-            <div class="lg:sticky lg:top-8">
+            <div class="lg:sticky lg:top-8 space-y-4">
               <LearningMilestoneSidebar
                 :step="lifeStageCurrentStepId"
                 :stage="currentLifeStage"
                 :override="sidebarOverride"
                 class="rounded-lg shadow-sm border border-light-gray"
+              />
+              <UsefulResources
+                v-if="currentStepResources && currentStepResources.length"
+                :links="currentStepResources"
               />
             </div>
           </div>
@@ -348,6 +352,8 @@ import AssetsStep from './steps/AssetsStep.vue';
 import LiabilitiesStep from './steps/LiabilitiesStep.vue';
 import FamilyInfoStep from './steps/FamilyInfoStep.vue';
 import WillInfoStep from './steps/WillInfoStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
@@ -371,6 +377,25 @@ const STEP_COMPONENTS = {
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
+};
+
+// Step ID → STEP_RESOURCES key mapping for the sidebar useful resources card
+const STEP_RESOURCE_MAP = {
+  'personal-info': 'personalInfo',
+  'student-loan': 'studentLoan',
+  'income': 'income',
+  'income-career': 'income',
+  'income-tax': 'income',
+  'expenditure': 'expenditure',
+  'assets': 'assetsCash',
+  'goals': 'goals',
+  'family': 'family',
+  'protection-insurance': 'protection',
+  'liabilities': 'liabilities',
+  'domicile': 'domicile',
+  'will-estate': 'will',
+  'estate-iht': 'will',
+  'estate-legacy': 'will',
 };
 
 // Step label map for the progress bar
@@ -398,6 +423,7 @@ export default {
     ConfirmDialog,
     SkipToDashboardModal,
     LearningMilestoneSidebar,
+    UsefulResources,
     JourneyMap,
     PersonalInfoStep,
     IncomeStep,
@@ -467,6 +493,14 @@ export default {
 
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
+    });
+
+    // Useful resources for the current step (shown in sidebar card)
+    const currentStepResources = computed(() => {
+      const stepId = lifeStageCurrentStepId.value;
+      if (!stepId) return null;
+      const resourceKey = STEP_RESOURCE_MAP[stepId];
+      return resourceKey ? (STEP_RESOURCES[resourceKey] || null) : null;
     });
 
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
@@ -1266,6 +1300,7 @@ export default {
       lifeStageCurrentComponent,
       savedStepData,
       sidebarOverride,
+      currentStepResources,
       stageColour,
       stageColourClasses,
       getLifeStageStepStatus,

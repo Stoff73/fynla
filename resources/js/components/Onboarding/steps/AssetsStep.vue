@@ -195,7 +195,6 @@
           You can skip this step and add pensions later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsPensions" />
       </div>
 
       <!-- Properties Tab -->
@@ -229,7 +228,6 @@
           You can skip this step and add properties later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsProperties" />
       </div>
 
       <!-- Investments Tab -->
@@ -315,7 +313,6 @@
           You can skip this step and add investments later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsInvestments" />
       </div>
 
       <!-- Cash Tab -->
@@ -395,7 +392,6 @@
           You can skip this step and add accounts later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsCash" />
       </div>
     </div>
 
