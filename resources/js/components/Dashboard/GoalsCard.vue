@@ -67,33 +67,6 @@
       <p class="text-xs text-neutral-500">Track your financial goals and milestones</p>
     </div>
 
-    <!-- Stage-suggested goals -->
-    <div v-if="suggestedGoals.length > 0" class="mt-4 pt-4 border-t border-light-gray">
-      <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Suggested for You</div>
-      <div class="space-y-2">
-        <div
-          v-for="suggestion in suggestedGoals"
-          :key="suggestion.id"
-          class="flex items-start gap-3 p-3 border border-dashed border-light-gray rounded-lg cursor-pointer hover:bg-savannah-100 hover:border-savannah-400 transition-all"
-          @click="$emit('add-suggested-goal', suggestion)"
-        >
-          <!-- Lightbulb icon -->
-          <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg class="w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-horizon-500">Suggested: {{ suggestion.label }}</p>
-            <p v-if="suggestion.description" class="text-xs text-neutral-500 mt-0.5">{{ suggestion.description }}</p>
-          </div>
-          <!-- Arrow icon -->
-          <svg class="w-4 h-4 text-neutral-500 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -106,11 +79,10 @@ export default {
 
   mixins: [currencyMixin],
 
-  emits: ['add-goal', 'add-suggested-goal'],
+  emits: ['add-goal'],
 
   computed: {
     ...mapGetters('goals', ['activeGoals']),
-    ...mapGetters('lifeStage', { suggestedGoals: 'suggestedGoals' }),
 
     displayedGoals() {
       return this.activeGoals.slice(0, 3);
