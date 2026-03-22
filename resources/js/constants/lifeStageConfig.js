@@ -260,6 +260,12 @@ export const LIFE_STAGES = {
           howItFits: 'Understanding your full income picture — salary, any side income, and employer benefits — means we can identify exactly how much you can realistically save and invest each month after tax.',
           quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
         },
+        'expenditure': {
+          didYouKnow: 'The average UK household spends over £2,500 per month. Understanding where your money goes is the first step to building wealth — people who track spending save on average 15% more than those who do not.',
+          whyWeAsk: 'Your spending determines your emergency fund target, how much you can realistically save each month, and whether your income covers your lifestyle with room for growth.',
+          howItFits: 'Knowing your outgoings lets us calculate your savings capacity, set realistic goals, and identify areas where small changes could accelerate your financial plan.',
+          quickStat: { value: '£2,500', label: 'Average UK household monthly spending' },
+        },
         'savings-emergency': {
           didYouKnow: 'A six-month emergency fund is the single most important financial protection you can have. It means a redundancy, car breakdown, or boiler failure does not derail your longer-term plans. Keep it in an easy-access savings account earning competitive interest — not a current account.',
           whyWeAsk: 'Knowing your savings lets us calculate exactly how many months of expenses you currently have covered, track progress towards your emergency fund target, and flag whether you\'re earning the best available interest rate.',
@@ -445,6 +451,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your income level determines your protection needs, pension contribution capacity, and the size of any income protection policy that would maintain your family\'s standard of living if you were unable to work.',
           howItFits: 'At this stage your income is probably at or near its highest rate of growth. Protecting it — through income protection insurance and a solid emergency fund — is as important as investing it.',
           quickStat: { value: '£116.75', label: 'Weekly Statutory Sick Pay — rarely enough to cover a mortgage' },
+        },
+        'expenditure': {
+          didYouKnow: 'With a mortgage, childcare, and growing family costs, this life stage typically has the highest outgoings. Families who budget actively save on average 20% more than those who do not — the difference often funds a child\'s university or an earlier retirement.',
+          whyWeAsk: 'Your spending profile determines how much protection cover you need, what size emergency fund is appropriate, and how much surplus income is available for pension contributions and investments.',
+          howItFits: 'At this stage, balancing mortgage payments, childcare, insurance premiums, and savings contributions requires a clear picture of where every pound goes. We use this to prioritise your financial plan.',
+          quickStat: { value: '20%', label: 'More savings for families who actively track their spending' },
         },
         'property-mortgage': {
           didYouKnow: 'Most homeowners overpay their mortgage by making minimum repayments when they could be using offset mortgages, or by not reviewing their rate every two years. Even a 0.5% rate reduction on a £250,000 mortgage saves over £1,200 per year.',
@@ -633,6 +645,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your income level determines your tax band, available allowances, the value of pension tax relief, and whether strategies like carry-forward, pension salary sacrifice, or dividend extraction are worth exploring.',
           howItFits: 'Tax efficiency at this stage can add tens of thousands to your retirement pot. Understanding your income and tax position is the foundation for a highly effective final-decade saving strategy.',
           quickStat: { value: '40%', label: 'Tax relief on pension contributions for higher-rate taxpayers' },
+        },
+        'expenditure': {
+          didYouKnow: 'As children become independent and the mortgage shrinks, many people experience a significant jump in disposable income. This is the window to maximise pension contributions and investments before retirement — every extra pound saved now has fewer years to grow but higher tax relief.',
+          whyWeAsk: 'Understanding your current spending helps us calculate how much surplus income can be directed to pensions (with 40% tax relief), ISAs, and other investments during this critical final saving window.',
+          howItFits: 'Your spending determines how much of your peak earnings can be channelled into retirement savings. Reducing expenditure by even £500 per month at this stage could add significantly to your retirement pot.',
+          quickStat: { value: '£500/mo', label: 'Extra monthly saving at 50 could add £100,000+ to your retirement pot' },
         },
         'pension-review': {
           didYouKnow: 'You can carry forward up to three years of unused pension annual allowance, potentially contributing £180,000+ in a single year. If you\'ve had years of lower contributions — or have recently seen income increase significantly — this could be a powerful catch-up mechanism.',
@@ -833,6 +851,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Understanding your full income picture in retirement — pensions, State Pension, rental income, dividends — lets us identify the most tax-efficient withdrawal strategy and flag any allowances you may not be using.',
           howItFits: 'Tax efficiency in retirement is not about evasion — it is about sequencing. Using ISA withdrawals to top up pension income to the Personal Allowance, for example, can save thousands in unnecessary tax each year.',
           quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
+        },
+        'expenditure': {
+          didYouKnow: 'Retired households in the UK spend an average of £2,100 per month. The Pensions and Lifetime Savings Association defines three retirement living standards: minimum (£14,400/year), moderate (£31,300/year), and comfortable (£43,100/year). Knowing which you need shapes everything.',
+          whyWeAsk: 'Your retirement spending determines how much income your pensions and investments need to generate, how long your savings will last, and whether your current provision is adequate.',
+          howItFits: 'Retirement planning is fundamentally about matching income to expenditure for 20–30 years. A clear picture of your spending lets us calculate whether your pension pot and other income sources will sustain your lifestyle.',
+          quickStat: { value: '£31,300', label: 'PLSA moderate retirement living standard (annual, single person)' },
         },
         'estate-legacy': {
           didYouKnow: 'Inheritance tax raised £7.5 billion for HMRC in 2024/25 — much of it paid by families who could have avoided it with earlier planning. The most effective strategies (lifetime gifts, trusts, pension nominations, charitable giving) all require time to implement. Starting now, whilst your health and capacity are strong, gives you the most options.',
