@@ -88,6 +88,20 @@
         <div v-if="!isEditing">
           <!-- Show will details if user has a will -->
           <div v-if="form.has_will === true" class="space-y-4">
+            <!-- Link to full will document if created via builder -->
+            <div v-if="will && will.will_document_id" class="flex items-center justify-between bg-spring-50 border border-spring-200 rounded-lg p-3">
+              <div>
+                <p class="text-sm font-medium text-spring-800">Will created with the Will Builder</p>
+                <p class="text-xs text-spring-600">View, print, or edit your full will document</p>
+              </div>
+              <button
+                @click="openWillBuilder"
+                class="px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
+              >
+                View Will
+              </button>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div class="text-sm font-medium text-neutral-500 mb-1">Will Last Updated</div>
@@ -490,6 +504,11 @@ export default {
   },
 
   methods: {
+    openWillBuilder() {
+      // Navigate to the will builder — it will show the completed will in Review mode
+      this.$router.push('/estate/will-builder?view=document');
+    },
+
     formatDateForInput(date) {
       if (!date) return '';
       try {

@@ -54,6 +54,37 @@
         @jump="jumpToStep"
       />
     </Transition>
+
+    <!-- Success Modal (shown after will completion) -->
+    <Teleport to="body">
+      <div v-if="showSuccessModal" class="fixed inset-0 bg-horizon-600/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-8 text-center">
+          <div class="w-16 h-16 bg-spring-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-horizon-500 mb-2">Your Will Has Been Created</h3>
+          <p class="text-sm text-neutral-500 mb-6">
+            Your will has been saved securely. You can print it, review it at any time, or return to your financial planning.
+          </p>
+          <div class="flex flex-col gap-3">
+            <button
+              @click="showSuccessModal = false"
+              class="px-6 py-2.5 bg-raspberry-500 text-white rounded-button font-medium hover:bg-raspberry-600 transition-colors"
+            >
+              View Signing Instructions
+            </button>
+            <router-link
+              to="/estate"
+              class="px-4 py-2 text-neutral-500 hover:text-horizon-500 transition-colors text-sm"
+            >
+              Return to Estate Planning
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -99,6 +130,7 @@ export default {
     return {
       currentStepIndex: 0,
       saving: false,
+      showSuccessModal: false,
       internalDocumentId: this.documentId,
       formData: this.buildInitialFormData(),
     };
@@ -262,6 +294,12 @@ export default {
 
       // Save step to backend
       await this.saveCurrentStep(stepData);
+
+      // Show success modal when completing the Review step (advancing to Signing)
+      const currentStepName = this.currentStep?.name;
+      if (currentStepName === 'review') {
+        this.showSuccessModal = true;
+      }
 
       if (this.currentStepIndex < this.visibleSteps.length - 1) {
         this.currentStepIndex++;

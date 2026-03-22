@@ -60,11 +60,15 @@ export default {
       this.loading = true;
       try {
         // Check if user already has a will record
-        const willResponse = await api.get('/estate/will');
-        if (willResponse.data?.data?.has_will) {
-          this.hasExistingWill = true;
-          this.loading = false;
-          return;
+        // Skip this check if ?view=document is set (viewing completed will in builder)
+        const viewDocument = this.$route.query?.view === 'document';
+        if (!viewDocument) {
+          const willResponse = await api.get('/estate/will');
+          if (willResponse.data?.data?.has_will) {
+            this.hasExistingWill = true;
+            this.loading = false;
+            return;
+          }
         }
 
         // No existing will — load builder data
