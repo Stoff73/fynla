@@ -21,6 +21,7 @@ export default {
     'stroke-violet-500', 'stroke-spring-500', 'stroke-raspberry-500', 'stroke-light-blue-500', 'stroke-horizon-500',
     'bg-light-blue-100', 'bg-light-blue-500', 'text-light-blue-500', 'hover:bg-light-blue-600',
     'bg-light-pink-100', 'hover:bg-light-pink-400', 'bg-light-pink-50',
+    'bg-light-pink-200', 'border-light-pink-200', 'border-light-pink-300', 'hover:bg-light-pink-100',
     'bg-horizon-500', 'text-horizon-700', 'stroke-light-gray',
   ],
   theme: {
@@ -104,6 +105,8 @@ export default {
         'light-pink': {
           50: '#FDF0F4',
           100: '#FAD6E0',
+          200: '#F5B3C5',
+          300: '#F095AD',
           400: '#EF7598',
         },
 

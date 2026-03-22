@@ -4,7 +4,7 @@
     :class="empty
       ? 'bg-light-pink-100/50 cursor-pointer hover:bg-light-pink-200/50 hover:shadow-md hover:-translate-y-0.5'
       : (clickable
-        ? 'bg-white cursor-pointer hover:bg-[#EEEEEE] hover:shadow-md hover:-translate-y-0.5'
+        ? 'bg-white cursor-pointer hover:border-raspberry-400 hover:shadow-md hover:-translate-y-0.5'
         : 'bg-light-blue-100')"
     @click="clickable ? $emit('click') : null"
     :role="clickable ? 'button' : undefined"

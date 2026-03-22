@@ -39,6 +39,7 @@ export const SUB_NAV_CONFIG = [
     ],
     ctas: [
       { label: 'Add Pension', icon: 'plus', action: 'addPension', style: 'primary' },
+      { label: 'Upload Statement', icon: 'upload', action: 'uploadStatement', style: 'secondary' },
     ],
   },
 
@@ -83,6 +84,7 @@ export const SUB_NAV_CONFIG = [
     ],
     ctas: [
       { label: 'Add Trust', icon: 'plus', action: 'addTrust', style: 'primary' },
+      { label: 'Upload Document', icon: 'upload', action: 'uploadDocument', style: 'secondary' },
     ],
   },
 
@@ -115,6 +117,7 @@ export const SUB_NAV_CONFIG = [
     ],
     ctas: [
       { label: 'Add Account', icon: 'plus', action: 'addAccount', style: 'primary' },
+      { label: 'Upload Statement', icon: 'upload', action: 'uploadStatement', style: 'secondary' },
     ],
   },
 

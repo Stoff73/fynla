@@ -15,7 +15,7 @@
       </div>
 
       <!-- CTAs row: below tabs, left-aligned -->
-      <div v-if="config.ctas.length" class="flex items-center gap-2 py-2">
+      <div v-if="config.ctas.length" class="flex items-center gap-2 py-2 mt-[5px]">
         <button
           v-for="cta in config.ctas"
           :key="cta.action"

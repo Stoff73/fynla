@@ -12,36 +12,6 @@
 
     <!-- Main Dashboard View -->
     <template v-else>
-      <!-- Header -->
-      <div class="list-header">
-        <div class="title-row">
-          <h2 class="list-title">Pensions</h2>
-          <router-link
-            to="/risk-profile"
-            class="risk-profile-link"
-          >
-            <svg class="risk-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Risk Profile
-          </router-link>
-        </div>
-        <div v-if="activeTab === 'current'" class="header-buttons">
-          <button v-preview-disabled="'add'" @click="showPensionForm = true" class="add-pension-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Pension
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload Statement
-          </button>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -500,6 +470,7 @@ export default {
       'retirementIncome',
     ]),
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Check if user is retired
     isRetired() {
@@ -643,6 +614,15 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addPension') {
+        this.showPensionForm = true;
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadStatement') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     activeTab(newTab) {
       if (newTab === 'future' && !this.projections) {
         this.loadProjections();
@@ -912,7 +892,7 @@ export default {
 }
 
 .upload-button:hover {
-  @apply bg-violet-50;
+  @apply bg-light-pink-50;
 }
 
 .button-icon {

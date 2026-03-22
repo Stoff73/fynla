@@ -35,7 +35,7 @@
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="text-center">
-          <img :src="logoUrl" alt="Fynla" class="h-48 w-auto mx-auto" />
+          <img :src="logoUrl" alt="Fynla" class="h-[134px] w-auto mx-auto" />
         </div>
         <h2 class="mt-6 text-center text-h3 text-horizon-500">
           Sign in to your account

@@ -13,7 +13,7 @@
     <div class="max-w-md w-full space-y-8">
       <div>
         <div class="flex justify-center">
-          <img :src="logoImage" alt="Fynla" class="h-48 w-auto">
+          <img :src="logoImage" alt="Fynla" class="h-[134px] w-auto">
         </div>
         <h2 class="mt-2 text-center text-h3 text-horizon-500">
           Create your account

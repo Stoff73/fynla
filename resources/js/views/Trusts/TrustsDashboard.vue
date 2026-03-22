@@ -1,25 +1,6 @@
 <template>
   <AppLayout>
     <div class="trusts-dashboard">
-      <!-- Header -->
-      <div class="list-header">
-        <h2 class="list-title">Trusts</h2>
-        <div class="header-buttons">
-          <button @click="openCreateTrustModal" class="add-trust-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Trust
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload Document
-          </button>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
         <div class="w-10 h-10 border-[3px] border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
@@ -206,7 +187,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import axios from '@/bootstrap';
 import AppLayout from '@/layouts/AppLayout.vue';
 import TrustCard from '@/components/Trusts/TrustCard.vue';
@@ -291,6 +272,7 @@ export default {
 
   computed: {
     ...mapState('trusts', ['trusts']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -326,6 +308,18 @@ export default {
         return sum + (isNaN(count) ? 0 : count);
       }, 0);
       return isNaN(total) ? 0 : total;
+    },
+  },
+
+  watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addTrust') {
+        this.openCreateTrustModal();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadDocument') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
     },
   },
 

@@ -10,16 +10,6 @@
 
     <!-- Property List View (default) -->
     <template v-else>
-      <div class="list-header">
-        <h2 class="list-title">Properties</h2>
-        <button v-preview-disabled="'add'" @click="addProperty" class="add-property-button">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Property
-        </button>
-      </div>
-
       <div v-if="loading" class="loading-state">
         <p>Loading properties...</p>
       </div>
@@ -99,6 +89,7 @@ export default {
   computed: {
     ...mapState('netWorth', ['isDetailView']),
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -125,6 +116,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addProperty') {
+        this.addProperty();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     // Clear selection when sidebar link is clicked (sets isDetailView to false)
     isDetailView(newVal) {
       if (!newVal && this.selectedProperty) {

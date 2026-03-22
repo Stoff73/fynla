@@ -51,40 +51,40 @@
       <!-- Investment Knowledge Nudge -->
       <div
         v-if="showKnowledgeNudge"
-        class="mb-6 bg-violet-50 border border-violet-200 rounded-lg p-4 shadow-sm"
+        class="mb-6 bg-light-pink-50 border border-light-pink-200 rounded-lg p-4 shadow-sm"
       >
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center">
-              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 bg-light-pink-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
           </div>
           <div class="flex-1">
-            <h3 class="text-sm font-semibold text-violet-800">How would you describe your investment knowledge?</h3>
-            <p class="mt-1 text-sm text-violet-700">
+            <h3 class="text-sm font-semibold text-raspberry-800">How would you describe your investment knowledge?</h3>
+            <p class="mt-1 text-sm text-raspberry-700">
               This helps us tailor investment recommendations to your experience level.
             </p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <button
                 @click="setKnowledgeLevel('novice')"
                 :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
                 Beginner — I'm new to investing
               </button>
               <button
                 @click="setKnowledgeLevel('intermediate')"
                 :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
                 Intermediate — I understand the basics
               </button>
               <button
                 @click="setKnowledgeLevel('experienced')"
                 :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-violet-300 text-violet-700 bg-white hover:bg-violet-100 transition-colors"
+                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
               >
                 Experienced — I'm confident with investments
               </button>
@@ -92,7 +92,7 @@
           </div>
           <button
             @click="dismissKnowledgeNudge"
-            class="flex-shrink-0 text-violet-400 hover:text-violet-600"
+            class="flex-shrink-0 text-raspberry-400 hover:text-raspberry-600"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -198,8 +198,8 @@
               </div>
             </div>
 
-            <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 mt-3">
-              <p class="text-xs text-violet-700">
+            <div class="bg-light-pink-50 border border-light-pink-200 rounded-lg p-3 mt-3">
+              <p class="text-xs text-raspberry-700">
                 Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(25000) }} per year. Your loan is written off after 40 years.
               </p>
             </div>
