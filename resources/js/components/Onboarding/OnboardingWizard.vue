@@ -371,6 +371,7 @@ const STEP_COMPONENTS = {
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'expenditure': () => import('@/components/Onboarding/steps/ExpenditureStep.vue'),
   'assets': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'liabilities': () => import('@/components/Onboarding/steps/LiabilitiesStep.vue'),
   'protection-insurance': () => import('@/components/Onboarding/steps/ProtectionPoliciesStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
@@ -407,6 +408,7 @@ const STEP_LABELS = {
   'income-tax': 'Income',
   'expenditure': 'Spending',
   'assets': 'Assets',
+  'liabilities': 'Debts',
   'goals': 'Goals',
   'family': 'Family',
   'protection-insurance': 'Protection',
@@ -509,7 +511,7 @@ export default {
       'personal-info', 'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals', 'assets', 'protection-insurance',
+      'goals', 'assets', 'liabilities', 'protection-insurance',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 

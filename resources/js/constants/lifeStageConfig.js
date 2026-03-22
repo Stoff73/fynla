@@ -432,6 +432,7 @@ export const LIFE_STAGES = {
         'income',
         'expenditure',
         'assets',
+        'liabilities',
         'protection-insurance',
         'will-estate',
         'goals',
@@ -466,6 +467,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your property and mortgage details let us calculate your equity, net worth, potential remortgage savings, and whether a decreasing term life policy should be tied to your outstanding balance.',
           howItFits: 'Property is likely your largest asset and your mortgage your largest liability. Getting both right — competitive rate, appropriate protection, optimal repayment strategy — has more impact than almost any other financial decision.',
           quickStat: { value: '2 years', label: 'How often you should review your mortgage rate to avoid paying over the odds' },
+        },
+        'liabilities': {
+          didYouKnow: 'The average UK household carries over £15,000 in unsecured debt, including personal loans, credit cards, and car finance. High-interest debt — particularly credit cards at 20%+ — erodes your wealth faster than most investments can grow it. Clearing expensive debt first is often the single best financial decision a family can make.',
+          whyWeAsk: 'Recording your loans, credit cards, and other debts gives us a complete picture of your net worth and monthly outgoings. This lets us identify high-interest debts that should be prioritised and calculate how much surplus income is genuinely available for saving and investing.',
+          howItFits: 'Your liabilities are as important as your assets. Mortgages are already captured in your property details — this step focuses on other debts. Understanding the full picture lets us recommend the most efficient repayment strategy and ensure your protection cover accounts for all outstanding obligations.',
+          quickStat: { value: '£15,000+', label: 'Average UK household unsecured debt — know yours to plan effectively' },
         },
         'protection-insurance': {
           didYouKnow: 'Life insurance is cheaper than most people think. A healthy 35-year-old can get £500,000 of level term cover for 25 years for around £20–30 per month. Waiting five years to buy the same policy typically costs 30–50% more due to age and health changes.',
@@ -628,6 +635,7 @@ export const LIFE_STAGES = {
         'income-tax',
         'expenditure',
         'assets',
+        'liabilities',
         'estate-iht',
         'goals',
       ],
@@ -673,6 +681,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your property portfolio — including your main home and any investment properties — is central to your net worth, retirement income planning, and inheritance tax position. We need the full picture to plan effectively.',
           howItFits: 'Many people at this stage discover their net worth is heavily concentrated in property. Diversification into pensions and ISAs, careful mortgage management, and estate planning around property can significantly improve the overall efficiency of your wealth.',
           quickStat: { value: '24%', label: 'Capital Gains Tax rate on residential property for higher-rate taxpayers (2025/26)' },
+        },
+        'liabilities': {
+          didYouKnow: 'Outstanding debts reduce your estate value for inheritance tax purposes — but they also reduce the wealth available to your beneficiaries. At this stage, many people carry buy-to-let mortgages, business loans, or car finance alongside their main mortgage. Understanding the full picture is essential for accurate net worth and estate planning.',
+          whyWeAsk: 'Your total liabilities — including personal loans, credit cards, car finance, and business debts — directly affect your net worth calculation, your estate\'s inheritance tax position, and the amount of wealth genuinely available for retirement income.',
+          howItFits: 'Liabilities at this stage often include investment-related debt (buy-to-let mortgages, margin loans) alongside consumer debt. We separate mortgage liabilities (captured in Property) from other debts here, so your financial plan accounts for every obligation and can recommend the most tax-efficient repayment strategy.',
+          quickStat: { value: '40%', label: 'Inheritance tax rate on the net estate above the nil-rate band' },
         },
         'estate-iht': {
           didYouKnow: 'Inheritance tax is charged at 40% on estates above the nil-rate band (£325,000) and, for qualifying properties passing to direct descendants, the residence nil-rate band (£175,000). For a married couple, the combined threshold can be up to £1 million — but only with careful planning of how assets are held and transferred.',
