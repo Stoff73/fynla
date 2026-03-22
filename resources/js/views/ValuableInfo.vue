@@ -1,26 +1,7 @@
 <template>
   <AppLayout>
     <div class="max-w-7xl mx-auto py-4 sm:py-8">
-      <!-- Tab Navigation -->
       <div class="bg-white rounded-lg shadow-sm mb-6">
-        <div class="border-b border-light-gray">
-          <nav class="-mb-px flex overflow-x-auto scrollbar-hide px-3" aria-label="Tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                activeTab === tab.id
-                  ? 'border-raspberry-500 text-raspberry-700'
-                  : 'border-transparent text-neutral-500 hover:text-horizon-500 hover:border-horizon-300',
-                'whitespace-nowrap py-3 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors flex-shrink-0',
-              ]"
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
-        </div>
-
         <!-- Tab Content -->
         <div class="p-6">
           <!-- Loading State -->
