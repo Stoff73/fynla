@@ -102,7 +102,7 @@
               </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div class="text-sm font-medium text-neutral-500 mb-1">Will Last Updated</div>
                 <p class="text-sm text-horizon-500">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
@@ -118,6 +118,28 @@
                 <div class="text-sm font-medium text-neutral-500 mb-1">{{ form.executors.filter(e => e.trim()).length > 1 ? 'Executors' : 'Executor' }}</div>
                 <p v-for="(executor, i) in form.executors.filter(e => e.trim())" :key="i" class="text-sm text-horizon-500">{{ executor }}</p>
                 <p v-if="!form.executors.some(e => e.trim())" class="text-sm text-horizon-500">Not specified</p>
+              </div>
+            </div>
+
+            <!-- Will Document Details (from Will Builder) -->
+            <div v-if="willDocument" class="border-t border-light-gray pt-4 space-y-3">
+              <div v-if="willDocument.residuary_estate && willDocument.residuary_estate.length > 0">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Residuary Estate Beneficiaries</div>
+                <div v-for="(ben, i) in willDocument.residuary_estate" :key="i" class="text-sm text-horizon-500">
+                  {{ ben.name || 'Unnamed' }} — {{ ben.percentage }}%
+                  <span v-if="ben.substitute" class="text-neutral-500">(if predeceased: {{ ben.substitute }})</span>
+                </div>
+              </div>
+              <div v-if="willDocument.specific_gifts && willDocument.specific_gifts.length > 0">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Specific Gifts</div>
+                <div v-for="(gift, i) in willDocument.specific_gifts" :key="i" class="text-sm text-horizon-500">
+                  {{ gift.type === 'cash' ? formatCurrency(gift.amount) : gift.description }} to {{ gift.recipient }}
+                </div>
+              </div>
+              <div v-if="willDocument.funeral_preference">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Funeral Wishes</div>
+                <p class="text-sm text-horizon-500 capitalize">{{ willDocument.funeral_preference }}</p>
+                <p v-if="willDocument.funeral_wishes_notes" class="text-sm text-neutral-500 mt-1">{{ willDocument.funeral_wishes_notes }}</p>
               </div>
             </div>
 
@@ -438,6 +460,7 @@ export default {
       saving: false,
       isEditing: this.startInEditMode,
       will: null,
+      willDocument: null,
       form: {
         has_will: null,
         will_last_updated: '',
@@ -548,6 +571,16 @@ export default {
           executor_notes: this.will.executor_notes || '',
         };
         this.originalForm = JSON.parse(JSON.stringify(this.form));
+
+        // Load full WillDocument if exists (created via Will Builder)
+        if (this.will.will_document_id) {
+          try {
+            const docResponse = await api.get(`/estate/will-builder/${this.will.will_document_id}`);
+            this.willDocument = docResponse.data?.data || null;
+          } catch {
+            // Will document not available — that's OK
+          }
+        }
       } catch (error) {
         console.error('Failed to load will:', error);
         this.errorMessage = 'Failed to load will details';
