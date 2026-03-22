@@ -1,6 +1,6 @@
 # Deployment Guide — 21 March 2026
 
-**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch)**
+**STATUS: DEPLOYED (income fix) | NOT YET DEPLOYED (goals/what-if) | NOT YET DEPLOYED (AI form fill — on `aiFormFill` branch) | NOT YET DEPLOYED (sidebar revert)**
 
 ## Rebuild Required?
 
@@ -325,6 +325,19 @@ resources/css/app.css (modified — .ai-fill-highlight class)
 ```
 
 See `currentFormFillState.md` for full file list and current status.
+
+---
+
+## Sidebar Revert (branch: `sidebarRevert`)
+
+Removed journey-based sidebar filtering. All menu items now always visible under their section headings regardless of life stage. Keeps all new items (Liabilities, Personal Valuables, Power of Attorney, Will, Business, etc.) and the stage badge/progress bar.
+
+### Frontend Files Modified
+```
+resources/js/components/SideMenu.vue (removed isPrimaryItem/isSectionVisible/Explore section filtering)
+```
+
+No PHP changes, no migrations. Rebuild required.
 
 ---
 
