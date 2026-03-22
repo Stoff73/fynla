@@ -2,14 +2,6 @@
   <AppLayout>
     <div class="estate-dashboard py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Estate Planning</h1>
-        <p class="text-neutral-500">
-          Plan your estate with Inheritance Tax calculations, gifting strategies, and trust planning
-        </p>
-      </div>
-
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>

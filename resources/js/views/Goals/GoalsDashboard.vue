@@ -2,14 +2,6 @@
   <AppLayout>
     <div class="goals-dashboard py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Goals & Life Events</h1>
-          <p class="text-neutral-500">
-            Set financial goals, track your progress, and stay on track to achieve what matters most
-          </p>
-        </div>
-
         <!-- Info Banner -->
         <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-start">

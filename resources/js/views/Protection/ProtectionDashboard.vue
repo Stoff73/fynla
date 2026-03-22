@@ -2,14 +2,6 @@
   <AppLayout>
     <div class="protection-dashboard py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="mb-6 sm:mb-8">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Protection Planning</h1>
-        <p class="text-neutral-500">
-          Analyse your protection coverage and identify gaps in your insurance portfolio
-        </p>
-      </div>
-
       <!-- Profile Completeness Alert -->
       <ProfileCompletenessAlert
         v-if="profileCompleteness && !loadingCompleteness"
