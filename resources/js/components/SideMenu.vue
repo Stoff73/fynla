@@ -100,10 +100,11 @@
         </SideMenuSection>
 
         <!-- Finances -->
-        <SideMenuSection v-if="isSectionVisible(['investments', 'retirement', 'property', 'chattels', 'risk-profile', 'business'])" label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
+        <SideMenuSection v-if="isSectionVisible(['investments', 'retirement', 'property', 'liabilities', 'chattels', 'risk-profile', 'business'])" label="Finances" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('finances')" @toggle="toggleSection('finances')">
           <SideMenuItem v-if="isPrimaryItem('investments')" icon="trending-up" label="Investments" to="/net-worth/investments" :collapsed="effectiveCollapsed" :active="isInvestmentsActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isPrimaryItem('retirement')" icon="clock" label="Retirement" to="/net-worth/retirement" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/retirement')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isPrimaryItem('property')" icon="home-modern" label="Property" to="/net-worth/property" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/property')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
+          <SideMenuItem v-if="isPrimaryItem('liabilities')" icon="credit-card" label="Liabilities" to="/net-worth/liabilities" :collapsed="effectiveCollapsed" :active="isLiabilitiesActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isPrimaryItem('chattels')" icon="cube" label="Personal Valuables" to="/net-worth/chattels" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/chattels')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isPrimaryItem('risk-profile')" icon="chart-pie" label="Risk Profile" to="/risk-profile" :collapsed="effectiveCollapsed" :active="isActive('/risk-profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem v-if="isPrimaryItem('business')" icon="briefcase" label="Business" to="/net-worth/business" :collapsed="effectiveCollapsed" :active="isActive('/net-worth/business')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -240,6 +241,7 @@ const SIDEBAR_ITEMS = {
   'plans':         { icon: 'clipboard-list',   label: 'Plans',              to: '/plans' },
   'business':      { icon: 'briefcase',        label: 'Business',           to: '/net-worth/business' },
   'trusts':        { icon: 'building-library', label: 'Trusts',             to: '/trusts' },
+  'liabilities':     { icon: 'credit-card',      label: 'Liabilities',        to: '/net-worth/liabilities' },
   'chattels':        { icon: 'cube',             label: 'Personal Valuables', to: '/net-worth/chattels' },
   'letter':          { icon: 'envelope',         label: 'Expression of Wishes', to: { path: '/valuable-info', query: { section: 'letter' } } },
   'power-of-attorney': { icon: 'key',            label: 'Power of Attorney',  to: '/estate/power-of-attorney' },
@@ -374,6 +376,7 @@ export default {
       if (path.startsWith('/net-worth/cash')) return false;
       if (path.startsWith('/net-worth/chattels')) return false;
       if (path.startsWith('/net-worth/property')) return false;
+      if (path.startsWith('/net-worth/liabilities')) return false;
       return true;
     });
 
@@ -385,6 +388,11 @@ export default {
              path.startsWith('/net-worth/tax-efficiency') ||
              path.startsWith('/net-worth/holdings-detail') ||
              path.startsWith('/net-worth/fees-detail');
+    });
+
+    // Liabilities active
+    const isLiabilitiesActive = computed(() => {
+      return currentPath.value.startsWith('/net-worth/liabilities');
     });
 
     // Estate active for /estate routes (but not LPA or will-builder sub-paths)
@@ -435,6 +443,7 @@ export default {
         case 'plans':         return isActive('/plans');
         case 'business':      return isActive('/net-worth/business');
         case 'trusts':        return isActive('/trusts');
+        case 'liabilities':   return isLiabilitiesActive.value;
         case 'chattels':      return isActive('/net-worth/chattels');
         default:              return false;
       }
@@ -537,6 +546,7 @@ export default {
       if (isInvestmentsActive.value ||
           path.startsWith('/net-worth/retirement') ||
           path.startsWith('/net-worth/property') ||
+          path.startsWith('/net-worth/liabilities') ||
           path.startsWith('/net-worth/chattels') ||
           path.startsWith('/risk-profile') ||
           path.startsWith('/net-worth/business')) {
@@ -677,6 +687,7 @@ export default {
       isActive,
       isNetWorthActive,
       isInvestmentsActive,
+      isLiabilitiesActive,
       isEstateActive,
       isWillBuilderActive,
       isLpaActive,

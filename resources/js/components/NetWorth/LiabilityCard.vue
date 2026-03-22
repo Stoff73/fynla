@@ -1,5 +1,5 @@
 <template>
-  <div class="liability-card" @click="$emit('click')">
+  <div class="liability-card" :class="{ 'is-external': isExternalSource }" @click="handleClick">
     <div class="card-header">
       <div class="header-left">
         <span class="liability-type-badge" :class="typeClass">
@@ -9,10 +9,17 @@
           Priority Debt
         </span>
       </div>
+      <span v-if="isExternalSource" class="external-badge">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+        {{ sourceLabel }}
+      </span>
     </div>
 
     <div class="card-content">
       <h3 class="liability-name">{{ liability.liability_name || 'Unnamed' }}</h3>
+      <p v-if="liability.notes && isExternalSource" class="text-xs text-neutral-500 mt-0.5">{{ liability.notes }}</p>
 
       <div class="liability-details">
         <div class="detail-row">
@@ -25,9 +32,22 @@
         </div>
         <div v-if="liability.interest_rate !== null && liability.interest_rate !== undefined" class="detail-row">
           <span class="detail-label">Interest Rate</span>
-          <span class="detail-value">{{ formatPercentage(liability.interest_rate / 100) }}</span>
+          <span class="detail-value">{{ formatPercentage(liability.interest_rate) }}</span>
         </div>
       </div>
+
+      <!-- Link to source module for external liabilities -->
+      <router-link
+        v-if="isExternalSource"
+        :to="sourceRoute"
+        class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+        @click.stop
+      >
+        Edit in {{ sourceLabel }}
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </router-link>
     </div>
   </div>
 </template>
@@ -49,8 +69,27 @@ export default {
   emits: ['click'],
 
   computed: {
+    isExternalSource() {
+      return !!this.liability.source;
+    },
+
+    sourceLabel() {
+      const labels = {
+        property_module: 'Property',
+      };
+      return labels[this.liability.source] || 'Other Module';
+    },
+
+    sourceRoute() {
+      if (this.liability.source === 'property_module') {
+        return '/net-worth/property';
+      }
+      return '/net-worth/wealth-summary';
+    },
+
     liabilityTypeLabel() {
       const labels = {
+        mortgage: 'Mortgage',
         secured_loan: 'Secured Loan',
         personal_loan: 'Personal Loan',
         credit_card: 'Credit Card',
@@ -67,6 +106,14 @@ export default {
       return `type-${this.liability.liability_type}`;
     },
   },
+
+  methods: {
+    handleClick() {
+      if (!this.isExternalSource) {
+        this.$emit('click');
+      }
+    },
+  },
 };
 </script>
 
@@ -81,10 +128,27 @@ export default {
   transition: all 0.2s;
 }
 
-.liability-card:hover {
+.liability-card:not(.is-external):hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   @apply border-raspberry-500;
+}
+
+.liability-card.is-external {
+  cursor: default;
+  @apply bg-savannah-50;
+}
+
+.external-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  @apply bg-horizon-100;
+  @apply text-horizon-600;
 }
 
 .card-header {
@@ -156,6 +220,11 @@ export default {
 .type-other {
   @apply bg-savannah-100;
   @apply text-neutral-500;
+}
+
+.type-mortgage {
+  @apply bg-horizon-100;
+  @apply text-horizon-700;
 }
 
 .card-content {

@@ -25,7 +25,7 @@ class StoreFamilyMemberRequest extends FormRequest
         $maxAge105 = now()->subYears(105)->format('Y-m-d');
 
         return [
-            'relationship' => ['sometimes', Rule::in(['spouse', 'child', 'step_child', 'parent', 'other_dependent'])],
+            'relationship' => ['sometimes', Rule::in(['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'])],
             'email' => ['nullable', 'email', 'max:255'],
             'name' => ['nullable', 'string', 'max:255'], // Optional - constructed from name parts
             'first_name' => ['sometimes', 'string', 'max:255'],

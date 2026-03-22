@@ -97,8 +97,42 @@
         </p>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.goals" />
     </div>
+
+    <!-- Skip confirmation modal -->
+    <Teleport to="body">
+      <div v-if="showSkipConfirm" class="fixed inset-0 bg-horizon-600/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-horizon-500">Skip setting a goal?</h3>
+              <p class="text-sm text-neutral-500 mt-1">Setting a financial goal helps us tailor your plan and track your progress. You can always add goals later from your dashboard.</p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
+              @click="showSkipConfirm = false"
+            >
+              Go Back
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors"
+              @click="showSkipConfirm = false; $emit('skip')"
+            >
+              Skip Anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </OnboardingStep>
 </template>
 
@@ -169,9 +203,12 @@ export default {
       custom: 'Other',
     };
 
+    const showSkipConfirm = ref(false);
+
     const handleNext = async () => {
+      // If no goal entered, show skip confirmation
       if (!formData.value.goal_type) {
-        error.value = 'Please select a goal type';
+        showSkipConfirm.value = true;
         return;
       }
 
@@ -240,6 +277,7 @@ export default {
       today,
       monthsRemaining,
       monthlyContribution,
+      showSkipConfirm,
       handleNext,
       handleBack,
       handleSkip,

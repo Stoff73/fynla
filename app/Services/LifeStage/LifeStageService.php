@@ -22,19 +22,8 @@ class LifeStageService
             throw new \InvalidArgumentException("Invalid life stage: {$stage}");
         }
 
-        // Set life stage and focus area. The focus area maps life stages to
-        // existing enum values used in onboarding_progress tracking.
-        $focusAreaMap = [
-            'university' => 'budgeting',
-            'early_career' => 'goals',
-            'mid_career' => 'family',
-            'peak' => 'investment',
-            'retirement' => 'estate',
-        ];
-
         $user->update([
             'life_stage' => $stage,
-            'onboarding_focus_area' => $focusAreaMap[$stage] ?? 'goals',
         ]);
     }
 

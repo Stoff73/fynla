@@ -1,8 +1,9 @@
 # AI Form Fill — Current State Assessment
 
-**Date:** 21 March 2026 (updated end of session)
-**Branch:** `aiFormFill` (22 commits ahead of main)
-**Status:** Savings, investments, protection, pensions, and liabilities working end-to-end. Cross-page navigation working with chat persistence. Tool descriptions and system prompt updated so AI uses correct tools for all entity types.
+**Date:** 22 March 2026
+**AI Form Fill Branch:** `aiFormFill` — MERGED to main (PR #156, 24 commits)
+**Onboarding Branch:** `onboardingUpdates` (49 commits, in progress)
+**Status:** AI form fill: savings, investments, protection, pensions, liabilities working. Onboarding: journey resumption, clickable steps, multiple executors, will overview, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field asterisks, pension access age, mobile scroll anchoring, leasehold expiry date calc, expenditure in all journeys, £0.00 display fix, will builder save/resume/completion with success modal, will dashboard shows full document details, View Will button, liabilities dashboard with sidebar nav and mortgage integration, liabilities onboarding step in journeys 3 and 4.
 
 ---
 

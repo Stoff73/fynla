@@ -20,7 +20,7 @@
             <!-- Relationship -->
             <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'relationship' }">
               <label for="relationship" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Relationship
+                Relationship <span class="text-raspberry-500">*</span>
               </label>
               <select
                 id="relationship"
@@ -28,7 +28,8 @@
                 class="input-field"
               >
                 <option value="">Select relationship</option>
-                <option value="spouse">Spouse</option>
+                <option v-if="isMarriedOrCivilPartnership" value="spouse">Spouse</option>
+                <option v-if="!isMarriedOrCivilPartnership" value="partner">Partner</option>
                 <option value="child">Child</option>
                 <option value="step_child">Step Child</option>
                 <option value="parent">Parent</option>
@@ -40,12 +41,15 @@
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-blue-600">
                 Please ensure details are correct — once added, this linked account can only be edited or deleted by logging into the spouse's account.
               </p>
+              <p v-if="form.relationship === 'partner'" class="mt-1 text-body-xs text-violet-600">
+                A partner is not a legally recognised relationship for UK tax purposes. Unmarried partners cannot share tax allowances, transfer the nil rate band for Inheritance Tax, or benefit from the spouse exemption. Consider seeking legal advice about your financial arrangements.
+              </p>
             </div>
 
-            <!-- Email (only for spouse) -->
-            <div v-if="form.relationship === 'spouse'">
+            <!-- Email (for spouse or partner — account will be created/linked) -->
+            <div v-if="form.relationship === 'spouse' || form.relationship === 'partner'">
               <label for="email" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Email Address
+                Email Address <span class="text-raspberry-500">*</span>
               </label>
               <input
                 id="email"
@@ -64,7 +68,7 @@
               <!-- First Name -->
               <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'first_name' }">
                 <label for="first_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  First Name
+                  First Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="first_name"
@@ -90,7 +94,7 @@
               <!-- Last Name -->
               <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'last_name' }">
                 <label for="last_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  Last Name
+                  Last Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="last_name"
@@ -277,6 +281,15 @@ export default {
     const errorMessage = ref('');
 
     const isEditing = computed(() => !!props.member);
+
+    // User's marital status determines whether "Spouse" option is available
+    const userMaritalStatus = computed(() => {
+      return store.getters['auth/user']?.marital_status || null;
+    });
+
+    const isMarriedOrCivilPartnership = computed(() => {
+      return userMaritalStatus.value === 'married';
+    });
 
     // AI Form Fill state
     const pendingFill = computed(() => store.state.aiFormFill?.pendingFill);
@@ -488,6 +501,7 @@ export default {
     return {
       form,
       isEditing,
+      isMarriedOrCivilPartnership,
       submitting,
       errorMessage,
       minDob,

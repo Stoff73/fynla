@@ -62,7 +62,7 @@ class OnboardingController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'focus_area' => $user->onboarding_focus_area,
+                    'focus_area' => $user->life_stage,
                     'current_step' => $user->onboarding_current_step,
                     'started_at' => $user->onboarding_started_at?->toISOString(),
                 ],
@@ -244,7 +244,7 @@ class OnboardingController extends Controller
                 'success' => true,
                 'data' => [
                     'onboarding_completed' => $user->onboarding_completed,
-                    'focus_area' => $user->onboarding_focus_area,
+                    'focus_area' => $user->life_stage,
                 ],
                 'message' => 'Onboarding restarted successfully',
             ]);
@@ -280,15 +280,15 @@ class OnboardingController extends Controller
         try {
             $user = $request->user();
 
-            if (! $user->onboarding_focus_area) {
+            if (! $user->life_stage) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Focus area not set',
+                    'message' => 'Life stage not set',
                 ], 400);
             }
 
             $steps = $this->onboardingService->getOnboardingSteps(
-                $user->onboarding_focus_area,
+                $user->life_stage,
                 $user->id
             );
 
@@ -312,15 +312,15 @@ class OnboardingController extends Controller
         try {
             $user = $request->user();
 
-            if (! $user->onboarding_focus_area) {
+            if (! $user->life_stage) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Focus area not set',
+                    'message' => 'Life stage not set',
                 ], 400);
             }
 
             $reason = $this->onboardingService->getSkipReasonText(
-                $user->onboarding_focus_area,
+                $user->life_stage,
                 $step
             );
 

@@ -66,13 +66,14 @@ class EstateController extends Controller
                 'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
                 'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
                 'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
-                'notes' => ucfirst($mortgage->mortgage_type ?? 'repayment').' mortgage',
+                'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
             ];
         });
 
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
+        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
 
         // Pull investment accounts and categorize for IHT
         $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->limit(100)->get();
@@ -116,6 +117,12 @@ class EstateController extends Controller
                 'gifts' => GiftResource::collection($gifts),
                 'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,
+                'will_info' => $will ? [
+                    'has_will' => (bool) $will->has_will,
+                    'executor_name' => $will->executor_name,
+                    'will_last_updated' => $will->will_last_updated,
+                    'last_reviewed_date' => $will->last_reviewed_date,
+                ] : null,
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'estate'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate'), null, report: true),
             ],

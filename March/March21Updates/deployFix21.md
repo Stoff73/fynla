@@ -170,7 +170,117 @@ php artisan migrate && php artisan db:seed && php artisan cache:clear && php art
 - System prompt instructs Fyn to answer from knowledge with a caveat instead of showing errors
 - Never retries the same failing tool, never mentions technical issues to the user
 
-## AI Form Fill (branch: `aiFormFill` — NOT YET MERGED)
+## AI Form Fill — MERGED (PR #156)
+
+See `currentFormFillState.md` for full details. Remaining entity type testing in `fynTest.md`.
+
+## Onboarding Updates (branch: `onboardingUpdates`)
+
+**49 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators, pension access age, mobile scroll anchoring, leasehold expiry date, expenditure step in all journeys, £0.00 display fix, will builder save/resume/completion, will dashboard document details, View Will button, liabilities dashboard with sidebar nav, liabilities onboarding step in journeys 3 and 4, onboarding top nav bar.
+
+### What Changed
+
+**Onboarding Journey:**
+- Replaced legacy `onboarding_focus_area` with `life_stage` as single source of truth
+- All step progress saves, skip, dashboard skip, step queries now use `life_stage`
+- Removed "Focus area not set" errors for life stage mode users
+- Changed `focus_area` DB column from enum to varchar (enum didn't include life stage values)
+- Dashboard refreshes journey completeness on every mount (was stale after onboarding/Fyn data entry)
+- Clickable step indicators in onboarding progress bar — users can jump to any step
+
+**Will Planning:**
+- Multiple executors support — "+ Add executor" button with remove option in both onboarding and estate will views
+- Stored as comma-separated string in existing `executor_name` column
+- Will sidebar link now shows WillPlanning overview when user has a will, Will Builder when they don't
+- Estate data API now returns `will_info` so dashboard recognises existing wills
+- "Build Your Will" banner hidden when user already has a will record
+
+**Will Builder:**
+- Draft save/resume — builder resumes at the correct step based on which fields have data (`findResumeStep()`)
+- Success modal — Teleport modal appears after completing the Review step with options to view signing instructions or return to estate planning
+- Will dashboard now loads and displays full WillDocument data: residuary estate beneficiaries, specific gifts, funeral wishes, executors
+- `markComplete()` syncs executor names from WillDocument JSON to Will record
+- "View Will" button on will dashboard links to `/estate/will-builder?view=document` — shows completed will in builder review mode with Print/Edit buttons
+- Fixed beneficiary name display (`ben.beneficiary_name` not `ben.name`)
+- Route query watcher reloads data when `?view=document` is added/removed
+
+**Goals & Forms:**
+- Goals step: clicking Continue without a goal shows skip confirmation modal ("Go Back" / "Skip Anyway") instead of validation error
+- Assets step: switching tabs closes any open forms (was leaving forms open across tabs)
+- Savings form: NS&I products (Premium Bonds, NS&I Savings) hide irrelevant fields (interest rate, access type, checkboxes, account number)
+- Useful Resources moved from inside step forms to own sidebar card below Learning Milestones (12 step files updated)
+- Useful Resources card styled white with shadow to match sidebar cards
+- Family member form: red asterisks on required fields (Relationship, Email, First Name, Last Name)
+- DC pension form: Planned Access Age field for SIPP/personal/stakeholder pensions (min 55, defaults from user profile retirement age, stored per-pension for individual accumulation/decumulation calcs)
+- Onboarding: scroll to top on step and tab changes (mobile stacked layout fix)
+- Property form: leasehold now asks for expiry date, calculates and displays remaining years automatically (removed manual remaining years input)
+- Expenditure step added to all 5 life stage journeys with tailored learning milestones
+- Expenditure inputs: fixed £0.00 display — all fields now show £0 consistently (parseFloat on API data load, displayValue normalisation on input components)
+
+**Liabilities Dashboard:**
+- New sidebar navigation item with credit card icon under Finances section
+- Dashboard shows all liabilities: user-created (personal loans, credit cards, etc.) and mortgages from Property module
+- Mortgage cards display "Property" source badge, mortgage type description, and "Edit in Property" link — not clickable for detail/edit
+- User-created liabilities can be added, edited, and deleted directly from the dashboard
+- Info banner explains mortgages are managed in Property and shown here for a complete view
+- Filter dropdown includes Mortgages option alongside all other liability types
+- Fixed interest rate display across LiabilityCard and LiabilityDetailInline — was dividing by 100 erroneously (showed 0.07% instead of 6.50%)
+- Fixed mortgage type notes — replaced underscores with spaces ("Interest only" not "Interest_only")
+- Added `liabilities` to explore section of all 5 life stage sidebar configs
+- Liabilities onboarding step ("Debts") added to Journey 3 (Protecting What Matters) and Journey 4 (Planning Your Future) — appears after Assets with tailored learning milestones
+- Top navigation bar added to onboarding wizard — Fynla logo (left), "Your Journey" heading (centred), Exit link (right) so users know they are still in the app
+
+### Database Migration
+```bash
+php artisan migrate
+```
+- `2026_03_21_214000_change_focus_area_to_varchar` — changes `onboarding_progress.focus_area` and `users.onboarding_focus_area` from enum to varchar(50)
+
+### PHP Files Modified
+```
+app/Services/Onboarding/OnboardingService.php
+app/Http/Controllers/Api/OnboardingController.php
+app/Services/LifeStage/LifeStageService.php
+app/Services/Onboarding/JourneyStateService.php
+app/Http/Controllers/Api/EstateController.php (will_info in estate data response, mortgage notes underscore fix)
+app/Services/Estate/WillDocumentService.php (markComplete syncs executor names to Will record)
+```
+
+### Frontend Files Modified
+```
+resources/js/views/Dashboard.vue (refreshCompleteness on mount)
+resources/js/components/Onboarding/OnboardingWizard.vue (clickable step indicators)
+resources/js/components/Onboarding/steps/WillInfoStep.vue (multiple executors)
+resources/js/components/Onboarding/steps/GoalSetupStep.vue (skip confirmation modal instead of error)
+resources/js/components/Onboarding/steps/AssetsStep.vue (close forms on tab switch)
+resources/js/components/Estate/WillPlanning.vue (multiple executors)
+resources/js/views/Estate/WillBuilderView.vue (show WillPlanning when user has will)
+resources/js/store/modules/estate.js (read will_info from estate data)
+resources/js/components/Savings/SaveAccountModal.vue (hide NS&I irrelevant fields)
+resources/js/components/Onboarding/UsefulResources.vue (white bg, moved to sidebar)
+resources/js/components/UserProfile/FamilyMemberFormModal.vue (required field asterisks)
+resources/js/components/Retirement/DCPensionForm.vue (pension access age field)
+resources/js/components/NetWorth/Property/PropertyForm.vue (leasehold expiry date, auto-calc remaining years)
+resources/js/constants/lifeStageConfig.js (expenditure step + milestones for all stages)
+resources/js/components/UserProfile/ExpenditureCategoryCard.vue (displayValue normalisation)
+resources/js/components/UserProfile/ExpenditureForm.vue (parseFloat on data load)
+resources/js/components/Shared/CurrencyInputField.vue (displayValue normalisation)
+resources/js/components/Estate/WillBuilder/WillBuilderWizard.vue (findResumeStep, success modal)
+resources/js/views/Estate/WillBuilderView.vue (route query watcher, WillPlanning vs Builder logic)
+resources/js/components/Estate/WillPlanning.vue (load WillDocument, display beneficiaries/gifts/funeral, View Will button)
+resources/js/components/SideMenu.vue (liabilities nav item, isLiabilitiesActive, Finances section)
+resources/js/components/SideMenuIcon.vue (credit-card icon)
+resources/js/components/NetWorth/LiabilityCard.vue (external source badge, mortgage styling, Edit in Property link, interest rate fix)
+resources/js/components/NetWorth/LiabilitiesList.vue (mortgage filter, info banner, hasMortgageLiabilities)
+resources/js/components/NetWorth/LiabilityDetailInline.vue (interest rate display fix)
+resources/js/constants/lifeStageConfig.js (liabilities in all 5 stage explore sections + onboarding step in journeys 3 & 4)
+resources/js/components/Onboarding/OnboardingWizard.vue (liabilities step wiring, top nav bar)
++ 12 onboarding step files (removed inline UsefulResources)
+```
+
+---
+
+## AI Form Fill Detail (merged to main via PR #156)
 
 **Status:** Savings, investments, protection, pensions, and liabilities browser-verified working. Cross-page navigation with chat persistence. System prompt updated with explicit tool mapping for all entity types.
 

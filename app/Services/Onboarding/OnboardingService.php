@@ -26,7 +26,7 @@ class OnboardingService
 
         $status = [
             'onboarding_completed' => $user->onboarding_completed,
-            'focus_area' => $user->onboarding_focus_area,
+            'focus_area' => $user->life_stage,
             'current_step' => $user->onboarding_current_step,
             'skipped_steps' => $skippedSteps,
             'has_skipped_steps' => ! empty($skippedSteps),
@@ -41,7 +41,7 @@ class OnboardingService
             'asset_flags' => $user->onboarding_asset_flags,
         ];
 
-        if ($user->onboarding_focus_area) {
+        if ($user->life_stage) {
             $progress = $this->calculateProgress($userId);
             $status['progress_percentage'] = $progress['percentage'];
             $status['total_steps'] = $progress['total'];
@@ -59,6 +59,7 @@ class OnboardingService
         $user = User::findOrFail($userId);
 
         $user->update([
+            'life_stage' => $focusArea,
             'onboarding_focus_area' => $focusArea,
             'onboarding_started_at' => $user->onboarding_started_at ?? Carbon::now(),
             'onboarding_current_step' => $this->getFirstStep($focusArea),
@@ -90,8 +91,8 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
-            throw new \Exception('Focus area not set');
+        if (! $user->life_stage) {
+            throw new \Exception('Life stage not set');
         }
 
         // Process step-specific data to save to actual database tables
@@ -101,7 +102,7 @@ class OnboardingService
         $progress = OnboardingProgress::updateOrCreate(
             [
                 'user_id' => $userId,
-                'focus_area' => $user->onboarding_focus_area,
+                'focus_area' => $user->life_stage,
                 'step_name' => $stepName,
             ],
             [
@@ -937,15 +938,15 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
-            throw new \Exception('Focus area not set');
+        if (! $user->life_stage) {
+            throw new \Exception('Life stage not set');
         }
 
         // Create or update progress record
         $progress = OnboardingProgress::updateOrCreate(
             [
                 'user_id' => $userId,
-                'focus_area' => $user->onboarding_focus_area,
+                'focus_area' => $user->life_stage,
                 'step_name' => $stepName,
             ],
             [
@@ -977,16 +978,16 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
-            throw new \Exception('Focus area not set');
+        if (! $user->life_stage) {
+            throw new \Exception('Life stage not set');
         }
 
-        $steps = $this->getOnboardingSteps($user->onboarding_focus_area, $userId);
+        $steps = $this->getOnboardingSteps($user->life_stage, $userId);
         $skippedSteps = $user->onboarding_skipped_steps ?? [];
 
         // Get completed step names from progress records
         $completedStepNames = OnboardingProgress::where('user_id', $userId)
-            ->where('focus_area', $user->onboarding_focus_area)
+            ->where('focus_area', $user->life_stage)
             ->where('completed', true)
             ->pluck('step_name')
             ->toArray();
@@ -1007,7 +1008,7 @@ class OnboardingService
                 OnboardingProgress::updateOrCreate(
                     [
                         'user_id' => $userId,
-                        'focus_area' => $user->onboarding_focus_area,
+                        'focus_area' => $user->life_stage,
                         'step_name' => $stepName,
                     ],
                     [
@@ -1086,6 +1087,7 @@ class OnboardingService
             // Reset user onboarding fields
             $user->update([
                 'onboarding_completed' => false,
+                'life_stage' => null,
                 'onboarding_focus_area' => null,
                 'onboarding_current_step' => null,
                 'onboarding_skipped_steps' => null,
@@ -1104,7 +1106,7 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
+        if (! $user->life_stage) {
             return [
                 'percentage' => 0,
                 'total' => 0,
@@ -1112,11 +1114,11 @@ class OnboardingService
             ];
         }
 
-        $steps = $this->getOnboardingSteps($user->onboarding_focus_area, $userId);
+        $steps = $this->getOnboardingSteps($user->life_stage, $userId);
         $totalSteps = count($steps);
 
         $completedSteps = OnboardingProgress::where('user_id', $userId)
-            ->where('focus_area', $user->onboarding_focus_area)
+            ->where('focus_area', $user->life_stage)
             ->where(function ($query) {
                 $query->where('completed', true)
                     ->orWhere('skipped', true);
@@ -1159,11 +1161,11 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
+        if (! $user->life_stage) {
             return null;
         }
 
-        if ($user->onboarding_focus_area === 'estate') {
+        if ($user->life_stage === 'estate') {
             $userData = $this->getUserDataArray($user);
 
             return $this->estateFlow->getNextStep($currentStep, $userData);
@@ -1179,11 +1181,11 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
+        if (! $user->life_stage) {
             return null;
         }
 
-        if ($user->onboarding_focus_area === 'estate') {
+        if ($user->life_stage === 'estate') {
             $userData = $this->getUserDataArray($user);
 
             return $this->estateFlow->getPreviousStep($currentStep, $userData);
@@ -1199,11 +1201,11 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
+        if (! $user->life_stage) {
             return false;
         }
 
-        if ($user->onboarding_focus_area === 'estate') {
+        if ($user->life_stage === 'estate') {
             $userData = $this->getUserDataArray($user);
 
             return $this->estateFlow->shouldShowStep($stepName, $userData);
@@ -1231,12 +1233,12 @@ class OnboardingService
     {
         $user = User::findOrFail($userId);
 
-        if (! $user->onboarding_focus_area) {
+        if (! $user->life_stage) {
             return null;
         }
 
         $progress = OnboardingProgress::where('user_id', $userId)
-            ->where('focus_area', $user->onboarding_focus_area)
+            ->where('focus_area', $user->life_stage)
             ->where('step_name', $stepName)
             ->first();
 
@@ -1373,7 +1375,7 @@ class OnboardingService
 
         // Add step data from onboarding progress
         $progressRecords = OnboardingProgress::where('user_id', $user->id)
-            ->where('focus_area', $user->onboarding_focus_area)
+            ->where('focus_area', $user->life_stage)
             ->get();
 
         foreach ($progressRecords as $progress) {

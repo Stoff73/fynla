@@ -63,7 +63,7 @@
           <div class="bg-savannah-100 rounded-lg p-4">
             <p class="text-sm text-neutral-500">Interest Rate</p>
             <p class="text-2xl font-bold text-horizon-500">
-              {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate / 100) : 'Not set' }}
+              {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate) : 'Not set' }}
             </p>
           </div>
         </div>
@@ -107,7 +107,7 @@
                   <div class="flex justify-between">
                     <dt class="text-sm text-neutral-500">Interest Rate</dt>
                     <dd class="text-sm font-medium text-horizon-500">
-                      {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate / 100) : 'Not recorded' }}
+                      {{ liability.interest_rate !== null && liability.interest_rate !== undefined ? formatPercentage(liability.interest_rate) : 'Not recorded' }}
                     </dd>
                   </div>
                   <div class="flex justify-between">

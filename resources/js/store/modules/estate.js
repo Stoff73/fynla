@@ -247,6 +247,9 @@ const actions = {
             commit('setIHTProfile', response.data.iht_profile);
             commit('setLifeEvents', response.data.life_events || []);
             commit('setLifeEventImpact', response.data.life_event_impact || null);
+            if (response.data.will_info) {
+                commit('setWillInfo', response.data.will_info);
+            }
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch estate data';

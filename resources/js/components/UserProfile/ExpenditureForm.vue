@@ -2210,7 +2210,7 @@ export default {
 
         const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
-          formData.value[field.key] = props.initialData[field.key] || 0;
+          formData.value[field.key] = parseFloat(props.initialData[field.key]) || 0;
         });
 
         // Restore persisted budget overrides
@@ -2223,10 +2223,10 @@ export default {
       }
 
       if (props.spouseData) {
-        spouseSimpleMonthlyExpenditure.value = props.spouseData.monthly_expenditure || 0;
+        spouseSimpleMonthlyExpenditure.value = parseFloat(props.spouseData.monthly_expenditure) || 0;
         const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
         allFields.forEach(field => {
-          spouseFormData.value[field.key] = props.spouseData[field.key] || 0;
+          spouseFormData.value[field.key] = parseFloat(props.spouseData[field.key]) || 0;
         });
       }
     };

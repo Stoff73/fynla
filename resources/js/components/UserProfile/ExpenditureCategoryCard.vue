@@ -10,7 +10,7 @@
             <input
               v-if="showUserInput"
               :id="fieldId(field.key)"
-              :value="modelValue[field.key]"
+              :value="displayValue(modelValue[field.key])"
               @input="updateValue(field.key, $event)"
               type="number"
               min="0"
@@ -21,7 +21,7 @@
             <input
               v-else
               :id="'spouse_' + field.key"
-              :value="spouseModelValue[field.key]"
+              :value="displayValue(spouseModelValue[field.key])"
               @input="updateSpouseValue(field.key, $event)"
               type="number"
               min="0"
@@ -92,6 +92,12 @@ export default {
   methods: {
     fieldId(key) {
       return this.showUserInput ? key : `spouse_${key}`;
+    },
+
+    displayValue(val) {
+      const num = parseFloat(val) || 0;
+      // Show whole numbers without decimals (0 not 0.00, 150 not 150.00)
+      return num % 1 === 0 ? Math.round(num) : num;
     },
 
     updateValue(key, event) {

@@ -1,5 +1,26 @@
 <template>
-  <div class="min-h-screen bg-eggshell-500 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-eggshell-500">
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white border-b border-light-gray">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <router-link to="/dashboard" class="flex-shrink-0">
+          <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="h-10" />
+        </router-link>
+        <h1 class="text-base font-bold text-horizon-500 absolute left-1/2 -translate-x-1/2">Your Journey</h1>
+        <router-link
+          to="/dashboard"
+          class="text-sm text-neutral-500 hover:text-horizon-500 transition-colors flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span class="hidden sm:inline">Exit</span>
+        </router-link>
+      </div>
+    </div>
+
+    <div class="py-8 px-4 sm:px-6 lg:px-8">
 
     <!-- ================================================================== -->
     <!-- LIFE STAGE MODE: Progress bar, two-column layout, learning sidebar -->
@@ -13,7 +34,8 @@
               <div
                 v-for="(stepId, index) in lifeStageSteps"
                 :key="stepId"
-                class="flex-1 flex flex-col items-center relative min-w-[80px]"
+                class="flex-1 flex flex-col items-center relative min-w-[80px] cursor-pointer"
+                @click="goToStep(index)"
               >
                 <!-- Step Circle -->
                 <div
@@ -126,14 +148,18 @@
             </div>
           </div>
 
-          <!-- Right Column: Learning Sidebar (desktop) -->
+          <!-- Right Column: Learning Sidebar + Useful Resources (desktop) -->
           <div class="w-full lg:w-[340px] flex-shrink-0">
-            <div class="lg:sticky lg:top-8">
+            <div class="lg:sticky lg:top-8 space-y-4">
               <LearningMilestoneSidebar
                 :step="lifeStageCurrentStepId"
                 :stage="currentLifeStage"
                 :override="sidebarOverride"
                 class="rounded-lg shadow-sm border border-light-gray"
+              />
+              <UsefulResources
+                v-if="currentStepResources && currentStepResources.length"
+                :links="currentStepResources"
               />
             </div>
           </div>
@@ -314,6 +340,7 @@
       @continue="showSkipToDashboardModal = false"
       @skip-to-dashboard="handleSkipToDashboard"
     />
+    </div>
   </div>
 </template>
 
@@ -347,6 +374,8 @@ import AssetsStep from './steps/AssetsStep.vue';
 import LiabilitiesStep from './steps/LiabilitiesStep.vue';
 import FamilyInfoStep from './steps/FamilyInfoStep.vue';
 import WillInfoStep from './steps/WillInfoStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
@@ -364,12 +393,32 @@ const STEP_COMPONENTS = {
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'expenditure': () => import('@/components/Onboarding/steps/ExpenditureStep.vue'),
   'assets': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'liabilities': () => import('@/components/Onboarding/steps/LiabilitiesStep.vue'),
   'protection-insurance': () => import('@/components/Onboarding/steps/ProtectionPoliciesStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
+};
+
+// Step ID → STEP_RESOURCES key mapping for the sidebar useful resources card
+const STEP_RESOURCE_MAP = {
+  'personal-info': 'personalInfo',
+  'student-loan': 'studentLoan',
+  'income': 'income',
+  'income-career': 'income',
+  'income-tax': 'income',
+  'expenditure': 'expenditure',
+  'assets': 'assetsCash',
+  'goals': 'goals',
+  'family': 'family',
+  'protection-insurance': 'protection',
+  'liabilities': 'liabilities',
+  'domicile': 'domicile',
+  'will-estate': 'will',
+  'estate-iht': 'will',
+  'estate-legacy': 'will',
 };
 
 // Step label map for the progress bar
@@ -381,6 +430,7 @@ const STEP_LABELS = {
   'income-tax': 'Income',
   'expenditure': 'Spending',
   'assets': 'Assets',
+  'liabilities': 'Debts',
   'goals': 'Goals',
   'family': 'Family',
   'protection-insurance': 'Protection',
@@ -397,6 +447,7 @@ export default {
     ConfirmDialog,
     SkipToDashboardModal,
     LearningMilestoneSidebar,
+    UsefulResources,
     JourneyMap,
     PersonalInfoStep,
     IncomeStep,
@@ -468,13 +519,21 @@ export default {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
     });
 
+    // Useful resources for the current step (shown in sidebar card)
+    const currentStepResources = computed(() => {
+      const stepId = lifeStageCurrentStepId.value;
+      if (!stepId) return null;
+      const resourceKey = STEP_RESOURCE_MAP[stepId];
+      return resourceKey ? (STEP_RESOURCES[resourceKey] || null) : null;
+    });
+
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
       'personal-info', 'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals', 'assets', 'protection-insurance',
+      'goals', 'assets', 'liabilities', 'protection-insurance',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -622,6 +681,11 @@ export default {
       return 'bg-raspberry-300'; // skipped
     };
 
+    // Scroll to top when step changes (important on mobile where cards stack)
+    watch(lifeStageCurrentIndex, () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
 
@@ -666,6 +730,11 @@ export default {
       if (lifeStageCurrentIndex.value > 0) {
         lifeStageCurrentIndex.value -= 1;
       }
+    };
+
+    const goToStep = (index) => {
+      sidebarOverride.value = null;
+      lifeStageCurrentIndex.value = index;
     };
 
     const handleLifeStageSkip = async () => {
@@ -1260,6 +1329,7 @@ export default {
       lifeStageCurrentComponent,
       savedStepData,
       sidebarOverride,
+      currentStepResources,
       stageColour,
       stageColourClasses,
       getLifeStageStepStatus,
@@ -1271,6 +1341,7 @@ export default {
       getLifeStageConnectingLineClass,
       handleLifeStageNext,
       handleLifeStageBack,
+      goToStep,
       handleLifeStageSkip,
       handleLifeStageStepSave,
 

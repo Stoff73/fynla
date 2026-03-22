@@ -350,11 +350,18 @@ class WillDocumentService
             ['has_will' => true]
         );
 
+        // Build executor name string from WillDocument executors JSON
+        $executorNames = collect($doc->executors ?? [])
+            ->pluck('name')
+            ->filter()
+            ->implode(', ');
+
         $will->update([
             'has_will' => true,
             'will_last_updated' => now(),
             'last_reviewed_date' => now(),
             'will_document_id' => $doc->id,
+            'executor_name' => $executorNames ?: null,
         ]);
 
         $doc->update(['will_id' => $will->id]);

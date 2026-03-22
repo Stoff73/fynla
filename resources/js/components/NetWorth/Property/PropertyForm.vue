@@ -273,26 +273,6 @@
               <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
 
               <div>
-                <label for="lease_remaining_years" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Remaining Lease Term (Years)
-                </label>
-                <input
-                  id="lease_remaining_years"
-                  v-model.number="form.lease_remaining_years"
-                  type="number"
-                  min="1"
-                  max="999"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                />
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-violet-600 mt-1">
-                  ⚠️ Properties with less than 80 years remaining may be difficult to mortgage
-                </p>
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 60" class="text-xs text-raspberry-600 mt-1">
-                  ⚠️ Properties with less than 60 years remaining may significantly lose value
-                </p>
-              </div>
-
-              <div>
                 <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">
                   Lease Expiry Date
                 </label>
@@ -300,8 +280,21 @@
                   id="lease_expiry_date"
                   v-model="form.lease_expiry_date"
                   type="date"
+                  :min="today"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
+              </div>
+
+              <div v-if="leaseRemainingYears !== null" class="space-y-1">
+                <p class="text-sm text-horizon-500">
+                  Remaining lease: <strong>{{ leaseRemainingYears }} years</strong>
+                </p>
+                <p v-if="leaseRemainingYears < 80" class="text-xs text-violet-600">
+                  Properties with less than 80 years remaining may be difficult to mortgage
+                </p>
+                <p v-if="leaseRemainingYears < 60" class="text-xs text-raspberry-600">
+                  Properties with less than 60 years remaining may significantly lose value
+                </p>
               </div>
             </div>
 
@@ -1428,6 +1421,18 @@ export default {
       return this.property !== null;
     },
 
+    today() {
+      return new Date().toISOString().split('T')[0];
+    },
+
+    leaseRemainingYears() {
+      if (!this.form.lease_expiry_date) return null;
+      const expiry = new Date(this.form.lease_expiry_date);
+      const now = new Date();
+      const years = Math.floor((expiry - now) / (365.25 * 24 * 60 * 60 * 1000));
+      return years > 0 ? years : 0;
+    },
+
     spouse() {
       return this.$store.getters['userProfile/spouse'];
     },
@@ -2017,6 +2022,11 @@ export default {
         if (cleanedMortgage.variable_rate_percentage === '') cleanedMortgage.variable_rate_percentage = null;
         if (cleanedMortgage.fixed_interest_rate === '') cleanedMortgage.fixed_interest_rate = null;
         if (cleanedMortgage.variable_interest_rate === '') cleanedMortgage.variable_interest_rate = null;
+      }
+
+      // Calculate lease remaining years from expiry date before saving
+      if (this.form.tenure_type === 'leasehold' && this.leaseRemainingYears !== null) {
+        this.form.lease_remaining_years = this.leaseRemainingYears;
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)

@@ -16,6 +16,7 @@
         <div class="list-controls">
           <select v-model="filterType" class="filter-select">
             <option value="all">All Types</option>
+            <option value="mortgage">Mortgages</option>
             <option value="student_loan">Student Loans</option>
             <option value="personal_loan">Personal Loans</option>
             <option value="secured_loan">Secured Loans</option>
@@ -32,6 +33,14 @@
             Add Liability
           </button>
         </div>
+      </div>
+
+      <!-- Info banner when external liabilities exist -->
+      <div v-if="!loading && hasMortgageLiabilities" class="info-banner">
+        <svg class="w-4 h-4 flex-shrink-0 text-horizon-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="text-sm text-neutral-500">Mortgages are managed in <router-link to="/net-worth/property" class="text-raspberry-500 hover:text-raspberry-600 font-medium">Property</router-link> and shown here for a complete view of your liabilities.</span>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -173,6 +182,10 @@ export default {
     totalMonthlyPayments() {
       return this.filteredLiabilities.reduce((sum, l) => sum + parseFloat(l.monthly_payment || 0), 0);
     },
+
+    hasMortgageLiabilities() {
+      return this.liabilities.some(l => l.source === 'property_module');
+    },
   },
 
   watch: {
@@ -214,7 +227,7 @@ export default {
 
     applyRouteFilter() {
       const filter = this.$route.query.filter;
-      if (filter && ['student_loan', 'personal_loan', 'secured_loan', 'business_loan', 'hire_purchase', 'credit_card', 'overdraft', 'other'].includes(filter)) {
+      if (filter && ['mortgage', 'student_loan', 'personal_loan', 'secured_loan', 'business_loan', 'hire_purchase', 'credit_card', 'overdraft', 'other'].includes(filter)) {
         this.filterType = filter;
       }
     },
@@ -384,6 +397,17 @@ export default {
   font-size: 18px;
   font-weight: 700;
   @apply text-horizon-500;
+}
+
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  @apply bg-savannah-50;
+  @apply border border-savannah-200;
 }
 
 /* States */
