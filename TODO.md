@@ -1,140 +1,75 @@
 # TODO — Fynla
 
-*Last updated: 21 March 2026 — session 4 (income fix + goals/what-if + Fyn AI navigation + goals context + chat history fix)*
+*Last updated: 22 March 2026 — session (onboarding updates, liabilities dashboard, will builder fixes)*
 
 ## Completed This Session
 
-### Income Statement Fix (PR #147)
-- [x] Added Other Income to IncomeOccupation.vue (view, edit, form data, total, submit)
-- [x] Added `annual_other_income` to UserProfileService API response + tax calculation
-- [x] Added Interest, Pension, Trust income to PersonalAccountsService P&L and cashflow
-- [x] Replaced hardcoded frontend tax calculator with backend `UKTaxCalculator` using `TaxConfigService`
-- [x] All income line items hidden when zero in view mode
-- [x] All 20 PersonalAccountsService tests passing, 33/33 browser checks on production
+### Onboarding Updates (PR #157 — 50 commits, merged)
+- [x] Journey resumption — go to first incomplete step, not beginning
+- [x] Clickable step indicators in progress bar
+- [x] Replaced legacy `onboarding_focus_area` with `life_stage` (enum->varchar migration)
+- [x] Dashboard refreshes journey completeness on mount
+- [x] Multiple executors in will planning and onboarding
+- [x] Goals step: skip confirmation modal instead of validation error
+- [x] Assets step: close forms on tab switch
+- [x] NS&I: hide irrelevant fields (interest rate, access type, checkboxes)
+- [x] Useful resources moved to sidebar card below learning milestones
+- [x] Family member form: red asterisks on required fields
+- [x] DC pension: planned access age field for SIPP/personal pensions
+- [x] Scroll to top on step and tab changes (mobile fix)
+- [x] Property form: leasehold expiry date with auto-calculated remaining years
+- [x] Expenditure step added to all 5 life stage journeys
+- [x] Expenditure inputs: fixed display (parseFloat + displayValue normalisation)
+- [x] Partner vs Spouse based on marital status
+- [x] Family members card layout fix (no overlapping)
 
-### Goals Module Integration (PR #148)
-- [x] SavingsAgent: goal shortfall, emergency fund goal, life event cash buffer recommendations
-- [x] ProtectionAgent: goal commitments in coverage analysis with coverage note
-- [x] EstateAgent: goal liquidity risk flagged in analysis
-- [x] RetirementAgent: post-retirement goal detection
-- [x] AI `create_goal` tool: accepts `monthly_contribution` with affordability assessment
-- [x] GoalCard: inline contribution input with edit/save
-- [x] Goals banner: replaced "X goals need attention" with specific goal names + remaining amounts
-- [x] Chat icon hidden for preview/persona users
-- [x] 80 agent tests passing (12 new goal integration tests)
+### Will Builder
+- [x] Draft save/resume via findResumeStep()
+- [x] Success modal after Review step completion
+- [x] Will dashboard shows full WillDocument data (beneficiaries, gifts, funeral, executors)
+- [x] markComplete() syncs executor names from WillDocument JSON to Will record
+- [x] "View Will" button links to /estate/will-builder?view=document
+- [x] Fixed beneficiary name (ben.beneficiary_name not ben.name)
+- [x] Route query watcher for ?view=document
 
-### Life Events Expansion (PR #149)
-- [x] 5 new life event types: divorce, marriage, new_child, job_loss, income_change
-- [x] LifeEventIntegrationService: EVENT_MODULE_MAP + MODULE_CONTEXT for new types
-- [x] LifeEventMonteCarloObserver: extended cache invalidation for affected modules
-- [x] AI context enriched with per-module life event impact summaries
+### Liabilities Dashboard
+- [x] Sidebar nav item with credit card icon under Finances section
+- [x] Dashboard shows user liabilities + mortgages from Property module
+- [x] Mortgage cards: "Property" source badge, "Edit in Property" link, not clickable
+- [x] Info banner explaining mortgages are managed in Property
+- [x] Filter dropdown includes Mortgages option
+- [x] Fixed interest rate display (was dividing by 100 erroneously)
+- [x] Fixed mortgage notes underscore ("Interest only" not "Interest_only")
+- [x] Liabilities onboarding step ("Debts") in journeys 3 and 4
+- [x] Top navigation bar on onboarding wizard (Fynla logo, "Your Journey", Exit)
 
-### What-If Scenario System (PR #150, #151)
-- [x] Database: `what_if_scenarios` table (migration, model with SoftDeletes + Auditable, factory)
-- [x] WhatIfScenarioService: core comparison engine (transient user copies, Now vs What-If, deltas)
-- [x] API: 6 endpoints (CRUD + live comparison + count)
-- [x] AI tool: `create_what_if_scenario` replaces `run_what_if_scenario` (excluded for preview users)
-- [x] Frontend: WhatIfDashboard (card grid), WhatIfScenarioDetailView (dedicated detail page with back button)
-- [x] Vuex store + API service
-- [x] Router: `/planning/what-if` list, `/planning/what-if/:id` detail, death-of-spouse child route preserved
-- [x] AI auto-navigation: Fyn creates scenario → navigates to detail page
-- [x] Browser tested end-to-end: "What if I retire at 55?" → scenario created → detail page with AI narrative + module comparisons
+## Not Yet Deployed
 
-### Fyn AI Navigation Upgrade (PR #152)
-- [x] Query string parsing fixed: `handleNavigation()` properly parses `?section=income` for Vue Router
-- [x] Client router: added savings, retirement, sipp, life events, individual plans, help, security settings, planning assumptions
-- [x] AI tool definition: comprehensive categorised route list with legacy redirect warnings
-- [x] System prompt: always navigate first (never refuse), offer to help on empty modules
-- [x] Module dependency guidance: Fyn explains what estate/protection/retirement need from other modules
-- [x] All 37 sidebar-accessible pages mapped to zero-token client-side keyword matches
-- [x] Fixed "plan" keyword ambiguity (specific plans match before generic)
+All changes are on main branch but NOT deployed to production. Deploy guide at March/March21Updates/deployFix21.md.
 
-### Fyn AI Goals & Life Events Context (PR #153)
-- [x] Goals summary in financial context: all active goals with ID, name, progress, status, contribution, target date in prompt
-- [x] Life events in financial context: all upcoming events with ID, name, amount, months until, certainty in prompt
-- [x] New `list_goals` tool: lightweight goal listing with IDs (no full agent analysis needed)
-- [x] New `list_life_events` tool: lightweight event listing with IDs (no full agent analysis needed)
-- [x] PrerequisiteGateService: both new tools pass through without blocking
-- [x] Fyn can now reference goals/events by ID for updates and deletes without a prior tool call
-
-### Chat History Fix (PR #154)
-- [x] Root cause: history drawer only existed in the floating panel template, not the docked panel used by real users
-- [x] Added full history drawer to docked panel: conversation list with titles, relative times, delete buttons
-- [x] Browser tested: history opens, shows conversations, clicking loads full message history
-
-### Chat Scroll Anchor (PR #155)
-- [x] Chat now scrolls to top of Fyn's response instead of bottom
-- [x] User messages scroll to bottom (so user sees their message sent)
-- [x] During streaming: no auto-scroll (user reads at own pace)
-
-### Chat Scroll Anchor (PR #155)
-- [x] Chat now scrolls to top of Fyn's response instead of bottom
-- [x] User messages scroll to bottom (so user sees their message sent)
-- [x] During streaming: no auto-scroll (user reads at own pace)
-
-### Tool Error Handling (direct to main)
-- [x] Tool results with errors get `is_error: true` flag for the Anthropic API
-- [x] System prompt: never show errors to user, answer from knowledge with caveat instead
-- [x] No more "let me try that again" stuttering on tool failures
-
-### AI Form Fill — Spec + Plan Written
-- [x] Design spec: `docs/superpowers/specs/2026-03-21-ai-form-fill-design.md`
-- [x] Implementation plan: `docs/superpowers/plans/2026-03-21-ai-form-fill.md`
-- [ ] Implementation: scheduled for next session
-
-### Uploads from Previous Session (confirmed by user)
-- [x] `app/Observers/NetWorthCacheObserver.php`
-- [x] `app/Providers/EventServiceProvider.php`
-- [x] `app/Http/Controllers/Api/MortgageController.php`
-- [x] `app/Http/Controllers/Api/PropertyController.php`
-- [x] `composer dump-autoload` on server
-
-## Needs Deployment
-
-### Income Fix (build + PHP upload)
-- [ ] `app/Services/UserProfile/PersonalAccountsService.php`
-- [ ] `app/Services/UserProfile/UserProfileService.php`
-- [ ] Rebuild frontend and upload `public/build/`
-
-### Goals + Life Events + What-If + Fyn AI (build + PHP upload + migration)
-- [ ] Run migrations on server (`what_if_scenarios` table + life event enum extension)
-- [ ] Run `composer dump-autoload` on server (new model + service classes)
-- [ ] Rebuild frontend and upload `public/build/`
-- [ ] Upload PHP files (see deploy guide)
-- [ ] Seed: `php artisan db:seed` (to refresh preview data)
+### To Deploy
+- [ ] Run ./deploy/fynla-org/build.sh locally
+- [ ] Upload public/build/ to server
+- [ ] Upload changed PHP files (see deploy guide for full list)
+- [ ] Run migration: php artisan migrate (focus_area enum to varchar)
+- [ ] Run composer dump-autoload on server
+- [ ] Seed: php artisan db:seed
 - [ ] Clear caches on server
 
-## Known Issues
+## Known Issues (Carried Forward)
 - [ ] PropertyForm edit 422 — editing a property via the UI form returns 422 validation error
-- [ ] Goals page: Goals from onboarding not visible on dedicated Goals page (j1 testing)
 - [ ] Sidebar journey %: intermittently shows 0% on some pages (race condition)
-- [ ] What-If: delta colours need polish (IHT reduction should show spring not raspberry)
-- [ ] What-If: sidebar count badge not yet implemented
-- [ ] What-If: preview persona seeder for example scenarios not yet created
+- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow) — see fynTest.md
 
 ## Tech Debt
-- [ ] OnboardingWizard.vue: dynamic and static imports warning for 8 step components
-- [ ] PropertyForm sends empty strings for nullable fields — clean up before submission
-- [ ] `IncomeStatementTab.vue` is orphaned (never imported) — decide: wire into a view or delete
+- [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking, cosmetic)
+- [ ] LiabilitiesStep.vue: DEPRECATED comment — will be replaced by unified form with context="onboarding"
+- [ ] IncomeStatementTab.vue is orphaned (never imported) — decide: wire into a view or delete
 
 ## Context for Next Session
 
-Major upgrade completed across 10 PRs + direct commits. AI Form Fill spec and plan written for next session. The Goals & Life Events systems are now fully integrated into all module agents and Fyn's AI context. A full What-If Scenario System was built with AI-driven creation, persistent storage, living comparisons, and a clean card-grid → detail page UX pattern. Fyn AI navigation completely overhauled — all 37 sidebar pages reachable with zero tokens, query string parsing fixed, empty module behaviour improved. Fyn now has full goals and life events awareness at prompt time with IDs for direct updates/deletes.
+PR #157 merged 50 commits covering the full onboarding update batch. All changes on main but not deployed to production. The liabilities dashboard is complete with mortgage integration. Will builder is end-to-end functional. Onboarding now has 9 steps for journey 3 and 8 for journey 4 (with Debts step). Top nav bar gives users context during onboarding.
 
-**Design spec:** `docs/superpowers/specs/2026-03-21-goals-whatif-integration-design.md`
-**Plans:** `docs/superpowers/plans/2026-03-21-goals-module-integration.md`, `2026-03-21-life-events-expansion.md`, `2026-03-21-whatif-scenario-system.md`
-**Deploy guide:** `March/March21Updates/deployFix21.md`
-
-## PRs Merged This Session
-| PR | Branch | What |
-|----|--------|------|
-| #147 | incomeFix | Income: Other Income, hardcoded tax, zero-value cleanup |
-| #148 | goalsUpgrade | Goals integration: 4 agents, AI tool, GoalCard, chat icon |
-| #149 | lifeEventsExpansion | 5 new life event types, module cache, AI context |
-| #150 | whatIfScenarios | What-If: DB, service, API, AI tool, dashboard |
-| #151 | whatIfFixes | What-If: detail page, URL fixes, data flow |
-| #152 | fynAI | Fyn AI navigation: routes, query parsing, empty module behaviour |
-| #153 | fynGoals | Fyn goals/events: context in prompt, list tools, IDs |
-| #154 | fynChatHistoryFix | Chat history: drawer missing from docked panel |
-| #155 | fynScrollFix | Chat scroll: anchor to top of response |
-| — | main | Tool error handling: graceful fallback, no stuttering |
+Deploy guide: March/March21Updates/deployFix21.md
+AI form fill state: March/March21Updates/currentFormFillState.md
+AI form fill testing: March/March21Updates/fynTest.md
