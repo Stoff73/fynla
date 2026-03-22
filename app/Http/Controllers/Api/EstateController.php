@@ -73,7 +73,7 @@ class EstateController extends Controller
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
-        $will = \App\Models\Will::where('user_id', $user->id)->first();
+        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
 
         // Pull investment accounts and categorize for IHT
         $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->limit(100)->get();
