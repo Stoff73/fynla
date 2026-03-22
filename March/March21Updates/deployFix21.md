@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**13 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors.
+**17 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding.
 
 ### What Changed
 
@@ -194,6 +194,11 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Will sidebar link now shows WillPlanning overview when user has a will, Will Builder when they don't
 - Estate data API now returns `will_info` so dashboard recognises existing wills
 - "Build Your Will" banner hidden when user already has a will record
+
+**Goals & Forms:**
+- Goals step: clicking Continue without a goal shows skip confirmation modal ("Go Back" / "Skip Anyway") instead of validation error
+- Assets step: switching tabs closes any open forms (was leaving forms open across tabs)
+- Savings form: NS&I products (Premium Bonds, NS&I Savings) hide irrelevant fields (interest rate, access type, checkboxes, account number)
 
 ### Database Migration
 ```bash
@@ -215,9 +220,12 @@ app/Http/Controllers/Api/EstateController.php (will_info in estate data response
 resources/js/views/Dashboard.vue (refreshCompleteness on mount)
 resources/js/components/Onboarding/OnboardingWizard.vue (clickable step indicators)
 resources/js/components/Onboarding/steps/WillInfoStep.vue (multiple executors)
+resources/js/components/Onboarding/steps/GoalSetupStep.vue (skip confirmation modal instead of error)
+resources/js/components/Onboarding/steps/AssetsStep.vue (close forms on tab switch)
 resources/js/components/Estate/WillPlanning.vue (multiple executors)
 resources/js/views/Estate/WillBuilderView.vue (show WillPlanning when user has will)
 resources/js/store/modules/estate.js (read will_info from estate data)
+resources/js/components/Savings/SaveAccountModal.vue (hide NS&I irrelevant fields)
 ```
 
 ---
