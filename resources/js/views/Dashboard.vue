@@ -818,8 +818,6 @@
           </div>
         </DashboardCard>
 
-        <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
-
         <!-- Goals projection chart (spans 2 columns) -->
         <DashboardCard
           v-if="currentStage && isCardVisible('goals')"

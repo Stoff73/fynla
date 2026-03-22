@@ -260,7 +260,6 @@ export default {
         { prefix: '/settings', label: 'Settings' },
         { prefix: '/help', label: 'Help' },
         { prefix: '/admin', label: 'Admin Panel' },
-        { prefix: '/uk-taxes', label: 'UK Taxes' },
         { prefix: '/savings', label: 'Savings' },
         { prefix: '/onboarding', label: 'Setup' },
         { prefix: '/dashboard', label: 'Dashboard' },

@@ -86,17 +86,15 @@ describe('Admin User Authentication', function () {
 
 describe('Admin-Only Routes Protection', function () {
     it('prevents unauthenticated user from accessing admin routes', function () {
-        // Try to access an admin route without authentication
-        $response = $this->getJson('/api/uk-taxes');
+        $response = $this->getJson('/api/admin/users');
 
-        // Should get 401 Unauthorized (from auth:sanctum middleware)
         $response->assertStatus(401);
     });
 
     it('returns 403 forbidden for regular user accessing admin routes', function () {
         Sanctum::actingAs($this->regularUser);
 
-        $response = $this->getJson('/api/uk-taxes');
+        $response = $this->getJson('/api/admin/users');
 
         $response->assertStatus(403)
             ->assertJson([
@@ -107,12 +105,8 @@ describe('Admin-Only Routes Protection', function () {
     it('allows admin user to access admin routes', function () {
         Sanctum::actingAs($this->adminUser);
 
-        // Note: This will fail with 404 if the route doesn't exist yet
-        // If UK Taxes routes are not yet implemented, this test will fail
-        // For now, we're just testing that the middleware doesn't block admin access
-        $response = $this->getJson('/api/uk-taxes');
+        $response = $this->getJson('/api/admin/users');
 
-        // Should not get 403 Forbidden (middleware passes)
         expect($response->status())->not->toBe(403);
     });
 });

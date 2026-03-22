@@ -159,7 +159,6 @@
         <!-- Admin (conditional) -->
         <SideMenuSection v-if="isAdmin" label="Admin" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('adminPanel')" @toggle="toggleSection('adminPanel')">
           <SideMenuItem icon="shield-exclamation" label="Admin Panel" to="/admin" :collapsed="effectiveCollapsed" :active="isActive('/admin')" @navigate="closeMobile" />
-          <SideMenuItem icon="calculator" label="UK Taxes" to="/uk-taxes" :collapsed="effectiveCollapsed" :active="isActive('/uk-taxes')" @navigate="closeMobile" />
         </SideMenuSection>
       </div>
 
@@ -429,7 +428,7 @@ export default {
       if (path.startsWith('/advisor')) {
         return 'advisorPanel';
       }
-      if (path.startsWith('/admin') || path.startsWith('/uk-taxes')) {
+      if (path.startsWith('/admin')) {
         return 'adminPanel';
       }
       return null;

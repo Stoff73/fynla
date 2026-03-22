@@ -64,7 +64,6 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
-use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
@@ -995,11 +994,6 @@ Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
     // Planning Assumptions
     Route::get('/assumptions', [AssumptionsController::class, 'index']);
     Route::put('/assumptions/{type}', [AssumptionsController::class, 'update']);
-});
-
-// UK Taxes & Allowances routes (requires tax config permission)
-Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('uk-taxes')->group(function () {
-    Route::get('/', [UKTaxesController::class, 'index']);
 });
 
 // Admin Panel routes (RBAC-protected)
