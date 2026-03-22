@@ -14,12 +14,12 @@ A comprehensive financial planning web application designed for UK individuals a
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 589 |
-| PHP Services | 210 |
-| PHP Controllers | 88 |
-| Eloquent Models | 88 |
+| Vue Components | 586 |
+| PHP Services | 212 |
+| PHP Controllers | 90 |
+| Eloquent Models | 89 |
 | API Endpoints | 550+ |
-| Vuex Store Modules | 29 |
+| Vuex Store Modules | 31 |
 | Agents | 9 |
 | Test Cases | 1,603+ |
 
