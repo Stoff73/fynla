@@ -176,7 +176,7 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 
 ## Onboarding Updates (branch: `onboardingUpdates`)
 
-**17 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding.
+**21 commits.** Browser verified: onboarding journey resumption, clickable steps, will planning, multiple executors, goals skip modal, asset tab form closing, NS&I field hiding, useful resources sidebar card, required field indicators.
 
 ### What Changed
 
@@ -199,6 +199,9 @@ See `currentFormFillState.md` for full details. Remaining entity type testing in
 - Goals step: clicking Continue without a goal shows skip confirmation modal ("Go Back" / "Skip Anyway") instead of validation error
 - Assets step: switching tabs closes any open forms (was leaving forms open across tabs)
 - Savings form: NS&I products (Premium Bonds, NS&I Savings) hide irrelevant fields (interest rate, access type, checkboxes, account number)
+- Useful Resources moved from inside step forms to own sidebar card below Learning Milestones (12 step files updated)
+- Useful Resources card styled white with shadow to match sidebar cards
+- Family member form: red asterisks on required fields (Relationship, Email, First Name, Last Name)
 
 ### Database Migration
 ```bash
@@ -226,6 +229,9 @@ resources/js/components/Estate/WillPlanning.vue (multiple executors)
 resources/js/views/Estate/WillBuilderView.vue (show WillPlanning when user has will)
 resources/js/store/modules/estate.js (read will_info from estate data)
 resources/js/components/Savings/SaveAccountModal.vue (hide NS&I irrelevant fields)
+resources/js/components/Onboarding/UsefulResources.vue (white bg, moved to sidebar)
+resources/js/components/UserProfile/FamilyMemberFormModal.vue (required field asterisks)
++ 12 onboarding step files (removed inline UsefulResources)
 ```
 
 ---
