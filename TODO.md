@@ -44,14 +44,44 @@ All changes from PRs #148-#158 are on main but NOT deployed to production. Full 
 - [ ] IncomeStatementTab.vue is orphaned (never imported) — decide: wire into a view or delete
 - [ ] lifeStageConfig.js: sidebar.primary and sidebar.explore arrays still present but unused (kept intentionally in case filtering is re-enabled)
 
-## Future Work
-- [ ] OpenAI migration — implement the spec at docs/superpowers/specs/2026-03-22-openai-agent-sdk-migration-design.md (6 files, curl-based, no new dependencies)
-- [ ] OpenAI SDK guardrails — investigate input/output guardrails for regulatory compliance
+## Grok AI Migration (branch: grokAI)
+
+**Status:** Phase 0-1-3 complete. Phases 2, 4, 5, 6 remaining.
+**Plan:** March/March23Updates/grokMigrationPlan-v2.md
+**Status doc:** March/March23Updates/grokMigrationStatus.md
+
+### Completed
+- [x] Phase 0: Security hardening (deployed to production)
+- [x] Phase 1: Foundation — openai-php/client installed, XaiClient, config, feature flag
+- [x] Phase 3: Streaming chat — dual-provider HasAiChat (Anthropic + xAI), browser tested
+
+### Next Session Tasks
+- [ ] Phase 2: Document extraction — update AIExtractionService (URL, auth, format)
+- [ ] Phase 4: Python sidecar replacement — create XaiDeepAnalysisService (PHP-native tool loop)
+- [ ] Phase 5: Cleanup — remove Anthropic SDK, delete Python scripts, update legal text
+- [ ] Phase 6: Full testing with XAI_API_KEY — streaming, tools, documents, all personas
+- [ ] Get xAI API key from https://console.x.ai
+- [ ] Test with AI_PROVIDER=xai locally before deploying
+
+## Known Issues (Carried Forward)
+- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow) — see fynTest.md
+
+## Tech Debt
+- [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking, cosmetic)
+- [ ] LiabilitiesStep.vue: DEPRECATED comment — will be replaced by unified form with context="onboarding"
+- [ ] IncomeStatementTab.vue is orphaned (never imported) — decide: wire into a view or delete
+- [ ] lifeStageConfig.js: sidebar.primary and sidebar.explore arrays still present but unused (kept intentionally in case filtering is re-enabled)
+- [ ] WARN-002: Security sessions API returns 500 on /api/auth/sessions
+- [ ] WARN-003: Vue error on holistic-plan page: "Cannot read properties of undefined"
 
 ## Context for Next Session
 
-PR #158 merged with sidebar, info guide, suggested goals, and UK Taxes cleanup. All on main, not deployed. Build is ready (ran twice today). The OpenAI migration spec is drafted but the user clarified the approach: just swap the API call in HasAiChat.php using PHP curl, no Python subprocess needed. 6 files to change. Model: gpt-5-nano-2025-08-07.
+Session 23 March: Fixed 4 bugs (property edit 422, investment edit 422, dashboard card filtering, sidebar 0% flash). Full system test on production (28 pages, 14 forms, 30 Fyn nav routes, new user registration). Started Grok AI migration — Phase 0 security hardening deployed, Phases 1 and 3 implemented on grokAI branch.
 
-Deploy guide: March/March22Updates/deployAll.md
-AI form fill state: March/March21Updates/currentFormFillState.md
-AI form fill testing: March/March21Updates/fynTest.md
+Key files:
+- Migration plan: March/March23Updates/grokMigrationPlan-v2.md
+- Migration status: March/March23Updates/grokMigrationStatus.md
+- Security hardening deploy: March/March23Updates/deploySecHard.md
+- Full test results: March/March23Updates/testResults.md
+- Form filling test: March/March23Updates/formFilling.md
+- Test protocol: March/March23Updates/testingProtocol.md
