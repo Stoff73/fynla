@@ -90,7 +90,7 @@ trait HasAiChat
         $toolCallsSummary = [];
         $messages = $messageHistory;
 
-        $isXai = config('services.ai_provider') === 'xai';
+        $isXai = $this->getAiProvider() === 'xai';
 
         // For xAI: prepend system prompt as first message and wrap tools in OpenAI format
         $xaiTools = [];

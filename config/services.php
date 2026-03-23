@@ -54,7 +54,9 @@ return [
     ],
 
     // Active AI provider: 'anthropic' or 'xai'
+    // Runtime override via admin panel stored in cache; falls back to .env
     'ai_provider' => env('AI_PROVIDER', 'anthropic'),
+    'ai_provider_runtime' => true, // Flag to check cache at runtime
 
     'getaddress' => [
         'api_key' => env('GETADDRESS_API_KEY', ''),

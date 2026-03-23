@@ -97,7 +97,7 @@ class AIExtractionService
             $extraction = DocumentExtraction::create([
                 'document_id' => $document->id,
                 'extraction_version' => $version,
-                'model_used' => $response['model'] ?? (config('services.ai_provider') === 'xai'
+                'model_used' => $response['model'] ?? (\Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
                     ? config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning')
                     : self::ANTHROPIC_MODEL),
                 'input_tokens' => $response['usage']['input_tokens'] ?? null,
@@ -159,7 +159,7 @@ class AIExtractionService
      */
     private function callClaudeAPI(string $base64, string $mediaType, string $prompt): array
     {
-        $isXai = config('services.ai_provider') === 'xai';
+        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
 
         // For images, resize if exceeds API limits
         $processedData = $base64;
@@ -280,7 +280,7 @@ class AIExtractionService
      */
     private function callClaudeAPIWithText(string $textContent, string $prompt): array
     {
-        $isXai = config('services.ai_provider') === 'xai';
+        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
         $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
 
         if ($isXai) {

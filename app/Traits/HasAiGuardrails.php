@@ -19,6 +19,14 @@ trait HasAiGuardrails
 
     private const DEFAULT_MODEL_XAI = 'grok-4-1-fast-reasoning';
 
+    /**
+     * Get the active AI provider, checking admin toggle (cache) first, then .env.
+     */
+    protected static function getAiProvider(): string
+    {
+        return \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+    }
+
     private const DAILY_TOKEN_LIMITS = [
         'preview' => 10_000,
         'student' => 50_000,
@@ -32,7 +40,7 @@ trait HasAiGuardrails
      */
     protected function getAiModel(User $user, string $complexity = 'standard'): string
     {
-        $provider = config('services.ai_provider', 'anthropic');
+        $provider = static::getAiProvider();
         $configKey = $provider === 'xai' ? 'services.xai' : 'services.anthropic';
         $defaultModel = $provider === 'xai' ? self::DEFAULT_MODEL_XAI : self::DEFAULT_MODEL_ANTHROPIC;
 
