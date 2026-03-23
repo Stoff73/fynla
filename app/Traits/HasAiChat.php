@@ -4,6 +4,17 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
+use App\Models\Property;
+use App\Models\User;
+use App\Constants\TaxDefaults;
+use App\Services\AI\XaiClient;
+use App\Services\PrerequisiteGateService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+// Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use Anthropic\Client as AnthropicClient;
 use Anthropic\Messages\InputJSONDelta;
 use Anthropic\Messages\RawContentBlockDeltaEvent;
@@ -14,14 +25,6 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
-use App\Models\AiConversation;
-use App\Models\AiMessage;
-use App\Models\Property;
-use App\Models\User;
-use App\Constants\TaxDefaults;
-use App\Services\PrerequisiteGateService;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Provides AI chat capabilities: streaming completion, prompt building,
@@ -29,7 +32,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Expects the using class to have:
  * - HasAiGuardrails trait
- * - $this->anthropicClient (AnthropicClient)
+ * - AnthropicClient or XaiClient resolved from container based on AI_PROVIDER config
  * - $this->prerequisiteGate (PrerequisiteGateService)
  * - $this->taxConfig (TaxConfigService)
  * - Module agent properties (protectionAgent, savingsAgent, etc.)
@@ -85,87 +88,198 @@ trait HasAiChat
         $totalInputTokens = 0;
         $totalOutputTokens = 0;
         $toolCallsSummary = [];
-
         $messages = $messageHistory;
 
+        $isXai = config('services.ai_provider') === 'xai';
+
+        // For xAI: prepend system prompt as first message and wrap tools in OpenAI format
+        $xaiTools = [];
+        if ($isXai && ! empty($tools)) {
+            $xaiTools = array_map(fn (array $tool) => [
+                'type' => 'function',
+                'function' => [
+                    'name' => $tool['name'],
+                    'description' => $tool['description'],
+                    'parameters' => $tool['parameters'] ?? $tool['input_schema'] ?? [],
+                ],
+            ], $tools);
+        }
+
         while (true) {
-            $currentTextBlock = '';
-            $currentToolUseBlock = null;
-            $accumulatedToolJson = '';
             $contentBlocks = [];
             $toolUseBlocks = [];
             $stopReason = 'end_turn';
-            $streamError = null;
 
             try {
-                $stream = $this->anthropicClient->messages->createStream(
-                    maxTokens: $maxTokens,
-                    messages: $messages,
-                    model: $model,
-                    system: [
-                        [
-                            'type' => 'text',
-                            'text' => $systemPrompt,
-                            'cache_control' => ['type' => 'ephemeral'],
-                        ],
-                    ],
-                    tools: ! empty($tools) ? $tools : null,
-                    toolChoice: ! empty($tools) ? ['type' => 'auto'] : null,
-                );
+                if ($isXai) {
+                    // ── xAI / OpenAI streaming ──────────────────────────────
+                    $xaiClient = app(XaiClient::class);
+                    $xaiMessages = array_merge(
+                        [['role' => 'system', 'content' => $systemPrompt]],
+                        $messages
+                    );
 
-                foreach ($stream as $event) {
-                    if ($event instanceof RawMessageStartEvent) {
-                        $totalInputTokens += $event->message->usage->inputTokens ?? 0;
-                    } elseif ($event instanceof RawContentBlockStartEvent) {
-                        if ($event->contentBlock instanceof TextBlock) {
-                            $currentTextBlock = '';
-                        } elseif ($event->contentBlock instanceof ToolUseBlock) {
-                            $currentToolUseBlock = [
-                                'type' => 'tool_use',
-                                'id' => $event->contentBlock->id,
-                                'name' => $event->contentBlock->name,
-                                'input' => [],
-                            ];
-                            $accumulatedToolJson = '';
-                        }
-                    } elseif ($event instanceof RawContentBlockDeltaEvent) {
-                        if ($event->delta instanceof TextDelta) {
-                            $text = $event->delta->text ?? '';
-                            if ($text !== '') {
-                                // Strip dangerous HTML tags from AI output to prevent XSS
+                    $params = [
+                        'model' => $model,
+                        'messages' => $xaiMessages,
+                        'max_tokens' => $maxTokens,
+                        'stream' => true,
+                    ];
+                    if (! empty($xaiTools)) {
+                        $params['tools'] = $xaiTools;
+                        $params['tool_choice'] = 'auto';
+                    }
+
+                    $stream = $xaiClient->chat()->createStreamed($params);
+
+                    $currentText = '';
+                    // Tool calls indexed by position (OpenAI streams tool_calls with index)
+                    $pendingToolCalls = [];
+
+                    foreach ($stream as $response) {
+                        $delta = $response->choices[0]->delta ?? null;
+                        $finishReason = $response->choices[0]->finishReason ?? null;
+
+                        if ($delta) {
+                            // Text content
+                            if (isset($delta->content) && $delta->content !== null && $delta->content !== '') {
+                                $text = $delta->content;
+                                // Strip dangerous HTML tags from AI output
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
                                 $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
-                                $currentTextBlock .= $text;
+                                $currentText .= $text;
                                 $fullResponse .= $text;
                                 yield ['type' => 'content', 'text' => $text];
                             }
-                        } elseif ($event->delta instanceof InputJSONDelta) {
-                            $accumulatedToolJson .= $event->delta->partialJSON ?? '';
-                        }
-                    } elseif ($event instanceof RawContentBlockStopEvent) {
-                        if ($currentToolUseBlock !== null) {
-                            if ($accumulatedToolJson !== '') {
-                                $parsed = json_decode($accumulatedToolJson, true);
-                                $currentToolUseBlock['input'] = is_array($parsed) ? $parsed : [];
+
+                            // Tool call deltas (OpenAI streams these with index)
+                            if (isset($delta->toolCalls)) {
+                                foreach ($delta->toolCalls as $toolCallDelta) {
+                                    $idx = $toolCallDelta->index;
+                                    if (! isset($pendingToolCalls[$idx])) {
+                                        $pendingToolCalls[$idx] = [
+                                            'id' => $toolCallDelta->id ?? '',
+                                            'name' => '',
+                                            'arguments' => '',
+                                        ];
+                                    }
+                                    if (isset($toolCallDelta->id) && $toolCallDelta->id) {
+                                        $pendingToolCalls[$idx]['id'] = $toolCallDelta->id;
+                                    }
+                                    if (isset($toolCallDelta->function->name) && $toolCallDelta->function->name) {
+                                        $pendingToolCalls[$idx]['name'] = $toolCallDelta->function->name;
+                                    }
+                                    if (isset($toolCallDelta->function->arguments)) {
+                                        $pendingToolCalls[$idx]['arguments'] .= $toolCallDelta->function->arguments;
+                                    }
+                                }
                             }
-                            $contentBlocks[] = $currentToolUseBlock;
-                            $toolUseBlocks[] = $currentToolUseBlock;
-                            $currentToolUseBlock = null;
-                            $accumulatedToolJson = '';
-                        } elseif ($currentTextBlock !== '') {
-                            $contentBlocks[] = [
-                                'type' => 'text',
-                                'text' => $currentTextBlock,
-                            ];
-                            $currentTextBlock = '';
                         }
-                    } elseif ($event instanceof RawMessageDeltaEvent) {
-                        $stopReason = $event->delta->stopReason ?? $stopReason;
-                        $totalOutputTokens += $event->usage->outputTokens ?? 0;
+
+                        if ($finishReason === 'tool_calls') {
+                            $stopReason = 'tool_use';
+                        } elseif ($finishReason === 'stop') {
+                            $stopReason = 'end_turn';
+                        }
+                    }
+
+                    // Track token usage from stream (may not be available in all streaming responses)
+                    if (isset($response->usage)) {
+                        $totalInputTokens += $response->usage->promptTokens ?? 0;
+                        $totalOutputTokens += $response->usage->completionTokens ?? 0;
+                    }
+
+                    // Build content blocks from accumulated text
+                    if ($currentText !== '') {
+                        $contentBlocks[] = ['type' => 'text', 'text' => $currentText];
+                    }
+
+                    // Build tool use blocks from accumulated tool calls
+                    foreach ($pendingToolCalls as $tc) {
+                        $parsed = json_decode($tc['arguments'], true);
+                        $toolBlock = [
+                            'type' => 'tool_use',
+                            'id' => $tc['id'],
+                            'name' => $tc['name'],
+                            'input' => is_array($parsed) ? $parsed : [],
+                        ];
+                        $contentBlocks[] = $toolBlock;
+                        $toolUseBlocks[] = $toolBlock;
+                    }
+
+                } else {
+                    // ── Anthropic streaming (legacy) ─────────────────────────
+                    $currentTextBlock = '';
+                    $currentToolUseBlock = null;
+                    $accumulatedToolJson = '';
+
+                    $anthropicClient = app(\Anthropic\Client::class);
+                    $stream = $anthropicClient->messages->createStream(
+                        maxTokens: $maxTokens,
+                        messages: $messages,
+                        model: $model,
+                        system: [
+                            [
+                                'type' => 'text',
+                                'text' => $systemPrompt,
+                                'cache_control' => ['type' => 'ephemeral'],
+                            ],
+                        ],
+                        tools: ! empty($tools) ? $tools : null,
+                        toolChoice: ! empty($tools) ? ['type' => 'auto'] : null,
+                    );
+
+                    foreach ($stream as $event) {
+                        if ($event instanceof RawMessageStartEvent) {
+                            $totalInputTokens += $event->message->usage->inputTokens ?? 0;
+                        } elseif ($event instanceof RawContentBlockStartEvent) {
+                            if ($event->contentBlock instanceof TextBlock) {
+                                $currentTextBlock = '';
+                            } elseif ($event->contentBlock instanceof ToolUseBlock) {
+                                $currentToolUseBlock = [
+                                    'type' => 'tool_use',
+                                    'id' => $event->contentBlock->id,
+                                    'name' => $event->contentBlock->name,
+                                    'input' => [],
+                                ];
+                                $accumulatedToolJson = '';
+                            }
+                        } elseif ($event instanceof RawContentBlockDeltaEvent) {
+                            if ($event->delta instanceof TextDelta) {
+                                $text = $event->delta->text ?? '';
+                                if ($text !== '') {
+                                    $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $text);
+                                    $text = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*\/?>/is', '', $text);
+                                    $currentTextBlock .= $text;
+                                    $fullResponse .= $text;
+                                    yield ['type' => 'content', 'text' => $text];
+                                }
+                            } elseif ($event->delta instanceof InputJSONDelta) {
+                                $accumulatedToolJson .= $event->delta->partialJSON ?? '';
+                            }
+                        } elseif ($event instanceof RawContentBlockStopEvent) {
+                            if ($currentToolUseBlock !== null) {
+                                if ($accumulatedToolJson !== '') {
+                                    $parsed = json_decode($accumulatedToolJson, true);
+                                    $currentToolUseBlock['input'] = is_array($parsed) ? $parsed : [];
+                                }
+                                $contentBlocks[] = $currentToolUseBlock;
+                                $toolUseBlocks[] = $currentToolUseBlock;
+                                $currentToolUseBlock = null;
+                                $accumulatedToolJson = '';
+                            } elseif ($currentTextBlock !== '') {
+                                $contentBlocks[] = ['type' => 'text', 'text' => $currentTextBlock];
+                                $currentTextBlock = '';
+                            }
+                        } elseif ($event instanceof RawMessageDeltaEvent) {
+                            $stopReason = $event->delta->stopReason ?? $stopReason;
+                            $totalOutputTokens += $event->usage->outputTokens ?? 0;
+                        }
                     }
                 }
             } catch (\Exception $e) {
-                Log::error('[CoordinatingAgent] Anthropic API streaming failed', [
+                $provider = $isXai ? 'xAI' : 'Anthropic';
+                Log::error("[CoordinatingAgent] {$provider} API streaming failed", [
                     'conversation_id' => $conversation->id,
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
@@ -177,16 +291,36 @@ trait HasAiChat
                 return;
             }
 
-            // Handle tool calls
+            // Handle tool calls (shared logic for both providers)
             $hasToolCalls = ! empty($toolUseBlocks);
 
             if ($hasToolCalls) {
-                $messages[] = [
-                    'role' => 'assistant',
-                    'content' => $contentBlocks,
-                ];
+                if ($isXai) {
+                    // OpenAI format: assistant message with tool_calls array
+                    $assistantToolCalls = array_map(fn ($tb) => [
+                        'id' => $tb['id'],
+                        'type' => 'function',
+                        'function' => [
+                            'name' => $tb['name'],
+                            'arguments' => json_encode($tb['input']),
+                        ],
+                    ], $toolUseBlocks);
 
-                $toolResultBlocks = [];
+                    $assistantMsg = ['role' => 'assistant'];
+                    if ($fullResponse !== '') {
+                        $assistantMsg['content'] = $fullResponse;
+                    }
+                    $assistantMsg['tool_calls'] = $assistantToolCalls;
+                    $messages[] = $assistantMsg;
+                } else {
+                    // Anthropic format: assistant message with content blocks
+                    $messages[] = [
+                        'role' => 'assistant',
+                        'content' => $contentBlocks,
+                    ];
+                }
+
+                $anthropicToolResultBlocks = [];
 
                 foreach ($toolUseBlocks as $toolUseBlock) {
                     $toolCallCount++;
@@ -199,7 +333,6 @@ trait HasAiChat
                         'status' => 'running',
                     ];
 
-                    // Execute the tool with prerequisite gate enforcement
                     $toolResult = $this->executeTool($functionName, $functionArgs, $user);
 
                     // Handle navigation results
@@ -211,7 +344,7 @@ trait HasAiChat
                         ];
                     }
 
-                    // Handle form fill results (AI fills form visually instead of saving directly)
+                    // Handle form fill results
                     if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
                         yield [
                             'type' => 'fill_form',
@@ -240,15 +373,27 @@ trait HasAiChat
                     ];
 
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
-                    $toolResultBlock = [
-                        'type' => 'tool_result',
-                        'tool_use_id' => $toolUseBlock['id'],
-                        'content' => json_encode($toolResult),
-                    ];
-                    if ($isToolError) {
-                        $toolResultBlock['is_error'] = true;
+                    $toolResultJson = json_encode($toolResult);
+
+                    if ($isXai) {
+                        // OpenAI format: each tool result is a separate message
+                        $messages[] = [
+                            'role' => 'tool',
+                            'tool_call_id' => $toolUseBlock['id'],
+                            'content' => $toolResultJson,
+                        ];
+                    } else {
+                        // Anthropic format: collect for single user message
+                        $block = [
+                            'type' => 'tool_result',
+                            'tool_use_id' => $toolUseBlock['id'],
+                            'content' => $toolResultJson,
+                        ];
+                        if ($isToolError) {
+                            $block['is_error'] = true;
+                        }
+                        $anthropicToolResultBlocks[] = $block;
                     }
-                    $toolResultBlocks[] = $toolResultBlock;
 
                     yield [
                         'type' => 'tool_use',
@@ -257,10 +402,13 @@ trait HasAiChat
                     ];
                 }
 
-                $messages[] = [
-                    'role' => 'user',
-                    'content' => $toolResultBlocks,
-                ];
+                // Anthropic: add all tool results as a single user message
+                if (! $isXai && ! empty($anthropicToolResultBlocks)) {
+                    $messages[] = [
+                        'role' => 'user',
+                        'content' => $anthropicToolResultBlocks,
+                    ];
+                }
             }
 
             if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {

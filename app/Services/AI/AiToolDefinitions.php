@@ -29,7 +29,15 @@ class AiToolDefinitions
             );
         }
 
-        // Convert each tool to Anthropic format: parameters → input_schema
+        // Return tools in native format (name, description, parameters)
+        // The HasAiChat trait handles provider-specific wrapping:
+        // - xAI/OpenAI: wraps in {type: "function", function: {name, description, parameters}}
+        // - Anthropic: converts parameters → input_schema
+        if (config('services.ai_provider') === 'xai') {
+            return $tools; // Already in the right shape for OpenAI wrapping
+        }
+
+        // Anthropic format: parameters → input_schema
         return array_map(fn (array $tool) => [
             'name' => $tool['name'],
             'description' => $tool['description'],
