@@ -33,7 +33,7 @@ class AiToolDefinitions
         // The HasAiChat trait handles provider-specific wrapping:
         // - xAI/OpenAI: wraps in {type: "function", function: {name, description, parameters}}
         // - Anthropic: converts parameters → input_schema
-        if (config('services.ai_provider') === 'xai') {
+        if (\Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai') {
             return $tools; // Already in the right shape for OpenAI wrapping
         }
 

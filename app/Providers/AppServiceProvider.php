@@ -18,14 +18,11 @@ class AppServiceProvider extends ServiceProvider
         // Request-scoped singleton for plan configuration (same pattern as TaxConfigService)
         $this->app->scoped(PlanConfigService::class);
 
-        // AI provider client singletons — register based on configured provider
-        $aiProvider = config('services.ai_provider', 'anthropic');
+        // Register both AI client singletons — runtime provider selection happens
+        // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
+        $this->app->singleton(\App\Services\AI\XaiClient::class);
 
-        if ($aiProvider === 'xai') {
-            // xAI Grok via OpenAI-compatible SDK
-            $this->app->singleton(\App\Services\AI\XaiClient::class);
-        } elseif (class_exists(\Anthropic\Client::class)) {
-            // Anthropic Claude SDK (legacy/fallback)
+        if (class_exists(\Anthropic\Client::class)) {
             $this->app->singleton(\Anthropic\Client::class, function () {
                 $apiKey = config('services.anthropic.api_key');
 

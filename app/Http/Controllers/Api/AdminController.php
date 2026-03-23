@@ -597,4 +597,70 @@ class AdminController extends Controller
             return null;
         }
     }
+
+    // ─── AI Provider Management ──────────────────────────────────────
+
+    /**
+     * Get current AI provider settings.
+     */
+    public function getAiProvider(): JsonResponse
+    {
+        $provider = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'provider' => $provider,
+                'available_providers' => [
+                    [
+                        'id' => 'anthropic',
+                        'name' => 'Anthropic Claude',
+                        'model' => config('services.anthropic.chat_model', 'claude-haiku-4-5-20251001'),
+                        'configured' => ! empty(config('services.anthropic.api_key')),
+                    ],
+                    [
+                        'id' => 'xai',
+                        'name' => 'xAI Grok',
+                        'model' => config('services.xai.chat_model', 'grok-4-1-fast-reasoning'),
+                        'configured' => ! empty(config('services.xai.api_key')),
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Switch the active AI provider.
+     */
+    public function setAiProvider(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'provider' => 'required|string|in:anthropic,xai',
+        ]);
+
+        $provider = $validated['provider'];
+
+        // Verify the selected provider has an API key configured
+        $configKey = $provider === 'xai' ? 'services.xai.api_key' : 'services.anthropic.api_key';
+        if (empty(config($configKey))) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cannot switch to {$provider}: API key is not configured in .env",
+            ], 422);
+        }
+
+        // Store in cache (persists across requests, survives config:clear)
+        \Illuminate\Support\Facades\Cache::forever('ai_provider', $provider);
+
+        \Illuminate\Support\Facades\Log::info('[Admin] AI provider switched', [
+            'provider' => $provider,
+            'changed_by' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "AI provider switched to {$provider}",
+            'data' => ['provider' => $provider],
+        ]);
+    }
 }
