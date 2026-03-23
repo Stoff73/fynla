@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="py-8 px-4 sm:px-6">
       <!-- Show will overview if user already has a will -->
       <WillPlanning
         v-if="!loading && hasExistingWill"

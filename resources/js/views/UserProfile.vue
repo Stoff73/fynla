@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-4 sm:py-8">
+    <div class="py-4 sm:py-8">
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">User Profile</h1>

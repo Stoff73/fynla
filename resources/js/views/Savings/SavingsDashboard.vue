@@ -1,7 +1,7 @@
 <template>
   <component :is="isEmbedded ? 'div' : 'AppLayout'">
     <div class="savings-dashboard py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
+      <div class="">
       <!-- Account Detail View (when embedded and account selected) -->
       <SavingsAccountDetailInline
         v-if="isEmbedded && selectedAccount"

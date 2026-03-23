@@ -1,20 +1,5 @@
 <template>
   <div class="min-h-screen bg-eggshell-500">
-<<<<<<< HEAD
-    <!-- Onboarding Header Bar -->
-    <nav class="bg-light-blue-100 shadow-sm border-b border-light-gray">
-      <div class="mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between py-[15px]">
-          <router-link to="/dashboard" class="flex-shrink-0">
-            <img src="/images/logos/LogoHiResFynlaDark.png" class="h-8 w-auto" alt="Fynla" />
-          </router-link>
-          <h1 class="text-2xl font-bold text-horizon-500">Onboarding</h1>
-          <div class="w-8"></div>
-        </div>
-      </div>
-    </nav>
-=======
-
     <!-- Top Navigation Bar -->
     <div class="bg-white border-b border-light-gray">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
@@ -33,7 +18,6 @@
         </router-link>
       </div>
     </div>
->>>>>>> 3d8bba739b64cceac883bcadbb4ad97271b1d8b5
 
     <div class="py-8 px-4 sm:px-6 lg:px-8">
 

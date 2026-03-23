@@ -1,16 +1,16 @@
 <template>
   <div class="space-y-6">
-    <!-- Budget Type Tabs (only shown when showBudgetTabs is true) -->
-    <div v-if="showBudgetTabs" class="border-b border-light-gray">
-      <nav class="-mb-px flex space-x-8" aria-label="Budget tabs">
+    <!-- Budget Type Segmented Control (only shown when showBudgetTabs is true) -->
+    <div v-if="showBudgetTabs" class="mb-4">
+      <div class="inline-flex bg-neutral-100 rounded-lg p-0.5">
         <button
           type="button"
           @click="activeBudgetTab = 'current'"
           :class="[
+            'text-sm px-4 py-1.5 rounded-md font-medium transition-all duration-200',
             activeBudgetTab === 'current'
-              ? 'border-raspberry-500 text-raspberry-500'
-              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
-            'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
+              ? 'bg-white text-horizon-500 font-semibold shadow-sm'
+              : 'text-neutral-500 hover:text-horizon-500'
           ]"
         >
           Current Budget
@@ -19,10 +19,10 @@
           type="button"
           @click="activeBudgetTab = 'retired'"
           :class="[
+            'text-sm px-4 py-1.5 rounded-md font-medium transition-all duration-200',
             activeBudgetTab === 'retired'
-              ? 'border-raspberry-500 text-raspberry-500'
-              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
-            'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
+              ? 'bg-white text-horizon-500 font-semibold shadow-sm'
+              : 'text-neutral-500 hover:text-horizon-500'
           ]"
         >
           Budget at Retirement
@@ -32,15 +32,15 @@
           type="button"
           @click="activeBudgetTab = 'widowed'"
           :class="[
+            'text-sm px-4 py-1.5 rounded-md font-medium transition-all duration-200',
             activeBudgetTab === 'widowed'
-              ? 'border-raspberry-500 text-raspberry-500'
-              : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300',
-            'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-body-sm'
+              ? 'bg-white text-horizon-500 font-semibold shadow-sm'
+              : 'text-neutral-500 hover:text-horizon-500'
           ]"
         >
           Budget if Widowed
         </button>
-      </nav>
+      </div>
     </div>
 
     <!-- CURRENT BUDGET TAB -->

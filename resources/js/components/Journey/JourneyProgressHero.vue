@@ -32,7 +32,7 @@
             :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
             stroke-linecap="round" />
         </svg>
-        <div class="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold" :class="stageTextClass">
+        <div class="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-extrabold -mt-[2px]" :class="stageTextClass">
           {{ progressPercentage }}%
         </div>
       </div>
@@ -69,34 +69,30 @@
             <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps. Explore your dashboard to review your financial plan.</p>
           </div>
         </div>
+
+        <!-- Continue Journey button (below stage text) -->
+        <button
+          v-if="nextStep"
+          class="mt-4 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+          @click="continueJourney"
+        >
+          Continue Journey
+        </button>
       </div>
 
-      <!-- Right: Continue Journey button -->
-      <button
-        v-if="nextStep"
-        class="flex-shrink-0 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
-        @click="continueJourney"
-      >
-        Continue Journey
-      </button>
-
-      <!-- Right: Suggested for You (desktop only) -->
-      <div v-if="suggestedGoals.length && !heroCollapsed" class="hidden lg:block flex-shrink-0 w-64 pl-5 ml-2">
-        <h4 class="text-sm font-semibold text-horizon-500 mb-2">Suggested for You</h4>
+      <!-- Right: Recommended Actions (desktop only) -->
+      <div v-if="topActions.length && !heroCollapsed" class="hidden lg:block flex-shrink-0 w-1/3 pl-5 ml-2 border-l border-white/40">
+        <h4 class="text-sm font-semibold text-horizon-500 mb-2">Recommended Actions</h4>
         <div class="space-y-1.5">
-          <div
-            v-for="suggestion in suggestedGoals.slice(0, 3)"
-            :key="suggestion.id"
+          <router-link
+            v-for="action in topActions.slice(0, 3)"
+            :key="action.id"
+            to="/actions"
             class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-eggshell-500 hover:bg-light-pink-200 transition-colors"
-            @click="$emit('suggested-goal', suggestion)"
           >
-            <div class="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-              <svg class="w-3 h-3 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ suggestion.label }}</span>
-          </div>
+            <div class="w-1.5 h-1.5 rounded-full bg-raspberry-500 flex-shrink-0"></div>
+            <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
+          </router-link>
         </div>
       </div>
     </div>
@@ -111,8 +107,6 @@ import storage from '@/utils/storage';
 
 export default {
   name: 'JourneyProgressHero',
-
-  emits: ['suggested-goal'],
 
   props: {
     suggestedGoals: {
@@ -217,6 +211,25 @@ export default {
       };
       return map[this.stageColour] || 'bg-raspberry-500';
     },
+
+    topActions() {
+      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      const protectionPlan = this.$store.getters['plans/getPlan']('protection');
+      const investmentPlan = this.$store.getters['plans/getPlan']('investment');
+      const allActions = [
+        ...(protectionPlan?.actions || []),
+        ...(investmentPlan?.actions || []),
+      ];
+      return allActions
+        .slice()
+        .sort((a, b) => (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4))
+        .slice(0, 3);
+    },
+  },
+
+  mounted() {
+    this.$store.dispatch('plans/fetchPlan', 'protection');
+    this.$store.dispatch('plans/fetchPlan', 'investment');
   },
 
   methods: {

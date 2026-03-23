@@ -1,24 +1,13 @@
 <template>
   <AppLayout>
-    <div class="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6">
+    <div class="py-4 sm:py-8 px-4 sm:px-6">
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-horizon-500">Risk Profile</h1>
-            <p class="mt-2 text-sm sm:text-base text-neutral-500">
-              Your risk profile is automatically calculated from your financial data
-            </p>
-          </div>
-          <router-link
-            to="/net-worth/investments"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </router-link>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-horizon-500">Risk Profile</h1>
+          <p class="mt-2 text-sm sm:text-base text-neutral-500">
+            Your risk profile is automatically calculated from your financial data
+          </p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="py-8">
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
         <p class="mt-2 text-body-base text-neutral-500">

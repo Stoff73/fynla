@@ -52,11 +52,10 @@
       </div>
     </div>
 
-    <!-- Income and Tax Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Income Information Card -->
+    <!-- Income Card — Full Width -->
+    <div class="space-y-6">
       <form @submit.prevent="handleSubmit">
-        <div class="bg-white rounded-lg border border-light-gray p-6 h-full">
+        <div class="bg-white rounded-lg border border-light-gray p-6">
           <div class="flex justify-between items-start mb-6">
             <div>
               <h3 class="text-h4 font-semibold text-horizon-500">Income</h3>
@@ -76,91 +75,111 @@
 
           <!-- VIEW MODE -->
           <div v-if="!isEditing">
-            <div class="space-y-3">
-              <div v-if="form.annual_employment_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Employment Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_employment_income) }}</span>
-              </div>
-              <div v-if="form.annual_self_employment_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Self-Employment Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_self_employment_income) }}</span>
-              </div>
-              <div v-if="form.annual_rental_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Rental Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_rental_income) }}</span>
-              </div>
-              <div v-if="form.annual_dividend_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Dividend Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
-              </div>
-              <div v-if="form.annual_interest_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Interest Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
-              </div>
-              <div v-if="form.annual_pension_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Pension Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_pension_income) }}</span>
-              </div>
-              <div v-if="form.annual_trust_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Trust Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
-              </div>
-              <div v-if="form.annual_other_income > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Other Income:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_other_income) }}</span>
-              </div>
-              <!-- Child Benefit -->
-              <div v-if="childBenefitAmount > 0" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Child Benefit:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
-              </div>
-              <!-- Registered Blind -->
-              <div v-if="form.is_registered_blind" class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Registered Blind:</span>
-                <span class="text-body-sm text-violet-600 text-right">Blind Person's Allowance applied</span>
-              </div>
-            </div>
-
-            <!-- HICBC Warning -->
-            <div v-if="hicbcApplies" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div class="flex items-start">
-                <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                </svg>
-                <div class="ml-2">
-                  <p class="text-body-sm font-medium text-blue-800">High Income Child Benefit Charge</p>
-                  <p class="text-body-xs text-blue-700 mt-1">
-                    Your income exceeds {{ formatCurrency(60000) }}. You may need to pay back
-                    <strong>{{ hicbcClawbackPercentage }}%</strong> of your Child Benefit ({{ formatCurrency(hicbcCharge) }}/year) through Self Assessment.
-                  </p>
-                  <p class="text-body-xs text-blue-700 mt-1">
-                    Net Child Benefit after HICBC: <strong>{{ formatCurrency(hicbcNetBenefit) }}/year</strong>
-                  </p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <!-- Left: Donut Chart -->
+              <div v-if="incomeChartData.length > 0" class="flex items-center justify-center">
+                <div>
+                  <apexchart
+                    type="donut"
+                    :options="incomeChartOptions"
+                    :series="incomeChartSeries"
+                    width="280"
+                  />
                 </div>
               </div>
-            </div>
 
-            <!-- Total Annual Income -->
-            <div class="mt-6 pt-4 border-t border-light-gray">
-              <div class="flex justify-between items-center">
-                <span class="text-body-sm font-semibold text-horizon-500">Total Annual Income:</span>
-                <span class="text-h4 font-semibold text-horizon-500">{{ formatCurrency(totalIncomeValue) }}</span>
-              </div>
-            </div>
+              <!-- Right: Income Breakdown Data -->
+              <div>
+                <div class="space-y-3">
+                  <div v-if="form.annual_employment_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Employment Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_employment_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_self_employment_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Self-Employment Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_self_employment_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_rental_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Rental Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_rental_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_dividend_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Dividend Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_dividend_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_interest_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Interest Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_interest_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_pension_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Pension Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_pension_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_trust_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Trust Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
+                  </div>
+                  <div v-if="form.annual_other_income > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Other Income:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_other_income) }}</span>
+                  </div>
+                  <!-- Child Benefit -->
+                  <div v-if="childBenefitAmount > 0" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Child Benefit:</span>
+                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(childBenefitAmount) }}</span>
+                  </div>
+                  <!-- Registered Blind -->
+                  <div v-if="form.is_registered_blind" class="flex justify-between">
+                    <span class="text-body-sm text-neutral-500">Registered Blind:</span>
+                    <span class="text-body-sm text-violet-600 text-right">Blind Person's Allowance applied</span>
+                  </div>
+                </div>
 
-            <!-- Disposable Income Section -->
-            <div v-if="incomeOccupation?.net_income" class="mt-4 pt-4 border-t border-light-gray space-y-3">
-              <div class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">{{ netIncomeLabel }}</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
-              </div>
-              <div class="flex justify-between items-center pt-2 border-t border-savannah-100">
-                <span class="text-body-sm font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">Disposable Income:</span>
-                <span class="text-body font-semibold" :class="disposableIncome >= 0 ? 'text-green-700' : 'text-red-700'">{{ formatCurrency(disposableIncome) }}</span>
+                <!-- HICBC Warning -->
+                <div v-if="hicbcApplies" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-start">
+                    <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                    </svg>
+                    <div class="ml-2">
+                      <p class="text-body-sm font-medium text-blue-800">High Income Child Benefit Charge</p>
+                      <p class="text-body-xs text-blue-700 mt-1">
+                        Your income exceeds {{ formatCurrency(60000) }}. You may need to pay back
+                        <strong>{{ hicbcClawbackPercentage }}%</strong> of your Child Benefit ({{ formatCurrency(hicbcCharge) }}/year) through Self Assessment.
+                      </p>
+                      <p class="text-body-xs text-blue-700 mt-1">
+                        Net Child Benefit after HICBC: <strong>{{ formatCurrency(hicbcNetBenefit) }}/year</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Total Annual Income -->
+                <div class="mt-6 pt-4 border-t border-light-gray">
+                  <div class="flex justify-between items-center">
+                    <span class="text-body-sm font-semibold text-horizon-500">Total Annual Income:</span>
+                    <span class="text-h4 font-semibold text-horizon-500">{{ formatCurrency(totalIncomeValue) }}</span>
+                  </div>
+                </div>
+
+                <!-- Disposable Income (inside Income card) -->
+                <div v-if="incomeOccupation?.net_income" class="border-t border-dashed border-neutral-300 pt-3 mt-4">
+                  <h4 class="text-sm font-semibold text-horizon-500 mb-2">Disposable Income</h4>
+                  <div class="space-y-2">
+                    <div class="flex justify-between">
+                      <span class="text-body-sm text-neutral-500">{{ netIncomeLabel }}</span>
+                      <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(incomeOccupation.net_income) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-body-sm text-neutral-500">Annual Expenditure:</span>
+                      <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(totalAnnualExpenditure) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-savannah-100">
+                      <span class="text-body-sm font-semibold" :class="disposableIncome >= 0 ? 'text-spring-600' : 'text-raspberry-600'">Disposable Income:</span>
+                      <span class="text-body font-semibold" :class="disposableIncome >= 0 ? 'text-spring-600' : 'text-raspberry-600'">{{ formatCurrency(disposableIncome) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -362,37 +381,40 @@
         </div>
       </form>
 
-      <!-- Tax Calculations Card -->
-      <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-light-gray p-6 h-full">
-        <h3 class="text-h4 font-semibold text-horizon-500 mb-4">Estimated Tax and NI</h3>
+      <!-- Tax + Disposable Income — Side by Side -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tax Calculations Card -->
+        <div v-if="detailedTaxBreakdown?.summary" class="bg-white rounded-lg border border-light-gray p-6 h-full">
+          <h3 class="text-h4 font-semibold text-horizon-500 mb-4">Estimated Tax and National Insurance</h3>
 
-        <!-- Income Type Cards -->
-        <div
-          v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
-          class="space-y-4"
-        >
-          <TaxIncomeCard
-            v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
-            :key="breakdown.income_type + '-' + index"
-            :breakdown="breakdown"
-            :rental-breakdown="breakdown.income_type === 'earned' ? rentalBreakdown : null"
-            :section24="breakdown.income_type === 'earned' ? detailedTaxBreakdown.section_24 : null"
-          />
+          <!-- Income Type Cards -->
+          <div
+            v-if="detailedTaxBreakdown.income_breakdowns?.length > 0"
+            class="space-y-4"
+          >
+            <TaxIncomeCard
+              v-for="(breakdown, index) in detailedTaxBreakdown.income_breakdowns"
+              :key="breakdown.income_type + '-' + index"
+              :breakdown="breakdown"
+              :rental-breakdown="breakdown.income_type === 'earned' ? rentalBreakdown : null"
+              :section24="breakdown.income_type === 'earned' ? detailedTaxBreakdown.section_24 : null"
+            />
+          </div>
+
+          <!-- Info Note -->
+          <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+            <p class="text-body-xs text-blue-800">
+              <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
+              Income is taxed in priority order: employment income uses the Personal Allowance first,
+              with other income types taxed at remaining band positions.
+            </p>
+          </div>
         </div>
 
-        <!-- Info Note -->
-        <div class="mt-4 p-3 bg-blue-100 rounded-lg">
-          <p class="text-body-xs text-blue-800">
-            <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
-            Income is taxed in priority order: employment income uses the Personal Allowance first,
-            with other income types taxed at remaining band positions.
-          </p>
-        </div>
+        <!-- Income Definitions Panel -->
+        <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
       </div>
     </div>
-
-    <!-- Income Definitions Panel -->
-    <IncomeDefinitionsPanel :definitions="incomeDefinitions" />
   </div>
 </template>
 
@@ -462,6 +484,52 @@ export default {
       annual_other_income: 0,
       is_registered_blind: false,
     });
+
+    // Income chart data for donut chart
+    const incomeChartData = computed(() => {
+      const sources = [
+        { label: 'Employment', value: form.value.annual_employment_income || 0 },
+        { label: 'Self-Employment', value: form.value.annual_self_employment_income || 0 },
+        { label: 'Rental', value: form.value.annual_rental_income || 0 },
+        { label: 'Dividend', value: form.value.annual_dividend_income || 0 },
+        { label: 'Interest', value: form.value.annual_interest_income || 0 },
+        { label: 'Pension', value: form.value.annual_pension_income || 0 },
+        { label: 'Trust', value: form.value.annual_trust_income || 0 },
+        { label: 'Other', value: form.value.annual_other_income || 0 },
+      ];
+      return sources.filter(s => s.value > 0);
+    });
+
+    const incomeChartSeries = computed(() => incomeChartData.value.map(s => s.value));
+
+    const incomeChartOptions = computed(() => ({
+      chart: { type: 'donut' },
+      labels: incomeChartData.value.map(s => s.label),
+      colors: ['#E8365D', '#F5B3C5', '#1F2A44', '#93C5FD', '#6EE7B7', '#5854E6', '#F59E0B', '#6B7280'],
+      legend: { position: 'bottom', fontSize: '12px' },
+      dataLabels: { enabled: false },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%',
+            labels: {
+              show: true,
+              name: { show: true, fontSize: '12px', color: '#999' },
+              value: { show: true, fontSize: '18px', fontWeight: 700, color: '#1F2A44', formatter: (val) => formatCurrency(Number(val)) },
+              total: {
+                show: true,
+                label: 'Total Annual',
+                fontSize: '12px',
+                color: '#999',
+                formatter: (w) => formatCurrency(w.globals.seriesTotals.reduce((a, b) => a + b, 0)),
+              },
+            },
+          },
+        },
+      },
+      stroke: { width: 2, colors: ['#fff'] },
+      tooltip: { y: { formatter: (val) => formatCurrency(val) } },
+    }));
 
     const totalIncomeValue = computed(() => {
       return (form.value.annual_employment_income || 0) +
@@ -634,6 +702,9 @@ export default {
       successMessage,
       errorMessage,
       totalIncomeValue,
+      incomeChartData,
+      incomeChartSeries,
+      incomeChartOptions,
       incomeOccupation,
       detailedTaxBreakdown,
       rentalBreakdown,

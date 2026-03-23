@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
+      <div class="">
         <!-- Header -->
         <div class="mb-6">
           <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Lasting Power of Attorney</h1>

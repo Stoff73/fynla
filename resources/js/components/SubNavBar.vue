@@ -1,10 +1,10 @@
 <template>
-  <div v-if="config" class="bg-white border-b border-light-gray">
+  <div v-if="categoryConfig" class="bg-white border-b border-light-gray">
     <div class="px-4 sm:px-6 lg:px-8">
       <!-- Tabs row -->
       <div class="flex overflow-x-auto scrollbar-hide -mb-px">
         <router-link
-          v-for="tab in config.tabs"
+          v-for="tab in categoryConfig.tabs"
           :key="tabKey(tab)"
           :to="tab.to"
           class="whitespace-nowrap py-3 px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0"
@@ -15,9 +15,9 @@
       </div>
 
       <!-- CTAs row: below tabs, left-aligned -->
-      <div v-if="config.ctas.length" class="flex items-center gap-2 py-2 mt-[5px]">
+      <div v-if="activeCtas.length" class="flex items-center gap-2 py-2 mt-[5px]">
         <button
-          v-for="cta in config.ctas"
+          v-for="cta in activeCtas"
           :key="cta.action"
           @click="handleCta(cta.action)"
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap"
@@ -42,7 +42,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
-import { SUB_NAV_CONFIG } from '@/constants/subNavConfig';
+import { findCategoryConfig, findActiveTab, getActiveCtas } from '@/constants/subNavConfig';
 
 export default {
   name: 'SubNavBar',
@@ -51,31 +51,21 @@ export default {
     const route = useRoute();
     const store = useStore();
 
-    const config = computed(() => {
-      const path = route.path;
-      for (const entry of SUB_NAV_CONFIG) {
-        const matches = Array.isArray(entry.match) ? entry.match : [entry.match];
-        if (matches.some(m => path.startsWith(m))) {
-          return entry;
-        }
-      }
-      return null;
+    const categoryConfig = computed(() => {
+      return findCategoryConfig(route.path, route.query);
+    });
+
+    const activeTabComputed = computed(() => {
+      return findActiveTab(categoryConfig.value, route.path, route.query);
+    });
+
+    const activeCtas = computed(() => {
+      return getActiveCtas(categoryConfig.value, activeTabComputed.value);
     });
 
     const isTabActive = (tab) => {
-      const tabPath = typeof tab.to === 'string' ? tab.to : tab.to.path;
-      const tabQuery = typeof tab.to === 'object' ? tab.to.query : null;
-
-      // Exact path match required
-      if (route.path !== tabPath) return false;
-
-      // If tab has query params, they must match too
-      if (tabQuery) {
-        return Object.entries(tabQuery).every(([key, val]) => route.query[key] === val);
-      }
-
-      // If no query on tab, it's active when path matches and no distinguishing query
-      return true;
+      if (!activeTabComputed.value) return false;
+      return tabKey(tab) === tabKey(activeTabComputed.value);
     };
 
     const tabKey = (tab) => {
@@ -87,7 +77,7 @@ export default {
       store.dispatch('subNav/triggerCta', action);
     };
 
-    return { config, isTabActive, tabKey, handleCta };
+    return { categoryConfig, activeCtas, isTabActive, tabKey, handleCta };
   },
 };
 </script>

@@ -63,7 +63,14 @@
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Current Account Card -->
           <div class="account-card">
-            <h4 class="card-title">Current Accounts</h4>
+            <div class="card-header">
+              <h4 class="card-title">Current Accounts</h4>
+              <button @click="openAddAccountModal('current_account')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="currentAccounts.length > 0">
               <div
                 v-for="account in currentAccounts"
@@ -88,18 +95,27 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No current accounts</p>
-            <button @click="openAddAccountModal('current_account')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <p class="empty-message">No current accounts</p>
+              <button @click="openAddAccountModal('current_account')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- Savings Account Card -->
           <div class="account-card">
-            <h4 class="card-title">Savings Accounts</h4>
+            <div class="card-header">
+              <h4 class="card-title">Savings Accounts</h4>
+              <button @click="openAddAccountModal('savings_account')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="savingsAccounts.length > 0">
               <div
                 v-for="account in savingsAccounts"
@@ -124,18 +140,27 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No savings accounts</p>
-            <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <p class="empty-message">No savings accounts</p>
+              <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- Cash ISA Card -->
           <div class="account-card">
-            <h4 class="card-title">Cash ISAs</h4>
+            <div class="card-header">
+              <h4 class="card-title">Cash ISAs</h4>
+              <button @click="openAddAccountModal('cash_isa')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="isaAccounts.length > 0">
               <div
                 v-for="account in isaAccounts"
@@ -160,18 +185,27 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No cash ISAs</p>
-            <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <p class="empty-message">No cash ISAs</p>
+              <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- NS&I Card -->
           <div class="account-card">
-            <h4 class="card-title">NS&I</h4>
+            <div class="card-header">
+              <h4 class="card-title">NS&I</h4>
+              <button @click="openAddAccountModal('premium_bonds')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="nsiAccounts.length > 0">
               <div
                 v-for="account in nsiAccounts"
@@ -196,21 +230,23 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No NS&I accounts</p>
-            <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <p class="empty-message">No NS&I accounts</p>
+              <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-6">
-          <div class="flex items-start justify-between mb-4">
+        <div class="bg-light-blue-100 rounded-lg border border-light-blue-200 p-6">
+          <div class="flex items-center gap-2.5 mb-4">
             <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
-            <span class="text-xs font-medium text-neutral-500 bg-savannah-100 px-2 py-1 rounded">Coming Soon</span>
+            <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
           </div>
           <p class="text-sm text-neutral-500 mb-4">
             Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
@@ -571,12 +607,38 @@ export default {
   align-items: center;
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   @apply text-horizon-500;
-  margin: 0 0 12px 0;
-  align-self: flex-start;
+  margin: 0;
+}
+
+.add-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FAD6E0;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  @apply text-horizon-500;
+  transition: background 0.2s;
+}
+
+.add-icon-btn:hover {
+  background: #F5B3C5;
 }
 
 .empty-message {

@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-4 sm:py-8">
+    <div class="py-4 sm:py-8">
       <!-- Back Button -->
       <button
         @click="$router.push({ name: 'WhatIfDashboard' })"

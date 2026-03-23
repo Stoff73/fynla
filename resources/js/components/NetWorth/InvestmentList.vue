@@ -12,15 +12,6 @@
 
     <!-- Investment List View (default) -->
     <template v-else>
-      <div class="flex justify-end mb-2">
-        <router-link to="/risk-profile" class="inline-flex items-center gap-1 text-sm font-medium text-horizon-500 hover:text-horizon-600 transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          Risk Profile
-        </router-link>
-      </div>
-
       <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-5">
         <div class="flex items-start">
           <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

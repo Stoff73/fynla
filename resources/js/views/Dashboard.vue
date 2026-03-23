@@ -234,13 +234,15 @@
 
             <!-- Desktop: Donut chart with category breakdown -->
             <template v-else>
-              <apexchart
-                :key="netWorthChartKey"
-                type="donut"
-                :options="netWorthChartOptions"
-                :series="netWorthChartSeries"
-                height="260"
-              />
+              <div class="flex justify-center">
+                <apexchart
+                  :key="netWorthChartKey"
+                  type="donut"
+                  :options="netWorthChartOptions"
+                  :series="netWorthChartSeries"
+                  height="260"
+                />
+              </div>
               <div class="flex justify-between text-sm mt-2">
                 <div>
                   <span class="text-neutral-500">Assets</span>
@@ -530,37 +532,41 @@
           <div v-else class="space-y-4">
             <!-- Income progress bar -->
             <div>
-              <div class="flex justify-between items-baseline mb-1.5">
-                <span class="text-sm font-medium text-horizon-500">Income</span>
+              <div class="flex justify-between items-baseline mb-2">
+                <span class="text-sm font-bold text-horizon-500">Income</span>
                 <div class="flex items-baseline gap-1.5">
-                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(retirementData.projectedIncome) }}</span>
+                  <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedIncome) }}</span>
                   <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.targetIncome) }}/yr</span>
                 </div>
               </div>
-              <div class="w-full bg-neutral-100 rounded-full h-3">
+              <div class="w-full rounded-xl h-6 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-horizon-50'">
                 <div
-                  class="h-3 rounded-full transition-all duration-500"
-                  :class="retirementIncomePercent >= 100 ? 'bg-spring-500' : 'bg-violet-500'"
+                  class="h-6 rounded-xl transition-all duration-500 flex items-center justify-end pr-2.5"
+                  :class="retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-200 to-horizon-400'"
                   :style="{ width: Math.min(retirementIncomePercent, 100) + '%' }"
-                ></div>
+                >
+                  <span v-if="retirementIncomePercent >= 15" class="text-[10px] font-bold text-white">{{ retirementIncomePercent }}%</span>
+                </div>
               </div>
             </div>
 
             <!-- Capital progress bar -->
             <div>
-              <div class="flex justify-between items-baseline mb-1.5">
-                <span class="text-sm font-medium text-horizon-500">Capital</span>
+              <div class="flex justify-between items-baseline mb-2">
+                <span class="text-sm font-bold text-horizon-500">Capital</span>
                 <div class="flex items-baseline gap-1.5">
-                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(retirementData.projectedCapital) }}</span>
+                  <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedCapital) }}</span>
                   <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.capitalRequired) }}</span>
                 </div>
               </div>
-              <div class="w-full bg-neutral-100 rounded-full h-3">
+              <div class="w-full rounded-xl h-6 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-horizon-50'">
                 <div
-                  class="h-3 rounded-full transition-all duration-500"
-                  :class="retirementCapitalPercent >= 100 ? 'bg-spring-500' : 'bg-violet-500'"
+                  class="h-6 rounded-xl transition-all duration-500 flex items-center justify-end pr-2.5"
+                  :class="retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-200 to-horizon-400'"
                   :style="{ width: Math.min(retirementCapitalPercent, 100) + '%' }"
-                ></div>
+                >
+                  <span v-if="retirementCapitalPercent >= 15" class="text-[10px] font-bold text-white">{{ retirementCapitalPercent }}%</span>
+                </div>
               </div>
             </div>
 

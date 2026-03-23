@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6">
+    <div class="py-4 sm:py-8 px-4 sm:px-6">
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center justify-between">

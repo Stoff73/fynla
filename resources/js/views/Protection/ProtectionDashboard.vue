@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="protection-dashboard py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
+      <div class="">
       <!-- Profile Completeness Alert -->
       <ProfileCompletenessAlert
         v-if="profileCompleteness && !loadingCompleteness"

@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-3xl mx-auto py-6 px-4">
+    <div class="py-6 px-4">
       <LpaWizard
         :lpa-type="lpaType"
         :edit-id="editId"

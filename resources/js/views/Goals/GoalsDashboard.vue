@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="goals-dashboard py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
+      <div class="">
         <!-- Info Banner -->
         <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-start">

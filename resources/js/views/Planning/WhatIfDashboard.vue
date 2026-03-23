@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-4 sm:py-8">
+    <div class="py-4 sm:py-8">
       <div class="flex justify-between items-center mb-6">
         <div>
           <h1 class="text-h2 font-display text-horizon-500">What If Scenarios</h1>

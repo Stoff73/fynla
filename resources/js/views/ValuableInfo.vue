@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-4 sm:py-8">
+    <div class="py-4 sm:py-8">
       <div class="bg-white rounded-lg shadow-sm mb-6">
         <!-- Tab Content -->
         <div class="p-6">
