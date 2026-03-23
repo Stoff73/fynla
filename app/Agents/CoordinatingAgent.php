@@ -655,7 +655,7 @@ class CoordinatingAgent extends BaseAgent
         }
 
         try {
-            return match ($toolName) {
+            $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
@@ -684,6 +684,20 @@ class CoordinatingAgent extends BaseAgent
                 'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
+
+            // Audit log for write operations (create, update, delete, profile changes)
+            if (str_starts_with($toolName, 'create_') || in_array($toolName, ['update_record', 'delete_record', 'update_profile'])) {
+                $entityId = $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? null);
+                Log::channel('single')->info('[AI-AUDIT] Tool executed', [
+                    'user_id' => $user->id,
+                    'tool' => $toolName,
+                    'entity_id' => $entityId,
+                    'success' => ! isset($result['error']),
+                    'preview' => $isPreviewUser,
+                ]);
+            }
+
+            return $result;
         } catch (\Illuminate\Validation\ValidationException $e) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
         } catch (\Illuminate\Database\QueryException $e) {
@@ -1844,7 +1858,8 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $allowedFields = match ($section) {
-            'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'national_insurance_number'],
+            // NI number excluded — sensitive PII should not be AI-writable
+            'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
             'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_rental_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],

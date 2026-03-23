@@ -44,6 +44,18 @@ return [
         'agent_internal_token' => env('AGENT_INTERNAL_TOKEN', ''),
     ],
 
+    'xai' => [
+        'api_key' => env('XAI_API_KEY', ''),
+        'chat_model' => env('XAI_CHAT_MODEL', 'grok-4-1-fast-reasoning'),
+        'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4-1-fast-reasoning'),
+        'vision_model' => env('XAI_VISION_MODEL', 'grok-4-1-fast-non-reasoning'),
+        'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
+        'agent_internal_token' => env('AGENT_INTERNAL_TOKEN', ''),
+    ],
+
+    // Active AI provider: 'anthropic' or 'xai'
+    'ai_provider' => env('AI_PROVIDER', 'anthropic'),
+
     'getaddress' => [
         'api_key' => env('GETADDRESS_API_KEY', ''),
     ],
