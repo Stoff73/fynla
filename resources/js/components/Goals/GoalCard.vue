@@ -78,13 +78,49 @@
       </div>
     </div>
 
+    <!-- Monthly Contribution -->
+    <div v-if="showActions" class="mt-3 pt-3 border-t border-light-gray">
+      <div v-if="!editingContribution" class="flex items-center justify-between">
+        <span class="text-xs text-neutral-500">Monthly contribution</span>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium text-horizon-500">
+            {{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}
+          </span>
+          <button
+            @click.stop="editingContribution = true"
+            class="text-xs text-raspberry-500 hover:text-raspberry-600"
+          >
+            {{ goal.monthly_contribution ? 'Edit' : 'Set' }}
+          </button>
+        </div>
+      </div>
+      <div v-else class="flex items-center gap-2" @click.stop>
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+            <span class="text-neutral-500 text-xs">&pound;</span>
+          </div>
+          <input
+            v-model.number="contributionAmount"
+            type="number"
+            min="0"
+            step="1"
+            class="input-field pl-5 py-1 text-sm"
+            placeholder="0"
+            @keyup.enter="saveContribution"
+          />
+        </div>
+        <button @click.stop="saveContribution" class="text-xs font-medium text-spring-600 hover:text-spring-700">Save</button>
+        <button @click.stop="cancelContribution" class="text-xs text-neutral-500 hover:text-neutral-600">Cancel</button>
+      </div>
+    </div>
+
     <!-- Metrics Grid -->
-    <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+    <div class="grid grid-cols-2 gap-3 text-sm mb-4 mt-3">
       <div>
         <p class="text-xs text-neutral-500">Time Remaining</p>
         <p class="font-medium text-horizon-500">{{ timeRemaining }}</p>
       </div>
-      <div>
+      <div v-if="!showActions">
         <p class="text-xs text-neutral-500">Monthly Contribution</p>
         <p class="font-medium text-horizon-500">{{ goal.monthly_contribution ? formatCurrency(goal.monthly_contribution) : 'Not set' }}</p>
       </div>
@@ -143,7 +179,28 @@ export default {
     },
   },
 
-  emits: ['view', 'edit', 'delete', 'add-contribution'],
+  emits: ['view', 'edit', 'delete', 'add-contribution', 'update-contribution'],
+
+  data() {
+    return {
+      editingContribution: false,
+      contributionAmount: this.goal.monthly_contribution || 0,
+    };
+  },
+
+  methods: {
+    saveContribution() {
+      this.$emit('update-contribution', {
+        goalId: this.goal.id,
+        monthly_contribution: this.contributionAmount,
+      });
+      this.editingContribution = false;
+    },
+    cancelContribution() {
+      this.contributionAmount = this.goal.monthly_contribution || 0;
+      this.editingContribution = false;
+    },
+  },
 
   computed: {
     progressPercent() {

@@ -11,7 +11,7 @@
           </h3>
           <button
             v-if="context !== 'onboarding'"
-            @click="$emit('close')"
+            @click="handleClose"
             class="text-horizon-400 hover:text-neutral-500 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,8 +73,8 @@
           <div v-show="currentStep === stepMapping[1]" class="space-y-4">
             <h4 class="text-lg font-semibold text-horizon-500 mb-4">Basic Information</h4>
 
-            <div>
-              <label for="property_type" class="block text-sm font-medium text-horizon-500 mb-1">Property Type <span class="text-raspberry-500">*</span></label>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'property_type' }">
+              <label for="property_type" class="block text-sm font-medium text-horizon-500 mb-1">Property Type</label>
               <select
                 id="property_type"
                 name="property_type"
@@ -89,8 +89,8 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label for="address_line_1" class="block text-sm font-medium text-horizon-500 mb-1">Address Line 1 <span class="text-raspberry-500">*</span></label>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'address_line_1' }">
+                <label for="address_line_1" class="block text-sm font-medium text-horizon-500 mb-1">Address Line 1</label>
                 <input
                   id="address_line_1"
                   name="address_line_1"
@@ -112,7 +112,7 @@
               </div>
 
               <div>
-                <label for="city" class="block text-sm font-medium text-horizon-500 mb-1">City <span class="text-raspberry-500">*</span></label>
+                <label for="city" class="block text-sm font-medium text-horizon-500 mb-1">City</label>
                 <input
                   id="city"
                   name="city"
@@ -133,8 +133,8 @@
                 />
               </div>
 
-              <div>
-                <label for="postcode" class="block text-sm font-medium text-horizon-500 mb-1">Postcode <span class="text-raspberry-500">*</span></label>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'postcode' }">
+                <label for="postcode" class="block text-sm font-medium text-horizon-500 mb-1">Postcode</label>
                 <input
                   id="postcode"
                   name="postcode"
@@ -169,7 +169,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'purchase_date' }">
                 <label for="purchase_date" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Date</label>
                 <input
                   id="purchase_date"
@@ -180,7 +180,7 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'purchase_price' }">
                 <label for="purchase_price" class="block text-sm font-medium text-horizon-500 mb-1">Purchase Price (£)</label>
                 <input
                   id="purchase_price"
@@ -193,10 +193,9 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_value' }">
                 <label for="current_value" class="block text-sm font-medium text-horizon-500 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }} <span class="text-raspberry-500">*</span>
-                </label>
+                  {{ isJointPropertyEdit ? 'Full Property Value (£)' : 'Current Value (£)' }}                </label>
                 <input
                   id="current_value"
                   name="current_value"
@@ -224,7 +223,7 @@
             </div>
 
             <!-- Mortgage Checkbox -->
-            <div class="mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg">
+            <div :class="['mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg', { 'ai-fill-highlight': highlightedField === 'has_mortgage' }]">
               <label class="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -274,26 +273,6 @@
               <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
 
               <div>
-                <label for="lease_remaining_years" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Remaining Lease Term (Years)
-                </label>
-                <input
-                  id="lease_remaining_years"
-                  v-model.number="form.lease_remaining_years"
-                  type="number"
-                  min="1"
-                  max="999"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                />
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 80" class="text-xs text-violet-600 mt-1">
-                  ⚠️ Properties with less than 80 years remaining may be difficult to mortgage
-                </p>
-                <p v-if="form.lease_remaining_years && form.lease_remaining_years < 60" class="text-xs text-raspberry-600 mt-1">
-                  ⚠️ Properties with less than 60 years remaining may significantly lose value
-                </p>
-              </div>
-
-              <div>
                 <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">
                   Lease Expiry Date
                 </label>
@@ -301,8 +280,21 @@
                   id="lease_expiry_date"
                   v-model="form.lease_expiry_date"
                   type="date"
+                  :min="today"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 />
+              </div>
+
+              <div v-if="leaseRemainingYears !== null" class="space-y-1">
+                <p class="text-sm text-horizon-500">
+                  Remaining lease: <strong>{{ leaseRemainingYears }} years</strong>
+                </p>
+                <p v-if="leaseRemainingYears < 80" class="text-xs text-violet-600">
+                  Properties with less than 80 years remaining may be difficult to mortgage
+                </p>
+                <p v-if="leaseRemainingYears < 60" class="text-xs text-raspberry-600">
+                  Properties with less than 60 years remaining may significantly lose value
+                </p>
               </div>
             </div>
 
@@ -397,7 +389,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -478,7 +470,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Select co-owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -579,7 +571,7 @@
           <div v-if="hasMortgage" v-show="currentStep === stepMapping[3]" class="space-y-4">
             <h4 class="text-lg font-semibold text-horizon-500 mb-4">Mortgage Details</h4>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_lender_name' }">
               <label for="lender_name" class="block text-sm font-medium text-horizon-500 mb-1">
                 Lender Name
               </label>
@@ -601,7 +593,7 @@
               />
             </div>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_type' }">
               <label for="mortgage_type" class="block text-sm font-medium text-horizon-500 mb-1">Mortgage Type</label>
               <select
                 id="mortgage_type"
@@ -686,10 +678,9 @@
                 />
               </div>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_outstanding_balance' }">
                 <label for="outstanding_balance" class="block text-sm font-medium text-horizon-500 mb-1">
-                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }} <span class="text-raspberry-500">*</span>
-                </label>
+                  {{ isJointPropertyEdit ? 'Full Outstanding Balance (£)' : 'Outstanding Balance (£)' }}                </label>
                 <input
                   id="outstanding_balance"
                   v-model.number="mortgageForm.outstanding_balance"
@@ -706,7 +697,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Hide standard interest rate when mixed rate type is selected -->
-              <div v-if="mortgageForm.rate_type !== 'mixed'">
+              <div v-if="mortgageForm.rate_type !== 'mixed'" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_interest_rate' }">
                 <label for="interest_rate" class="block text-sm font-medium text-horizon-500 mb-1">Interest Rate (%)</label>
                 <input
                   id="interest_rate"
@@ -719,7 +710,7 @@
                 />
               </div>
 
-              <div :class="{ 'md:col-span-2': mortgageForm.rate_type === 'mixed' }">
+              <div :class="[{ 'md:col-span-2': mortgageForm.rate_type === 'mixed' }, { 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_rate_type' }]">
                 <label for="rate_type" class="block text-sm font-medium text-horizon-500 mb-1">Rate Type</label>
                 <select
                   id="rate_type"
@@ -840,10 +831,9 @@
               </div>
             </div>
 
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'mortgage_monthly_payment' }">
               <label for="monthly_payment" class="block text-sm font-medium text-horizon-500 mb-1">
-                Monthly Payment (£) <span class="text-raspberry-500">*</span>
-              </label>
+                Monthly Payment (£)              </label>
               <input
                 id="monthly_payment"
                 v-model.number="mortgageForm.monthly_payment"
@@ -922,7 +912,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
                 </select>
               </div>
@@ -1126,7 +1116,7 @@
 
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_rental_income' }">
                   <label for="monthly_rental_income" class="block text-sm font-medium text-horizon-500 mb-1">Monthly Rental Income (£)</label>
                   <input
                     id="monthly_rental_income"
@@ -1269,7 +1259,7 @@
             <button
               v-if="context !== 'onboarding'"
               type="button"
-              @click="$emit('close')"
+              @click="handleClose"
               class="px-4 py-2 bg-white border border-horizon-300 text-neutral-500 rounded-button hover:bg-savannah-100 transition-colors"
             >
               Cancel
@@ -1310,6 +1300,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -1332,6 +1323,10 @@ export default {
     userAddress: {
       type: Object,
       default: null,
+    },
+    hasMainResidence: {
+      type: Boolean,
+      default: false,
     },
     context: {
       type: String,
@@ -1420,8 +1415,22 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return this.property !== null;
+    },
+
+    today() {
+      return new Date().toISOString().split('T')[0];
+    },
+
+    leaseRemainingYears() {
+      if (!this.form.lease_expiry_date) return null;
+      const expiry = new Date(this.form.lease_expiry_date);
+      const now = new Date();
+      const years = Math.floor((expiry - now) / (365.25 * 24 * 60 * 60 * 1000));
+      return years > 0 ? years : 0;
     },
 
     spouse() {
@@ -1544,6 +1553,13 @@ export default {
       },
     },
 
+    // Auto-set main_residence when userAddress arrives — only if no main residence exists yet
+    userAddress(newAddress) {
+      if (newAddress && this.context === 'onboarding' && !this.property && !this.form.property_type && !this.hasMainResidence) {
+        this.form.property_type = 'main_residence';
+      }
+    },
+
     'form.ownership_type'(newVal) {
       // Set default ownership percentages based on ownership type
       if (newVal === 'individual') {
@@ -1642,11 +1658,65 @@ export default {
         this.mortgageJointOwnerSelection = 'other';
       }
     },
+
+    // AI Form Fill: begin field sequence when pendingFill arrives
+    pendingFill: {
+      handler(fill) {
+        if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.fields) {
+          // Set has_mortgage toggle immediately — it controls whether mortgage step renders
+          if (fill.fields.has_mortgage) {
+            this.hasMortgage = true;
+          }
+          // Build the field order from non-null fields
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    // AI Form Fill: set form value when a field is highlighted
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          // Map fill fields to form/mortgageForm fields
+          if (fieldKey === 'has_mortgage') {
+            this.hasMortgage = !!value;
+          } else if (fieldKey === 'mortgage_outstanding_balance') {
+            this.mortgageForm.outstanding_balance = value;
+          } else if (fieldKey === 'mortgage_interest_rate') {
+            this.mortgageForm.interest_rate = value;
+          } else if (fieldKey === 'mortgage_lender_name') {
+            this.mortgageForm.lender_name = value;
+          } else if (fieldKey === 'mortgage_type') {
+            this.mortgageForm.mortgage_type = value;
+          } else if (fieldKey === 'mortgage_rate_type') {
+            this.mortgageForm.rate_type = value;
+          } else if (fieldKey === 'mortgage_monthly_payment') {
+            this.mortgageForm.monthly_payment = value;
+          } else if (fieldKey in this.form) {
+            this.form[fieldKey] = value;
+          }
+        }
+      }
+    },
+
+    // AI Form Fill: auto-submit when filling completes
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill && (this.pendingFill.entityType === 'property' || this.pendingFill.entityType === 'mortgage')) {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
   },
 
   mounted() {
     if (this.property) {
       this.populateForm();
+    } else if (this.context === 'onboarding' && this.userAddress && !this.hasMainResidence) {
+      this.form.property_type = 'main_residence';
     }
   },
 
@@ -1837,6 +1907,10 @@ export default {
         // Extract ID and set joint_owner_id
         this.form.joint_owner_id = parseInt(this.jointOwnerSelection.replace('linked_', ''));
         this.form.joint_owner_name = ''; // Clear free text field
+      } else if (this.jointOwnerSelection === 'spouse_name') {
+        // Spouse without linked account — use their name
+        this.form.joint_owner_id = null;
+        this.form.joint_owner_name = this.spouse?.name || '';
       } else if (this.jointOwnerSelection === 'other') {
         // Clear linked ID when using free text
         this.form.joint_owner_id = null;
@@ -1848,6 +1922,10 @@ export default {
         // Extract ID and set mortgage joint_owner_id
         this.mortgageForm.joint_owner_id = parseInt(this.mortgageJointOwnerSelection.replace('linked_', ''));
         this.mortgageForm.joint_owner_name = ''; // Clear free text field
+      } else if (this.mortgageJointOwnerSelection === 'spouse_name') {
+        // Spouse without linked account — use their name
+        this.mortgageForm.joint_owner_id = null;
+        this.mortgageForm.joint_owner_name = this.spouse?.name || '';
       } else if (this.mortgageJointOwnerSelection === 'other') {
         // Clear linked ID when using free text
         this.mortgageForm.joint_owner_id = null;
@@ -1899,6 +1977,13 @@ export default {
       return true;
     },
 
+    handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
+      this.$emit('close');
+    },
+
     async handleSubmit() {
       if (!this.validateForm()) {
         // Scroll to top to show error message
@@ -1937,6 +2022,11 @@ export default {
         if (cleanedMortgage.variable_rate_percentage === '') cleanedMortgage.variable_rate_percentage = null;
         if (cleanedMortgage.fixed_interest_rate === '') cleanedMortgage.fixed_interest_rate = null;
         if (cleanedMortgage.variable_interest_rate === '') cleanedMortgage.variable_interest_rate = null;
+      }
+
+      // Calculate lease remaining years from expiry date before saving
+      if (this.form.tenure_type === 'leasehold' && this.leaseRemainingYears !== null) {
+        this.form.lease_remaining_years = this.leaseRemainingYears;
       }
 
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)

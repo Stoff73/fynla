@@ -356,6 +356,20 @@ export default {
         this.$store.dispatch('subNav/consumeCta');
       }
     },
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'investment_account') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.accounts.find(a => a.id === fill.entityId);
+          if (record) {
+            this.editingAccount = record;
+            this.showAccountForm = true;
+          }
+        } else {
+          this.editingAccount = null;
+          this.showAccountForm = true;
+        }
+      }
+    },
   },
 
   methods: {
@@ -419,6 +433,11 @@ export default {
           await this.updateAccount({ id: this.editingAccount.id, data });
         } else {
           await this.createAccount(data);
+        }
+
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
 
         // In preview mode, don't reload from API as the data wasn't persisted
@@ -731,6 +750,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
+      this.editingAccount = null;
+      this.showAccountForm = true;
+    }
+
     this.setDetailView(false);
     await this.loadData();
   },

@@ -107,7 +107,6 @@
         />
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.family" />
     </div>
 
     <!-- Spouse Success Modal -->

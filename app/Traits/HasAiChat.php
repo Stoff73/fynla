@@ -208,6 +208,18 @@ trait HasAiChat
                         ];
                     }
 
+                    // Handle form fill results (AI fills form visually instead of saving directly)
+                    if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
+                        yield [
+                            'type' => 'fill_form',
+                            'entity_type' => $toolResult['entity_type'],
+                            'route' => $toolResult['route'],
+                            'fields' => $toolResult['fields'],
+                            'mode' => $toolResult['mode'] ?? 'create',
+                            'entity_id' => $toolResult['entity_id'] ?? null,
+                        ];
+                    }
+
                     // Handle entity creation results
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         yield [
@@ -224,11 +236,16 @@ trait HasAiChat
                         'result_summary' => $this->summariseToolResult($toolResult),
                     ];
 
-                    $toolResultBlocks[] = [
+                    $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
+                    $toolResultBlock = [
                         'type' => 'tool_result',
                         'tool_use_id' => $toolUseBlock['id'],
                         'content' => json_encode($toolResult),
                     ];
+                    if ($isToolError) {
+                        $toolResultBlock['is_error'] = true;
+                    }
+                    $toolResultBlocks[] = $toolResultBlock;
 
                     yield [
                         'type' => 'tool_use',
@@ -330,12 +347,25 @@ You are Fynla Assistant, a professional financial planning assistant built into 
 The following shows which modules have sufficient data for analysis:
 {$prerequisiteState}
 
-CRITICAL RULES FOR BLOCKED MODULES:
-1. When a user asks about a BLOCKED module, you MUST respond with a clear, friendly explanation of what specific data is missing and why it is needed for that analysis.
+NAVIGATION RULES:
+1. When the user asks to GO TO a page (e.g. "show me my estate planning"), ALWAYS navigate them there first using navigate_to_page. Never refuse to navigate — the user wants to see the page.
+2. After navigating, if the module is BLOCKED or has no data, proactively offer to help: "This section doesn't have any data yet. Would you like me to help you add [specific items]?"
+3. If the user can add data directly through you (e.g. savings accounts, pensions, properties, protection policies), offer to do it conversationally: "I can add that for you now — just tell me the details."
+
+RULES FOR BLOCKED MODULES:
+1. When a user asks about a BLOCKED module (analysis, advice, recommendations), explain what specific data is missing and why it is needed.
 2. Do NOT attempt to give advice, estimates, or general guidance on blocked modules. You do not have the data to do so accurately.
 3. List each missing item as a bullet point so the user can see exactly what to add.
-4. ALWAYS use the navigate_to_page tool to take the user to the correct page where they can add the missing information. This is mandatory — never just tell the user to go somewhere without navigating them.
-5. End with an encouraging note that once the data is added, you will be able to provide a full analysis.
+4. ALWAYS use navigate_to_page to take the user to the correct page. This is mandatory — never just tell the user to go somewhere without navigating them.
+5. End with an encouraging note and offer to help add the data.
+
+MODULE DEPENDENCY GUIDANCE:
+When navigating to modules that depend on data from other parts of the site, explain this to the user:
+- Estate Planning gets its data from: Properties (property values), Pensions (pension death benefits), Savings & Investments (liquid assets), Family Members (beneficiaries), Protection (life insurance in trust). If any of these are missing, tell the user which specific areas need data and offer to navigate them there.
+- Holistic Financial Plan requires data across all modules. Tell the user which modules are ready and which need data.
+- Protection analysis needs: Family Members (to calculate dependant needs), Income (to calculate income replacement), Liabilities (mortgage/debt cover).
+- Retirement projections need: Pensions, Income, Target retirement age.
+- Investment analysis needs: Investment accounts, Risk profile.
 
 If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data to the user and navigate them to the right page.
 </data_completeness>
@@ -388,10 +418,35 @@ PERSONALITY;
 <available_actions>
 Use your tools proactively to serve the user — do not wait to be asked to look something up or navigate somewhere.
 
+CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions having or wanting to add:
+- Savings accounts, Cash ISAs, deposits → create_savings_account
+- Investment accounts, Stocks & Shares ISAs, bonds → create_investment_account
+- Workplace pensions, SIPPs, personal pensions → create_pension
+- Properties, houses, flats → create_property
+- Mortgages → create_mortgage
+- Life insurance, critical illness, income protection → create_protection_policy
+- Credit cards, loans, student loans, car finance, any debt → create_liability
+- Gold, crypto, artwork, collectibles, valuable items → create_asset
+- Goals, targets → create_goal
+- Life events (marriage, retirement, moving) → create_life_event
+- Family members, dependants, spouse, children → create_family_member
+- Trusts → create_trust
+- Business interests → create_business_interest
+- Personal valuables (jewellery, antiques, vehicles) → create_chattel
+NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool.
+
 - Navigate the user to a relevant page when the conversation naturally leads there
 - Fetch detailed module analysis when the user asks about a specific financial area
 - Run what-if scenarios when the user wants to understand the impact of a change
 - Look up current UK tax information when needed
+
+TOOL ERROR HANDLING:
+If a tool call fails or returns an error, NEVER show the error to the user or say "let me try that again". Instead:
+1. Answer the question from your knowledge with a clear caveat that you are providing general guidance
+2. Use phrases like "Based on current UK rules..." or "The current position is typically..."
+3. Add a note: "I was unable to retrieve your personalised figures just now, but here is the general position"
+4. Do NOT retry the same tool call — it will fail again for the same reason
+5. Do NOT mention technical issues, tool failures, or system errors to the user
 - Generate a holistic financial plan when the user wants a comprehensive overview
 </available_actions>
 AVAILABLE_ACTIONS;
@@ -566,6 +621,46 @@ DATA_CREATION_GUIDANCE;
                 }
             }
 
+            // Goals
+            $activeGoals = \App\Models\Goal::forUserOrJoint($user->id)
+                ->where('status', 'active')
+                ->orderBy('priority')
+                ->get();
+
+            if ($activeGoals->isNotEmpty()) {
+                $onTrack = $activeGoals->filter(fn ($g) => $g->is_on_track)->count();
+                $lines[] = '';
+                $lines[] = "Goals: {$activeGoals->count()} active ({$onTrack} on track)";
+                foreach ($activeGoals as $goal) {
+                    $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
+                    $status = $goal->is_on_track ? 'on track' : 'behind';
+                    $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
+                    $lines[] = "  [ID:{$goal->id}] {$goal->goal_name}: £".number_format((float) $goal->current_amount, 0)
+                        .' of £'.number_format((float) $goal->target_amount, 0)
+                        ." ({$status}){$contribution}"
+                        .($goal->target_date ? ' — target: '.$goal->target_date->format('M Y') : '');
+                }
+            } else {
+                $lines[] = '- Goals: None set';
+            }
+
+            // Life Events
+            $activeEvents = \App\Models\LifeEvent::forUserOrJoint($user->id)
+                ->active()
+                ->orderBy('expected_date')
+                ->get();
+
+            if ($activeEvents->isNotEmpty()) {
+                $lines[] = '';
+                $lines[] = "Life Events: {$activeEvents->count()} upcoming";
+                foreach ($activeEvents->take(10) as $event) {
+                    $monthsUntil = max(0, (int) now()->diffInMonths($event->expected_date));
+                    $sign = $event->impact_type === 'income' ? '+' : '-';
+                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}£".number_format((float) $event->amount, 0)
+                        ." — in {$monthsUntil} months ({$event->certainty})";
+                }
+            }
+
             // Ranked recommendations with decision traces
             $recommendations = $analysis['ranked_recommendations'] ?? [];
             if (! empty($recommendations)) {
@@ -626,6 +721,36 @@ DATA_CREATION_GUIDANCE;
                         $lines[] = "- {$title}";
                     }
                 }
+            }
+
+            // Enrich with per-module life event impact summaries
+            try {
+                $integrationService = app(\App\Services\Goals\LifeEventIntegrationService::class);
+                $impactModules = ['savings', 'investment', 'retirement', 'protection', 'estate'];
+                $lifeEventImpacts = [];
+
+                foreach ($impactModules as $module) {
+                    $impact = $integrationService->getModuleImpactSummary($user->id, $module);
+                    if ($impact['event_count'] > 0) {
+                        $lifeEventImpacts[$module] = $impact;
+                    }
+                }
+
+                if (!empty($lifeEventImpacts)) {
+                    $lines[] = '';
+                    $lines[] = 'LIFE EVENT IMPACTS BY MODULE:';
+                    foreach ($lifeEventImpacts as $module => $impact) {
+                        $sign = $impact['net_impact'] >= 0 ? '+' : '-';
+                        $amount = number_format(abs($impact['net_impact']), 0);
+                        $line = "- {$module}: {$impact['event_count']} upcoming events, net impact {$sign}£{$amount}";
+                        if (isset($impact['next_event'])) {
+                            $line .= " (next: {$impact['next_event']['event_name']} in {$impact['next_event']['months_until']} months)";
+                        }
+                        $lines[] = $line;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Don't fail AI context building if life event enrichment fails
             }
 
             return ! empty($lines) ? implode("\n", $lines) : 'No financial data recorded yet.';

@@ -130,7 +130,7 @@ export default {
 
     navigateToModule(mod) {
       const routes = {
-        tax_optimisation: '/uk-taxes',
+        tax_optimisation: '/dashboard',
         investment: '/investment',
         retirement: '/net-worth/retirement',
         protection: '/protection',

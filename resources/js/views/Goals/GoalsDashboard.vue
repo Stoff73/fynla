@@ -195,6 +195,20 @@ export default {
     '$route.query.tab'(tab) {
       this.activeTab = tab === 'events' ? 'events' : 'overview';
     },
+
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (!fill) return;
+      if (fill.entityType === 'goal') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const goal = this.goals?.find(g => g.id === fill.entityId);
+          if (goal) this.openEditModal(goal);
+        } else {
+          this.openCreateModal();
+        }
+      } else if (fill.entityType === 'life_event') {
+        this.activeTab = 'events';
+      }
+    },
   },
 
   computed: {
@@ -276,6 +290,9 @@ export default {
           await this.updateGoal({ goalId: this.editingGoal.id, goalData: formData });
         } else {
           await this.createGoal(formData);
+        }
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/cancelFill');
         }
         this.closeGoalModal();
         // If editing from detail view, close detail and return to list

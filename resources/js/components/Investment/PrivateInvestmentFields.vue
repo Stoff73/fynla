@@ -6,8 +6,7 @@
       <div class="space-y-4">
         <div>
           <label for="company_legal_name" class="block text-sm font-medium text-neutral-500 mb-1">
-            Company Legal Name <span class="text-raspberry-500">*</span>
-          </label>
+            Company Legal Name          </label>
           <input
             id="company_legal_name"
             v-model="modelValue.company_legal_name"
@@ -58,8 +57,7 @@
         </div>
         <div v-if="isCrowdfunding">
           <label for="crowdfunding_platform" class="block text-sm font-medium text-neutral-500 mb-1">
-            Crowdfunding Platform <span class="text-raspberry-500">*</span>
-          </label>
+            Crowdfunding Platform          </label>
           <select
             id="crowdfunding_platform"
             v-model="modelValue.crowdfunding_platform"
@@ -85,8 +83,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="investment_date" class="block text-sm font-medium text-neutral-500 mb-1">
-              Investment Date <span class="text-raspberry-500">*</span>
-            </label>
+              Investment Date            </label>
             <input
               id="investment_date"
               v-model="modelValue.investment_date"
@@ -98,8 +95,7 @@
           </div>
           <div>
             <label for="investment_amount" class="block text-sm font-medium text-neutral-500 mb-1">
-              Investment Amount <span class="text-raspberry-500">*</span>
-            </label>
+              Investment Amount            </label>
             <div class="relative">
               <span class="absolute left-3 top-2.5 text-neutral-500">£</span>
               <input
@@ -139,8 +135,7 @@
           </div>
           <div>
             <label for="instrument_type" class="block text-sm font-medium text-neutral-500 mb-1">
-              Instrument Type <span class="text-raspberry-500">*</span>
-            </label>
+              Instrument Type            </label>
             <select
               id="instrument_type"
               v-model="modelValue.instrument_type"
@@ -260,8 +255,7 @@
         </div>
         <div v-if="modelValue.holding_structure === 'nominee'">
           <label for="nominee_name" class="block text-sm font-medium text-neutral-500 mb-1">
-            Nominee Name <span class="text-raspberry-500">*</span>
-          </label>
+            Nominee Name          </label>
           <input
             id="nominee_name"
             v-model="modelValue.nominee_name"

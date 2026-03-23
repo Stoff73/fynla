@@ -532,7 +532,7 @@ class GoalsProjectionService
     private function getCurrentAge(User $user): int
     {
         if (! $user->date_of_birth) {
-            return 45; // Default
+            return self::DEFAULT_RETIREMENT_AGE; // Use retirement age as fallback when DOB missing
         }
 
         return Carbon::parse($user->date_of_birth)->age;

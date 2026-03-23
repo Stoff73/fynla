@@ -32,7 +32,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-neutral-500 mb-1">Full Name *</label>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Full Name</label>
             <input
               v-model="executor.name"
               type="text"

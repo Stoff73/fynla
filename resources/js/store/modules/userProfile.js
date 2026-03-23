@@ -34,39 +34,47 @@ const getters = {
   spouse: (state, getters, rootState, rootGetters) => {
     // Get current user from auth store
     const currentUser = rootGetters['auth/user'];
+    if (!currentUser) return null;
 
-    if (!currentUser || !currentUser.spouse_id) {
-      return null;
-    }
-
-    // Try to find spouse in family members first (has more details like date_of_birth)
+    // Try to find spouse in family members (has details like date_of_birth, name)
     const spouseInFamily = state.familyMembers.find(member => member.relationship === 'spouse');
-    if (spouseInFamily) {
-      // Add the spouse_id to the object for consistency
-      return {
-        ...spouseInFamily,
-        id: currentUser.spouse_id,
-      };
-    }
 
-    // If not in family members, check if spouse relationship is loaded from user
-    if (currentUser.spouse) {
+    // If spouse_id is set (account linking completed), use it as the canonical ID
+    if (currentUser.spouse_id) {
+      if (spouseInFamily) {
+        return {
+          ...spouseInFamily,
+          id: currentUser.spouse_id,
+        };
+      }
+
+      if (currentUser.spouse) {
+        return {
+          id: currentUser.spouse_id,
+          first_name: currentUser.spouse.first_name || '',
+          last_name: currentUser.spouse.last_name || currentUser.spouse.surname || '',
+          email: currentUser.spouse.email,
+          relationship: 'spouse',
+        };
+      }
+
       return {
         id: currentUser.spouse_id,
-        first_name: currentUser.spouse.first_name || '',
-        last_name: currentUser.spouse.last_name || currentUser.spouse.surname || '',
-        email: currentUser.spouse.email,
+        first_name: '',
+        last_name: '',
         relationship: 'spouse',
       };
     }
 
-    // Fallback: return basic spouse info with just the ID
-    return {
-      id: currentUser.spouse_id,
-      first_name: '',
-      last_name: '',
-      relationship: 'spouse',
-    };
+    // No spouse_id but spouse exists as family member (entered during onboarding without account linking)
+    if (spouseInFamily) {
+      return {
+        ...spouseInFamily,
+        id: spouseInFamily.linked_user_id || null,
+      };
+    }
+
+    return null;
   },
   incomeOccupation: (state) => state.incomeOccupation,
   totalAnnualIncome: (state) => {

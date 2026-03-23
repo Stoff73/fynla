@@ -23,7 +23,6 @@ const MODULE_PATH_MAP = {
     '/plans/estate': 'estate',
     '/holistic-plan': 'holistic_plan',
     '/dashboard': 'dashboard',
-    '/uk-taxes': 'uk_taxes',
 };
 
 let deviceInfoCaptured = false;

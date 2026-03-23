@@ -129,6 +129,24 @@ export default {
         this.fetchProperties();
       }
     },
+
+    // AI Form Fill: open form when pendingFill targets property or mortgage
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage')) {
+        if (fill.mode === 'edit' && fill.entityId) {
+          // Find existing property and open edit modal
+          const record = this.properties.find(p => p.id === fill.entityId);
+          if (record) {
+            this.editingProperty = record;
+            this.showPropertyForm = true;
+          }
+        } else {
+          // Open create modal
+          this.editingProperty = null;
+          this.showPropertyForm = true;
+        }
+      }
+    },
   },
 
   beforeUnmount() {
@@ -224,6 +242,10 @@ export default {
             : 'Property added successfully';
         }
 
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
+        }
         this.closePropertyForm();
 
         // Auto-hide success message after 5 seconds
@@ -267,6 +289,13 @@ export default {
   },
 
   async mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && (fill.entityType === 'property' || fill.entityType === 'mortgage') && fill.mode !== 'edit') {
+      this.editingProperty = null;
+      this.showPropertyForm = true;
+    }
+
     this.setDetailView(false);
     // Fetch family members to ensure spouse data is available (works for both regular and preview users)
     await this.$store.dispatch('userProfile/fetchFamilyMembers');

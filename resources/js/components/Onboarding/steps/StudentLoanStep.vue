@@ -116,7 +116,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.studentLoan" />
     </div>
   </OnboardingStep>
 </template>
@@ -136,6 +135,11 @@ export default {
     UsefulResources,
   },
 
+  props: {
+    savedData: { type: Object, default: null },
+    context: { type: String, default: null },
+  },
+
   emits: ['next', 'back', 'skip', 'save'],
 
   setup(props, { emit }) {
@@ -145,6 +149,17 @@ export default {
     const monthlyPayment = ref(null);
     const loading = ref(false);
     const error = ref(null);
+
+    // Restore form data from cached step data (back navigation)
+    if (props.savedData) {
+      const planMatch = (props.savedData.liability_name || '').match(/Plan\s*(\d)/i);
+      if (planMatch) {
+        planType.value = `plan_${planMatch[1]}`;
+      }
+      balance.value = props.savedData.current_balance || null;
+      interestRate.value = props.savedData.interest_rate || null;
+      monthlyPayment.value = props.savedData.monthly_payment || null;
+    }
 
     // UK student loan plan details (2025/26 tax year)
     const planDetails = {

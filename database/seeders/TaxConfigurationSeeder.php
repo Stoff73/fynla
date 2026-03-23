@@ -127,8 +127,8 @@ class TaxConfigurationSeeder extends Seeder
                         'additional_rate' => 0.02,
                     ],
                     'employer' => [
-                        'secondary_threshold' => 9100,
-                        'rate' => 0.138,
+                        'secondary_threshold' => 5000,   // Reduced from £9,100 to £5,000 from April 2025 (Autumn Budget 2024)
+                        'rate' => 0.15,                  // Increased from 13.8% to 15.0% from April 2025 (+1.2pp)
                     ],
                 ],
                 'class_2' => [
@@ -137,7 +137,7 @@ class TaxConfigurationSeeder extends Seeder
                 'class_4' => [
                     'lower_profits_limit' => 12570,
                     'upper_profits_limit' => 50270,
-                    'main_rate' => 0.09,
+                    'main_rate' => 0.06,             // Cut from 9% to 6% from April 2024
                     'additional_rate' => 0.02,
                 ],
             ],
@@ -147,8 +147,9 @@ class TaxConfigurationSeeder extends Seeder
                 'annual_exempt_amount' => 3000,
 
                 // Non-residential rates (shares, chattels, business assets, other assets)
-                'basic_rate' => 0.10,                            // Decimal format (10%)
-                'higher_rate' => 0.20,                           // Decimal format (20%)
+                // From 30 Oct 2024, aligned with residential rates (18%/24%)
+                'basic_rate' => 0.18,                            // Decimal format (18%)
+                'higher_rate' => 0.24,                           // Decimal format (24%)
 
                 // Residential property rates (higher rates for property)
                 'residential_property_basic_rate' => 0.18,       // Decimal format (18%)
@@ -165,7 +166,7 @@ class TaxConfigurationSeeder extends Seeder
                 'chattel_marginal_relief_multiplier' => 1.6667,  // 5/3 rule for marginal relief
 
                 // Business Asset Disposal Relief (formerly Entrepreneurs' Relief)
-                'business_asset_disposal_relief_rate' => 0.10,   // Decimal format (10%)
+                'business_asset_disposal_relief_rate' => 0.14,   // 14% for 2025/26, rising to 18% in 2026/27
                 'business_asset_disposal_relief_lifetime_limit' => 1000000, // £1m lifetime limit
                 'business_asset_disposal_relief_min_ownership_years' => 2,  // 2 years minimum ownership
             ],

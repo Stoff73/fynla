@@ -22,7 +22,7 @@
       <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'p-6'">
         <div class="space-y-6">
           <!-- Pension Type -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'pension_type' }">
             <label for="pension_type" class="block text-sm font-medium text-neutral-500 mb-2">
               Pension Type
             </label>
@@ -44,7 +44,7 @@
           </div>
 
           <!-- Scheme Name -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_name' }">
             <label for="scheme_name" class="block text-sm font-medium text-neutral-500 mb-2">
               Scheme Name
             </label>
@@ -59,7 +59,7 @@
 
           <!-- Provider and Policy Number -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'provider' }">
               <label for="provider" class="block text-sm font-medium text-neutral-500 mb-2">
                 Provider
               </label>
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Current Fund Value -->
-          <div>
+          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_fund_value' }">
             <label for="current_fund_value" class="block text-sm font-medium text-neutral-500 mb-2">
               Current Fund Value (£)
             </label>
@@ -120,7 +120,7 @@
 
           <!-- Workplace Pension: Percentage Contributions -->
           <div v-if="isWorkplacePension" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employee_contribution_percent' }">
               <label for="employee_contribution_percent" class="block text-sm font-medium text-neutral-500 mb-2">
                 Employee Contribution (%)
               </label>
@@ -143,7 +143,7 @@
               </p>
               <p v-else class="text-xs text-neutral-500 mt-1">Enter as percentage of salary (0-100)</p>
             </div>
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employer_contribution_percent' }">
               <label for="employer_contribution_percent" class="block text-sm font-medium text-neutral-500 mb-2">
                 Employer Contribution (%)
               </label>
@@ -220,6 +220,29 @@
               placeholder="e.g., 5.00"
             />
             <p class="text-xs text-neutral-500 mt-1">Typical: 4-6% for balanced funds</p>
+          </div>
+
+          <!-- Pension Access Age (SIPP and personal pensions only) -->
+          <div v-if="isPersonalPension">
+            <label for="retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
+              Planned Access Age
+            </label>
+            <input
+              id="retirement_age"
+              v-model.number="formData.retirement_age"
+              type="number"
+              min="55"
+              max="75"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              :placeholder="profileRetirementAge ? `Default: ${profileRetirementAge}` : 'e.g., 60'"
+            />
+            <p class="text-xs text-neutral-500 mt-1">
+              When you plan to access this pension (minimum 55).
+              <span v-if="profileRetirementAge"> Your profile retirement age is {{ profileRetirementAge }}.</span>
+            </p>
+            <p v-if="formData.retirement_age && formData.retirement_age < 55" class="text-xs text-raspberry-500 mt-1">
+              Minimum pension access age is 55
+            </p>
           </div>
 
           <!-- Risk Level Section (hidden during onboarding) -->
@@ -355,7 +378,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
@@ -402,6 +425,7 @@ export default {
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
         expected_return_percent: 5.0,
+        retirement_age: null,
         salary_sacrifice: false,
         notes: '',
         risk_preference: null,
@@ -422,6 +446,7 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
     ...mapGetters('auth', ['currentUser']),
 
     isEdit() {
@@ -442,6 +467,12 @@ export default {
 
     isPersonalPension() {
       return this.formData.pension_type === 'sipp' || this.formData.pension_type === 'personal' || this.formData.pension_type === 'stakeholder';
+    },
+
+    profileRetirementAge() {
+      return this.$store.state.userProfile?.incomeOccupation?.target_retirement_age
+        || this.$store.getters['auth/user']?.target_retirement_age
+        || null;
     },
 
     calculatedEmployeeContribution() {
@@ -482,11 +513,57 @@ export default {
         }
       },
     },
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'dc_pension' && fill.fields) {
+          // Set pension_type immediately — it controls which conditional fields render
+          // Also set scheme_type which is what validation checks (handlePensionTypeChange syncs these normally)
+          if (fill.fields.pension_type) {
+            this.formData.pension_type = fill.fields.pension_type;
+            this.handlePensionTypeChange();
+          }
+          // Pre-set scheme_name — required for validation, may come from provider fallback
+          if (fill.fields.scheme_name) {
+            this.formData.scheme_name = fill.fields.scheme_name;
+          } else if (fill.fields.provider) {
+            this.formData.scheme_name = fill.fields.provider;
+          }
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'dc_pension') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
   },
 
   async mounted() {
     // Load risk profile when component mounts (auto-calculated if none exists)
     await this.loadRiskProfile();
+
+    // Ensure user profile is loaded for retirement age default
+    if (!this.$store.state.userProfile?.incomeOccupation) {
+      await this.$store.dispatch('userProfile/fetchProfile').catch(() => {});
+    }
+
+    // Default retirement age from profile for new personal pensions
+    if (!this.isEdit && !this.formData.retirement_age && this.profileRetirementAge) {
+      this.formData.retirement_age = this.profileRetirementAge;
+    }
   },
 
   methods: {
@@ -517,6 +594,11 @@ export default {
         this.formData.annual_salary = null;
         this.formData.employee_contribution_percent = null;
         this.formData.employer_contribution_percent = null;
+      }
+
+      // Default retirement age from profile for personal pensions
+      if (this.isPersonalPension && !this.formData.retirement_age && this.profileRetirementAge) {
+        this.formData.retirement_age = this.profileRetirementAge;
       }
 
       // Set scheme_type for backward compatibility
@@ -615,8 +697,8 @@ export default {
         return;
       }
 
-      if (this.isWorkplacePension && (!this.formData.annual_salary || this.formData.annual_salary <= 0)) {
-        this.validationError = 'Please enter your annual salary for workplace pension';
+      if (this.isPersonalPension && this.formData.retirement_age && this.formData.retirement_age < 55) {
+        this.validationError = 'Minimum pension access age is 55';
         return;
       }
 

@@ -11,23 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <!-- Feature Status Notice -->
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
-        <div class="flex">
-          <svg class="h-5 w-5 text-violet-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <div>
-            <p class="text-body-sm text-violet-800">
-              <strong>Will Module - Enhanced Features Coming Soon</strong>
-            </p>
-            <p class="text-body-sm text-violet-700 mt-1">
-              While you can record your basic will information here, comprehensive will analysis and strategies are currently in development. The full Will Planning module will include automated will reviews, beneficiary analysis, executor guidance, and integration with your estate planning strategy in upcoming releases.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div>
         <label class="label">
           Do you currently have a valid will?
@@ -70,16 +53,34 @@
       </div>
 
       <div v-if="formData.has_will">
-        <label for="executor_name" class="label">
-          Who is your executor?
+        <label class="label">
+          {{ formData.executors.length > 1 ? 'Who are your executors?' : 'Who is your executor?' }}
         </label>
-        <input
-          id="executor_name"
-          v-model="formData.executor_name"
-          type="text"
-          class="input-field"
-          placeholder="Executor name"
+        <div v-for="(executor, index) in formData.executors" :key="index" class="flex items-center gap-2 mb-2">
+          <input
+            v-model="formData.executors[index]"
+            type="text"
+            class="input-field flex-1"
+            :placeholder="index === 0 ? 'Primary executor name' : 'Additional executor name'"
+          >
+          <button
+            v-if="formData.executors.length > 1"
+            type="button"
+            @click="formData.executors.splice(index, 1)"
+            class="p-2 text-neutral-500 hover:text-raspberry-500 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <button
+          type="button"
+          @click="formData.executors.push('')"
+          class="text-sm text-raspberry-500 hover:text-raspberry-600 font-medium transition-colors"
         >
+          + Add executor
+        </button>
       </div>
 
       <div v-if="formData.has_will === false" class="space-y-4">
@@ -106,7 +107,6 @@
         </div>
       </div>
 
-      <UsefulResources :links="STEP_RESOURCES.will" />
     </div>
   </OnboardingStep>
 </template>
@@ -136,7 +136,7 @@ export default {
     const formData = ref({
       has_will: null,
       will_last_updated: null,
-      executor_name: '',
+      executors: [''],
     });
 
     const loading = ref(false);
@@ -147,9 +147,16 @@ export default {
       error.value = null;
 
       try {
+        // Convert executors array to comma-separated string for backend
+        const payload = {
+          ...formData.value,
+          executor_name: formData.value.executors.filter(e => e.trim()).join(', '),
+        };
+        delete payload.executors;
+
         await store.dispatch('onboarding/saveStepData', {
           stepName: 'will_info',
-          data: formData.value,
+          data: payload,
         });
 
         emit('next');
@@ -188,6 +195,12 @@ export default {
         // Format date field if exists
         if (existingData.will_last_updated) {
           existingData.will_last_updated = formatDate(existingData.will_last_updated);
+        }
+        // Convert executor_name string to executors array
+        if (existingData.executor_name) {
+          existingData.executors = existingData.executor_name.split(',').map(e => e.trim()).filter(Boolean);
+          if (existingData.executors.length === 0) existingData.executors = [''];
+          delete existingData.executor_name;
         }
         Object.assign(formData.value, existingData);
       }

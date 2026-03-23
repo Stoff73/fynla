@@ -247,6 +247,9 @@ const actions = {
             commit('setIHTProfile', response.data.iht_profile);
             commit('setLifeEvents', response.data.life_events || []);
             commit('setLifeEventImpact', response.data.life_event_impact || null);
+            if (response.data.will_info) {
+                commit('setWillInfo', response.data.will_info);
+            }
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch estate data';
@@ -425,8 +428,8 @@ const actions = {
 
         try {
             const response = await estateService.createLiability(liabilityData);
-            commit('addLiability', response.data.data);
-            // Refresh net worth after adding liability
+            // Don't use addLiability here — the component re-fetches after save
+            // which gives us clean data from the API with correct resource shape
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
             return response;
         } catch (error) {

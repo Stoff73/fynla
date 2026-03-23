@@ -537,6 +537,21 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'estate_gift') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.gifts.find(g => g.id === fill.entityId);
+          if (record) {
+            this.editGift(record);
+          }
+        } else {
+          this.openCreateGiftForm();
+        }
+      }
+    },
+  },
+
   beforeUnmount() {
     if (this.messageTimeout) clearTimeout(this.messageTimeout);
   },
@@ -831,6 +846,11 @@ export default {
         } else {
           await this.createGift(giftData);
           this.successMessage = 'Gift recorded successfully';
+        }
+
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
 
         // Close the form after successful save

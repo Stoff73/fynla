@@ -18,9 +18,9 @@
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Relationship -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'relationship' }">
               <label for="relationship" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Relationship
+                Relationship <span class="text-raspberry-500">*</span>
               </label>
               <select
                 id="relationship"
@@ -28,7 +28,8 @@
                 class="input-field"
               >
                 <option value="">Select relationship</option>
-                <option value="spouse">Spouse</option>
+                <option v-if="isMarriedOrCivilPartnership" value="spouse">Spouse</option>
+                <option v-if="!isMarriedOrCivilPartnership" value="partner">Partner</option>
                 <option value="child">Child</option>
                 <option value="step_child">Step Child</option>
                 <option value="parent">Parent</option>
@@ -40,12 +41,15 @@
               <p v-if="form.relationship === 'spouse'" class="mt-1 text-body-xs text-blue-600">
                 Please ensure details are correct — once added, this linked account can only be edited or deleted by logging into the spouse's account.
               </p>
+              <p v-if="form.relationship === 'partner'" class="mt-1 text-body-xs text-violet-600">
+                A partner is not a legally recognised relationship for UK tax purposes. Unmarried partners cannot share tax allowances, transfer the nil rate band for Inheritance Tax, or benefit from the spouse exemption. Consider seeking legal advice about your financial arrangements.
+              </p>
             </div>
 
-            <!-- Email (only for spouse) -->
-            <div v-if="form.relationship === 'spouse'">
+            <!-- Email (for spouse or partner — account will be created/linked) -->
+            <div v-if="form.relationship === 'spouse' || form.relationship === 'partner'">
               <label for="email" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Email Address
+                Email Address <span class="text-raspberry-500">*</span>
               </label>
               <input
                 id="email"
@@ -62,9 +66,9 @@
             <!-- Name Fields -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- First Name -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'first_name' }">
                 <label for="first_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  First Name
+                  First Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="first_name"
@@ -88,9 +92,9 @@
               </div>
 
               <!-- Last Name -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'last_name' }">
                 <label for="last_name" class="block text-body-sm font-medium text-neutral-500 mb-1">
-                  Last Name
+                  Last Name <span class="text-raspberry-500">*</span>
                 </label>
                 <input
                   id="last_name"
@@ -103,7 +107,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Date of Birth -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'date_of_birth' }">
                 <label for="date_of_birth" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Date of Birth
                 </label>
@@ -118,7 +122,7 @@
               </div>
 
               <!-- Gender -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'gender' }">
                 <label for="gender" class="block text-body-sm font-medium text-neutral-500 mb-1">
                   Gender
                 </label>
@@ -236,7 +240,7 @@
               <button
                 v-if="context !== 'onboarding'"
                 type="button"
-                @click="$emit('close')"
+                @click="handleClose"
                 :disabled="submitting"
                 class="btn-secondary w-full mt-3 sm:mt-0 sm:col-start-1"
               >
@@ -252,6 +256,7 @@
 
 <script>
 import { ref, computed, watch } from 'vue';
+import { useStore } from 'vuex';
 
 export default {
   name: 'FamilyMemberFormModal',
@@ -271,10 +276,25 @@ export default {
   emits: ['save', 'close'],
 
   setup(props, { emit }) {
+    const store = useStore();
     const submitting = ref(false);
     const errorMessage = ref('');
 
     const isEditing = computed(() => !!props.member);
+
+    // User's marital status determines whether "Spouse" option is available
+    const userMaritalStatus = computed(() => {
+      return store.getters['auth/user']?.marital_status || null;
+    });
+
+    const isMarriedOrCivilPartnership = computed(() => {
+      return userMaritalStatus.value === 'married';
+    });
+
+    // AI Form Fill state
+    const pendingFill = computed(() => store.state.aiFormFill?.pendingFill);
+    const highlightedField = computed(() => store.state.aiFormFill?.highlightedField);
+    const filling = computed(() => store.state.aiFormFill?.filling);
 
     // Date constraints - both min and max depend on relationship
     const minDob = computed(() => {
@@ -446,14 +466,51 @@ export default {
       }
     };
 
+    // AI Form Fill watchers
+    watch(pendingFill, (fill) => {
+      if (fill && fill.entityType === 'family_member' && fill.fields) {
+        const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+        store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+      }
+    });
+
+    watch(highlightedField, (fieldKey) => {
+      if (fieldKey && pendingFill.value?.fields) {
+        const value = pendingFill.value.fields[fieldKey];
+        if (value !== undefined) {
+          form.value[fieldKey] = value;
+        }
+      }
+    });
+
+    watch(filling, (isFilling) => {
+      if (!isFilling && pendingFill.value) {
+        setTimeout(() => {
+          handleSubmit();
+        }, 250);
+      }
+    });
+
+    const handleClose = () => {
+      if (pendingFill.value) {
+        store.dispatch('aiFormFill/cancelFill');
+      }
+      emit('close');
+    };
+
     return {
       form,
       isEditing,
+      isMarriedOrCivilPartnership,
       submitting,
       errorMessage,
       minDob,
       maxDobForRelationship,
       handleSubmit,
+      handleClose,
+      pendingFill,
+      highlightedField,
+      filling,
     };
   },
 };

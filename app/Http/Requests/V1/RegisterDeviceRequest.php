@@ -17,9 +17,9 @@ class RegisterDeviceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'device_token' => ['required', 'string', 'max:500'],
-            'device_id' => ['required', 'string', 'max:255'],
-            'platform' => ['required', Rule::in(['ios', 'android'])],
+            'device_token' => ['sometimes', 'string', 'max:500'],
+            'device_id' => ['sometimes', 'string', 'max:255'],
+            'platform' => ['sometimes', Rule::in(['ios', 'android'])],
             'device_name' => ['nullable', 'string', 'max:255'],
             'app_version' => ['nullable', 'string', 'max:20'],
             'os_version' => ['nullable', 'string', 'max:50'],

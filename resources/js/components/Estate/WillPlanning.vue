@@ -88,7 +88,21 @@
         <div v-if="!isEditing">
           <!-- Show will details if user has a will -->
           <div v-if="form.has_will === true" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Link to full will document if created via builder -->
+            <div v-if="will && will.will_document_id" class="flex items-center justify-between bg-spring-50 border border-spring-200 rounded-lg p-3">
+              <div>
+                <p class="text-sm font-medium text-spring-800">Will created with the Will Builder</p>
+                <p class="text-xs text-spring-600">View, print, or edit your full will document</p>
+              </div>
+              <button
+                @click="openWillBuilder"
+                class="px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
+              >
+                View Will
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div class="text-sm font-medium text-neutral-500 mb-1">Will Last Updated</div>
                 <p class="text-sm text-horizon-500">{{ form.will_last_updated ? formatDate(form.will_last_updated) : 'Not specified' }}</p>
@@ -101,8 +115,31 @@
                 </p>
               </div>
               <div>
-                <div class="text-sm font-medium text-neutral-500 mb-1">Executor</div>
-                <p class="text-sm text-horizon-500">{{ form.executor_name || 'Not specified' }}</p>
+                <div class="text-sm font-medium text-neutral-500 mb-1">{{ form.executors.filter(e => e.trim()).length > 1 ? 'Executors' : 'Executor' }}</div>
+                <p v-for="(executor, i) in form.executors.filter(e => e.trim())" :key="i" class="text-sm text-horizon-500">{{ executor }}</p>
+                <p v-if="!form.executors.some(e => e.trim())" class="text-sm text-horizon-500">Not specified</p>
+              </div>
+            </div>
+
+            <!-- Will Document Details (from Will Builder) -->
+            <div v-if="willDocument" class="border-t border-light-gray pt-4 space-y-3">
+              <div v-if="willDocument.residuary_estate && willDocument.residuary_estate.length > 0">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Residuary Estate Beneficiaries</div>
+                <div v-for="(ben, i) in willDocument.residuary_estate" :key="i" class="text-sm text-horizon-500">
+                  {{ ben.beneficiary_name || ben.name || 'Not specified' }} — {{ ben.percentage }}%
+                  <span v-if="ben.substitution_beneficiary || ben.substitute" class="text-neutral-500">(if predeceased: {{ ben.substitution_beneficiary || ben.substitute }})</span>
+                </div>
+              </div>
+              <div v-if="willDocument.specific_gifts && willDocument.specific_gifts.length > 0">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Specific Gifts</div>
+                <div v-for="(gift, i) in willDocument.specific_gifts" :key="i" class="text-sm text-horizon-500">
+                  {{ gift.type === 'cash' ? formatCurrency(gift.amount) : gift.description }} to {{ gift.recipient }}
+                </div>
+              </div>
+              <div v-if="willDocument.funeral_preference">
+                <div class="text-sm font-medium text-neutral-500 mb-1">Funeral Wishes</div>
+                <p class="text-sm text-horizon-500 capitalize">{{ willDocument.funeral_preference }}</p>
+                <p v-if="willDocument.funeral_wishes_notes" class="text-sm text-neutral-500 mt-1">{{ willDocument.funeral_wishes_notes }}</p>
               </div>
             </div>
 
@@ -201,18 +238,37 @@
               </p>
             </div>
 
-            <!-- Executor Name -->
+            <!-- Executors -->
             <div>
-              <label for="executor_name" class="block text-sm font-medium text-neutral-500 mb-2">
-                Who is your executor?
+              <label class="block text-sm font-medium text-neutral-500 mb-2">
+                Who {{ form.executors.length > 1 ? 'are your executors' : 'is your executor' }}?
               </label>
-              <input
-                id="executor_name"
-                v-model="form.executor_name"
-                type="text"
-                class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
-                placeholder="Enter executor name"
-              />
+              <div v-for="(executor, index) in form.executors" :key="index" class="flex items-center gap-2 mb-2">
+                <input
+                  v-model="form.executors[index]"
+                  type="text"
+                  class="flex-1 px-3 py-2 border border-horizon-300 rounded-md focus:ring-violet-500 focus:border-violet-500"
+                  :placeholder="index === 0 ? 'Primary executor name' : 'Additional executor name'"
+                />
+                <button
+                  v-if="form.executors.length > 1"
+                  type="button"
+                  @click="form.executors.splice(index, 1)"
+                  class="p-2 text-neutral-500 hover:text-raspberry-500 transition-colors"
+                  title="Remove executor"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <button
+                type="button"
+                @click="form.executors.push('')"
+                class="text-sm text-raspberry-500 hover:text-raspberry-600 font-medium transition-colors"
+              >
+                + Add executor
+              </button>
             </div>
 
             <!-- Spouse Bequest (only show if married) -->
@@ -404,11 +460,12 @@ export default {
       saving: false,
       isEditing: this.startInEditMode,
       will: null,
+      willDocument: null,
       form: {
         has_will: null,
         will_last_updated: '',
         last_reviewed_date: '',
-        executor_name: '',
+        executors: [''],
         spouse_primary_beneficiary: true,
         spouse_bequest_percentage: 100,
         executor_notes: '',
@@ -470,6 +527,11 @@ export default {
   },
 
   methods: {
+    openWillBuilder() {
+      // Navigate to the will builder — it will show the completed will in Review mode
+      this.$router.push('/estate/will-builder?view=document');
+    },
+
     formatDateForInput(date) {
       if (!date) return '';
       try {
@@ -495,16 +557,30 @@ export default {
         const response = await api.get('/estate/will');
         this.will = response.data.data;
 
+        // Parse executors — backend stores as comma-separated string in executor_name
+        const executorStr = this.will.executor_name || '';
+        const executors = executorStr ? executorStr.split(',').map(e => e.trim()).filter(Boolean) : [''];
+
         this.form = {
           has_will: this.will.has_will,
           will_last_updated: this.formatDateForInput(this.will.will_last_updated),
           last_reviewed_date: this.formatDateForInput(this.will.last_reviewed_date),
-          executor_name: this.will.executor_name || '',
+          executors: executors.length > 0 ? executors : [''],
           spouse_primary_beneficiary: this.will.spouse_primary_beneficiary,
           spouse_bequest_percentage: parseFloat(this.will.spouse_bequest_percentage),
           executor_notes: this.will.executor_notes || '',
         };
         this.originalForm = JSON.parse(JSON.stringify(this.form));
+
+        // Load full WillDocument if exists (created via Will Builder)
+        if (this.will.will_document_id) {
+          try {
+            const docResponse = await api.get(`/estate/will-builder/${this.will.will_document_id}`);
+            this.willDocument = docResponse.data?.data || null;
+          } catch {
+            // Will document not available — that's OK
+          }
+        }
       } catch (error) {
         console.error('Failed to load will:', error);
         this.errorMessage = 'Failed to load will details';
@@ -574,7 +650,13 @@ export default {
       this.errorMessage = '';
 
       try {
-        await api.post('/estate/will', this.form);
+        // Convert executors array to comma-separated string for backend
+        const payload = {
+          ...this.form,
+          executor_name: this.form.executors.filter(e => e.trim()).join(', '),
+        };
+        delete payload.executors;
+        await api.post('/estate/will', payload);
         this.successMessage = 'Will saved successfully';
         this.isEditing = false;
         this.originalForm = JSON.parse(JSON.stringify(this.form));

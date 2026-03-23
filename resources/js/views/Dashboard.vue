@@ -182,7 +182,7 @@
             <div class="space-y-3">
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Plan Type</span>
-                <span class="font-medium text-horizon-500">Plan 5</span>
+                <span class="font-medium text-horizon-500">{{ studentLiability.planType }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Interest Rate</span>
@@ -190,7 +190,7 @@
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Repayment Threshold</span>
-                <span class="font-medium text-horizon-500">{{ formatCurrency(25000) }}/yr</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(studentLoanDetails.threshold) }}/yr</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Monthly Repayments</span>
@@ -200,7 +200,7 @@
 
             <div class="bg-light-pink-50 border border-light-pink-200 rounded-lg p-3 mt-3">
               <p class="text-xs text-raspberry-700">
-                Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(25000) }} per year. Your loan is written off after 40 years.
+                Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(studentLoanDetails.threshold) }} per year. Your loan is written off after {{ studentLoanDetails.writeOff }} years.
               </p>
             </div>
           </div>
@@ -877,9 +877,7 @@
           </div>
         </DashboardCard>
 
-        <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
-
-        <!-- Stage-curated: Goals projection chart (spans 2 columns) + Suggested goals card (1 column) -->
+        <!-- Goals projection chart (spans 2 columns) -->
         <DashboardCard
           v-if="currentStage && isCardVisible('goals')"
           title="Goals & Life Events"
@@ -895,6 +893,7 @@
             <p class="text-xs text-neutral-500">Track your financial goals and life events</p>
           </div>
         </DashboardCard>
+
 
         <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
         <LifeTimelineCard
@@ -926,7 +925,6 @@ import { getRelativeTime } from '@/utils/dateFormatter';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
-import GoalsCard from '@/components/Dashboard/GoalsCard.vue';
 import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 export default {
@@ -940,7 +938,6 @@ export default {
     ProfileCompletionCards,
     EmptyDashboard,
     JourneyProgressHero,
-    GoalsCard,
     LifeTimelineCard,
   },
 
@@ -979,7 +976,6 @@ export default {
     ...mapGetters('lifeStage', {
       currentStage: 'currentStage',
       stageDashboardCards: 'dashboardCards',
-      stageSuggestedGoals: 'suggestedGoals',
     }),
 
     isStudentPersona() {
@@ -998,41 +994,52 @@ export default {
 
     studentLiability() {
       if (!this.isStudentPersona) return null;
+
+      const extractPlanType = (name) => {
+        const match = (name || '').match(/Plan\s*(\d)/i);
+        return match ? `Plan ${match[1]}` : null;
+      };
+
+      const buildResult = (loan) => {
+        const name = loan.liability_name || loan.name || 'Student Loan';
+        const planType = extractPlanType(name) || 'Plan 2';
+        return {
+          balance: parseFloat(loan.current_balance || 0),
+          name,
+          planType,
+          interestRate: parseFloat(loan.interest_rate || 0),
+          notes: loan.notes || '',
+        };
+      };
+
       // Check estate store liabilities first (real user data)
       const estateLiabilities = this.$store.state.estate?.liabilities || [];
       const storeLoan = estateLiabilities.find(l => (l.liability_type || '').includes('student'));
-      if (storeLoan) {
-        return {
-          balance: parseFloat(storeLoan.current_balance || 0),
-          name: storeLoan.liability_name || 'Student Loan',
-          interestRate: parseFloat(storeLoan.interest_rate || 0),
-          notes: storeLoan.notes || '',
-        };
-      }
+      if (storeLoan) return buildResult(storeLoan);
+
       // Fallback: net worth overview liabilities
       const overview = this.netWorthOverview;
       const liabilities = overview?.liabilities || [];
       const loan = liabilities.find(l => (l.liability_type || '').includes('student'));
-      if (loan) {
-        return {
-          balance: parseFloat(loan.current_balance || 0),
-          name: loan.liability_name || 'Student Loan',
-          interestRate: parseFloat(loan.interest_rate || 0),
-          notes: loan.notes || '',
-        };
-      }
+      if (loan) return buildResult(loan);
+
       // Fallback: persona JSON data
       const personaLiabilities = this.effectivePersonaData?.liabilities || [];
       const personaLoan = personaLiabilities.find(l => (l.liability_type || '').includes('student'));
-      if (personaLoan) {
-        return {
-          balance: parseFloat(personaLoan.current_balance || 0),
-          name: personaLoan.liability_name || 'Student Loan',
-          interestRate: parseFloat(personaLoan.interest_rate || 0),
-          notes: personaLoan.notes || '',
-        };
-      }
+      if (personaLoan) return buildResult(personaLoan);
+
       return null;
+    },
+
+    studentLoanDetails() {
+      const planType = this.studentLiability?.planType || 'Plan 2';
+      const details = {
+        'Plan 1': { threshold: 24990, writeOff: 25 },
+        'Plan 2': { threshold: 27295, writeOff: 30 },
+        'Plan 4': { threshold: 31395, writeOff: 30 },
+        'Plan 5': { threshold: 25000, writeOff: 40 },
+      };
+      return details[planType] || details['Plan 2'];
     },
 
     hasAreasToComplete() {
@@ -1738,14 +1745,6 @@ export default {
       return this.stageDashboardCards.includes(cardId);
     },
 
-    handleSuggestedGoal(goalData) {
-      // Navigate to goals page with the suggested goal pre-filled
-      this.$router.push({
-        path: '/goals',
-        query: { addGoal: 'true', suggested: goalData.id },
-      });
-    },
-
     // Format asset category names for display
     formatAssetCategory(category) {
       const categoryLabels = {
@@ -1972,6 +1971,9 @@ export default {
     };
     window.addEventListener('resize', this._handleResize);
 
+    // Always refresh journey progress when returning to dashboard
+    // (e.g. after onboarding, adding data via Fyn, etc.)
+    this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
   },
 
   beforeUnmount() {

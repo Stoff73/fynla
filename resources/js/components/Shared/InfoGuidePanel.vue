@@ -227,7 +227,7 @@ export default {
           '/net-worth/retirement': 'retirement',
           '/net-worth/savings': 'savings',
           '/net-worth/liabilities': 'liabilities',
-          '/net-worth/business-interests': 'business_interests',
+          '/net-worth/business': 'business_interests',
           '/net-worth/chattels': 'chattels',
           // Main modules
           '/protection': 'protection',

@@ -587,11 +587,9 @@ const actions = {
         }
     },
 
-    async updateKnowledgeLevel({ commit, state }, level) {
+    async updateKnowledgeLevel({ commit }, level) {
         try {
-            const currentProfile = state.riskProfile || {};
             const response = await investmentService.saveRiskProfile({
-                ...currentProfile,
                 knowledge_level: level,
             });
             commit('setRiskProfile', response.data);

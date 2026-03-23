@@ -6,12 +6,17 @@ namespace App\Services\UserProfile;
 
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 
 class PersonalAccountsService
 {
     use CalculatesOwnershipShare;
+
+    public function __construct(
+        private readonly UKTaxCalculator $taxCalculator
+    ) {}
 
     /**
      * Calculate Profit and Loss statement for the user
@@ -21,7 +26,10 @@ class PersonalAccountsService
     public function calculateProfitAndLoss(User $user, Carbon $startDate, Carbon $endDate): array
     {
         // Load relationships
-        $user->load(['properties', 'mortgages']);
+        $user->load(['properties', 'mortgages', 'dbPensions', 'statePension']);
+
+        // Calculate pension income from DB pensions and state pension
+        $pensionIncome = $this->calculateAnnualPensionIncome($user);
 
         // Calculate income line items
         $income = [
@@ -44,6 +52,21 @@ class PersonalAccountsService
                 'line_item' => 'Dividend Income',
                 'category' => 'income',
                 'amount' => $user->annual_dividend_income ?? 0,
+            ],
+            [
+                'line_item' => 'Interest Income',
+                'category' => 'income',
+                'amount' => $user->annual_interest_income ?? 0,
+            ],
+            [
+                'line_item' => 'Pension Income',
+                'category' => 'income',
+                'amount' => $pensionIncome,
+            ],
+            [
+                'line_item' => 'Trust Income',
+                'category' => 'income',
+                'amount' => $user->annual_trust_income ?? 0,
             ],
             [
                 'line_item' => 'Other Income',
@@ -92,6 +115,16 @@ class PersonalAccountsService
 
         $netProfitLoss = $totalIncome - $totalExpenses;
 
+        // Calculate tax using UKTaxCalculator with TaxConfigService rates
+        $taxBreakdown = $this->taxCalculator->calculateNetIncome(
+            (float) ($user->annual_employment_income ?? 0),
+            (float) ($user->annual_self_employment_income ?? 0),
+            (float) ($user->annual_rental_income ?? 0),
+            (float) ($user->annual_dividend_income ?? 0),
+            (float) ($user->annual_interest_income ?? 0),
+            (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0) + $pensionIncome
+        );
+
         return [
             'period' => [
                 'start_date' => $startDate->format('Y-m-d'),
@@ -102,6 +135,12 @@ class PersonalAccountsService
             'expenses' => $expenses,
             'total_expenses' => $totalExpenses,
             'net_profit_loss' => $netProfitLoss,
+            'tax' => [
+                'income_tax' => $taxBreakdown['income_tax'],
+                'national_insurance' => $taxBreakdown['national_insurance'],
+                'total_deductions' => $taxBreakdown['total_deductions'],
+                'effective_tax_rate' => $taxBreakdown['effective_tax_rate'],
+            ],
         ];
     }
 
@@ -113,7 +152,10 @@ class PersonalAccountsService
     public function calculateCashflow(User $user, Carbon $startDate, Carbon $endDate): array
     {
         // Load relationships
-        $user->load(['properties', 'mortgages', 'dcPensions']);
+        $user->load(['properties', 'mortgages', 'dcPensions', 'dbPensions', 'statePension']);
+
+        // Calculate pension income from DB pensions and state pension
+        $pensionIncome = $this->calculateAnnualPensionIncome($user);
 
         // Cash inflows
         $inflows = [
@@ -136,6 +178,21 @@ class PersonalAccountsService
                 'line_item' => 'Dividend Income',
                 'category' => 'cash_inflow',
                 'amount' => $user->annual_dividend_income ?? 0,
+            ],
+            [
+                'line_item' => 'Interest Income',
+                'category' => 'cash_inflow',
+                'amount' => $user->annual_interest_income ?? 0,
+            ],
+            [
+                'line_item' => 'Pension Income',
+                'category' => 'cash_inflow',
+                'amount' => $pensionIncome,
+            ],
+            [
+                'line_item' => 'Trust Income',
+                'category' => 'cash_inflow',
+                'amount' => $user->annual_trust_income ?? 0,
             ],
             [
                 'line_item' => 'Other Income',
@@ -393,5 +450,26 @@ class PersonalAccountsService
             'total_equity' => $equity,
             'net_worth' => $equity,  // Alias for compatibility
         ];
+    }
+
+    /**
+     * Calculate annual pension income from DB pensions in payment and state pension.
+     */
+    private function calculateAnnualPensionIncome(User $user): float
+    {
+        $pensionIncome = 0.0;
+
+        foreach ($user->dbPensions as $dbPension) {
+            if ($dbPension->accrued_annual_pension > 0) {
+                $pensionIncome += (float) $dbPension->accrued_annual_pension;
+            }
+        }
+
+        $statePension = $user->statePension;
+        if ($statePension && $statePension->already_receiving) {
+            $pensionIncome += (float) ($statePension->state_pension_forecast_annual ?? 0);
+        }
+
+        return $pensionIncome;
     }
 }

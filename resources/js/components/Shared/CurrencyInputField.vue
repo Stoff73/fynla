@@ -3,7 +3,7 @@
     <div class="relative">
       <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
       <input
-        :value="modelValue"
+        :value="displayValue"
         @input="handleInput"
         type="number"
         min="0"
@@ -50,6 +50,13 @@ export default {
   },
 
   emits: ['update:modelValue'],
+
+  computed: {
+    displayValue() {
+      const num = parseFloat(this.modelValue) || 0;
+      return num % 1 === 0 ? Math.round(num) : num;
+    },
+  },
 
   methods: {
     handleInput(event) {

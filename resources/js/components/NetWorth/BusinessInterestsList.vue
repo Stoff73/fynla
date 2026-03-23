@@ -120,6 +120,22 @@ export default {
     };
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'business_interest') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const record = this.businesses.find(b => b.id === fill.entityId);
+          if (record) {
+            this.editingBusiness = record;
+          }
+        } else {
+          this.editingBusiness = null;
+        }
+        this.showFormModal = true;
+      }
+    },
+  },
+
   computed: {
     ...mapState('businessInterests', ['businesses', 'loading', 'error']),
     ...mapGetters('businessInterests', ['totalBusinessValue']),
@@ -134,6 +150,13 @@ export default {
   },
 
   mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'business_interest' && fill.mode !== 'edit') {
+      this.editingBusiness = null;
+      this.showFormModal = true;
+    }
+
     this.fetchData();
   },
 
@@ -184,6 +207,10 @@ export default {
           await this.updateBusiness({ id: this.editingBusiness.id, data: formData });
         } else {
           await this.createBusiness(formData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
       } catch (error) {

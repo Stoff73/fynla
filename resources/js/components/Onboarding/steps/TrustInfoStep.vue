@@ -61,7 +61,6 @@
         You can add detailed trust information later in your profile.
       </p>
 
-      <UsefulResources :links="STEP_RESOURCES.trust" />
     </div>
   </OnboardingStep>
 </template>

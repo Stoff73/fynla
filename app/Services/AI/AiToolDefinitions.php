@@ -21,6 +21,7 @@ class AiToolDefinitions
         if (! $isPreviewMode) {
             $tools = array_merge(
                 $tools,
+                $this->whatIfTools(),
                 $this->dataCreationTools(),
                 $this->additionalCreationTools(),
                 $this->dataModificationTools(),
@@ -47,7 +48,19 @@ class AiToolDefinitions
                     'properties' => [
                         'route_path' => [
                             'type' => 'string',
-                            'description' => 'The application route path. Valid routes: /dashboard, /profile, /settings, /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash, /net-worth/business, /net-worth/chattels, /net-worth/liabilities, /valuable-info?section=income, /valuable-info?section=expenditure, /valuable-info?section=letter, /protection, /estate, /estate/will-builder, /estate/power-of-attorney, /goals, /holistic-plan, /trusts, /risk-profile, /plans, /actions, /planning/journeys, /planning/what-if',
+                            'description' => 'The application route path. Valid routes: '
+                                .'MAIN: /dashboard, /profile, /settings, /settings/security, /settings/assumptions, /help. '
+                                .'INCOME & EXPENDITURE: /valuable-info?section=income (Income tab), /valuable-info?section=expenditure (Expenditure tab), /valuable-info?section=letter (Letter to Spouse tab), /valuable-info?section=risk (Risk Profile summary tab). '
+                                .'NET WORTH: /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash (Bank Accounts & Savings), /net-worth/business, /net-worth/chattels, /net-worth/liabilities. '
+                                .'PROTECTION: /protection. '
+                                .'ESTATE: /estate (Estate Planning dashboard), /estate/will-builder (Will Builder), /estate/power-of-attorney (Power of Attorney). '
+                                .'TRUSTS: /trusts. '
+                                .'GOALS: /goals (Goals & Life Events), /goals?tab=events (Life Events tab). '
+                                .'RISK: /risk-profile. '
+                                .'PLANS: /plans (all plans), /plans/investment, /plans/retirement, /plans/protection, /plans/estate, /holistic-plan (Holistic Financial Plan). '
+                                .'ACTIONS: /actions. '
+                                .'PLANNING: /planning/journeys, /planning/what-if (What-If Scenarios). '
+                                .'NEVER use /savings or /investment — these are legacy redirects. Use /net-worth/cash and /net-worth/investments instead.',
                         ],
                         'description' => [
                             'type' => 'string',
@@ -65,6 +78,24 @@ class AiToolDefinitions
     {
         return [
             [
+                'name' => 'list_goals',
+                'description' => 'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal. This is a lightweight call — use it instead of get_module_analysis(goals) when you just need the goal list.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object) [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'list_life_events',
+                'description' => 'List all of the user\'s life events with dates, amounts, and IDs. Use this when the user asks about their life events, upcoming events, or before updating/deleting a specific event. This is a lightweight call — use it instead of get_module_analysis(goals) when you just need the event list.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object) [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
                 'name' => 'get_module_analysis',
                 'description' => 'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
                 'parameters' => [
@@ -77,49 +108,6 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['module'],
-                    'additionalProperties' => false,
-                ],
-            ],
-            [
-                'name' => 'run_what_if_scenario',
-                'description' => 'Run a what-if scenario to show the user how changes would affect their financial plan. For example: "What if I increase pension contributions by £200/month?" or "What if I retire at 60 instead of 67?"',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'module' => [
-                            'type' => 'string',
-                            'enum' => ['protection', 'savings', 'investment', 'retirement'],
-                            'description' => 'The module to run the scenario against',
-                        ],
-                        'parameters' => [
-                            'type' => 'object',
-                            'description' => 'Scenario parameters. For retirement: additional_contribution, later_retirement_age, lower_target_income. For savings: additional_savings. For investment: growth_rate_override.',
-                            'properties' => [
-                                'additional_contribution' => [
-                                    'type' => 'number',
-                                    'description' => 'Additional monthly contribution in pounds',
-                                ],
-                                'later_retirement_age' => [
-                                    'type' => 'integer',
-                                    'description' => 'Alternative retirement age to model',
-                                ],
-                                'lower_target_income' => [
-                                    'type' => 'number',
-                                    'description' => 'Alternative target retirement income in pounds per year',
-                                ],
-                                'additional_savings' => [
-                                    'type' => 'number',
-                                    'description' => 'Additional monthly savings amount in pounds',
-                                ],
-                                'growth_rate_override' => [
-                                    'type' => 'number',
-                                    'description' => 'Alternative annual growth rate as a percentage (e.g. 7 for 7%)',
-                                ],
-                            ],
-                            'additionalProperties' => false,
-                        ],
-                    ],
-                    'required' => ['module', 'parameters'],
                     'additionalProperties' => false,
                 ],
             ],
@@ -179,6 +167,40 @@ class AiToolDefinitions
         ];
     }
 
+    private function whatIfTools(): array
+    {
+        return [
+            [
+                'name' => 'create_what_if_scenario',
+                'description' => 'Create a persistent what-if scenario showing how changes would affect the user\'s financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison. Use this when the user asks "what if" questions about their finances.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => [
+                            'type' => 'string',
+                            'description' => 'Short descriptive name for the scenario (e.g. "Retire at 55", "Sell Main Residence")',
+                        ],
+                        'scenario_type' => [
+                            'type' => 'string',
+                            'enum' => ['retirement', 'property', 'family', 'income', 'custom'],
+                            'description' => 'Category of the what-if scenario',
+                        ],
+                        'parameters' => [
+                            'type' => 'object',
+                            'description' => 'The what-if parameter overrides. Keys: retirement_age, pension_contribution, sell_property, buy_property, divorce, marriage, new_child, income_change, job_loss, inheritance',
+                        ],
+                        'description' => [
+                            'type' => 'string',
+                            'description' => 'Your explanation of what this scenario models and the key assumptions',
+                        ],
+                    ],
+                    'required' => ['name', 'scenario_type', 'parameters', 'description'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
     private function dataCreationTools(): array
     {
         return [
@@ -226,6 +248,10 @@ class AiToolDefinitions
                             'type' => 'string',
                             'enum' => ['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'],
                             'description' => 'Type of goal',
+                        ],
+                        'monthly_contribution' => [
+                            'type' => 'number',
+                            'description' => 'Optional monthly contribution amount in pounds. If provided, Fyn will assess whether this is sufficient to reach the target by the deadline.',
                         ],
                     ],
                     'required' => ['name', 'target_amount', 'target_date', 'priority', 'goal_type'],
@@ -560,8 +586,8 @@ class AiToolDefinitions
     {
         return [
             [
-                'name' => 'create_estate_asset',
-                'description' => 'Create an estate planning asset. Use this for assets being tracked specifically for Inheritance Tax and estate planning purposes (e.g., collectibles, business interests, or other assets not captured elsewhere).',
+                'name' => 'create_asset',
+                'description' => 'Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -592,8 +618,8 @@ class AiToolDefinitions
                 ],
             ],
             [
-                'name' => 'create_estate_liability',
-                'description' => 'Create an estate planning liability. Use this for debts and liabilities being tracked for estate planning purposes.',
+                'name' => 'create_liability',
+                'description' => 'Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [

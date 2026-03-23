@@ -29,11 +29,13 @@ class LifeStageController extends Controller
             $user = $request->user();
             $progress = $this->lifeStageService->getProgress($user);
             $dataCompleted = $this->lifeStageService->getDataCompleteness($user);
+            $stepCompleteness = $this->lifeStageService->getStepCompleteness($user);
 
             return response()->json([
                 'success' => true,
                 'data' => array_merge($progress, [
                     'data_completed_steps' => $dataCompleted,
+                    'step_completeness' => $stepCompleteness,
                 ]),
             ]);
         } catch (\Throwable $e) {

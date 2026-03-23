@@ -22,7 +22,7 @@ class ConfirmExtractionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'data' => ['required', 'array'],
+            'data' => ['sometimes', 'array'],
             'data.*' => ['nullable'], // Allow any fields, model validation will handle specifics
         ];
     }

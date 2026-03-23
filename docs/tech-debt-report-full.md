@@ -1,275 +1,241 @@
 # Full Codebase Tech Debt Report
 
-**Date:** 6 March 2026
-**Codebase:** Fynla v0.8.3
-**Files scanned:** 699 (174 services, 70 controllers, 77 models, 378 Vue components)
-**Total issues:** 87
-**First full audit** (no previous report to compare)
-
----
+**Date:** 20 March 2026
+**Codebase:** Fynla v0.9.3
+**Files scanned:** 590 Vue, 211 Services, 89 Controllers, 88 Models, 74 Form Requests, 29 Stores
+**Total issues:** 58
+**Previous report:** 6 March 2026 (v0.8.3)
 
 ## Executive Summary
 
 | Severity | Count |
 |----------|-------|
-| Critical | 5 |
-| Warning | 28 |
-| Suggestion | 54 |
+| Critical | 6 |
+| Warning / Medium | 30 |
+| Suggestion / Low | 22 |
 
 | Category | Count |
 |----------|-------|
-| Complexity / God Files | 12 |
-| Convention Violations | 22 |
-| Dead Code | 4 |
-| Duplicate Code | 8 |
-| Coverage Gaps | 18 |
-| Design System | 15 |
-| Inconsistency | 8 |
+| God Files (>800 lines) | 11 |
+| Colour Token Violations | 15 |
+| Data Precision (float vs decimal) | 4 |
+| Response/Pattern Inconsistency | 6 |
+| Dead/Orphaned Code | 6 |
+| Missing Validation | 4 |
+| Architecture (DB in controllers) | 6 |
+| Duplicate Code | 3 |
+| Test Coverage Gaps | 3 |
+
+### Improvements Since v0.8.3 Report (6 March)
+
+- All hardcoded tax values now use TaxConfigService (was 30+ instances)
+- @keyframes duplication fully resolved (was 8 files)
+- ExpenditureForm bugs fixed (section totals, isSectionExpanded)
+- Estate narrative strings use config values (was 30 hardcoded instances)
+- Budget magic numbers replaced with named constants
+- 9 duplicate onboarding components deleted
+- Onboarding consolidated to single component set
 
 ### Quick Wins (trivial effort, high impact)
 
-1. **Delete orphaned `SET_MONTE_CARLO_RESULT` mutation** in `investment.js` (10 lines, dead code)
-2. **Add `Mockery::close()` to 8 test files** missing cleanup (40 mins)
-3. **Add `declare(strict_types=1)` to 19 test files** (15 mins)
-4. **Replace 1 raw `DB::table()` call** in `RebalancingCalculationController.php:375` (5 mins)
-5. **Remove 6 custom `@keyframes` definitions** that duplicate global classes (30 mins)
+1. **Payment/Subscription amount cast** — `integer` → `decimal:2` (5 min, 2 files)
+2. **IHTCalculation float casts** — 15 fields `float` → `decimal:2` (15 min, 1 file)
+3. **Liability model float casts** — `float` → `decimal:2` (5 min, 1 file)
+4. **bugReportService.js** — named export → default object pattern (2 min)
+5. **Deduplicate calculateAge** — remove local copies, import from dateFormatter.js (10 min, 2 files)
 
-### High Priority (any effort, critical severity)
+### High Priority (critical severity)
 
-1. **RetirementIncomeService.php** — 2,293 lines, methods up to 388 lines. Split into 4-5 focused services.
-2. **RetirementStrategyService.php** — 2,134 lines. Needs decomposition.
-3. **planPrintMixin.js** — 3,199 lines. Extract into sub-mixins.
-4. **Vuex mutation naming inconsistency** — 21 modules split between camelCase and SCREAMING_SNAKE_CASE.
-5. **28 banned colour tokens** (yellow/amber/orange) across 28 Vue components.
+1. **Duplicate calculateEquity()** — PropertyCalculationService vs PropertyService with incompatible logic
+2. **AgentInternalController** — non-standard response format, missing error handling trait
+3. **Missing form request validation** — AdvisorController, PaymentController, OnboardingController accept raw input
+4. **Payment/Subscription model casts** — `integer` cast on `decimal(10,2)` columns loses pence values
 
 ---
 
 ## Detailed Findings by Module
 
-### Backend Services
+### Backend Services (211 services, 9 agents)
 
-**Files scanned:** 174 | **Issues:** 10 | **Overall health:** Good
+**Overall health: Excellent.** All services use `declare(strict_types=1)`, constructor injection, TaxConfigService (no hardcoded tax values), and proper caching.
 
-The service layer is the strongest part of the codebase. All services use `declare(strict_types=1)`, constructor injection with `private readonly`, and proper type hints.
+**Main issue: God files.** 11 services exceed 1000 lines.
 
-| # | Severity | Issue | File | Lines | Effort |
-|---|----------|-------|------|-------|--------|
-| S1 | Critical | God file (2,293 lines, 20+ methods) | `Services/Retirement/RetirementIncomeService.php` | All | Large |
-| S2 | Critical | God file (2,134 lines) | `Services/Retirement/RetirementStrategyService.php` | All | Large |
-| S3 | Warning | Method 388 lines (`calculateDefaultAllocations`) | `Services/Retirement/RetirementIncomeService.php` | 1443-1830 | Medium |
-| S4 | Warning | Method 358 lines (`projectFundDepletion`) | `Services/Retirement/RetirementIncomeService.php` | 898-1255 | Medium |
-| S5 | Warning | 3 duplicate asset aggregation services | `Estate/EstateAssetAggregatorService`, `Shared/CrossModuleAssetAggregator`, `Trust/TrustAssetAggregatorService` | N/A | Medium |
-| S6 | Warning | Hardcoded tax values (40000, 20000) | `Retirement/ContributionOptimizer.php` | 280-283 | Trivial |
-| S7 | Warning | Magic numbers without constants | `Coordination/ConflictResolver.php` | 73-78, 287-337 | Trivial |
-| S8 | Suggestion | Large file (1,366 lines) | `Estate/IHTCalculationService.php` | All | Medium |
-| S9 | Suggestion | Large file (1,344 lines) | `Onboarding/OnboardingService.php` | All | Medium |
-| S10 | Suggestion | Large file (1,091 lines) | `UserProfile/UserProfileService.php` | All | Medium |
+| File | Lines | Suggestion |
+|------|-------|-----------|
+| SavingsActionDefinitionService | 3,675 | Extract evaluators into subdirectory |
+| RetirementActionDefinitionService | 2,476 | Extract evaluators |
+| RetirementIncomeService | 2,292 | Split into Calculator, Allocator, Simulator, TaxCalculator |
+| ProtectionActionDefinitionService | 2,239 | Extract evaluators |
+| RetirementStrategyService | 2,141 | Extract AffordabilityChecker, StrategyBuilder |
+| InvestmentActionDefinitionService | 1,486 | Extract evaluators |
+| OnboardingService | 1,379 | Split by flow type |
+| ComprehensiveEstatePlanService | 1,308 | Split trust/gifting/IHT/recommendation |
+| UserProfileService | 1,097 | Split profile/relationships/validation |
+| ContributionWaterfallService | 1,024 | Consider extraction |
+| HouseholdPlanningService | 990 | Consider extraction |
 
-**What's clean:** Strict types 100%, type hints 100%, TaxConfigService usage consistent, no dead services detected.
+**Critical:** Duplicate `calculateEquity()` in PropertyCalculationService (lines 35-48) vs PropertyService (lines 27-42) with incompatible ownership percentage handling.
 
----
-
-### Controllers & HTTP
-
-**Files scanned:** 70 controllers, 73 requests, 16 resources | **Issues:** 12 | **Overall health:** Good
-
-| # | Severity | Issue | File(s) | Effort |
-|---|----------|-------|---------|--------|
-| C1 | Warning | 26 controllers missing `SanitizedErrorResponse` trait | See list below | Small |
-| C2 | Warning | 17 controllers use inline `Validator::make()` instead of FormRequest | Investment subcontrollers, Admin, Onboarding | Medium |
-| C3 | Warning | God controller (980 lines) | `InvestmentController.php` | Medium |
-| C4 | Warning | Large controller (786 lines) | `GoalsController.php` | Medium |
-| C5 | Warning | Large controller (673 lines) | `RetirementController.php` | Medium |
-| C6 | Suggestion | 1 raw `DB::table()` query | `RebalancingCalculationController.php:375` | Trivial |
-
-**Controllers missing SanitizedErrorResponse (priority):** `WebhookController`, `PasswordResetController`, `AuthController`, `NetWorthController`, `DashboardController`, `UKTaxesController`, `HolisticPlanningController`, `ChattelController`, `LetterToSpouseController`, `PersonalAccountsController`, `PlanController`, + 15 others.
-
-**What's clean:** Strict types 100%, type hints 100%, return types 100%, no dead requests/resources, auth middleware properly applied, API response format consistent.
+**Warning:** Duplicate Monte Carlo implementations — MonteCarloEngine (Shared) vs MonteCarloSimulator (Investment). May be intentional but needs documentation.
 
 ---
 
-### Models & Database
+### Controllers & HTTP (89 controllers, 74 requests)
 
-**Files scanned:** 77 models, 108 migrations, 44 factories | **Issues:** 15 | **Overall health:** Very Good
+**Critical: Response format violations**
 
-| # | Severity | Issue | File(s) | Effort |
-|---|----------|-------|---------|--------|
-| M1 | Warning | 8 financial models missing `Auditable` trait | `RiskProfile`, `InvestmentScenario`, `InvestmentGoal`, `ExpenditureProfile`, `RetirementProfile`, `ProtectionProfile`, `UserAssumption`, `ISAAllowanceTracking` | Small |
-| M2 | Suggestion | ~30 older migrations missing safety checks | Dec 2025 - Jan 2026 migrations | Medium |
-| M3 | Suggestion | 4 older migrations missing `declare(strict_types=1)` | Dec 2025 migrations | Trivial |
-| M4 | Suggestion | 31 factories use `$this->faker` instead of `fake()` | Estate, Investment, Protection, Retirement factories | Small |
-| M5 | Suggestion | Missing factory state methods | `PropertyFactory`, `InvestmentAccountFactory`, `SavingsAccountFactory`, `MortgageFactory` | Small |
-
-**What's clean:** Canonical enums 100% correct, decimal precision 100% correct, joint_owner_id indexes all present, seeders all idempotent (`updateOrCreate`), foreign keys properly constrained.
-
----
-
-### Vue Components
-
-**Files scanned:** 378 | **Issues:** 25 | **Overall health:** Moderate
-
-| # | Severity | Issue | File(s) | Count | Effort |
-|---|----------|-------|---------|-------|--------|
-| V1 | Critical | Banned colour tokens (yellow/amber/orange) | 28 components (Investment, Goals, Retirement, Risk, etc.) | 28 files | Medium |
-| V2 | Warning | Hardcoded hex colours in style blocks | `planPrintMixin.js`, `LetterToSpouse.vue`, `CountrySelector.vue`, chart components | 6 files | Medium |
-| V3 | Warning | Custom `@keyframes` duplicating global classes | `PlanGoalSection`, `GoalContributionStreak`, `GuidanceTooltip`, `NetWorthOverviewCard`, `InvestmentList`, `PropertyList`, `PensionList`, `PortfolioOptimization` | 8 files | Low |
-| V4 | Warning | Acronyms in user-facing text (AA, DB, DC, S&S) | 39+ components across Retirement, Investment, Savings | 39 files | Medium |
-| V5 | Warning | 17 components use formatCurrency without currencyMixin import | UserProfile, Onboarding components | 17 files | Small |
-| V6 | Suggestion | Score displays visible in UI | `FinancialHealthScore`, `CoverageAdequacyGauge`, + others | 6+ files | Medium |
-| V7 | Suggestion | Duplicate scrollbar CSS | `CountrySelector.vue` | 1 file | Trivial |
-
-**God components (1000+ lines):**
-
-| File | Lines |
+| File | Issue |
 |------|-------|
-| `planPrintMixin.js` | 3,199 |
-| `ExpenditureForm.vue` | 2,403 |
-| `RetirementIncomeTab.vue` | 2,034 |
-| `PropertyForm.vue` | 1,943 |
-| `LetterToSpouse.vue` | 1,776 |
-| `PensionList.vue` | 1,773 |
-| `TaxSettings.vue` | 1,689 |
-| `IHTPlanning.vue` | 1,667 |
-| `InvestmentList.vue` | 1,352 |
-| `CapitalAdequacyTab.vue` | 1,341 |
-| `AssetsStep.vue` | 1,267 |
-| `RequiredCapitalDetail.vue` | 1,253 |
-| `StrategiesTab.vue` | 1,048 |
-| `AccountForm.vue` | 1,031 |
-| `SaveAccountModal.vue` | 1,005 |
+| `AgentInternalController.php` | Returns `['error' => ...]` not `['success', 'message', 'data']`. Missing `SanitizedErrorResponse` trait. |
+| `PostcodeLookupController.php` | Custom `['success', 'error', 'message']` format with inline error codes |
+| `AdminController.php` | Inline `Validator::make()` instead of form request classes |
 
-**What's clean:** No `v-if` + `v-for` anti-pattern, `:key` always used with `v-for`, form modals emit `save` not `submit`, multi-word component names enforced, no `primary-*`/`secondary-*` deprecated tokens.
+**Critical: Missing form request validation**
 
----
+| File | Methods |
+|------|---------|
+| `AdvisorController.php` | `clients()`, `activities()`, `searchClients()` — raw `$request->all()` |
+| `PaymentController.php` | Inline `Validator::make()` |
+| `OnboardingController.php` | Inline `Validator::make()` in every method |
 
-### Vuex Stores & JS Services
+**Warning: DB facade in controllers** (should be in services)
 
-**Files scanned:** 21 stores, 33 services, 5 utils, 2 mixins | **Issues:** 12 | **Overall health:** Moderate
+| File | Lines | Pattern |
+|------|-------|---------|
+| `PaymentController.php` | 200, 339 | `DB::transaction()` |
+| `PreviewController.php` | 276 | `DB::transaction()` |
+| `WebhookController.php` | 71 | `DB::transaction()` |
+| `DCPensionHoldingsController.php` | 228, 243, 254 | `DB::beginTransaction()` |
+| `FamilyMembersController.php` | 266, 391 | `DB::transaction()` (339-line method) |
+| `TaxSettingsController.php` | 126, 175, 223, 378 | Multiple `DB::transaction()` |
 
-| # | Severity | Issue | File(s) | Effort |
-|---|----------|-------|---------|--------|
-| X1 | Critical | Mutation naming split: camelCase vs SCREAMING_SNAKE_CASE across 21 modules | All store modules | High |
-| X2 | Warning | Orphaned mutation `SET_MONTE_CARLO_RESULT` | `investment.js:780-789` | Trivial |
-| X3 | Warning | 3 actions skip loading pattern ("causes infinite loop") | `retirement.js:239-262, 386-410, 537-565` | Medium |
-| X4 | Warning | Console.log left in production code | `router/index.js`, `LetterToSpouse.vue`, `PrivacySettings.vue` | Trivial |
-| X5 | Warning | American/British spelling mix in service methods | 34 services use `analyze` while stores use `analyse` | High |
-| X6 | Warning | 5 store modules exceed 500 lines | `investment.js` (896), `retirement.js` (809), `estate.js` (763), `goals.js` (766), `netWorth.js` (768) | High |
-| X7 | Suggestion | Unused state properties | `protection.js` — `lifeEvents`, `lifeEventImpact` set but no getter | Trivial |
-| X8 | Suggestion | ISA tracking logic in both investment.js and savings.js | Dual tracking, intentional but worth documenting | Trivial |
+**Warning: God controllers**
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `FamilyMembersController.php` | 668 | `handleSpouseCreation()` is 339 lines |
+| `AdminController.php` | 600 | Mixes user CRUD, backups, stats |
+| `TaxSettingsController.php` | 440 | Multiple DB transactions |
 
 ---
 
-### Tests
+### Models & Database (88 models)
 
-**Files scanned:** 115 test files | **Issues:** 13 | **Overall health:** Moderate
+**Critical: Currency precision issues**
 
-| # | Severity | Issue | File(s) | Effort |
-|---|----------|-------|---------|--------|
-| T1 | Critical | 10 service modules have zero test coverage | Admin, AI, Benefits, Business, Chattel, Dashboard, Documents, Onboarding, Payment, Settings | Very High |
-| T2 | Warning | 30+ controllers have no feature tests | See controllers report | Very High |
-| T3 | Warning | 19 test files missing `declare(strict_types=1)` | Various (see tests report) | Trivial |
-| T4 | Warning | 8 files use Mockery without `Mockery::close()` in afterEach | ISATrackerTest, PensionProjectorTest, TaxEfficiencyCalculatorTest, + 5 others | Trivial |
-| T5 | Warning | 31 test files use `test()` instead of Pest `it()` syntax | Various feature and unit tests | Medium |
-| T6 | Warning | 8 test files use PHPUnit class-based syntax instead of Pest closures | TaxConfigServiceTest, PropertyControllerTest, MortgageControllerTest, + 5 others | Medium |
-| T7 | Suggestion | Missing architecture test for strict types in tests | `Architecture/` | Trivial |
+| File | Issue | Fix |
+|------|-------|-----|
+| `Payment.php` line 29 | `'amount' => 'integer'` but column is `decimal(10,2)` | Change to `'decimal:2'` |
+| `Subscription.php` line 42 | `'amount' => 'integer'` same issue | Change to `'decimal:2'` |
+| `Estate/IHTCalculation.php` lines 59-88 | 15 currency fields cast as `float` | Change to `'decimal:2'` |
+| `Estate/Liability.php` lines 37-44 | `current_balance`, `monthly_payment` as `float` | Change to `'decimal:2'`/`'decimal:4'` |
 
-**Test coverage by module:**
+**Warning: Seeder idempotency**
 
-| Module | Unit Tests | Feature Tests | Status |
-|--------|-----------|--------------|--------|
-| Estate | 14 files | 2 files | Good |
-| Investment | 12 files | 1 file | Moderate |
-| Retirement | 8 files | 3 files | Moderate |
-| Protection | 5 files | 4 files | Good |
-| Savings | 4 files | 2 files | Moderate |
-| Coordination | 2 files | 0 files | Low |
-| Goals | 3 files | 0 files | Low |
-| Auth | 0 files | 7 files | Good (feature-only) |
-| AI/Documents/Payment | 0 files | 0 files | None |
+| File | Issue |
+|------|-------|
+| `PreviewUserSeeder.php` lines 91-99 | Deletes and recreates preview users instead of `updateOrCreate()`. Destructive on production. |
+
+**Warning: Missing indexes**
+
+Tables with `joint_owner_id` added in later migrations may not all have composite indexes per CLAUDE.md convention.
+
+**Low: Test coverage gaps**
+
+Only 3 model tests exist for 88 models. Missing tests for: Household, Payment, Subscription, DocumentExtraction, AiConversation.
 
 ---
 
-## Cross-Cutting Issues
+### Vue Components (590 components)
 
-### Duplicate Code
+**Clean areas:** No single-word names, no v-if/v-for anti-pattern, no local formatCurrency methods, no custom @keyframes duplication, no hardcoded hex in style blocks.
 
-1. **3 asset aggregation services** with overlapping logic (`EstateAssetAggregatorService`, `CrossModuleAssetAggregator`, `TrustAssetAggregatorService`)
-2. **ISA tracking** in both `investment.js` and `savings.js` stores (intentional but undocumented)
-3. **Format functions** in `currencyMixin` partially overlap with backend `FormatsCurrency` trait
-4. **Custom @keyframes** in 8 components duplicate global `app.css` animations
+**Warning: Old colour tokens (15+ files)**
 
-### Dead Code
+| File | Tokens Used |
+|------|-------------|
+| `Trusts/TrustCard.vue` | `purple-600`, `blue-100`, `green-100` in style |
+| `Trusts/TrustsOverviewCard.vue` | `blue-800`, `purple-600` in style + template |
+| `Cash/AccountGroupList.vue` | `red-600`, `green-600` |
+| `Cash/AccountSummaryPanel.vue` | `green-600`, `red-600` |
+| `Cash/CashActionsPanel.vue` | `green-600`, `blue-600`, `red-600` |
+| `UKTaxes/CalculationsTab.vue` | `blue-50/600`, `green-50/600`, `purple-600` |
+| `BugReportModal.vue` | `blue-*`, `green-*`, `red-*` |
+| `Shared/RiskLevelSelector.vue` | `blue-*`, `green-*`, `purple-*` |
+| `Shared/RiskBadge.vue` | `blue-300` |
+| `Savings/ISAAllowanceTracker.vue` | `purple-500`, `purple-700` |
+| `Savings/CurrentSituation.vue` | `purple-500` |
+| `Savings/SaveAccountModal.vue` | `purple-500` |
+| `UserProfile/FamilyMembers.vue` | `blue-*`, `green-*`, `purple-*` |
+| `Preview/PersonaIntroModal.vue` | `blue-*`, `green-*` |
+| `Admin/AdminDashboard.vue` | `purple-100`, `purple-600` |
 
-1. Orphaned `SET_MONTE_CARLO_RESULT` mutation in `investment.js`
-2. Unused state properties `lifeEvents`/`lifeEventImpact` in `protection.js`
-3. Console.log statements in 3 files
+Note: `light-blue-*`, `light-gray`, `light-pink-*` are approved and NOT violations.
 
-### Convention Drift
+---
 
-1. **Mutation naming**: 21 Vuex modules inconsistently use camelCase vs SCREAMING_SNAKE_CASE
-2. **British/American spelling**: Stores use `analyse`, services use `analyze`
-3. **Test syntax**: Mix of Pest `it()`, Pest `test()`, and PHPUnit class-based styles
-4. **Error handling**: 26/70 controllers missing `SanitizedErrorResponse` trait
+### Frontend Stores & Services (29 stores, 36 services)
 
-### Architectural Issues
+**Warning: Orphaned module** — `guidance.js` (392 lines, 11 actions) never dispatched.
 
-1. **God files**: 2 services over 2,000 lines, 15 Vue components over 1,000 lines, 1 mixin at 3,199 lines
-2. **Test coverage**: 10 service modules with zero tests, 30+ controllers untested
-3. **28 components** using banned colour tokens that predate the design system migration
+**Warning: Duplicate utility** — `calculateAge` in FamilyMembers.vue and FamilyInfoStep.vue instead of importing from `dateFormatter.js`.
+
+**Warning: Hardcoded tax fallbacks** — `taxConfig.js` contains fallback values needing audit.
+
+**Low: Dead code**
+
+| File | Issue |
+|------|-------|
+| `portfolioOptimizationService.js` lines 133-148 | `getCorrelationMatrix()`, `getDiversificationMetrics()` never called |
+| `storage.js` | Entire utility never imported |
+| `dashboard.js` state lines 8-10 | `isPreviewMode`, `previewData` never set |
 
 ---
 
 ## Recommended Action Plan
 
-### Immediate (this week)
+### Immediate (this session or next)
 
-| # | Action | Files | Effort | Impact |
-|---|--------|-------|--------|--------|
-| 1 | Add `Mockery::close()` to 8 test files | 8 | 40 mins | Prevents test pollution |
-| 2 | Add `declare(strict_types=1)` to 19 test files | 19 | 15 mins | Standards compliance |
-| 3 | Delete orphaned `SET_MONTE_CARLO_RESULT` | 1 | 5 mins | Dead code removal |
-| 4 | Remove console.log from 3 files | 3 | 10 mins | Production cleanliness |
-| 5 | Replace `DB::table()` with Eloquent in RebalancingCalculationController | 1 | 5 mins | Standards compliance |
-| 6 | Remove 6 custom `@keyframes`, use global classes | 8 | 30 mins | CSS deduplication |
-| 7 | Replace hardcoded tax values in ContributionOptimizer | 1 | 15 mins | Tax compliance |
-| 8 | Add constants for magic numbers in ConflictResolver | 1 | 15 mins | Readability |
-
-**Total: ~2.5 hours**
+| # | Task | Files | Effort |
+|---|------|-------|--------|
+| 1 | Fix Payment/Subscription amount casts to `decimal:2` | 2 models | 5 min |
+| 2 | Fix IHTCalculation float casts to `decimal:2` | 1 model | 15 min |
+| 3 | Fix Liability float casts | 1 model | 5 min |
+| 4 | Add `SanitizedErrorResponse` to AgentInternalController | 1 controller | 30 min |
+| 5 | Deduplicate calculateAge (import from util) | 2 Vue files | 10 min |
 
 ### Short-term (this month)
 
-| # | Action | Files | Effort | Impact |
-|---|--------|-------|--------|--------|
-| 9 | Add `Auditable` trait to 8 financial models | 8 | 2-3 hrs | Audit compliance |
-| 10 | Migrate 28 components from banned colour tokens | 28 | 4-6 hrs | Design system compliance |
-| 11 | Add `SanitizedErrorResponse` to 26 controllers | 26 | 2-3 hrs | Error handling consistency |
-| 12 | Extract FormRequest classes from 17 inline validators | 17 | 3-4 hrs | Code organisation |
-| 13 | Modernise 31 factories (`$this->faker` to `fake()`) | 31 | 3-4 hrs | Code modernisation |
-| 14 | Convert 31 test files from `test()` to `it()` | 31 | 2 hrs | Convention compliance |
-| 15 | Audit and fix acronyms in 39 Vue components | 39 | 4-6 hrs | UX compliance |
+| # | Task | Files | Effort |
+|---|------|-------|--------|
+| 6 | Consolidate duplicate calculateEquity() | 2 services | 1 hr |
+| 7 | Create form requests for Advisor/Payment/Onboarding | 6 new files | 3 hrs |
+| 8 | Colour token migration (old palette → design system) | 15 Vue files | 3 hrs |
+| 9 | Extract FamilyMembersController spouse logic to service | 1 controller | 4 hrs |
+| 10 | Fix PreviewUserSeeder to use updateOrCreate | 1 seeder | 20 min |
 
-**Total: ~22-30 hours**
+### Backlog
 
-### Backlog (next quarter)
-
-| # | Action | Files | Effort | Impact |
-|---|--------|-------|--------|--------|
-| 16 | Refactor RetirementIncomeService (2,293 lines) into 4-5 services | 5+ | 5-7 days | Maintainability |
-| 17 | Refactor RetirementStrategyService (2,134 lines) | 3+ | 3-5 days | Maintainability |
-| 18 | Standardise Vuex mutation naming across 21 modules | 21 | 2-3 days | Consistency |
-| 19 | Split large controllers (Investment, Goals, Retirement) | 3 | 2-3 days | Maintainability |
-| 20 | Refactor 15 Vue components over 1,000 lines | 15 | 2-3 weeks | Maintainability |
-| 21 | Write tests for 10 untested service modules | 10+ | 2-3 weeks | Coverage |
-| 22 | Write feature tests for 30+ untested controllers | 30+ | 3-4 weeks | Coverage |
-| 23 | Consolidate 3 asset aggregation services | 3 | 2-3 days | Deduplication |
-| 24 | Standardise British/American spelling in services | 34 | 1-2 days | Consistency |
+| # | Task | Files | Effort |
+|---|------|-------|--------|
+| 11 | Extract ActionDefinitionService evaluators (x6) | 6 services | 2 days |
+| 12 | Split RetirementIncomeService | 1 → 4 services | 1 day |
+| 13 | Split AdminController into 3 focused controllers | 1 → 3 controllers | 3 hrs |
+| 14 | Extract DB transactions from controllers to services | 6 controllers | 4 hrs |
+| 15 | Add model tests for high-value models | 5+ test files | 2 hrs |
+| 16 | Remove orphaned guidance.js store module | 1 store | 10 min |
+| 17 | Document Monte Carlo engine differences | 2 services | 15 min |
 
 ---
 
 ## Overall Health Assessment
 
-Fynla's codebase is in **good shape for a v0.8.3 application** with 699 source files. The backend layer (services, models, database) is the strongest — 100% strict types, proper type hints, consistent patterns, and idempotent seeders. The main debt concentration is in **complexity** (a few very large files in Retirement and Plans modules) and **design system migration** (28 components still using pre-v1.2.0 colour tokens). Test coverage has meaningful gaps in 10 service modules and 30+ controllers, but existing tests follow good patterns. The most impactful quick wins are the 8 immediate items (~2.5 hours) which clear dead code, fix test hygiene, and remove duplicated CSS. The costliest debt is the Retirement module god files (RetirementIncomeService at 2,293 lines) which should be decomposed before further feature work in that area.
+Fynla's codebase is in **good shape for a v0.9.3 product**. The architecture is sound — clear separation of concerns with Agents, Services, Controllers, and Models. All 211 services use strict types, constructor injection, and TaxConfigService. The frontend follows consistent patterns with currencyMixin, proper component naming, and no v-if/v-for anti-patterns.
+
+The main debt is **god files** (11 services over 1000 lines) and **incomplete colour palette migration** (15 Vue files with old tokens). The currency precision issues (float casts on decimal columns) are the most impactful quick wins — they directly affect financial accuracy. The controller-level issues (missing form requests, DB facade usage) are architectural cleanliness items that should be addressed before v1.0.
+
+**Compared to the 6 March v0.8.3 report:** the codebase has improved significantly. Tax values now use TaxConfigService throughout. @keyframes duplication is resolved. Estate hardcoded rates are fixed. Budget magic numbers are replaced with named constants. 9 duplicate onboarding components have been deleted. The remaining debt is structural (file sizes, colour tokens) rather than functional.
 
 ---
-
-*Generated by tech-debt-full skill on 6 March 2026*
+*Generated by tech-debt-full skill — 20 March 2026*

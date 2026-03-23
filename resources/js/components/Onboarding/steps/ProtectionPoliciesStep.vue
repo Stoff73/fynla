@@ -126,7 +126,6 @@
         You've indicated you have no protection policies. The Protection module will help you understand your protection needs and recommend suitable coverage.
       </p>
 
-      <UsefulResources :links="STEP_RESOURCES.protection" />
     </div>
 
     <!-- Policy Form Modal -->

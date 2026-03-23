@@ -51,9 +51,29 @@ class EstateController extends Controller
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
         $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
+
+        // Include mortgages as liabilities for net worth display
+        $mortgages = \App\Models\Mortgage::whereHas('property', function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
+        })->with('property')->limit(100)->get();
+
+        $mortgageLiabilities = $mortgages->map(function ($mortgage) {
+            return [
+                'id' => 'mortgage_'.$mortgage->id,
+                'source' => 'property_module',
+                'liability_type' => 'mortgage',
+                'liability_name' => 'Mortgage - '.($mortgage->property->address_line_1 ?? 'Property'),
+                'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
+                'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
+                'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
+                'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
+            ];
+        });
+
         $gifts = Gift::where('user_id', $user->id)->limit(100)->get();
         $trusts = Trust::where('user_id', $user->id)->limit(100)->get();
         $ihtProfile = IHTProfile::where('user_id', $user->id)->first();
+        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
 
         // Pull investment accounts and categorize for IHT
         $investmentAccounts = InvestmentAccount::where('user_id', $user->id)->limit(100)->get();
@@ -90,10 +110,19 @@ class EstateController extends Controller
             'data' => [
                 'assets' => AssetResource::collection($assets),
                 'investment_accounts' => $investmentAccountsFormatted,
-                'liabilities' => LiabilityResource::collection($liabilities),
+                'liabilities' => collect(LiabilityResource::collection($liabilities)->resolve())
+                    ->merge($mortgageLiabilities)
+                    ->values()
+                    ->all(),
                 'gifts' => GiftResource::collection($gifts),
                 'trusts' => TrustResource::collection($trusts),
                 'iht_profile' => $ihtProfile,
+                'will_info' => $will ? [
+                    'has_will' => (bool) $will->has_will,
+                    'executor_name' => $will->executor_name,
+                    'will_last_updated' => $will->will_last_updated,
+                    'last_reviewed_date' => $will->last_reviewed_date,
+                ] : null,
                 'life_events' => rescue(fn () => $this->lifeEventIntegration->getEventsForModule($user->id, 'estate'), [], report: true),
                 'life_event_impact' => rescue(fn () => $this->lifeEventIntegration->getModuleImpactSummary($user->id, 'estate'), null, report: true),
             ],

@@ -150,9 +150,9 @@ export default {
     },
 
     completedCount() {
-      const allCompleted = this.$store.getters['lifeStage/allCompletedSteps'] || [];
+      const completeness = this.$store.getters['lifeStage/stepCompleteness'] || {};
       const stageSteps = this.onboardingSteps || [];
-      return allCompleted.filter(s => stageSteps.includes(s)).length;
+      return stageSteps.filter(s => completeness[s]?.status === 'complete').length;
     },
 
     totalSteps() {

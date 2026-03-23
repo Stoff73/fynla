@@ -122,7 +122,7 @@ class RetirementPlanService extends BasePlanService
                 'field' => 'retirement_profile',
                 'label' => 'Retirement profile',
                 'description' => 'Set your target retirement age and income goals.',
-                'link' => '/retirement',
+                'link' => '/net-worth/retirement',
             ];
         }
 
@@ -133,7 +133,7 @@ class RetirementPlanService extends BasePlanService
                 'field' => 'pensions',
                 'label' => 'Pension details',
                 'description' => 'Add your workplace, personal, or defined benefit pensions.',
-                'link' => '/retirement',
+                'link' => '/net-worth/retirement',
             ];
         }
 
@@ -159,7 +159,7 @@ class RetirementPlanService extends BasePlanService
                 'field' => 'target_income',
                 'label' => 'Target retirement income',
                 'description' => 'Set your desired annual income in retirement.',
-                'link' => '/retirement',
+                'link' => '/net-worth/retirement',
             ];
         }
 

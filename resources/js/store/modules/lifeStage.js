@@ -5,6 +5,7 @@ const state = {
   currentStage: null, // 'university' | 'early_career' | 'mid_career' | 'peak' | 'retirement'
   completedSteps: [], // explicitly marked via onboarding flow
   dataCompletedSteps: [], // from backend DataReadiness checks (actual DB data)
+  stepCompleteness: {}, // per-step field-level completeness from backend
   loading: false,
   error: null,
 };
@@ -16,101 +17,69 @@ const getters = {
   stageColour: (state, getters) => getters.stageConfig?.colour || 'horizon',
   stageTagline: (state, getters) => getters.stageConfig?.tagline || '',
 
-  sidebarPrimary: (state, getters) => getters.stageConfig?.sidebar?.primary || [],
-  sidebarExplore: (state, getters) => getters.stageConfig?.sidebar?.explore || [],
   dashboardCards: (state, getters) => getters.stageConfig?.dashboard?.cards || [],
   onboardingSteps: (state, getters) => getters.stageConfig?.onboarding?.steps || [],
-  suggestedGoals: (state, getters) => getters.stageConfig?.suggestedGoals || [],
   learningMilestone: (state, getters) => (stepId) => getters.stageConfig?.onboarding?.learningMilestones?.[stepId] || null,
   formFields: (state, getters) => (formName) => getters.stageConfig?.formFields?.[formName] || {},
 
+  // Per-step field completeness from backend.
+  // Returns { status, filled, missing, filled_count, total_count, percentage } per step.
+  stepCompleteness: (state) => state.stepCompleteness || {},
+
+  // Get status for a single step: 'skipped' | 'partial' | 'complete' | null
+  stepStatus: (state) => (stepId) => {
+    return state.stepCompleteness?.[stepId]?.status || null;
+  },
+
   // Steps completed based on actual data (from backend DataReadiness checks).
-  // This is populated by fetchStage from the /api/life-stage/progress endpoint.
-  // The backend checks actual DB records (same as PrerequisiteGateService and
-  // DataReadiness services used by agents). NOT guessed from Vuex state.
   dataCompletedSteps: (state) => {
     return state.dataCompletedSteps || [];
   },
 
   // Union of both completion sources: explicit flags (from onboarding flow)
-  // AND data-readiness checks (from actual DB records). A step is considered
-  // complete if it appears in EITHER source. This prevents steps that were
-  // genuinely completed from showing as incomplete when the data-readiness
-  // check is stricter than what the onboarding form actually saves (e.g.
-  // WillInfoStep saves via onboarding store, not user.has_will; GoalSetupStep
-  // may be skipped but explicitly marked complete).
+  // AND data-readiness checks (from actual DB records).
   allCompletedSteps: (state) => {
     const explicit = state.completedSteps || [];
     const dataReady = state.dataCompletedSteps || [];
     return [...new Set([...explicit, ...dataReady])];
   },
 
+  // Progress percentage based on field-level completeness (not binary stamps).
+  // Only counts steps as complete when ALL tracked fields are filled.
   progressPercentage: (state, getters) => {
     const steps = getters.onboardingSteps;
     if (!steps.length) return 0;
-    const completed = getters.allCompletedSteps;
-    // Only count steps that are in the current stage's step list
-    const relevant = completed.filter(s => steps.includes(s));
-    return Math.round((relevant.length / steps.length) * 100);
+    const completeness = state.stepCompleteness || {};
+
+    // If no completeness data yet, fall back to 0
+    if (Object.keys(completeness).length === 0) return 0;
+
+    let totalFields = 0;
+    let filledFields = 0;
+
+    steps.forEach(stepId => {
+      const stepInfo = completeness[stepId];
+      if (stepInfo) {
+        totalFields += stepInfo.total_count;
+        filledFields += stepInfo.filled_count;
+      }
+    });
+
+    return totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
   },
 
   nextStep: (state, getters) => {
     const steps = getters.onboardingSteps;
-    const completed = getters.allCompletedSteps;
-    return steps.find(step => !completed.includes(step)) || null;
+    const completeness = state.stepCompleteness || {};
+    // Find first step that is not 'complete'
+    return steps.find(step => completeness[step]?.status !== 'complete') || null;
   },
-
-  // Dynamic promotion: merge primary + user-data-promoted modules
-  effectiveSidebarPrimary: (state, getters, rootState, rootGetters) => {
-    const primary = [...(getters.sidebarPrimary || [])];
-    const explore = getters.sidebarExplore || [];
-    const flags = getters.userDataFlags;
-
-    // Promote modules from explore to primary if user has data
-    const moduleToFlag = {
-      'property': 'properties',
-      'protection': 'protection',
-      'investments': 'investments',
-      'retirement': 'pensions',
-      'will': 'will',
-      'estate': 'will',
-      'trusts': 'trusts',
-      'business': 'business',
-      'savings': 'savings',
-    };
-
-    explore.forEach(moduleId => {
-      const flagKey = moduleToFlag[moduleId];
-      if (flagKey && flags[flagKey] && !primary.includes(moduleId)) {
-        primary.push(moduleId);
-      }
-    });
-
-    return primary;
-  },
-
-  effectiveSidebarExplore: (state, getters) => {
-    const effectivePrimary = getters.effectiveSidebarPrimary;
-    return (getters.sidebarExplore || []).filter(id => !effectivePrimary.includes(id));
-  },
-
-  userDataFlags: (state, getters, rootState) => ({
-    properties: (rootState.netWorth?.properties?.length || 0) > 0,
-    savings: (rootState.savings?.accounts?.length || 0) > 0,
-    investments: (rootState.investment?.accounts?.length || 0) > 0,
-    pensions: (rootState.retirement?.pensions?.length || 0) > 0,
-    protection: (rootState.protection?.policies?.length || 0) > 0,
-    will: rootState.estate?.will !== null && rootState.estate?.will !== undefined,
-    trusts: (rootState.estate?.trusts?.length || 0) > 0,
-    business: (rootState.netWorth?.businessInterests?.length || 0) > 0,
-  }),
 
   isFieldVisible: (state, getters) => (formName, fieldName, context) => {
     if (context === 'standalone') return true;
     const config = getters.formFields(formName);
     if (!config) return true;
     const onboardingHide = config.onboardingHide || [];
-    // In onboarding: hide only fields explicitly in onboardingHide. Show everything else.
     if (context === 'onboarding' && onboardingHide.includes(fieldName)) return false;
     return true;
   },
@@ -123,6 +92,7 @@ const mutations = {
   setCurrentStage(state, stage) { state.currentStage = stage; },
   setCompletedSteps(state, steps) { state.completedSteps = steps; },
   setDataCompletedSteps(state, steps) { state.dataCompletedSteps = steps; },
+  setStepCompleteness(state, completeness) { state.stepCompleteness = completeness; },
   addCompletedStep(state, step) {
     if (!state.completedSteps.includes(step)) {
       state.completedSteps.push(step);
@@ -140,19 +110,30 @@ const actions = {
       if (user?.life_stage) {
         commit('setCurrentStage', user.life_stage);
       }
-      // Load progress from backend — includes data completeness from actual DB checks
-      // (same checks used by PrerequisiteGateService and DataReadiness services)
       const response = await lifeStageService.getProgress();
-      // Guard: API might return HTML (redirect) if token isn't ready yet
       if (response && typeof response === 'object' && response.success) {
         const progressData = response.data || response;
         commit('setCompletedSteps', progressData.completed_steps || []);
         commit('setDataCompletedSteps', progressData.data_completed_steps || []);
+        commit('setStepCompleteness', progressData.step_completeness || {});
       }
     } catch (error) {
       commit('setError', error.message);
     } finally {
       commit('setLoading', false);
+    }
+  },
+
+  async refreshCompleteness({ commit }) {
+    try {
+      const response = await lifeStageService.getProgress();
+      if (response && typeof response === 'object' && response.success) {
+        const progressData = response.data || response;
+        commit('setDataCompletedSteps', progressData.data_completed_steps || []);
+        commit('setStepCompleteness', progressData.step_completeness || {});
+      }
+    } catch (error) {
+      // Non-blocking refresh
     }
   },
 
@@ -169,10 +150,12 @@ const actions = {
     }
   },
 
-  async completeStep({ commit }, stepId) {
+  async completeStep({ commit, dispatch }, stepId) {
     commit('addCompletedStep', stepId);
     try {
       await lifeStageService.completeStep(stepId);
+      // Refresh field-level completeness from backend after each step
+      await dispatch('refreshCompleteness');
     } catch (error) {
       commit('setError', error.message);
     }

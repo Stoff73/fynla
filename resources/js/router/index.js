@@ -50,7 +50,6 @@ const EstateDashboard = () => import('@/views/Estate/EstateDashboard.vue');
 const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
-const UKTaxesDashboard = () => import('@/views/UKTaxes/UKTaxesDashboard.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
@@ -639,13 +638,39 @@ const routes = [
   },
   {
     path: '/planning/what-if',
-    name: 'WhatIfScenarios',
+    name: 'WhatIfDashboard',
+    component: () => import('@/views/Planning/WhatIfDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'What If Scenarios', path: '/planning/what-if' },
+      ],
+    },
+  },
+  {
+    path: '/planning/what-if/death-of-spouse',
+    name: 'DeathOfSpouseScenario',
     component: () => import('@/views/Planning/WhatIfScenarios.vue'),
     meta: {
       requiresAuth: true,
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'What If Scenarios', path: '/planning/what-if' },
+        { label: 'Death of Spouse', path: '/planning/what-if/death-of-spouse' },
+      ],
+    },
+  },
+  {
+    path: '/planning/what-if/:id',
+    name: 'WhatIfScenarioDetail',
+    component: () => import('@/views/Planning/WhatIfScenarioDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'What If Scenarios', path: '/planning/what-if' },
+        { label: 'Scenario Detail' },
       ],
     },
   },
@@ -724,19 +749,6 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Plans', path: '/plans' },
         { label: 'Goal Plan', path: '' },
-      ],
-    },
-  },
-  {
-    path: '/uk-taxes',
-    name: 'UKTaxes',
-    component: UKTaxesDashboard,
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'UK Taxes & Allowances', path: '/uk-taxes' },
       ],
     },
   },

@@ -64,8 +64,8 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
-use App\Http\Controllers\Api\UKTaxesController;
 use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -684,8 +684,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::post('/profile', [RiskPreferenceController::class, 'setProfile']);
 
         // Recalculate risk profile from financial factors
-        Route::post('/recalculate', [RiskPreferenceController::class, 'recalculate'])
-            ->middleware('throttle:6,1');
+        Route::post('/recalculate', [RiskPreferenceController::class, 'recalculate']);
 
         // Allowed levels for product override (main level +/- 1)
         Route::get('/allowed-levels', [RiskPreferenceController::class, 'getAllowedLevels']);
@@ -997,11 +996,6 @@ Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
     Route::put('/assumptions/{type}', [AssumptionsController::class, 'update']);
 });
 
-// UK Taxes & Allowances routes (requires tax config permission)
-Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('uk-taxes')->group(function () {
-    Route::get('/', [UKTaxesController::class, 'index']);
-});
-
 // Admin Panel routes (RBAC-protected)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     // Dashboard
@@ -1119,6 +1113,16 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])
 // Occupation search (SOC 2020)
 Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
+
+// What-If Scenarios
+Route::middleware('auth:sanctum')->prefix('what-if-scenarios')->group(function () {
+    Route::get('/', [WhatIfScenarioController::class, 'index']);
+    Route::get('/count', [WhatIfScenarioController::class, 'count']);
+    Route::get('/{id}', [WhatIfScenarioController::class, 'show']);
+    Route::post('/', [WhatIfScenarioController::class, 'store']);
+    Route::put('/{id}', [WhatIfScenarioController::class, 'update']);
+    Route::delete('/{id}', [WhatIfScenarioController::class, 'destroy']);
+});
 
 // AI Chat routes
 Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {

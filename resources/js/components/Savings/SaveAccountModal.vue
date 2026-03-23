@@ -42,7 +42,7 @@
         <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'px-6 pb-6'">
           <div class="space-y-4 pr-2">
             <!-- Institution -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'institution' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Institution
               </label>
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Account Type -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'account_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Product Type
               </label>
@@ -99,7 +99,7 @@
             </div>
 
             <!-- Current Balance -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_balance' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Current Balance
               </label>
@@ -116,8 +116,8 @@
               </div>
             </div>
 
-            <!-- Interest Rate -->
-            <div>
+            <!-- Interest Rate (hidden for NS&I products) -->
+            <div v-if="!isNSIProductType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'interest_rate' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Interest Rate
               </label>
@@ -138,8 +138,8 @@
               </p>
             </div>
 
-            <!-- Access Type -->
-            <div>
+            <!-- Access Type (hidden for NS&I products) -->
+            <div v-if="!isNSIProductType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'access_type' }">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Access Type
               </label>
@@ -153,8 +153,8 @@
               </select>
             </div>
 
-            <!-- Notice Period (if access_type is notice) -->
-            <div v-if="formData.access_type === 'notice'">
+            <!-- Notice Period (if access_type is notice, hidden for NS&I) -->
+            <div v-if="!isNSIProductType && formData.access_type === 'notice'">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Notice Period (days)
               </label>
@@ -167,8 +167,8 @@
               />
             </div>
 
-            <!-- Maturity Date (if access_type is fixed) -->
-            <div v-if="formData.access_type === 'fixed'">
+            <!-- Maturity Date (if access_type is fixed, hidden for NS&I) -->
+            <div v-if="!isNSIProductType && formData.access_type === 'fixed'">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Maturity Date
               </label>
@@ -179,8 +179,8 @@
               />
             </div>
 
-            <!-- Emergency Fund Status -->
-            <div :class="shouldHighlightEmergencyFund ? 'p-4 bg-spring-50 border border-spring-200 rounded-lg' : ''">
+            <!-- Emergency Fund Status (hidden for NS&I products) -->
+            <div v-if="!isNSIProductType" :class="[shouldHighlightEmergencyFund ? 'p-4 bg-spring-50 border border-spring-200 rounded-lg' : '', { 'ai-fill-highlight rounded-lg': highlightedField === 'is_emergency_fund' }]">
               <p v-if="shouldHighlightEmergencyFund" class="text-sm font-medium text-spring-700 mb-2">
                 Building an emergency fund is a great first step
               </p>
@@ -197,8 +197,8 @@
               </div>
             </div>
 
-            <!-- ISA Status (hidden when product type is already ISA) -->
-            <div v-if="!isISAProductType" class="flex items-center">
+            <!-- ISA Status (hidden when product type is already ISA or NS&I) -->
+            <div v-if="!isISAProductType && !isNSIProductType" :class="['flex items-center', { 'ai-fill-highlight rounded-lg p-2': highlightedField === 'is_isa' }]">
               <input
                 v-model="formData.is_isa"
                 type="checkbox"
@@ -501,8 +501,8 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
-                  <option v-if="!spouse" value="" disabled>No spouse linked - add spouse in Family Members</option>
+                  <option v-if="spouse && spouse.id" :value="spouse.id">{{ spouse.name }} (Spouse)</option>
+                  <option v-if="!spouse || !spouse.id" value="" disabled>Link your spouse's account to enable joint ownership</option>
                 </select>
                 <p class="text-sm text-neutral-500 mt-1">
                   Joint accounts will appear in both your and your spouse's accounts.
@@ -510,8 +510,8 @@
               </div>
             </div>
 
-            <!-- Account Number (optional) -->
-            <div>
+            <!-- Account Number (optional, hidden for NS&I products) -->
+            <div v-if="!isNSIProductType">
               <label class="block text-sm font-medium text-neutral-500 mb-1">
                 Account Number (last 4 digits)
               </label>
@@ -550,6 +550,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -577,6 +578,10 @@ export default {
       type: String,
       default: 'standalone',
       validator: (value) => ['standalone', 'onboarding'].includes(value),
+    },
+    savedData: {
+      type: Object,
+      default: null,
     },
   },
 
@@ -614,6 +619,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     stageFormConfig() {
       return this.$store.getters['lifeStage/formFields']('savings') || {};
     },
@@ -853,6 +860,40 @@ export default {
   },
 
   watch: {
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'savings_account' && fill.fields) {
+          // Pre-set critical fields before the highlight sequence
+          if (fill.fields.institution) {
+            this.formData.institution = fill.fields.institution;
+          }
+          if (fill.fields.account_type) {
+            this.formData.account_type = fill.fields.account_type;
+          }
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'savings_account') {
+        setTimeout(() => {
+          this.handleSubmit();
+        }, 250);
+      }
+    },
+
     'formData.account_type'(newType) {
       // Auto-set ISA fields when ISA product type is selected (ISAs are always individual)
       if (this.isISAProductType) {
@@ -1017,6 +1058,9 @@ export default {
     },
 
     handleClose() {
+      if (this.pendingFill) {
+        this.$store.dispatch('aiFormFill/cancelFill');
+      }
       this.$emit('close');
     },
   },

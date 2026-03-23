@@ -70,7 +70,7 @@ class JourneyStateService
 
         $user->update([
             'journey_states' => $states,
-            'onboarding_focus_area' => $journey,
+            'life_stage' => $journey,
         ]);
 
         $this->logInfo('Journey started', [

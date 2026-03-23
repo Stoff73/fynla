@@ -108,7 +108,25 @@ export default {
     },
   },
 
+  watch: {
+    '$store.state.aiFormFill.pendingFill'(fill) {
+      if (fill && fill.entityType === 'protection_policy') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          // Edit mode not supported for protection policies via AI fill yet
+        } else {
+          this.handleAddPolicy();
+        }
+      }
+    },
+  },
+
   mounted() {
+    // Check for pending AI form fill (in case pendingFill was set before mount)
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'protection_policy' && fill.mode !== 'edit') {
+      this.handleAddPolicy();
+    }
+
     this.loadProtectionData();
     // Skip profile completeness in preview mode
     if (!this.isPreviewMode) {
@@ -197,6 +215,10 @@ export default {
             break;
         }
 
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
+        }
         // Reload protection data to show the new/updated policy
         await this.fetchProtectionData();
         this.closeForm();

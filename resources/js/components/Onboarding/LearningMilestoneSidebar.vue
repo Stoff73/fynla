@@ -100,6 +100,10 @@ export default {
       type: String,
       required: true,
     },
+    override: {
+      type: Object,
+      default: null,
+    },
   },
 
   data() {
@@ -114,7 +118,7 @@ export default {
 
   computed: {
     milestone() {
-      return this.$store.getters['lifeStage/learningMilestone'](this.step);
+      return this.override || this.$store.getters['lifeStage/learningMilestone'](this.step);
     },
 
     // Stage colour mapping:

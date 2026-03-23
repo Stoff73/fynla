@@ -1,10 +1,12 @@
 # Deployment Guide — 20 March 2026
 
-Session: Test fixes, ExpenditureForm review, Estate hardcoded rates, budget constants, @keyframes cleanup, budget override persistence, spouse joint save.
+**STATUS: ✅ FULLY DEPLOYED — 20 March 2026 ~20:35 UTC**
+
+Covers all changes from today: tech debt sweep + 12 production bug fixes + onboarding system refactor (Era consolidation, inline forms, contextual sidebar, family step additions, validation removal) + occupation lookup fix + field-level completeness tracking + knowledge nudge fix + tax config corrections + 11 code review fixes + 3 production hotfixes (estate 500, logout TransientToken, risk recalculate 429).
 
 ## Rebuild Required?
 
-**Yes** — frontend files changed (`app.css`, 9 Vue components). Run:
+**Yes** — CSS + 40+ Vue files changed. Run:
 
 ```bash
 ./deploy/fynla-org/build.sh
@@ -12,80 +14,333 @@ Session: Test fixes, ExpenditureForm review, Estate hardcoded rates, budget cons
 
 Then upload `public/build/` directory.
 
-## Database Migration (1 pending)
+## Database Migrations (2 pending)
 
-Adds `retired_budget_overrides` and `widowed_budget_overrides` JSON nullable columns to the `users` table. Safe — no data loss.
+1. `2026_03_20_074942_add_budget_overrides_to_users_table.php` — Adds `retired_budget_overrides` and `widowed_budget_overrides` JSON nullable columns. Safe.
+2. `2026_03_20_100000_make_enum_columns_nullable.php` — Makes 15 enum columns nullable (employment_status, marital_status, gender, etc.) to support optional onboarding fields. Safe.
 
-## PHP Files to Upload (11)
+## Database Seeders (2 — MUST RUN on production)
+
+1. `OccupationCodeSeeder` — Seeds 406 ONS SOC 2020 occupation codes. Required for occupation autocomplete. **Table currently empty on production.**
+2. `TaxConfigurationSeeder` — Corrects 5 outdated tax values (Employer NI, CGT, BADR, Class 4 NI). **Currently serving wrong rates.**
+
+```bash
+php artisan db:seed --class=OccupationCodeSeeder --force
+php artisan db:seed --class=TaxConfigurationSeeder --force
+```
+
+## PHP Files to Upload (47)
+
+### Routes (1)
+
+```
+routes/api.php
+```
+
+### Services & Controllers (11)
 
 ```
 app/Agents/EstateAgent.php
-app/Http/Controllers/Api/AdvisorController.php
-app/Http/Controllers/Api/UserProfileController.php
-app/Models/User.php
-app/Services/Coordination/RecommendationPersonaliser.php
-app/Services/Estate/GiftingStrategy.php
-app/Services/Estate/IHTCalculationService.php
-app/Services/Estate/IHTFormattingService.php
-app/Services/Estate/IHTStrategyGeneratorService.php
-app/Services/Estate/WillAnalysisService.php
-app/Services/Retirement/DecumulationPlanner.php
+app/Http/Controllers/Api/AuthController.php
+app/Http/Controllers/Api/EstateController.php
+app/Http/Controllers/Api/LifeStageController.php
+app/Http/Controllers/Api/OnboardingController.php
+app/Services/Goals/GoalsProjectionService.php
+app/Services/LifeStage/LifeStageService.php
+app/Services/Onboarding/OnboardingService.php
+app/Services/Plans/InvestmentPlanService.php
+app/Services/Plans/RetirementPlanService.php
+app/Services/Shared/CrossModuleAssetAggregator.php
 ```
 
-## Migration File to Upload (1)
+### Form Requests — validation relaxed (31)
+
+All `required` rules changed to `sometimes` for optional onboarding. Upload all:
+
+```
+app/Http/Requests/BusinessInterest/UpdateBusinessInterestRequest.php
+app/Http/Requests/Documents/ConfirmExtractionRequest.php
+app/Http/Requests/Documents/UploadDocumentRequest.php
+app/Http/Requests/Estate/SaveWillDocumentRequest.php
+app/Http/Requests/Estate/StoreAssetRequest.php
+app/Http/Requests/Estate/StoreBequestRequest.php
+app/Http/Requests/Estate/StoreGiftRequest.php
+app/Http/Requests/Estate/StoreLiabilityRequest.php
+app/Http/Requests/Estate/StoreLpaRequest.php
+app/Http/Requests/Estate/UpdateLpaRequest.php
+app/Http/Requests/Estate/UploadLpaRequest.php
+app/Http/Requests/Goals/StoreGoalRequest.php
+app/Http/Requests/Investment/StartMonteCarloRequest.php
+app/Http/Requests/Investment/StoreHoldingRequest.php
+app/Http/Requests/Investment/StoreInvestmentGoalRequest.php
+app/Http/Requests/Investment/StoreRiskProfileRequest.php
+app/Http/Requests/LoginRequest.php
+app/Http/Requests/Onboarding/StoreJourneySelectionsRequest.php
+app/Http/Requests/Protection/StoreIncomeProtectionPolicyRequest.php
+app/Http/Requests/RegisterRequest.php
+app/Http/Requests/StoreActionDefinitionRequest.php
+app/Http/Requests/StoreClientActivityRequest.php
+app/Http/Requests/StoreFamilyMemberRequest.php
+app/Http/Requests/StoreInvestmentAccountRequest.php
+app/Http/Requests/StoreInvestmentActionDefinitionRequest.php
+app/Http/Requests/StoreLifeEventRequest.php
+app/Http/Requests/StorePersonalAccountLineItemRequest.php
+app/Http/Requests/StoreProtectionActionDefinitionRequest.php
+app/Http/Requests/StoreRetirementActionDefinitionRequest.php
+app/Http/Requests/StoreTaxConfigurationRequest.php
+app/Http/Requests/UpdateDomicileInfoRequest.php
+app/Http/Requests/UpdatePersonalInfoRequest.php
+app/Http/Requests/V1/RegisterDeviceRequest.php
+```
+
+### Models (1)
+
+```
+app/Models/User.php
+```
+
+### Seeders (3)
+
+```
+database/seeders/DatabaseSeeder.php
+database/seeders/OccupationCodeSeeder.php
+database/seeders/TaxConfigurationSeeder.php
+```
+
+## Migration Files to Upload (2)
 
 ```
 database/migrations/2026_03_20_074942_add_budget_overrides_to_users_table.php
+database/migrations/2026_03_20_100000_make_enum_columns_nullable.php
 ```
+
+## Frontend Files to Delete on Server (9)
+
+These components were deleted locally. Remove from server to keep clean:
+
+```
+resources/js/components/Onboarding/steps/SimplePersonalInfoStep.vue
+resources/js/components/Onboarding/steps/SimpleIncomeStep.vue
+resources/js/components/Onboarding/steps/SimpleExpenditureStep.vue
+resources/js/components/Onboarding/steps/SimpleSavingsAccountStep.vue
+resources/js/components/Onboarding/steps/SimplePropertyMortgageStep.vue
+resources/js/components/Onboarding/steps/BudgetingCompletionStep.vue
+resources/js/components/Onboarding/steps/QuickAssetsStep.vue
+resources/js/components/Onboarding/steps/BudgetingSteps.vue
+resources/js/components/Onboarding/steps/JourneyCompletionStep.vue
+```
+
+Note: These are source files. The compiled build won't include them, but clean up to avoid confusion.
 
 ## Frontend (via build)
 
 These are compiled into `public/build/` — upload the build directory, not individual files:
 
 ```
+resources/js/constants/lifeStageConfig.js
+resources/js/store/modules/userProfile.js
+resources/js/store/modules/lifeStage.js
+resources/js/store/modules/investment.js
+resources/js/views/Dashboard.vue
+resources/js/components/Journey/JourneyProgressHero.vue
+resources/js/components/Onboarding/OnboardingWizard.vue
+resources/js/components/Onboarding/LearningMilestoneSidebar.vue
+resources/js/components/Onboarding/steps/AssetsStep.vue
+resources/js/components/Onboarding/steps/PersonalInfoStep.vue
+resources/js/components/Onboarding/steps/IncomeStep.vue
+resources/js/components/Onboarding/steps/GoalSetupStep.vue
+resources/js/components/Onboarding/steps/StudentLoanStep.vue
+resources/js/components/Onboarding/steps/WillInfoStep.vue
+resources/js/components/NetWorth/Property/PropertyForm.vue
+resources/js/components/Savings/SaveAccountModal.vue
+resources/js/components/UserProfile/PersonalInformation.vue
+resources/js/components/Shared/PostcodeLookup.vue
+resources/js/components/BugReportModal.vue
+resources/js/components/Advisor/ClientActivityForm.vue
+resources/js/components/Estate/TrustForm.vue
+resources/js/components/Estate/LpaWizardSteps/AttorneysStep.vue
+resources/js/components/Estate/LpaWizardSteps/DecisionTypeStep.vue
+resources/js/components/Estate/LpaWizardSteps/DonorDetailsStep.vue
+resources/js/components/Estate/LpaWizardSteps/NotificationPersonsStep.vue
+resources/js/components/Estate/WillBuilder/steps/WillBuilderExecutorsStep.vue
+resources/js/components/Estate/WillBuilder/steps/WillBuilderGiftsStep.vue
+resources/js/components/Estate/WillBuilder/steps/WillBuilderGuardiansStep.vue
+resources/js/components/Estate/WillBuilder/steps/WillBuilderResiduaryStep.vue
+resources/js/components/Investment/EmployeeShareSchemeFields.vue
+resources/js/components/Investment/PrivateInvestmentFields.vue
+resources/js/components/Investment/WhatIfScenariosBuilder.vue
+resources/js/components/NetWorth/BusinessInterestForm.vue
+resources/js/components/NetWorth/ChattelFormModal.vue
+resources/js/components/Trusts/TrustFormModal.vue
 resources/css/app.css
-resources/js/components/Investment/PortfolioOptimization.vue
-resources/js/components/NetWorth/InvestmentList.vue
-resources/js/components/NetWorth/PensionList.vue
-resources/js/components/NetWorth/PropertyList.vue
-resources/js/components/UserProfile/ExpenditureForm.vue
-resources/js/views/Public/CalculatorsPage.vue
-resources/js/views/Public/LearningCentre.vue
-resources/js/views/Public/SecurityPage.vue
-resources/js/views/Savings/SavingsAccountDetailInline.vue
-```
-
-## Test Files (do NOT upload to production)
-
-```
-tests/Feature/Api/FamilyMembersControllerTest.php
-tests/Feature/CompletenessEndpointTest.php
-tests/Feature/Estate/WillBuilderApiTest.php
-tests/Feature/InvestmentModuleTest.php
 ```
 
 ## Upload Order
 
-1. Upload 11 PHP files to matching paths on server
-2. Upload migration file to `database/migrations/`
-3. Run `./deploy/fynla-org/build.sh` locally
-4. Upload `public/build/` directory
-5. SSH and run migration + clear caches:
+1. Upload all PHP files (including seeders) to matching paths on server
+2. Upload 2 migration files to `database/migrations/`
+3. Delete 9 obsolete Vue files from server (optional — they're source files, not served)
+4. Run `./deploy/fynla-org/build.sh` locally
+5. Upload `public/build/` directory
+6. SSH and run migrations + seed + clear caches:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
-php artisan migrate && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan migrate && php artisan db:seed --class=OccupationCodeSeeder --force && php artisan db:seed --class=TaxConfigurationSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
 ## What Changed
 
+### Tech Debt Sweep (earlier session)
+
 | Category | Files | Summary |
 |----------|-------|---------|
-| Test fixes | 4 PHP + 4 test files | Fixed 8 Pest failures (strict type comparison, SoftDeletes assertion, ModelNotFoundException handling, factory middle_name, risk profile duplicate) |
-| ExpenditureForm | 1 Vue file | Fixed section header totals bug, isSectionExpanded fallback, removed dead code, replaced all off-palette color tokens (blue/green/success to violet/spring/raspberry) |
-| Estate rates | 4 PHP files | Replaced 30 hardcoded "40%"/"36%" narrative strings with TaxConfigService values |
-| Budget constants | 3 PHP files | Replaced magic numbers (0.85, 0.70, 0.50) with named class constants |
-| @keyframes cleanup | 8 Vue files + app.css | Replaced local @keyframes with global CSS classes, added `.animate-slide-in-right` |
-| Budget overrides | 2 PHP + 1 Vue + 1 migration | Retired/widowed budget overrides now persist to DB via JSON columns and restore on load |
-| Spouse joint save | 1 Vue file | Joint mode now saves expenditure for both user and spouse |
+| Test fixes | 4 PHP + 4 test files | Fixed 8 Pest failures |
+| ExpenditureForm | 1 Vue file | Fixed section header totals bug |
+| Estate rates | 4 PHP files | Replaced 30 hardcoded "40%"/"36%" with TaxConfigService |
+| Budget constants | 3 PHP files | Replaced magic numbers with named constants |
+| @keyframes cleanup | 8 Vue files + app.css | Replaced local @keyframes with global CSS classes |
+| Budget overrides | 2 PHP + 1 Vue + 1 migration | Retired/widowed budget overrides persist to DB |
+| Spouse joint save | 1 Vue file | Joint mode saves expenditure for both user and spouse |
+
+### Production Bug Fixes (12 issues)
+
+| File | Change | Fixes |
+|------|--------|-------|
+| `UpdatePersonalInfoRequest.php` | `prepareForValidation()` strips spaces/dashes from phone | Issues 2, 3, 4 |
+| `GoalsProjectionService.php` | Age fallback `45` → `DEFAULT_RETIREMENT_AGE` (68) | Issue 4 |
+| `Dashboard.vue` | Dynamic student loan plan type + thresholds | Issue 5 |
+| `OnboardingWizard.vue` | `fetchProfile` on mount + `savedStepData` cache | Issues 6, 8 |
+| `StudentLoanStep.vue` | Restore form from `savedData` prop | Issue 6 |
+| `WillInfoStep.vue` | Removed stale "Coming Soon" banner | Issue 10 |
+| `EstateAgent.php` | `$allPolicies` → `$allLifePolicies` | Issue 11 |
+| `EstateController.php` | Include mortgages in liabilities response | Issue 9 |
+| `PropertyForm.vue` | Joint owner handles unlinked spouse | Issue 12 |
+| `InvestmentPlanService.php` | `/investments` → `/net-worth/investments` | Issue 14 |
+| `RetirementPlanService.php` | `/retirement` → `/net-worth/retirement` | Issue 14 |
+
+### Onboarding Refactor
+
+See `onboardingFix.md` for full details. Summary:
+
+| Change | Impact |
+|--------|--------|
+| Deleted 9 duplicate components (Era 2/3/4) | Cleaner codebase, single source of truth |
+| Unified STEP_COMPONENTS (25+ → 13) | All journeys use same components |
+| Single `assets` step with tab filtering | No more split step IDs |
+| Inline forms (`context="onboarding"`) | Forms render in content area, not modals |
+| Contextual sidebar (10 contexts) | Sidebar updates per tab and form state |
+| Family step added to journeys 4 + 5 | Estate planning needs family data |
+| All validation removed | No required fields during onboarding |
+| 15 enum columns made nullable | Supports partial data entry |
+| PersonalInfoStep field visibility | Fields hidden per journey via config |
+| Returning user mode simplified | Always resumes life stage journey |
+
+### Occupation Lookup Fix
+
+| Change | Impact |
+|--------|--------|
+| `OccupationCodeSeeder` added to `DatabaseSeeder.php` | 406 ONS SOC 2020 codes now seeded on `db:seed` |
+| `occupation_codes` table was empty | Autocomplete on Income step now returns results |
+
+### Field-Level Completeness Tracking
+
+Replaces binary step completion stamps with actual field-level tracking from the database.
+
+| Change | Impact |
+|--------|--------|
+| `LifeStageService::getStepCompleteness()` | Per-step field checks, journey-aware (hidden fields excluded) |
+| `LifeStageService::getFullFieldCompleteness()` | All fields for agents/AI — not journey-filtered, includes `form_link` for guidance |
+| `LifeStageController::progress()` | Returns `step_completeness` alongside existing response |
+| `lifeStage.js` store | New `stepCompleteness` state, `refreshCompleteness` action, field-based `progressPercentage` |
+| `OnboardingWizard.vue` progress bar | Three states: green tick (complete), raspberry with % (partial), raspberry dash (skipped) |
+| `JourneyProgressHero.vue` | `completedCount` now counts only steps with `status === 'complete'` |
+| `handleLifeStageSkip` | No longer stamps step as complete — backend determines status from actual data |
+| `handleLifeStageNext` | Refreshes completeness from backend instead of blindly stamping |
+
+**Progress bar states:**
+
+| State | Circle | Content | Label | Connecting Line |
+|-------|--------|---------|-------|----------------|
+| Complete | Spring bg | Tick icon | Spring text | Spring |
+| Partial | Raspberry bg + spring border | Percentage | Violet text | Violet |
+| Skipped | Raspberry bg | Dash icon | Raspberry text | Raspberry |
+| Current | Stage colour (pulsing) | Step number | Stage colour bold | — |
+| Upcoming | White bg, light-gray border | Step number | Neutral text | Light-gray |
+
+### Knowledge Nudge Fix
+
+| Change | Impact |
+|--------|--------|
+| `investment.js` — `updateKnowledgeLevel` | Was spreading entire risk profile object (including `factor_breakdown`, `risk_assessed_at`, etc.) into the API request, causing 422 validation error. Now sends only `{ knowledge_level: level }` |
+
+**Verified:** Click Beginner/Intermediate/Experienced on dashboard nudge → saves to DB → nudge disappears → risk profile page shows correct knowledge level in factor breakdown.
+
+### Tax Configuration Corrections
+
+5 outdated values corrected in `TaxConfigurationSeeder.php` for 2025/26:
+
+| Value | Was | Now | Source |
+|-------|-----|-----|--------|
+| Employer NI Rate | 13.8% | 15.0% | April 2025 (+1.2pp) |
+| Employer NI Secondary Threshold | £9,100 | £5,000 | Autumn Budget 2024 |
+| CGT Basic Rate (non-property) | 10% | 18% | 30 Oct 2024, aligned with residential |
+| CGT Higher Rate (non-property) | 20% | 24% | 30 Oct 2024, aligned with residential |
+| BADR Rate | 10% | 14% | 2025/26 (rises to 18% in 2026/27) |
+| Class 4 NI Main Rate | 9% | 6% | April 2024 cut |
+
+**CRITICAL:** Must run `php artisan db:seed --class=TaxConfigurationSeeder --force` on production. All tax calculations, estate planning, retirement projections, and protection needs analysis use these values via `TaxConfigService`.
+
+### Production Hotfixes (2 — deployed same day)
+
+| File | Error | Root Cause | Fix |
+|------|-------|------------|-----|
+| `EstateController.php:115` | `Call to a member function getKey() on array` — estate endpoint 500 | `LiabilityResource::collection()` returns an Eloquent Collection; its `merge()` calls `getKey()` on each item, but `$mortgageLiabilities` contains plain arrays, not models. Worked locally because test user had no mortgages (empty merge = no `getKey()` calls). | Replaced `->collection->map(fn ($r) => $r->resolve())->merge(...)` with `collect(LiabilityResource::collection($liabilities)->resolve())->merge(...)` — converts to base Support\Collection before merging. |
+| `AuthController.php:263` | `Undefined property: TransientToken::$id` — logout 500 | Session-authenticated users get a `TransientToken` (no `$id` property) from `currentAccessToken()`. Code tried `$token->id` for session cleanup. | Added `$token instanceof PersonalAccessToken` check — session-based users now skip token/session DB cleanup (not needed for session auth). |
+| `routes/api.php:687` | `/api/investment/risk/recalculate` returning 429 on first request | Route-specific `throttle:6,1` had a stale counter stuck in SiteGround's cache layer that `php artisan cache:clear` couldn't flush. The counter never reset, so every request was denied. | Removed route-specific `throttle:6,1` — the global `throttle:api` (300/min) already protects the endpoint. |
+
+### Code Review Fixes (11 issues)
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 1 | Critical | `AssetsStep.vue:939` | Document upload: capture type before `closeUploadModal()` nulls it |
+| 2 | Critical | `AssetsStep.vue:953` | `handleNext` uses `allowedTabs` not hardcoded full tab order |
+| 3 | Critical | `OnboardingController.php:95` | Removed PII (data payload) from `Log::info` — logs only step_name + user_id |
+| 4 | Important | `OnboardingWizard.vue:1177` | Resume uses `allCompletedSteps` union + awaits `fetchStage` before resume calc |
+| 5 | Important | `OnboardingWizard.vue` | Student loan checks for existing liability before creating (prevents duplicates) |
+| 6 | Important | `OnboardingService.php:680-723` | Joint accounts set `joint_owner_id` per CLAUDE.md Rule #7, don't halve values |
+| 7 | Important | `OnboardingService.php:609` | Postcode access uses `?? null` fallback (prevents fatal error) |
+| 8 | Important | `OnboardingWizard.vue` | Honours `?step=` query param from dashboard "Continue Journey" link |
+| 9 | Important | `GoalSetupStep.vue` | Consumes `savedData` prop for back-navigation state restore |
+| 10 | Important | `LifeStageService.php:27` | Only sets `onboarding_focus_area` for estate stage (others have no flow) |
+| 11 | Important | `OnboardingController.php:45` | Restricts `setFocusArea` to `estate` only (others unimplemented) |
+
+## Post-Deploy Verification
+
+1. Register new user → select each journey → verify step count matches
+2. Journey 1: only Cash tab visible on Assets step
+3. Journey 2: Cash + Retirement + Investments tabs visible
+4. Journeys 3-5: all 4 tabs visible
+5. Click "+ Add Account" → form renders inline (not modal)
+6. Sidebar updates when switching tabs and opening/closing forms
+7. Journey 4 + 5: Family step appears after About You
+8. Family sidebar shows tailored content per journey
+9. All forms submit without validation errors (no required fields)
+10. **Field completeness**: click Continue with empty fields → step shows raspberry with dash (skipped), NOT green tick
+11. **Field completeness**: fill some fields, click Continue → step shows raspberry with percentage (partial)
+12. **Field completeness**: fill all tracked fields, click Continue → step shows green tick (complete)
+13. **Dashboard progress**: shows actual percentage based on filled fields, not 100% for clicking through empty
+14. Returning user sees their journey progress, not welcome screen
+15. **Occupation autocomplete**: type "soft" on Income step → should show "Software Developer", "Software Engineer" etc.
+16. Will/Estate step renders for journeys 3, 4, and 5 with correct sidebar content
+17. **Knowledge nudge**: add investment/pension → dashboard shows violet nudge → click any level → nudge disappears → check `/risk-profile` shows correct knowledge level
+18. **Tax values**: check Estate Planning card shows correct IHT calculation. Verify employer NI at 15% in any salary sacrifice pension calculation
+19. **Tab navigation**: Journey 2 Assets step — click Continue on last visible tab → should advance to next onboarding step, NOT show blank content
+20. **Document upload**: upload a statement on Assets step → data should refresh in the tab after upload completes
+21. **Returning user**: log out, log back in, navigate to `/onboarding` → should resume at first incomplete step, not step 0
+22. **Student loan**: complete student loan step, go back, forward again → should NOT create duplicate liability
+23. **Goal back-nav**: fill goal form, go back, forward → goal form data should be preserved
+24. **Estate endpoint**: navigate to dashboard or estate page as user with mortgages → no 500 error, liabilities include mortgage data
+25. **Logout**: log out from any authentication method (session or token) → clean logout, no 500 error
+26. **Risk profile**: navigate to `/risk-profile` → page loads with risk level, no 429 error

@@ -1,7 +1,7 @@
 <template>
   <OnboardingStep
-    title="Assets & Wealth"
-    description="Add your properties, investments, and savings accounts"
+    :title="stepTitle"
+    :description="stepDescription"
     :can-go-back="true"
     :can-skip="true"
     :loading="loading"
@@ -11,8 +11,8 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <!-- Tabs for different asset types -->
-      <div class="border-b border-light-gray">
+      <!-- Tabs for different asset types (hidden when single tab) -->
+      <div v-if="assetTabs.length > 1" class="border-b border-light-gray">
         <nav class="-mb-px flex space-x-8" aria-label="Asset types">
           <button
             v-for="tab in assetTabs"
@@ -195,7 +195,6 @@
           You can skip this step and add pensions later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsPensions" />
       </div>
 
       <!-- Properties Tab -->
@@ -229,7 +228,6 @@
           You can skip this step and add properties later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsProperties" />
       </div>
 
       <!-- Investments Tab -->
@@ -315,7 +313,6 @@
           You can skip this step and add investments later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsInvestments" />
       </div>
 
       <!-- Cash Tab -->
@@ -395,40 +392,43 @@
           You can skip this step and add accounts later from your dashboard.
         </p>
 
-        <UsefulResources :links="STEP_RESOURCES.assetsCash" />
       </div>
     </div>
 
-    <!-- Property Form Modal -->
+    <!-- Inline Property Form (replaces cards when open) -->
     <PropertyForm
       v-if="showPropertyForm"
+      context="onboarding"
       :property="editingProperty"
       :user-address="userAddress"
       @close="closePropertyForm"
       @save="handlePropertySaved"
     />
 
-    <!-- Investment Account Form Modal -->
+    <!-- Inline Investment Form -->
     <AccountForm
       v-if="showInvestmentForm"
-      :show="showInvestmentForm"
+      context="onboarding"
+      :show="true"
       :account="editingInvestment"
       :is-onboarding="true"
       @close="closeInvestmentForm"
       @save="handleInvestmentSaved"
     />
 
-    <!-- Savings Account Form Modal -->
+    <!-- Inline Savings Form -->
     <SaveAccountModal
       v-if="showSavingsForm"
+      context="onboarding"
       :account="editingSavings"
       @close="closeSavingsForm"
       @save="handleSavingsSaved"
     />
 
-    <!-- Pension Form Modals -->
+    <!-- Inline Pension Forms -->
     <DCPensionForm
       v-if="showPensionForm && pensionFormType === 'dc'"
+      context="onboarding"
       :pension="editingPension"
       :is-onboarding="true"
       @close="closePensionForm"
@@ -437,6 +437,7 @@
 
     <DBPensionForm
       v-if="showPensionForm && pensionFormType === 'db'"
+      context="onboarding"
       :pension="editingPension"
       @close="closePensionForm"
       @save="handlePensionSaved"
@@ -444,6 +445,7 @@
 
     <StatePensionForm
       v-if="showPensionForm && pensionFormType === 'state'"
+      context="onboarding"
       :state-pension="editingPension"
       @close="closePensionForm"
       @save="handlePensionSaved"
@@ -462,7 +464,8 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import PropertyForm from '@/components/NetWorth/Property/PropertyForm.vue';
 import PropertyCard from '@/components/NetWorth/PropertyCard.vue';
@@ -497,10 +500,75 @@ export default {
     UsefulResources,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
-  setup(_props, { emit }) {
+  setup(props, { emit }) {
+    const store = useStore();
+
+    // Read which tabs to show from life stage config
+    const assetsConfig = computed(() => store.getters['lifeStage/formFields']?.('assets'));
+    const allowedTabs = computed(() => assetsConfig.value?.visibleTabs || null);
+
     const activeTab = ref('retirement');
+
+    // Sidebar content — defined here, wired up after refs are declared below
+    const SIDEBAR_CONTENT = {
+      'cash-list': {
+        didYouKnow: 'A six-month emergency fund is the single most important financial protection you can have. It means a redundancy, car breakdown, or boiler failure does not derail your longer-term plans.',
+        whyWeAsk: 'Knowing your savings lets us calculate exactly how many months of expenses you currently have covered, track progress towards your emergency fund target, and flag whether you are earning the best available interest rate.',
+        quickStat: { value: '£20,000', label: 'Your annual ISA allowance (2025/26)' },
+      },
+      'cash-form': {
+        didYouKnow: 'The best easy access savings accounts currently pay over 4.5% AER. If your money is sitting in a current account earning 0%, moving it could earn you hundreds per year.',
+        whyWeAsk: 'The institution, account type, and balance let us track your emergency fund progress, flag if you are missing ISA tax benefits, and monitor whether your rate is competitive.',
+        quickStat: { value: '4.5%+', label: 'Best easy access rates available right now' },
+      },
+      'retirement-list': {
+        didYouKnow: 'Auto-enrolment means your employer must contribute to your pension if you earn above £10,000 per year. The minimum total contribution is 8% of qualifying earnings. Opting out is almost always a mistake — you are walking away from free money.',
+        whyWeAsk: 'Your pension details let us project your retirement income, assess whether you are on track, and calculate how increasing contributions now compounds into significant extra income in retirement.',
+        quickStat: { value: '£60,000', label: 'Annual pension allowance (2025/26)' },
+      },
+      'retirement-form': {
+        didYouKnow: 'Every £1 of salary sacrifice into your pension saves income tax AND National Insurance. At the basic rate, that is 32p saved per £1 contributed. Your employer contributions are free money on top.',
+        whyWeAsk: 'Your scheme name, provider, fund value, and contribution percentages let us calculate your projected pension pot at retirement and identify if you should increase contributions.',
+        quickStat: { value: '32p', label: 'Saved per £1 via salary sacrifice at basic rate' },
+      },
+      'investments-list': {
+        didYouKnow: 'A Stocks and Shares ISA lets you invest up to £20,000 per year with all growth and income completely free of tax — forever. Investing £200/month from age 28 at a 7% average annual return would be worth over £500,000 by age 65.',
+        whyWeAsk: 'Knowing your existing investments lets us assess diversification, flag tax inefficiency, and incorporate your portfolio into net worth and retirement projections.',
+        quickStat: { value: '£20,000', label: 'Annual ISA allowance — all growth tax-free (2025/26)' },
+      },
+      'investments-form': {
+        didYouKnow: 'Platform fees compound over time just like returns. A 0.5% difference in annual fees on a £100,000 portfolio costs over £50,000 over 30 years.',
+        whyWeAsk: 'Your provider, account type, value, and fees let us calculate the true cost of your investments and identify where fee reductions could significantly improve long-term returns.',
+        quickStat: { value: '£50,000', label: 'Cost of 0.5% extra fees on £100k over 30 years' },
+      },
+      'properties-list': {
+        didYouKnow: 'Most homeowners overpay their mortgage by not reviewing their rate every two years. Even a 0.5% rate reduction on a £250,000 mortgage saves over £1,200 per year.',
+        whyWeAsk: 'Your property and mortgage details let us calculate your equity, net worth, potential remortgage savings, and whether a decreasing term life policy should be tied to your outstanding balance.',
+        quickStat: { value: '2 years', label: 'How often you should review your mortgage rate' },
+      },
+      'properties-form': {
+        didYouKnow: 'Your main residence is exempt from Capital Gains Tax when sold. Buy-to-let properties are not — and the rate is 24% for higher-rate taxpayers. Ownership structure matters.',
+        whyWeAsk: 'The address, value, ownership type, and mortgage details feed into your net worth, estate planning, protection needs calculation, and rental yield analysis.',
+        quickStat: { value: '24%', label: 'Capital Gains Tax on residential property for higher-rate taxpayers' },
+      },
+    };
+
+    const stepTitle = computed(() => {
+      if (allowedTabs.value && allowedTabs.value.length === 1) {
+        const titles = { cash: 'Bank Accounts', retirement: 'Pensions', investments: 'Investments', properties: 'Properties' };
+        return titles[allowedTabs.value[0]] || 'Assets & Wealth';
+      }
+      return 'Assets & Wealth';
+    });
+    const stepDescription = computed(() => {
+      if (allowedTabs.value && allowedTabs.value.length === 1) {
+        const descs = { cash: 'Add your bank and savings accounts', retirement: 'Add your pension schemes so we can project your retirement income', investments: 'Add your investment accounts so we can analyse your portfolio', properties: 'Add your properties and any mortgages' };
+        return descs[allowedTabs.value[0]] || 'Add your properties, investments, and savings accounts';
+      }
+      return 'Add your properties, investments, and savings accounts';
+    });
 
     // Properties state
     const properties = ref([]);
@@ -531,16 +599,64 @@ export default {
     const pensionFormType = ref(null); // 'dc', 'db', or 'state'
     const editingPension = ref(null);
 
+    // Sidebar context tracking
+    const isFormOpen = computed(() => showPropertyForm.value || showInvestmentForm.value || showSavingsForm.value || showPensionForm.value);
+
+    const emitSidebarContent = () => {
+      const suffix = isFormOpen.value ? 'form' : 'list';
+      const key = `${activeTab.value}-${suffix}`;
+      const content = SIDEBAR_CONTENT[key] || SIDEBAR_CONTENT[`${activeTab.value}-list`];
+      if (content) {
+        emit('sidebar-update', content);
+      }
+    };
+
+    watch(activeTab, () => {
+      // Close all open forms when switching tabs
+      showPropertyForm.value = false;
+      showInvestmentForm.value = false;
+      showSavingsForm.value = false;
+      showPensionForm.value = false;
+      editingProperty.value = null;
+      editingInvestment.value = null;
+      editingSavings.value = null;
+      editingPension.value = null;
+      emitSidebarContent();
+      // Scroll to top on tab change (mobile stacked layout)
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    watch(isFormOpen, () => emitSidebarContent());
+
     // Tab counts
-    const assetTabs = computed(() => [
-      { id: 'retirement', name: 'Retirement', count: pensions.value.dc.length + pensions.value.db.length + (pensions.value.state ? 1 : 0) },
-      { id: 'properties', name: 'Properties', count: properties.value.length },
-      { id: 'investments', name: 'Investments', count: investments.value.length },
-      { id: 'cash', name: 'Cash', count: savingsAccounts.value.length },
-    ]);
+    const allTabs = [
+      { id: 'retirement', name: 'Retirement' },
+      { id: 'properties', name: 'Properties' },
+      { id: 'investments', name: 'Investments' },
+      { id: 'cash', name: 'Cash' },
+    ];
+
+    const assetTabs = computed(() => {
+      const tabs = allowedTabs.value
+        ? allTabs.filter(t => allowedTabs.value.includes(t.id))
+        : allTabs;
+
+      return tabs.map(t => ({
+        ...t,
+        count: t.id === 'retirement' ? pensions.value.dc.length + pensions.value.db.length + (pensions.value.state ? 1 : 0)
+          : t.id === 'properties' ? properties.value.length
+          : t.id === 'investments' ? investments.value.length
+          : t.id === 'cash' ? savingsAccounts.value.length
+          : 0,
+      }));
+    });
 
     // Load existing data
     onMounted(async () => {
+      // Set default tab to first allowed tab
+      if (allowedTabs.value && allowedTabs.value.length > 0) {
+        activeTab.value = allowedTabs.value[0];
+      }
+
       try {
         await Promise.all([
           loadPensions(),
@@ -552,6 +668,9 @@ export default {
       } catch (err) {
         // Data loading errors are handled in individual methods
       }
+
+      // Emit initial sidebar content
+      emitSidebarContent();
     });
 
     // Pensions methods
@@ -670,8 +789,8 @@ export default {
           ? await propertyService.updateProperty(editingProperty.value.id, data.property)
           : await propertyService.createProperty(data.property);
 
-        // Get property ID from response (API returns property directly, not wrapped in data)
-        const propertyId = editingProperty.value?.id || propertyResponse.data?.id || propertyResponse.id;
+        // Get property ID from response (API returns { data: { property: { id } } })
+        const propertyId = editingProperty.value?.id || propertyResponse.data?.property?.id || propertyResponse.data?.id || propertyResponse.id;
 
         // If mortgage data provided and property was saved successfully, save/update mortgage
         if (data.mortgage && propertyId) {
@@ -827,29 +946,31 @@ export default {
     }
 
     async function handleDocumentSaved(savedData) {
+      // Capture type before closing (closeUploadModal nulls it)
+      const type = uploadDocumentType.value;
       closeUploadModal();
 
       // Reload the appropriate data based on document type
-      if (uploadDocumentType.value === 'pension_statement') {
+      if (type === 'pension_statement') {
         await loadPensions();
-      } else if (uploadDocumentType.value === 'investment_statement') {
+      } else if (type === 'investment_statement') {
         await loadInvestments();
-      } else if (uploadDocumentType.value === 'savings_statement') {
+      } else if (type === 'savings_statement') {
         await loadSavingsAccounts();
       }
     }
 
     // Navigation
     function handleNext() {
-      // Define tab order for Assets & Wealth screen
-      const tabOrder = ['retirement', 'properties', 'investments', 'cash'];
+      // Use allowed tabs (filtered by life stage) not the full hardcoded list
+      const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
       const currentIndex = tabOrder.indexOf(activeTab.value);
 
-      // If not on the last tab, go to next tab
+      // If not on the last visible tab, go to next tab
       if (currentIndex < tabOrder.length - 1) {
         activeTab.value = tabOrder[currentIndex + 1];
       } else {
-        // On last tab (cash), proceed to next step (Liabilities)
+        // On last visible tab, proceed to next onboarding step
         emit('next');
       }
     }
@@ -972,6 +1093,8 @@ export default {
     };
 
     return {
+      stepTitle,
+      stepDescription,
       activeTab,
       assetTabs,
       // Pensions

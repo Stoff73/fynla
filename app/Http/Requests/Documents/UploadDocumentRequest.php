@@ -24,7 +24,7 @@ class UploadDocumentRequest extends FormRequest
     {
         return [
             'document' => [
-                'required',
+                'sometimes',
                 'file',
                 'mimes:pdf,jpeg,jpg,png,webp',
                 'max:20480', // 20MB

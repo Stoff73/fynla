@@ -16,7 +16,7 @@
         <!-- Trust Name & Type -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="trust_name" class="block text-sm font-medium text-neutral-500">Trust Name *</label>
+            <label for="trust_name" class="block text-sm font-medium text-neutral-500">Trust Name</label>
             <input
               v-model="form.trust_name"
               type="text"
@@ -28,7 +28,7 @@
           </div>
 
           <div>
-            <label for="trust_type" class="block text-sm font-medium text-neutral-500">Trust Type *</label>
+            <label for="trust_type" class="block text-sm font-medium text-neutral-500">Trust Type</label>
             <select
               v-model="form.trust_type"
               id="trust_type"
@@ -61,7 +61,7 @@
         <!-- Creation Date & Values -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label for="trust_creation_date" class="block text-sm font-medium text-neutral-500">Creation Date *</label>
+            <label for="trust_creation_date" class="block text-sm font-medium text-neutral-500">Creation Date</label>
             <input
               v-model="form.trust_creation_date"
               type="date"
@@ -72,7 +72,7 @@
           </div>
 
           <div>
-            <label for="initial_value" class="block text-sm font-medium text-neutral-500">Initial Value (£) *</label>
+            <label for="initial_value" class="block text-sm font-medium text-neutral-500">Initial Value (£)</label>
             <input
               v-model.number="form.initial_value"
               type="number"
@@ -85,7 +85,7 @@
           </div>
 
           <div>
-            <label for="current_value" class="block text-sm font-medium text-neutral-500">Current Value (£) *</label>
+            <label for="current_value" class="block text-sm font-medium text-neutral-500">Current Value (£)</label>
             <input
               v-model.number="form.current_value"
               type="number"

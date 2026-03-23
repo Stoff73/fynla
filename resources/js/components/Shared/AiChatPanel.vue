@@ -300,6 +300,44 @@
         </div>
       </div>
 
+      <!-- Docked History Drawer -->
+      <div v-if="showHistory" class="border-b border-light-gray bg-savannah-100 max-h-48 overflow-y-auto flex-shrink-0">
+        <div v-if="loadingConversations" class="p-4 text-center">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-raspberry-600 mx-auto"></div>
+        </div>
+        <div v-else-if="conversations.length === 0" class="p-4 text-center text-sm text-neutral-500">
+          No previous conversations
+        </div>
+        <div v-else>
+          <button
+            v-for="conv in conversations"
+            :key="conv.id"
+            @click="loadConversation(conv.id)"
+            class="w-full text-left px-4 py-2.5 hover:bg-savannah-200 border-b border-light-gray
+                   transition-colors flex items-center justify-between group"
+            :class="{ 'bg-violet-50': currentConversation?.id === conv.id }"
+          >
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-horizon-500 truncate">
+                {{ conv.title || 'New conversation' }}
+              </p>
+              <p class="text-xs text-neutral-500 mt-0.5">
+                {{ formatRelativeTime(conv.last_message_at || conv.created_at) }}
+              </p>
+            </div>
+            <button
+              @click.stop="deleteConversation(conv.id)"
+              class="p-1 text-horizon-400 hover:text-raspberry-500 opacity-0 group-hover:opacity-100 transition-all"
+              title="Delete conversation"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
+          </button>
+        </div>
+      </div>
+
       <!-- Docked Messages -->
       <div ref="dockedMessagesContainer" class="flex-1 overflow-y-auto px-4 py-3 space-y-4 scrollbar-thin">
         <!-- Empty state -->
@@ -575,17 +613,30 @@ export default {
             }
         },
 
-        messages() {
-            this.$nextTick(() => this.scrollToBottom());
+        messages(newMessages, oldMessages) {
+            // When a new user message is added, scroll to bottom so they see it
+            // When assistant message is added (stream complete), scroll to top of that message
+            if (!newMessages || !oldMessages) return;
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (!lastMsg) return;
+
+            if (lastMsg.role === 'user') {
+                this.$nextTick(() => this.scrollToBottom());
+            } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
+                this.$nextTick(() => this.scrollToLastAssistantMessage());
+            }
         },
 
-        streamingText() {
-            this.$nextTick(() => this.scrollToBottom());
+        streaming(isStreaming) {
+            // When streaming starts, scroll to show the top of the response area
+            if (isStreaming) {
+                this.$nextTick(() => this.scrollToLastAssistantMessage());
+            }
         },
 
         pendingNavigation(routePath) {
             if (routePath) {
-                this.$router.push(routePath);
+                this.handleNavigation(routePath);
                 this.$store.commit('aiChat/SET_PENDING_NAVIGATION', null);
             }
         },
@@ -630,9 +681,16 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
-            // Always start a fresh conversation when opening the chat
+            // If there's already an active conversation with messages or streaming,
+            // don't replace it — just fetch the conversation list for history
+            const hasActiveConversation = this.$store.state.aiChat.currentConversation
+                && (this.$store.state.aiChat.messages.length > 0 || this.$store.state.aiChat.streaming);
+
             await this.fetchConversations();
-            await this.startNewConversation();
+
+            if (!hasActiveConversation) {
+                await this.startNewConversation();
+            }
 
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
@@ -688,7 +746,7 @@ export default {
                     created_at: new Date().toISOString(),
                 });
                 // Navigate
-                this.$router.push(navMatch.route);
+                this.handleNavigation(navMatch.route);
                 return;
             }
 
@@ -702,12 +760,42 @@ export default {
         },
 
         handleNavigation(routePath) {
-            this.$router.push(routePath);
+            // Parse query strings properly for Vue Router
+            if (routePath && routePath.includes('?')) {
+                const [path, queryString] = routePath.split('?');
+                const query = {};
+                new URLSearchParams(queryString).forEach((value, key) => {
+                    query[key] = value;
+                });
+                this.$router.push({ path, query });
+            } else {
+                this.$router.push(routePath);
+            }
         },
 
         scrollToBottom() {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        },
+
+        scrollToLastAssistantMessage() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+
+            // Find the last assistant message element (or streaming indicator)
+            const messageElements = container.querySelectorAll('.flex.justify-start');
+            const lastAssistant = messageElements[messageElements.length - 1];
+
+            if (lastAssistant) {
+                // Scroll so the top of the assistant's response is visible with a small offset
+                const containerRect = container.getBoundingClientRect();
+                const messageRect = lastAssistant.getBoundingClientRect();
+                const offset = messageRect.top - containerRect.top + container.scrollTop - 8;
+                container.scrollTop = offset;
+            } else {
+                // Fallback to bottom if no assistant message found
                 container.scrollTop = container.scrollHeight;
             }
         },

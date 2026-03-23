@@ -139,21 +139,34 @@
           </div>
         </div>
 
-        <!-- Needs Attention Status -->
+        <!-- Behind Schedule Goals -->
         <div
-          v-else-if="summary.on_track_count < summary.total_goals"
-          class="p-4 bg-white border-2 border-violet-500 rounded-lg"
+          v-else-if="behindGoals.length > 0"
+          class="p-4 bg-white border-2 border-violet-500 rounded-lg sm:col-span-2"
         >
-          <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <div>
-              <p class="font-semibold text-violet-700">
-                {{ summary.total_goals - summary.on_track_count }}
-                {{ (summary.total_goals - summary.on_track_count) === 1 ? 'goal needs' : 'goals need' }} attention
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-violet-700 mb-2">
+                {{ behindGoals.length }} {{ behindGoals.length === 1 ? 'goal is' : 'goals are' }} behind schedule
               </p>
-              <p class="text-sm text-violet-600">Consider increasing contributions</p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="goal in behindGoals"
+                  :key="goal.id"
+                  class="flex items-center justify-between text-sm"
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-base flex-shrink-0">{{ getGoalIcon(goal.goal_type) }}</span>
+                    <span class="text-violet-700 truncate">{{ goal.name }}</span>
+                  </div>
+                  <span class="text-violet-600 flex-shrink-0 ml-2">
+                    {{ formatCurrency(goal.target_amount - goal.current_amount) }} remaining
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -201,6 +214,10 @@ export default {
   computed: {
     hasGoals() {
       return this.summary.total_goals > 0;
+    },
+
+    behindGoals() {
+      return this.topGoals.filter(g => !g.is_on_track && parseFloat(g.current_amount) > 0);
     },
   },
 

@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-eggshell-500">
+<<<<<<< HEAD
     <!-- Onboarding Header Bar -->
     <nav class="bg-light-blue-100 shadow-sm border-b border-light-gray">
       <div class="mx-auto px-4 sm:px-6 lg:px-8">
@@ -12,6 +13,27 @@
         </div>
       </div>
     </nav>
+=======
+
+    <!-- Top Navigation Bar -->
+    <div class="bg-white border-b border-light-gray">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <router-link to="/dashboard" class="flex-shrink-0">
+          <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="h-10" />
+        </router-link>
+        <h1 class="text-base font-bold text-horizon-500 absolute left-1/2 -translate-x-1/2">Your Journey</h1>
+        <router-link
+          to="/dashboard"
+          class="text-sm text-neutral-500 hover:text-horizon-500 transition-colors flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span class="hidden sm:inline">Exit</span>
+        </router-link>
+      </div>
+    </div>
+>>>>>>> 3d8bba739b64cceac883bcadbb4ad97271b1d8b5
 
     <div class="py-8 px-4 sm:px-6 lg:px-8">
 
@@ -27,17 +49,26 @@
               <div
                 v-for="(stepId, index) in lifeStageSteps"
                 :key="stepId"
-                class="flex-1 flex flex-col items-center relative min-w-[80px]"
+                class="flex-1 flex flex-col items-center relative min-w-[80px] cursor-pointer"
+                @click="goToStep(index)"
               >
                 <!-- Step Circle -->
                 <div
                   class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
                   :class="getLifeStageStepCircleClass(stepId, index)"
                 >
-                  <!-- Tick for completed -->
-                  <svg v-if="isLifeStageStepCompleted(stepId)" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <!-- Tick for complete (all fields filled) -->
+                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                   </svg>
+                  <!-- Dash for skipped (no fields filled, already passed) -->
+                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Partial indicator (some fields filled) -->
+                  <span v-else-if="getLifeStageStepStatus(stepId, index) === 'partial'" class="text-xs font-bold text-white">
+                    {{ getStepCompletenessPercentage(stepId) }}%
+                  </span>
                   <!-- Number for current/upcoming -->
                   <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
                 </div>
@@ -81,11 +112,13 @@
                 :is="lifeStageCurrentComponent"
                 :key="lifeStageCurrentStepId"
                 :context="'onboarding'"
+                :saved-data="savedStepData[lifeStageCurrentStepId] || null"
                 @save="handleLifeStageStepSave"
                 @next="handleLifeStageNext"
                 @back="handleLifeStageBack"
                 @skip="handleLifeStageSkip"
                 @close="handleLifeStageNext"
+                @sidebar-update="sidebarOverride = $event"
               />
               <div v-else class="py-12 text-center">
                 <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -130,13 +163,18 @@
             </div>
           </div>
 
-          <!-- Right Column: Learning Sidebar (desktop) -->
+          <!-- Right Column: Learning Sidebar + Useful Resources (desktop) -->
           <div class="w-full lg:w-[340px] flex-shrink-0">
-            <div class="lg:sticky lg:top-8">
+            <div class="lg:sticky lg:top-8 space-y-4">
               <LearningMilestoneSidebar
                 :step="lifeStageCurrentStepId"
                 :stage="currentLifeStage"
+                :override="sidebarOverride"
                 class="rounded-lg shadow-sm border border-light-gray"
+              />
+              <UsefulResources
+                v-if="currentStepResources && currentStepResources.length"
+                :links="currentStepResources"
               />
             </div>
           </div>
@@ -351,18 +389,11 @@ import AssetsStep from './steps/AssetsStep.vue';
 import LiabilitiesStep from './steps/LiabilitiesStep.vue';
 import FamilyInfoStep from './steps/FamilyInfoStep.vue';
 import WillInfoStep from './steps/WillInfoStep.vue';
+import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
+import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
-import QuickAssetsStep from './steps/QuickAssetsStep.vue';
-import BudgetingSteps from './steps/BudgetingSteps.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
-import JourneyCompletionStep from './steps/JourneyCompletionStep.vue';
-import SimplePersonalInfoStep from './steps/SimplePersonalInfoStep.vue';
-import SimpleIncomeStep from './steps/SimpleIncomeStep.vue';
-import SimpleExpenditureStep from './steps/SimpleExpenditureStep.vue';
-import SimpleSavingsAccountStep from './steps/SimpleSavingsAccountStep.vue';
-import SimplePropertyMortgageStep from './steps/SimplePropertyMortgageStep.vue';
-import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 
 // =====================================================================
 // LIFE STAGE STEP → COMPONENT MAPPING
@@ -370,30 +401,39 @@ import BudgetingCompletionStep from './steps/BudgetingCompletionStep.vue';
 // unified form component that should render for that step.
 // =====================================================================
 const STEP_COMPONENTS = {
-  'personal-info': () => import('@/components/UserProfile/PersonalInformation.vue'),
+  'personal-info': () => import('@/components/Onboarding/steps/PersonalInfoStep.vue'),
   'student-loan': () => import('@/components/Onboarding/steps/StudentLoanStep.vue'),
   'income': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-career': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
   'income-tax': () => import('@/components/Onboarding/steps/IncomeStep.vue'),
-  'expenditure': () => import('@/components/Onboarding/steps/SimpleExpenditureStep.vue'),
-  'savings': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'savings-emergency': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'first-home-lisa': () => import('@/components/Savings/SaveAccountModal.vue'),
-  'property-mortgage': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
-  'property-portfolio': () => import('@/components/NetWorth/Property/PropertyForm.vue'),
-  'protection-insurance': () => import('@/components/Protection/PolicyFormModal.vue'),
-  'pensions': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-auto-enrolment': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-review': () => import('@/components/Retirement/DCPensionForm.vue'),
-  'pension-drawdown': () => import('@/components/Retirement/DCPensionForm.vue'),
+  'expenditure': () => import('@/components/Onboarding/steps/ExpenditureStep.vue'),
+  'assets': () => import('@/components/Onboarding/steps/AssetsStep.vue'),
+  'liabilities': () => import('@/components/Onboarding/steps/LiabilitiesStep.vue'),
+  'protection-insurance': () => import('@/components/Onboarding/steps/ProtectionPoliciesStep.vue'),
   'family': () => import('@/components/Onboarding/steps/FamilyInfoStep.vue'),
   'will-estate': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-iht': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'estate-legacy': () => import('@/components/Onboarding/steps/WillInfoStep.vue'),
   'goals': () => import('@/components/Onboarding/steps/GoalSetupStep.vue'),
-  'investments': () => import('@/components/Investment/AccountForm.vue'),
-  'investments-isa': () => import('@/components/Investment/AccountForm.vue'),
-  'state-pension': () => import('@/components/Retirement/StatePensionForm.vue'),
+};
+
+// Step ID → STEP_RESOURCES key mapping for the sidebar useful resources card
+const STEP_RESOURCE_MAP = {
+  'personal-info': 'personalInfo',
+  'student-loan': 'studentLoan',
+  'income': 'income',
+  'income-career': 'income',
+  'income-tax': 'income',
+  'expenditure': 'expenditure',
+  'assets': 'assetsCash',
+  'goals': 'goals',
+  'family': 'family',
+  'protection-insurance': 'protection',
+  'liabilities': 'liabilities',
+  'domicile': 'domicile',
+  'will-estate': 'will',
+  'estate-iht': 'will',
+  'estate-legacy': 'will',
 };
 
 // Step label map for the progress bar
@@ -404,24 +444,14 @@ const STEP_LABELS = {
   'income-career': 'Income',
   'income-tax': 'Income',
   'expenditure': 'Spending',
-  'savings': 'Savings',
-  'savings-emergency': 'Savings',
-  'first-home-lisa': 'First Home',
-  'pension-auto-enrolment': 'Pension',
-  'investments': 'Investments',
-  'investments-isa': 'Investments',
+  'assets': 'Assets',
+  'liabilities': 'Debts',
   'goals': 'Goals',
   'family': 'Family',
-  'property-mortgage': 'Property',
-  'property-portfolio': 'Property',
   'protection-insurance': 'Protection',
-  'pensions': 'Pensions',
-  'pension-review': 'Pensions',
-  'pension-drawdown': 'Pensions',
   'will-estate': 'Will',
   'estate-iht': 'Estate',
   'estate-legacy': 'Estate',
-  'state-pension': 'State Pension',
 };
 
 export default {
@@ -432,6 +462,7 @@ export default {
     ConfirmDialog,
     SkipToDashboardModal,
     LearningMilestoneSidebar,
+    UsefulResources,
     JourneyMap,
     PersonalInfoStep,
     IncomeStep,
@@ -444,16 +475,7 @@ export default {
     WillInfoStep,
     TrustInfoStep,
     CompletionStep,
-    QuickAssetsStep,
-    BudgetingSteps,
     GoalSetupStep,
-    JourneyCompletionStep,
-    SimplePersonalInfoStep,
-    SimpleIncomeStep,
-    SimpleExpenditureStep,
-    SimpleSavingsAccountStep,
-    SimplePropertyMortgageStep,
-    BudgetingCompletionStep,
   },
 
   props: {
@@ -495,8 +517,8 @@ export default {
 
     const isLifeStageMode = computed(() => {
       if (props.mode === 'life-stage') return true;
-      // If user has a stage but hasn't started in this session, show welcome first
-      if (currentLifeStage.value && !props.mode && lifeStageStarted.value) return true;
+      // If user has a life stage set, always use life stage mode
+      if (currentLifeStage.value) return true;
       return false;
     });
     const lifeStageSteps = computed(() => store.getters['lifeStage/onboardingSteps'] || []);
@@ -504,17 +526,29 @@ export default {
 
     const lifeStageCurrentIndex = ref(0);
 
+    // Cache form data emitted by steps so back navigation can restore it
+    const savedStepData = ref({});
+    const sidebarOverride = ref(null);
+
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
+    });
+
+    // Useful resources for the current step (shown in sidebar card)
+    const currentStepResources = computed(() => {
+      const stepId = lifeStageCurrentStepId.value;
+      if (!stepId) return null;
+      const resourceKey = STEP_RESOURCE_MAP[stepId];
+      return resourceKey ? (STEP_RESOURCES[resourceKey] || null) : null;
     });
 
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
-      'personal-info',
+      'personal-info', 'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
-      'goals', 'property-mortgage',
+      'goals', 'assets', 'liabilities', 'protection-insurance',
     ];
     const stepHasOwnNav = computed(() => stepsWithOwnNav.includes(lifeStageCurrentStepId.value));
 
@@ -587,8 +621,25 @@ export default {
       return selectedStageId.value ? LIFE_STAGES[selectedStageId.value] : null;
     });
 
-    const isLifeStageStepCompleted = (stepId) => {
-      return lifeStageCompletedSteps.value.includes(stepId);
+    // Get the display status for a step in the progress bar.
+    // Returns: 'complete' | 'partial' | 'skipped' | 'current' | 'upcoming'
+    const getLifeStageStepStatus = (stepId, index) => {
+      if (index === lifeStageCurrentIndex.value) return 'current';
+      if (index > lifeStageCurrentIndex.value) return 'upcoming';
+
+      // Past step — check field-level completeness from backend
+      const completeness = store.getters['lifeStage/stepCompleteness'];
+      const stepInfo = completeness[stepId];
+      if (stepInfo) return stepInfo.status; // 'complete' | 'partial' | 'skipped'
+
+      // Fallback if no completeness data yet — check binary completed list
+      if (lifeStageCompletedSteps.value.includes(stepId)) return 'complete';
+      return 'skipped';
+    };
+
+    const getStepCompletenessPercentage = (stepId) => {
+      const completeness = store.getters['lifeStage/stepCompleteness'];
+      return completeness[stepId]?.percentage || 0;
     };
 
     const isLifeStageCurrentStep = (index) => {
@@ -596,23 +647,37 @@ export default {
     };
 
     const getLifeStageStepCircleClass = (stepId, index) => {
-      if (isLifeStageCurrentStep(index)) {
-        return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+      const status = getLifeStageStepStatus(stepId, index);
+
+      switch (status) {
+        case 'current':
+          return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+        case 'complete':
+          return 'bg-spring-500 border-spring-500 text-white';
+        case 'partial':
+          return 'bg-raspberry-500 border-spring-500 text-white';
+        case 'skipped':
+          return 'bg-raspberry-500 border-raspberry-500 text-white';
+        default: // upcoming
+          return 'bg-white border-light-gray text-neutral-500';
       }
-      if (isLifeStageStepCompleted(stepId)) {
-        return 'bg-spring-500 border-spring-500 text-white';
-      }
-      return 'bg-white border-light-gray text-neutral-500';
     };
 
     const getLifeStageStepLabelClass = (stepId, index) => {
-      if (isLifeStageCurrentStep(index)) {
-        return stageColourClasses.value.text + ' font-semibold';
+      const status = getLifeStageStepStatus(stepId, index);
+
+      switch (status) {
+        case 'current':
+          return stageColourClasses.value.text + ' font-semibold';
+        case 'complete':
+          return 'text-spring-600';
+        case 'partial':
+          return 'text-violet-600';
+        case 'skipped':
+          return 'text-raspberry-500';
+        default:
+          return 'text-neutral-500';
       }
-      if (isLifeStageStepCompleted(stepId)) {
-        return 'text-spring-600';
-      }
-      return 'text-neutral-500';
     };
 
     const getLifeStageStepLabel = (stepId) => {
@@ -620,17 +685,43 @@ export default {
     };
 
     const getLifeStageConnectingLineClass = (index) => {
-      if (index < lifeStageCurrentIndex.value) {
-        return 'bg-spring-500';
-      }
-      return 'bg-light-gray';
+      if (index >= lifeStageCurrentIndex.value) return 'bg-light-gray';
+
+      // Past step — colour based on completeness
+      const stepId = lifeStageSteps.value[index];
+      const status = getLifeStageStepStatus(stepId, index);
+
+      if (status === 'complete') return 'bg-spring-500';
+      if (status === 'partial') return 'bg-violet-400';
+      return 'bg-raspberry-300'; // skipped
     };
 
-    const handleLifeStageNext = async () => {
+    // Scroll to top when step changes (important on mobile where cards stack)
+    watch(lifeStageCurrentIndex, () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
-      if (currentStepId) {
-        await store.dispatch('lifeStage/completeStep', currentStepId);
+
+      if (formData && typeof formData === 'object' && currentStepId) {
+        savedStepData.value[currentStepId] = { ...formData };
       }
+
+      if (currentStepId === 'family') {
+        try {
+          await Promise.all([
+            store.dispatch('userProfile/fetchFamilyMembers'),
+            store.dispatch('userProfile/fetchProfile'),
+          ]);
+        } catch {
+          // Non-blocking
+        }
+      }
+
+      // Refresh field-level completeness from backend (checks actual DB data).
+      // Do NOT blindly stamp as complete — let the backend determine status.
+      await store.dispatch('lifeStage/refreshCompleteness');
 
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
@@ -645,25 +736,33 @@ export default {
         return;
       }
 
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
     };
 
     const handleLifeStageBack = () => {
+      sidebarOverride.value = null;
       if (lifeStageCurrentIndex.value > 0) {
         lifeStageCurrentIndex.value -= 1;
       }
     };
 
-    const handleLifeStageSkip = () => {
-      const currentStepId = lifeStageSteps.value[lifeStageCurrentIndex.value];
-      if (currentStepId) {
-        store.dispatch('lifeStage/completeStep', currentStepId);
-      }
+    const goToStep = (index) => {
+      sidebarOverride.value = null;
+      lifeStageCurrentIndex.value = index;
+    };
+
+    const handleLifeStageSkip = async () => {
+      // Do NOT mark as complete — backend field checks will show 'skipped' status.
+      // Just refresh completeness so progress bar updates accurately.
+      await store.dispatch('lifeStage/refreshCompleteness');
+
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
         router.push({ name: 'Dashboard' });
         return;
       }
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
     };
 
@@ -673,12 +772,19 @@ export default {
       // PersonalInformation emits form data — parent must save.
       // Deprecated steps (IncomeStep, SimpleExpenditureStep) save internally.
       const stepId = lifeStageCurrentStepId.value;
+
+      // Cache form data so back navigation can restore it
+      if (formData) {
+        savedStepData.value[stepId] = { ...formData };
+      }
+
       try {
         if (stepId === 'personal-info' && formData) {
           // PersonalInformation emits raw form data — save via store dispatches
           // (same as the standalone component uses)
           const personalData = {
-            name: formData.name,
+            first_name: formData.first_name || null,
+            surname: formData.surname || null,
             email: formData.email,
             date_of_birth: formData.date_of_birth || null,
             gender: formData.gender || null,
@@ -705,17 +811,16 @@ export default {
             store.dispatch('userProfile/updateIncomeOccupation', occupationData),
           ]);
         } else if (stepId === 'student-loan' && formData) {
-          await estateService.createLiability(formData);
+          // Check for existing student loan to avoid duplicates on re-entry
+          const existingLiabilities = store.state.estate?.liabilities || [];
+          const existingLoan = existingLiabilities.find(l => l.liability_type === 'student_loan');
+          if (existingLoan?.id) {
+            await estateService.updateLiability(existingLoan.id, formData);
+          } else {
+            await estateService.createLiability(formData);
+          }
         } else if ((stepId === 'savings' || stepId === 'savings-emergency' || stepId === 'first-home-lisa') && formData) {
           await savingsService.createAccount(formData);
-        } else if ((stepId === 'property-mortgage' || stepId === 'property-portfolio') && formData) {
-          // PropertyForm emits { property: {...}, mortgage: {...} }
-          const propertyData = formData.property || formData;
-          const response = await propertyService.createProperty(propertyData);
-          // If property has a mortgage, save it linked to the new property
-          if (formData.mortgage && response.data?.id) {
-            await propertyService.createPropertyMortgage(response.data.id, formData.mortgage);
-          }
         } else if (stepId === 'protection-insurance' && formData) {
           // PolicyFormModal emits with policyType field
           const policyType = formData.policyType || formData.policy_type || 'life';
@@ -728,10 +833,6 @@ export default {
           };
           const creator = policyCreators[policyType] || policyCreators.life;
           await creator(formData);
-        } else if ((stepId === 'pensions' || stepId === 'pension-auto-enrolment' || stepId === 'pension-review' || stepId === 'pension-drawdown') && formData) {
-          await retirementService.createDCPension(formData);
-        } else if ((stepId === 'investments' || stepId === 'investments-isa') && formData) {
-          await investmentService.createAccount(formData);
         } else if (stepId === 'state-pension' && formData) {
           await retirementService.updateStatePension(formData);
         } else if (stepId === 'goals' && formData) {
@@ -1154,10 +1255,22 @@ export default {
 
     onMounted(async () => {
       if (isLifeStageMode.value) {
-        // Life stage mode: steps come from lifeStage store
-        // Find the first uncompleted step to resume from
+        // Pre-fetch user profile and life stage progress (including field completeness)
+        await Promise.all([
+          store.dispatch('userProfile/fetchProfile').catch(() => {}),
+          store.dispatch('lifeStage/fetchStage').catch(() => {}),
+        ]);
+
+        // Returning user with a stage already set — skip welcome, go straight to steps
+        if (currentLifeStage.value && lifeStageSteps.value.length > 0) {
+          lifeStageStarted.value = true;
+        }
+
+        // Find the first uncompleted step to resume from.
+        // Use allCompletedSteps (union of explicit + data-readiness) so returning
+        // users with data but expired sessions don't restart from step 0.
         const steps = lifeStageSteps.value;
-        const completed = lifeStageCompletedSteps.value;
+        const completed = store.getters['lifeStage/allCompletedSteps'] || [];
         let resumeIndex = 0;
         for (let i = 0; i < steps.length; i++) {
           if (!completed.includes(steps[i])) {
@@ -1168,6 +1281,14 @@ export default {
             resumeIndex = steps.length - 1;
           }
         }
+
+        // Honour ?step= query param from dashboard "Continue Journey" link
+        const requestedStep = route.query?.step;
+        if (requestedStep) {
+          const idx = steps.indexOf(requestedStep);
+          if (idx !== -1) resumeIndex = idx;
+        }
+
         lifeStageCurrentIndex.value = resumeIndex;
         return;
       }
@@ -1221,9 +1342,13 @@ export default {
       lifeStageCurrentStepId,
       stepHasOwnNav,
       lifeStageCurrentComponent,
+      savedStepData,
+      sidebarOverride,
+      currentStepResources,
       stageColour,
       stageColourClasses,
-      isLifeStageStepCompleted,
+      getLifeStageStepStatus,
+      getStepCompletenessPercentage,
       isLifeStageCurrentStep,
       getLifeStageStepCircleClass,
       getLifeStageStepLabelClass,
@@ -1231,6 +1356,7 @@ export default {
       getLifeStageConnectingLineClass,
       handleLifeStageNext,
       handleLifeStageBack,
+      goToStep,
       handleLifeStageSkip,
       handleLifeStageStepSave,
 

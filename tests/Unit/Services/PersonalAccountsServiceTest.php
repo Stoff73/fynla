@@ -7,6 +7,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\UserProfile\PersonalAccountsService;
 use Carbon\Carbon;
@@ -15,7 +16,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->service = new PersonalAccountsService;
+    TaxConfiguration::factory()->create(['is_active' => true]);
+    $this->service = app(PersonalAccountsService::class);
 
     // Create a household
     $this->household = Household::factory()->create();
@@ -83,6 +85,14 @@ describe('calculateProfitAndLoss', function () {
             'expenses',
             'total_expenses',
             'net_profit_loss',
+            'tax',
+        ]);
+
+        expect($result['tax'])->toHaveKeys([
+            'income_tax',
+            'national_insurance',
+            'total_deductions',
+            'effective_tax_rate',
         ]);
     });
 
@@ -109,13 +119,16 @@ describe('calculateProfitAndLoss', function () {
         $result = $this->service->calculateProfitAndLoss($this->user, $startDate, $endDate);
 
         expect($result['income'])->toBeArray();
-        expect($result['income'])->toHaveCount(5);
+        expect($result['income'])->toHaveCount(8);
 
         $incomeItems = collect($result['income'])->pluck('line_item')->toArray();
         expect($incomeItems)->toContain('Employment Income');
         expect($incomeItems)->toContain('Self-Employment Income');
         expect($incomeItems)->toContain('Rental Income');
         expect($incomeItems)->toContain('Dividend Income');
+        expect($incomeItems)->toContain('Interest Income');
+        expect($incomeItems)->toContain('Pension Income');
+        expect($incomeItems)->toContain('Trust Income');
         expect($incomeItems)->toContain('Other Income');
     });
 

@@ -18,8 +18,8 @@ class StoreJourneySelectionsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'journeys' => 'required|array|min:1',
-            'journeys.*' => ['required', 'string', Rule::in(JourneyStateService::JOURNEYS)],
+            'journeys' => 'sometimes|array|min:1',
+            'journeys.*' => ['sometimes', 'string', Rule::in(JourneyStateService::JOURNEYS)],
         ];
     }
 

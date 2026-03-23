@@ -156,6 +156,12 @@ class LifeEvent extends Model
             'gift_given' => 'Gift Given',
             'medical_expense' => 'Medical Expense',
             'custom_expense' => 'Other Expense',
+            // Life change events
+            'divorce' => 'Divorce',
+            'marriage' => 'Marriage',
+            'new_child' => 'New Child',
+            'job_loss' => 'Job Loss',
+            'income_change' => 'Income Change',
             default => ucfirst(str_replace('_', ' ', $this->event_type ?? '')),
         };
     }

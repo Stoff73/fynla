@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\DCPension;
+use App\Models\Estate\Asset as EstateAsset;
+use App\Models\Estate\Liability as EstateLiability;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -17,6 +22,7 @@ use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
 use App\Observers\LifeEventMonteCarloObserver;
 use App\Observers\LifeEventRiskObserver;
+use App\Observers\NetWorthCacheObserver;
 use App\Observers\PropertyRiskObserver;
 use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
@@ -47,10 +53,15 @@ class EventServiceProvider extends ServiceProvider
     protected $observers = [
         User::class => [UserRiskObserver::class],
         FamilyMember::class => [FamilyMemberRiskObserver::class],
-        SavingsAccount::class => [SavingsAccountRiskObserver::class, SavingsAccountGoalObserver::class],
-        InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class],
-        DCPension::class => [DCPensionRiskObserver::class],
-        Property::class => [PropertyRiskObserver::class],
+        SavingsAccount::class => [SavingsAccountRiskObserver::class, SavingsAccountGoalObserver::class, NetWorthCacheObserver::class],
+        InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class, NetWorthCacheObserver::class],
+        DCPension::class => [DCPensionRiskObserver::class, NetWorthCacheObserver::class],
+        Property::class => [PropertyRiskObserver::class, NetWorthCacheObserver::class],
+        Mortgage::class => [NetWorthCacheObserver::class],
+        BusinessInterest::class => [NetWorthCacheObserver::class],
+        Chattel::class => [NetWorthCacheObserver::class],
+        EstateAsset::class => [NetWorthCacheObserver::class],
+        EstateLiability::class => [NetWorthCacheObserver::class],
         LifeEvent::class => [LifeEventMonteCarloObserver::class, LifeEventRiskObserver::class],
     ];
 

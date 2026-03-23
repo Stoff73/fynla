@@ -51,6 +51,7 @@ export const LIFE_STAGES = {
         'investments',
         'retirement',
         'property',
+        'liabilities',
         'protection',
         'will',
         'letter',
@@ -79,7 +80,7 @@ export const LIFE_STAGES = {
         'student-loan',
         'income',
         'expenditure',
-        'savings',
+        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -122,29 +123,6 @@ export const LIFE_STAGES = {
       },
     },
 
-    suggestedGoals: [
-      {
-        id: 'emergency-fund',
-        label: 'Build an emergency fund',
-        description: '3 months of living costs',
-      },
-      {
-        id: 'save-for-car',
-        label: 'Save for a car',
-        description: 'Set a target and timeline',
-      },
-      {
-        id: 'graduate-debt-free',
-        label: 'Graduate debt-free',
-        description: 'Beyond your student loan',
-      },
-      {
-        id: 'travel-fund',
-        label: 'Travel fund',
-        description: 'Post-graduation plans',
-      },
-    ],
-
     formFields: {
       personalInfo: {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
@@ -164,6 +142,9 @@ export const LIFE_STAGES = {
           'annual_rental_income', 'dividend_income',
           'pension_income', 'state_pension',
         ],
+      },
+      assets: {
+        visibleTabs: ['cash'],
       },
       savings: {
         defaultTypes: ['current_account', 'easy_access', 'instant_access', 'cash_isa'],
@@ -212,6 +193,7 @@ export const LIFE_STAGES = {
       ],
       explore: [
         'property',
+        'liabilities',
         'protection',
         'risk-profile',
         'will',
@@ -240,10 +222,8 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'income-career',
-        'savings-emergency',
-        'first-home-lisa',
-        'pension-auto-enrolment',
-        'investments',
+        'expenditure',
+        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -258,6 +238,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your gross salary determines your income tax band, pension contribution amounts, student loan repayments, and the maximum you can contribute to a Lifetime ISA each year.',
           howItFits: 'Understanding your full income picture — salary, any side income, and employer benefits — means we can identify exactly how much you can realistically save and invest each month after tax.',
           quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
+        },
+        'expenditure': {
+          didYouKnow: 'The average UK household spends over £2,500 per month. Understanding where your money goes is the first step to building wealth — people who track spending save on average 15% more than those who do not.',
+          whyWeAsk: 'Your spending determines your emergency fund target, how much you can realistically save each month, and whether your income covers your lifestyle with room for growth.',
+          howItFits: 'Knowing your outgoings lets us calculate your savings capacity, set realistic goals, and identify areas where small changes could accelerate your financial plan.',
+          quickStat: { value: '£2,500', label: 'Average UK household monthly spending' },
         },
         'savings-emergency': {
           didYouKnow: 'A six-month emergency fund is the single most important financial protection you can have. It means a redundancy, car breakdown, or boiler failure does not derail your longer-term plans. Keep it in an easy-access savings account earning competitive interest — not a current account.',
@@ -292,29 +278,6 @@ export const LIFE_STAGES = {
       },
     },
 
-    suggestedGoals: [
-      {
-        id: 'house-deposit-lisa',
-        label: 'House deposit',
-        description: 'Save into a Lifetime ISA for the 25% bonus',
-      },
-      {
-        id: 'six-month-emergency-fund',
-        label: '6-month emergency fund',
-        description: 'Your financial safety net',
-      },
-      {
-        id: 'start-investing-isa',
-        label: 'Start investing',
-        description: 'Stocks & Shares ISA — tax-free growth',
-      },
-      {
-        id: 'wedding-fund',
-        label: 'Wedding fund',
-        description: 'Plan ahead with a dedicated savings goal',
-      },
-    ],
-
     formFields: {
       personalInfo: {
         always: ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'],
@@ -333,6 +296,9 @@ export const LIFE_STAGES = {
           'annual_self_employment_income', 'annual_rental_income',
           'dividend_income', 'pension_income', 'state_pension',
         ],
+      },
+      assets: {
+        visibleTabs: ['cash', 'retirement', 'investments'],
       },
       savings: {
         defaultTypes: ['easy_access', 'cash_isa', 'lifetime_isa', 'fixed_rate', 'current_account'],
@@ -386,6 +352,7 @@ export const LIFE_STAGES = {
         'income',
         'expenditure',
         'savings',
+        'liabilities',
         'estate',
         'letter',
         'power-of-attorney',
@@ -417,9 +384,10 @@ export const LIFE_STAGES = {
         'personal-info',
         'family',
         'income',
-        'property-mortgage',
+        'expenditure',
+        'assets',
+        'liabilities',
         'protection-insurance',
-        'pensions',
         'will-estate',
         'goals',
       ],
@@ -442,11 +410,23 @@ export const LIFE_STAGES = {
           howItFits: 'At this stage your income is probably at or near its highest rate of growth. Protecting it — through income protection insurance and a solid emergency fund — is as important as investing it.',
           quickStat: { value: '£116.75', label: 'Weekly Statutory Sick Pay — rarely enough to cover a mortgage' },
         },
+        'expenditure': {
+          didYouKnow: 'With a mortgage, childcare, and growing family costs, this life stage typically has the highest outgoings. Families who budget actively save on average 20% more than those who do not — the difference often funds a child\'s university or an earlier retirement.',
+          whyWeAsk: 'Your spending profile determines how much protection cover you need, what size emergency fund is appropriate, and how much surplus income is available for pension contributions and investments.',
+          howItFits: 'At this stage, balancing mortgage payments, childcare, insurance premiums, and savings contributions requires a clear picture of where every pound goes. We use this to prioritise your financial plan.',
+          quickStat: { value: '20%', label: 'More savings for families who actively track their spending' },
+        },
         'property-mortgage': {
           didYouKnow: 'Most homeowners overpay their mortgage by making minimum repayments when they could be using offset mortgages, or by not reviewing their rate every two years. Even a 0.5% rate reduction on a £250,000 mortgage saves over £1,200 per year.',
           whyWeAsk: 'Your property and mortgage details let us calculate your equity, net worth, potential remortgage savings, and whether a decreasing term life policy should be tied to your outstanding balance.',
           howItFits: 'Property is likely your largest asset and your mortgage your largest liability. Getting both right — competitive rate, appropriate protection, optimal repayment strategy — has more impact than almost any other financial decision.',
           quickStat: { value: '2 years', label: 'How often you should review your mortgage rate to avoid paying over the odds' },
+        },
+        'liabilities': {
+          didYouKnow: 'The average UK household carries over £15,000 in unsecured debt, including personal loans, credit cards, and car finance. High-interest debt — particularly credit cards at 20%+ — erodes your wealth faster than most investments can grow it. Clearing expensive debt first is often the single best financial decision a family can make.',
+          whyWeAsk: 'Recording your loans, credit cards, and other debts gives us a complete picture of your net worth and monthly outgoings. This lets us identify high-interest debts that should be prioritised and calculate how much surplus income is genuinely available for saving and investing.',
+          howItFits: 'Your liabilities are as important as your assets. Mortgages are already captured in your property details — this step focuses on other debts. Understanding the full picture lets us recommend the most efficient repayment strategy and ensure your protection cover accounts for all outstanding obligations.',
+          quickStat: { value: '£15,000+', label: 'Average UK household unsecured debt — know yours to plan effectively' },
         },
         'protection-insurance': {
           didYouKnow: 'Life insurance is cheaper than most people think. A healthy 35-year-old can get £500,000 of level term cover for 25 years for around £20–30 per month. Waiting five years to buy the same policy typically costs 30–50% more due to age and health changes.',
@@ -474,29 +454,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'pay-off-mortgage-early',
-        label: 'Pay off mortgage early',
-        description: 'Reduce the term and save thousands in interest',
-      },
-      {
-        id: 'childrens-education-fund',
-        label: 'Children\'s education fund',
-        description: 'University or private schooling costs',
-      },
-      {
-        id: 'retire-at-60',
-        label: 'Retire at 60',
-        description: 'Plan the pension contributions needed today',
-      },
-      {
-        id: 'close-protection-gaps',
-        label: 'Close protection gaps',
-        description: 'Full life, critical illness, and income protection cover',
-      },
-    ],
 
     formFields: {
       personalInfo: {
@@ -576,6 +533,7 @@ export const LIFE_STAGES = {
         'income',
         'expenditure',
         'savings',
+        'liabilities',
         'will',
         'letter',
         'power-of-attorney',
@@ -604,10 +562,11 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
+        'family',
         'income-tax',
-        'pension-review',
-        'investments-isa',
-        'property-portfolio',
+        'expenditure',
+        'assets',
+        'liabilities',
         'estate-iht',
         'goals',
       ],
@@ -618,11 +577,23 @@ export const LIFE_STAGES = {
           howItFits: 'Your target retirement age and date of birth determine exactly how many years you have to build your pension pot — and whether carry-forward strategies are worth pursuing. Your address feeds into property valuations for estate planning and potential downsizing calculations. Health and smoking status affect whether whole-of-life cover or critical illness protection is advisable and affordable. Employment details tell us your tax band, which determines the value of pension tax relief — 40% for higher-rate taxpayers versus 20% for basic rate.',
           quickStat: { value: '57', label: 'Minimum pension access age rising to in 2028 — check your plans' },
         },
+        'family': {
+          didYouKnow: 'At this stage, your family structure directly shapes your estate plan. A married couple can pass up to £1 million inheritance tax-free using combined nil-rate bands — but only if the right ownership structures and wills are in place. Children becoming financially independent also changes your protection needs significantly.',
+          whyWeAsk: 'Your dependants, their ages, and their financial independence determine your protection requirements, pension beneficiary nominations, will and trust planning, and whether your estate plan needs updating as circumstances change.',
+          howItFits: 'Your family profile is central to estate planning at this stage. Dependent children may need trust arrangements; independent adult children change your life cover needs; and your spouse\'s financial position affects inheritance tax strategy.',
+          quickStat: { value: '£1M', label: 'Combined inheritance tax threshold for a married couple with qualifying property' },
+        },
         'income-tax': {
           didYouKnow: 'Higher-rate taxpayers can claim 40% tax relief on pension contributions — meaning a £1,000 net contribution costs just £600. Salary sacrifice is even more efficient as it also saves National Insurance. If you\'re not maximising pension contributions at higher-rate income levels, you\'re leaving significant money with HMRC.',
           whyWeAsk: 'Your income level determines your tax band, available allowances, the value of pension tax relief, and whether strategies like carry-forward, pension salary sacrifice, or dividend extraction are worth exploring.',
           howItFits: 'Tax efficiency at this stage can add tens of thousands to your retirement pot. Understanding your income and tax position is the foundation for a highly effective final-decade saving strategy.',
           quickStat: { value: '40%', label: 'Tax relief on pension contributions for higher-rate taxpayers' },
+        },
+        'expenditure': {
+          didYouKnow: 'As children become independent and the mortgage shrinks, many people experience a significant jump in disposable income. This is the window to maximise pension contributions and investments before retirement — every extra pound saved now has fewer years to grow but higher tax relief.',
+          whyWeAsk: 'Understanding your current spending helps us calculate how much surplus income can be directed to pensions (with 40% tax relief), ISAs, and other investments during this critical final saving window.',
+          howItFits: 'Your spending determines how much of your peak earnings can be channelled into retirement savings. Reducing expenditure by even £500 per month at this stage could add significantly to your retirement pot.',
+          quickStat: { value: '£500/mo', label: 'Extra monthly saving at 50 could add £100,000+ to your retirement pot' },
         },
         'pension-review': {
           didYouKnow: 'You can carry forward up to three years of unused pension annual allowance, potentially contributing £180,000+ in a single year. If you\'ve had years of lower contributions — or have recently seen income increase significantly — this could be a powerful catch-up mechanism.',
@@ -642,6 +613,12 @@ export const LIFE_STAGES = {
           howItFits: 'Many people at this stage discover their net worth is heavily concentrated in property. Diversification into pensions and ISAs, careful mortgage management, and estate planning around property can significantly improve the overall efficiency of your wealth.',
           quickStat: { value: '24%', label: 'Capital Gains Tax rate on residential property for higher-rate taxpayers (2025/26)' },
         },
+        'liabilities': {
+          didYouKnow: 'Outstanding debts reduce your estate value for inheritance tax purposes — but they also reduce the wealth available to your beneficiaries. At this stage, many people carry buy-to-let mortgages, business loans, or car finance alongside their main mortgage. Understanding the full picture is essential for accurate net worth and estate planning.',
+          whyWeAsk: 'Your total liabilities — including personal loans, credit cards, car finance, and business debts — directly affect your net worth calculation, your estate\'s inheritance tax position, and the amount of wealth genuinely available for retirement income.',
+          howItFits: 'Liabilities at this stage often include investment-related debt (buy-to-let mortgages, margin loans) alongside consumer debt. We separate mortgage liabilities (captured in Property) from other debts here, so your financial plan accounts for every obligation and can recommend the most tax-efficient repayment strategy.',
+          quickStat: { value: '40%', label: 'Inheritance tax rate on the net estate above the nil-rate band' },
+        },
         'estate-iht': {
           didYouKnow: 'Inheritance tax is charged at 40% on estates above the nil-rate band (£325,000) and, for qualifying properties passing to direct descendants, the residence nil-rate band (£175,000). For a married couple, the combined threshold can be up to £1 million — but only with careful planning of how assets are held and transferred.',
           whyWeAsk: 'Your estate value and beneficiary intentions determine whether you have an inheritance tax liability and, if so, which strategies — lifetime gifts, trusts, pension nominations, or charitable giving — are most appropriate for your situation.',
@@ -656,29 +633,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'maximise-pension-contributions',
-        label: 'Maximise pension contributions',
-        description: 'Use carry-forward and salary sacrifice',
-      },
-      {
-        id: 'downsize-property',
-        label: 'Downsize property',
-        description: 'Release equity and reduce costs',
-      },
-      {
-        id: 'fund-care-costs',
-        label: 'Fund care costs',
-        description: 'Plan for later-life care needs',
-      },
-      {
-        id: 'leave-inheritance',
-        label: 'Leave an inheritance',
-        description: 'Minimise inheritance tax, maximise legacy',
-      },
-    ],
 
     formFields: {
       personalInfo: {
@@ -757,6 +711,7 @@ export const LIFE_STAGES = {
       explore: [
         'bank-accounts',
         'savings',
+        'liabilities',
         'protection',
         'will',
         'letter',
@@ -786,9 +741,10 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
-        'pension-drawdown',
-        'state-pension',
+        'family',
         'income-tax',
+        'expenditure',
+        'assets',
         'estate-legacy',
         'goals',
       ],
@@ -798,6 +754,12 @@ export const LIFE_STAGES = {
           whyWeAsk: 'Your date of birth drives life expectancy projections and State Pension eligibility. Your address is needed for property valuations and care cost estimates. Marital status determines inheritance tax allowance transfers and pension beneficiary rules. Health and smoking status affect longevity assumptions in your income projections.',
           howItFits: 'Your date of birth drives the longevity assumptions in your income projections — how long your money needs to last. Your address is essential for property valuations, local authority care cost estimates, and inheritance tax calculations on your estate. Marital status determines whether your spouse can inherit your pension tax-free and whether the transferable nil-rate band applies. Health and smoking status adjust our life expectancy models so your drawdown strategy is realistic, not optimistic.',
           quickStat: { value: '87+', label: 'Average life expectancy for a 65-year-old woman in the UK today' },
+        },
+        'family': {
+          didYouKnow: 'In retirement, your family structure determines everything from pension beneficiary nominations to inheritance tax planning. A surviving spouse can inherit your pension tax-free, but from 2027 unused pension funds will be included in your estate for inheritance tax. Getting nominations and ownership structures right now protects your family later.',
+          whyWeAsk: 'Your spouse, children, and grandchildren are the people your estate plan is designed to protect. Their ages, financial situations, and needs shape your will, trust arrangements, gifting strategy, and power of attorney decisions.',
+          howItFits: 'Legacy planning starts with knowing who you are planning for. Your family details feed directly into inheritance tax calculations, pension nomination decisions, and whether lifetime gifting or trust structures make sense for your situation.',
+          quickStat: { value: '£3,000', label: 'Annual inheritance tax-free gift exemption per person' },
         },
         'pension-drawdown': {
           didYouKnow: 'Flexi-access drawdown lets you take as much or as little as you like from your pension each year — but getting the amount right is critical. Withdraw too much and you may pay unnecessary tax (pension income is taxable above your Personal Allowance). Withdraw too little and you may leave money in an estate that faces inheritance tax, as unused pension funds from 2027 will be included in your estate for inheritance tax purposes.',
@@ -817,6 +779,12 @@ export const LIFE_STAGES = {
           howItFits: 'Tax efficiency in retirement is not about evasion — it is about sequencing. Using ISA withdrawals to top up pension income to the Personal Allowance, for example, can save thousands in unnecessary tax each year.',
           quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
         },
+        'expenditure': {
+          didYouKnow: 'Retired households in the UK spend an average of £2,100 per month. The Pensions and Lifetime Savings Association defines three retirement living standards: minimum (£14,400/year), moderate (£31,300/year), and comfortable (£43,100/year). Knowing which you need shapes everything.',
+          whyWeAsk: 'Your retirement spending determines how much income your pensions and investments need to generate, how long your savings will last, and whether your current provision is adequate.',
+          howItFits: 'Retirement planning is fundamentally about matching income to expenditure for 20–30 years. A clear picture of your spending lets us calculate whether your pension pot and other income sources will sustain your lifestyle.',
+          quickStat: { value: '£31,300', label: 'PLSA moderate retirement living standard (annual, single person)' },
+        },
         'estate-legacy': {
           didYouKnow: 'Inheritance tax raised £7.5 billion for HMRC in 2024/25 — much of it paid by families who could have avoided it with earlier planning. The most effective strategies (lifetime gifts, trusts, pension nominations, charitable giving) all require time to implement. Starting now, whilst your health and capacity are strong, gives you the most options.',
           whyWeAsk: 'Your estate value, existing will, trust arrangements, and legacy intentions determine whether your estate will face an inheritance tax liability and which planning strategies are most appropriate.',
@@ -831,29 +799,6 @@ export const LIFE_STAGES = {
         },
       },
     },
-
-    suggestedGoals: [
-      {
-        id: 'sustainable-income-target',
-        label: 'Sustainable income target',
-        description: 'Set a monthly income that your portfolio can support indefinitely',
-      },
-      {
-        id: 'gift-to-family',
-        label: 'Gift to family',
-        description: 'Tax-efficient lifetime giving to reduce your estate',
-      },
-      {
-        id: 'fund-care-needs',
-        label: 'Fund care needs',
-        description: 'Plan and ring-fence funds for later-life care',
-      },
-      {
-        id: 'legacy-plan',
-        label: 'Legacy plan',
-        description: 'Define what you want to leave and to whom',
-      },
-    ],
 
     formFields: {
       personalInfo: {

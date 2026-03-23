@@ -34,11 +34,11 @@ class StorePersonalAccountLineItemRequest extends FormRequest
     {
         return [
             'account_type' => ['nullable', Rule::in(['profit_and_loss', 'cashflow', 'balance_sheet'])],
-            'period_start' => ['required', 'date'],
+            'period_start' => ['sometimes', 'date'],
             'period_end' => ['nullable', 'date', 'after_or_equal:period_start'],
-            'line_item' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(['income', 'expense', 'asset', 'liability', 'equity', 'cash_inflow', 'cash_outflow'])],
-            'amount' => ['required', 'numeric', 'min:-9999999999.99', 'max:9999999999.99'],
+            'line_item' => ['sometimes', 'string', 'max:255'],
+            'category' => ['sometimes', Rule::in(['income', 'expense', 'asset', 'liability', 'equity', 'cash_inflow', 'cash_outflow'])],
+            'amount' => ['sometimes', 'numeric', 'min:-9999999999.99', 'max:9999999999.99'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

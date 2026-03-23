@@ -31,8 +31,7 @@
           <!-- Client selector -->
           <div>
             <label class="block text-sm font-semibold text-horizon-500 mb-1">
-              Client <span class="text-raspberry-500">*</span>
-            </label>
+              Client            </label>
             <select
               v-model="formData.client_id"
               class="w-full px-3 py-2 text-sm border rounded-md bg-white text-horizon-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -53,8 +52,7 @@
           <!-- Activity type -->
           <div>
             <label class="block text-sm font-semibold text-horizon-500 mb-1">
-              Activity Type <span class="text-raspberry-500">*</span>
-            </label>
+              Activity Type            </label>
             <select
               v-model="formData.activity_type"
               class="w-full px-3 py-2 text-sm border rounded-md bg-white text-horizon-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
@@ -75,8 +73,7 @@
           <!-- Summary -->
           <div>
             <label class="block text-sm font-semibold text-horizon-500 mb-1">
-              Summary <span class="text-raspberry-500">*</span>
-            </label>
+              Summary            </label>
             <input
               v-model="formData.summary"
               type="text"
@@ -105,8 +102,7 @@
           <!-- Activity date -->
           <div>
             <label class="block text-sm font-semibold text-horizon-500 mb-1">
-              Activity Date <span class="text-raspberry-500">*</span>
-            </label>
+              Activity Date            </label>
             <input
               v-model="formData.activity_date"
               type="date"

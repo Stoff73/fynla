@@ -74,9 +74,9 @@
     <!-- Information Guide panel (button moved to Navbar) -->
     <InfoGuidePanel />
 
-    <!-- AI Chat floating button + panel (hidden when docked chat is active) -->
-    <AiChatButton v-if="!showDockedChat" />
-    <AiChatPanel v-if="!showDockedChat" />
+    <!-- AI Chat floating button + panel (real users only, hidden when docked chat is active) -->
+    <AiChatButton v-if="!showDockedChat && !isPreviewMode" />
+    <AiChatPanel v-if="!showDockedChat && !isPreviewMode" />
   </div>
 </template>
 

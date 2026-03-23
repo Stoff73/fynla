@@ -50,7 +50,7 @@
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Full Name:</span>
-                <span class="text-body-sm text-horizon-500 text-right">{{ form.name || '—' }}</span>
+                <span class="text-body-sm text-horizon-500 text-right">{{ [form.first_name, form.surname].filter(Boolean).join(' ') || '—' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-body-sm text-neutral-500">Email:</span>
@@ -182,14 +182,27 @@
         <div class="space-y-6">
         <!-- Basic Details Section -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <!-- Name -->
+          <!-- First Name -->
           <div v-if="isFieldVisible('first_name')">
             <label class="block text-body-sm font-medium text-neutral-500 mb-1">
-              Full Name
+              First Name
             </label>
             <input
-              id="name"
-              v-model="form.name"
+              id="first_name"
+              v-model="form.first_name"
+              type="text"
+              class="input-field"
+            />
+          </div>
+
+          <!-- Surname -->
+          <div v-if="isFieldVisible('first_name')">
+            <label class="block text-body-sm font-medium text-neutral-500 mb-1">
+              Surname
+            </label>
+            <input
+              id="surname"
+              v-model="form.surname"
               type="text"
               class="input-field"
             />
@@ -395,8 +408,8 @@
           </div>
         </div>
 
-        <!-- Occupation Section -->
-        <div v-if="isFieldVisible('occupation') || isFieldVisible('employment_status')" class="border-t border-light-gray pt-6">
+        <!-- Occupation Section (hidden in onboarding — asked separately on Income step) -->
+        <div v-if="context !== 'onboarding' && (isFieldVisible('occupation') || isFieldVisible('employment_status'))" class="border-t border-light-gray pt-6">
           <h3 class="text-h5 font-semibold text-horizon-500 mb-4">Occupation</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -607,6 +620,10 @@ export default {
       default: 'standalone',
       validator: (value) => ['standalone', 'onboarding'].includes(value),
     },
+    savedData: {
+      type: Object,
+      default: null,
+    },
   },
 
   emits: ['save', 'skip', 'next', 'back', 'close'],
@@ -648,7 +665,8 @@ export default {
 
     const form = ref({
       // Personal info
-      name: '',
+      first_name: '',
+      surname: '',
       email: '',
       date_of_birth: '',
       gender: '',
@@ -781,18 +799,27 @@ export default {
 
     // Initialize form from data
     const initializeForm = () => {
+      // Always try to get name/email from auth store (works for new users)
+      const currentUser = store.getters['auth/currentUser'];
+      if (currentUser && !form.value.first_name) {
+        form.value.first_name = currentUser.first_name || '';
+        form.value.surname = currentUser.last_name || currentUser.surname || '';
+        form.value.email = form.value.email || currentUser.email || '';
+      }
+
       if (personalInfo.value) {
-        form.value.name = personalInfo.value.name || '';
-        form.value.email = personalInfo.value.email || '';
-        form.value.date_of_birth = formatDateForInput(personalInfo.value.date_of_birth);
-        form.value.gender = personalInfo.value.gender || '';
-        form.value.marital_status = personalInfo.value.marital_status || '';
-        form.value.phone = personalInfo.value.phone || '';
-        form.value.address_line_1 = personalInfo.value.address?.line_1 || '';
-        form.value.address_line_2 = personalInfo.value.address?.line_2 || '';
-        form.value.city = personalInfo.value.address?.city || '';
-        form.value.county = personalInfo.value.address?.county || '';
-        form.value.postcode = personalInfo.value.address?.postcode || '';
+        form.value.first_name = personalInfo.value.first_name || form.value.first_name || '';
+        form.value.surname = personalInfo.value.surname || form.value.surname || '';
+        form.value.email = personalInfo.value.email || form.value.email || '';
+        form.value.date_of_birth = formatDateForInput(personalInfo.value.date_of_birth) || form.value.date_of_birth;
+        form.value.gender = personalInfo.value.gender || form.value.gender || '';
+        form.value.marital_status = personalInfo.value.marital_status || form.value.marital_status || '';
+        form.value.phone = personalInfo.value.phone || form.value.phone || '';
+        form.value.address_line_1 = personalInfo.value.address?.line_1 || form.value.address_line_1 || '';
+        form.value.address_line_2 = personalInfo.value.address?.line_2 || form.value.address_line_2 || '';
+        form.value.city = personalInfo.value.address?.city || form.value.city || '';
+        form.value.county = personalInfo.value.address?.county || form.value.county || '';
+        form.value.postcode = personalInfo.value.address?.postcode || form.value.postcode || '';
       }
 
       if (incomeOccupation.value) {
@@ -820,9 +847,7 @@ export default {
 
     // Watch for changes in data and reinitialize form
     watch([personalInfo, incomeOccupation, user], () => {
-      if (!isEditing.value) {
-        initializeForm();
-      }
+      initializeForm();
     }, { immediate: true });
 
     /**
@@ -870,9 +895,9 @@ export default {
       errorMessage.value = '';
 
       try {
-        // Prepare personal info data
         const personalData = {
-          name: form.value.name,
+          first_name: form.value.first_name || null,
+          surname: form.value.surname || null,
           email: form.value.email,
           date_of_birth: form.value.date_of_birth || null,
           gender: form.value.gender || null,

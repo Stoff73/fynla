@@ -32,6 +32,13 @@ class LifeEventIntegrationService
         'lottery_windfall' => ['primary' => 'savings', 'secondary' => ['investment', 'estate']],
         'custom_income' => ['primary' => 'savings', 'secondary' => []],
 
+        // Life change events
+        'divorce' => ['primary' => 'estate', 'secondary' => ['protection', 'retirement', 'savings']],
+        'marriage' => ['primary' => 'protection', 'secondary' => ['estate', 'savings']],
+        'new_child' => ['primary' => 'protection', 'secondary' => ['savings', 'estate']],
+        'job_loss' => ['primary' => 'protection', 'secondary' => ['savings', 'retirement']],
+        'income_change' => ['primary' => 'savings', 'secondary' => ['retirement', 'investment']],
+
         // Expense events
         'large_purchase' => ['primary' => 'savings', 'secondary' => []],
         'home_improvement' => ['primary' => 'savings', 'secondary' => ['estate']],
@@ -65,20 +72,31 @@ class LifeEventIntegrationService
             'custom_expense' => 'Expected expense that will reduce your cash reserves',
             'pension_lump_sum' => 'Lump sum that will increase your cash position',
             'business_sale' => 'Sale proceeds available for savings or reinvestment',
+            'divorce' => 'Divorce may require liquidating savings to settle finances. Review your emergency fund position.',
+            'new_child' => 'A new child increases household costs. Review your savings goals and emergency fund.',
+            'income_change' => 'An income change affects your savings capacity. Review your contribution levels and goals.',
+            'job_loss' => 'Job loss will deplete savings. Prioritise your emergency fund and reduce non-essential contributions.',
         ],
         'investment' => [
             'inheritance' => 'Incoming funds that could be invested for long-term growth',
             'property_sale' => 'Sale proceeds available for reinvestment',
             'business_sale' => 'Proceeds available for portfolio diversification',
             'lottery_windfall' => 'Significant funds available for investment',
+            'income_change' => 'An income change may affect your investment risk capacity. Review your portfolio allocation and contribution levels.',
         ],
         'retirement' => [
             'bonus' => 'Opportunity to make additional pension contributions',
             'pension_lump_sum' => 'Tax-free cash from your pension',
+            'divorce' => 'Divorce may split pension assets. Review your retirement projections and contribution strategy.',
+            'job_loss' => 'Job loss interrupts pension contributions. Review your Annual Allowance position and consider bridging strategies.',
+            'income_change' => 'An income change affects your pension contribution capacity. Review salary sacrifice and Annual Allowance position.',
         ],
         'protection' => [
             'redundancy_payment' => 'Review your income protection and critical illness cover',
             'medical_expense' => 'Check if this is covered by your health or protection policies',
+            'marriage' => 'Marriage changes your protection needs. Review life cover and consider whether your existing policies still provide adequate cover.',
+            'new_child' => 'A new child increases your family\'s protection needs. Review life cover and income protection to ensure your family is fully covered.',
+            'job_loss' => 'Job loss makes income protection critical. Review existing cover and consider how long your savings could sustain your family.',
         ],
         'estate' => [
             'inheritance' => 'Will increase your taxable estate and may affect Inheritance Tax liability',
@@ -88,6 +106,7 @@ class LifeEventIntegrationService
             'lottery_windfall' => 'Will increase your taxable estate',
             'home_improvement' => 'May increase the value of your property within the estate',
             'gift_given' => 'Potentially Exempt Transfer that could reduce your taxable estate',
+            'divorce' => 'Divorce will significantly restructure your estate. Assets may need to be divided and your Inheritance Tax position recalculated.',
         ],
     ];
 

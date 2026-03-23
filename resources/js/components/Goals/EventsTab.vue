@@ -199,6 +199,7 @@ export default {
 
   computed: {
     ...mapState('goals', ['lifeEvents', 'lifeEventsLoading']),
+    ...mapState('aiFormFill', ['pendingFill']),
 
     loading() {
       return this.lifeEventsLoading;
@@ -261,6 +262,19 @@ export default {
     },
   },
 
+  watch: {
+    pendingFill(fill) {
+      if (fill && fill.entityType === 'life_event') {
+        if (fill.mode === 'edit' && fill.entityId) {
+          const event = this.lifeEvents?.find(e => e.id === fill.entityId);
+          if (event) this.openEditModal(event);
+        } else {
+          this.openCreateModal();
+        }
+      }
+    },
+  },
+
   mounted() {
     this.fetchLifeEvents();
   },
@@ -313,6 +327,9 @@ export default {
           });
         } else {
           await this.createLifeEvent(formData);
+        }
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/cancelFill');
         }
         this.closeFormModal();
         // Close detail view after edit so user sees updated list

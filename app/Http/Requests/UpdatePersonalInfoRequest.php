@@ -18,6 +18,18 @@ class UpdatePersonalInfoRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone') && $this->phone) {
+            $this->merge([
+                'phone' => preg_replace('/[\s\-]/', '', $this->phone),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -65,7 +77,7 @@ class UpdatePersonalInfoRequest extends FormRequest
             'date_of_birth.after' => 'Date of birth cannot be more than 105 years ago.',
             'national_insurance_number.regex' => 'National Insurance number must be in format: AB123456C',
             'postcode.regex' => 'Please enter a valid UK postcode.',
-            'phone.regex' => 'Please enter a valid UK phone number (e.g., 07700900123 or +447700900123).',
+            'phone.regex' => 'Please enter a valid UK phone number (e.g., 07700 900123 or +44 7700 900123).',
         ];
     }
 }
