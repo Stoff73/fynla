@@ -32,39 +32,29 @@
 - [x] `CoordinatingAgent.php` updated: removed AnthropicClient constructor dependency
 - [x] Browser tested: Anthropic path confirmed working on dev server
 
-## Remaining
+### Phase 2: Document Extraction (grokAI branch) -- DONE
 
-### Phase 2: Document Extraction
+- [x] `AIExtractionService` supports both providers
+- [x] xAI path: OpenAI format (image_url, Bearer auth, choices response)
+- [x] Anthropic path: preserved as-is
+- [x] Response normalised to common format
+- [x] Model name stored dynamically
 
-- [ ] Update `app/Services/Documents/AIExtractionService.php`
-- [ ] Change API URL from `api.anthropic.com` to `api.x.ai`
-- [ ] Change auth header from `x-api-key` to `Authorization: Bearer`
-- [ ] Remove `anthropic-version` header
-- [ ] Change request body: Anthropic content blocks to OpenAI format
-- [ ] Change image format: `source.type:base64` to `image_url.url:data:...`
-- [ ] Change response parsing: `content[0].text` to `choices[0].message.content`
-- [ ] Change token field names: `input_tokens` to `prompt_tokens`
-- [ ] Test with real document upload
+### Phase 4: Python Sidecar -- NOT NEEDED
 
-### Phase 4: Drop Python Sidecar
+- [x] Confirmed `PythonAgentBridge` is not used anywhere (0 references outside its own file)
+- [x] No replacement needed — Python sidecar was never wired into production
+- [ ] Future: create `XaiDeepAnalysisService` when deep analysis features are needed
 
-- [ ] Create `app/Services/AI/XaiDeepAnalysisService.php`
-- [ ] Implement PHP-native tool-use loop using `openai-php/client`
-- [ ] Wire tool handlers to call PHP services directly (no HTTP round-trip)
-- [ ] Replace `PythonAgentBridge` injection sites with `XaiDeepAnalysisService`
-- [ ] Test holistic plan and scenario generation
-- [ ] Keep Python files until confirmed working
+### Phase 5: Cleanup (partial)
 
-### Phase 5: Cleanup
-
-- [ ] Remove `anthropic-ai/sdk` from `composer.json` (after full testing)
-- [ ] Delete Python scripts: `scripts/fynla_agent/`, `scripts/run_agent.py`, `scripts/requirements.txt`
-- [ ] Update frontend legal text (privacy policy, terms — provider name)
+- [x] Updated `.env.example` with xAI variables and AI_PROVIDER flag
+- [ ] Remove `anthropic-ai/sdk` from `composer.json` (after full testing with xAI)
+- [ ] Delete Python scripts (after confirming not used)
+- [ ] Update frontend legal text (privacy policy, terms)
 - [ ] Add changelog entry to Version page
-- [ ] Update `.env.example` with xAI variables
-- [ ] Run `composer install --no-dev` on production
-- [ ] Upload all changed PHP files
-- [ ] Clear caches on production
+
+## Remaining
 
 ### Phase 6: Testing (after all phases complete)
 
