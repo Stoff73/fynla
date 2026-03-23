@@ -1,7 +1,7 @@
 # Grok AI Migration Status — 23 March 2026
 
 **Branch:** grokAI
-**Commits:** 2 (bc05c9d, 5fdd765)
+**Commits:** 6 (bc05c9d, 5fdd765, 9cab41c, a652158, 348196b, 27636c5)
 
 ## Completed
 
@@ -49,6 +49,9 @@
 ### Phase 5: Cleanup (partial)
 
 - [x] Updated `.env.example` with xAI variables and AI_PROVIDER flag
+- [x] Admin panel AI provider toggle (AiSettings.vue + API endpoints)
+- [x] Runtime provider switching via cache (no SSH needed)
+- [x] Both SDKs always registered — instant rollback
 - [ ] Remove `anthropic-ai/sdk` from `composer.json` (after full testing with xAI)
 - [ ] Delete Python scripts (after confirming not used)
 - [ ] Update frontend legal text (privacy policy, terms)
@@ -108,3 +111,7 @@ Both SDKs are installed side by side. The feature flag controls which is used.
 | `app/Traits/HasAiGuardrails.php` | Provider-aware model selection |
 | `app/Services/AI/AiToolDefinitions.php` | Provider-aware tool format |
 | `app/Agents/CoordinatingAgent.php` | Security fixes + removed Anthropic dependency |
+| `app/Http/Controllers/Api/AdminController.php` | AI provider GET/POST endpoints |
+| `routes/api.php` | Admin AI provider routes |
+| `resources/js/components/Admin/AiSettings.vue` | NEW — AI toggle component |
+| `resources/js/views/Admin/AdminPanel.vue` | Added AI Settings tab |
