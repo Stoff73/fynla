@@ -105,8 +105,6 @@
       <JourneyProgressHero
         v-if="currentStage"
         class="mb-3"
-        :suggested-goals="stageSuggestedGoals"
-        @suggested-goal="handleSuggestedGoal"
       />
 
       <!-- Empty Dashboard (no financial data) -->
@@ -297,28 +295,8 @@
               <span class="font-semibold text-horizon-500">Policies</span>
               <span class="font-medium text-horizon-500">{{ protectionData.policyCount }}</span>
             </div>
-            <!-- Actions -->
-            <div v-if="protectionActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in protectionActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'protection') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
-            <!-- Fallback: policy list when no actions -->
-            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+            <!-- Policy list -->
+            <div class="pt-3 border-t border-light-gray space-y-2">
               <div v-for="policy in protectionPolicyList" :key="policy.name" class="flex justify-between text-sm">
                 <span class="text-neutral-500">{{ policy.name }}</span>
                 <span class="font-medium text-horizon-500">{{ formatCurrency(policy.cover) }}</span>
@@ -361,28 +339,8 @@
               <span class="font-semibold text-horizon-500">Accounts</span>
               <span class="font-medium text-horizon-500">{{ savingsAccountCount }}</span>
             </div>
-            <!-- Actions -->
-            <div v-if="savingsActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in savingsActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'savings') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
-            <!-- Fallback: account list when no actions -->
-            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+            <!-- Account list -->
+            <div class="pt-3 border-t border-light-gray space-y-2">
               <div v-for="acc in savingsAccountList" :key="acc.id" class="flex justify-between text-sm">
                 <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
                 <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
@@ -425,28 +383,8 @@
               <span class="font-semibold text-horizon-500">Accounts</span>
               <span class="font-medium text-horizon-500">{{ investmentAccountCount }}</span>
             </div>
-            <!-- Actions -->
-            <div v-if="investmentActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in investmentActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'investment') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
-            <!-- Fallback: account list when no actions -->
-            <div v-else class="pt-3 border-t border-light-gray space-y-2">
+            <!-- Account list -->
+            <div class="pt-3 border-t border-light-gray space-y-2">
               <div v-for="acc in investmentAccountList" :key="acc.id" class="flex justify-between text-sm">
                 <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
                 <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_value || acc.total_value || 0) }}</span>
@@ -498,26 +436,6 @@
               </div>
             </div>
 
-            <!-- Actions -->
-            <div v-if="estateActions.length > 0" class="space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in estateActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'estate') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- Empty state when no estate data -->
@@ -606,26 +524,6 @@
               </span>
             </div>
 
-            <!-- Retirement Actions (retired) -->
-            <div v-if="retirementActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in retirementActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'retirement') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- NON-RETIRED USER: Show projections with progress bars -->
@@ -678,26 +576,6 @@
               </div>
             </div>
 
-            <!-- Retirement Actions (non-retired) -->
-            <div v-if="retirementActions.length > 0" class="pt-3 border-t border-light-gray space-y-2">
-              <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recommended Actions</div>
-              <div
-                v-for="action in retirementActions"
-                :key="action.id"
-                class="flex items-start gap-2 p-2 rounded-lg hover:bg-savannah-100 cursor-pointer transition-colors"
-                @click.stop="navigateTo('/actions/' + (action.plan_type || 'retirement') + '/' + action.id)"
-              >
-                <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" :class="action.impact === 'High' || action.impact === 'Critical' ? 'bg-raspberry-100' : 'bg-violet-100'">
-                  <svg class="w-3 h-3" :class="action.impact === 'High' || action.impact === 'Critical' ? 'text-raspberry-500' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-medium text-horizon-500 leading-tight">{{ action.title }}</p>
-                  <p v-if="action.description" class="text-xs text-neutral-500 mt-0.5 line-clamp-2">{{ action.description }}</p>
-                </div>
-              </div>
-            </div>
           </div>
           </template>
           <div v-else class="text-center py-6">
