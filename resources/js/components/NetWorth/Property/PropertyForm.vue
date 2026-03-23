@@ -2029,9 +2029,25 @@ export default {
         this.form.lease_remaining_years = this.leaseRemainingYears;
       }
 
+      // Clean property data - convert empty strings to null for nullable fields
+      // Without this, empty strings fail Laravel 'date' and 'email' validation rules
+      const cleanedProperty = { ...this.form };
+      const nullableDateFields = ['purchase_date', 'valuation_date', 'lease_expiry_date', 'lease_start_date', 'lease_end_date'];
+      const nullableStringFields = ['address_line_2', 'county', 'joint_owner_name', 'trust_name', 'tenant_name', 'tenant_email', 'managing_agent_name', 'managing_agent_company', 'managing_agent_email', 'managing_agent_phone'];
+      for (const field of [...nullableDateFields, ...nullableStringFields]) {
+        if (cleanedProperty[field] === '') cleanedProperty[field] = null;
+      }
+      // Clean non-scalar values (e.g. {} from Laravel's MissingValue via $this->when())
+      // and non-leasehold tenure fields
+      if (cleanedProperty.tenure_type !== 'leasehold') {
+        cleanedProperty.lease_remaining_years = null;
+      } else if (typeof cleanedProperty.lease_remaining_years === 'object') {
+        cleanedProperty.lease_remaining_years = null;
+      }
+
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)
       this.$emit('save', {
-        property: this.form,
+        property: cleanedProperty,
         mortgage: cleanedMortgage,
       });
     },

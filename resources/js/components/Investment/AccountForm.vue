@@ -816,6 +816,70 @@ export default {
         delete submitData.isa_subscription_current_year;
       }
 
+      // The ...newAccount spread pulls in ALL fields from the API resource,
+      // including computed fields, relationships, and MissingValue objects ({}).
+      // Only send fields that are actual form inputs to avoid DB constraint violations.
+      const allowedFields = [
+        'account_type', 'account_type_other', 'provider', 'platform', 'country',
+        'current_value', 'contributions_ytd', 'monthly_contribution_amount',
+        'contribution_frequency', 'planned_lump_sum_amount', 'planned_lump_sum_date',
+        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency',
+        'isa_type', 'isa_subscription_current_year',
+        'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id',
+        'risk_preference',
+        // Bond fields
+        'bond_purchase_date', 'bond_withdrawal_taken',
+        // Private company fields
+        'company_legal_name', 'company_registration_number', 'company_country',
+        'company_website', 'company_trading_name', 'crowdfunding_platform',
+        'investment_date', 'investment_amount', 'investment_currency',
+        'funding_round', 'pre_money_valuation', 'post_money_valuation',
+        'price_per_share', 'number_of_shares', 'instrument_type', 'share_class',
+        'liquidation_preference', 'has_anti_dilution', 'holding_structure',
+        'nominee_name', 'conversion_terms', 'interest_rate', 'maturity_date',
+        'tax_relief_type', 'eis3_certificate_number', 'hmrc_reference',
+        'relief_claimed_date', 'relief_amount_claimed', 'disposal_restriction_date',
+        'clawback_risk', 'clawback_notes', 'latest_valuation', 'latest_valuation_date',
+        'current_ownership_percent', 'company_status', 'status_notes',
+        'exit_type', 'exit_date', 'exit_gross_proceeds', 'exit_fees',
+        'exit_net_proceeds', 'exit_moic', 'loss_relief_eligible',
+        'capital_loss_amount', 'negligible_value_claim',
+        'badr_eligible', 'badr_is_employee', 'badr_trading_company',
+        'badr_5_percent_holding', 'badr_held_2_years', 'badr_emi_shares', 'badr_lifetime_used',
+        // Employee share scheme fields
+        'employer_name', 'employer_registration', 'employer_ticker', 'employer_is_listed',
+        'parent_company_name', 'parent_company_country', 'ers_scheme_reference', 'ers_registered',
+        'grant_date', 'grant_reference', 'units_granted', 'exercise_price',
+        'market_value_at_grant', 'share_class_scheme', 'grant_currency', 'option_price_paid',
+        'scheme_start_date', 'scheme_duration_months',
+        'vesting_type', 'cliff_date', 'cliff_percentage', 'vesting_period_months',
+        'vesting_frequency_months', 'has_performance_conditions', 'performance_conditions_description',
+        'performance_period_end', 'performance_vesting_min_percent', 'performance_vesting_max_percent',
+        'full_vest_date', 'accelerated_vesting_allowed',
+        'units_vested', 'units_unvested', 'units_exercised', 'units_forfeited', 'units_expired',
+        'scheme_status', 'current_share_price', 'share_price_date',
+        'exercise_window_start', 'exercise_window_end', 'last_exercise_date',
+        'total_exercise_proceeds', 'total_exercise_cost', 'exercise_history_json',
+        'tax_treatment', 'is_readily_convertible_asset', 'paye_via_payroll',
+        'income_tax_at_vest_exercise', 'ni_at_vest_exercise',
+        'csop_disqualifying_event', 'csop_three_year_date', 'cost_basis_for_cgt',
+        'saye_monthly_savings', 'saye_current_savings_balance', 'saye_maturity_date',
+        'saye_option_discount_percent', 'saye_bonus_amount',
+        'leaver_category', 'post_termination_exercise_days', 'termination_date', 'leaver_notes',
+      ];
+      // Only keep allowed form fields, removing computed/relationship/API-only fields
+      for (const key of Object.keys(submitData)) {
+        if (!allowedFields.includes(key)) {
+          delete submitData[key];
+        }
+      }
+      // Remove fields that are MissingValue objects ({}) from $this->when() — don't send them at all
+      for (const key of Object.keys(submitData)) {
+        if (submitData[key] !== null && typeof submitData[key] === 'object' && !Array.isArray(submitData[key]) && !(submitData[key] instanceof Date)) {
+          delete submitData[key];
+        }
+      }
+
       // Emit save event - parent will close modal after successful save
       this.$emit('save', submitData);
       this.submitting = false;

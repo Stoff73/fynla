@@ -921,7 +921,7 @@ export default {
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student'
-        || this.currentUser?.life_stage === 'university';
+        && this.currentUser?.is_preview_user === true;
     },
 
     recentTransactions() {
@@ -1664,16 +1664,12 @@ export default {
     ...mapActions('retirement', ['fetchRequiredCapital']),
 
     /**
-     * Stage-curated card visibility.
-     * When a life stage is active, only cards listed in the stage's dashboard.cards
-     * config are shown. When no stage is set, all cards fall back to their original
-     * visibility logic (the existing v-if conditions handle that).
+     * Card visibility — always show cards that have data.
+     * Life stage only affects the onboarding wizard steps, not what's
+     * displayed on the dashboard. If the user has data, show the card.
      */
-    isCardVisible(cardId) {
-      // No stage set — fall back to showing all cards (existing behaviour)
-      if (!this.currentStage) return true;
-      // Stage is active — only show cards in the curated list
-      return this.stageDashboardCards.includes(cardId);
+    isCardVisible() {
+      return true;
     },
 
     // Format asset category names for display

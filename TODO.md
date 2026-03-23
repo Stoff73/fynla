@@ -23,19 +23,19 @@
 
 All changes from PRs #148-#158 are on main but NOT deployed to production. Full deploy guide at March/March22Updates/deployAll.md.
 
-### To Deploy
-- [ ] Run ./deploy/fynla-org/build.sh locally (done — built twice today)
-- [ ] Upload public/build/ to server
-- [ ] Upload all changed PHP files (see deployAll.md for full list)
-- [ ] Run 3 pending migrations
-- [ ] Run composer dump-autoload on server
-- [ ] Seed: php artisan db:seed
-- [ ] Clear caches on server
-- [ ] Delete UKTaxesController.php from server
+### To Deploy — COMPLETED 23 March 2026
+- [x] Run ./deploy/fynla-org/build.sh locally (done — built twice today)
+- [x] Upload public/build/ to server
+- [x] Upload all changed PHP files (see deployAll.md for full list)
+- [x] Run 3 pending migrations
+- [x] Run composer dump-autoload on server
+- [x] Seed: php artisan db:seed
+- [x] Clear caches on server
+- [x] Delete UKTaxesController.php from server
 
 ## Known Issues (Carried Forward)
-- [ ] PropertyForm edit 422 — editing a property via the UI form returns 422 validation error
-- [ ] Sidebar journey %: intermittently shows 0% on some pages (race condition)
+- [x] PropertyForm edit 422 — FIXED & deployed 23 March. Root cause: `lease_remaining_years` sent as `{}` (Laravel MissingValue from `$this->when()`) failed integer validation. Fix: clean non-scalar values in PropertyForm.vue handleSubmit()
+- [x] Sidebar journey %: intermittently shows 0% — FIXED & deployed 23 March. Root cause: sidebar rendered before life-stage API responded. Fix: hide progress section until data loaded (SideMenu.vue showProgress computed). Also fixed isStudentPersona hiding dashboard cards for real users with university life stage.
 - [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow) — see fynTest.md
 
 ## Tech Debt

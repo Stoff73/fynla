@@ -28,8 +28,8 @@
       <!-- Logo -->
       <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
-          <!-- Collapsed: progress ring around favicon (when stage is set) -->
-          <div v-if="effectiveCollapsed && currentStage" class="relative" :title="`Journey: ${progressPercentage}% complete`">
+          <!-- Collapsed: progress ring around favicon (when progress data loaded) -->
+          <div v-if="effectiveCollapsed && showProgress" class="relative" :title="`Journey: ${progressPercentage}% complete`">
             <svg viewBox="0 0 40 40" class="w-10 h-10 -rotate-90">
               <circle cx="20" cy="20" r="17" fill="none" stroke-width="3" class="stroke-light-gray" />
               <circle cx="20" cy="20" r="17" fill="none" stroke-width="3"
@@ -47,8 +47,8 @@
         </router-link>
       </div>
 
-      <!-- Stage badge & progress bar (expanded, when stage is set) -->
-      <div v-if="!effectiveCollapsed && currentStage" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
+      <!-- Stage badge & progress bar (expanded, when progress data loaded) -->
+      <div v-if="!effectiveCollapsed && showProgress" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
         <div class="text-xs font-semibold" :class="stageLabelColourClass">
           {{ stageLabel }}
         </div>
@@ -64,7 +64,7 @@
       </div>
 
       <!-- Collapsed: tiny progress percentage below ring -->
-      <div v-if="effectiveCollapsed && currentStage" class="text-center flex-shrink-0 -mt-1 mb-1">
+      <div v-if="effectiveCollapsed && showProgress" class="text-center flex-shrink-0 -mt-1 mb-1">
         <span class="text-[9px] font-bold" :class="stageLabelColourClass">{{ progressPercentage }}%</span>
       </div>
 
@@ -239,7 +239,10 @@ export default {
     const currentStage = computed(() => store.getters['lifeStage/currentStage']);
     const stageLabel = computed(() => store.getters['lifeStage/stageLabel']);
     const stageColour = computed(() => store.getters['lifeStage/stageColour']);
+    const lifeStageLoading = computed(() => store.state.lifeStage?.loading ?? true);
     const progressPercentage = computed(() => store.getters['lifeStage/progressPercentage']);
+    // Only show progress section once data has loaded to prevent 0% flash
+    const showProgress = computed(() => currentStage.value && !lifeStageLoading.value);
 
     // Colour class mappings — Tailwind JIT needs full class names
     const COLOUR_CLASSES = {
@@ -523,6 +526,7 @@ export default {
       stageLabel,
       stageColour,
       progressPercentage,
+      showProgress,
       stageLabelColourClass,
       progressBarColourClass,
       progressRingColourClass,
