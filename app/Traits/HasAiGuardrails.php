@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\DB;
  */
 trait HasAiGuardrails
 {
-    private const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+    private const DEFAULT_MODEL_ANTHROPIC = 'claude-haiku-4-5-20251001';
+
+    private const DEFAULT_MODEL_XAI = 'grok-4-1-fast-reasoning';
 
     private const DAILY_TOKEN_LIMITS = [
         'preview' => 10_000,
@@ -26,19 +28,24 @@ trait HasAiGuardrails
 
     /**
      * Get the appropriate model for this user and query complexity.
+     * Supports both Anthropic and xAI providers via AI_PROVIDER config.
      */
     protected function getAiModel(User $user, string $complexity = 'standard'): string
     {
-        $configModel = config('services.anthropic.chat_model');
+        $provider = config('services.ai_provider', 'anthropic');
+        $configKey = $provider === 'xai' ? 'services.xai' : 'services.anthropic';
+        $defaultModel = $provider === 'xai' ? self::DEFAULT_MODEL_XAI : self::DEFAULT_MODEL_ANTHROPIC;
+
+        $configModel = config("{$configKey}.chat_model");
         if ($configModel) {
             return $configModel;
         }
 
         if ($complexity === 'complex' && $this->getUserPlan($user) === 'pro') {
-            return config('services.anthropic.advanced_chat_model', self::DEFAULT_MODEL);
+            return config("{$configKey}.advanced_chat_model", $defaultModel);
         }
 
-        return self::DEFAULT_MODEL;
+        return $defaultModel;
     }
 
     /**

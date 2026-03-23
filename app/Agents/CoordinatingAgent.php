@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use Anthropic\Client as AnthropicClient;
+use App\Services\AI\XaiClient;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -67,7 +67,6 @@ class CoordinatingAgent extends BaseAgent
         private readonly GoalsAgent $goalsAgent,
         private readonly TaxOptimisationAgent $taxOptimisationAgent,
         private readonly TaxConfigService $taxConfig,
-        private readonly AnthropicClient $anthropicClient,
         private readonly AiToolDefinitions $toolDefinitions,
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
