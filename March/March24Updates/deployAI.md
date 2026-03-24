@@ -174,14 +174,26 @@ No database changes. No seeding required.
 | 8 | wealth_accumulation | Investment Portfolio | £100,000 | Medium | Investment | PASS |
 | 9 | custom | New Home Office Setup | £3,000 | Low | Custom | PASS |
 
-## Test Verification — Life Events (4/4 PASS)
+## Test Verification — Life Events (16/16 PASS)
 
-| Scenario | Type | Name | Amount | Date | Certainty | Result |
-|----------|------|------|--------|------|-----------|--------|
-| 1 | inheritance | Parents' Estate Inheritance | +£150,000 | Mar 2030 | Likely | PASS |
-| 2 | home_improvement | Kitchen Renovation | -£25,000 | Jan 2028 | Confirmed | PASS |
-| 3 | bonus | Work Bonus | +£10,000 | Dec 2026 | Confirmed | PASS |
-| 4 | large_purchase | Boat Purchase | -£40,000 | Jul 2029 | Speculative | PASS |
+| Scenario | Type | Name | Amount | Certainty | Result |
+|----------|------|------|--------|-----------|--------|
+| 1 | inheritance | Parents' Estate Inheritance | +£150,000 | Likely | PASS |
+| 2 | home_improvement | Kitchen Renovation | -£25,000 | Confirmed | PASS |
+| 3 | bonus | Work Bonus | +£10,000 | Confirmed | PASS |
+| 4 | large_purchase | Boat Purchase | -£40,000 | Speculative | PASS |
+| 5 | gift_received | Grandmother's Gift | +£20,000 | Confirmed | PASS |
+| 6 | redundancy_payment | Redundancy Payment | +£35,000 | Possible | PASS |
+| 7 | property_sale | Buy-to-Let Sale | +£280,000 | Likely | PASS (Grok also created property record) |
+| 8 | business_sale | Consulting Business Sale | +£200,000 | Likely | PASS |
+| 9 | pension_lump_sum | Tax-Free Pension Lump Sum | +£50,000 | Confirmed | PASS |
+| 10 | lottery_windfall | Premium Bonds Win | +£5,000 | Confirmed | PASS |
+| 11 | custom_income | Car Accident Insurance Payout | +£8,000 | Likely | PASS |
+| 12 | wedding | Daughter's Wedding | -£15,000 | Confirmed | PASS |
+| 13 | education_fees | Son's School Fees | -£12,000 | Confirmed | PASS |
+| 14 | gift_given | Nephew's Wedding Gift | -£10,000 | Confirmed | PASS |
+| 15 | medical_expense | Dental Implants | -£6,000 | Confirmed | PASS |
+| 16 | custom_expense | Garden Landscaping | -£3,000 | Possible | PASS (Grok chose home_improvement) |
 
 ## Known Issues
 
@@ -224,7 +236,7 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Total Test Results: 56/56 PASS
+## Total Test Results: 68/68 PASS
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -237,5 +249,5 @@ No database changes. No seeding required.
 | Protection | 8 | 8/8 PASS |
 | Business Interests | 4 | 4/4 PASS |
 | Goals | 9 | 9/9 PASS |
-| Life Events | 4 | 4/4 PASS |
-| **Total** | **56** | **56/56 PASS** |
+| Life Events | 16 | 16/16 PASS |
+| **Total** | **68** | **68/68 PASS** |
