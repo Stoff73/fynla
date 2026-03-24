@@ -2456,6 +2456,51 @@ export default {
       getRetiredSpouseSectionTotal,
     };
   },
+
+  // AI Form Fill watchers (Options API watch — works alongside Composition API setup)
+  computed: {
+    aiFillPendingFill() {
+      return this.$store.state.aiFormFill?.pendingFill;
+    },
+    aiFillHighlightedField() {
+      return this.$store.state.aiFormFill?.highlightedField;
+    },
+    aiFillFilling() {
+      return this.$store.state.aiFormFill?.filling;
+    },
+  },
+
+  watch: {
+    aiFillPendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'expenditure' && fill.fields) {
+          // Auto-enter edit mode
+          this.isEditing = true;
+          // Use detailed entry mode (not simple)
+          this.useSimpleEntry = false;
+          // Start field sequence
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+    aiFillHighlightedField(fieldKey) {
+      if (fieldKey && this.aiFillPendingFill?.fields) {
+        const value = this.aiFillPendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+    aiFillFilling(isFilling) {
+      if (isFilling === false && this.aiFillPendingFill?.entityType === 'expenditure') {
+        setTimeout(() => {
+          this.handleSave();
+        }, 250);
+      }
+    },
+  },
 };
 </script>
 
