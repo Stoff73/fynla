@@ -89,6 +89,14 @@ const getters = {
 };
 
 const mutations = {
+  resetState(state) {
+    state.currentStage = null;
+    state.completedSteps = [];
+    state.dataCompletedSteps = [];
+    state.stepCompleteness = {};
+    state.loading = false;
+    state.error = null;
+  },
   setCurrentStage(state, stage) { state.currentStage = stage; },
   setCompletedSteps(state, steps) { state.completedSteps = steps; },
   setDataCompletedSteps(state, steps) { state.dataCompletedSteps = steps; },
