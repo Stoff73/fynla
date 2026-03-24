@@ -1224,9 +1224,29 @@ class CoordinatingAgent extends BaseAgent
             'property_type' => ['required', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
             'current_value' => 'required|numeric|min:0|max:999999999.99',
             'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
+            'lease_remaining_years' => 'nullable|integer|min:0|max:999',
+            'has_mortgage' => 'nullable|boolean',
+            'mortgage_outstanding_balance' => 'nullable|numeric|min:0|max:999999999.99',
+            'mortgage_interest_rate' => 'nullable|numeric|min:0|max:25',
+            'mortgage_monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
+            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
+            'monthly_council_tax' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_gas' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_electricity' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_water' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_building_insurance' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_contents_insurance' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_service_charge' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_maintenance_reserve' => 'nullable|numeric|min:0|max:99999.99',
+            'other_monthly_costs' => 'nullable|numeric|min:0|max:99999.99',
+            // Legacy field names from AiToolDefinitions (Anthropic path)
             'outstanding_mortgage' => 'nullable|numeric|min:0|max:999999999.99',
             'mortgage_rate' => 'nullable|numeric|min:0|max:25',
-            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1235,26 +1255,68 @@ class CoordinatingAgent extends BaseAgent
         $propertyType = $input['property_type'] ?? 'main_residence';
         $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
 
-        // Build property form fields
+        // Build property form fields — pass through all provided data
         $fields = [
             'property_type' => $propertyType,
             'current_value' => (float) $input['current_value'],
+            // Address
             'address_line_1' => $input['address_line_1'] ?? null,
+            'address_line_2' => $input['address_line_2'] ?? null,
+            'city' => $input['city'] ?? null,
+            'county' => $input['county'] ?? null,
             'postcode' => $input['postcode'] ?? null,
+            // Purchase
             'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
             'purchase_date' => $input['purchase_date'] ?? null,
+            'valuation_date' => $input['valuation_date'] ?? null,
+            // Ownership
+            'ownership_type' => $input['ownership_type'] ?? null,
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null,
+            'joint_owner_name' => $input['joint_owner_name'] ?? null,
+            // Tenure
+            'tenure_type' => $input['tenure_type'] ?? null,
+            'lease_remaining_years' => isset($input['lease_remaining_years']) ? (int) $input['lease_remaining_years'] : null,
+            'lease_expiry_date' => $input['lease_expiry_date'] ?? null,
+            // Monthly costs
+            'monthly_council_tax' => isset($input['monthly_council_tax']) ? (float) $input['monthly_council_tax'] : null,
+            'monthly_gas' => isset($input['monthly_gas']) ? (float) $input['monthly_gas'] : null,
+            'monthly_electricity' => isset($input['monthly_electricity']) ? (float) $input['monthly_electricity'] : null,
+            'monthly_water' => isset($input['monthly_water']) ? (float) $input['monthly_water'] : null,
+            'monthly_building_insurance' => isset($input['monthly_building_insurance']) ? (float) $input['monthly_building_insurance'] : null,
+            'monthly_contents_insurance' => isset($input['monthly_contents_insurance']) ? (float) $input['monthly_contents_insurance'] : null,
+            'monthly_service_charge' => isset($input['monthly_service_charge']) ? (float) $input['monthly_service_charge'] : null,
+            'monthly_maintenance_reserve' => isset($input['monthly_maintenance_reserve']) ? (float) $input['monthly_maintenance_reserve'] : null,
+            'other_monthly_costs' => isset($input['other_monthly_costs']) ? (float) $input['other_monthly_costs'] : null,
+            // BTL rental
             'monthly_rental_income' => isset($input['monthly_rental_income']) ? (float) $input['monthly_rental_income'] : null,
+            'tenant_name' => $input['tenant_name'] ?? null,
+            'managing_agent_name' => $input['managing_agent_name'] ?? null,
         ];
 
-        // Add mortgage fields if provided
-        if (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0) {
+        // Add mortgage fields if provided (xAI: has_mortgage flag, Anthropic: outstanding_mortgage legacy)
+        $hasMortgage = ! empty($input['has_mortgage'])
+            || (! empty($input['mortgage_outstanding_balance']) && $input['mortgage_outstanding_balance'] > 0)
+            || (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0);
+
+        if ($hasMortgage) {
             $fields['has_mortgage'] = true;
-            $fields['mortgage_outstanding_balance'] = (float) $input['outstanding_mortgage'];
-            $fields['mortgage_interest_rate'] = isset($input['mortgage_rate']) ? (float) $input['mortgage_rate'] : null;
+            // xAI uses mortgage_outstanding_balance, Anthropic uses outstanding_mortgage
+            $balance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
+            $fields['mortgage_outstanding_balance'] = isset($balance) ? (float) $balance : null;
+            // xAI uses mortgage_interest_rate, Anthropic uses mortgage_rate
+            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+            $fields['mortgage_interest_rate'] = isset($rate) ? (float) $rate : null;
+            // AI param is 'mortgage_lender', form field is 'mortgage_lender_name'
             $fields['mortgage_lender_name'] = $input['mortgage_lender'] ?? null;
-            $fields['mortgage_type'] = 'repayment';
-            $fields['mortgage_rate_type'] = 'fixed';
+            $fields['mortgage_type'] = $input['mortgage_type'] ?? null;
+            $fields['mortgage_rate_type'] = $input['mortgage_rate_type'] ?? null;
+            $fields['mortgage_monthly_payment'] = isset($input['mortgage_monthly_payment']) ? (float) $input['mortgage_monthly_payment'] : null;
+            $fields['mortgage_start_date'] = $input['mortgage_start_date'] ?? null;
+            $fields['mortgage_maturity_date'] = $input['mortgage_maturity_date'] ?? null;
         }
+
+        // Strip nulls and empty strings — only send fields with actual values
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
@@ -1275,9 +1337,11 @@ class CoordinatingAgent extends BaseAgent
             'outstanding_balance' => 'required|numeric|min:0|max:999999999.99',
             'interest_rate' => 'nullable|numeric|min:0|max:25',
             'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
-            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker'])],
+            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
             'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
             'remaining_term_months' => 'nullable|integer|min:1|max:480',
+            'start_date' => 'nullable|date',
+            'maturity_date' => 'nullable|date',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1293,7 +1357,12 @@ class CoordinatingAgent extends BaseAgent
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
             'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
             'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
+            'mortgage_start_date' => $input['start_date'] ?? null,
+            'mortgage_maturity_date' => $input['maturity_date'] ?? null,
         ];
+
+        // Strip nulls and empty strings
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
