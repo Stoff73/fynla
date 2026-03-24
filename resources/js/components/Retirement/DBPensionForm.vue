@@ -268,6 +268,17 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'db_pension' && fill.fields) {
+          // Pre-set select dropdowns and required fields before field sequence
+          // (Vue <select> v-model may not react to programmatic changes during animation)
+          if (fill.fields.scheme_status) {
+            this.formData.scheme_status = fill.fields.scheme_status;
+          }
+          if (fill.fields.scheme_type) {
+            this.formData.scheme_type = fill.fields.scheme_type;
+          }
+          if (fill.fields.employer_name) {
+            this.formData.employer_name = fill.fields.employer_name;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
