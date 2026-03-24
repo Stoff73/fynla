@@ -1219,8 +1219,6 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleCreateProperty(array $input, User $user, bool $isPreview): array
     {
-        Log::info('[handleCreateProperty] Input received', ['input' => $input, 'user_id' => $user->id]);
-
         if ($isPreview) {
             return $this->previewBlocked('property');
         }

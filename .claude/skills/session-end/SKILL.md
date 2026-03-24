@@ -204,7 +204,7 @@ date: 2026-03-[DD]
 
 ## Step 6: Generate TODO.md
 
-Create or update `TODO.md` in the project root if there are ANY outstanding items. This file is the handover document for the next session.
+Create or update `CSJTODO.md` in the project root if there are ANY outstanding items. This file is the handover document for the next session.
 
 ### 6a: Gather outstanding items
 
@@ -225,10 +225,10 @@ git diff --name-only HEAD~10 -- '*.php' '*.vue' '*.js' 2>/dev/null | xargs grep 
 ### 6b: Check for previous TODO.md
 
 ```bash
-cat TODO.md 2>/dev/null
+cat CSJTODO.md 2>/dev/null
 ```
 
-If a previous `TODO.md` exists, check which items were completed this session (mark them done) and which are still outstanding (carry forward).
+If a previous `CSJTODO.md` exists, check which items were completed this session (mark them done) and which are still outstanding (carry forward).
 
 ### 6c: Write TODO.md
 
@@ -282,9 +282,9 @@ TOMORROW=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
 NEXT_FOLDER="March${TOMORROW}Updates"
 ```
 
-1. Project root: `TODO.md` (always kept here for session-start to read)
-2. Project updates: `March/${NEXT_FOLDER}/TODO.md` (in tomorrow's folder, not today's)
-3. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md` (same — tomorrow's folder)
+1. Project root: `CSJTODO.md` (always kept here for session-start to read)
+2. Project updates: `March/${NEXT_FOLDER}/CSJTODO.md` (in tomorrow's folder, not today's)
+3. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/CSJTODO.md` (same — tomorrow's folder)
 
 ```bash
 # Create tomorrow's folders if needed
@@ -292,8 +292,8 @@ mkdir -p "March/${NEXT_FOLDER}"
 mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}"
 
 # Copy to all three locations
-cp TODO.md "March/${NEXT_FOLDER}/TODO.md"
-cp TODO.md "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md"
+cp TODO.md "March/${NEXT_FOLDER}/CSJTODO.md"
+cp TODO.md "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/CSJTODO.md"
 ```
 
 **Why tomorrow's folder:** Today's folder contains what was done today. Tomorrow's folder is where the next session starts — so the TODO belongs there as the first thing the next session sees.
