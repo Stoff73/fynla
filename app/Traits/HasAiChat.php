@@ -10,6 +10,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Constants\TaxDefaults;
 use App\Services\AI\XaiClient;
+use App\Services\AI\XaiToolDefinitions;
 use App\Services\PrerequisiteGateService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -73,7 +74,11 @@ trait HasAiChat
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
         $model = $this->getAiModel($user, $complexity);
         $maxTokens = $this->getAiMaxTokens($user);
-        $tools = $this->toolDefinitions->getTools($user->is_preview_user);
+        $isXai = $this->getAiProvider() === 'xai';
+        $toolDefinitions = $isXai
+            ? app(XaiToolDefinitions::class)
+            : $this->toolDefinitions;
+        $tools = $toolDefinitions->getTools($user->is_preview_user);
 
         // Auto-generate title from first message
         if ($conversation->message_count === 0) {
@@ -90,20 +95,9 @@ trait HasAiChat
         $toolCallsSummary = [];
         $messages = $messageHistory;
 
-        $isXai = $this->getAiProvider() === 'xai';
-
-        // For xAI: prepend system prompt as first message and wrap tools in OpenAI format
-        $xaiTools = [];
-        if ($isXai && ! empty($tools)) {
-            $xaiTools = array_map(fn (array $tool) => [
-                'type' => 'function',
-                'function' => [
-                    'name' => $tool['name'],
-                    'description' => $tool['description'],
-                    'parameters' => $tool['parameters'] ?? $tool['input_schema'] ?? [],
-                ],
-            ], $tools);
-        }
+        // For xAI: XaiToolDefinitions returns pre-wrapped tools, use directly.
+        // For Anthropic: AiToolDefinitions returns Anthropic format, not used in xAI path.
+        $xaiTools = $isXai ? $tools : [];
 
         while (true) {
             $contentBlocks = [];
