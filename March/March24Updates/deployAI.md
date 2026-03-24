@@ -91,13 +91,16 @@ No database changes. No seeding required.
 | 5 | DB | Final Salary | NHS | £12,000/yr (15 years) | PASS |
 | 6 | DB | Career Average (Deferred) | Teachers' | £6,500/yr (8 years) | PASS |
 
-## Test Verification — Chattels (3/3 PASS)
+## Test Verification — Chattels (6/6 PASS)
 
 | Scenario | Type | Item | Value | Purchase | Result |
 |----------|------|------|-------|----------|--------|
 | 1 | Collectible | Vintage Rolex Submariner watch | £15,000 | £8,000 | PASS |
 | 2 | Vehicle | 2022 BMW M5 | £65,000 | £78,000 | PASS |
 | 3 | Art | Original Banksy print | £25,000 | £3,000 | PASS |
+| 4 | Antique | Georgian mahogany bureau | £4,500 | £2,800 | PASS |
+| 5 | Jewellery | Diamond engagement ring | £7,000 | £5,500 | PASS |
+| 6 | Other/Collectible | Case of fine wine | £3,000 | £1,800 | PASS |
 
 ## Known Issues
 
