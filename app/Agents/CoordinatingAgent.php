@@ -1258,23 +1258,41 @@ class CoordinatingAgent extends BaseAgent
         $propertyType = $input['property_type'] ?? 'main_residence';
         $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
 
+        // Frontend validateForm() requires: property_type, address_line_1, city, postcode, current_value,
+        // ownership_type, ownership_percentage. Set sensible defaults for any the AI didn't provide.
+        $address = $input['address_line_1'] ?? $addressLabel;
+        $city = $input['city'] ?? 'Unknown';
+        $postcode = $input['postcode'] ?? 'N/A';
+        $ownershipType = $input['ownership_type'] ?? 'individual';
+        $ownershipPct = isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null;
+        // Auto-set ownership percentage from type if not explicitly provided
+        if ($ownershipPct === null) {
+            $ownershipPct = match ($ownershipType) {
+                'individual' => 100.0,
+                'joint' => 50.0,
+                'tenants_in_common' => 50.0,
+                'trust' => 0.0,
+                default => 100.0,
+            };
+        }
+
         // Build property form fields — pass through all provided data
         $fields = [
             'property_type' => $propertyType,
             'current_value' => (float) $input['current_value'],
-            // Address
-            'address_line_1' => $input['address_line_1'] ?? null,
+            // Address — defaults ensure form validation passes
+            'address_line_1' => $address,
             'address_line_2' => $input['address_line_2'] ?? null,
-            'city' => $input['city'] ?? null,
+            'city' => $city,
             'county' => $input['county'] ?? null,
-            'postcode' => $input['postcode'] ?? null,
+            'postcode' => $postcode,
             // Purchase
             'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
             'purchase_date' => $input['purchase_date'] ?? null,
             'valuation_date' => $input['valuation_date'] ?? null,
-            // Ownership
-            'ownership_type' => $input['ownership_type'] ?? null,
-            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null,
+            // Ownership — defaults set above to ensure form validation passes
+            'ownership_type' => $ownershipType,
+            'ownership_percentage' => $ownershipPct,
             'joint_owner_name' => $input['joint_owner_name'] ?? null,
             // Tenure
             'tenure_type' => $input['tenure_type'] ?? null,
