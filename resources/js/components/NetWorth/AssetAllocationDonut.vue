@@ -7,7 +7,7 @@
         type="donut"
         :options="chartOptions"
         :series="filteredSeries"
-        height="260"
+        height="195"
       ></apexchart>
     </div>
     <div v-else class="no-data">
@@ -170,7 +170,7 @@ export default {
             breakpoint: 768,
             options: {
               chart: {
-                height: 240,
+                height: 180,
               },
             },
           },
@@ -185,7 +185,7 @@ export default {
 <style scoped>
 .asset-allocation-donut {
   @apply bg-white rounded-card p-4 shadow-sm border border-light-gray transition-all duration-200;
-  height: 340px;
+  height: 255px;
   display: flex;
   flex-direction: column;
   overflow: visible;
