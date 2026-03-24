@@ -692,15 +692,20 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_business_interest',
-                'Record a business interest or ownership.',
+                'Record a business interest or ownership. Handles sole trader, partnership, limited company, LLP. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'business_name' => ['type' => 'string', 'description' => 'Name of the business'],
-                    'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp'], 'description' => 'Type of business entity'],
-                    'ownership_percentage' => ['type' => ['number', 'null'], 'description' => 'Percentage owned (0-100)'],
-                    'estimated_value' => ['type' => ['number', 'null'], 'description' => 'Estimated value (£)'],
-                    'annual_profit' => ['type' => ['number', 'null'], 'description' => 'Annual profit/drawings (£)'],
+                    'business_name' => ['type' => 'string', 'description' => 'Name of the business (e.g. "Acme Technologies Ltd", "Smith Consulting")'],
+                    'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp', 'other'], 'description' => '"sole_trader" for self-employed. "partnership" for partnerships. "limited_company" for Ltd companies. "llp" for Limited Liability Partnerships. "other" for anything else.'],
+                    'industry_sector' => ['type' => ['string', 'null'], 'description' => 'Industry sector (e.g. "Technology", "Consulting", "Construction", "Retail")'],
+                    'ownership_percentage' => ['type' => ['number', 'null'], 'description' => 'Percentage owned (0-100). Default 100 for sole owner.'],
+                    'estimated_value' => ['type' => ['number', 'null'], 'description' => 'Estimated current value of the business (£).'],
+                    'annual_revenue' => ['type' => ['number', 'null'], 'description' => 'Annual turnover/revenue (£).'],
+                    'annual_profit' => ['type' => ['number', 'null'], 'description' => 'Annual net profit (£). Can be negative for losses.'],
+                    'annual_dividend_income' => ['type' => ['number', 'null'], 'description' => 'Annual dividends taken from this business (£). For limited companies only.'],
+                    'employee_count' => ['type' => ['integer', 'null'], 'description' => 'Number of employees including the owner.'],
                 ],
-                ['business_name', 'business_type', 'ownership_percentage', 'estimated_value', 'annual_profit']
+                ['business_name', 'business_type', 'industry_sector', 'ownership_percentage', 'estimated_value', 'annual_revenue', 'annual_profit', 'annual_dividend_income', 'employee_count']
             ),
             $this->wrapTool(
                 'create_chattel',
