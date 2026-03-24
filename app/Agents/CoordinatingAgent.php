@@ -1445,9 +1445,9 @@ class CoordinatingAgent extends BaseAgent
             'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
         ];
 
-        // Coverage amount: benefit_amount for income protection, sum_assured for others
-        if ($policyType === 'income_protection') {
-            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0;
+        // Coverage amount: benefit_amount for income protection and family income benefit, sum_assured for others
+        if ($policyType === 'income_protection' || $policyType === 'family_income_benefit') {
+            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : (isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0);
         } else {
             $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
         }

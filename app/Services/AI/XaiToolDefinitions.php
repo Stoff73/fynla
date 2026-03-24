@@ -543,16 +543,17 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'create_protection_policy',
-                'Create a protection insurance policy. Handles life insurance, critical illness, and income protection.',
+                'Create a protection insurance policy. Handles life insurance, critical illness, and income protection. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
                     'policy_type' => [
                         'type' => 'string',
                         'enum' => ['level_term', 'term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'standalone_ci', 'accelerated_ci', 'income_protection'],
-                        'description' => 'Type of policy.',
+                        'description' => 'Type of policy. "level_term" for level term life. "term" for generic term life. "whole_of_life" for whole of life. "decreasing_term" for decreasing/mortgage protection. "family_income_benefit" for family income benefit. "standalone_ci" for standalone critical illness. "accelerated_ci" for accelerated critical illness. "income_protection" for income protection.',
                     ],
-                    'provider' => ['type' => ['string', 'null'], 'description' => 'Insurance provider (e.g. "Aviva").'],
-                    'sum_assured' => ['type' => ['number', 'null'], 'description' => 'Sum assured / cover amount (£). For life and CI policies.'],
-                    'benefit_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly benefit amount (£). Income protection only.'],
+                    'provider' => ['type' => ['string', 'null'], 'description' => 'Insurance provider (e.g. "Aviva", "Legal & General").'],
+                    'sum_assured' => ['type' => ['number', 'null'], 'description' => 'Lump sum cover amount (£). For life insurance and critical illness policies. NOT for income protection or family income benefit.'],
+                    'benefit_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly benefit amount (£). For income_protection AND family_income_benefit only.'],
                     'premium_amount' => ['type' => ['number', 'null'], 'description' => 'Premium amount (£).'],
                     'premium_frequency' => $this->nullableEnum(['monthly', 'annually'], 'How often premiums are paid. Default "monthly".'),
                     'policy_term_years' => ['type' => ['integer', 'null'], 'description' => 'Policy term in years (not for whole of life).'],
