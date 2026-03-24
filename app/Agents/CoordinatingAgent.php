@@ -686,6 +686,7 @@ class CoordinatingAgent extends BaseAgent
                 'create_trust' => $this->handleCreateTrust($input, $user, $isPreviewUser),
                 'create_business_interest' => $this->handleCreateBusinessInterest($input, $user, $isPreviewUser),
                 'create_chattel' => $this->handleCreateChattel($input, $user, $isPreviewUser),
+                'set_expenditure' => $this->handleSetExpenditure($input, $user, $isPreviewUser),
                 'update_record' => $this->handleUpdateRecord($input, $user, $isPreviewUser),
                 'delete_record' => $this->handleDeleteRecord($input, $user, $isPreviewUser),
                 'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
@@ -1883,6 +1884,41 @@ class CoordinatingAgent extends BaseAgent
             'route' => '/net-worth/chattels',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
+        ];
+    }
+
+    private function handleSetExpenditure(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('expenditure');
+        }
+
+        // All expenditure category fields (monthly amounts)
+        $categoryFields = [
+            'rent', 'utilities', 'food_groceries', 'transport_fuel', 'healthcare_medical', 'insurance',
+            'mobile_phones', 'internet_tv', 'subscriptions',
+            'clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets',
+            'childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities',
+            'gifts_charity', 'charitable_donations', 'other_expenditure',
+        ];
+
+        $fields = [];
+        foreach ($categoryFields as $field) {
+            if (isset($input[$field]) && is_numeric($input[$field]) && $input[$field] > 0) {
+                $fields[$field] = (float) $input[$field];
+            }
+        }
+
+        if (empty($fields)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
+        }
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'expenditure',
+            'route' => '/valuable-info?section=expenditure',
+            'fields' => $fields,
+            'message' => "I'll fill in your expenditure details now.",
         ];
     }
 

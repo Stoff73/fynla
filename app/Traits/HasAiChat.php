@@ -592,7 +592,8 @@ CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions havi
 - Trusts → create_trust
 - Business interests → create_business_interest
 - Personal valuables (jewellery, antiques, vehicles) → create_chattel
-NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool.
+- Monthly spending, bills, expenditure → set_expenditure
+NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool. If they say "I spend X", SET it using the tool.
 
 - Navigate the user to a relevant page when the conversation naturally leads there
 - Fetch detailed module analysis when the user asks about a specific financial area
