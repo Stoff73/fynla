@@ -928,25 +928,36 @@ class CoordinatingAgent extends BaseAgent
             'target_amount' => 'required|numeric|min:0|max:999999999.99',
             'target_date' => 'required|date|after:today',
             'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
-            'goal_type' => ['required', Rule::in(['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'])],
+            'goal_type' => ['required', Rule::in(['emergency_fund', 'home_deposit', 'property_purchase', 'holiday', 'education', 'wedding', 'car_purchase', 'retirement', 'wealth_accumulation', 'debt_repayment', 'custom'])],
             'monthly_contribution' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
+        $fields = [
+            'goal_name' => $input['name'],
+            'goal_type' => $input['goal_type'],
+            'target_amount' => (float) $input['target_amount'],
+            'target_date' => $input['target_date'],
+            'priority' => $input['priority'],
+        ];
+
+        // Custom goals need the custom_goal_type_name field — use the goal name
+        if ($input['goal_type'] === 'custom') {
+            $fields['custom_goal_type_name'] = $input['name'];
+        }
+
+        if (isset($input['monthly_contribution'])) {
+            $fields['monthly_contribution'] = (float) $input['monthly_contribution'];
+        }
+
         return [
             'action' => 'fill_form',
             'entity_type' => 'goal',
             'route' => '/goals',
-            'fields' => [
-                'goal_name' => $input['name'],
-                'goal_type' => $input['goal_type'],
-                'target_amount' => $input['target_amount'],
-                'target_date' => $input['target_date'],
-                'priority' => $input['priority'],
-                'monthly_contribution' => $input['monthly_contribution'] ?? null,
-            ],
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['name']}\" goal now.",
         ];
     }
 

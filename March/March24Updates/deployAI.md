@@ -4,7 +4,7 @@
 
 ## What Changed
 
-Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 8 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, Liabilities, Protection, and Business Interests.
+Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 9 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, Liabilities, Protection, Business Interests, and Goals.
 
 ## Files to Upload
 
@@ -19,7 +19,7 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 | File | Server Path | What Changed |
 |------|-------------|-------------|
 | `app/Traits/HasAiChat.php` | `~/www/fynla.org/public_html/app/Traits/HasAiChat.php` | Routes xAI to XaiToolDefinitions, removes double-wrapping, strengthened system prompt for immediate tool calling, expenditure tool routing |
-| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handlers for property (all fields), pension (DC+DB), chattel (spelling fix), savings (enum fix), expenditure (direct save), liabilities (enum fix), protection (term→level_term mapping, FIB benefit_amount), business (enriched with industry/revenue/dividends/employees). Null sanitisation, HTML entity decode, required field defaults. |
+| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handlers for property (all fields), pension (DC+DB), chattel (spelling fix), savings (enum fix), expenditure (direct save), liabilities (enum fix), protection (term→level_term mapping, FIB benefit_amount), business (enriched with industry/revenue/dividends/employees), goals (enum update, custom_goal_type_name, message field). Null sanitisation, HTML entity decode, required field defaults. |
 | `resources/js/components/NetWorth/Property/PropertyForm.vue` | Compiled into `public/build/` | AI fill watcher expanded (32 highlight bindings), property_type early-set fix, scroll error fix |
 | `resources/js/components/Retirement/DBPensionForm.vue` | Compiled into `public/build/` | Pre-set scheme_status, scheme_type, employer_name in pendingFill watcher |
 | `resources/js/components/NetWorth/ChattelFormModal.vue` | Compiled into `public/build/` | Pre-set chattel_type and name in pendingFill watcher |
@@ -27,6 +27,8 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 | `resources/js/views/ValuableInfo.vue` | Compiled into `public/build/` | Watch pendingFill to switch to expenditure tab |
 | `resources/js/components/Protection/PolicyFormModal.vue` | Compiled into `public/build/` | Added `family_income_benefit` to life_policy_type dropdown. Filling watcher with $nextTick, 500ms delay, error reporting to chat. |
 | `resources/js/components/NetWorth/BusinessInterestForm.vue` | Compiled into `public/build/` | Pre-set business_name, business_type, current_valuation in pendingFill watcher. Filling watcher with $nextTick, 500ms delay, error reporting to chat. |
+| `resources/js/components/Goals/GoalFormModal.vue` | Compiled into `public/build/` | Pre-set goal_name, goal_type, target_amount, target_date, custom_goal_type_name in pendingFill. Filling watcher with $nextTick, 500ms, error reporting. |
+| `resources/js/views/Goals/GoalsDashboard.vue` | Compiled into `public/build/` | Fixed cancelFill→completeFill so "Done" confirmation appears in chat after goal save. |
 
 ### Frontend Build Required
 
@@ -156,6 +158,20 @@ No database changes. No seeding required.
 | 3 | Partnership | Jones & Partners | £300,000 (50%) | Law, 50% ownership, £400k rev | PASS |
 | 4 | LLP | Digital Solutions LLP | £200,000 (33%) | IT consultancy, 33% share, £90k profit | PASS |
 
+## Test Verification — Goals (9/9 PASS)
+
+| Scenario | Type | Name | Target | Priority | Module | Result |
+|----------|------|------|--------|----------|--------|--------|
+| 1 | emergency_fund | Emergency Fund | £10,000 | Critical | Savings | PASS |
+| 2 | home_deposit | House Deposit | £50,000 | High | Property | PASS |
+| 3 | holiday | Family Holiday | £5,000 | Low | Savings | PASS |
+| 4 | wedding | Wedding Fund | £20,000 | High | Savings | PASS |
+| 5 | car_purchase | New Car Fund | £15,000 | Medium | Savings | PASS |
+| 6 | education | Daughter's Uni Fees | £30,000 | High | Investment | PASS |
+| 7 | debt_repayment | Pay off Credit Card | £8,000 | Critical | Savings | PASS |
+| 8 | wealth_accumulation | Investment Portfolio | £100,000 | Medium | Investment | PASS |
+| 9 | custom | New Home Office Setup | £3,000 | Low | Custom | PASS |
+
 ## Known Issues
 
 - **DB pension API field mapping**: The DB pension form uses field names (`employer_name`, `annual_income`, `service_years`) that don't match the API validation/DB columns (`scheme_name`, `accrued_annual_pension`, `pensionable_service_years`). Pre-existing bug — same on manual form submit. Form fills and displays correctly but some fields don't persist to DB.
@@ -178,6 +194,10 @@ No database changes. No seeding required.
 - Chattel `chattel_type` and `name` pre-set in `pendingFill` watcher
 - Protection `policyType` and `life_policy_type` pre-set in `pendingFill` watcher
 - Business `business_name`, `business_type`, `current_valuation` pre-set in `pendingFill` watcher
+- Goals `goal_name`, `goal_type`, `target_amount`, `target_date`, `custom_goal_type_name` pre-set in `pendingFill` watcher
+- Goals: `custom` goal_type auto-sets `custom_goal_type_name` = goal name (backend requires it)
+- Goals: GoalsDashboard fixed `cancelFill` → `completeFill` for "Done" chat confirmation
+- Goals tool enum updated to match backend: `home_deposit`, `property_purchase`, `car_purchase`, `retirement`, `wealth_accumulation`, `debt_repayment`, `custom`
 - Protection handler maps generic `term` → `level_term` for life_policy_type dropdown
 - Protection FIB uses `benefit_amount` → `coverage_amount` (same as income_protection)
 - Business tool enriched with industry_sector, annual_revenue, annual_dividend_income, employee_count
@@ -189,7 +209,7 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Total Test Results: 43/43 PASS
+## Total Test Results: 52/52 PASS
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -201,4 +221,5 @@ No database changes. No seeding required.
 | Liabilities | 8 | 8/8 PASS |
 | Protection | 8 | 8/8 PASS |
 | Business Interests | 4 | 4/4 PASS |
-| **Total** | **43** | **43/43 PASS** |
+| Goals | 9 | 9/9 PASS |
+| **Total** | **52** | **52/52 PASS** |

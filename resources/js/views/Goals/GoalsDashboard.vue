@@ -300,7 +300,7 @@ export default {
           await this.createGoal(formData);
         }
         if (this.$store.state.aiFormFill.pendingFill) {
-          this.$store.dispatch('aiFormFill/cancelFill');
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeGoalModal();
         // If editing from detail view, close detail and return to list
