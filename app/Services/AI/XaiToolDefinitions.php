@@ -397,15 +397,11 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_property',
                 'Create a property record and optionally a linked mortgage. '
-                .'IMPORTANT: Before calling this tool, gather key details from the user in conversation. '
-                .'Always confirm: property type (main home, second home, or rental), approximate value, and whether they own it alone or jointly. '
-                .'Context-appropriate follow-ups: '
-                .'- If joint ownership: ask about the ownership split percentage. '
-                .'- If they mention a mortgage: ask for the balance, lender, interest rate, and whether it is repayment or interest-only. '
-                .'- If buy-to-let: ask about monthly rental income. '
-                .'- If a flat or apartment: ask whether freehold or leasehold. '
-                .'Do not interrogate — if the user says "that\'s all" or gives a brief answer, proceed with what you have. '
-                .'Set null for any field the user has not mentioned.',
+                .'Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. '
+                .'Fill in every field you can from what the user said and set null for anything not mentioned. '
+                .'The form will be opened and filled in front of the user. After filling, ask if they want to add '
+                .'any missing details (postcode, monthly costs, etc.) before saving, or if they are happy to save as-is. '
+                .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership.',
                 [
                     // ── Basic (truly required) ──
                     'property_type' => [
@@ -490,8 +486,8 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_mortgage',
                 'Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. '
-                .'Before calling, confirm: which property (address or description), outstanding balance, and lender. '
-                .'Ask about rate type (fixed/variable) and repayment type (repayment/interest-only) if not mentioned.',
+                .'Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. '
+                .'The form will be filled in front of the user. After filling, ask if they want to add more details before saving.',
                 [
                     'property_address_hint' => ['type' => ['string', 'null'], 'description' => 'A hint to match the property — address, postcode, or "my main home". System fuzzy-matches.'],
                     'lender_name' => ['type' => ['string', 'null'], 'description' => 'Mortgage lender name (e.g. "Halifax").'],
