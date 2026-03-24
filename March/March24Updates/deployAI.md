@@ -4,7 +4,7 @@
 
 ## What Changed
 
-Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 9 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, Liabilities, Protection, Business Interests, and Goals.
+Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 10 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, Liabilities, Protection, Business Interests, Goals, and Life Events.
 
 ## Files to Upload
 
@@ -29,6 +29,8 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 | `resources/js/components/NetWorth/BusinessInterestForm.vue` | Compiled into `public/build/` | Pre-set business_name, business_type, current_valuation in pendingFill watcher. Filling watcher with $nextTick, 500ms delay, error reporting to chat. |
 | `resources/js/components/Goals/GoalFormModal.vue` | Compiled into `public/build/` | Pre-set goal_name, goal_type, target_amount, target_date, custom_goal_type_name in pendingFill. Filling watcher with $nextTick, 500ms, error reporting. |
 | `resources/js/views/Goals/GoalsDashboard.vue` | Compiled into `public/build/` | Fixed cancelFill→completeFill so "Done" confirmation appears in chat after goal save. |
+| `resources/js/components/Goals/LifeEventForm.vue` | Compiled into `public/build/` | Pre-set event_name, event_type, amount, expected_date in pendingFill. Filling watcher with $nextTick, 500ms, error reporting. |
+| `resources/js/components/Goals/EventsTab.vue` | Compiled into `public/build/` | Fixed cancelFill→completeFill for "Done" chat confirmation after life event save. |
 
 ### Frontend Build Required
 
@@ -172,6 +174,15 @@ No database changes. No seeding required.
 | 8 | wealth_accumulation | Investment Portfolio | £100,000 | Medium | Investment | PASS |
 | 9 | custom | New Home Office Setup | £3,000 | Low | Custom | PASS |
 
+## Test Verification — Life Events (4/4 PASS)
+
+| Scenario | Type | Name | Amount | Date | Certainty | Result |
+|----------|------|------|--------|------|-----------|--------|
+| 1 | inheritance | Parents' Estate Inheritance | +£150,000 | Mar 2030 | Likely | PASS |
+| 2 | home_improvement | Kitchen Renovation | -£25,000 | Jan 2028 | Confirmed | PASS |
+| 3 | bonus | Work Bonus | +£10,000 | Dec 2026 | Confirmed | PASS |
+| 4 | large_purchase | Boat Purchase | -£40,000 | Jul 2029 | Speculative | PASS |
+
 ## Known Issues
 
 - **DB pension API field mapping**: The DB pension form uses field names (`employer_name`, `annual_income`, `service_years`) that don't match the API validation/DB columns (`scheme_name`, `accrued_annual_pension`, `pensionable_service_years`). Pre-existing bug — same on manual form submit. Form fills and displays correctly but some fields don't persist to DB.
@@ -198,6 +209,10 @@ No database changes. No seeding required.
 - Goals: `custom` goal_type auto-sets `custom_goal_type_name` = goal name (backend requires it)
 - Goals: GoalsDashboard fixed `cancelFill` → `completeFill` for "Done" chat confirmation
 - Goals tool enum updated to match backend: `home_deposit`, `property_purchase`, `car_purchase`, `retirement`, `wealth_accumulation`, `debt_repayment`, `custom`
+- Life Events: tool rewritten with full 16-type enum (9 income + 7 expense), `event_name` param, `certainty` param, `estimated_amount` param
+- Life Events: handler maps `event_name`→`event_name`, `estimated_amount`→`amount`, `event_date`→`expected_date`
+- Life Events: EventsTab fixed `cancelFill` → `completeFill` for "Done" chat confirmation
+- Life Events: LifeEventForm pre-sets `event_name`, `event_type`, `amount`, `expected_date` in pendingFill watcher
 - Protection handler maps generic `term` → `level_term` for life_policy_type dropdown
 - Protection FIB uses `benefit_amount` → `coverage_amount` (same as income_protection)
 - Business tool enriched with industry_sector, annual_revenue, annual_dividend_income, employee_count
@@ -209,7 +224,7 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Total Test Results: 52/52 PASS
+## Total Test Results: 56/56 PASS
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -222,4 +237,5 @@ No database changes. No seeding required.
 | Protection | 8 | 8/8 PASS |
 | Business Interests | 4 | 4/4 PASS |
 | Goals | 9 | 9/9 PASS |
-| **Total** | **52** | **52/52 PASS** |
+| Life Events | 4 | 4/4 PASS |
+| **Total** | **56** | **56/56 PASS** |

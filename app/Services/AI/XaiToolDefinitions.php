@@ -270,14 +270,21 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_life_event',
-                'Create a future life event that may impact the user\'s financial plan.',
+                'Create a future life event that impacts the user\'s financial plan. Use for expected income (inheritance, bonus, property sale) or expenses (large purchase, wedding, home improvement). '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'event_type' => ['type' => 'string', 'description' => 'Type of life event (e.g. "marriage", "graduation", "career_change", "property_purchase", "retirement")'],
-                    'event_date' => ['type' => 'string', 'description' => 'Expected date in YYYY-MM-DD format'],
-                    'description' => ['type' => 'string', 'description' => 'Description of the event'],
-                    'estimated_cost' => ['type' => ['number', 'null'], 'description' => 'Estimated cost in pounds (if applicable)'],
+                    'event_name' => ['type' => 'string', 'description' => 'Short name for the event (e.g. "Parents\' Estate", "Kitchen Renovation", "Work Bonus")'],
+                    'event_type' => [
+                        'type' => 'string',
+                        'enum' => ['inheritance', 'gift_received', 'bonus', 'redundancy_payment', 'property_sale', 'business_sale', 'pension_lump_sum', 'lottery_windfall', 'custom_income', 'large_purchase', 'home_improvement', 'wedding', 'education_fees', 'gift_given', 'medical_expense', 'custom_expense'],
+                        'description' => 'Income events: "inheritance", "gift_received", "bonus", "redundancy_payment", "property_sale", "business_sale", "pension_lump_sum", "lottery_windfall", "custom_income". Expense events: "large_purchase" for car/boat/etc, "home_improvement" for renovation/extension, "wedding", "education_fees" for school/uni, "gift_given", "medical_expense", "custom_expense".',
+                    ],
+                    'event_date' => ['type' => 'string', 'description' => 'Expected date in YYYY-MM-DD format. Must be in the future.'],
+                    'estimated_amount' => ['type' => 'number', 'description' => 'Estimated amount (£). How much money is expected to come in or go out.'],
+                    'certainty' => $this->nullableEnum(['confirmed', 'likely', 'possible', 'speculative'], '"confirmed" if definitely happening. "likely" if probably. "possible" if might. "speculative" if uncertain. Default "likely".'),
+                    'description' => ['type' => ['string', 'null'], 'description' => 'Optional description with more details.'],
                 ],
-                ['event_type', 'event_date', 'description', 'estimated_cost']
+                ['event_name', 'event_type', 'event_date', 'estimated_amount', 'certainty', 'description']
             ),
         ];
     }

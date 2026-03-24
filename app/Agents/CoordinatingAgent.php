@@ -968,27 +968,35 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $validationError = $this->validateToolInput($input, [
-            'event_type' => 'required|string|max:100',
+            'event_name' => 'required|string|max:255',
+            'event_type' => ['required', Rule::in(['inheritance', 'gift_received', 'bonus', 'redundancy_payment', 'property_sale', 'business_sale', 'pension_lump_sum', 'lottery_windfall', 'custom_income', 'large_purchase', 'home_improvement', 'wedding', 'education_fees', 'gift_given', 'medical_expense', 'custom_expense'])],
             'event_date' => 'required|date',
-            'description' => 'required|string|max:500',
-            'estimated_cost' => 'nullable|numeric|min:0|max:999999999.99',
+            'estimated_amount' => 'required|numeric|min:0|max:999999999.99',
+            'certainty' => ['nullable', Rule::in(['confirmed', 'likely', 'possible', 'speculative'])],
+            'description' => 'nullable|string|max:500',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        $fields = [
+            'event_name' => $input['event_name'],
+            'event_type' => $input['event_type'],
+            'amount' => (float) $input['estimated_amount'],
+            'expected_date' => $input['event_date'],
+            'certainty' => $input['certainty'] ?? 'likely',
+        ];
+
+        if (isset($input['description'])) {
+            $fields['description'] = $input['description'];
         }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'life_event',
             'route' => '/goals?tab=events',
-            'fields' => [
-                'event_name' => $input['description'],
-                'event_type' => $input['event_type'],
-                'description' => $input['description'],
-                'amount' => $input['estimated_cost'] ?? 0,
-                'expected_date' => $input['event_date'],
-                'certainty' => 'likely',
-            ],
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['event_name']}\" life event now.",
         ];
     }
 
