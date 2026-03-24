@@ -401,7 +401,9 @@ class XaiToolDefinitions
                 .'Fill in every field you can from what the user said and set null for anything not mentioned. '
                 .'The form will be opened, filled, and saved automatically. After saving, confirm what was added '
                 .'and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. '
-                .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership.',
+                .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership. '
+                .'IMPORTANT: Do NOT call any other creation tools (create_family_member, navigate_to_page, etc.) in the same turn as create_property. '
+                .'The property form fill needs the page to stay on /net-worth/property until saved. Add family members in a follow-up message.',
                 [
                     // ── Basic (truly required) ──
                     'property_type' => [
