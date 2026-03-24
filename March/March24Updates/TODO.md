@@ -1,92 +1,93 @@
 # TODO — Fynla
 
-*Last updated: 23 March 2026 — session 4 (bug fixes, full system test, Grok AI migration, admin toggle)*
+*Last updated: 24 March 2026 — session 5 (AI form fill testing, onboarding fix, UI fixes)*
 
 ## Completed This Session
 
-### Sidebar & UI Cleanup (PR #158 — merged)
-- [x] Sidebar revert — all menu items always visible under headings, no journey filtering
-- [x] Info guide link fixes — 43 navigation links corrected across all modules
-- [x] "Suggested for You" goals card removed from dashboard
-- [x] ~215 lines dead code cleanup (SideMenu.vue, lifeStage.js, lifeStageConfig.js, Dashboard.vue)
-- [x] UK Taxes page deleted (hardcoded values, wrong NI/CGT rates) — 2,362 lines removed
-- [x] InfoGuidePanel business interests route fixed
-- [x] Code review — 6 issues found and all fixed
-- [x] Full deployment guide (deployAll.md) covering all pending changes
-- [x] Non-technical update notes for March 20-22
+### AI Form Fill Testing (grokAI branch)
+- [x] Protection module: tested all 8 policy types with Anthropic (4/8 pass) and Grok (7/8 pass)
+- [x] Investment module: added 9 new account types to AI tool definition (VCT, EIS, private company, crowdfunding, SAYE, CSOP, EMI, unapproved options, RSU)
+- [x] Added 25+ type-specific fields (bonds, private company, employee share schemes)
+- [x] Fixed VCT/EIS not showing private company fields (isPrivateInvestmentType)
+- [x] Fixed 422 validation: company_registration_number cast to float instead of string
+- [x] Fixed Anthropic tool data leak in responses (system prompt instruction)
+- [x] Centralised form fill handshake in aiFormFill.js (formReady state, 30s fallback, stale state clearing)
+- [x] Added validation error reporting from form auto-submit back to chat
+- [x] Documented all results in March/March24Updates/AI/
 
-### OpenAI Migration Spec (drafted, not implemented)
-- [x] Design spec for swapping Fyn assistant from Anthropic to OpenAI
-- [x] Approach: swap the curl call in HasAiChat.php, adapt request/response format, 6 files to change
+### Onboarding Bug Fix (main branch)
+- [x] Fixed stale lifeStage causing onboarding welcome screen to be skipped on re-registration
+- [x] Root cause: auth.js fetchUser only set lifeStage when truthy, leaving stale data from previous user
+- [x] Fix: always sync lifeStage from API (including null) on every login
+- [x] Added resetState mutation to lifeStage store
+- [x] Tested on production: new registration flow works correctly
 
-## Not Yet Deployed
+### UI Fixes (fixBugs branch — PR #159 merged)
+- [x] Replaced investment info banner with hover tooltip icon
+- [x] Reduced net worth donut charts by 25%
+- [x] CSP header fix for Vite dev server
+- [x] API base URL fix for local development
 
-All changes from PRs #148-#158 are on main but NOT deployed to production. Full deploy guide at March/March22Updates/deployAll.md.
+### Production Testing
+- [x] Tested new user registration on fynla.org (chris@fynla.org)
+- [x] Full onboarding flow: welcome → Building Foundations → 5 steps → dashboard
+- [x] Tested c.jones@csjones.co login
+- [x] Reproduced onboarding skip bug after account delete + re-register → fixed
 
-### To Deploy — COMPLETED 23 March 2026
-- [x] Run ./deploy/fynla-org/build.sh locally (done — built twice today)
-- [x] Upload public/build/ to server
-- [x] Upload all changed PHP files (see deployAll.md for full list)
-- [x] Run 3 pending migrations
-- [x] Run composer dump-autoload on server
-- [x] Seed: php artisan db:seed
-- [x] Clear caches on server
-- [x] Delete UKTaxesController.php from server
+## Deployed to Production
+- [x] Onboarding lifeStage fix (auth.js, lifeStage.js)
+- [x] Investment tooltip + donut chart resize (PR #159)
+- [ ] Upload public/build/ to server (built, ready to upload)
+- [ ] Upload SecurityHeaders.php
+- [ ] Clear caches on server
 
-## Known Issues (Carried Forward)
-- [x] PropertyForm edit 422 — FIXED & deployed 23 March. Root cause: `lease_remaining_years` sent as `{}` (Laravel MissingValue from `$this->when()`) failed integer validation. Fix: clean non-scalar values in PropertyForm.vue handleSubmit()
-- [x] Sidebar journey %: intermittently shows 0% — FIXED & deployed 23 March. Root cause: sidebar rendered before life-stage API responded. Fix: hide progress section until data loaded (SideMenu.vue showProgress computed). Also fixed isStudentPersona hiding dashboard cards for real users with university life stage.
-- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow) — see fynTest.md
+## Not Yet Deployed (grokAI branch)
+- [ ] AI form fill: 14 investment types + specialised fields
+- [ ] Protection form fill fixes
+- [ ] AI form fill handshake + degradation fix
+- [ ] System prompt: no tool data leak instruction
+
+## Known Issues
+
+### AI Form Fill — Conversation Length Degradation
+- After ~7 consecutive form fills in one chat session, subsequent fills fail silently
+- Root cause: NOT the fallback timer (investigated). The form fill pipeline works (debug logs confirm save emitted). The failure is downstream — the API call after form submit fails silently.
+- Likely cause: API throttling or request interference from SSE stream
+- Workaround: batch ~5 fills per conversation
+- Fix plan: March/March24Updates/AI/conversation-degradation-fix-plan.md
+
+### AI Form Fill — Remaining Entity Types Untested
+- [ ] DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow
+
+### Protection Form Fill Issues
+- [ ] Family Income Benefit: £0 sum assured (benefit_amount mapping)
+- [ ] `family_income_benefit` and `term` not in life_policy_type dropdown
+- [ ] Silent form submission failures for some types with Anthropic
 
 ## Tech Debt
-- [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking, cosmetic)
-- [ ] LiabilitiesStep.vue: DEPRECATED comment — will be replaced by unified form with context="onboarding"
-- [ ] IncomeStatementTab.vue is orphaned (never imported) — decide: wire into a view or delete
-- [ ] lifeStageConfig.js: sidebar.primary and sidebar.explore arrays still present but unused (kept intentionally in case filtering is re-enabled)
+- [ ] Debug console.log statements in AccountForm.vue (remove before deploy)
+- [ ] OnboardingWizard.vue: Vue warn about failed component resolution
+- [ ] LiabilitiesStep.vue: DEPRECATED comment
+- [ ] IncomeStatementTab.vue is orphaned (never imported)
+- [ ] WARN-002: Security sessions API returns 500
+- [ ] WARN-003: Vue error on holistic-plan page
 
 ## Grok AI Migration (branch: grokAI)
 
-**Status:** Phase 0-1-3 complete. Phases 2, 4, 5, 6 remaining.
+**Status:** All implementation phases complete. AI form fill testing in progress.
 **Plan:** March/March23Updates/grokMigrationPlan-v2.md
-**Status doc:** March/March23Updates/grokMigrationStatus.md
 
-### Completed
-- [x] Phase 0: Security hardening (deployed to production)
-- [x] Phase 1: Foundation — openai-php/client installed, XaiClient, config, feature flag
-- [x] Phase 2: Document extraction — AIExtractionService dual-provider
-- [x] Phase 3: Streaming chat — dual-provider HasAiChat (Anthropic + xAI), browser tested
-- [x] Phase 4: Python sidecar — confirmed not used, no replacement needed
-- [x] Phase 5 partial: .env.example updated, admin AI toggle added
-- [x] Admin panel AI provider toggle — click to switch, instant, no SSH
-
-### Next Session Tasks
-- [ ] Get xAI API key from https://console.x.ai
-- [ ] Set AI_PROVIDER=xai and XAI_API_KEY in local .env
-- [ ] Test with xAI locally — chat, streaming, tool calling, navigation
-- [ ] Test document extraction with xAI
+### Remaining
+- [ ] xAI API key configured and tested locally
 - [ ] Phase 5 remaining: remove Anthropic SDK, delete Python scripts, update legal text
 - [ ] Merge grokAI branch to main
 - [ ] Deploy to production, switch via admin panel
 
-## Known Issues (Carried Forward)
-- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow) — see fynTest.md
-
-## Tech Debt
-- [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking, cosmetic)
-- [ ] LiabilitiesStep.vue: DEPRECATED comment — will be replaced by unified form with context="onboarding"
-- [ ] IncomeStatementTab.vue is orphaned (never imported) — decide: wire into a view or delete
-- [ ] lifeStageConfig.js: sidebar.primary and sidebar.explore arrays still present but unused (kept intentionally in case filtering is re-enabled)
-- [ ] WARN-002: Security sessions API returns 500 on /api/auth/sessions
-- [ ] WARN-003: Vue error on holistic-plan page: "Cannot read properties of undefined"
-
 ## Context for Next Session
 
-Session 23 March: Fixed 4 bugs (property/investment edit 422, dashboard card filtering, sidebar 0% flash). Full system test on production (28 pages, 14 forms, 30 Fyn nav routes, new user c.jones@csjones.co). Grok AI migration nearly complete on grokAI branch — all implementation phases done (security hardening deployed, dual-provider streaming, document extraction, admin AI toggle). Only Phase 6 testing with xAI API key remains before merge.
+Session 24 March: Extensive AI form fill testing across Protection (8 types) and Investment (14 types) modules with both Anthropic and Grok. Grok consistently outperforms Anthropic on form fill reliability. Identified conversation-length degradation issue (fills fail after ~7 in one session). Fixed onboarding bug on production (stale lifeStage on re-registration). UI fixes merged (PR #159). Production build ready to upload.
 
 Key files:
-- Migration plan: March/March23Updates/grokMigrationPlan-v2.md
-- Migration status: March/March23Updates/grokMigrationStatus.md
-- Security hardening deploy: March/March23Updates/deploySecHard.md
-- Full test results: March/March23Updates/testResults.md
-- Form filling test: March/March23Updates/formFilling.md
-- Test protocol: March/March23Updates/testingProtocol.md
+- AI test results: March/March24Updates/AI/protection.md, investments.md
+- Degradation fix plan: March/March24Updates/AI/conversation-degradation-fix-plan.md
+- Deploy guide: March/March24Updates/deployBugs.md
