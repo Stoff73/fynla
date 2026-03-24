@@ -1683,7 +1683,12 @@ export default {
         const value = this.pendingFill.fields[fieldKey];
         if (value !== undefined && value !== null) {
           // Map fill fields to form/mortgageForm fields
-          if (fieldKey === 'has_mortgage') {
+          // property_type needs explicit handling — <select> v-model doesn't always
+          // react to programmatic data changes via the catch-all assignment
+          if (fieldKey === 'property_type') {
+            this.form.property_type = value;
+            this.$forceUpdate();
+          } else if (fieldKey === 'has_mortgage') {
             this.hasMortgage = !!value;
           } else if (fieldKey === 'mortgage_outstanding_balance') {
             this.mortgageForm.outstanding_balance = value;
@@ -1995,7 +2000,7 @@ export default {
     async handleSubmit() {
       if (!this.validateForm()) {
         // Scroll to top to show error message
-        this.$el.querySelector('.px-6.py-4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        this.$el?.querySelector?.('.px-6.py-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
 
