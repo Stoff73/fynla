@@ -14,7 +14,16 @@
     <template v-else>
       <div class="list-header">
         <div class="title-row">
-          <h2 class="list-title">Investments</h2>
+          <h2 class="list-title">Investments
+            <span class="relative inline-flex ml-1 group">
+              <svg class="w-4 h-4 text-violet-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+              <span class="absolute left-1/2 -translate-x-1/2 top-6 w-72 p-3 bg-horizon-500 text-white text-xs font-normal rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 leading-relaxed">
+                We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
+              </span>
+            </span>
+          </h2>
           <router-link
             to="/risk-profile"
             class="risk-profile-link"
@@ -38,17 +47,6 @@
             </svg>
             Upload Statement
           </button>
-        </div>
-      </div>
-
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-5">
-        <div class="flex items-start">
-          <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <p class="ml-3 text-sm text-violet-800">
-            We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
-          </p>
         </div>
       </div>
 

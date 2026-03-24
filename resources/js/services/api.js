@@ -55,7 +55,7 @@ const isLocal = !isCapacitor && typeof window !== 'undefined' && (window.locatio
 const localHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const apiBaseURL = isCapacitor
   ? (import.meta.env.VITE_API_BASE_URL || 'https://fynla.org')
-  : isLocal ? `http://${localHost}:8000` : (window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
+  : isLocal ? `http://${localHost}:${window.location?.port || '8000'}` : (window.location?.origin || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
 if (isCapacitor) {
   console.log('[Capacitor] API service base URL:', `${apiBaseURL}/api`);
 }

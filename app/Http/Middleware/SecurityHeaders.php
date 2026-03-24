@@ -40,7 +40,7 @@ class SecurityHeaders
 
         // In local dev, Vite serves assets from localhost:5173 and uses WebSocket for HMR
         if (app()->environment('local')) {
-            $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173';
+            $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173 http://localhost:5174 ws://localhost:5174 http://127.0.0.1:5174 ws://127.0.0.1:5174';
             $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor}; frame-src 'self' {$revolut}";
         } else {
             // Production CSP — 'unsafe-inline' required for Revolut checkout SDK and Plausible analytics.
