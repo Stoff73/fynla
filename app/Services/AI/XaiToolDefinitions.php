@@ -1,0 +1,698 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\AI;
+
+/**
+ * xAI-optimised tool definitions with strict function calling.
+ *
+ * Returns tools pre-wrapped in OpenAI function-calling format with strict: true.
+ * No further wrapping is needed in HasAiChat — pass directly to $params['tools'].
+ *
+ * Key differences from AiToolDefinitions:
+ * - All tools use strict mode (guaranteed schema compliance)
+ * - All fields in required array; optional fields use nullable types
+ * - Property tools have enriched schemas covering all form fields
+ * - Contextual gathering instructions in tool descriptions
+ * - Nullable enums use anyOf pattern (strict mode requirement)
+ */
+class XaiToolDefinitions
+{
+    /**
+     * Get all tool definitions in OpenAI function-calling format with strict mode.
+     * Tools are pre-wrapped — no further wrapping needed in HasAiChat.
+     */
+    public function getTools(bool $isPreviewMode = false): array
+    {
+        $tools = [
+            ...$this->navigationTools(),
+            ...$this->analysisTools(),
+            ...$this->taxTools(),
+            ...$this->planGenerationTools(),
+        ];
+
+        if (! $isPreviewMode) {
+            $tools = array_merge(
+                $tools,
+                $this->whatIfTools(),
+                $this->dataCreationTools(),
+                $this->additionalCreationTools(),
+                $this->dataModificationTools(),
+                $this->profileTools(),
+            );
+        }
+
+        return $tools;
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Wrap a tool definition in OpenAI function-calling format with strict mode.
+     */
+    private function wrapTool(string $name, string $description, array $properties, array $required): array
+    {
+        return [
+            'type' => 'function',
+            'function' => [
+                'name' => $name,
+                'description' => $description,
+                'strict' => true,
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => $properties,
+                    'required' => $required,
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Nullable enum for strict mode.
+     * OpenAI strict mode does NOT allow 'type' => ['string', 'null'] with 'enum'.
+     * Must use 'anyOf' pattern instead.
+     */
+    private function nullableEnum(array $values, string $description): array
+    {
+        return [
+            'anyOf' => [
+                ['type' => 'string', 'enum' => $values],
+                ['type' => 'null'],
+            ],
+            'description' => $description,
+        ];
+    }
+
+    // ─── Navigation ──────────────────────────────────────────────────
+
+    private function navigationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'navigate_to_page',
+                'Navigate the user to a specific page in the application. Use this when the user asks to go somewhere or when showing them relevant information would be helpful.',
+                [
+                    'route_path' => [
+                        'type' => 'string',
+                        'description' => 'The application route path. Valid routes: '
+                            .'MAIN: /dashboard, /profile, /settings, /settings/security, /settings/assumptions, /help. '
+                            .'INCOME & EXPENDITURE: /valuable-info?section=income (Income tab), /valuable-info?section=expenditure (Expenditure tab), /valuable-info?section=letter (Letter to Spouse tab), /valuable-info?section=risk (Risk Profile summary tab). '
+                            .'NET WORTH: /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash (Bank Accounts & Savings), /net-worth/business, /net-worth/chattels, /net-worth/liabilities. '
+                            .'PROTECTION: /protection. '
+                            .'ESTATE: /estate (Estate Planning dashboard), /estate/will-builder (Will Builder), /estate/power-of-attorney (Power of Attorney). '
+                            .'TRUSTS: /trusts. '
+                            .'GOALS: /goals (Goals & Life Events), /goals?tab=events (Life Events tab). '
+                            .'RISK: /risk-profile. '
+                            .'PLANS: /plans (all plans), /plans/investment, /plans/retirement, /plans/protection, /plans/estate, /holistic-plan (Holistic Financial Plan). '
+                            .'ACTIONS: /actions. '
+                            .'PLANNING: /planning/journeys, /planning/what-if (What-If Scenarios). '
+                            .'NEVER use /savings or /investment — these are legacy redirects. Use /net-worth/cash and /net-worth/investments instead.',
+                    ],
+                    'description' => [
+                        'type' => 'string',
+                        'description' => 'Brief explanation of why navigating here is helpful',
+                    ],
+                ],
+                ['route_path', 'description']
+            ),
+        ];
+    }
+
+    // ─── Analysis ────────────────────────────────────────────────────
+
+    private function analysisTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'list_goals',
+                'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal.',
+                (array) (object) [],
+                []
+            ),
+            $this->wrapTool(
+                'list_life_events',
+                'List all of the user\'s life events with dates, amounts, and IDs. Use this when the user asks about their life events, upcoming events, or before updating/deleting a specific event.',
+                (array) (object) [],
+                []
+            ),
+            $this->wrapTool(
+                'get_module_analysis',
+                'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
+                [
+                    'module' => [
+                        'type' => 'string',
+                        'enum' => ['protection', 'savings', 'investment', 'retirement', 'estate', 'goals', 'holistic'],
+                        'description' => 'The financial planning module to analyse',
+                    ],
+                ],
+                ['module']
+            ),
+            $this->wrapTool(
+                'get_recommendations',
+                'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
+                (array) (object) [],
+                []
+            ),
+        ];
+    }
+
+    // ─── Tax ─────────────────────────────────────────────────────────
+
+    private function taxTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'get_tax_information',
+                'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them.',
+                [
+                    'topic' => [
+                        'type' => 'string',
+                        'enum' => [
+                            'income_tax', 'national_insurance', 'capital_gains', 'dividend_tax',
+                            'inheritance_tax', 'gifting_exemptions', 'stamp_duty',
+                            'isa_allowances', 'pension_allowances', 'state_pension',
+                            'benefits', 'savings_config', 'assumptions',
+                            'investment_bonds', 'venture_capital',
+                            'protection_config', 'retirement_config', 'domicile',
+                        ],
+                        'description' => 'The tax or financial configuration topic to retrieve',
+                    ],
+                ],
+                ['topic']
+            ),
+        ];
+    }
+
+    // ─── Plan Generation ─────────────────────────────────────────────
+
+    private function planGenerationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'generate_financial_plan',
+                'Generate a comprehensive holistic financial plan for the user. Analyses all modules and returns an executive summary, top recommendations, and action plan.',
+                (array) (object) [],
+                []
+            ),
+        ];
+    }
+
+    // ─── What-If ─────────────────────────────────────────────────────
+
+    private function whatIfTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_what_if_scenario',
+                'Create a persistent what-if scenario showing how changes would affect the user\'s financial plan. The scenario is saved and the user is navigated to the What If dashboard to see the comparison.',
+                [
+                    'name' => [
+                        'type' => 'string',
+                        'description' => 'Short descriptive name for the scenario (e.g. "Retire at 55", "Sell Main Residence")',
+                    ],
+                    'scenario_type' => [
+                        'type' => 'string',
+                        'enum' => ['retirement', 'property', 'family', 'income', 'custom'],
+                        'description' => 'Category of the what-if scenario',
+                    ],
+                    'parameters' => [
+                        'type' => 'object',
+                        'description' => 'The what-if parameter overrides. Keys: retirement_age, pension_contribution, sell_property, buy_property, divorce, marriage, new_child, income_change, job_loss, inheritance',
+                        'additionalProperties' => true,
+                    ],
+                    'description' => [
+                        'type' => 'string',
+                        'description' => 'Your explanation of what this scenario models and the key assumptions',
+                    ],
+                ],
+                ['name', 'scenario_type', 'parameters', 'description']
+            ),
+        ];
+    }
+
+    // ─── Data Creation ───────────────────────────────────────────────
+
+    private function dataCreationTools(): array
+    {
+        return [
+            ...$this->goalAndEventTools(),
+            ...$this->accountCreationTools(),
+            ...$this->propertyCreationTools(),
+            ...$this->protectionCreationTools(),
+            ...$this->estateCreationTools(),
+        ];
+    }
+
+    private function goalAndEventTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_goal',
+                'Create a new financial goal for the user. Use this when the user says they want to save for something specific.',
+                [
+                    'name' => ['type' => 'string', 'description' => 'Name of the goal (e.g. "Holiday Fund", "House Deposit")'],
+                    'target_amount' => ['type' => 'number', 'description' => 'Target amount in pounds'],
+                    'target_date' => ['type' => 'string', 'description' => 'Target date in YYYY-MM-DD format'],
+                    'priority' => ['type' => 'string', 'enum' => ['critical', 'high', 'medium', 'low'], 'description' => 'Priority level of the goal'],
+                    'goal_type' => ['type' => 'string', 'enum' => ['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'], 'description' => 'Type of goal'],
+                    'monthly_contribution' => ['type' => ['number', 'null'], 'description' => 'Optional monthly contribution amount in pounds.'],
+                ],
+                ['name', 'target_amount', 'target_date', 'priority', 'goal_type', 'monthly_contribution']
+            ),
+            $this->wrapTool(
+                'create_life_event',
+                'Create a future life event that may impact the user\'s financial plan.',
+                [
+                    'event_type' => ['type' => 'string', 'description' => 'Type of life event (e.g. "marriage", "graduation", "career_change", "property_purchase", "retirement")'],
+                    'event_date' => ['type' => 'string', 'description' => 'Expected date in YYYY-MM-DD format'],
+                    'description' => ['type' => 'string', 'description' => 'Description of the event'],
+                    'estimated_cost' => ['type' => ['number', 'null'], 'description' => 'Estimated cost in pounds (if applicable)'],
+                ],
+                ['event_type', 'event_date', 'description', 'estimated_cost']
+            ),
+        ];
+    }
+
+    private function accountCreationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_savings_account',
+                'Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit.',
+                [
+                    'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Nationwide Cash ISA", "Halifax Easy Saver")'],
+                    'account_type' => $this->nullableEnum(['easy_access', 'notice', 'fixed_term', 'regular_saver'], 'Type of savings account. Default "easy_access".'),
+                    'institution' => ['type' => ['string', 'null'], 'description' => 'Bank or building society name'],
+                    'current_balance' => ['type' => 'number', 'description' => 'Current balance in pounds'],
+                    'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Annual interest rate as a percentage (e.g. 4.5)'],
+                    'is_isa' => ['type' => ['boolean', 'null'], 'description' => 'Whether this is a Cash ISA. Default false.'],
+                    'is_emergency_fund' => ['type' => ['boolean', 'null'], 'description' => 'Whether this forms part of the emergency fund. Default false.'],
+                    'regular_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds, if any'],
+                ],
+                ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount']
+            ),
+            $this->wrapTool(
+                'create_investment_account',
+                'Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments.',
+                [
+                    'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Vanguard Stocks & Shares ISA")'],
+                    'account_type' => [
+                        'type' => 'string',
+                        'enum' => [
+                            'stocks_shares_isa', 'lifetime_isa', 'personal_investment_account',
+                            'onshore_bond', 'offshore_bond', 'vct', 'eis',
+                            'private_company', 'crowdfunding', 'saye', 'csop',
+                            'emi', 'unapproved_options', 'rsu', 'other',
+                        ],
+                        'description' => 'Type of investment account.',
+                    ],
+                    'provider' => ['type' => ['string', 'null'], 'description' => 'Platform, provider, or company name'],
+                    'current_value' => ['type' => 'number', 'description' => 'Current value in pounds'],
+                    'monthly_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds'],
+                    'platform_fee_percent' => ['type' => ['number', 'null'], 'description' => 'Annual platform fee as a percentage (e.g. 0.15)'],
+                    'bond_purchase_date' => ['type' => ['string', 'null'], 'description' => 'Bond purchase date (YYYY-MM-DD). Only for onshore_bond or offshore_bond.'],
+                    'bond_withdrawal_taken' => ['type' => ['number', 'null'], 'description' => 'Total 5% tax-deferred withdrawals taken (£). Only for bonds.'],
+                    'company_legal_name' => ['type' => ['string', 'null'], 'description' => 'Legal name of the company. For private_company or crowdfunding.'],
+                    'company_registration_number' => ['type' => ['string', 'null'], 'description' => 'Companies House registration number.'],
+                    'crowdfunding_platform' => $this->nullableEnum(['Seedrs', 'Crowdcube', 'Republic', 'Wefunder', 'other'], 'Crowdfunding platform. Only for crowdfunding type.'),
+                    'investment_date' => ['type' => ['string', 'null'], 'description' => 'Date of investment (YYYY-MM-DD).'],
+                    'investment_amount' => ['type' => ['number', 'null'], 'description' => 'Original investment amount (£).'],
+                    'number_of_shares' => ['type' => ['number', 'null'], 'description' => 'Number of shares held.'],
+                    'price_per_share' => ['type' => ['number', 'null'], 'description' => 'Price per share (£).'],
+                    'instrument_type' => $this->nullableEnum(['ordinary_shares', 'preference_shares', 'convertible_loan_note', 'safe', 'revenue_share', 'fund_nominee_interest'], 'Type of instrument held.'),
+                    'funding_round' => $this->nullableEnum(['pre_seed', 'seed', 'series_a', 'series_b', 'series_c', 'bridge', 'safe', 'other'], 'Funding round.'),
+                    'share_class' => ['type' => ['string', 'null'], 'description' => 'Share class (e.g. "A Ordinary").'],
+                    'tax_relief_type' => $this->nullableEnum(['eis', 'seis', 'sitr', 'vct', ''], 'Tax relief scheme applied.'),
+                    'employer_name' => ['type' => ['string', 'null'], 'description' => 'Employer company name. For employee share schemes.'],
+                    'employer_is_listed' => ['type' => ['boolean', 'null'], 'description' => 'Whether shares are publicly listed. For employee share schemes.'],
+                    'grant_date' => ['type' => ['string', 'null'], 'description' => 'Date options/shares were granted (YYYY-MM-DD).'],
+                    'units_granted' => ['type' => ['number', 'null'], 'description' => 'Number of units/options granted.'],
+                    'exercise_price' => ['type' => ['number', 'null'], 'description' => 'Exercise/strike price per share (£).'],
+                    'market_value_at_grant' => ['type' => ['number', 'null'], 'description' => 'Market value per share at grant date (£).'],
+                    'current_share_price' => ['type' => ['number', 'null'], 'description' => 'Current share price (£).'],
+                    'units_vested' => ['type' => ['number', 'null'], 'description' => 'Number of units currently vested.'],
+                    'units_unvested' => ['type' => ['number', 'null'], 'description' => 'Number of units not yet vested.'],
+                    'vesting_type' => $this->nullableEnum(['cliff', 'monthly', 'quarterly', 'annual', 'performance', 'immediate'], 'Vesting schedule type.'),
+                    'full_vest_date' => ['type' => ['string', 'null'], 'description' => 'Date all units fully vest (YYYY-MM-DD).'],
+                    'cliff_date' => ['type' => ['string', 'null'], 'description' => 'Cliff vesting date (YYYY-MM-DD).'],
+                    'cliff_percentage' => ['type' => ['number', 'null'], 'description' => 'Percentage that vests at cliff (e.g. 25).'],
+                    'saye_monthly_savings' => ['type' => ['number', 'null'], 'description' => 'Monthly savings amount (max £500). SAYE only.'],
+                    'saye_current_savings_balance' => ['type' => ['number', 'null'], 'description' => 'Current savings balance (£). SAYE only.'],
+                    'scheme_start_date' => ['type' => ['string', 'null'], 'description' => 'SAYE contract start date (YYYY-MM-DD).'],
+                    'scheme_duration_months' => $this->nullableEnum([36, 60], 'SAYE contract duration: 36 (3 years) or 60 (5 years).'),
+                ],
+                [
+                    'account_name', 'account_type', 'provider', 'current_value',
+                    'monthly_contribution_amount', 'platform_fee_percent',
+                    'bond_purchase_date', 'bond_withdrawal_taken',
+                    'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
+                    'investment_date', 'investment_amount', 'number_of_shares', 'price_per_share',
+                    'instrument_type', 'funding_round', 'share_class', 'tax_relief_type',
+                    'employer_name', 'employer_is_listed', 'grant_date', 'units_granted',
+                    'exercise_price', 'market_value_at_grant', 'current_share_price',
+                    'units_vested', 'units_unvested', 'vesting_type', 'full_vest_date',
+                    'cliff_date', 'cliff_percentage',
+                    'saye_monthly_savings', 'saye_current_savings_balance',
+                    'scheme_start_date', 'scheme_duration_months',
+                ]
+            ),
+            $this->wrapTool(
+                'create_pension',
+                'Create a pension for the user. Handles both Defined Contribution (workplace, SIPP, personal) and Defined Benefit (final salary, career average) pensions.',
+                [
+                    'pension_category' => ['type' => 'string', 'enum' => ['dc', 'db'], 'description' => 'Defined Contribution (dc) or Defined Benefit (db).'],
+                    'scheme_name' => ['type' => 'string', 'description' => 'Name of the pension scheme'],
+                    'scheme_type' => ['type' => ['string', 'null'], 'description' => 'DC: "workplace", "sipp", "personal_pension". DB: "final_salary", "career_average", "public_sector".'],
+                    'provider' => ['type' => ['string', 'null'], 'description' => 'Pension provider. DC only.'],
+                    'current_fund_value' => ['type' => ['number', 'null'], 'description' => 'Current fund value (£). DC only.'],
+                    'employee_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employee contribution % of salary. DC only.'],
+                    'employer_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employer contribution % of salary. DC only.'],
+                    'accrued_annual_pension' => ['type' => ['number', 'null'], 'description' => 'Accrued annual pension (£). DB only.'],
+                    'normal_retirement_age' => ['type' => ['integer', 'null'], 'description' => 'Normal retirement age. DB only.'],
+                    'pensionable_service_years' => ['type' => ['number', 'null'], 'description' => 'Years of pensionable service. DB only.'],
+                ],
+                ['pension_category', 'scheme_name', 'scheme_type', 'provider', 'current_fund_value', 'employee_contribution_percent', 'employer_contribution_percent', 'accrued_annual_pension', 'normal_retirement_age', 'pensionable_service_years']
+            ),
+        ];
+    }
+
+    // ─── Property (enriched for xAI) ─────────────────────────────────
+
+    private function propertyCreationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_property',
+                'Create a property record and optionally a linked mortgage. '
+                .'IMPORTANT: Before calling this tool, gather key details from the user in conversation. '
+                .'Always confirm: property type (main home, second home, or rental), approximate value, and whether they own it alone or jointly. '
+                .'Context-appropriate follow-ups: '
+                .'- If joint ownership: ask about the ownership split percentage. '
+                .'- If they mention a mortgage: ask for the balance, lender, interest rate, and whether it is repayment or interest-only. '
+                .'- If buy-to-let: ask about monthly rental income. '
+                .'- If a flat or apartment: ask whether freehold or leasehold. '
+                .'Do not interrogate — if the user says "that\'s all" or gives a brief answer, proceed with what you have. '
+                .'Set null for any field the user has not mentioned.',
+                [
+                    // ── Basic (truly required) ──
+                    'property_type' => [
+                        'type' => 'string',
+                        'enum' => ['main_residence', 'secondary_residence', 'buy_to_let'],
+                        'description' => 'Type of property. "main_residence" for their primary home, "secondary_residence" for holiday homes, "buy_to_let" for rental properties.',
+                    ],
+                    'current_value' => [
+                        'type' => 'number',
+                        'description' => 'Current estimated market value of the full property in pounds (e.g. 450000). Always the FULL value, not the user\'s share.',
+                    ],
+                    // ── Address ──
+                    'address_line_1' => ['type' => ['string', 'null'], 'description' => 'Street address (e.g. "42 Oak Lane").'],
+                    'address_line_2' => ['type' => ['string', 'null'], 'description' => 'Second address line if needed.'],
+                    'city' => ['type' => ['string', 'null'], 'description' => 'City or town.'],
+                    'county' => ['type' => ['string', 'null'], 'description' => 'County.'],
+                    'postcode' => ['type' => ['string', 'null'], 'description' => 'UK postcode (e.g. "SW1A 1AA").'],
+                    // ── Purchase ──
+                    'purchase_price' => ['type' => ['number', 'null'], 'description' => 'Original purchase price in pounds.'],
+                    'purchase_date' => ['type' => ['string', 'null'], 'description' => 'Purchase date (YYYY-MM-DD). If only year known, use Jan 1st (e.g. "2015-01-01").'],
+                    'valuation_date' => ['type' => ['string', 'null'], 'description' => 'Date of most recent valuation (YYYY-MM-DD). Null if current_value is an estimate.'],
+                    // ── Ownership ──
+                    'ownership_type' => $this->nullableEnum(
+                        ['individual', 'joint', 'tenants_in_common', 'trust'],
+                        'How the property is owned. "individual" = sole owner. "joint" = joint tenancy (equal shares, passes to survivor). "tenants_in_common" = can have unequal shares, passes via will. "trust" = held in a trust. Default to "individual" if not specified.'
+                    ),
+                    'ownership_percentage' => ['type' => ['number', 'null'], 'description' => 'Primary owner\'s percentage share (0-100). Individual=100, joint=50 typically, tenants_in_common=whatever they specify.'],
+                    'joint_owner_name' => ['type' => ['string', 'null'], 'description' => 'Name of joint owner. Only if joint or tenants_in_common. Use spouse name if mentioned.'],
+                    // ── Tenure ──
+                    'tenure_type' => $this->nullableEnum(
+                        ['freehold', 'leasehold'],
+                        'Freehold (owns the land) or leasehold (owns for a fixed term, common for flats). Null defaults to freehold.'
+                    ),
+                    'lease_remaining_years' => ['type' => ['integer', 'null'], 'description' => 'Years remaining on the lease. Only if leasehold.'],
+                    'lease_expiry_date' => ['type' => ['string', 'null'], 'description' => 'Lease expiry date (YYYY-MM-DD). Only if leasehold.'],
+                    // ── Mortgage ──
+                    'has_mortgage' => ['type' => 'boolean', 'description' => 'Whether the property has a mortgage. True if the user mentions any mortgage, balance, or lender.'],
+                    'mortgage_lender' => ['type' => ['string', 'null'], 'description' => 'Mortgage lender name (e.g. "Halifax", "Nationwide").'],
+                    'mortgage_outstanding_balance' => ['type' => ['number', 'null'], 'description' => 'Outstanding mortgage balance in pounds. The full balance, not the user\'s share.'],
+                    'mortgage_type' => $this->nullableEnum(
+                        ['repayment', 'interest_only', 'mixed'],
+                        '"repayment" = capital + interest (most common). "interest_only" = only pay interest. "mixed" = part repayment, part interest-only.'
+                    ),
+                    'mortgage_rate_type' => $this->nullableEnum(
+                        ['fixed', 'variable', 'tracker', 'discount', 'mixed'],
+                        'Interest rate type. "fixed" = locked rate. "variable" = lender SVR. "tracker" = follows base rate. "discount" = discount off SVR. "mixed" = split.'
+                    ),
+                    'mortgage_interest_rate' => ['type' => ['number', 'null'], 'description' => 'Current interest rate as percentage (e.g. 4.2).'],
+                    'mortgage_monthly_payment' => ['type' => ['number', 'null'], 'description' => 'Monthly mortgage payment in pounds.'],
+                    'mortgage_start_date' => ['type' => ['string', 'null'], 'description' => 'Mortgage start date (YYYY-MM-DD).'],
+                    'mortgage_maturity_date' => ['type' => ['string', 'null'], 'description' => 'Mortgage end/maturity date (YYYY-MM-DD).'],
+                    // ── Monthly costs ──
+                    'monthly_council_tax' => ['type' => ['number', 'null'], 'description' => 'Monthly council tax (£).'],
+                    'monthly_gas' => ['type' => ['number', 'null'], 'description' => 'Monthly gas bill (£).'],
+                    'monthly_electricity' => ['type' => ['number', 'null'], 'description' => 'Monthly electricity bill (£).'],
+                    'monthly_water' => ['type' => ['number', 'null'], 'description' => 'Monthly water bill (£).'],
+                    'monthly_building_insurance' => ['type' => ['number', 'null'], 'description' => 'Monthly building insurance (£).'],
+                    'monthly_contents_insurance' => ['type' => ['number', 'null'], 'description' => 'Monthly contents insurance (£).'],
+                    'monthly_service_charge' => ['type' => ['number', 'null'], 'description' => 'Monthly service charge (£). Common for leasehold.'],
+                    'monthly_maintenance_reserve' => ['type' => ['number', 'null'], 'description' => 'Monthly maintenance reserve (£).'],
+                    'other_monthly_costs' => ['type' => ['number', 'null'], 'description' => 'Any other monthly property costs (£).'],
+                    // ── Buy-to-let rental ──
+                    'monthly_rental_income' => ['type' => ['number', 'null'], 'description' => 'Monthly rental income (£). Only for buy_to_let.'],
+                    'tenant_name' => ['type' => ['string', 'null'], 'description' => 'Current tenant name. Only for buy_to_let.'],
+                    'managing_agent_name' => ['type' => ['string', 'null'], 'description' => 'Letting/managing agent name. Only for buy_to_let.'],
+                ],
+                [
+                    'property_type', 'current_value',
+                    'address_line_1', 'address_line_2', 'city', 'county', 'postcode',
+                    'purchase_price', 'purchase_date', 'valuation_date',
+                    'ownership_type', 'ownership_percentage', 'joint_owner_name',
+                    'tenure_type', 'lease_remaining_years', 'lease_expiry_date',
+                    'has_mortgage', 'mortgage_lender', 'mortgage_outstanding_balance',
+                    'mortgage_type', 'mortgage_rate_type', 'mortgage_interest_rate',
+                    'mortgage_monthly_payment', 'mortgage_start_date', 'mortgage_maturity_date',
+                    'monthly_council_tax', 'monthly_gas', 'monthly_electricity', 'monthly_water',
+                    'monthly_building_insurance', 'monthly_contents_insurance',
+                    'monthly_service_charge', 'monthly_maintenance_reserve', 'other_monthly_costs',
+                    'monthly_rental_income', 'tenant_name', 'managing_agent_name',
+                ]
+            ),
+            $this->wrapTool(
+                'create_mortgage',
+                'Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. '
+                .'Before calling, confirm: which property (address or description), outstanding balance, and lender. '
+                .'Ask about rate type (fixed/variable) and repayment type (repayment/interest-only) if not mentioned.',
+                [
+                    'property_address_hint' => ['type' => ['string', 'null'], 'description' => 'A hint to match the property — address, postcode, or "my main home". System fuzzy-matches.'],
+                    'lender_name' => ['type' => ['string', 'null'], 'description' => 'Mortgage lender name (e.g. "Halifax").'],
+                    'outstanding_balance' => ['type' => 'number', 'description' => 'Outstanding mortgage balance in pounds.'],
+                    'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Current interest rate as percentage (e.g. 4.2).'],
+                    'mortgage_type' => $this->nullableEnum(
+                        ['repayment', 'interest_only', 'mixed'],
+                        'Repayment type. Default "repayment".'
+                    ),
+                    'rate_type' => $this->nullableEnum(
+                        ['fixed', 'variable', 'tracker', 'discount', 'mixed'],
+                        'Interest rate type. Default "fixed".'
+                    ),
+                    'monthly_payment' => ['type' => ['number', 'null'], 'description' => 'Monthly payment amount in pounds.'],
+                    'remaining_term_months' => ['type' => ['integer', 'null'], 'description' => 'Remaining mortgage term in months.'],
+                    'start_date' => ['type' => ['string', 'null'], 'description' => 'Mortgage start date (YYYY-MM-DD).'],
+                    'maturity_date' => ['type' => ['string', 'null'], 'description' => 'Mortgage end/maturity date (YYYY-MM-DD).'],
+                ],
+                ['property_address_hint', 'lender_name', 'outstanding_balance', 'interest_rate', 'mortgage_type', 'rate_type', 'monthly_payment', 'remaining_term_months', 'start_date', 'maturity_date']
+            ),
+        ];
+    }
+
+    // ─── Protection ──────────────────────────────────────────────────
+
+    private function protectionCreationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_protection_policy',
+                'Create a protection insurance policy. Handles life insurance, critical illness, and income protection.',
+                [
+                    'policy_type' => [
+                        'type' => 'string',
+                        'enum' => ['level_term', 'term', 'whole_of_life', 'decreasing_term', 'family_income_benefit', 'standalone_ci', 'accelerated_ci', 'income_protection'],
+                        'description' => 'Type of policy.',
+                    ],
+                    'provider' => ['type' => ['string', 'null'], 'description' => 'Insurance provider (e.g. "Aviva").'],
+                    'sum_assured' => ['type' => ['number', 'null'], 'description' => 'Sum assured / cover amount (£). For life and CI policies.'],
+                    'benefit_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly benefit amount (£). Income protection only.'],
+                    'premium_amount' => ['type' => ['number', 'null'], 'description' => 'Premium amount (£).'],
+                    'premium_frequency' => $this->nullableEnum(['monthly', 'annually'], 'How often premiums are paid. Default "monthly".'),
+                    'policy_term_years' => ['type' => ['integer', 'null'], 'description' => 'Policy term in years (not for whole of life).'],
+                    'in_trust' => ['type' => ['boolean', 'null'], 'description' => 'Whether written in trust for IHT. Default false.'],
+                ],
+                ['policy_type', 'provider', 'sum_assured', 'benefit_amount', 'premium_amount', 'premium_frequency', 'policy_term_years', 'in_trust']
+            ),
+        ];
+    }
+
+    // ─── Estate ──────────────────────────────────────────────────────
+
+    private function estateCreationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_asset',
+                'Create an asset not covered by other tools — collectibles, artwork, or other valuable items.',
+                [
+                    'asset_name' => ['type' => 'string', 'description' => 'Name or description of the asset'],
+                    'asset_type' => ['type' => 'string', 'enum' => ['property', 'pension', 'investment', 'business', 'other'], 'description' => 'Type of estate asset.'],
+                    'current_value' => ['type' => 'number', 'description' => 'Current estimated value (£)'],
+                    'is_iht_exempt' => ['type' => ['boolean', 'null'], 'description' => 'Whether exempt from IHT. Default false.'],
+                    'exemption_reason' => ['type' => ['string', 'null'], 'description' => 'Reason for IHT exemption, if applicable.'],
+                ],
+                ['asset_name', 'asset_type', 'current_value', 'is_iht_exempt', 'exemption_reason']
+            ),
+            $this->wrapTool(
+                'create_liability',
+                'Create a liability. Use for any debt: credit cards, loans, student loans, car finance.',
+                [
+                    'liability_name' => ['type' => 'string', 'description' => 'Name of the liability'],
+                    'liability_type' => ['type' => 'string', 'enum' => ['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'other'], 'description' => 'Type of liability'],
+                    'current_balance' => ['type' => 'number', 'description' => 'Outstanding balance (£)'],
+                    'monthly_payment' => ['type' => ['number', 'null'], 'description' => 'Monthly payment (£)'],
+                    'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Interest rate as percentage'],
+                ],
+                ['liability_name', 'liability_type', 'current_balance', 'monthly_payment', 'interest_rate']
+            ),
+            $this->wrapTool(
+                'create_estate_gift',
+                'Record a gift for IHT planning. Use when the user mentions gifts they have made or plan to make.',
+                [
+                    'gift_date' => ['type' => 'string', 'description' => 'Date the gift was/will be made (YYYY-MM-DD)'],
+                    'recipient' => ['type' => 'string', 'description' => 'Name of the recipient'],
+                    'gift_type' => ['type' => 'string', 'enum' => ['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'], 'description' => '"pet" for Potentially Exempt Transfer (most common), "clt" for Chargeable Lifetime Transfer, "exempt" for exempt gifts, "small_gift" up to £250, "annual_exemption" up to £3,000.'],
+                    'gift_value' => ['type' => 'number', 'description' => 'Value of the gift (£)'],
+                    'notes' => ['type' => ['string', 'null'], 'description' => 'Additional notes'],
+                ],
+                ['gift_date', 'recipient', 'gift_type', 'gift_value', 'notes']
+            ),
+        ];
+    }
+
+    // ─── Additional Creation ─────────────────────────────────────────
+
+    private function additionalCreationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'create_family_member',
+                'Add a family member (spouse, child, dependent). Use when the user mentions family members.',
+                [
+                    'first_name' => ['type' => 'string', 'description' => 'First name'],
+                    'surname' => ['type' => ['string', 'null'], 'description' => 'Surname'],
+                    'relationship' => ['type' => 'string', 'enum' => ['spouse', 'child', 'parent', 'sibling', 'other'], 'description' => 'Relationship to user'],
+                    'date_of_birth' => ['type' => ['string', 'null'], 'description' => 'Date of birth (YYYY-MM-DD)'],
+                    'gender' => $this->nullableEnum(['male', 'female', 'other'], 'Gender'),
+                    'is_dependent' => ['type' => ['boolean', 'null'], 'description' => 'Whether financially dependent on the user'],
+                ],
+                ['first_name', 'surname', 'relationship', 'date_of_birth', 'gender', 'is_dependent']
+            ),
+            $this->wrapTool(
+                'create_trust',
+                'Record a trust for estate planning.',
+                [
+                    'trust_name' => ['type' => 'string', 'description' => 'Name of the trust'],
+                    'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'], 'description' => 'Type of trust'],
+                    'current_value' => ['type' => ['number', 'null'], 'description' => 'Current value of assets in trust (£)'],
+                    'date_established' => ['type' => ['string', 'null'], 'description' => 'Date trust was established (YYYY-MM-DD)'],
+                    'settlor' => ['type' => ['string', 'null'], 'description' => 'Who settled the trust'],
+                ],
+                ['trust_name', 'trust_type', 'current_value', 'date_established', 'settlor']
+            ),
+            $this->wrapTool(
+                'create_business_interest',
+                'Record a business interest or ownership.',
+                [
+                    'business_name' => ['type' => 'string', 'description' => 'Name of the business'],
+                    'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp'], 'description' => 'Type of business entity'],
+                    'ownership_percentage' => ['type' => ['number', 'null'], 'description' => 'Percentage owned (0-100)'],
+                    'estimated_value' => ['type' => ['number', 'null'], 'description' => 'Estimated value (£)'],
+                    'annual_profit' => ['type' => ['number', 'null'], 'description' => 'Annual profit/drawings (£)'],
+                ],
+                ['business_name', 'business_type', 'ownership_percentage', 'estimated_value', 'annual_profit']
+            ),
+            $this->wrapTool(
+                'create_chattel',
+                'Record a personal valuable item (jewellery, art, collectibles, vehicles).',
+                [
+                    'description' => ['type' => 'string', 'description' => 'Description of the item'],
+                    'category' => ['type' => 'string', 'enum' => ['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'], 'description' => 'Category of item'],
+                    'estimated_value' => ['type' => 'number', 'description' => 'Estimated current value (£)'],
+                    'purchase_value' => ['type' => ['number', 'null'], 'description' => 'Original purchase value (£)'],
+                    'is_insured' => ['type' => ['boolean', 'null'], 'description' => 'Whether the item is insured'],
+                ],
+                ['description', 'category', 'estimated_value', 'purchase_value', 'is_insured']
+            ),
+        ];
+    }
+
+    // ─── Data Modification ───────────────────────────────────────────
+
+    private function dataModificationTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'update_record',
+                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling.',
+                [
+                    'entity_type' => [
+                        'type' => 'string',
+                        'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                        'description' => 'The type of record to update',
+                    ],
+                    'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],
+                    'fields' => [
+                        'type' => 'object',
+                        'description' => 'Key-value pairs of fields to update. Only include fields that are changing.',
+                        'additionalProperties' => true,
+                    ],
+                ],
+                ['entity_type', 'entity_id', 'fields']
+            ),
+            $this->wrapTool(
+                'delete_record',
+                'Delete an existing record. ALWAYS confirm with the user before deleting.',
+                [
+                    'entity_type' => [
+                        'type' => 'string',
+                        'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                        'description' => 'The type of record to delete',
+                    ],
+                    'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
+                ],
+                ['entity_type', 'entity_id']
+            ),
+        ];
+    }
+
+    // ─── Profile ─────────────────────────────────────────────────────
+
+    private function profileTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'update_profile',
+                'Update the user\'s profile information (personal details, income, expenditure, or domicile). Use when the user provides personal information.',
+                [
+                    'section' => [
+                        'type' => 'string',
+                        'enum' => ['personal', 'income_occupation', 'expenditure', 'domicile'],
+                        'description' => 'Which profile section to update.',
+                    ],
+                    'fields' => [
+                        'type' => 'object',
+                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For expenditure: monthly_expenditure. For domicile: country_of_birth, uk_arrival_date.',
+                        'additionalProperties' => true,
+                    ],
+                ],
+                ['section', 'fields']
+            ),
+        ];
+    }
+}
