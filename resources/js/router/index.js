@@ -16,6 +16,11 @@ const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
 const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
 const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
+const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
+const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
+const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
+const PlanningYourFuturePage = () => import('@/views/Public/stages/PlanningYourFuturePage.vue');
+const EnjoyingYourWealthPage = () => import('@/views/Public/stages/EnjoyingYourWealthPage.vue');
 const NetWorthDashboardFeature = () => import('@/views/Public/features/NetWorthDashboardFeature.vue');
 const IceLettersFeature = () => import('@/views/Public/features/IceLettersFeature.vue');
 const ProtectionGapFeature = () => import('@/views/Public/features/ProtectionGapFeature.vue');
@@ -152,6 +157,36 @@ const routes = [
     path: '/faq',
     name: 'FAQ',
     component: FaqPage,
+    meta: { public: true },
+  },
+  {
+    path: '/stage/starting-out',
+    name: 'StageStartingOut',
+    component: StartingOutPage,
+    meta: { public: true },
+  },
+  {
+    path: '/stage/building-foundations',
+    name: 'StageBuildingFoundations',
+    component: BuildingFoundationsPage,
+    meta: { public: true },
+  },
+  {
+    path: '/stage/protecting-and-growing',
+    name: 'StageProtectingAndGrowing',
+    component: ProtectingAndGrowingPage,
+    meta: { public: true },
+  },
+  {
+    path: '/stage/planning-your-future',
+    name: 'StagePlanningYourFuture',
+    component: PlanningYourFuturePage,
+    meta: { public: true },
+  },
+  {
+    path: '/stage/enjoying-your-wealth',
+    name: 'StageEnjoyingYourWealth',
+    component: EnjoyingYourWealthPage,
     meta: { public: true },
   },
   {
