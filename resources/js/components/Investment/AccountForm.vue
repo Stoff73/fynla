@@ -109,6 +109,18 @@
               @switch-fee-to-fixed="switchFeeToFixed"
             />
 
+            <!-- Inline Holdings Editor (for eligible account types with value entered) -->
+            <!-- Placed outside field component conditionals because VCT/EIS are
+                 classified as isPrivateInvestmentType but still support holdings -->
+            <InlineHoldingsEditor
+              v-if="showHoldingsEditor"
+              :account-value="parseFloat(formData.current_value) || 0"
+              :holdings="formData.holdings"
+              :account-id="account?.id || null"
+              @update:holdings="formData.holdings = $event"
+              @open-holding-details="openHoldingDetails"
+            />
+
           </div>
 
           <!-- Footer -->
@@ -130,6 +142,17 @@
             </button>
           </div>
         </form>
+
+        <!-- Holding Detail Modal (opened from InlineHoldingsEditor "Details" link) -->
+        <HoldingForm
+          v-if="showHoldingDetailModal"
+          :show="showHoldingDetailModal"
+          :holding="editingHoldingDetail"
+          :accounts="account ? [account] : []"
+          :default-account-id="account?.id"
+          @close="showHoldingDetailModal = false; editingHoldingDetail = null"
+          @save="handleHoldingDetailSave"
+        />
       </div>
     </div>
   </div>
@@ -140,8 +163,12 @@ import { mapState } from 'vuex';
 import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
+import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
+import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+
+const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
 
 export default {
   name: 'AccountForm',
@@ -154,6 +181,8 @@ export default {
     PrivateInvestmentFields,
     EmployeeShareSchemeFields,
     StandardInvestmentFields,
+    InlineHoldingsEditor,
+    HoldingForm,
   },
 
   props: {
@@ -200,6 +229,8 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Inline holdings
+        holdings: [],
         // Bond-specific fields (onshore/offshore bonds)
         bond_purchase_date: null,
         bond_withdrawal_taken: null,
@@ -329,6 +360,8 @@ export default {
       errors: {},
       submitting: false,
       feePercentageWarning: false,
+      showHoldingDetailModal: false,
+      editingHoldingDetail: null,
       ISA_ALLOWANCE: 20000, // 2025/26 tax year
       // Risk profile state
       mainRiskLevel: null,
@@ -341,6 +374,11 @@ export default {
 
     isEditMode() {
       return !!this.account;
+    },
+
+    showHoldingsEditor() {
+      return HOLDABLE_ACCOUNT_TYPES.includes(this.formData.account_type)
+        && parseFloat(this.formData.current_value) > 0;
     },
 
     hasRiskProfile() {
@@ -643,6 +681,20 @@ export default {
             planned_lump_sum_amount: newAccount.planned_lump_sum_amount || null,
             planned_lump_sum_date: newAccount.planned_lump_sum_date || null,
           };
+          // Load existing holdings for edit mode (filter out auto-created cash)
+          if (newAccount.holdings?.length) {
+            this.formData.holdings = newAccount.holdings
+              .filter(h => h.asset_type !== 'cash')
+              .map(h => ({
+                id: h.id,
+                security_name: h.security_name,
+                asset_type: h.asset_type,
+                allocation_percent: h.allocation_percent,
+                cost_basis: h.cost_basis,
+              }));
+          } else {
+            this.formData.holdings = [];
+          }
         } else {
           this.resetForm();
         }
@@ -669,6 +721,20 @@ export default {
             planned_lump_sum_amount: this.account.planned_lump_sum_amount || null,
             planned_lump_sum_date: this.account.planned_lump_sum_date || null,
           };
+          // Load existing holdings for edit mode (filter out auto-created cash)
+          if (this.account.holdings?.length) {
+            this.formData.holdings = this.account.holdings
+              .filter(h => h.asset_type !== 'cash')
+              .map(h => ({
+                id: h.id,
+                security_name: h.security_name,
+                asset_type: h.asset_type,
+                allocation_percent: h.allocation_percent,
+                cost_basis: h.cost_basis,
+              }));
+          } else {
+            this.formData.holdings = [];
+          }
         } else {
           // Reset form when opening in "add" mode (no account)
           this.resetForm();
@@ -901,6 +967,8 @@ export default {
         'saye_monthly_savings', 'saye_current_savings_balance', 'saye_maturity_date',
         'saye_option_discount_percent', 'saye_bonus_amount',
         'leaver_category', 'post_termination_exercise_days', 'termination_date', 'leaver_notes',
+        // Inline holdings
+        'holdings',
       ];
       // Only keep allowed form fields, removing computed/relationship/API-only fields
       for (const key of Object.keys(submitData)) {
@@ -1022,6 +1090,27 @@ export default {
       this.resetForm();
     },
 
+    openHoldingDetails(holding) {
+      this.editingHoldingDetail = holding;
+      this.showHoldingDetailModal = true;
+    },
+
+    async handleHoldingDetailSave(holdingData) {
+      if (holdingData.id) {
+        try {
+          await this.$store.dispatch('investment/updateHolding', {
+            id: holdingData.id,
+            data: holdingData,
+          });
+          await this.$store.dispatch('investment/fetchInvestmentData');
+        } catch (error) {
+          console.error('Failed to update holding:', error);
+        }
+      }
+      this.showHoldingDetailModal = false;
+      this.editingHoldingDetail = null;
+    },
+
     resetForm() {
       this.formData = {
         account_type: '',
@@ -1045,6 +1134,8 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Inline holdings
+        holdings: [],
         // Bond-specific fields (onshore/offshore bonds)
         bond_purchase_date: null,
         bond_withdrawal_taken: null,
