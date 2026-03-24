@@ -23,6 +23,7 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 | `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handleCreateProperty (all fields, ownership, tenure, costs, BTL, mortgage) + handleCreatePension (DC: salary, monthly contribution, retirement age; DB: scheme_status, final_salary, accrual_rate). Null sanitisation, required field defaults. |
 | `resources/js/components/NetWorth/Property/PropertyForm.vue` | Compiled into `public/build/` | AI fill watcher expanded (32 highlight bindings), property_type early-set fix, scroll error fix |
 | `resources/js/components/Retirement/DBPensionForm.vue` | Compiled into `public/build/` | Pre-set scheme_status, scheme_type, employer_name in pendingFill watcher (Vue select reactivity fix) |
+| `resources/js/components/NetWorth/ChattelFormModal.vue` | Compiled into `public/build/` | Pre-set chattel_type and name in pendingFill watcher |
 
 ### Frontend Build Required
 
@@ -89,6 +90,14 @@ No database changes. No seeding required.
 | 4 | DC | Stakeholder | Legal & General | £18,000 (£150/mo) | PASS |
 | 5 | DB | Final Salary | NHS | £12,000/yr (15 years) | PASS |
 | 6 | DB | Career Average (Deferred) | Teachers' | £6,500/yr (8 years) | PASS |
+
+## Test Verification — Chattels (3/3 PASS)
+
+| Scenario | Type | Item | Value | Purchase | Result |
+|----------|------|------|-------|----------|--------|
+| 1 | Collectible | Vintage Rolex Submariner watch | £15,000 | £8,000 | PASS |
+| 2 | Vehicle | 2022 BMW M5 | £65,000 | £78,000 | PASS |
+| 3 | Art | Original Banksy print | £25,000 | £3,000 | PASS |
 
 ## Known Issues
 
