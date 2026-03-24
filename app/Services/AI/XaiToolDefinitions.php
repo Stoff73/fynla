@@ -285,15 +285,20 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'create_savings_account',
-                'Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit.',
+                'Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. '
+                .'Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. '
+                .'IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Nationwide Cash ISA", "Halifax Easy Saver")'],
-                    'account_type' => $this->nullableEnum(['easy_access', 'notice', 'fixed_term', 'regular_saver'], 'Type of savings account. Default "easy_access".'),
-                    'institution' => ['type' => ['string', 'null'], 'description' => 'Bank or building society name'],
+                    'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Nationwide Cash ISA", "HSBC Current Account", "Marcus Savings")'],
+                    'account_type' => $this->nullableEnum(
+                        ['savings_account', 'current_account', 'easy_access', 'instant_access', 'notice', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'],
+                        'Product type. "current_account" for current/checking accounts. "savings_account" or "easy_access" for savings. "notice" for notice accounts. "fixed" for fixed term. "cash_isa" for Cash ISA. "premium_bonds" for NS&I Premium Bonds. "nsi" for other NS&I products.'
+                    ),
+                    'institution' => ['type' => ['string', 'null'], 'description' => 'Bank or building society name (e.g. "HSBC", "Nationwide", "Marcus")'],
                     'current_balance' => ['type' => 'number', 'description' => 'Current balance in pounds'],
-                    'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Annual interest rate as a percentage (e.g. 4.5)'],
-                    'is_isa' => ['type' => ['boolean', 'null'], 'description' => 'Whether this is a Cash ISA. Default false.'],
-                    'is_emergency_fund' => ['type' => ['boolean', 'null'], 'description' => 'Whether this forms part of the emergency fund. Default false.'],
+                    'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Annual interest rate as a percentage (e.g. 4.5). Use 0 for premium bonds.'],
+                    'is_isa' => ['type' => ['boolean', 'null'], 'description' => 'Whether this is a Cash ISA. Set true if user says "ISA" or "tax-free". Default false.'],
+                    'is_emergency_fund' => ['type' => ['boolean', 'null'], 'description' => 'Whether this forms part of the emergency fund. Set true if user says "emergency fund" or "rainy day". Default false.'],
                     'regular_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Monthly contribution amount in pounds, if any'],
                 ],
                 ['account_name', 'account_type', 'institution', 'current_balance', 'interest_rate', 'is_isa', 'is_emergency_fund', 'regular_contribution_amount']
