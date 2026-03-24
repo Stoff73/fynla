@@ -636,7 +636,12 @@ class CoordinatingAgent extends BaseAgent
     public function executeTool(string $toolName, array $input, User $user): array
     {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
-        $input = array_map(fn ($v) => $v === 'null' ? null : $v, $input);
+        // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
+        $input = array_map(function ($v) {
+            if ($v === 'null') return null;
+            if (is_string($v)) return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            return $v;
+        }, $input);
 
         $isPreviewUser = $user->is_preview_user;
 
