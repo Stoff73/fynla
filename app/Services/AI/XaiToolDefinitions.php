@@ -50,25 +50,27 @@ class XaiToolDefinitions
 
     /**
      * Wrap a tool definition in OpenAI function-calling format with strict mode.
+     * Set $strict = false for tools with dynamic key-value objects (additionalProperties: true).
      */
-    private function wrapTool(string $name, string $description, array $properties, array $required): array
+    private function wrapTool(string $name, string $description, array $properties, array $required, bool $strict = true): array
     {
-        return [
-            'type' => 'function',
-            'function' => [
-                'name' => $name,
-                'description' => $description,
-                'strict' => true,
-                'parameters' => [
-                    'type' => 'object',
-                    // Empty properties must be JSON object {}, not array [].
-                    // PHP's json_encode turns [] into [], but (object)[] into {}.
-                    'properties' => empty($properties) ? (object) [] : $properties,
-                    'required' => $required,
-                    'additionalProperties' => false,
-                ],
+        $function = [
+            'name' => $name,
+            'description' => $description,
+            'parameters' => [
+                'type' => 'object',
+                // Empty properties must be JSON object {}, not array [].
+                'properties' => empty($properties) ? (object) [] : $properties,
+                'required' => $required,
+                'additionalProperties' => false,
             ],
         ];
+
+        if ($strict) {
+            $function['strict'] = true;
+        }
+
+        return ['type' => 'function', 'function' => $function];
     }
 
     /**
@@ -229,7 +231,8 @@ class XaiToolDefinitions
                         'description' => 'Your explanation of what this scenario models and the key assumptions',
                     ],
                 ],
-                ['name', 'scenario_type', 'parameters', 'description']
+                ['name', 'scenario_type', 'parameters', 'description'],
+                false // Cannot use strict mode — parameters object has dynamic keys
             ),
         ];
     }
@@ -655,7 +658,8 @@ class XaiToolDefinitions
                         'additionalProperties' => true,
                     ],
                 ],
-                ['entity_type', 'entity_id', 'fields']
+                ['entity_type', 'entity_id', 'fields'],
+                false // Cannot use strict mode — fields object has dynamic keys
             ),
             $this->wrapTool(
                 'delete_record',
@@ -693,7 +697,8 @@ class XaiToolDefinitions
                         'additionalProperties' => true,
                     ],
                 ],
-                ['section', 'fields']
+                ['section', 'fields'],
+                false // Cannot use strict mode — fields object has dynamic keys
             ),
         ];
     }
