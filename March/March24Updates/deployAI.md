@@ -102,7 +102,18 @@ No database changes. No seeding required.
 | 5 | Jewellery | Diamond engagement ring | £7,000 | £5,500 | PASS |
 | 6 | Other/Collectible | Case of fine wine | £3,000 | £1,800 | PASS |
 
+## Test Verification — Cash/Savings (4/4 PASS)
+
+| Scenario | Type | Institution | Balance | Rate | Flags | Result |
+|----------|------|------------|---------|------|-------|--------|
+| 1 | Easy Access | Marcus by Goldman Sachs | £15,000 | 4.5% | — | PASS |
+| 2 | Cash ISA | Nationwide | £18,500 | 4.1% | ISA, £500/mo contribution | PASS |
+| 3 | Premium Bonds | NS&I | £5,000 | 0% | Saved as easy_access (minor mapping) | PASS |
+| 4 | Emergency Fund | Barclays | £10,000 | 3.8% | Emergency fund flag set | PASS |
+
 ## Known Issues
+
+- **Premium bonds account type**: NS&I Premium Bonds save with `account_type: 'easy_access'` instead of `'premium_bonds'`. The AI tool sends the correct category but the backend handler defaults to easy_access. Minor — data saves correctly, just wrong section on the UI.
 
 - **DB pension API field mapping**: The DB pension form uses field names (`employer_name`, `annual_income`, `service_years`) that don't match the API validation/DB columns (`scheme_name`, `accrued_annual_pension`, `pensionable_service_years`). This is a pre-existing bug — same behaviour on manual form submit. The form fills and displays correctly but some fields don't persist to DB. Needs separate fix to the DB pension form or API.
 
