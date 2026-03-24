@@ -236,7 +236,19 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Total Test Results: 68/68 PASS
+## Test Verification — Investment Holdings (1/1 PASS)
+
+| Scenario | Security | Ticker | Asset Type | Allocation | Account | Result |
+|----------|----------|--------|-----------|------------|---------|--------|
+| 1 | iShares Core MSCI World ETF | SWDA | ETF | 30% | Hargreaves Lansdown ISA | PASS |
+
+**Notes:**
+- New `create_holding` tool added — looks up existing account by name/provider, navigates into account detail, opens HoldingForm
+- Account lookup uses LIKE match on provider/account_name — picks most recent match if multiple
+- Fund asset_type requires sub_type (backend validation) — ETF is safer for AI to use
+- Manual test also passed: Vanguard FTSE All-World ETF, 50% allocation, 0.22% OCF in HL GIA
+
+## Total Test Results: 69/69 PASS
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -250,4 +262,5 @@ No database changes. No seeding required.
 | Business Interests | 4 | 4/4 PASS |
 | Goals | 9 | 9/9 PASS |
 | Life Events | 16 | 16/16 PASS |
-| **Total** | **68** | **68/68 PASS** |
+| Investment Holdings | 1 | 1/1 PASS |
+| **Total** | **69** | **69/69 PASS** |

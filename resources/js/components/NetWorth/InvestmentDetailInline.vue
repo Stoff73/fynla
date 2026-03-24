@@ -221,7 +221,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
@@ -277,6 +277,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill']),
+
     // Determine which detail component to render based on account type
     detailComponentType() {
       const type = this.account.account_type;
@@ -515,6 +517,17 @@ export default {
     },
   },
 
+  watch: {
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'investment_holding' && fill.fields?.investment_account_id === this.account?.id) {
+          this.openHoldingModal(null);
+        }
+      },
+      immediate: true,
+    },
+  },
+
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
@@ -667,6 +680,10 @@ export default {
         } else {
           // Create new holding
           await this.createHolding(holdingData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeHoldingModal();
         await this.fetchInvestmentData();
