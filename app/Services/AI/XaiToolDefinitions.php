@@ -762,16 +762,17 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'update_profile',
-                'Update the user\'s profile information (personal details, income, expenditure, or domicile). Use when the user provides personal information.',
+                'Update the user\'s profile information (personal details, income, or domicile). '
+                .'Do NOT use this for expenditure — use set_expenditure instead for monthly spending.',
                 [
                     'section' => [
                         'type' => 'string',
-                        'enum' => ['personal', 'income_occupation', 'expenditure', 'domicile'],
-                        'description' => 'Which profile section to update.',
+                        'enum' => ['personal', 'income_occupation', 'domicile'],
+                        'description' => 'Which profile section to update. NOT for expenditure — use set_expenditure tool.',
                     ],
                     'fields' => [
                         'type' => 'object',
-                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For expenditure: monthly_expenditure. For domicile: country_of_birth, uk_arrival_date.',
+                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For domicile: country_of_birth, uk_arrival_date.',
                         'additionalProperties' => true,
                     ],
                 ],
