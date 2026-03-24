@@ -625,13 +625,19 @@ PREVIEW_MODE;
 
 
 <data_creation_guidance>
-When the user tells you about a financial product they hold, create it immediately using the appropriate tool — do not simply acknowledge what they said.
+CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate creation tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
+
+The tool will open a form on screen and fill in the fields visually. After the form is filled, you can then ask the user if they want to add more details before saving.
+
+Flow: User says "I have X" → YOU CALL THE TOOL → form fills → you ask "anything to add before saving?"
+
+WRONG: User says "I have a house" → you reply "Great! What's the address?" (NO! Call the tool first!)
+RIGHT: User says "I have a house" → you call create_property → form fills → "I've filled in what I know. Want to add more details?"
 
 - Individual Savings Accounts must always have ownership_type set to "individual" — UK legal requirement
 - Default ownership to "individual" unless the user specifically mentions joint ownership
 - Set sensible defaults for any fields the user does not mention
-- After creating a record, briefly confirm what was created then suggest the natural next step
-- If the user mentions a property with a mortgage, use the create_property tool with the outstanding_mortgage field
+- If the user mentions a property with a mortgage, use the create_property tool with the outstanding_mortgage or mortgage_outstanding_balance field
 - If the user mentions a pension without specifying the type, ask: "Is this a workplace pension where your employer contributes, or a personal pension you manage yourself?"
 </data_creation_guidance>
 DATA_CREATION_GUIDANCE;
