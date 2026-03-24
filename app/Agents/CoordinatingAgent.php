@@ -1902,23 +1902,30 @@ class CoordinatingAgent extends BaseAgent
             'gifts_charity', 'charitable_donations', 'other_expenditure',
         ];
 
-        $fields = [];
+        $updateData = [];
+        $total = 0;
         foreach ($categoryFields as $field) {
             if (isset($input[$field]) && is_numeric($input[$field]) && $input[$field] > 0) {
-                $fields[$field] = (float) $input[$field];
+                $updateData[$field] = (float) $input[$field];
+                $total += (float) $input[$field];
             }
         }
 
-        if (empty($fields)) {
+        if (empty($updateData)) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
         }
 
+        // Save directly to user model (same as manual form save)
+        $updateData['monthly_expenditure'] = $total;
+        $updateData['annual_expenditure'] = $total * 12;
+        $updateData['use_simple_entry'] = false;
+        $user->update($updateData);
+
+        // Navigate to expenditure page to show result
         return [
-            'action' => 'fill_form',
-            'entity_type' => 'expenditure',
-            'route' => '/valuable-info?section=expenditure',
-            'fields' => $fields,
-            'message' => "I'll fill in your expenditure details now.",
+            'action' => 'navigate',
+            'route_path' => '/valuable-info?section=expenditure',
+            'description' => 'Showing your updated expenditure breakdown.',
         ];
     }
 
