@@ -2059,6 +2059,11 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $section = $input['section'];
+
+        // Redirect expenditure to set_expenditure tool
+        if ($section === 'expenditure') {
+            return $this->handleSetExpenditure($input['fields'] ?? $input, $user, $isPreview);
+        }
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
