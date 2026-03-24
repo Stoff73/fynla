@@ -399,8 +399,8 @@ class XaiToolDefinitions
                 'Create a property record and optionally a linked mortgage. '
                 .'Call this tool IMMEDIATELY when the user mentions a property — do not ask questions first. '
                 .'Fill in every field you can from what the user said and set null for anything not mentioned. '
-                .'The form will be opened and filled in front of the user. After filling, ask if they want to add '
-                .'any missing details (postcode, monthly costs, etc.) before saving, or if they are happy to save as-is. '
+                .'The form will be opened, filled, and saved automatically. After saving, confirm what was added '
+                .'and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. '
                 .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership.',
                 [
                     // ── Basic (truly required) ──
