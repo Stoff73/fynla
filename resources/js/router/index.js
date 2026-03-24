@@ -21,6 +21,24 @@ const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoun
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
 const PlanningYourFuturePage = () => import('@/views/Public/stages/PlanningYourFuturePage.vue');
 const EnjoyingYourWealthPage = () => import('@/views/Public/stages/EnjoyingYourWealthPage.vue');
+// Why Fynla
+const OurApproachPage = () => import('@/views/Public/why-fynla/OurApproachPage.vue');
+const OnePlatformPage = () => import('@/views/Public/why-fynla/OnePlatformPage.vue');
+const IndependentPage = () => import('@/views/Public/why-fynla/IndependentPage.vue');
+const AlternativesPage = () => import('@/views/Public/why-fynla/AlternativesPage.vue');
+// Learn
+const LearnHubPage = () => import('@/views/Public/learn/LearnHubPage.vue');
+const WhatIsAnIsaPage = () => import('@/views/Public/learn/WhatIsAnIsaPage.vue');
+const WhatIsDrawdownPage = () => import('@/views/Public/learn/WhatIsDrawdownPage.vue');
+const ShouldIOverpayMortgagePage = () => import('@/views/Public/learn/ShouldIOverpayMortgagePage.vue');
+const ShouldIConsolidatePensionsPage = () => import('@/views/Public/learn/ShouldIConsolidatePensionsPage.vue');
+const StartingOutGuidePage = () => import('@/views/Public/learn/guide/StartingOutGuidePage.vue');
+const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
+// Insights
+const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
+const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
+const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
+
 const NetWorthDashboardFeature = () => import('@/views/Public/features/NetWorthDashboardFeature.vue');
 const IceLettersFeature = () => import('@/views/Public/features/IceLettersFeature.vue');
 const ProtectionGapFeature = () => import('@/views/Public/features/ProtectionGapFeature.vue');
@@ -231,6 +249,23 @@ const routes = [
     component: IhtPlanningFeature,
     meta: { public: true },
   },
+  // Why Fynla
+  { path: '/why-fynla/our-approach', name: 'WhyOurApproach', component: OurApproachPage, meta: { public: true } },
+  { path: '/why-fynla/one-platform', name: 'WhyOnePlatform', component: OnePlatformPage, meta: { public: true } },
+  { path: '/why-fynla/independent', name: 'WhyIndependent', component: IndependentPage, meta: { public: true } },
+  { path: '/why-fynla/alternatives', name: 'WhyAlternatives', component: AlternativesPage, meta: { public: true } },
+  // Learn
+  { path: '/learn', name: 'LearnHub', component: LearnHubPage, meta: { public: true } },
+  { path: '/learn/what-is-an-isa', name: 'LearnISA', component: WhatIsAnIsaPage, meta: { public: true } },
+  { path: '/learn/what-is-drawdown', name: 'LearnDrawdown', component: WhatIsDrawdownPage, meta: { public: true } },
+  { path: '/learn/should-i-overpay-my-mortgage', name: 'LearnOverpayMortgage', component: ShouldIOverpayMortgagePage, meta: { public: true } },
+  { path: '/learn/should-i-consolidate-pensions', name: 'LearnConsolidatePensions', component: ShouldIConsolidatePensionsPage, meta: { public: true } },
+  { path: '/learn/guide/starting-out', name: 'LearnGuideStartingOut', component: StartingOutGuidePage, meta: { public: true } },
+  { path: '/learn/glossary', name: 'LearnGlossary', component: GlossaryPage, meta: { public: true } },
+  // Insights
+  { path: '/insights', name: 'InsightsHub', component: InsightsHubPage, meta: { public: true } },
+  { path: '/insights/pension-iht-changes-2027', name: 'InsightPensionIHT', component: PensionIhtChanges2027Page, meta: { public: true } },
+  { path: '/insights/isa-allowance-2025-26', name: 'InsightISAAllowance', component: IsaAllowance202526Page, meta: { public: true } },
 
   // Auth routes
   {

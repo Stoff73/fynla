@@ -71,9 +71,10 @@
                 </button>
                 <div v-if="learnOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-56 z-50 pt-2">
                   <div class="bg-white rounded-xl shadow-lg border border-light-gray py-2">
-                    <router-link to="/learning-centre" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Learning Centre</router-link>
+                    <router-link to="/learn" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Guides &amp; Explainers</router-link>
+                    <router-link to="/learn/glossary" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Glossary A-Z</router-link>
+                    <router-link to="/insights" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Latest Insights</router-link>
                     <router-link to="/faq" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">FAQ</router-link>
-                    <router-link to="/insights" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Latest insights</router-link>
                   </div>
                 </div>
               </div>
@@ -99,8 +100,11 @@
                 </button>
                 <div v-if="whyOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-56 z-50 pt-2">
                   <div class="bg-white rounded-xl shadow-lg border border-light-gray py-2">
-                    <router-link to="/about" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">About Fynla</router-link>
+                    <router-link to="/why-fynla/our-approach" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Our Approach</router-link>
+                    <router-link to="/why-fynla/one-platform" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">One Platform Story</router-link>
+                    <router-link to="/why-fynla/independent" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Not Tied to an Adviser</router-link>
                     <router-link to="/security" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Security &amp; Privacy</router-link>
+                    <router-link to="/why-fynla/alternatives" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Fynla vs Alternatives</router-link>
                   </div>
                 </div>
               </div>
@@ -185,9 +189,10 @@
               </svg>
             </button>
             <div v-if="learnOpen" class="pl-6 pb-1 space-y-0.5">
-              <router-link to="/learning-centre" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Learning Centre</router-link>
+              <router-link to="/learn" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Guides &amp; Explainers</router-link>
+              <router-link to="/learn/glossary" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Glossary A-Z</router-link>
+              <router-link to="/insights" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Latest Insights</router-link>
               <router-link to="/faq" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">FAQ</router-link>
-              <router-link to="/insights" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Latest insights</router-link>
             </div>
           </div>
 
@@ -206,8 +211,11 @@
               </svg>
             </button>
             <div v-if="whyOpen" class="pl-6 pb-1 space-y-0.5">
-              <router-link to="/about" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">About Fynla</router-link>
+              <router-link to="/why-fynla/our-approach" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Our Approach</router-link>
+              <router-link to="/why-fynla/one-platform" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">One Platform Story</router-link>
+              <router-link to="/why-fynla/independent" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Not Tied to an Adviser</router-link>
               <router-link to="/security" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Security &amp; Privacy</router-link>
+              <router-link to="/why-fynla/alternatives" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Fynla vs Alternatives</router-link>
             </div>
           </div>
 
