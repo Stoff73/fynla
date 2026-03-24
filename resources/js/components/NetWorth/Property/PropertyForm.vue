@@ -1686,8 +1686,13 @@ export default {
           // property_type needs explicit handling — <select> v-model doesn't always
           // react to programmatic data changes via the catch-all assignment
           if (fieldKey === 'property_type') {
+            // Direct assignment — then force DOM to re-evaluate the <select>
             this.form.property_type = value;
-            this.$forceUpdate();
+            // Use nextTick to ensure Vue processes the reactive change
+            this.$nextTick(() => {
+              const select = this.$el?.querySelector?.('#property_type');
+              if (select) select.value = value;
+            });
           } else if (fieldKey === 'has_mortgage') {
             this.hasMortgage = !!value;
           } else if (fieldKey === 'mortgage_outstanding_balance') {
