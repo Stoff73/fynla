@@ -1857,7 +1857,7 @@ class CoordinatingAgent extends BaseAgent
 
         // Map AI category values to form chattel_type values
         $chattelType = match ($input['category'] ?? 'other') {
-            'jewellery' => 'jewellery',
+            'jewellery' => 'jewelry',
             'art' => 'art',
             'antiques' => 'antique',
             'collectibles' => 'collectible',
