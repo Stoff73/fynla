@@ -368,7 +368,7 @@ export default {
     },
 
     isPrivateInvestmentType() {
-      return ['private_company', 'crowdfunding'].includes(this.formData.account_type);
+      return ['private_company', 'crowdfunding', 'vct', 'eis'].includes(this.formData.account_type);
     },
 
     isEmployeeShareScheme() {
@@ -728,8 +728,16 @@ export default {
     },
     pendingFill: {
       handler(fill) {
+        console.log('[AI Fill] pendingFill watcher fired:', fill?.entityType, fill?.fields ? Object.keys(fill.fields) : 'no fields');
         if (fill && fill.entityType === 'investment_account' && fill.fields) {
+          // Set account_type immediately before the field sequence starts —
+          // this controls which conditional sub-components are visible (bonds, private, employee schemes)
+          if (fill.fields.account_type) {
+            this.formData.account_type = fill.fields.account_type;
+            console.log('[AI Fill] Set account_type to:', fill.fields.account_type);
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          console.log('[AI Fill] Starting field sequence:', fieldOrder);
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
       },
@@ -740,14 +748,38 @@ export default {
         const value = this.pendingFill.fields[fieldKey];
         if (value !== undefined && value !== null) {
           this.formData[fieldKey] = value;
+          console.log('[AI Fill] Set field:', fieldKey, '=', value);
         }
       }
     },
     filling(isFilling) {
+      console.log('[AI Fill] filling watcher fired:', isFilling, 'pendingFill:', this.pendingFill?.entityType);
       if (isFilling === false && this.pendingFill?.entityType === 'investment_account') {
+        console.log('[AI Fill] All fields done, will auto-submit. formData:', JSON.stringify(this.formData));
+        // Longer delay for complex form types to let Vue reactivity settle
+        const isComplexType = this.isPrivateInvestmentType || this.isEmployeeShareScheme ||
+          ['onshore_bond', 'offshore_bond'].includes(this.formData.account_type);
+        const delay = isComplexType ? 500 : 250;
+        console.log('[AI Fill] Using delay:', delay, 'isComplexType:', isComplexType);
         setTimeout(() => {
-          this.submitForm();
-        }, 250);
+          // Wait for Vue to process all reactive updates before submitting
+          this.$nextTick(() => {
+            console.log('[AI Fill] Calling submitForm now');
+            this.submitForm();
+            // If validation failed (form still open, errors present), report to chat
+            if (Object.keys(this.errors).length > 0) {
+              console.log('[AI Fill] Validation errors:', this.errors);
+              const errorList = Object.values(this.errors).join(', ');
+              this.$store.commit('aiChat/ADD_MESSAGE', {
+                id: 'fill_error_' + Date.now(),
+                role: 'assistant',
+                content: `I wasn't able to save the account — the form has validation errors: ${errorList}. Please check the form and try again.`,
+                created_at: new Date().toISOString(),
+              }, { root: true });
+              this.$store.dispatch('aiFormFill/cancelFill');
+            }
+          });
+        }, delay);
       }
     },
   },
@@ -786,12 +818,15 @@ export default {
     },
 
     submitForm() {
+      console.log('[AI Fill] submitForm() called, account_type:', this.formData.account_type, 'provider:', this.formData.provider, 'current_value:', this.formData.current_value);
       this.errors = {};
 
       // Client-side validation
       if (!this.validateForm()) {
+        console.log('[AI Fill] validateForm() returned false, errors:', JSON.stringify(this.errors));
         return;
       }
+      console.log('[AI Fill] validateForm() passed');
 
       // Check for high percentage fee warning
       if (this.formData.platform_fee_type === 'percentage' &&
@@ -881,6 +916,7 @@ export default {
       }
 
       // Emit save event - parent will close modal after successful save
+      console.log('[AI Fill] Emitting save event with data:', JSON.stringify(submitData).substring(0, 500));
       this.$emit('save', submitData);
       this.submitting = false;
     },

@@ -1038,7 +1038,12 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_value' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in(['stocks_shares_isa', 'lifetime_isa', 'personal_investment_account', 'onshore_bond', 'offshore_bond'])],
+            'account_type' => ['nullable', Rule::in([
+                'stocks_shares_isa', 'lifetime_isa', 'personal_investment_account',
+                'onshore_bond', 'offshore_bond', 'vct', 'eis',
+                'private_company', 'crowdfunding', 'saye', 'csop',
+                'emi', 'unapproved_options', 'rsu', 'other',
+            ])],
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
         ]);
@@ -1057,7 +1062,7 @@ class CoordinatingAgent extends BaseAgent
         $formAccountType = match ($accountType) {
             'stocks_shares_isa', 'lifetime_isa' => 'isa',
             'personal_investment_account' => 'gia',
-            default => $accountType,
+            default => $accountType, // vct, eis, private_company, crowdfunding, saye, csop, emi, unapproved_options, rsu, other pass through directly
         };
 
         // Form uses 'provider' as the main name field — map account_name to it
@@ -1070,6 +1075,68 @@ class CoordinatingAgent extends BaseAgent
             'monthly_contribution_amount' => isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : 0,
             'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
         ];
+
+        // Bond-specific fields
+        if (in_array($accountType, ['onshore_bond', 'offshore_bond'])) {
+            $bondFields = ['bond_purchase_date', 'bond_withdrawal_taken'];
+            foreach ($bondFields as $field) {
+                if (isset($input[$field])) {
+                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                }
+            }
+        }
+
+        // Private company / Crowdfunding fields
+        if (in_array($formAccountType, ['private_company', 'crowdfunding', 'vct', 'eis'])) {
+            $privateStringFields = [
+                'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
+                'investment_date', 'instrument_type', 'funding_round', 'share_class', 'tax_relief_type',
+            ];
+            $privateNumericFields = [
+                'investment_amount', 'number_of_shares', 'price_per_share',
+            ];
+            foreach ($privateStringFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    $fields[$field] = (string) $input[$field];
+                }
+            }
+            foreach ($privateNumericFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                }
+            }
+        }
+
+        // Employee share scheme fields
+        if (in_array($formAccountType, ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'])) {
+            $schemeFields = [
+                'employer_name', 'employer_is_listed', 'grant_date', 'units_granted',
+                'exercise_price', 'market_value_at_grant', 'current_share_price',
+                'units_vested', 'units_unvested', 'vesting_type', 'full_vest_date',
+                'cliff_date', 'cliff_percentage',
+            ];
+            foreach ($schemeFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    if (is_bool($input[$field])) {
+                        $fields[$field] = $input[$field];
+                    } elseif (is_numeric($input[$field])) {
+                        $fields[$field] = (float) $input[$field];
+                    } else {
+                        $fields[$field] = $input[$field];
+                    }
+                }
+            }
+
+            // SAYE-specific fields
+            if ($formAccountType === 'saye') {
+                $sayeFields = ['saye_monthly_savings', 'saye_current_savings_balance', 'scheme_start_date', 'scheme_duration_months'];
+                foreach ($sayeFields as $field) {
+                    if (isset($input[$field]) && $input[$field] !== '') {
+                        $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                    }
+                }
+            }
+        }
 
         return [
             'action' => 'fill_form',

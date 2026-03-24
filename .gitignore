@@ -38,6 +38,9 @@ yarn-error.log
 # Claude local settings
 .claude/settings.local.json
 
+# Claude skills (local only)
+.claude/skills/session-end/
+
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf
