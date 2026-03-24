@@ -371,20 +371,37 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_pension',
-                'Create a pension for the user. Handles both Defined Contribution (workplace, SIPP, personal) and Defined Benefit (final salary, career average) pensions.',
+                'Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). '
+                .'Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. '
+                .'IMPORTANT: Do NOT call any other creation tools in the same turn as create_pension. '
+                .'If the user mentions a pension without specifying DC or DB, ask: "Is this a workplace pension where your employer contributes, or a final salary/career average scheme?"',
                 [
-                    'pension_category' => ['type' => 'string', 'enum' => ['dc', 'db'], 'description' => 'Defined Contribution (dc) or Defined Benefit (db).'],
-                    'scheme_name' => ['type' => 'string', 'description' => 'Name of the pension scheme'],
-                    'scheme_type' => ['type' => ['string', 'null'], 'description' => 'DC: "workplace", "sipp", "personal_pension". DB: "final_salary", "career_average", "public_sector".'],
-                    'provider' => ['type' => ['string', 'null'], 'description' => 'Pension provider. DC only.'],
-                    'current_fund_value' => ['type' => ['number', 'null'], 'description' => 'Current fund value (£). DC only.'],
-                    'employee_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employee contribution % of salary. DC only.'],
-                    'employer_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employer contribution % of salary. DC only.'],
-                    'accrued_annual_pension' => ['type' => ['number', 'null'], 'description' => 'Accrued annual pension (£). DB only.'],
-                    'normal_retirement_age' => ['type' => ['integer', 'null'], 'description' => 'Normal retirement age. DB only.'],
+                    'pension_category' => ['type' => 'string', 'enum' => ['dc', 'db'], 'description' => '"dc" for Defined Contribution (workplace, SIPP, personal). "db" for Defined Benefit (final salary, career average).'],
+                    'scheme_name' => ['type' => 'string', 'description' => 'Name of the pension scheme (e.g. "Aviva Workplace Pension", "NHS Pension Scheme").'],
+                    'scheme_type' => ['type' => ['string', 'null'], 'description' => 'DC: "workplace" (employer pension), "sipp" (Self-Invested Personal Pension), "personal_pension", "stakeholder". DB: "final_salary", "career_average".'],
+                    'provider' => ['type' => ['string', 'null'], 'description' => 'Pension provider (e.g. "Aviva", "Scottish Widows"). DC only.'],
+                    // DC fields
+                    'current_fund_value' => ['type' => ['number', 'null'], 'description' => 'Current fund value in pounds. DC only.'],
+                    'employee_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employee contribution as % of salary (e.g. 5 for 5%). DC workplace only.'],
+                    'employer_contribution_percent' => ['type' => ['number', 'null'], 'description' => 'Employer contribution as % of salary (e.g. 3 for 3%). DC workplace only.'],
+                    'annual_salary' => ['type' => ['number', 'null'], 'description' => 'Annual salary in pounds. DC workplace only — needed to calculate contribution amounts.'],
+                    'monthly_contribution_amount' => ['type' => ['number', 'null'], 'description' => 'Fixed monthly contribution in pounds. DC personal/SIPP only.'],
+                    'retirement_age' => ['type' => ['integer', 'null'], 'description' => 'Planned access age (min 55). DC personal/SIPP only.'],
+                    // DB fields
+                    'accrued_annual_pension' => ['type' => ['number', 'null'], 'description' => 'Projected annual pension at retirement in pounds. DB only.'],
                     'pensionable_service_years' => ['type' => ['number', 'null'], 'description' => 'Years of pensionable service. DB only.'],
+                    'normal_retirement_age' => ['type' => ['integer', 'null'], 'description' => 'Normal retirement age for the scheme. DB only.'],
+                    'scheme_status' => $this->nullableEnum(['Active', 'Deferred', 'In Payment'], 'DB pension status. "Active" if still contributing, "Deferred" if left employer, "In Payment" if retired. Default "Active".'),
+                    'final_salary' => ['type' => ['number', 'null'], 'description' => 'Pensionable salary in pounds. DB only.'],
+                    'accrual_rate' => ['type' => ['integer', 'null'], 'description' => 'Accrual rate denominator (e.g. 60 for 1/60th). DB only. Common: 60 (public sector), 80 (older schemes).'],
                 ],
-                ['pension_category', 'scheme_name', 'scheme_type', 'provider', 'current_fund_value', 'employee_contribution_percent', 'employer_contribution_percent', 'accrued_annual_pension', 'normal_retirement_age', 'pensionable_service_years']
+                [
+                    'pension_category', 'scheme_name', 'scheme_type', 'provider',
+                    'current_fund_value', 'employee_contribution_percent', 'employer_contribution_percent',
+                    'annual_salary', 'monthly_contribution_amount', 'retirement_age',
+                    'accrued_annual_pension', 'pensionable_service_years', 'normal_retirement_age',
+                    'scheme_status', 'final_salary', 'accrual_rate',
+                ]
             ),
         ];
     }

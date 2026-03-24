@@ -1188,25 +1188,36 @@ class CoordinatingAgent extends BaseAgent
         ];
 
         if ($category === 'db') {
+            $fields['employer_name'] = $input['scheme_name'] ?? $schemeName;
             $fields['scheme_type'] = $input['scheme_type'] ?? 'final_salary';
+            // scheme_status is REQUIRED by DB form validation — default to 'Active'
+            $fields['scheme_status'] = $input['scheme_status'] ?? 'Active';
             $fields['annual_income'] = isset($input['accrued_annual_pension']) ? (float) $input['accrued_annual_pension'] : 0;
             $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
-            $fields['employer_name'] = $input['scheme_name'];
+            $fields['final_salary'] = isset($input['final_salary']) ? (float) $input['final_salary'] : null;
+            $fields['accrual_rate'] = isset($input['accrual_rate']) ? (int) $input['accrual_rate'] : null;
+            $fields['normal_retirement_age'] = isset($input['normal_retirement_age']) ? (int) $input['normal_retirement_age'] : null;
         } else {
             // Map AI scheme_type to form pension_type select values
             $formPensionType = match ($input['scheme_type'] ?? 'workplace') {
                 'workplace', 'occupational' => 'occupational',
                 'sipp', 'self_invested' => 'sipp',
-                'personal' => 'personal',
+                'personal', 'personal_pension' => 'personal',
                 'stakeholder' => 'stakeholder',
                 default => 'occupational',
             };
             $fields['pension_type'] = $formPensionType;
-            $fields['provider'] = !empty($input['provider']) ? $input['provider'] : $schemeName;
+            $fields['provider'] = ! empty($input['provider']) ? $input['provider'] : $schemeName;
             $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
             $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
             $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
+            $fields['monthly_contribution_amount'] = isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : null;
+            $fields['annual_salary'] = isset($input['annual_salary']) ? (float) $input['annual_salary'] : null;
+            $fields['retirement_age'] = isset($input['retirement_age']) ? (int) $input['retirement_age'] : null;
         }
+
+        // Strip nulls and empty strings
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
