@@ -1921,11 +1921,19 @@ class CoordinatingAgent extends BaseAgent
         $updateData['use_simple_entry'] = false;
         $user->update($updateData);
 
-        // Navigate to expenditure page to show result
+        $formatted = collect($updateData)
+            ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
+            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)) . ': £' . number_format($v, 2))
+            ->values()
+            ->implode(', ');
+
         return [
-            'action' => 'navigate',
-            'route_path' => '/valuable-info?section=expenditure',
-            'description' => 'Showing your updated expenditure breakdown.',
+            'updated' => true,
+            'section' => 'expenditure',
+            'fields_updated' => array_keys($updateData),
+            'total_monthly' => $total,
+            'total_annual' => $total * 12,
+            'message' => "Expenditure updated: {$formatted}. Total: £" . number_format($total, 2) . '/month.',
         ];
     }
 
