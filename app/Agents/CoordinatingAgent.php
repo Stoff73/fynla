@@ -1339,6 +1339,8 @@ class CoordinatingAgent extends BaseAgent
         // Strip nulls and empty strings — only send fields with actual values
         $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
+        Log::info('[handleCreateProperty] Fields after filter', ['fields' => array_keys($fields), 'property_type' => $fields['property_type'] ?? 'MISSING']);
+
         return [
             'action' => 'fill_form',
             'entity_type' => 'property',

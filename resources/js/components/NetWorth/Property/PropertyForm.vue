@@ -1669,6 +1669,11 @@ export default {
           if (fill.fields.has_mortgage) {
             this.hasMortgage = true;
           }
+          // Set property_type immediately — <select> v-model needs it set before the
+          // field sequence animation starts, otherwise Vue doesn't pick it up
+          if (fill.fields.property_type) {
+            this.form.property_type = fill.fields.property_type;
+          }
           // Build the field order from non-null fields
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
@@ -1971,6 +1976,16 @@ export default {
     },
 
     validateForm() {
+      // DEBUG: log form values at validation time
+      console.log('[PropertyForm validateForm]', {
+        property_type: this.form.property_type,
+        address_line_1: this.form.address_line_1,
+        city: this.form.city,
+        postcode: this.form.postcode,
+        current_value: this.form.current_value,
+        ownership_type: this.form.ownership_type,
+        ownership_percentage: this.form.ownership_percentage,
+      });
       // Basic validation
       if (!this.form.property_type || !this.form.address_line_1 || !this.form.city || !this.form.postcode) {
         this.error = 'Please fill in all required fields in Basic Information (Step 1).';
