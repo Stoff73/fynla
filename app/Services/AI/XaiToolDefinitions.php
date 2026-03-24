@@ -346,7 +346,13 @@ class XaiToolDefinitions
                     'saye_monthly_savings' => ['type' => ['number', 'null'], 'description' => 'Monthly savings amount (max £500). SAYE only.'],
                     'saye_current_savings_balance' => ['type' => ['number', 'null'], 'description' => 'Current savings balance (£). SAYE only.'],
                     'scheme_start_date' => ['type' => ['string', 'null'], 'description' => 'SAYE contract start date (YYYY-MM-DD).'],
-                    'scheme_duration_months' => $this->nullableEnum([36, 60], 'SAYE contract duration: 36 (3 years) or 60 (5 years).'),
+                    'scheme_duration_months' => [
+                        'anyOf' => [
+                            ['type' => 'integer', 'enum' => [36, 60]],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'SAYE contract duration: 36 (3 years) or 60 (5 years).',
+                    ],
                 ],
                 [
                     'account_name', 'account_type', 'provider', 'current_value',
