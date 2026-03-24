@@ -109,7 +109,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
+import { mapGetters, mapActions, mapState } from 'vuex';
 import HoldingsTable from './HoldingsTable.vue';
 import HoldingForm from './HoldingForm.vue';
 
@@ -149,6 +149,7 @@ export default {
       'accounts',
       'loading',
     ]),
+    ...mapState('aiFormFill', ['pendingFill']),
 
     filteredHoldings() {
       // If a specific account is selected, filter holdings by that account
@@ -168,6 +169,18 @@ export default {
         );
       }
       return null;
+    },
+  },
+
+  watch: {
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'investment_holding') {
+          this.selectedHolding = null;
+          this.showModal = true;
+        }
+      },
+      immediate: true,
     },
   },
 
@@ -213,6 +226,11 @@ export default {
           // Create new holding (store action handles analysis)
           await this.createHolding(formData);
           this.successMessage = 'Holding added successfully';
+        }
+
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
 
         // Refresh data to get latest from server

@@ -367,7 +367,8 @@ export default {
 
   watch: {
     '$store.state.aiFormFill.pendingFill'(fill) {
-      if (fill && fill.entityType === 'investment_account') {
+      if (!fill) return;
+      if (fill.entityType === 'investment_account') {
         if (fill.mode === 'edit' && fill.entityId) {
           const record = this.accounts.find(a => a.id === fill.entityId);
           if (record) {
@@ -377,6 +378,15 @@ export default {
         } else {
           this.editingAccount = null;
           this.showAccountForm = true;
+        }
+      } else if (fill.entityType === 'investment_holding') {
+        // Navigate into the account detail view so the holding form can open
+        const accountId = fill.fields?.investment_account_id;
+        if (accountId) {
+          const account = this.accounts.find(a => a.id === accountId);
+          if (account) {
+            this.selectAccount(account);
+          }
         }
       }
     },
@@ -765,6 +775,14 @@ export default {
     if (fill && fill.entityType === 'investment_account' && fill.mode !== 'edit') {
       this.editingAccount = null;
       this.showAccountForm = true;
+    } else if (fill && fill.entityType === 'investment_holding') {
+      const accountId = fill.fields?.investment_account_id;
+      if (accountId) {
+        const account = this.accounts.find(a => a.id === accountId);
+        if (account) {
+          this.selectAccount(account);
+        }
+      }
     }
 
     this.setDetailView(false);

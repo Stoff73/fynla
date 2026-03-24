@@ -384,6 +384,26 @@ class XaiToolDefinitions
                 ]
             ),
             $this->wrapTool(
+                'create_holding',
+                'Add a specific fund, ETF, or share holding to an EXISTING investment account. Use this when the user says "add a holding", "I hold X in my Y account", or mentions a specific fund/ETF/share within an account that already exists. '
+                .'Do NOT use create_investment_account for this — use create_holding instead. Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                [
+                    'account_name' => ['type' => 'string', 'description' => 'Name or provider of the investment account to add the holding to (e.g. "Vanguard ISA", "Hargreaves Lansdown"). Must match an existing account.'],
+                    'security_name' => ['type' => 'string', 'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World", "iShares Core MSCI World")'],
+                    'ticker' => ['type' => ['string', 'null'], 'description' => 'Ticker symbol (e.g. "VWRL", "SWDA", "VUSA")'],
+                    'asset_type' => [
+                        'type' => 'string',
+                        'enum' => ['uk_equity', 'us_equity', 'international_equity', 'fund', 'etf', 'bond', 'cash', 'alternative', 'property'],
+                        'description' => '"fund" for OEICs/unit trusts. "etf" for ETFs. "uk_equity" for UK shares. "us_equity" for US shares. "international_equity" for other shares. "bond" for fixed income. "cash" for cash holdings. "alternative" for commodities/crypto/etc. "property" for property funds.',
+                    ],
+                    'allocation_percent' => ['type' => ['number', 'null'], 'description' => 'Percentage of the account this holding represents (0-100).'],
+                    'purchase_price' => ['type' => ['number', 'null'], 'description' => 'Purchase price per unit (£).'],
+                    'current_price' => ['type' => ['number', 'null'], 'description' => 'Current price per unit (£).'],
+                    'ocf_percent' => ['type' => ['number', 'null'], 'description' => 'Ongoing Charge Figure as percentage (e.g. 0.22 for 0.22%).'],
+                ],
+                ['account_name', 'security_name', 'ticker', 'asset_type', 'allocation_percent', 'purchase_price', 'current_price', 'ocf_percent']
+            ),
+            $this->wrapTool(
                 'create_pension',
                 'Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). '
                 .'Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. '

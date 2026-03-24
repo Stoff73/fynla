@@ -15,6 +15,7 @@ const ENTITY_LABELS = {
   estate_asset: 'estate asset',
   estate_liability: 'liability',
   estate_gift: 'gift',
+  investment_holding: 'investment holding',
 };
 
 // Multi-step form: map logical step numbers to field keys

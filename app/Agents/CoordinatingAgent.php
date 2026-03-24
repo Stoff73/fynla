@@ -675,6 +675,7 @@ class CoordinatingAgent extends BaseAgent
                 'create_life_event' => $this->handleCreateLifeEvent($input, $user, $isPreviewUser),
                 'create_savings_account' => $this->handleCreateSavingsAccount($input, $user, $isPreviewUser),
                 'create_investment_account' => $this->handleCreateInvestmentAccount($input, $user, $isPreviewUser),
+                'create_holding' => $this->handleCreateHolding($input, $user, $isPreviewUser),
                 'create_pension' => $this->handleCreatePension($input, $user, $isPreviewUser),
                 'create_property' => $this->handleCreateProperty($input, $user, $isPreviewUser),
                 'create_mortgage' => $this->handleCreateMortgage($input, $user, $isPreviewUser),
@@ -1172,6 +1173,73 @@ class CoordinatingAgent extends BaseAgent
             'route' => '/net-worth/investments',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$provider}\" investment account now.",
+        ];
+    }
+
+    private function handleCreateHolding(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('investment holding');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'security_name' => 'required|string|max:255',
+            'ticker' => 'nullable|string|max:20',
+            'asset_type' => ['required', Rule::in(['uk_equity', 'us_equity', 'international_equity', 'fund', 'etf', 'bond', 'cash', 'alternative', 'property'])],
+            'allocation_percent' => 'nullable|numeric|min:0|max:100',
+            'purchase_price' => 'nullable|numeric|min:0|max:999999.99',
+            'current_price' => 'nullable|numeric|min:0|max:999999.99',
+            'ocf_percent' => 'nullable|numeric|min:0|max:10',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        // Look up the investment account by name/provider for this user
+        $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            ->where(function ($query) use ($input) {
+                $query->where('provider', 'LIKE', '%' . $input['account_name'] . '%')
+                    ->orWhere('account_name', 'LIKE', '%' . $input['account_name'] . '%');
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $account) {
+            return [
+                'error' => true,
+                'message' => "I couldn't find an investment account matching \"{$input['account_name']}\". Please create the account first, then I can add holdings to it.",
+            ];
+        }
+
+        $fields = [
+            'investment_account_id' => $account->id,
+            'security_name' => $input['security_name'],
+            'asset_type' => $input['asset_type'],
+        ];
+
+        if (isset($input['ticker'])) {
+            $fields['ticker'] = $input['ticker'];
+        }
+        if (isset($input['allocation_percent'])) {
+            $fields['allocation_percent'] = (float) $input['allocation_percent'];
+        }
+        if (isset($input['purchase_price'])) {
+            $fields['purchase_price'] = (float) $input['purchase_price'];
+        }
+        if (isset($input['current_price'])) {
+            $fields['current_price'] = (float) $input['current_price'];
+        }
+        if (isset($input['ocf_percent'])) {
+            $fields['ocf_percent'] = (float) $input['ocf_percent'];
+        }
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'investment_holding',
+            'route' => '/net-worth/investments',
+            'fields' => $fields,
+            'message' => "I'll add \"{$input['security_name']}\" to your {$account->provider} account now.",
         ];
     }
 
