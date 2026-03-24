@@ -14,6 +14,15 @@ const PricingPage = () => import('@/views/Public/PricingPage.vue');
 const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
 const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
+const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
+const FaqPage = () => import('@/views/Public/FaqPage.vue');
+const NetWorthDashboardFeature = () => import('@/views/Public/features/NetWorthDashboardFeature.vue');
+const IceLettersFeature = () => import('@/views/Public/features/IceLettersFeature.vue');
+const ProtectionGapFeature = () => import('@/views/Public/features/ProtectionGapFeature.vue');
+const MonteCarloFeature = () => import('@/views/Public/features/MonteCarloFeature.vue');
+const WhenCanIRetireFeature = () => import('@/views/Public/features/WhenCanIRetireFeature.vue');
+const PensionTrackerFeature = () => import('@/views/Public/features/PensionTrackerFeature.vue');
+const IhtPlanningFeature = () => import('@/views/Public/features/IhtPlanningFeature.vue');
 
 // Auth pages
 const Login = () => import('@/views/Login.vue');
@@ -131,6 +140,60 @@ const routes = [
     path: '/terms',
     name: 'TermsOfService',
     component: TermsOfServicePage,
+    meta: { public: true },
+  },
+  {
+    path: '/how-it-works',
+    name: 'HowItWorks',
+    component: HowItWorksPage,
+    meta: { public: true },
+  },
+  {
+    path: '/faq',
+    name: 'FAQ',
+    component: FaqPage,
+    meta: { public: true },
+  },
+  {
+    path: '/features/net-worth-dashboard',
+    name: 'FeatureNetWorth',
+    component: NetWorthDashboardFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/ice-letters',
+    name: 'FeatureIceLetters',
+    component: IceLettersFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/protection-gap',
+    name: 'FeatureProtectionGap',
+    component: ProtectionGapFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/monte-carlo',
+    name: 'FeatureMonteCarlo',
+    component: MonteCarloFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/when-can-i-retire',
+    name: 'FeatureWhenCanIRetire',
+    component: WhenCanIRetireFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/pension-tracker',
+    name: 'FeaturePensionTracker',
+    component: PensionTrackerFeature,
+    meta: { public: true },
+  },
+  {
+    path: '/features/iht-planning',
+    name: 'FeatureIhtPlanning',
+    component: IhtPlanningFeature,
     meta: { public: true },
   },
 
