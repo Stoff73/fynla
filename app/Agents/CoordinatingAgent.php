@@ -635,6 +635,9 @@ class CoordinatingAgent extends BaseAgent
      */
     public function executeTool(string $toolName, array $input, User $user): array
     {
+        // xAI strict mode may return the string "null" instead of actual null for nullable fields
+        $input = array_map(fn ($v) => $v === 'null' ? null : $v, $input);
+
         $isPreviewUser = $user->is_preview_user;
 
         // Prerequisite gate check
@@ -1216,6 +1219,8 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleCreateProperty(array $input, User $user, bool $isPreview): array
     {
+        Log::info('[handleCreateProperty] Input received', ['input' => $input, 'user_id' => $user->id]);
+
         if ($isPreview) {
             return $this->previewBlocked('property');
         }
