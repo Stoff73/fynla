@@ -414,11 +414,11 @@ class XaiToolDefinitions
                         'description' => 'Current estimated market value of the full property in pounds (e.g. 450000). Always the FULL value, not the user\'s share.',
                     ],
                     // ── Address ──
-                    'address_line_1' => ['type' => ['string', 'null'], 'description' => 'Street address (e.g. "42 Oak Lane").'],
+                    'address_line_1' => ['type' => ['string', 'null'], 'description' => 'Street address (e.g. "42 Oak Lane"). Try to extract from what user said.'],
                     'address_line_2' => ['type' => ['string', 'null'], 'description' => 'Second address line if needed.'],
-                    'city' => ['type' => ['string', 'null'], 'description' => 'City or town.'],
+                    'city' => ['type' => ['string', 'null'], 'description' => 'City or town. Infer from address if user mentions a place name (e.g. "house in Guildford" → city is "Guildford").'],
                     'county' => ['type' => ['string', 'null'], 'description' => 'County.'],
-                    'postcode' => ['type' => ['string', 'null'], 'description' => 'UK postcode (e.g. "SW1A 1AA").'],
+                    'postcode' => ['type' => ['string', 'null'], 'description' => 'UK postcode (e.g. "SW1A 1AA"). Include if the user mentions it.'],
                     // ── Purchase ──
                     'purchase_price' => ['type' => ['number', 'null'], 'description' => 'Original purchase price in pounds.'],
                     'purchase_date' => ['type' => ['string', 'null'], 'description' => 'Purchase date (YYYY-MM-DD). If only year known, use Jan 1st (e.g. "2015-01-01").'],
