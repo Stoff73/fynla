@@ -102,14 +102,15 @@ No database changes. No seeding required.
 | 5 | Jewellery | Diamond engagement ring | £7,000 | £5,500 | PASS |
 | 6 | Other/Collectible | Case of fine wine | £3,000 | £1,800 | PASS |
 
-## Test Verification — Cash/Savings (4/4 PASS)
+## Test Verification — Cash/Savings (5/5 PASS)
 
 | Scenario | Type | Institution | Balance | Rate | Flags | Result |
 |----------|------|------------|---------|------|-------|--------|
 | 1 | Easy Access | Marcus by Goldman Sachs | £15,000 | 4.5% | — | PASS |
 | 2 | Cash ISA | Nationwide | £18,500 | 4.1% | ISA, £500/mo contribution | PASS |
-| 3 | Premium Bonds | NS&I | £5,000 | 0% | Saved as easy_access (minor mapping) | PASS |
+| 3 | Premium Bonds | NS&I | £5,000 | 0% | — | PASS |
 | 4 | Emergency Fund | Barclays | £10,000 | 3.8% | Emergency fund flag set | PASS |
+| 5 | Current Account | HSBC | £3,200 | 0% | Correct section after enum fix | PASS |
 
 ## Known Issues
 
