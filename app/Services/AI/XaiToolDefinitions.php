@@ -582,10 +582,11 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_liability',
-                'Create a liability. Use for any debt: credit cards, loans, student loans, car finance.',
+                'Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'liability_name' => ['type' => 'string', 'description' => 'Name of the liability'],
-                    'liability_type' => ['type' => 'string', 'enum' => ['loan', 'personal_loan', 'credit_card', 'mortgage', 'student_loan', 'other'], 'description' => 'Type of liability'],
+                    'liability_name' => ['type' => 'string', 'description' => 'Name of the liability (e.g. "Barclays Visa", "Halifax Personal Loan", "BMW Car Finance")'],
+                    'liability_type' => ['type' => 'string', 'enum' => ['personal_loan', 'credit_card', 'student_loan', 'hire_purchase', 'secured_loan', 'overdraft', 'business_loan', 'other'], 'description' => 'Type. "hire_purchase" for car finance/HP. "personal_loan" for bank loans. "credit_card" for credit cards. "student_loan" for student loans. "overdraft" for bank overdrafts.'],
                     'current_balance' => ['type' => 'number', 'description' => 'Outstanding balance (£)'],
                     'monthly_payment' => ['type' => ['number', 'null'], 'description' => 'Monthly payment (£)'],
                     'interest_rate' => ['type' => ['number', 'null'], 'description' => 'Interest rate as percentage'],
