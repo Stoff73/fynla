@@ -1452,9 +1452,9 @@ class CoordinatingAgent extends BaseAgent
             $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
         }
 
-        // Life insurance sub-type
+        // Life insurance sub-type — map generic 'term' to 'level_term' (dropdown value)
         if ($formPolicyType === 'life') {
-            $fields['life_policy_type'] = $policyType;
+            $fields['life_policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
         }
 
         // Term years (for life and critical illness)
@@ -1818,10 +1818,14 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'business_name' => 'required|string|max:255',
-            'business_type' => ['required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp'])],
+            'business_type' => ['required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp', 'other'])],
+            'industry_sector' => 'nullable|string|max:255',
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'estimated_value' => 'nullable|numeric|min:0|max:999999999.99',
-            'annual_profit' => 'nullable|numeric|min:0|max:999999999.99',
+            'annual_revenue' => 'nullable|numeric|min:0|max:999999999.99',
+            'annual_profit' => 'nullable|numeric|min:-999999999.99|max:999999999.99',
+            'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
+            'employee_count' => 'nullable|integer|min:0|max:99999',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1830,10 +1834,27 @@ class CoordinatingAgent extends BaseAgent
         $fields = [
             'business_name' => $input['business_name'],
             'business_type' => $input['business_type'],
-            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100,
             'current_valuation' => isset($input['estimated_value']) ? (float) $input['estimated_value'] : 0,
-            'annual_profit' => isset($input['annual_profit']) ? (float) $input['annual_profit'] : 0,
         ];
+
+        if (isset($input['industry_sector'])) {
+            $fields['industry_sector'] = $input['industry_sector'];
+        }
+        if (isset($input['ownership_percentage'])) {
+            $fields['ownership_percentage'] = (float) $input['ownership_percentage'];
+        }
+        if (isset($input['annual_revenue'])) {
+            $fields['annual_revenue'] = (float) $input['annual_revenue'];
+        }
+        if (isset($input['annual_profit'])) {
+            $fields['annual_profit'] = (float) $input['annual_profit'];
+        }
+        if (isset($input['annual_dividend_income'])) {
+            $fields['annual_dividend_income'] = (float) $input['annual_dividend_income'];
+        }
+        if (isset($input['employee_count'])) {
+            $fields['employee_count'] = (int) $input['employee_count'];
+        }
 
         return [
             'action' => 'fill_form',

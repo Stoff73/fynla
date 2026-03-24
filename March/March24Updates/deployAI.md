@@ -4,7 +4,7 @@
 
 ## What Changed
 
-Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 6 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, and Liabilities.
+Separate xAI-optimised tool definitions with strict function calling. Grok now fills in forms across 8 modules end-to-end via the Fyn chat assistant: Property, Pensions, Chattels, Cash/Savings, Expenditure, Liabilities, Protection, and Business Interests.
 
 ## Files to Upload
 
@@ -19,12 +19,14 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 | File | Server Path | What Changed |
 |------|-------------|-------------|
 | `app/Traits/HasAiChat.php` | `~/www/fynla.org/public_html/app/Traits/HasAiChat.php` | Routes xAI to XaiToolDefinitions, removes double-wrapping, strengthened system prompt for immediate tool calling, expenditure tool routing |
-| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handlers for property (all fields), pension (DC+DB), chattel (spelling fix), savings (enum fix), expenditure (direct save), liabilities (enum fix). Null sanitisation, HTML entity decode, required field defaults. |
+| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handlers for property (all fields), pension (DC+DB), chattel (spelling fix), savings (enum fix), expenditure (direct save), liabilities (enum fix), protection (term→level_term mapping, FIB benefit_amount), business (enriched with industry/revenue/dividends/employees). Null sanitisation, HTML entity decode, required field defaults. |
 | `resources/js/components/NetWorth/Property/PropertyForm.vue` | Compiled into `public/build/` | AI fill watcher expanded (32 highlight bindings), property_type early-set fix, scroll error fix |
 | `resources/js/components/Retirement/DBPensionForm.vue` | Compiled into `public/build/` | Pre-set scheme_status, scheme_type, employer_name in pendingFill watcher |
 | `resources/js/components/NetWorth/ChattelFormModal.vue` | Compiled into `public/build/` | Pre-set chattel_type and name in pendingFill watcher |
 | `resources/js/components/UserProfile/ExpenditureForm.vue` | Compiled into `public/build/` | AI fill watchers (Composition API) for expenditure categories |
 | `resources/js/views/ValuableInfo.vue` | Compiled into `public/build/` | Watch pendingFill to switch to expenditure tab |
+| `resources/js/components/Protection/PolicyFormModal.vue` | Compiled into `public/build/` | Added `family_income_benefit` to life_policy_type dropdown. Filling watcher with $nextTick, 500ms delay, error reporting to chat. |
+| `resources/js/components/NetWorth/BusinessInterestForm.vue` | Compiled into `public/build/` | Pre-set business_name, business_type, current_valuation in pendingFill watcher. Filling watcher with $nextTick, 500ms delay, error reporting to chat. |
 
 ### Frontend Build Required
 
@@ -132,6 +134,28 @@ No database changes. No seeding required.
 | 7 | Business Loan | NatWest Business Loan | £25,000 | £500/mo | 8.50% | PASS |
 | 8 | Other (Personal Loan) | Loan from Brother | £5,000 | — | — | PASS |
 
+## Test Verification — Protection (8/8 PASS)
+
+| Scenario | Type | Provider | Amount | Key Fields | Result |
+|----------|------|----------|--------|------------|--------|
+| 1 | Level Term Life | Aviva | £500,000 | 25yr, in trust | PASS |
+| 2 | Whole of Life | Royal London | £200,000 | in trust, no term | PASS |
+| 3 | Standalone CI | Vitality | £150,000 | 20yr term | PASS |
+| 4 | Income Protection | LV= | £2,500/mo benefit | monthly benefit | PASS |
+| 5 | Family Income Benefit | Zurich | £3,000/mo benefit | 18yr, benefit mapped correctly | PASS |
+| 6 | Decreasing Term | Legal & General | £350,000 | 20yr, mortgage protection | PASS |
+| 7 | Accelerated CI | Scottish Widows | £250,000 | 25yr term | PASS |
+| 8 | Term Life (generic) | AIG | £300,000 | 15yr, mapped to level_term | PASS |
+
+## Test Verification — Business Interests (4/4 PASS)
+
+| Scenario | Type | Name | Value | Key Fields | Result |
+|----------|------|------|-------|------------|--------|
+| 1 | Sole Trader | Smith Consulting | £150,000 | Consulting sector, £60k profit | PASS |
+| 2 | Limited Company | Acme Technologies Ltd | £500,000 | Tech, £250k rev, £80k profit, £40k divs | PASS |
+| 3 | Partnership | Jones & Partners | £300,000 (50%) | Law, 50% ownership, £400k rev | PASS |
+| 4 | LLP | Digital Solutions LLP | £200,000 (33%) | IT consultancy, 33% share, £90k profit | PASS |
+
 ## Known Issues
 
 - **DB pension API field mapping**: The DB pension form uses field names (`employer_name`, `annual_income`, `service_years`) that don't match the API validation/DB columns (`scheme_name`, `accrued_annual_pension`, `pensionable_service_years`). Pre-existing bug — same on manual form submit. Form fills and displays correctly but some fields don't persist to DB.
@@ -139,6 +163,8 @@ No database changes. No seeding required.
 - **Expenditure form fill pattern**: Expenditure uses direct DB save instead of the form fill pattern due to the inline edit form's Composition API `initializeFromProps` race condition. Data saves correctly to all categories but doesn't visually animate through the form. Needs further work to match other modules' form fill UX.
 
 - **xAI HTML entity encoding**: xAI sometimes returns HTML entities in tool arguments (e.g. `NS&amp;I`). Fixed with `html_entity_decode()` in `executeTool()`.
+
+- **Protection TypeError**: `TypeError: Cannot convert undefined or null to object` at PolicyFormModal.vue:196 during every AI fill. Does NOT block save — console error only. Needs null guard investigation.
 
 ## Key Technical Details
 
@@ -150,6 +176,11 @@ No database changes. No seeding required.
 - `property_type` must be set early in `pendingFill` watcher before field sequence starts (Vue select reactivity)
 - DB pension `scheme_status` and `scheme_type` pre-set in `pendingFill` watcher (same Vue select fix)
 - Chattel `chattel_type` and `name` pre-set in `pendingFill` watcher
+- Protection `policyType` and `life_policy_type` pre-set in `pendingFill` watcher
+- Business `business_name`, `business_type`, `current_valuation` pre-set in `pendingFill` watcher
+- Protection handler maps generic `term` → `level_term` for life_policy_type dropdown
+- Protection FIB uses `benefit_amount` → `coverage_amount` (same as income_protection)
+- Business tool enriched with industry_sector, annual_revenue, annual_dividend_income, employee_count
 - System prompt instructs Grok to call creation tools immediately, not ask questions first
 - Tool descriptions prevent multi-tool calls in same turn (avoids page navigation interrupting form fill)
 - `update_profile` with `section='expenditure'` redirects to `handleSetExpenditure` (direct save)
@@ -158,7 +189,7 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Total Test Results: 31/31 PASS
+## Total Test Results: 43/43 PASS
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -168,4 +199,6 @@ No database changes. No seeding required.
 | Cash/Savings | 5 | 5/5 PASS |
 | Expenditure | 1 | 1/1 PASS |
 | Liabilities | 8 | 8/8 PASS |
-| **Total** | **31** | **31/31 PASS** |
+| Protection | 8 | 8/8 PASS |
+| Business Interests | 4 | 4/4 PASS |
+| **Total** | **43** | **43/43 PASS** |

@@ -75,6 +75,7 @@
               >
                 <option value="">Select life policy type...</option>
                 <option value="decreasing_term">Decreasing Life Policy</option>
+                <option value="family_income_benefit">Family Income Benefit</option>
                 <option value="level_term">Level Term Life Policy</option>
                 <option value="whole_of_life">Whole of Life Policy</option>
               </select>
