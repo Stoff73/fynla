@@ -146,13 +146,11 @@ const actions = {
       commit('setRole', data.role);
       commit('setPermissions', data.permissions || []);
 
-      // Set life stage data immediately from the auth response (no separate API call needed)
-      if (data.user?.life_stage) {
-        commit('lifeStage/setCurrentStage', data.user.life_stage, { root: true });
-      }
-      if (data.data_completed_steps?.length) {
-        commit('lifeStage/setDataCompletedSteps', data.data_completed_steps, { root: true });
-      }
+      // Always sync life stage from the authenticated user's data.
+      // This ensures stale state from a previous user is cleared on login,
+      // while preserving the correct stage for returning users.
+      commit('lifeStage/setCurrentStage', data.user?.life_stage || null, { root: true });
+      commit('lifeStage/setDataCompletedSteps', data.data_completed_steps || [], { root: true });
 
       return data.user;
     } catch (error) {
