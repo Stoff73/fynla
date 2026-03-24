@@ -1,11 +1,11 @@
-# Deploy Guide — xAI Property Form Fill (24 March 2026)
+# Deploy Guide — xAI Property & Pension Form Fill (24 March 2026)
 
 **Branch:** `grokAI`
-**Commits:** af546ca..5d88550 (18 commits)
+**Commits:** af546ca..3163174 (20 commits)
 
 ## What Changed
 
-Separate xAI-optimised tool definitions with strict function calling. Grok now fills in property forms (all types, ownership, mortgages) end-to-end via the Fyn chat assistant.
+Separate xAI-optimised tool definitions with strict function calling. Grok now fills in property forms (all types, ownership, mortgages) and pension forms (DC workplace, SIPP, personal, stakeholder + DB final salary, career average) end-to-end via the Fyn chat assistant.
 
 ## Files to Upload
 
@@ -15,13 +15,14 @@ Separate xAI-optimised tool definitions with strict function calling. Grok now f
 |------|-------------|
 | `app/Services/AI/XaiToolDefinitions.php` | `~/www/fynla.org/public_html/app/Services/AI/XaiToolDefinitions.php` |
 
-### Modified Files (3)
+### Modified Files (4)
 
 | File | Server Path | What Changed |
 |------|-------------|-------------|
 | `app/Traits/HasAiChat.php` | `~/www/fynla.org/public_html/app/Traits/HasAiChat.php` | Routes xAI to XaiToolDefinitions, removes double-wrapping, strengthened system prompt for immediate tool calling |
-| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handleCreateProperty with all fields (ownership, tenure, costs, BTL, mortgage), null sanitisation, required field defaults |
+| `app/Agents/CoordinatingAgent.php` | `~/www/fynla.org/public_html/app/Agents/CoordinatingAgent.php` | Expanded handleCreateProperty (all fields, ownership, tenure, costs, BTL, mortgage) + handleCreatePension (DC: salary, monthly contribution, retirement age; DB: scheme_status, final_salary, accrual_rate). Null sanitisation, required field defaults. |
 | `resources/js/components/NetWorth/Property/PropertyForm.vue` | Compiled into `public/build/` | AI fill watcher expanded (32 highlight bindings), property_type early-set fix, scroll error fix |
+| `resources/js/components/Retirement/DBPensionForm.vue` | Compiled into `public/build/` | Pre-set scheme_status, scheme_type, employer_name in pendingFill watcher (Vue select reactivity fix) |
 
 ### Frontend Build Required
 
@@ -68,9 +69,7 @@ These must be set on the server if switching provider. The admin panel toggle ov
 
 No database changes. No seeding required.
 
-## Test Verification
-
-All 5 property scenarios tested end-to-end in browser with xAI:
+## Test Verification — Property (5/5 PASS)
 
 | Scenario | Type | Ownership | Mortgage | Result |
 |----------|------|-----------|----------|--------|
@@ -80,6 +79,21 @@ All 5 property scenarios tested end-to-end in browser with xAI:
 | D | Buy-to-let | Joint 50% | £160k Barclays repayment 5.1% fixed £950/mo + tenant | PASS |
 | E | Leasehold flat | Individual 100% | None + monthly costs (council tax, service charge, insurance) | PASS |
 
+## Test Verification — Pensions (6/6 PASS)
+
+| Scenario | Category | Type | Provider | Value | Result |
+|----------|----------|------|----------|-------|--------|
+| 1 | DC | Workplace | Scottish Widows | £85,000 (5%/3%, £55k salary) | PASS |
+| 2 | DC | SIPP | Hargreaves Lansdown | £120,000 (£500/mo, age 60) | PASS |
+| 3 | DC | Personal | Standard Life | £45,000 (£200/mo) | PASS |
+| 4 | DC | Stakeholder | Legal & General | £18,000 (£150/mo) | PASS |
+| 5 | DB | Final Salary | NHS | £12,000/yr (15 years) | PASS |
+| 6 | DB | Career Average (Deferred) | Teachers' | £6,500/yr (8 years) | PASS |
+
+## Known Issues
+
+- **DB pension API field mapping**: The DB pension form uses field names (`employer_name`, `annual_income`, `service_years`) that don't match the API validation/DB columns (`scheme_name`, `accrued_annual_pension`, `pensionable_service_years`). This is a pre-existing bug — same behaviour on manual form submit. The form fills and displays correctly but some fields don't persist to DB. Needs separate fix to the DB pension form or API.
+
 ## Key Technical Details
 
 - **XaiToolDefinitions.php** returns pre-wrapped OpenAI function format with `strict: true`
@@ -87,6 +101,7 @@ All 5 property scenarios tested end-to-end in browser with xAI:
 - 3 tools without strict mode: `create_what_if_scenario`, `update_record`, `update_profile` (dynamic key-value objects)
 - xAI returns string `"null"` instead of JSON `null` for nullable fields — sanitised in `executeTool()`
 - `property_type` must be set early in `pendingFill` watcher before field sequence starts (Vue select reactivity)
+- DB pension `scheme_status` and `scheme_type` pre-set in `pendingFill` watcher (same Vue select fix)
 - System prompt instructs Grok to call creation tools immediately, not ask questions first
-- `create_property` tool description prevents multi-tool calls in same turn (avoids page navigation interrupting form fill)
+- `create_property` and `create_pension` tool descriptions prevent multi-tool calls in same turn (avoids page navigation interrupting form fill)
 - Anthropic path completely untouched — no regression risk
