@@ -1708,12 +1708,19 @@ export default {
       }
     },
 
-    // AI Form Fill: auto-submit when filling completes
+    // AI Form Fill: when filling completes, prompt user to review before saving
     filling(isFilling) {
       if (isFilling === false && this.pendingFill && (this.pendingFill.entityType === 'property' || this.pendingFill.entityType === 'mortgage')) {
-        setTimeout(() => {
-          this.handleSubmit();
-        }, 250);
+        // Don't auto-submit — let the user review the form and add missing details.
+        // Add a chat message prompting them to save when ready.
+        this.$store.commit('aiChat/ADD_MESSAGE', {
+          id: 'fill_review_' + Date.now(),
+          role: 'assistant',
+          content: "I've filled in the property details for you. Have a look through the form — you can add or change anything before saving. Click **Save** when you're happy, or tell me if you'd like to change anything.",
+          created_at: new Date().toISOString(),
+        }, { root: true });
+        // Clear the fill state but don't submit
+        this.$store.dispatch('aiFormFill/cancelFill');
       }
     },
   },
