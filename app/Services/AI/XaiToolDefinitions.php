@@ -61,7 +61,9 @@ class XaiToolDefinitions
                 'strict' => true,
                 'parameters' => [
                     'type' => 'object',
-                    'properties' => $properties,
+                    // Empty properties must be JSON object {}, not array [].
+                    // PHP's json_encode turns [] into [], but (object)[] into {}.
+                    'properties' => empty($properties) ? (object) [] : $properties,
                     'required' => $required,
                     'additionalProperties' => false,
                 ],
@@ -128,13 +130,13 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'list_goals',
                 'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal.',
-                (array) (object) [],
+                [],
                 []
             ),
             $this->wrapTool(
                 'list_life_events',
                 'List all of the user\'s life events with dates, amounts, and IDs. Use this when the user asks about their life events, upcoming events, or before updating/deleting a specific event.',
-                (array) (object) [],
+                [],
                 []
             ),
             $this->wrapTool(
@@ -152,7 +154,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'get_recommendations',
                 'Get the user\'s personalised financial recommendations ranked by priority across all modules.',
-                (array) (object) [],
+                [],
                 []
             ),
         ];
@@ -193,7 +195,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'generate_financial_plan',
                 'Generate a comprehensive holistic financial plan for the user. Analyses all modules and returns an executive summary, top recommendations, and action plan.',
-                (array) (object) [],
+                [],
                 []
             ),
         ];
