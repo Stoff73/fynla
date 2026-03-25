@@ -1,93 +1,74 @@
 # TODO — Fynla
 
-*Last updated: 24 March 2026 — session 5 (AI form fill testing, onboarding fix, UI fixes)*
+*Last updated: 25 March 2026 — session 7 (inline investment holdings feature + AI tool updates)*
 
-## Completed This Session
+## Completed This Session (grokAI branch)
 
-### AI Form Fill Testing (grokAI branch)
-- [x] Protection module: tested all 8 policy types with Anthropic (4/8 pass) and Grok (7/8 pass)
-- [x] Investment module: added 9 new account types to AI tool definition (VCT, EIS, private company, crowdfunding, SAYE, CSOP, EMI, unapproved options, RSU)
-- [x] Added 25+ type-specific fields (bonds, private company, employee share schemes)
-- [x] Fixed VCT/EIS not showing private company fields (isPrivateInvestmentType)
-- [x] Fixed 422 validation: company_registration_number cast to float instead of string
-- [x] Fixed Anthropic tool data leak in responses (system prompt instruction)
-- [x] Centralised form fill handshake in aiFormFill.js (formReady state, 30s fallback, stale state clearing)
-- [x] Added validation error reporting from form auto-submit back to chat
-- [x] Documented all results in March/March24Updates/AI/
+### Inline Investment Holdings Feature
+- [x] Design spec: brainstormed, reviewed, approved (`docs/superpowers/specs/2026-03-24-integrated-investment-holdings-design.md`)
+- [x] Implementation plan: written, reviewed (`March/March24Updates/investment-holdings-plan.md`)
+- [x] Backend: `StoreInvestmentAccountRequest` — holdings array validation + total allocation check
+- [x] Backend: `InvestmentController::storeAccount()` — DB::transaction for account + holdings + auto-cash
+- [x] Backend: 5 Pest tests passing (create with holdings, without, explicit cash, >100% rejection, 100% no auto-cash)
+- [x] Frontend: `InlineHoldingsEditor.vue` — new spreadsheet-style component (286 lines)
+- [x] Frontend: `AccountForm.vue` — embedded editor, HoldingForm for details, both watchers updated
+- [x] Frontend: `InvestmentDetailInline.vue` — always-visible holdings section with Details links
+- [x] Browser tested: ISA created with 2 holdings + auto-cash, detail view shows all 3, Details modal opens
 
-### Onboarding Bug Fix (main branch)
-- [x] Fixed stale lifeStage causing onboarding welcome screen to be skipped on re-registration
-- [x] Root cause: auth.js fetchUser only set lifeStage when truthy, leaving stale data from previous user
-- [x] Fix: always sync lifeStage from API (including null) on every login
-- [x] Added resetState mutation to lifeStage store
-- [x] Tested on production: new registration flow works correctly
+### AI Tool Updates (code written, NOT tested with Grok)
+- [x] `XaiToolDefinitions.php` — added `holdings` array param to `create_investment_account`
+- [x] `CoordinatingAgent.php` — `handleCreateInvestmentAccount` passes holdings through for holdable types
+- [x] Updated `create_holding` description to clarify standalone vs inline usage
+- [x] Algorithm doc rewritten: `March/March24Updates/AI/investment-holding-form-algorithm.md`
+- [x] Process doc updated: `March/March24Updates/AI/aiProcess.md` (inline sub-entity pattern)
 
-### UI Fixes (fixBugs branch — PR #159 merged)
-- [x] Replaced investment info banner with hover tooltip icon
-- [x] Reduced net worth donut charts by 25%
-- [x] CSP header fix for Vite dev server
-- [x] API base URL fix for local development
+## CRITICAL — AI Form Fill NOT TESTED WITH GROK
 
-### Production Testing
-- [x] Tested new user registration on fynla.org (chris@fynla.org)
-- [x] Full onboarding flow: welcome → Building Foundations → 5 steps → dashboard
-- [x] Tested c.jones@csjones.co login
-- [x] Reproduced onboarding skip bug after account delete + re-register → fixed
+The AI tool updates (XaiToolDefinitions + CoordinatingAgent) were coded but Steps 4-10 of the aiProcess.md were NOT completed:
 
-## Deployed to Production
-- [x] Onboarding lifeStage fix (auth.js, lifeStage.js)
-- [x] Investment tooltip + donut chart resize (PR #159)
-- [ ] Upload public/build/ to server (built, ready to upload)
-- [ ] Upload SecurityHeaders.php
-- [ ] Clear caches on server
+- [ ] Step 4: Manual browser fill for EVERY variant (ISA, GIA, bond, VCT, EIS with holdings)
+- [ ] Step 5: Verify DB save and dashboard display for each variant
+- [ ] Step 6: Algorithm doc needs updating AFTER manual testing confirms it works
+- [ ] Step 10: Test with Grok — send natural language prompts, verify form fills, verify DB saves
 
-## Not Yet Deployed (grokAI branch)
-- [ ] AI form fill: 14 investment types + specialised fields
-- [ ] Protection form fill fixes
-- [ ] AI form fill handshake + degradation fix
-- [ ] System prompt: no tool data leak instruction
+### Investment Accounts — Still Needs Full Process
+- [ ] `create_investment_account` with holdings — UNTESTED with Grok
+- [ ] Previous issue: Grok creates accounts with £0 value — may still be broken
+- [ ] Account lookup LIKE query too loose — picks wrong account when multiple share provider name
 
-## Known Issues
+## Known Issues (Carried Forward)
 
-### AI Form Fill — Conversation Length Degradation
-- After ~7 consecutive form fills in one chat session, subsequent fills fail silently
-- Root cause: NOT the fallback timer (investigated). The form fill pipeline works (debug logs confirm save emitted). The failure is downstream — the API call after form submit fails silently.
-- Likely cause: API throttling or request interference from SSE stream
-- Workaround: batch ~5 fills per conversation
-- Fix plan: March/March24Updates/AI/conversation-degradation-fix-plan.md
-
-### AI Form Fill — Remaining Entity Types Untested
-- [ ] DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow
-
-### Protection Form Fill Issues
-- [ ] Family Income Benefit: £0 sum assured (benefit_amount mapping)
-- [ ] `family_income_benefit` and `term` not in life_policy_type dropdown
-- [ ] Silent form submission failures for some types with Anthropic
+- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow)
+- [ ] Console errors: Protection TypeError at PolicyFormModal.vue:196 during AI fill (non-blocking)
+- [ ] property_sale life event: Grok also creates property record (double navigation)
 
 ## Tech Debt
 - [ ] Debug console.log statements in AccountForm.vue (remove before deploy)
-- [ ] OnboardingWizard.vue: Vue warn about failed component resolution
+- [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking)
 - [ ] LiabilitiesStep.vue: DEPRECATED comment
 - [ ] IncomeStatementTab.vue is orphaned (never imported)
-- [ ] WARN-002: Security sessions API returns 500
+- [ ] WARN-002: Security sessions API returns 500 on /api/auth/sessions
 - [ ] WARN-003: Vue error on holistic-plan page
 
 ## Grok AI Migration (branch: grokAI)
 
-**Status:** All implementation phases complete. AI form fill testing in progress.
-**Plan:** March/March23Updates/grokMigrationPlan-v2.md
-
-### Remaining
-- [ ] xAI API key configured and tested locally
+### Next Session Tasks
+- [ ] Get xAI API key from https://console.x.ai
+- [ ] Set AI_PROVIDER=xai and XAI_API_KEY in local .env
+- [ ] Complete AI form fill testing — follow aiProcess.md Steps 4-10 for investment holdings
+- [ ] Test with xAI locally — chat, streaming, tool calling, navigation
+- [ ] Test document extraction with xAI
 - [ ] Phase 5 remaining: remove Anthropic SDK, delete Python scripts, update legal text
 - [ ] Merge grokAI branch to main
-- [ ] Deploy to production, switch via admin panel
+- [ ] Deploy to production
 
 ## Context for Next Session
 
-Session 24 March: Extensive AI form fill testing across Protection (8 types) and Investment (14 types) modules with both Anthropic and Grok. Grok consistently outperforms Anthropic on form fill reliability. Identified conversation-length degradation issue (fills fail after ~7 in one session). Fixed onboarding bug on production (stale lifeStage on re-registration). UI fixes merged (PR #159). Production build ready to upload.
+Session 25 March built the inline investment holdings feature (design → plan → implement → browser test). The feature works — accounts can be created with inline holdings in a single transaction, and the detail view shows all holdings. However, the AI tool updates (XaiToolDefinitions + CoordinatingAgent) were coded WITHOUT following the aiProcess.md properly — Steps 4-10 were skipped. Next session MUST start by completing the AI form fill process: manual browser fill of each variant, DB verification, then Grok testing. DO NOT write more code until manual testing is done.
 
-Key files:
-- AI test results: March/March24Updates/AI/protection.md, investments.md
-- Degradation fix plan: March/March24Updates/AI/conversation-degradation-fix-plan.md
-- Deploy guide: March/March24Updates/deployBugs.md
+Key process file: `March/March24Updates/AI/aiProcess.md` — follow it step by step, no shortcuts.
+
+## Files to Review
+- `app/Services/AI/XaiToolDefinitions.php` — holdings param added but untested
+- `app/Agents/CoordinatingAgent.php` — holdings passthrough added but untested
+- `March/March24Updates/AI/investment-holding-form-algorithm.md` — needs updating after manual testing
