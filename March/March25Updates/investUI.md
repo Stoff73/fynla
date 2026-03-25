@@ -2,6 +2,7 @@
 
 **Branch:** `investmentUI`
 **Date:** 25 March 2026
+**Status:** DEPLOYED
 
 ## Summary
 
