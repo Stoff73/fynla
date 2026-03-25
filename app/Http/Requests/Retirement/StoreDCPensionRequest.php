@@ -53,6 +53,13 @@ class StoreDCPensionRequest extends FormRequest
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
             'has_flexibly_accessed' => ['nullable', 'boolean'],
             'flexible_access_date' => ['nullable', 'date', 'before_or_equal:today'],
+            // Inline holdings (created alongside pension in a transaction)
+            'holdings' => ['nullable', 'array'],
+            'holdings.*.security_name' => ['required_with:holdings', 'string', 'max:255'],
+            'holdings.*.asset_type' => ['required_with:holdings', 'string', 'max:50'],
+            'holdings.*.allocation_percent' => ['required_with:holdings', 'numeric', 'min:0', 'max:100'],
+            'holdings.*.ocf_percent' => ['nullable', 'numeric', 'min:0', 'max:10'],
+            'holdings.*.cost_basis' => ['nullable', 'numeric', 'min:0'],
         ];
 
         return $rules;
