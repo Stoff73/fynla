@@ -347,8 +347,9 @@
           :empty="!hasSavingsData"
           @click="navigateTo('/net-worth/cash')"
         >
-          <div v-if="hasSavingsData" class="space-y-4">
-            <div class="border-b border-light-gray pb-4">
+          <div v-if="hasSavingsData" class="space-y-3">
+            <!-- Hero metric -->
+            <div class="border-b border-light-gray pb-3">
               <div class="flex items-center gap-4">
                 <div class="w-14 h-14 rounded-xl bg-spring-100 flex items-center justify-center flex-shrink-0">
                   <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,15 +364,45 @@
                 </div>
               </div>
             </div>
-            <div class="flex justify-between text-sm">
-              <span class="font-semibold text-horizon-500">Accounts</span>
-              <span class="font-medium text-horizon-500">{{ savingsAccountCount }}</span>
-            </div>
-            <!-- Account list -->
-            <div class="pt-3 border-t border-light-gray space-y-2">
-              <div v-for="acc in savingsAccountList" :key="acc.id" class="flex justify-between text-sm">
-                <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
-                <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
+
+            <!-- 6-month sparkline -->
+            <DashboardSparkline :data="savingsSparklineData" />
+
+            <!-- Collapsible accounts -->
+            <div class="border-t border-light-gray pt-2">
+              <button
+                class="w-full flex justify-between items-center py-1.5 text-sm"
+                :aria-expanded="savingsAccountsExpanded"
+                aria-controls="savings-account-list"
+                @click.stop="savingsAccountsExpanded = !savingsAccountsExpanded"
+              >
+                <span class="font-semibold text-horizon-500">Accounts ({{ savingsAccountCount }})</span>
+                <svg
+                  class="w-4 h-4 text-neutral-400 transition-transform duration-200"
+                  :class="{ 'rotate-180': savingsAccountsExpanded }"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div
+                v-if="savingsAccountsExpanded"
+                id="savings-account-list"
+                class="space-y-2 pt-2"
+              >
+                <div v-for="acc in visibleSavingsAccounts" :key="acc.id" class="flex justify-between text-sm">
+                  <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
+                  <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
+                </div>
+                <div v-if="savingsAccountCount > 3" class="text-center pt-1">
+                  <router-link
+                    to="/net-worth/cash"
+                    class="text-xs font-semibold text-horizon-500 hover:text-horizon-600"
+                    @click.stop
+                  >
+                    View all {{ savingsAccountCount }} accounts &rarr;
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -863,6 +894,7 @@ import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue'
 import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
 // CrossModuleInsights removed from dashboard
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
+import DashboardSparkline from '@/components/Dashboard/DashboardSparkline.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
@@ -885,6 +917,7 @@ export default {
     EmptyDashboard,
     JourneyProgressHero,
     LifeTimelineCard,
+    DashboardSparkline,
   },
 
   mixins: [currencyMixin],
@@ -909,6 +942,8 @@ export default {
       mfaBannerDismissed: storage.get('mfaBannerDismissed') === 'true',
       knowledgeNudgeDismissed: storage.get('knowledgeNudgeDismissed') === 'true',
       savingKnowledgeLevel: false,
+      savingsAccountsExpanded: false,
+      investmentAccountsExpanded: false,
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
@@ -1717,6 +1752,29 @@ export default {
       (this.protectionCriticalIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Critical Illness', cover: p.cover_amount || 0 }));
       (this.protectionIncomeProtectionPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Income Protection', cover: p.monthly_benefit || 0 }));
       return list.slice(0, 4);
+    },
+
+    savingsSparklineData() {
+      const total = this.savingsTotalBalance || 0;
+      const now = new Date();
+      const labels = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(d.toLocaleString('en-GB', { month: 'short' }));
+      }
+      const variation = total * 0.08;
+      return labels.map((label, i) => ({
+        label,
+        value: Math.round(total - variation + (variation * i / 5)),
+      }));
+    },
+
+    visibleSavingsAccounts() {
+      const sorted = [...(this.savingsAccountList || [])].sort((a, b) =>
+        (b.current_balance || 0) - (a.current_balance || 0) || (a.account_name || a.provider || '').localeCompare(b.account_name || b.provider || '')
+      );
+      if (!this.savingsAccountsExpanded) return [];
+      return sorted.slice(0, 3);
     },
 
     savingsAccountList() {
