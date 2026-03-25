@@ -63,7 +63,7 @@
         <!-- Account Cards - 4 Column Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Current Account Card -->
-          <div class="account-card">
+          <div class="account-card module-gradient">
             <div class="card-header">
               <h4 class="card-title">Current Accounts</h4>
               <button @click="openAddAccountModal('current_account')" class="add-icon-btn" title="Add Account">
@@ -108,7 +108,7 @@
           </div>
 
           <!-- Savings Account Card -->
-          <div class="account-card">
+          <div class="account-card module-gradient">
             <div class="card-header">
               <h4 class="card-title">Savings Accounts</h4>
               <button @click="openAddAccountModal('savings_account')" class="add-icon-btn" title="Add Account">
@@ -153,7 +153,7 @@
           </div>
 
           <!-- Cash ISA Card -->
-          <div class="account-card">
+          <div class="account-card module-gradient">
             <div class="card-header">
               <h4 class="card-title">Cash ISAs</h4>
               <button @click="openAddAccountModal('cash_isa')" class="add-icon-btn" title="Add Account">
@@ -198,7 +198,7 @@
           </div>
 
           <!-- NS&I Card -->
-          <div class="account-card">
+          <div class="account-card module-gradient">
             <div class="card-header">
               <h4 class="card-title">NS&I</h4>
               <button @click="openAddAccountModal('premium_bonds')" class="add-icon-btn" title="Add Account">
@@ -244,7 +244,7 @@
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-white rounded-lg border border-light-gray p-6">
+        <div class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
           <div class="flex items-center gap-2.5 mb-4">
             <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
             <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
