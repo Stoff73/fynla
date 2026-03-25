@@ -352,6 +352,15 @@
               placeholder="Any additional notes about this pension..."
             ></textarea>
           </div>
+
+          <!-- Inline Holdings Editor -->
+          <InlineHoldingsEditor
+            v-if="parseFloat(formData.current_fund_value) > 0"
+            :account-value="parseFloat(formData.current_fund_value) || 0"
+            :holdings="formData.holdings"
+            :account-id="pension?.id || null"
+            @update:holdings="formData.holdings = $event"
+          />
         </div>
 
         <!-- Actions -->
@@ -380,6 +389,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
+import InlineHoldingsEditor from '@/components/Investment/InlineHoldingsEditor.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -392,6 +402,7 @@ export default {
 
   components: {
     RiskLevelSelector,
+    InlineHoldingsEditor,
   },
 
   props: {
@@ -431,6 +442,7 @@ export default {
         risk_preference: null,
         beneficiary_id: null,
         beneficiary_name: '',
+        holdings: [],
       },
       validationError: null,
       validationErrors: {
@@ -506,7 +518,20 @@ export default {
             risk_preference: newPension.risk_preference || null,
             beneficiary_id: newPension.beneficiary_id || null,
             beneficiary_name: newPension.beneficiary_name || '',
+            holdings: [],
           };
+          // Load existing holdings for edit mode (filter out auto-created cash)
+          if (newPension.holdings?.length) {
+            this.formData.holdings = newPension.holdings
+              .filter(h => h.asset_type !== 'cash')
+              .map(h => ({
+                security_name: h.security_name,
+                asset_type: h.asset_type,
+                allocation_percent: h.allocation_percent,
+                ocf_percent: h.ocf_percent,
+                cost_basis: h.cost_basis,
+              }));
+          }
           this.$nextTick(() => {
             this.initializeBeneficiarySelection();
           });
