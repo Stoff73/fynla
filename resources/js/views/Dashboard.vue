@@ -115,7 +115,7 @@
       </template>
 
       <!-- Three-column dashboard grid -->
-      <div v-else class="dashboard-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-else class="dashboard-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         <!-- Areas to Complete Card (shown first when user has skipped steps) -->
         <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-6">
           <AreasToCompleteCard />
@@ -807,7 +807,7 @@
           v-if="hasGoalsData && !currentStage"
           title="Goals & Life Events"
           :loading="loading.goals"
-          class="lg:col-span-2"
+          class="xl:col-span-2"
           @click="navigateTo('/goals')"
         >
           <!-- Bar chart with event icons - simplified for dashboard -->
@@ -834,7 +834,7 @@
           v-if="currentStage && isCardVisible('goals')"
           title="Goals & Life Events"
           :loading="loading.goals"
-          class="lg:col-span-2"
+          class="xl:col-span-2"
           @click="navigateTo('/goals')"
         >
           <div v-if="goalsData.hasProjection || goalsData.hasGoals" class="cursor-pointer">
@@ -850,7 +850,7 @@
         <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
         <LifeTimelineCard
           v-if="currentStage && isCardVisible('life-timeline')"
-          class="lg:col-span-3"
+          class="xl:col-span-3"
           :horizontal="true"
         />
 
@@ -2010,4 +2010,8 @@ export default {
 
 <style scoped>
 /* Empty cards use order-last to sink below populated cards in the grid */
+
+.dashboard-grid > * {
+  min-width: 0;
+}
 </style>
