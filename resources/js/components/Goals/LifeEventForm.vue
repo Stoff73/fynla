@@ -236,6 +236,19 @@ export default {
 
     pendingFill(fill) {
       if (fill && fill.entityType === 'life_event' && fill.fields) {
+        // Pre-set key fields before field sequence
+        if (fill.fields.event_name) {
+          this.form.event_name = fill.fields.event_name;
+        }
+        if (fill.fields.event_type) {
+          this.form.event_type = fill.fields.event_type;
+        }
+        if (fill.fields.amount) {
+          this.form.amount = fill.fields.amount;
+        }
+        if (fill.fields.expected_date) {
+          this.form.expected_date = fill.fields.expected_date;
+        }
         const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
         this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
       }
@@ -251,10 +264,22 @@ export default {
     },
 
     filling(isFilling) {
-      if (!isFilling && this.pendingFill) {
+      if (isFilling === false && this.pendingFill?.entityType === 'life_event') {
         setTimeout(() => {
-          this.handleSubmit();
-        }, 250);
+          this.$nextTick(() => {
+            this.handleSubmit();
+            if (this.validationErrors.length > 0) {
+              const errorList = this.validationErrors.join(', ');
+              this.$store.commit('aiChat/ADD_MESSAGE', {
+                id: 'fill_error_' + Date.now(),
+                role: 'assistant',
+                content: `I wasn't able to save the life event — ${errorList}. Please check the form and try again.`,
+                created_at: new Date().toISOString(),
+              }, { root: true });
+              this.$store.dispatch('aiFormFill/cancelFill');
+            }
+          });
+        }, 500);
       }
     },
   },

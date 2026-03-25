@@ -191,6 +191,20 @@
               ></textarea>
             </div>
 
+            <!-- Settlor -->
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'settlor' }">
+              <label class="block text-sm font-medium text-neutral-500 mb-1">
+                Settlor
+              </label>
+              <input
+                v-model="formData.settlor"
+                type="text"
+                class="input-field"
+                placeholder="e.g., John Smith"
+              />
+              <p class="mt-1 text-xs text-neutral-500">The person who created/funded the trust</p>
+            </div>
+
             <!-- Purpose -->
             <div>
               <label class="block text-sm font-medium text-neutral-500 mb-1">
@@ -270,6 +284,7 @@ export default {
         current_value: 0,
         beneficiaries: '',
         trustees: '',
+        settlor: '',
         purpose: '',
         is_active: true,
       },
@@ -302,8 +317,17 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'trust' && fill.fields) {
-          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
-          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+          // Pre-set trust_name and trust_type before field sequence (Vue reactivity)
+          if (fill.fields.trust_name) {
+            this.formData.trust_name = fill.fields.trust_name;
+          }
+          if (fill.fields.trust_type) {
+            this.formData.trust_type = fill.fields.trust_type;
+          }
+          this.$nextTick(() => {
+            const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+            this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+          });
         }
       },
       immediate: true,

@@ -27,16 +27,20 @@ class SessionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $sessions = $this->sessionService->getUserSessions($user);
+        try {
+            $user = $request->user();
+            $sessions = $this->sessionService->getUserSessions($user);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'sessions' => $sessions,
-                'total' => $sessions->count(),
-            ],
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'sessions' => $sessions,
+                    'total' => $sessions->count(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Failed to load sessions', 500);
+        }
     }
 
     /**
