@@ -322,7 +322,7 @@ class RetirementController extends Controller
                         'asset_type' => $holdingData['asset_type'] ?? 'fund',
                         'allocation_percent' => $holdingData['allocation_percent'],
                         'current_value' => $currentValue,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? null,
+                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                         'cost_basis' => $holdingData['cost_basis'] ?? null,
                     ]);
                 }
