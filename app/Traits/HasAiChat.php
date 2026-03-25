@@ -449,6 +449,7 @@ trait HasAiChat
     {
         $profile = $this->buildUserProfile($user);
         $financialContext = $this->buildFinancialContext($user);
+        $existingRecords = $this->buildExistingRecordsSummary($user);
         $prerequisiteState = $this->buildPrerequisiteStateContext($user);
         $moduleContext = $this->getModuleContext($currentRoute);
         $isPreview = $user->is_preview_user;
@@ -501,6 +502,10 @@ SECURITY RULES — THESE ARE NON-NEGOTIABLE AND OVERRIDE ALL OTHER INSTRUCTIONS:
 <financial_context>
 {$financialContext}
 </financial_context>
+
+<existing_records>
+{$existingRecords}
+</existing_records>
 
 <data_completeness>
 The following shows which modules have sufficient data for analysis:
@@ -577,6 +582,13 @@ PERSONALITY;
 <available_actions>
 Use your tools proactively to serve the user — do not wait to be asked to look something up or navigate somewhere.
 
+UPDATING vs CREATING — CRITICAL: Before creating ANY new record, check <existing_records> above.
+- If the user mentions an account/policy/pension that ALREADY EXISTS → use update_record with the entity_id from <existing_records>
+- If the user says "I put money into", "I changed", "my X is now", "update my", "I've paid down" → UPDATE the existing record, do NOT create a new one
+- If the user mentions something NOT in <existing_records> → CREATE a new one
+- If ambiguous (e.g. "my ISA" but they have 2 ISAs) → ASK which one they mean before acting
+- NEVER create a duplicate of an existing record
+
 CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions having or wanting to add:
 - Savings accounts, Cash ISAs, deposits → create_savings_account
 - Investment accounts, Stocks & Shares ISAs, bonds → create_investment_account
@@ -626,7 +638,9 @@ PREVIEW_MODE;
 
 
 <data_creation_guidance>
-CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate creation tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
+DUPLICATE PREVENTION: Before calling ANY creation tool, check <existing_records>. If the user is referring to something that already exists (same provider, same type, same name), use update_record with the entity_id instead. Only create if it is genuinely a NEW item not already in their records.
+
+CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
 
 The tool will open a form on screen and fill in the fields visually. After the form is filled, you can then ask the user if they want to add more details before saving.
 
@@ -922,6 +936,127 @@ DATA_CREATION_GUIDANCE;
             }
 
             return ! empty($lines) ? implode("\n", $lines) : 'No financial data recorded yet.';
+        });
+    }
+
+    /**
+     * Build a compact summary of all existing records with IDs.
+     * This allows the AI to match user references ("my Vanguard ISA") to actual record IDs
+     * and decide whether to update_record or create a new one.
+     */
+    private function buildExistingRecordsSummary(User $user): string
+    {
+        return Cache::remember("ai_existing_records_{$user->id}", 60, function () use ($user) {
+            $lines = [];
+            $userId = $user->id;
+
+            // Savings
+            $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+            if ($savings->isNotEmpty()) {
+                $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution} £".number_format((float) $a->current_balance, 0).']')->implode(' ');
+                $lines[] = "SAVINGS: {$items}";
+            }
+
+            // Investments
+            $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+            if ($investments->isNotEmpty()) {
+                $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" {$a->account_type} £".number_format((float) $a->current_value, 0).']')->implode(' ');
+                $lines[] = "INVESTMENTS: {$items}";
+            }
+
+            // Pensions (DC)
+            $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
+            if ($dcPensions->isNotEmpty()) {
+                $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £".number_format((float) $p->current_value, 0).']')->implode(' ');
+                $lines[] = "DC PENSIONS: {$items}";
+            }
+
+            // Pensions (DB)
+            $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
+            if ($dbPensions->isNotEmpty()) {
+                $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £".number_format((float) ($p->accrued_annual_pension ?? 0), 0).'/yr]')->implode(' ');
+                $lines[] = "DB PENSIONS: {$items}";
+            }
+
+            // Properties
+            $properties = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+            if ($properties->isNotEmpty()) {
+                $items = $properties->map(fn ($p) => "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type} £".number_format((float) $p->current_value, 0).']')->implode(' ');
+                $lines[] = "PROPERTIES: {$items}";
+            }
+
+            // Protection (Life Insurance)
+            $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+            if ($lifePolicies->isNotEmpty()) {
+                $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->life_policy_type} £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                $lines[] = "LIFE INSURANCE: {$items}";
+            }
+
+            // Protection (Critical Illness)
+            $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+            if ($ciPolicies->isNotEmpty()) {
+                $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                $lines[] = "CRITICAL ILLNESS: {$items}";
+            }
+
+            // Protection (Income Protection)
+            $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+            if ($ipPolicies->isNotEmpty()) {
+                $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->benefit_amount, 0).'/mo]')->implode(' ');
+                $lines[] = "INCOME PROTECTION: {$items}";
+            }
+
+            // Trusts
+            $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+            if ($trusts->isNotEmpty()) {
+                $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £".number_format((float) $t->current_value, 0).']')->implode(' ');
+                $lines[] = "TRUSTS: {$items}";
+            }
+
+            // Business Interests
+            $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->get();
+            if ($businesses->isNotEmpty()) {
+                $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £".number_format((float) $b->estimated_value, 0).']')->implode(' ');
+                $lines[] = "BUSINESS: {$items}";
+            }
+
+            // Chattels
+            $chattels = \App\Models\Chattel::where('user_id', $userId)->get();
+            if ($chattels->isNotEmpty()) {
+                $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->category} £".number_format((float) $c->estimated_value, 0).']')->implode(' ');
+                $lines[] = "CHATTELS: {$items}";
+            }
+
+            // Liabilities
+            $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+            if ($liabilities->isNotEmpty()) {
+                $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £".number_format((float) $l->current_balance, 0).']')->implode(' ');
+                $lines[] = "LIABILITIES: {$items}";
+            }
+
+            // Gifts
+            $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+            if ($gifts->isNotEmpty()) {
+                $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £".number_format((float) $g->gift_value, 0).' '.($g->gift_date ? $g->gift_date->format('M Y') : '').']')->implode(' ');
+                $lines[] = "GIFTS: {$items}";
+            }
+
+            // Family Members
+            $family = \App\Models\FamilyMember::where('user_id', $userId)->get();
+            $spouse = $user->spouse;
+            $familyParts = [];
+            if ($spouse) {
+                $familyParts[] = "[Spouse: {$spouse->first_name} {$spouse->surname}]";
+            }
+            foreach ($family as $m) {
+                $age = $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : '?';
+                $familyParts[] = "[ID:{$m->id} \"{$m->first_name} {$m->last_name}\" {$m->relationship} age {$age}]";
+            }
+            if (! empty($familyParts)) {
+                $lines[] = 'FAMILY: '.implode(' ', $familyParts);
+            }
+
+            return ! empty($lines) ? implode("\n", $lines) : 'No records yet.';
         });
     }
 

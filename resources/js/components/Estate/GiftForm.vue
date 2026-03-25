@@ -213,8 +213,20 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'estate_gift' && fill.fields) {
-          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
-          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+          // Pre-set key fields before field sequence
+          if (fill.fields.gift_date) {
+            this.formData.gift_date = fill.fields.gift_date;
+          }
+          if (fill.fields.gift_type) {
+            this.formData.gift_type = fill.fields.gift_type;
+          }
+          if (fill.fields.recipient) {
+            this.formData.recipient = fill.fields.recipient;
+          }
+          this.$nextTick(() => {
+            const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+            this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+          });
         }
       },
       immediate: true,

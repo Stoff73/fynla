@@ -25,6 +25,7 @@ class SessionService
     public function getUserSessions(User $user): Collection
     {
         return UserSession::forUser($user->id)
+            ->whereHas('token')
             ->latestActivity()
             ->get()
             ->map(function (UserSession $session) {
