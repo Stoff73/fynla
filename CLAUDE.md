@@ -158,6 +158,40 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
+## Vault Reference (fynlaBrain)
+
+The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, load its context with `/vault-context [module]`.**
+
+| Module | Architecture Doc | Current State Doc |
+|--------|-----------------|-------------------|
+| Investment | `v083/09-MODULES.md` | `Investment.md` |
+| Estate | `v083/09-MODULES.md` | `EstatePlanning.md` |
+| Protection | `v083/09-MODULES.md` | `Protection.md` |
+| Retirement | `v083/09-MODULES.md` | `Retirement.md` |
+| Savings | `v083/09-MODULES.md` | `Savings.md` |
+| Goals | `v083/09-MODULES.md` | `GoalsLifeEvents.md` |
+| Property | `v083/09-MODULES.md` | `Property.md` |
+| Auth/Security | `v083/03-AUTH-SECURITY.md` | `Auth.md` |
+| Database | `v083/02-DATABASE.md` | — |
+| Frontend | `v083/05-FRONTEND.md` | — |
+| Backend | `v083/04-BACKEND.md` | — |
+| Deployment | `v083/11-CONFIG-DEPLOY.md` | `DeploymentBuild.md` |
+| AI Chat | `v083/10-NEW-SYSTEMS.md` | — |
+| Tax/Financial | `v083/08-FINANCIAL-CALCS.md` | `UKTaxes.md` |
+| Payments | `v083/10-NEW-SYSTEMS.md` | `PaymentSubscription.md` |
+
+### Sub-Agent Vault Context (MANDATORY)
+
+When dispatching ANY agent to work on module code:
+1. Load `/vault-context [module]` first (or read the relevant vault docs inline)
+2. Include in the agent prompt: architecture patterns, recent fixes, feedback rules
+3. Include ALL `feedback_*.md` rules — these are non-negotiable for every agent
+
+Never dispatch an agent with just "fix X" or "build Y". Always include:
+- What module this is in and its patterns
+- Recent bugs/fixes in this area (from vault deploy/fix docs)
+- The feedback rules that apply
+
 ## Deployment
 
 **Build locally** (server lacks memory for npm):
