@@ -1,15 +1,15 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="py-16 sm:py-20 bg-gradient-to-br from-spring-500 to-spring-300 text-white">
+    <section class="py-10 sm:py-12 bg-gradient-to-br from-spring-500 to-spring-300 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-sm font-semibold uppercase tracking-wider text-white/70 mb-3">Stage 2 of 5 — Building Foundations</p>
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight mb-4">
           Am I actually making progress?
         </h1>
-        <p class="text-lg sm:text-xl text-white/80 max-w-2xl mb-8 leading-relaxed">
+        <p class="text-sm sm:text-sm text-white/80 max-w-2xl mb-8 leading-relaxed">
           You're saving, paying off debts, and thinking about a first home. But it's hard to tell
-          if the numbers are moving in the right direction. Fynla shows you the full picture.
+          if the numbers are moving in the right direction. Fynla shows you the full picture — including first-time buyer mortgage planning and your ISA savings strategy.
         </p>
         <router-link
           to="/register"
@@ -21,9 +21,9 @@
     </section>
 
     <!-- Is this your stage? -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">Is this your stage?</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">Is this your stage?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
@@ -47,16 +47,16 @@
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
               <svg class="w-4 h-4 text-spring-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             </span>
-            <p class="text-neutral-500">You want to know if you're on track</p>
+            <p class="text-neutral-500">You're building wealth in your 30s and want to know if you're on track</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- What Fynla shows you -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div class="bg-white rounded-lg p-6 shadow-sm border border-light-gray">
             <div class="w-10 h-10 rounded-full bg-spring-100 flex items-center justify-center mb-4">
@@ -91,9 +91,9 @@
     </section>
 
     <!-- Features as answers -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
         <p class="text-neutral-500 mb-8 max-w-2xl">You're building something real. These features help you see the progress and stay on course.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <router-link to="/features/net-worth-dashboard" class="block bg-eggshell-500 rounded-lg p-6 border border-light-gray hover:border-spring-300 hover:-translate-y-0.5 transition-all">
@@ -117,12 +117,12 @@
     </section>
 
     <!-- Try a demo persona -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-4">See it in action</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-4">See it in action</h2>
         <p class="text-neutral-500 mb-8">Explore Fynla through a real scenario — no sign-up required.</p>
-        <div class="bg-white rounded-lg p-8 shadow-sm border border-light-gray inline-block">
-          <p class="text-lg font-semibold text-horizon-500 mb-2">John Morgan — building foundations</p>
+        <div class="bg-white rounded-lg p-5 shadow-sm border border-light-gray inline-block">
+          <p class="text-sm font-semibold text-horizon-500 mb-2">John Morgan — building foundations</p>
           <p class="text-sm text-neutral-500 mb-6">Late twenties, saving for a deposit, workplace pension, balancing debt repayment and savings goals.</p>
           <a
             href="/?demo=true"
@@ -137,7 +137,7 @@
     <!-- Related content -->
     <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Related</h3>
+        <h3 class="text-sm font-semibold text-horizon-500 mb-4">Related</h3>
         <div class="flex flex-wrap gap-4">
           <router-link to="/features/net-worth-dashboard" class="text-sm text-spring-600 hover:text-spring-700 underline underline-offset-2">Net worth dashboard</router-link>
           <router-link to="/features/pension-tracker" class="text-sm text-spring-600 hover:text-spring-700 underline underline-offset-2">Pension tracker</router-link>
@@ -168,5 +168,10 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 export default {
   name: 'BuildingFoundationsPage',
   components: { PublicLayout },
+  mounted() {
+    document.title = 'First-Time Buyer Financial Planning — Building Foundations | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Saving for your first home? Fynla tracks your ISA savings, models mortgage affordability, monitors pension growth, and helps you build wealth with confidence.');
+  },
 };
 </script>

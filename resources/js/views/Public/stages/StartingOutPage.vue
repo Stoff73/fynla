@@ -1,15 +1,15 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="py-16 sm:py-20 bg-gradient-to-br from-spring-600 to-spring-400 text-white">
+    <section class="py-10 sm:py-12 bg-gradient-to-br from-spring-600 to-spring-400 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-sm font-semibold uppercase tracking-wider text-white/70 mb-3">Stage 1 of 5 — Starting Out</p>
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight mb-4">
           Where do I even begin?
         </h1>
-        <p class="text-lg sm:text-xl text-white/80 max-w-2xl mb-8 leading-relaxed">
+        <p class="text-sm sm:text-sm text-white/80 max-w-2xl mb-8 leading-relaxed">
           You're earning your own money for the first time. It's exciting — but also overwhelming.
-          Fynla gives you a clear starting point, without the jargon.
+          Fynla gives you a clear starting point for financial planning for beginners, without the jargon.
         </p>
         <router-link
           to="/register"
@@ -21,9 +21,9 @@
     </section>
 
     <!-- Is this your stage? -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">Is this your stage?</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">Is this your stage?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
@@ -35,7 +35,7 @@
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
               <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             </span>
-            <p class="text-neutral-500">You have student loan debt</p>
+            <p class="text-neutral-500">You have student loan debt and need graduate money management</p>
           </div>
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
@@ -47,16 +47,16 @@
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
               <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             </span>
-            <p class="text-neutral-500">You want to start saving but don't know where</p>
+            <p class="text-neutral-500">You want to build first-time savings habits but don't know where to start</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- What Fynla shows you -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div class="bg-white rounded-lg p-6 shadow-sm border border-light-gray">
             <div class="w-10 h-10 rounded-full bg-spring-100 flex items-center justify-center mb-4">
@@ -91,9 +91,9 @@
     </section>
 
     <!-- Features as answers -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
         <p class="text-neutral-500 mb-8 max-w-2xl">You don't need complex tools yet — you need clarity. These features give you exactly that.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <router-link to="/features/net-worth-dashboard" class="block bg-eggshell-500 rounded-lg p-6 border border-light-gray hover:border-spring-300 hover:-translate-y-0.5 transition-all">
@@ -117,12 +117,12 @@
     </section>
 
     <!-- Try a demo persona -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-4">See it in action</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-4">See it in action</h2>
         <p class="text-neutral-500 mb-8">Explore Fynla through a real scenario — no sign-up required.</p>
-        <div class="bg-white rounded-lg p-8 shadow-sm border border-light-gray inline-block">
-          <p class="text-lg font-semibold text-horizon-500 mb-2">Janice — just starting out</p>
+        <div class="bg-white rounded-lg p-5 shadow-sm border border-light-gray inline-block">
+          <p class="text-sm font-semibold text-horizon-500 mb-2">Janice — just starting out</p>
           <p class="text-sm text-neutral-500 mb-6">Fresh out of university, student loan, first workplace pension, building an emergency fund.</p>
           <a
             href="/?demo=true"
@@ -137,7 +137,7 @@
     <!-- Related content -->
     <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Related</h3>
+        <h3 class="text-sm font-semibold text-horizon-500 mb-4">Related</h3>
         <div class="flex flex-wrap gap-4">
           <router-link to="/features/net-worth-dashboard" class="text-sm text-spring-600 hover:text-spring-700 underline underline-offset-2">Net worth dashboard</router-link>
           <router-link to="/how-it-works" class="text-sm text-spring-600 hover:text-spring-700 underline underline-offset-2">How it works</router-link>
@@ -165,5 +165,10 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 export default {
   name: 'StartingOutPage',
   components: { PublicLayout },
+  mounted() {
+    document.title = 'Financial Planning for Beginners UK — Starting Out | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'New to managing money? Fynla helps you build an emergency fund, understand your workplace pension, track ISA savings, and plan your student loan — all in one place.');
+  },
 };
 </script>

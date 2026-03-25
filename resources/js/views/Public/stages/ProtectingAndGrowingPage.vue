@@ -1,15 +1,15 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="py-16 sm:py-20 text-white" style="background: linear-gradient(135deg, #378ADD 0%, #5AADEE 100%);">
+    <section class="py-10 sm:py-12 text-white" style="background: linear-gradient(135deg, #378ADD 0%, #5AADEE 100%);">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-sm font-semibold uppercase tracking-wider text-white/70 mb-3">Stage 3 of 5 — Protecting and Growing</p>
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight mb-4">
           Are we protected — and are we moving forward?
         </h1>
-        <p class="text-lg sm:text-xl text-white/80 max-w-2xl mb-8 leading-relaxed">
-          You've got a mortgage, dependants, and growing responsibilities. You need to protect what
-          you've built while making sure your money is still working for you. Fynla brings it all together.
+        <p class="text-sm sm:text-sm text-white/80 max-w-2xl mb-8 leading-relaxed">
+          You've got a mortgage, dependants, and growing responsibilities. A family financial protection assessment
+          is essential at this stage. Fynla brings it all together so you can protect what you've built while making sure your money is still working for you.
         </p>
         <router-link
           to="/register"
@@ -21,9 +21,9 @@
     </section>
 
     <!-- Is this your stage? -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">Is this your stage?</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">Is this your stage?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
@@ -35,7 +35,7 @@
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
               <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
             </span>
-            <p class="text-neutral-500">You're not sure if your life insurance is enough</p>
+            <p class="text-neutral-500">You're not sure if your life insurance is enough — you need a life insurance gap analysis</p>
           </div>
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
@@ -54,9 +54,9 @@
     </section>
 
     <!-- What Fynla shows you -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="bg-white rounded-lg p-6 shadow-sm border border-light-gray">
             <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center mb-4">
@@ -90,7 +90,7 @@
             <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center mb-4">
               <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
-            <h3 class="font-semibold text-horizon-500 mb-2">Joint planning for couples</h3>
+            <h3 class="font-semibold text-horizon-500 mb-2">Joint financial planning for couples</h3>
             <p class="text-sm text-neutral-500">See both partners' finances side by side — joint assets, individual pensions, shared liabilities, complete picture.</p>
           </div>
         </div>
@@ -98,9 +98,9 @@
     </section>
 
     <!-- Features as answers -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
         <p class="text-neutral-500 mb-8 max-w-2xl">At this stage, you need both protection and growth. These features address the anxieties that come with that balance.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <router-link to="/features/protection-gap" class="block bg-eggshell-500 rounded-lg p-6 border border-light-gray hover:border-violet-300 hover:-translate-y-0.5 transition-all">
@@ -128,13 +128,13 @@
     </section>
 
     <!-- Try a demo persona -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-4">See it in action</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-4">See it in action</h2>
         <p class="text-neutral-500 mb-8">Explore Fynla through real scenarios — no sign-up required.</p>
         <div class="flex flex-col sm:flex-row gap-6 justify-center">
-          <div class="bg-white rounded-lg p-8 shadow-sm border border-light-gray max-w-sm">
-            <p class="text-lg font-semibold text-horizon-500 mb-2">James &amp; Emily Carter</p>
+          <div class="bg-white rounded-lg p-5 shadow-sm border border-light-gray max-w-sm">
+            <p class="text-sm font-semibold text-horizon-500 mb-2">James &amp; Emily Carter</p>
             <p class="text-sm text-neutral-500 mb-6">Young family with a joint mortgage, workplace pensions, and two children to protect.</p>
             <a
               href="/?demo=true"
@@ -143,8 +143,8 @@
               Try James &amp; Emily's situation
             </a>
           </div>
-          <div class="bg-white rounded-lg p-8 shadow-sm border border-light-gray max-w-sm">
-            <p class="text-lg font-semibold text-horizon-500 mb-2">Alex Chen</p>
+          <div class="bg-white rounded-lg p-5 shadow-sm border border-light-gray max-w-sm">
+            <p class="text-sm font-semibold text-horizon-500 mb-2">Alex Chen</p>
             <p class="text-sm text-neutral-500 mb-6">Entrepreneur with a Self-Invested Personal Pension, business interests, and investment portfolio to manage.</p>
             <a
               href="/?demo=true"
@@ -160,7 +160,7 @@
     <!-- Related content -->
     <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Related</h3>
+        <h3 class="text-sm font-semibold text-horizon-500 mb-4">Related</h3>
         <div class="flex flex-wrap gap-4">
           <router-link to="/features/protection-gap" class="text-sm text-violet-600 hover:text-violet-700 underline underline-offset-2">Protection gap analyser</router-link>
           <router-link to="/features/ice-letters" class="text-sm text-violet-600 hover:text-violet-700 underline underline-offset-2">In Case of Emergency letters</router-link>
@@ -192,5 +192,10 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 export default {
   name: 'ProtectingAndGrowingPage',
   components: { PublicLayout },
+  mounted() {
+    document.title = 'Family Financial Protection & Investment Planning UK | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Are your family and finances properly protected? Fynla analyses your life insurance gap, tracks investment portfolios, consolidates pension views, and supports joint financial planning for couples.');
+  },
 };
 </script>

@@ -1,15 +1,15 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="py-16 sm:py-20 bg-gradient-to-br from-violet-600 to-violet-400 text-white">
+    <section class="py-10 sm:py-12 bg-gradient-to-br from-violet-600 to-violet-400 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-sm font-semibold uppercase tracking-wider text-white/70 mb-3">Stage 4 of 5 — Planning Your Future</p>
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight mb-4">
           Can I actually afford to stop working?
         </h1>
-        <p class="text-lg sm:text-xl text-white/80 max-w-2xl mb-8 leading-relaxed">
-          Retirement is on the horizon. You've been saving for years but the big question remains:
-          is it enough? Fynla shows you exactly where you stand — and what you can do about it.
+        <p class="text-sm sm:text-sm text-white/80 max-w-2xl mb-8 leading-relaxed">
+          Retirement planning UK starts with one question: is it enough? You've been saving for years, but
+          Fynla shows you exactly where you stand — including pension consolidation strategy and early retirement planning — and what you can do about it.
         </p>
         <router-link
           to="/register"
@@ -21,9 +21,9 @@
     </section>
 
     <!-- Is this your stage? -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">Is this your stage?</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">Is this your stage?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
           <div class="flex items-start gap-3">
             <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
@@ -54,9 +54,9 @@
     </section>
 
     <!-- What Fynla shows you -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-8">What Fynla shows you at this stage</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="bg-white rounded-lg p-6 shadow-sm border border-light-gray">
             <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center mb-4">
@@ -91,16 +91,16 @@
               <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
             </div>
             <h3 class="font-semibold text-horizon-500 mb-2">Drawdown vs annuity modelling</h3>
-            <p class="text-sm text-neutral-500">Compare income drawdown flexibility against the security of an annuity — see what each option means for your retirement income.</p>
+            <p class="text-sm text-neutral-500">Compare income drawdown flexibility against the security of an annuity — essential for bridging retirement income and planning your withdrawals.</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Features as answers -->
-    <section class="py-14 bg-white">
+    <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-3">Features that answer your questions</h2>
         <p class="text-neutral-500 mb-8 max-w-2xl">The stakes are higher now. These features give you confidence that your plan will work.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <router-link to="/features/when-can-i-retire" class="block bg-eggshell-500 rounded-lg p-6 border border-light-gray hover:border-violet-300 hover:-translate-y-0.5 transition-all">
@@ -124,12 +124,12 @@
     </section>
 
     <!-- Try a demo persona -->
-    <section class="py-14 bg-eggshell-500">
+    <section class="py-10 bg-eggshell-500">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold text-horizon-500 mb-4">See it in action</h2>
+        <h2 class="text-base sm:text-lg font-bold text-horizon-500 mb-4">See it in action</h2>
         <p class="text-neutral-500 mb-8">Explore Fynla through a real scenario — no sign-up required.</p>
-        <div class="bg-white rounded-lg p-8 shadow-sm border border-light-gray inline-block">
-          <p class="text-lg font-semibold text-horizon-500 mb-2">David &amp; Sarah Mitchell — peak earners</p>
+        <div class="bg-white rounded-lg p-5 shadow-sm border border-light-gray inline-block">
+          <p class="text-sm font-semibold text-horizon-500 mb-2">David &amp; Sarah Mitchell — peak earners</p>
           <p class="text-sm text-neutral-500 mb-6">Multiple properties, Self-Invested Personal Pension and NHS Defined Benefit pension, approaching retirement with serious planning decisions ahead.</p>
           <a
             href="/?demo=true"
@@ -144,7 +144,7 @@
     <!-- Related content -->
     <section class="py-10 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Related</h3>
+        <h3 class="text-sm font-semibold text-horizon-500 mb-4">Related</h3>
         <div class="flex flex-wrap gap-4">
           <router-link to="/features/when-can-i-retire" class="text-sm text-violet-600 hover:text-violet-700 underline underline-offset-2">When Can I Retire?</router-link>
           <router-link to="/features/monte-carlo" class="text-sm text-violet-600 hover:text-violet-700 underline underline-offset-2">Monte Carlo simulations</router-link>
@@ -176,5 +176,10 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 export default {
   name: 'PlanningYourFuturePage',
   components: { PublicLayout },
+  mounted() {
+    document.title = 'Retirement Planning UK — When Can I Retire? | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Find out when you can afford to retire. Fynla consolidates your pension pots, runs Monte Carlo simulations, models drawdown strategies, and calculates your retirement income.');
+  },
 };
 </script>
