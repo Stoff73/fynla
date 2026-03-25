@@ -254,15 +254,42 @@ git diff --name-only HEAD~10 -- '*.php' '*.vue' '*.js' 2>/dev/null | xargs grep 
 # 7. Any items the user mentioned but weren't started
 ```
 
-### 6b: Check for previous CSJTODO.md
+### 6b: Check for existing CSJTODO.md
 
 ```bash
 cat CSJTODO.md 2>/dev/null
 ```
 
-If a previous `CSJTODO.md` exists, check which items were completed this session (mark them done) and which are still outstanding (carry forward).
+If `CSJTODO.md` already exists:
+- **DO NOT overwrite it** — append to it
+- Read the existing content first
+- Mark items that were completed this session as `[x]`
+- Keep all uncompleted items as-is
+- Add a new dated section at the bottom for this session's outstanding items
 
-### 6c: Write CSJTODO.md
+### 6c: Write or append to CSJTODO.md
+
+**If CSJTODO.md does NOT exist:** Create it fresh with the template below.
+
+**If CSJTODO.md already exists:** Append a new section at the bottom:
+
+```markdown
+
+---
+
+## Session [today's date] — [brief description]
+
+### Completed This Session
+- [x] [items from above that were done]
+
+### New Outstanding Items
+- [ ] [new items from this session]
+
+### Context
+[2-3 sentences on where work left off]
+```
+
+**Template for new CSJTODO.md (only if file doesn't exist):**
 
 ```markdown
 # TODO — Fynla
