@@ -424,6 +424,7 @@ import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
 import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
+import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import api from '@/services/api';
 
 export default {
@@ -503,10 +504,14 @@ export default {
     const incomeChartSeries = computed(() => incomeChartData.value.map(s => s.value));
 
     const incomeChartOptions = computed(() => ({
-      chart: { type: 'donut' },
+      chart: {
+        type: 'donut',
+        fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
+        toolbar: { show: false },
+      },
       labels: incomeChartData.value.map(s => s.label),
-      colors: ['#E8365D', '#F5B3C5', '#1F2A44', '#93C5FD', '#6EE7B7', '#5854E6', '#F59E0B', '#6B7280'],
-      legend: { position: 'bottom', fontSize: '12px' },
+      colors: CHART_COLORS,
+      legend: { position: 'bottom', fontSize: '12px', fontFamily: 'Segoe UI, Inter, system-ui, sans-serif' },
       dataLabels: { enabled: false },
       plotOptions: {
         pie: {
@@ -514,21 +519,24 @@ export default {
             size: '65%',
             labels: {
               show: true,
-              name: { show: true, fontSize: '12px', color: '#999' },
-              value: { show: true, fontSize: '18px', fontWeight: 700, color: '#1F2A44', formatter: (val) => formatCurrency(Number(val)) },
+              name: { show: true, fontSize: '12px', color: TEXT_COLORS.muted },
+              value: { show: true, fontSize: '18px', fontWeight: 700, color: TEXT_COLORS.primary, formatter: (val) => formatCurrency(Number(val)) },
               total: {
                 show: true,
                 label: 'Total Annual',
                 fontSize: '12px',
-                color: '#999',
+                color: TEXT_COLORS.muted,
                 formatter: (w) => formatCurrency(w.globals.seriesTotals.reduce((a, b) => a + b, 0)),
               },
             },
           },
         },
       },
-      stroke: { width: 2, colors: ['#fff'] },
-      tooltip: { y: { formatter: (val) => formatCurrency(val) } },
+      stroke: { width: 2, colors: ['#ffffff'] },
+      tooltip: {
+        y: { formatter: (val) => formatCurrency(val) },
+        style: { fontSize: '14px', fontFamily: 'Segoe UI, Inter, system-ui, sans-serif' },
+      },
     }));
 
     const totalIncomeValue = computed(() => {
