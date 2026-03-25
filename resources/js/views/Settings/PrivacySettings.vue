@@ -8,6 +8,8 @@
         </p>
       </div>
 
+      <SettingsTabBar />
+
       <!-- Consent Preferences Section -->
       <div class="settings-section">
         <div class="section-header">
@@ -351,11 +353,13 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import privacyService from '@/services/privacyService';
+import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 
 export default {
   name: 'PrivacySettings',
   components: {
     AppLayout,
+    SettingsTabBar,
   },
   data() {
     return {

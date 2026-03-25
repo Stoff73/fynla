@@ -89,10 +89,7 @@ export const SUB_NAV_CONFIG = [
     headerTitle: 'My Account',
     tabs: [
       { label: 'User Profile', to: '/profile', matchPrefixes: ['/profile'] },
-      { label: 'General', to: '/settings', matchPrefixes: ['/settings'] },
-      { label: 'Security', to: '/settings/security', matchPrefixes: ['/settings/security'] },
-      { label: 'Privacy', to: '/settings/privacy', matchPrefixes: ['/settings/privacy'] },
-      { label: 'Assumptions', to: '/settings/assumptions', matchPrefixes: ['/settings/assumptions'] },
+      { label: 'Settings', to: '/settings', matchPrefixes: ['/settings'] },
     ],
     ctas: {},
   },

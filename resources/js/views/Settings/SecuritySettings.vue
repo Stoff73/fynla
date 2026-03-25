@@ -8,6 +8,8 @@
       </p>
     </div>
 
+    <SettingsTabBar />
+
     <!-- MFA Section -->
     <div class="settings-section">
       <div class="section-header">
@@ -276,6 +278,7 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import MFASetupModal from '@/components/Auth/MFASetupModal.vue';
+import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import api from '@/services/api';
 
 export default {
@@ -283,6 +286,7 @@ export default {
   components: {
     AppLayout,
     MFASetupModal,
+    SettingsTabBar,
   },
   data() {
     return {
