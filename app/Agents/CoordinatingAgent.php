@@ -1167,6 +1167,24 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
+        // Inline holdings — pass through for holdable account types (ISA, GIA, bonds, VCT, EIS)
+        $holdableTypes = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
+        if (in_array($formAccountType, $holdableTypes) && ! empty($input['holdings']) && is_array($input['holdings'])) {
+            $holdings = [];
+            foreach ($input['holdings'] as $holding) {
+                $h = [
+                    'security_name' => $holding['security_name'] ?? '',
+                    'asset_type' => $holding['asset_type'] ?? '',
+                    'allocation_percent' => isset($holding['allocation_percent']) ? (float) $holding['allocation_percent'] : 0,
+                ];
+                if (isset($holding['cost_basis']) && $holding['cost_basis'] !== null) {
+                    $h['cost_basis'] = (float) $holding['cost_basis'];
+                }
+                $holdings[] = $h;
+            }
+            $fields['holdings'] = $holdings;
+        }
+
         return [
             'action' => 'fill_form',
             'entity_type' => 'investment_account',
