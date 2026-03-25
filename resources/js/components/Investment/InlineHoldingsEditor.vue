@@ -61,7 +61,7 @@
               step="0.1"
               class="w-full border border-horizon-300 rounded-md px-2 py-1.5 text-sm text-right pr-6 focus:outline-none focus:ring-2 focus:ring-violet-500"
               placeholder="0"
-              @input="onFieldChange"
+              @input="onAllocationChange(index)"
             />
             <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-neutral-500">%</span>
           </div>
@@ -258,6 +258,15 @@ export default {
 
     onFieldChange() {
       this.$emit('update:holdings', this.stripInternal(this.localHoldings));
+    },
+
+    onAllocationChange(index) {
+      const holding = this.localHoldings[index];
+      if (holding && this.accountValue > 0) {
+        const percent = parseFloat(holding.allocation_percent) || 0;
+        holding.cost_basis = Math.round((this.accountValue * percent) / 100 * 100) / 100;
+      }
+      this.onFieldChange();
     },
 
     stripInternal(holdings) {
