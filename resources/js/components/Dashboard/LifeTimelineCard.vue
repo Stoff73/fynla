@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-lg border border-light-gray shadow-sm p-6 bg-neutral-100">
+  <div class="rounded-lg border border-light-gray shadow-sm p-6 bg-light-blue-100">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-horizon-500">Life Timeline</h3>
@@ -11,7 +11,7 @@
           What if &rarr;
         </button>
         <button
-          class="text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 transition-colors"
+          class="text-sm font-semibold text-horizon-500 hover:text-horizon-600 transition-colors"
           @click="$router.push('/goals?addEvent=true')"
         >
           + Add event
@@ -141,7 +141,7 @@
       <!-- CTA button centred above -->
       <div class="flex justify-center mb-4">
         <button
-          class="bg-raspberry-500 text-white px-4 py-2 rounded-button text-sm font-semibold hover:bg-raspberry-600 transition-colors"
+          class="bg-horizon-500 text-white px-4 py-2 rounded-button text-sm font-semibold hover:bg-horizon-600 transition-colors"
           @click="$router.push('/goals?addEvent=true')"
         >
           Add Life Event

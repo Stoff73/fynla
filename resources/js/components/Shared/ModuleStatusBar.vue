@@ -1,11 +1,11 @@
 <template>
   <div
-    class="module-status-bar bg-white border border-light-gray rounded-lg mb-4 overflow-hidden transition-all duration-200"
-    style="position: relative; z-index: 1;"
+    class="module-status-bar rounded-lg mb-4 overflow-hidden transition-all duration-200"
+    style="background: #FAD6E0; position: relative; z-index: 1;"
   >
     <!-- Minimised bar (always visible) -->
     <button
-      class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-savannah-50 transition-colors"
+      class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-light-pink-200/50 transition-colors"
       :aria-expanded="expanded"
       @click="toggle"
     >
@@ -21,7 +21,7 @@
           <circle
             cx="18" cy="18" r="15.5"
             fill="none"
-            stroke="#e5e7eb"
+            stroke="#FECDD3"
             stroke-width="3"
           />
           <circle
@@ -66,7 +66,7 @@
       :class="expanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'"
       style="overflow: hidden;"
     >
-      <div class="px-4 pb-4 pt-1 border-t border-light-gray">
+      <div class="px-4 pb-4 pt-1 border-t border-light-pink-200">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
           <div
             v-for="item in allRequirements"
@@ -157,13 +157,8 @@ export default {
       return circumference - (pct * circumference);
     });
 
-    // Three-tier colour scheme matching InfoGuidePanel
-    const ringColour = computed(() => {
-      const pct = completionPercentage.value;
-      if (pct >= 80) return '#10B981'; // spring-500
-      if (pct >= 50) return '#7C3AED'; // violet-600
-      return '#E8326E'; // raspberry-500
-    });
+    // Always pink (raspberry) progress ring
+    const ringColour = computed(() => '#E8326E');
 
     return {
       expanded,

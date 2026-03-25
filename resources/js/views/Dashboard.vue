@@ -285,7 +285,7 @@
           <!-- Empty state when no assets or liabilities -->
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No assets or liabilities added yet.</p>
-            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Assets &amp; Liabilities
             </router-link>
           </div>
@@ -333,7 +333,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No protection policies added yet.</p>
-            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Protection Policy
             </router-link>
           </div>
@@ -377,7 +377,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No savings accounts added yet.</p>
-            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Savings Account
             </router-link>
           </div>
@@ -421,7 +421,7 @@
           </div>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No investment accounts added yet.</p>
-            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Investment Account
             </router-link>
           </div>
@@ -471,7 +471,7 @@
             <p class="text-sm text-neutral-500 mb-4">
               No estate details added yet.
             </p>
-            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Estate Details
             </router-link>
           </div>
@@ -568,6 +568,7 @@
               </div>
               <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
+                  v-if="retirementIncomePercent > 0"
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
                     retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
@@ -593,6 +594,7 @@
               </div>
               <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
+                  v-if="retirementCapitalPercent > 0"
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
                     retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
@@ -622,7 +624,7 @@
           </template>
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">No pension data added yet.</p>
-            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors" @click.stop>
+            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
               Add Pension
             </router-link>
           </div>
@@ -649,6 +651,7 @@
                 </div>
                 <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
+                    v-if="lisaAllowanceData.percentUsed > 0"
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
                       allowanceBarClass(lisaAllowanceData.percentUsed, false),
@@ -680,6 +683,7 @@
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
+                  v-if="isaAllowanceData.percentUsed > 0"
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
                     allowanceBarClass(isaAllowanceData.percentUsed, false),
@@ -727,6 +731,7 @@
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
+                  v-if="pensionStandardPercent > 0"
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
                     allowanceBarClass(pensionStandardPercent, false),
@@ -761,6 +766,7 @@
                 </div>
                 <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
+                    v-if="carryForwardData.percentUsed > 0"
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
                       allowanceBarClass(carryForwardData.percentUsed, false),
@@ -2003,19 +2009,5 @@ export default {
 </script>
 
 <style scoped>
-/* Dashboard grid gap fix: last card(s) expand to fill remaining row space.
-   Uses :not([class*="col-span"]) to exclude cards that already span multiple columns. */
-@media (min-width: 1024px) {
-  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(3n+1) {
-    grid-column: span 3;
-  }
-  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(3n+2) {
-    grid-column: span 2;
-  }
-}
-@media (min-width: 768px) and (max-width: 1023px) {
-  .dashboard-grid > .dashboard-card:last-of-type:nth-of-type(2n+1) {
-    grid-column: span 2;
-  }
-}
+/* Empty cards use order-last to sink below populated cards in the grid */
 </style>

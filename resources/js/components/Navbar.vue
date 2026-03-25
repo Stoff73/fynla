@@ -91,47 +91,68 @@
             Admin
           </router-link>
 
-          <!-- Info Guide Button (What data do I need?) -->
-          <button
-            v-if="shouldShowInfoGuide"
-            @click="toggleInfoGuide"
-            class="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-horizon-500 text-white hover:bg-horizon-600 transition-colors"
-            :class="{ 'ring-2 ring-violet-200': infoGuideOpen }"
-            :title="infoGuideOpen ? 'Close guide' : 'What data do I need?'"
-          >
-            <svg
-              v-if="!infoGuideOpen"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-5 h-5"
+          <!-- Support Dropdown -->
+          <div class="relative">
+            <button
+              @click="supportDropdownOpen = !supportDropdownOpen"
+              class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
-              />
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-5 h-5"
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Support
+              <svg class="w-3.5 h-3.5 ml-1.5" :class="{'rotate-180': supportDropdownOpen}" style="transition: transform 0.2s" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span
-              v-if="infoGuideMissingCount > 0 && !infoGuideOpen"
-              class="absolute -top-1 -right-1 w-4 h-4 bg-spring-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-            >
-              {{ infoGuideMissingCount > 9 ? '9+' : infoGuideMissingCount }}
-            </span>
-          </button>
+              <div
+                v-if="supportDropdownOpen"
+                class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+              >
+                <div class="py-1">
+                  <router-link
+                    to="/help"
+                    class="flex items-center px-4 py-2 text-sm text-horizon-500 hover:bg-savannah-100"
+                    @click="supportDropdownOpen = false"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Help
+                  </router-link>
+                  <a
+                    href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center px-4 py-2 text-sm text-horizon-500 hover:bg-savannah-100"
+                    @click="supportDropdownOpen = false"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    Feedback
+                  </a>
+                  <button
+                    class="flex items-center w-full text-left px-4 py-2 text-sm text-horizon-500 hover:bg-savannah-100"
+                    @click="openBugReport"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Bug Report
+                  </button>
+                </div>
+              </div>
+            </transition>
+          </div>
 
           <!-- User Dropdown Menu -->
           <div class="relative">
@@ -220,6 +241,7 @@
     @select="handlePlanSelect"
     @close="showPlanModal = false"
   />
+  <BugReportModal :show="showBugReportModal" @close="showBugReportModal = false" />
 </template>
 
 <script>
@@ -228,6 +250,7 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
+import BugReportModal from './BugReportModal.vue';
 import api from '@/services/api';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
@@ -238,6 +261,7 @@ export default {
   components: {
     LogoutSuccessModal,
     PlanSelectionModal,
+    BugReportModal,
   },
 
   setup() {
@@ -246,6 +270,8 @@ export default {
     const router = useRouter();
 
     const userDropdownOpen = ref(false);
+    const supportDropdownOpen = ref(false);
+    const showBugReportModal = ref(false);
     const trialData = ref(null);
     const showPlanModal = ref(false);
 
@@ -325,16 +351,6 @@ export default {
       return store.getters['auth/isAdvisor'];
     });
 
-    // Info Guide (question mark button)
-    const infoGuideOpen = computed(() => store.getters['infoGuide/isOpen']);
-    const infoGuideMissingCount = computed(() => store.getters['infoGuide/missingCount']);
-    const shouldShowInfoGuide = computed(() => {
-      const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
-      if (publicRoutes.some(r => route.path.startsWith(r))) return false;
-      return store.getters['infoGuide/shouldShowGuide'];
-    });
-    const toggleInfoGuide = () => store.dispatch('infoGuide/toggle');
-
     // Show 2FA reminder if MFA is not enabled and user is not a preview user
     const showMFAReminder = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -366,11 +382,17 @@ export default {
       router.push('/login');
     };
 
+    const openBugReport = () => {
+      supportDropdownOpen.value = false;
+      showBugReportModal.value = true;
+    };
+
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       const dropdown = event.target.closest('.relative');
       if (!dropdown) {
         userDropdownOpen.value = false;
+        supportDropdownOpen.value = false;
       }
     };
 
@@ -402,10 +424,9 @@ export default {
       showPlanModal,
       handlePlanSelect,
       showMFAReminder,
-      infoGuideOpen,
-      infoGuideMissingCount,
-      shouldShowInfoGuide,
-      toggleInfoGuide,
+      supportDropdownOpen,
+      showBugReportModal,
+      openBugReport,
       handleLogout,
       handleLogoutModalClose,
     };

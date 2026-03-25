@@ -28,7 +28,15 @@
 
         <!-- LEFT: Scenario Completeness -->
         <div class="flex-1 min-w-0">
-          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Scenario Completeness</h4>
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+            Scenario Completeness
+            <span class="relative group">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+              <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                This shows where you are in your journey. Completing your profile will mean that Fyn can give you more accurate recommendations.
+              </span>
+            </span>
+          </h4>
           <div class="flex items-start gap-4">
             <!-- Progress ring -->
             <div class="flex-shrink-0 relative w-[140px] h-[140px]">
@@ -90,7 +98,15 @@
 
         <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
         <div class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
-          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Profile Completeness</h4>
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+            Profile Completeness
+            <span class="relative group">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+              <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+              </span>
+            </span>
+          </h4>
           <div class="flex items-start gap-5 flex-1">
             <!-- Progress ring (same size as scenario completeness) -->
             <div class="flex-shrink-0 relative w-[140px] h-[140px]">
@@ -123,7 +139,15 @@
 
         <!-- RIGHT: Recommended Actions (desktop only) -->
         <div v-if="topActions.length" class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
-          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Recommended Actions</h4>
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+            Recommended Actions
+            <span class="relative group">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+              <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+              </span>
+            </span>
+          </h4>
           <div class="space-y-1.5 pt-1">
             <router-link
               v-for="action in topActions.slice(0, 3)"

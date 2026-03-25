@@ -3,7 +3,7 @@
     class="dashboard-card rounded-lg border border-light-gray p-6 transition-all duration-200"
     :class="[
       empty
-        ? 'bg-light-pink-100/50 cursor-pointer hover:bg-light-pink-200/50 hover:shadow-md hover:-translate-y-0.5'
+        ? 'bg-light-blue-100 cursor-pointer hover:bg-light-blue-100/80 hover:shadow-md hover:-translate-y-0.5 order-last'
         : (clickable
           ? 'bg-white cursor-pointer hover:border-light-blue-300 hover:shadow-md hover:-translate-y-0.5 hover-blue-gradient'
           : 'bg-white'),
