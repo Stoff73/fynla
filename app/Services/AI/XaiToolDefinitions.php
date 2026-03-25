@@ -367,6 +367,26 @@ class XaiToolDefinitions
                         ],
                         'description' => 'SAYE contract duration: 36 (3 years) or 60 (5 years).',
                     ],
+                    'holdings' => [
+                        'anyOf' => [
+                            [
+                                'type' => 'array',
+                                'items' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'security_name' => ['type' => 'string', 'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World", "iShares Core UK Gilts")'],
+                                        'asset_type' => ['type' => 'string', 'enum' => ['equity', 'uk_equity', 'us_equity', 'international_equity', 'fund', 'etf', 'bond', 'cash', 'alternative', 'property'], 'description' => 'Type of holding: "fund" for OEICs/unit trusts, "etf" for ETFs, "uk_equity"/"us_equity"/"international_equity" for shares, "bond" for fixed income, "cash" for cash.'],
+                                        'allocation_percent' => ['type' => 'number', 'description' => 'Percentage of the account this holding represents (0-100). All holdings must total 100% or less.'],
+                                        'cost_basis' => ['type' => ['number', 'null'], 'description' => 'Total amount originally invested in this holding (£). Optional.'],
+                                    ],
+                                    'required' => ['security_name', 'asset_type', 'allocation_percent', 'cost_basis'],
+                                    'additionalProperties' => false,
+                                ],
+                            ],
+                            ['type' => 'null'],
+                        ],
+                        'description' => 'Array of holdings to add inline when creating the account. Only for ISA, GIA, onshore/offshore bonds, VCT, EIS. Each holding has security_name, asset_type, allocation_percent (% of account), and optional cost_basis. Any unallocated remainder auto-defaults to cash. If the user mentions specific funds/ETFs/shares they hold, include them here instead of using create_holding separately.',
+                    ],
                 ],
                 [
                     'account_name', 'account_type', 'provider', 'current_value',
@@ -381,12 +401,14 @@ class XaiToolDefinitions
                     'cliff_date', 'cliff_percentage',
                     'saye_monthly_savings', 'saye_current_savings_balance',
                     'scheme_start_date', 'scheme_duration_months',
+                    'holdings',
                 ]
             ),
             $this->wrapTool(
                 'create_holding',
-                'Add a specific fund, ETF, or share holding to an EXISTING investment account. Use this when the user says "add a holding", "I hold X in my Y account", or mentions a specific fund/ETF/share within an account that already exists. '
-                .'Do NOT use create_investment_account for this — use create_holding instead. Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. '
+                .'If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name or provider of the investment account to add the holding to (e.g. "Vanguard ISA", "Hargreaves Lansdown"). Must match an existing account.'],
                     'security_name' => ['type' => 'string', 'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World", "iShares Core MSCI World")'],
