@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 25 March 2026 — sessions 8 & 9*
+*Last updated: 25 March 2026 — sessions 8, 9 & 10*
 
 ---
 
@@ -31,12 +31,30 @@
 - [x] session-end skill updated: CSJTODO naming, deploy completeness, pre-merge checks, append mode
 - [x] Frontend build done — ready for upload
 
+## Session 10 (25 March) — Investment UI + DC Pension Holdings/Fees
+
+### Completed
+- [x] Investment detail view consolidated — 2 views merged into 1 card-based layout (PR #161)
+- [x] InvestmentProjections.vue rewritten: per-account Monte Carlo, header card, all analysis cards, drill-downs
+- [x] InvestmentDetailInline.vue retired
+- [x] DC pension inline holdings — reused InlineHoldingsEditor
+- [x] DC pension fee fields — platform fee (% or £, with frequency) + advisor fee
+- [x] Migration: add_fee_fields_to_dc_pensions_table
+- [x] Fixed ocf_percent NOT NULL constraint in holdings creation
+- [x] Fixed InlineHoldingsEditor Amount Invested auto-populate on allocation % change
+- [x] Both features deployed and tested on fynla.org
+
+### Reverted
+- Pension detail view enhancements (pensionUI branch) — holdings/fees tabs + header metrics. Branch deleted, changes reverted.
+
 ---
 
 ## Outstanding Items
 
-### To Deploy
-- [ ] Upload `public/build/` to production (built with investment tooltip fix)
+### Next Priority Tasks
+- [ ] Pension detail view — add holdings tab, fees tab, header metrics (redo properly)
+- [ ] Test expenditure AI fill on production
+- [ ] Verify admin AI Provider panel shows Anthropic/xAI toggle cards
 
 ### Tech Debt (carried forward)
 - [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking)
@@ -48,13 +66,6 @@
 - [ ] DB pension field mapping mismatch (pre-existing — employer_name vs scheme_name)
 - [ ] Expenditure form fill doesn't animate through form (direct DB save pattern)
 
-### Next Priority Tasks
-- [ ] Investment detail view consolidation (user wants card-driven per-account view)
-- [ ] Test expenditure AI fill on production
-- [ ] Verify admin AI Provider panel shows Anthropic/xAI toggle cards
-
 ## Context for Next Session
 
-AI form fill is fully deployed and working on production (14/14 modules PASS). Vault gateway system is live — next session will auto-load feedback rules, recent sessions, and TODOs. All CLAUDE.md files are current. Frontend build with investment tooltip fix is ready to upload. Main branch is clean, no stale branches or worktrees.
-
-The vault-context skill can be invoked with `/vault-context [module]` before working on any module. Sub-agents must receive vault context per CLAUDE.md rules.
+Investment detail view consolidated into card-based layout on InvestmentProjections.vue — deployed and working on production. DC pensions now have inline holdings and fee fields matching investments — deployed. The pension detail view (PensionDetailInline.vue) still needs holdings/fees tabs and header metrics added — attempted on pensionUI branch but reverted due to issues. This is the top priority for next session. Approach carefully — test scroll behaviour before committing.
