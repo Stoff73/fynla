@@ -39,6 +39,71 @@ Check for any other handover notes from previous sessions:
 find March/ -name "*.md" -newer CLAUDE.md -mtime -1 2>/dev/null | head -10
 ```
 
+## Step 1b: Load Vault Context (fynlaBrain)
+
+Load accumulated knowledge from the fynlaBrain Obsidian vault. This ensures every session starts with the lessons learned from all previous sessions.
+
+### Read ALL feedback rules (NON-NEGOTIABLE)
+
+```bash
+ls /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_*.md
+```
+
+Read EVERY `feedback_*.md` file and present a summary of each rule. These rules apply to ALL work in ALL sessions. Present them prominently:
+
+```markdown
+### Active Rules (from previous sessions)
+- [rule name]: [one-line summary]
+```
+
+### Read recent session history from vault
+
+```bash
+# Get the 3 most recent session update folders
+ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -3
+```
+
+For each of the 3 most recent folders, read:
+- Deploy notes (`deploy*.md`, `*deploy*.md`) — what was deployed, what broke
+- Session summaries (`session*.md`, `*summary*.md`) — what was worked on
+- TODO files (`*TODO*.md`, `CSJTODO.md`) — outstanding items
+
+Present key items from each session.
+
+### Read vault TODO (may be newer than repo)
+
+```bash
+find /Users/CSJ/Desktop/fynlaBrain/March -name "CSJTODO.md" -type f 2>/dev/null | sort -V | tail -1
+```
+
+If it exists and has content not in the repo TODO.md, present both and note the difference.
+
+### Check recent reports
+
+```bash
+find /Users/CSJ/Desktop/fynlaBrain/Reports -name "*.md" -mtime -7 2>/dev/null
+```
+
+If any reports from the last 7 days, read and summarise key findings (tech debt, security, code review).
+
+### Present vault context
+
+```markdown
+## Vault Context Loaded
+
+**Feedback Rules (MUST follow):**
+- [each rule — name and one-line summary]
+
+**Recent Sessions:**
+- [date]: [what was worked on, deployed, outstanding]
+
+**Outstanding from Vault:**
+- [items from vault CSJTODO if different from repo TODO]
+
+**Recent Reports:**
+- [findings from last 7 days, or "None"]
+```
+
 ## Step 2: Git Sync & Cleanup
 
 ### 2a: Check current state
