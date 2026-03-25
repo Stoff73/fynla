@@ -18,7 +18,10 @@ class AppServiceProvider extends ServiceProvider
         // Request-scoped singleton for plan configuration (same pattern as TaxConfigService)
         $this->app->scoped(PlanConfigService::class);
 
-        // Anthropic SDK client singleton — deferred until package is installed
+        // Register both AI client singletons — runtime provider selection happens
+        // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
+        $this->app->singleton(\App\Services\AI\XaiClient::class);
+
         if (class_exists(\Anthropic\Client::class)) {
             $this->app->singleton(\Anthropic\Client::class, function () {
                 $apiKey = config('services.anthropic.api_key');

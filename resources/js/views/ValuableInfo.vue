@@ -107,6 +107,14 @@ export default {
       }
     };
 
+    // Watch for AI form fill targeting expenditure
+    const pendingFill = computed(() => store.state.aiFormFill?.pendingFill);
+    watch(pendingFill, (fill) => {
+      if (fill && fill.entityType === 'expenditure') {
+        activeTab.value = 'expenditure';
+      }
+    }, { immediate: true });
+
     onMounted(() => {
       loadProfile();
 

@@ -459,6 +459,22 @@ export default {
 
     pendingFill(fill) {
       if (fill && fill.entityType === 'goal' && fill.fields) {
+        // Pre-set key fields before field sequence so Vue select reactivity works
+        if (fill.fields.goal_name) {
+          this.form.goal_name = fill.fields.goal_name;
+        }
+        if (fill.fields.goal_type) {
+          this.form.goal_type = fill.fields.goal_type;
+        }
+        if (fill.fields.target_amount) {
+          this.form.target_amount = fill.fields.target_amount;
+        }
+        if (fill.fields.target_date) {
+          this.form.target_date = fill.fields.target_date;
+        }
+        if (fill.fields.custom_goal_type_name) {
+          this.form.custom_goal_type_name = fill.fields.custom_goal_type_name;
+        }
         const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
         this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
       }
@@ -474,10 +490,22 @@ export default {
     },
 
     filling(isFilling) {
-      if (!isFilling && this.pendingFill) {
+      if (isFilling === false && this.pendingFill?.entityType === 'goal') {
         setTimeout(() => {
-          this.handleSubmit();
-        }, 250);
+          this.$nextTick(() => {
+            this.handleSubmit();
+            if (this.validationErrors.length > 0) {
+              const errorList = this.validationErrors.join(', ');
+              this.$store.commit('aiChat/ADD_MESSAGE', {
+                id: 'fill_error_' + Date.now(),
+                role: 'assistant',
+                content: `I wasn't able to save the goal — ${errorList}. Please check the form and try again.`,
+                created_at: new Date().toISOString(),
+              }, { root: true });
+              this.$store.dispatch('aiFormFill/cancelFill');
+            }
+          });
+        }, 500);
       }
     },
   },

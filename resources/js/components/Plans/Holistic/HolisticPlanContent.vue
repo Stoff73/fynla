@@ -16,7 +16,7 @@
     <template v-if="hasAnySituation">
       <!-- Protection -->
       <HolisticModuleSection
-        v-if="protectionPlan"
+        v-if="protectionPlan && protectionPlan.current_situation"
         title="Protection — Current Situation"
         subtitle="Your insurance coverage overview"
         color="violet"
@@ -46,7 +46,7 @@
 
       <!-- Retirement -->
       <HolisticModuleSection
-        v-if="retirementPlan"
+        v-if="retirementPlan && retirementPlan.current_situation"
         title="Retirement — Current Situation"
         subtitle="Your pension and retirement overview"
         color="spring"
@@ -56,7 +56,7 @@
 
       <!-- Estate -->
       <HolisticModuleSection
-        v-if="estatePlan"
+        v-if="estatePlan && estatePlan.current_situation"
         title="Estate Planning — Current Situation"
         subtitle="Your Inheritance Tax position"
         color="gray"

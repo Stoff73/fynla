@@ -557,6 +557,12 @@ export default {
   },
 
   mounted() {
+    // Check for pendingFill that was set before this component mounted
+    const fill = this.$store.state.aiFormFill?.pendingFill;
+    if (fill && fill.entityType === 'estate_gift' && fill.mode !== 'edit') {
+      this.openCreateGiftForm();
+    }
+
     // Preview users are real DB users - use normal API to fetch their data
     this.loadPlannedStrategy();
     this.loadPersonalizedStrategy();

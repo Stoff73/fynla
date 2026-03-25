@@ -28,32 +28,27 @@
       <!-- Logo -->
       <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'pl-[8px] pr-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
-          <!-- Collapsed: always show favicon -->
-          <img v-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
+          <!-- Collapsed: progress ring around favicon (when progress data loaded) -->
+          <div v-if="effectiveCollapsed && showProgress" class="relative" :title="`Journey: ${progressPercentage}% complete`">
+            <svg viewBox="0 0 40 40" class="w-10 h-10 -rotate-90">
+              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3" class="stroke-light-gray" />
+              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3"
+                :class="progressRingColourClass"
+                :stroke-dasharray="106.8"
+                :stroke-dashoffset="106.8 - (106.8 * progressPercentage / 100)"
+                stroke-linecap="round" />
+            </svg>
+            <img :src="faviconUrl" alt="Fynla" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5" />
+          </div>
+          <!-- Collapsed: no stage, just favicon -->
+          <img v-else-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
           <!-- Expanded: full logo -->
           <img v-else :src="logoUrl" alt="Fynla" class="h-14 w-auto" />
         </router-link>
       </div>
 
-      <!-- Collapsed: progress ring around percentage below favicon -->
-      <div v-if="effectiveCollapsed && currentStage" class="flex justify-center flex-shrink-0 py-1" :title="`Journey: ${progressPercentage}% complete`">
-        <div class="relative">
-          <svg viewBox="0 0 36 36" class="w-9 h-9 -rotate-90">
-            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5" class="stroke-light-gray" />
-            <circle cx="18" cy="18" r="15" fill="none" stroke-width="2.5"
-              :class="progressRingColourClass"
-              :stroke-dasharray="94.2"
-              :stroke-dashoffset="94.2 - (94.2 * progressPercentage / 100)"
-              stroke-linecap="round" />
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <span class="text-[8px] font-bold text-raspberry-500">{{ progressPercentage }}%</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stage badge & progress bar (expanded, when stage is set) -->
-      <div v-if="!effectiveCollapsed && currentStage" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
+      <!-- Stage badge & progress bar (expanded, when progress data loaded) -->
+      <div v-if="!effectiveCollapsed && showProgress" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
         <div class="text-xs font-semibold" :class="stageLabelColourClass">
           {{ stageLabel }}
         </div>
@@ -66,6 +61,11 @@
             <div class="h-1 rounded-full transition-all duration-500" :class="progressBarColourClass" :style="{ width: progressPercentage + '%' }"></div>
           </div>
         </div>
+      </div>
+
+      <!-- Collapsed: tiny progress percentage below ring -->
+      <div v-if="effectiveCollapsed && showProgress" class="text-center flex-shrink-0 -mt-1 mb-1">
+        <span class="text-[9px] font-bold" :class="stageLabelColourClass">{{ progressPercentage }}%</span>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
@@ -255,7 +255,10 @@ export default {
     const currentStage = computed(() => store.getters['lifeStage/currentStage']);
     const stageLabel = computed(() => store.getters['lifeStage/stageLabel']);
     const stageColour = computed(() => store.getters['lifeStage/stageColour']);
+    const lifeStageLoading = computed(() => store.state.lifeStage?.loading ?? true);
     const progressPercentage = computed(() => store.getters['lifeStage/progressPercentage']);
+    // Only show progress section once data has loaded to prevent 0% flash
+    const showProgress = computed(() => currentStage.value && !lifeStageLoading.value);
 
     // Colour class mappings — Tailwind JIT needs full class names
     const COLOUR_CLASSES = {
@@ -539,6 +542,7 @@ export default {
       stageLabel,
       stageColour,
       progressPercentage,
+      showProgress,
       stageLabelColourClass,
       progressBarColourClass,
       progressRingColourClass,

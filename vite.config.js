@@ -22,8 +22,9 @@ export default defineConfig({
     base: process.env.VITE_BASE_PATH || '/',
     server: {
         host: useLocalDomain ? 'local.fynla.org' : '127.0.0.1',
-        port: 5173,
+        port: 5174,
         strictPort: true,
+        cors: true,
         ...(useLocalDomain && hasLocalCerts ? {
             https: {
                 cert: fs.readFileSync(localCertPath),

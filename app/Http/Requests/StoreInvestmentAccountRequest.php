@@ -23,6 +23,7 @@ class StoreInvestmentAccountRequest extends FormRequest
         return true;
     }
 
+
     /**
      * Get the validation rules that apply to the request.
      */
@@ -68,6 +69,16 @@ class StoreInvestmentAccountRequest extends FormRequest
 
             // Employee Share Scheme fields
             ...$this->getEmployeeShareSchemeRules(),
+
+            // Inline holdings (optional — for account types that support holdings)
+            'holdings' => 'sometimes|array',
+            'holdings.*.security_name' => 'required_with:holdings|string|max:255',
+            'holdings.*.asset_type' => ['required_with:holdings', Rule::in([
+                'equity', 'bond', 'fund', 'etf', 'alternative',
+                'uk_equity', 'us_equity', 'international_equity', 'cash', 'property',
+            ])],
+            'holdings.*.allocation_percent' => 'required_with:holdings|numeric|min:0|max:100',
+            'holdings.*.cost_basis' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -165,9 +176,9 @@ class StoreInvestmentAccountRequest extends FormRequest
             'ers_registered' => 'nullable|boolean',
 
             // Grant Details
-            'grant_date' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|date',
+            'grant_date' => 'required_if:account_type,csop,emi,unapproved_options,rsu|nullable|date',
             'grant_reference' => 'nullable|string|max:100',
-            'units_granted' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|integer|min:0',
+            'units_granted' => 'required_if:account_type,csop,emi,unapproved_options,rsu|nullable|integer|min:0',
             'exercise_price' => 'required_if:account_type,saye,csop,emi,unapproved_options|nullable|numeric|min:0',
             'market_value_at_grant' => 'nullable|numeric|min:0',
             'share_class_scheme' => 'nullable|string|max:100',
@@ -247,6 +258,28 @@ class StoreInvestmentAccountRequest extends FormRequest
             'employer_name.required_if' => 'Employer name is required for employee share schemes.',
             'grant_date.required_if' => 'Grant date is required for employee share schemes.',
             'units_granted.required_if' => 'Number of units granted is required for employee share schemes.',
+            'holdings.*.security_name.required_with' => 'Each holding requires a security name.',
+            'holdings.*.asset_type.required_with' => 'Each holding requires an asset type.',
+            'holdings.*.allocation_percent.required_with' => 'Each holding requires an allocation percentage.',
+            'holdings.*.allocation_percent.max' => 'Individual holding allocation cannot exceed 100%.',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->has('holdings') && is_array($this->holdings)) {
+                $totalAllocation = collect($this->holdings)->sum('allocation_percent');
+                if ($totalAllocation > 100) {
+                    $validator->errors()->add(
+                        'holdings',
+                        'Total allocation percentage cannot exceed 100%.'
+                    );
+                }
+            }
+        });
     }
 }

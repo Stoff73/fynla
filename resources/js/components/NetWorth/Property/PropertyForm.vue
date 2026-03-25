@@ -241,7 +241,7 @@
             <h4 class="text-lg font-semibold text-horizon-500 mb-4">Ownership</h4>
 
             <!-- Tenure Type -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'tenure_type' }">
               <label class="block text-sm font-medium text-horizon-500 mb-2">Tenure Type</label>
               <div class="space-y-2">
                 <label class="flex items-center">
@@ -272,7 +272,7 @@
             <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-savannah-100 rounded-md space-y-4">
               <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
 
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'lease_expiry_date' }">
                 <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">
                   Lease Expiry Date
                 </label>
@@ -299,7 +299,7 @@
             </div>
 
             <!-- Ownership Type -->
-            <div>
+            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_type' }">
               <label class="block text-sm font-medium text-horizon-500 mb-2">Ownership Type</label>
               <div class="space-y-2">
                 <label class="flex items-start">
@@ -395,7 +395,7 @@
               </div>
 
               <!-- Free Text Joint Owner Name -->
-              <div v-if="jointOwnerSelection === 'other'">
+              <div v-if="jointOwnerSelection === 'other'" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'joint_owner_name' }">
                 <label for="joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
                   Joint Owner Name
                 </label>
@@ -421,7 +421,7 @@
               <p class="text-sm text-spring-800 font-medium">Tenants in Common Details</p>
 
               <!-- Ownership Percentage Input -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_percentage' }">
                 <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">
                   Your Ownership Share (%)
                 </label>
@@ -868,6 +868,7 @@
                   v-model="mortgageForm.start_date"
                   type="date"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
+                  :class="{ 'ai-fill-highlight': highlightedField === 'mortgage_start_date' }"
                 />
               </div>
 
@@ -878,6 +879,7 @@
                   v-model="mortgageForm.maturity_date"
                   type="date"
                   class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
+                  :class="{ 'ai-fill-highlight': highlightedField === 'mortgage_maturity_date' }"
                 />
                 <p class="text-xs text-neutral-500 mt-1">If no end date specified, chosen retirement date will be used</p>
               </div>
@@ -955,7 +957,7 @@
               </div>
 
               <!-- Council Tax -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_council_tax' }">
                 <label for="monthly_council_tax" class="block text-sm font-medium text-horizon-500 mb-1">Council Tax (£/month)</label>
                 <input
                   id="monthly_council_tax"
@@ -968,7 +970,7 @@
               </div>
 
               <!-- Gas -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_gas' }">
                 <label for="monthly_gas" class="block text-sm font-medium text-horizon-500 mb-1">Gas (£/month)</label>
                 <input
                   id="monthly_gas"
@@ -981,7 +983,7 @@
               </div>
 
               <!-- Electricity -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_electricity' }">
                 <label for="monthly_electricity" class="block text-sm font-medium text-horizon-500 mb-1">Electricity (£/month)</label>
                 <input
                   id="monthly_electricity"
@@ -994,7 +996,7 @@
               </div>
 
               <!-- Water -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_water' }">
                 <label for="monthly_water" class="block text-sm font-medium text-horizon-500 mb-1">Water (£/month)</label>
                 <input
                   id="monthly_water"
@@ -1007,7 +1009,7 @@
               </div>
 
               <!-- Building Insurance -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_building_insurance' }">
                 <label for="monthly_building_insurance" class="block text-sm font-medium text-horizon-500 mb-1">Building Insurance (£/month)</label>
                 <input
                   id="monthly_building_insurance"
@@ -1020,7 +1022,7 @@
               </div>
 
               <!-- Contents Insurance -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_contents_insurance' }">
                 <label for="monthly_contents_insurance" class="block text-sm font-medium text-horizon-500 mb-1">Contents Insurance (£/month)</label>
                 <input
                   id="monthly_contents_insurance"
@@ -1033,7 +1035,7 @@
               </div>
 
               <!-- Service Charge (with tooltip) -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_service_charge' }">
                 <label for="monthly_service_charge" class="block text-sm font-medium text-horizon-500 mb-1">
                   Service Charge (£/month)
                   <span class="relative inline-block group">
@@ -1056,7 +1058,7 @@
               </div>
 
               <!-- Maintenance Reserve (with tooltip) -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'monthly_maintenance_reserve' }">
                 <label for="monthly_maintenance_reserve" class="block text-sm font-medium text-horizon-500 mb-1">
                   Maintenance Reserve (£/month)
                   <span class="relative inline-block group">
@@ -1079,7 +1081,7 @@
               </div>
 
               <!-- Other Monthly Costs -->
-              <div>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'other_monthly_costs' }">
                 <label for="other_monthly_costs" class="block text-sm font-medium text-horizon-500 mb-1">Other Monthly Costs (£/month)</label>
                 <input
                   id="other_monthly_costs"
@@ -1128,7 +1130,7 @@
                   />
                 </div>
 
-                <div>
+                <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'tenant_name' }">
                   <label for="tenant_name" class="block text-sm font-medium text-horizon-500 mb-1">Tenant Name</label>
                   <input
                     id="tenant_name"
@@ -1177,7 +1179,7 @@
                 <p class="text-sm text-neutral-500 mb-4">If you use a managing agent to manage this property, enter their details below.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'managing_agent_name' }">
                     <label for="managing_agent_name" class="block text-sm font-medium text-horizon-500 mb-1">Agent Name</label>
                     <input
                       id="managing_agent_name"
@@ -1667,6 +1669,11 @@ export default {
           if (fill.fields.has_mortgage) {
             this.hasMortgage = true;
           }
+          // Set property_type immediately — <select> v-model needs it set before the
+          // field sequence animation starts, otherwise Vue doesn't pick it up
+          if (fill.fields.property_type) {
+            this.form.property_type = fill.fields.property_type;
+          }
           // Build the field order from non-null fields
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
@@ -1681,7 +1688,17 @@ export default {
         const value = this.pendingFill.fields[fieldKey];
         if (value !== undefined && value !== null) {
           // Map fill fields to form/mortgageForm fields
-          if (fieldKey === 'has_mortgage') {
+          // property_type needs explicit handling — <select> v-model doesn't always
+          // react to programmatic data changes via the catch-all assignment
+          if (fieldKey === 'property_type') {
+            // Direct assignment — then force DOM to re-evaluate the <select>
+            this.form.property_type = value;
+            // Use nextTick to ensure Vue processes the reactive change
+            this.$nextTick(() => {
+              const select = this.$el?.querySelector?.('#property_type');
+              if (select) select.value = value;
+            });
+          } else if (fieldKey === 'has_mortgage') {
             this.hasMortgage = !!value;
           } else if (fieldKey === 'mortgage_outstanding_balance') {
             this.mortgageForm.outstanding_balance = value;
@@ -1695,6 +1712,10 @@ export default {
             this.mortgageForm.rate_type = value;
           } else if (fieldKey === 'mortgage_monthly_payment') {
             this.mortgageForm.monthly_payment = value;
+          } else if (fieldKey === 'mortgage_start_date') {
+            this.mortgageForm.start_date = value;
+          } else if (fieldKey === 'mortgage_maturity_date') {
+            this.mortgageForm.maturity_date = value;
           } else if (fieldKey in this.form) {
             this.form[fieldKey] = value;
           }
@@ -1705,6 +1726,8 @@ export default {
     // AI Form Fill: auto-submit when filling completes
     filling(isFilling) {
       if (isFilling === false && this.pendingFill && (this.pendingFill.entityType === 'property' || this.pendingFill.entityType === 'mortgage')) {
+        // Auto-submit the form — this handles multi-step navigation and final save.
+        // The form's handleSubmit() uses all the existing validation and logic.
         setTimeout(() => {
           this.handleSubmit();
         }, 250);
@@ -1987,7 +2010,7 @@ export default {
     async handleSubmit() {
       if (!this.validateForm()) {
         // Scroll to top to show error message
-        this.$el.querySelector('.px-6.py-4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        this.$el?.querySelector?.('.px-6.py-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
 
@@ -2029,9 +2052,25 @@ export default {
         this.form.lease_remaining_years = this.leaseRemainingYears;
       }
 
+      // Clean property data - convert empty strings to null for nullable fields
+      // Without this, empty strings fail Laravel 'date' and 'email' validation rules
+      const cleanedProperty = { ...this.form };
+      const nullableDateFields = ['purchase_date', 'valuation_date', 'lease_expiry_date', 'lease_start_date', 'lease_end_date'];
+      const nullableStringFields = ['address_line_2', 'county', 'joint_owner_name', 'trust_name', 'tenant_name', 'tenant_email', 'managing_agent_name', 'managing_agent_company', 'managing_agent_email', 'managing_agent_phone'];
+      for (const field of [...nullableDateFields, ...nullableStringFields]) {
+        if (cleanedProperty[field] === '') cleanedProperty[field] = null;
+      }
+      // Clean non-scalar values (e.g. {} from Laravel's MissingValue via $this->when())
+      // and non-leasehold tenure fields
+      if (cleanedProperty.tenure_type !== 'leasehold') {
+        cleanedProperty.lease_remaining_years = null;
+      } else if (typeof cleanedProperty.lease_remaining_years === 'object') {
+        cleanedProperty.lease_remaining_years = null;
+      }
+
       // Emit 'save' event (NOT 'submit' - see CLAUDE.md)
       this.$emit('save', {
-        property: this.form,
+        property: cleanedProperty,
         mortgage: cleanedMortgage,
       });
     },

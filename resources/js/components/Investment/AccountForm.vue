@@ -109,6 +109,18 @@
               @switch-fee-to-fixed="switchFeeToFixed"
             />
 
+            <!-- Inline Holdings Editor (for eligible account types with value entered) -->
+            <!-- Placed outside field component conditionals because VCT/EIS are
+                 classified as isPrivateInvestmentType but still support holdings -->
+            <InlineHoldingsEditor
+              v-if="showHoldingsEditor"
+              :account-value="parseFloat(formData.current_value) || 0"
+              :holdings="formData.holdings"
+              :account-id="account?.id || null"
+              @update:holdings="formData.holdings = $event"
+              @open-holding-details="openHoldingDetails"
+            />
+
           </div>
 
           <!-- Footer -->
@@ -130,6 +142,17 @@
             </button>
           </div>
         </form>
+
+        <!-- Holding Detail Modal (opened from InlineHoldingsEditor "Details" link) -->
+        <HoldingForm
+          v-if="showHoldingDetailModal"
+          :show="showHoldingDetailModal"
+          :holding="editingHoldingDetail"
+          :accounts="account ? [account] : []"
+          :default-account-id="account?.id"
+          @close="showHoldingDetailModal = false; editingHoldingDetail = null"
+          @save="handleHoldingDetailSave"
+        />
       </div>
     </div>
   </div>
@@ -140,8 +163,12 @@ import { mapState } from 'vuex';
 import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
+import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
+import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+
+const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
 
 export default {
   name: 'AccountForm',
@@ -154,6 +181,8 @@ export default {
     PrivateInvestmentFields,
     EmployeeShareSchemeFields,
     StandardInvestmentFields,
+    InlineHoldingsEditor,
+    HoldingForm,
   },
 
   props: {
@@ -200,6 +229,8 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Inline holdings
+        holdings: [],
         // Bond-specific fields (onshore/offshore bonds)
         bond_purchase_date: null,
         bond_withdrawal_taken: null,
@@ -329,6 +360,8 @@ export default {
       errors: {},
       submitting: false,
       feePercentageWarning: false,
+      showHoldingDetailModal: false,
+      editingHoldingDetail: null,
       ISA_ALLOWANCE: 20000, // 2025/26 tax year
       // Risk profile state
       mainRiskLevel: null,
@@ -341,6 +374,11 @@ export default {
 
     isEditMode() {
       return !!this.account;
+    },
+
+    showHoldingsEditor() {
+      return HOLDABLE_ACCOUNT_TYPES.includes(this.formData.account_type)
+        && parseFloat(this.formData.current_value) > 0;
     },
 
     hasRiskProfile() {
@@ -368,7 +406,7 @@ export default {
     },
 
     isPrivateInvestmentType() {
-      return ['private_company', 'crowdfunding'].includes(this.formData.account_type);
+      return ['private_company', 'crowdfunding', 'vct', 'eis'].includes(this.formData.account_type);
     },
 
     isEmployeeShareScheme() {
@@ -643,6 +681,20 @@ export default {
             planned_lump_sum_amount: newAccount.planned_lump_sum_amount || null,
             planned_lump_sum_date: newAccount.planned_lump_sum_date || null,
           };
+          // Load existing holdings for edit mode (filter out auto-created cash)
+          if (newAccount.holdings?.length) {
+            this.formData.holdings = newAccount.holdings
+              .filter(h => h.asset_type !== 'cash')
+              .map(h => ({
+                id: h.id,
+                security_name: h.security_name,
+                asset_type: h.asset_type,
+                allocation_percent: h.allocation_percent,
+                cost_basis: h.cost_basis,
+              }));
+          } else {
+            this.formData.holdings = [];
+          }
         } else {
           this.resetForm();
         }
@@ -669,6 +721,20 @@ export default {
             planned_lump_sum_amount: this.account.planned_lump_sum_amount || null,
             planned_lump_sum_date: this.account.planned_lump_sum_date || null,
           };
+          // Load existing holdings for edit mode (filter out auto-created cash)
+          if (this.account.holdings?.length) {
+            this.formData.holdings = this.account.holdings
+              .filter(h => h.asset_type !== 'cash')
+              .map(h => ({
+                id: h.id,
+                security_name: h.security_name,
+                asset_type: h.asset_type,
+                allocation_percent: h.allocation_percent,
+                cost_basis: h.cost_basis,
+              }));
+          } else {
+            this.formData.holdings = [];
+          }
         } else {
           // Reset form when opening in "add" mode (no account)
           this.resetForm();
@@ -728,8 +794,16 @@ export default {
     },
     pendingFill: {
       handler(fill) {
+        console.log('[AI Fill] pendingFill watcher fired:', fill?.entityType, fill?.fields ? Object.keys(fill.fields) : 'no fields');
         if (fill && fill.entityType === 'investment_account' && fill.fields) {
+          // Set account_type immediately before the field sequence starts —
+          // this controls which conditional sub-components are visible (bonds, private, employee schemes)
+          if (fill.fields.account_type) {
+            this.formData.account_type = fill.fields.account_type;
+            console.log('[AI Fill] Set account_type to:', fill.fields.account_type);
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          console.log('[AI Fill] Starting field sequence:', fieldOrder);
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
       },
@@ -740,14 +814,38 @@ export default {
         const value = this.pendingFill.fields[fieldKey];
         if (value !== undefined && value !== null) {
           this.formData[fieldKey] = value;
+          console.log('[AI Fill] Set field:', fieldKey, '=', value);
         }
       }
     },
     filling(isFilling) {
+      console.log('[AI Fill] filling watcher fired:', isFilling, 'pendingFill:', this.pendingFill?.entityType);
       if (isFilling === false && this.pendingFill?.entityType === 'investment_account') {
+        console.log('[AI Fill] All fields done, will auto-submit. formData:', JSON.stringify(this.formData));
+        // Longer delay for complex form types to let Vue reactivity settle
+        const isComplexType = this.isPrivateInvestmentType || this.isEmployeeShareScheme ||
+          ['onshore_bond', 'offshore_bond'].includes(this.formData.account_type);
+        const delay = isComplexType ? 500 : 250;
+        console.log('[AI Fill] Using delay:', delay, 'isComplexType:', isComplexType);
         setTimeout(() => {
-          this.submitForm();
-        }, 250);
+          // Wait for Vue to process all reactive updates before submitting
+          this.$nextTick(() => {
+            console.log('[AI Fill] Calling submitForm now');
+            this.submitForm();
+            // If validation failed (form still open, errors present), report to chat
+            if (Object.keys(this.errors).length > 0) {
+              console.log('[AI Fill] Validation errors:', this.errors);
+              const errorList = Object.values(this.errors).join(', ');
+              this.$store.commit('aiChat/ADD_MESSAGE', {
+                id: 'fill_error_' + Date.now(),
+                role: 'assistant',
+                content: `I wasn't able to save the account — the form has validation errors: ${errorList}. Please check the form and try again.`,
+                created_at: new Date().toISOString(),
+              }, { root: true });
+              this.$store.dispatch('aiFormFill/cancelFill');
+            }
+          });
+        }, delay);
       }
     },
   },
@@ -786,12 +884,15 @@ export default {
     },
 
     submitForm() {
+      console.log('[AI Fill] submitForm() called, account_type:', this.formData.account_type, 'provider:', this.formData.provider, 'current_value:', this.formData.current_value);
       this.errors = {};
 
       // Client-side validation
       if (!this.validateForm()) {
+        console.log('[AI Fill] validateForm() returned false, errors:', JSON.stringify(this.errors));
         return;
       }
+      console.log('[AI Fill] validateForm() passed');
 
       // Check for high percentage fee warning
       if (this.formData.platform_fee_type === 'percentage' &&
@@ -816,7 +917,74 @@ export default {
         delete submitData.isa_subscription_current_year;
       }
 
+      // The ...newAccount spread pulls in ALL fields from the API resource,
+      // including computed fields, relationships, and MissingValue objects ({}).
+      // Only send fields that are actual form inputs to avoid DB constraint violations.
+      const allowedFields = [
+        'account_type', 'account_type_other', 'provider', 'platform', 'country',
+        'current_value', 'contributions_ytd', 'monthly_contribution_amount',
+        'contribution_frequency', 'planned_lump_sum_amount', 'planned_lump_sum_date',
+        'platform_fee_percent', 'platform_fee_amount', 'platform_fee_type', 'platform_fee_frequency',
+        'isa_type', 'isa_subscription_current_year',
+        'ownership_type', 'ownership_percentage', 'joint_owner_id', 'trust_id',
+        'risk_preference',
+        // Bond fields
+        'bond_purchase_date', 'bond_withdrawal_taken',
+        // Private company fields
+        'company_legal_name', 'company_registration_number', 'company_country',
+        'company_website', 'company_trading_name', 'crowdfunding_platform',
+        'investment_date', 'investment_amount', 'investment_currency',
+        'funding_round', 'pre_money_valuation', 'post_money_valuation',
+        'price_per_share', 'number_of_shares', 'instrument_type', 'share_class',
+        'liquidation_preference', 'has_anti_dilution', 'holding_structure',
+        'nominee_name', 'conversion_terms', 'interest_rate', 'maturity_date',
+        'tax_relief_type', 'eis3_certificate_number', 'hmrc_reference',
+        'relief_claimed_date', 'relief_amount_claimed', 'disposal_restriction_date',
+        'clawback_risk', 'clawback_notes', 'latest_valuation', 'latest_valuation_date',
+        'current_ownership_percent', 'company_status', 'status_notes',
+        'exit_type', 'exit_date', 'exit_gross_proceeds', 'exit_fees',
+        'exit_net_proceeds', 'exit_moic', 'loss_relief_eligible',
+        'capital_loss_amount', 'negligible_value_claim',
+        'badr_eligible', 'badr_is_employee', 'badr_trading_company',
+        'badr_5_percent_holding', 'badr_held_2_years', 'badr_emi_shares', 'badr_lifetime_used',
+        // Employee share scheme fields
+        'employer_name', 'employer_registration', 'employer_ticker', 'employer_is_listed',
+        'parent_company_name', 'parent_company_country', 'ers_scheme_reference', 'ers_registered',
+        'grant_date', 'grant_reference', 'units_granted', 'exercise_price',
+        'market_value_at_grant', 'share_class_scheme', 'grant_currency', 'option_price_paid',
+        'scheme_start_date', 'scheme_duration_months',
+        'vesting_type', 'cliff_date', 'cliff_percentage', 'vesting_period_months',
+        'vesting_frequency_months', 'has_performance_conditions', 'performance_conditions_description',
+        'performance_period_end', 'performance_vesting_min_percent', 'performance_vesting_max_percent',
+        'full_vest_date', 'accelerated_vesting_allowed',
+        'units_vested', 'units_unvested', 'units_exercised', 'units_forfeited', 'units_expired',
+        'scheme_status', 'current_share_price', 'share_price_date',
+        'exercise_window_start', 'exercise_window_end', 'last_exercise_date',
+        'total_exercise_proceeds', 'total_exercise_cost', 'exercise_history_json',
+        'tax_treatment', 'is_readily_convertible_asset', 'paye_via_payroll',
+        'income_tax_at_vest_exercise', 'ni_at_vest_exercise',
+        'csop_disqualifying_event', 'csop_three_year_date', 'cost_basis_for_cgt',
+        'saye_monthly_savings', 'saye_current_savings_balance', 'saye_maturity_date',
+        'saye_option_discount_percent', 'saye_bonus_amount',
+        'leaver_category', 'post_termination_exercise_days', 'termination_date', 'leaver_notes',
+        // Inline holdings
+        'holdings',
+      ];
+      // Only keep allowed form fields, removing computed/relationship/API-only fields
+      for (const key of Object.keys(submitData)) {
+        if (!allowedFields.includes(key)) {
+          delete submitData[key];
+        }
+      }
+      // Remove fields that are MissingValue objects ({}) from $this->when() — don't send them at all
+      for (const key of Object.keys(submitData)) {
+        if (submitData[key] !== null && typeof submitData[key] === 'object' && !Array.isArray(submitData[key]) && !(submitData[key] instanceof Date)) {
+          delete submitData[key];
+        }
+      }
+
       // Emit save event - parent will close modal after successful save
+      console.log('[AI Fill] Emitting save event with data:', JSON.stringify(submitData).substring(0, 500));
       this.$emit('save', submitData);
       this.submitting = false;
     },
@@ -888,10 +1056,15 @@ export default {
           isValid = false;
         }
         if (!this.formData.grant_date) {
-          this.errors.grant_date = 'Grant date is required';
-          isValid = false;
+          // SAYE: fall back to scheme_start_date as grant date
+          if (this.formData.account_type === 'saye' && this.formData.scheme_start_date) {
+            this.formData.grant_date = this.formData.scheme_start_date;
+          } else {
+            this.errors.grant_date = 'Grant date is required';
+            isValid = false;
+          }
         }
-        if (!this.formData.units_granted || this.formData.units_granted <= 0) {
+        if (this.formData.account_type !== 'saye' && (!this.formData.units_granted || this.formData.units_granted <= 0)) {
           this.errors.units_granted = 'Units granted is required';
           isValid = false;
         }
@@ -922,6 +1095,27 @@ export default {
       this.resetForm();
     },
 
+    openHoldingDetails(holding) {
+      this.editingHoldingDetail = holding;
+      this.showHoldingDetailModal = true;
+    },
+
+    async handleHoldingDetailSave(holdingData) {
+      if (holdingData.id) {
+        try {
+          await this.$store.dispatch('investment/updateHolding', {
+            id: holdingData.id,
+            data: holdingData,
+          });
+          await this.$store.dispatch('investment/fetchInvestmentData');
+        } catch (error) {
+          console.error('Failed to update holding:', error);
+        }
+      }
+      this.showHoldingDetailModal = false;
+      this.editingHoldingDetail = null;
+    },
+
     resetForm() {
       this.formData = {
         account_type: '',
@@ -945,6 +1139,8 @@ export default {
         joint_owner_id: null,
         trust_id: null,
         risk_preference: null,
+        // Inline holdings
+        holdings: [],
         // Bond-specific fields (onshore/offshore bonds)
         bond_purchase_date: null,
         bond_withdrawal_taken: null,

@@ -329,7 +329,7 @@ export default {
           await this.createLifeEvent(formData);
         }
         if (this.$store.state.aiFormFill.pendingFill) {
-          this.$store.dispatch('aiFormFill/cancelFill');
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeFormModal();
         // Close detail view after edit so user sees updated list

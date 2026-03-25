@@ -276,6 +276,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -325,6 +326,8 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+
     isEditMode() {
       return !!this.holding;
     },
@@ -378,6 +381,45 @@ export default {
     show(newVal) {
       if (!newVal) {
         this.errors = {};
+      }
+    },
+
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'investment_holding' && fill.fields) {
+          // Pre-set key fields before field sequence
+          if (fill.fields.investment_account_id) {
+            this.formData.investment_account_id = fill.fields.investment_account_id;
+          }
+          if (fill.fields.security_name) {
+            this.formData.security_name = fill.fields.security_name;
+          }
+          if (fill.fields.asset_type) {
+            this.formData.asset_type = fill.fields.asset_type;
+          }
+          const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
+          this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
+        }
+      },
+      immediate: true,
+    },
+
+    highlightedField(fieldKey) {
+      if (fieldKey && this.pendingFill?.fields) {
+        const value = this.pendingFill.fields[fieldKey];
+        if (value !== undefined && value !== null) {
+          this.formData[fieldKey] = value;
+        }
+      }
+    },
+
+    filling(isFilling) {
+      if (isFilling === false && this.pendingFill?.entityType === 'investment_holding') {
+        setTimeout(() => {
+          this.$nextTick(() => {
+            this.submitForm();
+          });
+        }, 500);
       }
     },
   },

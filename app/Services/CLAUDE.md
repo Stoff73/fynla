@@ -4,7 +4,7 @@ This file supplements the root `CLAUDE.md` with backend service-specific pattern
 
 ## Agent Pattern
 
-All 7 module agents extend `BaseAgent` and implement three required methods:
+All 9 module agents extend `BaseAgent` and implement three required methods:
 
 ```php
 abstract public function analyze(int $userId): array;
@@ -45,7 +45,7 @@ public function __construct(
 Heavily-used modules have nested subdirectories; simpler modules are flat:
 
 ```
-Services/             (183 services across 38 module directories)
+Services/             (214 services across 32 module directories)
   Investment/         (root files + 9 subdirectories)
     Analytics/, AssetLocation/, Fees/, Goals/, ModelPortfolio/,
     Performance/, Rebalancing/, Tax/, Utilities/
@@ -88,6 +88,8 @@ Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped
 | `ResolvesIncome` | Resolve gross/net annual income from priority chain | In services needing user income data |
 | `TracksGoalContributions` | Auto-record goal contributions when linked account balances change | In goal-tracking observers |
 | `PolicyCRUDTrait` | Common CRUD for protection policies with cache invalidation | In ProtectionController |
+| `HasAiChat` | AI chat streaming, tool calling, system prompt building | In CoordinatingAgent |
+| `HasAiGuardrails` | Token budgets, content filtering, rate limits for AI | In CoordinatingAgent |
 
 ## Constants
 

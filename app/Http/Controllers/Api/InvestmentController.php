@@ -33,6 +33,7 @@ use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -364,13 +365,51 @@ class InvestmentController extends Controller
             $validated['current_value'] = $validated['current_value'] ?? 0;
         }
 
-        $account = InvestmentAccount::create($validated);
+        // Extract holdings before creating account (not a model field)
+        $holdings = $validated['holdings'] ?? [];
+        unset($validated['holdings']);
 
-        // No auto-created holdings - user must add holdings manually
-        // Returns card will show "Enter Holdings" until holdings are added
+        $account = null;
 
-        // Single-record pattern: NO reciprocal account creation
-        // Joint owner sees this account via the joint_owner_id query
+        DB::transaction(function () use ($validated, $holdings, &$account) {
+            $account = InvestmentAccount::create($validated);
+
+            if (! empty($holdings)) {
+                $hasCashHolding = false;
+
+                foreach ($holdings as $holdingData) {
+                    $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+
+                    if (($holdingData['asset_type'] ?? '') === 'cash') {
+                        $hasCashHolding = true;
+                    }
+
+                    $account->holdings()->create([
+                        'holdable_type' => InvestmentAccount::class,
+                        'holdable_id' => $account->id,
+                        'security_name' => $holdingData['security_name'],
+                        'asset_type' => $holdingData['asset_type'],
+                        'allocation_percent' => $holdingData['allocation_percent'],
+                        'cost_basis' => $holdingData['cost_basis'] ?? null,
+                        'current_value' => $currentValue,
+                    ]);
+                }
+
+                // Auto-create cash holding for remainder — only if user didn't already add one
+                $totalAllocated = collect($holdings)->sum('allocation_percent');
+                if ($totalAllocated < 100 && ! $hasCashHolding) {
+                    $remainderPercent = 100 - $totalAllocated;
+                    $account->holdings()->create([
+                        'holdable_type' => InvestmentAccount::class,
+                        'holdable_id' => $account->id,
+                        'security_name' => 'Cash',
+                        'asset_type' => 'cash',
+                        'allocation_percent' => $remainderPercent,
+                        'current_value' => ($account->current_value * $remainderPercent) / 100,
+                    ]);
+                }
+            }
+        });
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);

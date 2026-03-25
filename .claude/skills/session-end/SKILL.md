@@ -43,9 +43,23 @@ If PHP or Vue files changed, generate deployment documentation.
 
 ### Categorise Changed Files
 
+**CRITICAL: ALWAYS use `git diff` to list files. NEVER list from memory — you WILL miss files.**
+
 ```bash
+# List ALL changed files vs main (this is the ONLY source of truth)
 git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~5...HEAD
+
+# Also check if composer.json changed (needs composer install on server)
+git diff origin/main...HEAD -- composer.json composer.lock 2>/dev/null | head -3
+
+# Also check if config/ changed (needs config:clear)
+git diff --name-only origin/main...HEAD -- config/ 2>/dev/null
+
+# Also check if routes/ changed (needs route:clear)
+git diff --name-only origin/main...HEAD -- routes/ 2>/dev/null
 ```
+
+**Every file from git diff must appear in the deploy notes. No exceptions.**
 
 Sort into categories:
 
@@ -56,6 +70,24 @@ Sort into categories:
 | Migrations | `database/migrations/*.php` | Upload + SSH `php artisan migrate --force` |
 | Seeders | `database/seeders/*.php` | Upload + SSH `php artisan db:seed --class=XSeeder --force` |
 | Deploy Config | `deploy/**`, `.htaccess` | Upload if changed |
+| Composer | `composer.json`, `composer.lock` | Upload + SSH `composer install --no-dev --optimize-autoloader` |
+
+### Pre-Merge Check (if merging a branch)
+
+Before merging a feature branch into main, check for files changed on BOTH branches:
+
+```bash
+BASE=$(git merge-base main HEAD)
+MAIN_FILES=$(git diff --name-only $BASE..origin/main -- '*.php' '*.vue' '*.js')
+BRANCH_FILES=$(git diff --name-only $BASE..HEAD -- '*.php' '*.vue' '*.js')
+CONFLICTS=$(comm -12 <(echo "$MAIN_FILES" | sort) <(echo "$BRANCH_FILES" | sort))
+if [ -n "$CONFLICTS" ]; then
+  echo "WARNING: These files changed on BOTH branches — verify after merge:"
+  echo "$CONFLICTS"
+fi
+```
+
+If any files appear in both lists, they MUST be manually verified after the merge to ensure main's changes weren't overwritten.
 
 ### Generate Deploy Checklist
 
@@ -101,7 +133,7 @@ EOF
 
 ### Push
 ```bash
-git push -u origin $(git branch --show-current)
+git push -u origin $(git rev-parse --abbrev-ref HEAD)
 ```
 
 ## Step 5: Update fynlaBrain Obsidian Vault
@@ -202,9 +234,9 @@ date: 2026-03-[DD]
 ---
 ```
 
-## Step 6: Generate TODO.md
+## Step 6: Generate CSJTODO.md
 
-Create or update `TODO.md` in the project root if there are ANY outstanding items. This file is the handover document for the next session.
+Create or update `CSJTODO.md` in the project root if there are ANY outstanding items. This file is the handover document for the next session (session-start reads it).
 
 ### 6a: Gather outstanding items
 
@@ -222,21 +254,21 @@ git diff --name-only HEAD~10 -- '*.php' '*.vue' '*.js' 2>/dev/null | xargs grep 
 # 7. Any items the user mentioned but weren't started
 ```
 
-### 6b: Check for previous TODO.md
+### 6b: Check for previous CSJTODO.md
 
 ```bash
-cat TODO.md 2>/dev/null
+cat CSJTODO.md 2>/dev/null
 ```
 
-If a previous `TODO.md` exists, check which items were completed this session (mark them done) and which are still outstanding (carry forward).
+If a previous `CSJTODO.md` exists, check which items were completed this session (mark them done) and which are still outstanding (carry forward).
 
-### 6c: Write TODO.md
+### 6c: Write CSJTODO.md
 
 ```markdown
 # TODO — Fynla
 
 *Last updated: [today's date] by session [session-id first 8 chars]*
-*Previous session: [date of last TODO.md update]*
+*Previous session: [date of last CSJTODO.md update]*
 
 ## Carried Forward (from previous session)
 
@@ -273,7 +305,7 @@ a second look in the next session.]
 
 ### 6d: Save to three locations
 
-The TODO.md is a handover for the NEXT session, so place it in TOMORROW's update folder (current day + 1):
+The CSJTODO.md is a handover for the NEXT session, so place it in TOMORROW's update folder (current day + 1):
 
 ```bash
 # Calculate tomorrow's date folder
@@ -282,9 +314,9 @@ TOMORROW=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
 NEXT_FOLDER="March${TOMORROW}Updates"
 ```
 
-1. Project root: `TODO.md` (always kept here for session-start to read)
-2. Project updates: `March/${NEXT_FOLDER}/TODO.md` (in tomorrow's folder, not today's)
-3. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md` (same — tomorrow's folder)
+1. Project root: `CSJTODO.md` (session-start reads this first)
+2. Project updates: `March/${NEXT_FOLDER}/CSJTODO.md` (in tomorrow's folder)
+3. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/CSJTODO.md` (same — tomorrow's folder)
 
 ```bash
 # Create tomorrow's folders if needed
@@ -292,8 +324,8 @@ mkdir -p "March/${NEXT_FOLDER}"
 mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}"
 
 # Copy to all three locations
-cp TODO.md "March/${NEXT_FOLDER}/TODO.md"
-cp TODO.md "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/TODO.md"
+cp CSJTODO.md "March/${NEXT_FOLDER}/CSJTODO.md"
+cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/March/${NEXT_FOLDER}/CSJTODO.md"
 ```
 
 **Why tomorrow's folder:** Today's folder contains what was done today. Tomorrow's folder is where the next session starts — so the TODO belongs there as the first thing the next session sees.
@@ -328,7 +360,7 @@ Present a clean wrap-up to the user:
 **Deploy notes:** Generated at March/MarchXXUpdates/deploy.md
 **Git:** Committed and pushed to origin/[branch]
 **Vault:** Updated — session index, git history, update notes
-**TODO:** [N] outstanding items written to TODO.md / Clean slate
+**CSJTODO:** [N] outstanding items written to CSJTODO.md / Clean slate
 
 **What was done this session:**
 - [bullet summary of work from git log/diff]

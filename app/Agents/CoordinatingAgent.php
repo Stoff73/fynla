@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use Anthropic\Client as AnthropicClient;
+use App\Services\AI\XaiClient;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -67,7 +67,6 @@ class CoordinatingAgent extends BaseAgent
         private readonly GoalsAgent $goalsAgent,
         private readonly TaxOptimisationAgent $taxOptimisationAgent,
         private readonly TaxConfigService $taxConfig,
-        private readonly AnthropicClient $anthropicClient,
         private readonly AiToolDefinitions $toolDefinitions,
         private readonly NetWorthService $netWorthService,
         private readonly PrerequisiteGateService $prerequisiteGate,
@@ -636,6 +635,14 @@ class CoordinatingAgent extends BaseAgent
      */
     public function executeTool(string $toolName, array $input, User $user): array
     {
+        // xAI strict mode may return the string "null" instead of actual null for nullable fields
+        // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
+        $input = array_map(function ($v) {
+            if ($v === 'null') return null;
+            if (is_string($v)) return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            return $v;
+        }, $input);
+
         $isPreviewUser = $user->is_preview_user;
 
         // Prerequisite gate check
@@ -655,8 +662,9 @@ class CoordinatingAgent extends BaseAgent
         }
 
         try {
-            return match ($toolName) {
+            $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
@@ -668,6 +676,7 @@ class CoordinatingAgent extends BaseAgent
                 'create_life_event' => $this->handleCreateLifeEvent($input, $user, $isPreviewUser),
                 'create_savings_account' => $this->handleCreateSavingsAccount($input, $user, $isPreviewUser),
                 'create_investment_account' => $this->handleCreateInvestmentAccount($input, $user, $isPreviewUser),
+                'create_holding' => $this->handleCreateHolding($input, $user, $isPreviewUser),
                 'create_pension' => $this->handleCreatePension($input, $user, $isPreviewUser),
                 'create_property' => $this->handleCreateProperty($input, $user, $isPreviewUser),
                 'create_mortgage' => $this->handleCreateMortgage($input, $user, $isPreviewUser),
@@ -679,11 +688,26 @@ class CoordinatingAgent extends BaseAgent
                 'create_trust' => $this->handleCreateTrust($input, $user, $isPreviewUser),
                 'create_business_interest' => $this->handleCreateBusinessInterest($input, $user, $isPreviewUser),
                 'create_chattel' => $this->handleCreateChattel($input, $user, $isPreviewUser),
+                'set_expenditure' => $this->handleSetExpenditure($input, $user, $isPreviewUser),
                 'update_record' => $this->handleUpdateRecord($input, $user, $isPreviewUser),
                 'delete_record' => $this->handleDeleteRecord($input, $user, $isPreviewUser),
                 'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
+
+            // Audit log for write operations (create, update, delete, profile changes)
+            if (str_starts_with($toolName, 'create_') || in_array($toolName, ['update_record', 'delete_record', 'update_profile'])) {
+                $entityId = $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? null);
+                Log::channel('single')->info('[AI-AUDIT] Tool executed', [
+                    'user_id' => $user->id,
+                    'tool' => $toolName,
+                    'entity_id' => $entityId,
+                    'success' => ! isset($result['error']),
+                    'preview' => $isPreviewUser,
+                ]);
+            }
+
+            return $result;
         } catch (\Illuminate\Validation\ValidationException $e) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
         } catch (\Illuminate\Database\QueryException $e) {
@@ -702,6 +726,84 @@ class CoordinatingAgent extends BaseAgent
     private function handleNavigation(array $input): array
     {
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    private function handleListRecords(array $input, User $user): array
+    {
+        $entityType = $input['entity_type'] ?? null;
+        if (! $entityType) {
+            return ['error' => true, 'message' => 'entity_type is required'];
+        }
+
+        $userId = $user->id;
+        $records = [];
+
+        switch ($entityType) {
+            case 'savings_account':
+                $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($a) => ['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => (float) $a->current_balance, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate])->toArray();
+                break;
+            case 'investment_account':
+                $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($a) => ['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => (float) $a->current_value, 'holdings_count' => $a->holdings()->count()])->toArray();
+                break;
+            case 'dc_pension':
+                $items = \App\Models\DCPension::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'current_value' => (float) $p->current_value, 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0)])->toArray();
+                break;
+            case 'db_pension':
+                $items = \App\Models\DBPension::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years])->toArray();
+                break;
+            case 'property':
+                $items = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => (float) $p->current_value])->toArray();
+                break;
+            case 'life_insurance':
+                $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->life_policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->monthly_premium ?? 0)])->toArray();
+                break;
+            case 'critical_illness':
+                $items = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'sum_assured' => (float) $p->sum_assured])->toArray();
+                break;
+            case 'income_protection':
+                $items = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount])->toArray();
+                break;
+            case 'trust':
+                $items = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value])->toArray();
+                break;
+            case 'business_interest':
+                $items = \App\Models\BusinessInterest::where('user_id', $userId)->get();
+                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->estimated_value])->toArray();
+                break;
+            case 'chattel':
+                $items = \App\Models\Chattel::where('user_id', $userId)->get();
+                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->category, 'estimated_value' => (float) $c->estimated_value])->toArray();
+                break;
+            case 'estate_liability':
+                $items = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+                $records = $items->map(fn ($l) => ['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance])->toArray();
+                break;
+            case 'estate_gift':
+                $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d')])->toArray();
+                break;
+            case 'family_member':
+                $items = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null])->toArray();
+                break;
+            default:
+                return ['error' => true, 'message' => "Unknown entity type: {$entityType}"];
+        }
+
+        return [
+            'entity_type' => $entityType,
+            'count' => count($records),
+            'records' => $records,
+        ];
     }
 
     private function handleListGoals(User $user): array
@@ -906,25 +1008,36 @@ class CoordinatingAgent extends BaseAgent
             'target_amount' => 'required|numeric|min:0|max:999999999.99',
             'target_date' => 'required|date|after:today',
             'priority' => ['required', Rule::in(['critical', 'high', 'medium', 'low'])],
-            'goal_type' => ['required', Rule::in(['emergency_fund', 'house_deposit', 'holiday', 'education', 'wedding', 'car', 'retirement_supplement', 'other'])],
+            'goal_type' => ['required', Rule::in(['emergency_fund', 'home_deposit', 'property_purchase', 'holiday', 'education', 'wedding', 'car_purchase', 'retirement', 'wealth_accumulation', 'debt_repayment', 'custom'])],
             'monthly_contribution' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
+        $fields = [
+            'goal_name' => $input['name'],
+            'goal_type' => $input['goal_type'],
+            'target_amount' => (float) $input['target_amount'],
+            'target_date' => $input['target_date'],
+            'priority' => $input['priority'],
+        ];
+
+        // Custom goals need the custom_goal_type_name field — use the goal name
+        if ($input['goal_type'] === 'custom') {
+            $fields['custom_goal_type_name'] = $input['name'];
+        }
+
+        if (isset($input['monthly_contribution'])) {
+            $fields['monthly_contribution'] = (float) $input['monthly_contribution'];
+        }
+
         return [
             'action' => 'fill_form',
             'entity_type' => 'goal',
             'route' => '/goals',
-            'fields' => [
-                'goal_name' => $input['name'],
-                'goal_type' => $input['goal_type'],
-                'target_amount' => $input['target_amount'],
-                'target_date' => $input['target_date'],
-                'priority' => $input['priority'],
-                'monthly_contribution' => $input['monthly_contribution'] ?? null,
-            ],
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['name']}\" goal now.",
         ];
     }
 
@@ -935,27 +1048,35 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $validationError = $this->validateToolInput($input, [
-            'event_type' => 'required|string|max:100',
+            'event_name' => 'required|string|max:255',
+            'event_type' => ['required', Rule::in(['inheritance', 'gift_received', 'bonus', 'redundancy_payment', 'property_sale', 'business_sale', 'pension_lump_sum', 'lottery_windfall', 'custom_income', 'large_purchase', 'home_improvement', 'wedding', 'education_fees', 'gift_given', 'medical_expense', 'custom_expense'])],
             'event_date' => 'required|date',
-            'description' => 'required|string|max:500',
-            'estimated_cost' => 'nullable|numeric|min:0|max:999999999.99',
+            'estimated_amount' => 'required|numeric|min:0|max:999999999.99',
+            'certainty' => ['nullable', Rule::in(['confirmed', 'likely', 'possible', 'speculative'])],
+            'description' => 'nullable|string|max:500',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        $fields = [
+            'event_name' => $input['event_name'],
+            'event_type' => $input['event_type'],
+            'amount' => (float) $input['estimated_amount'],
+            'expected_date' => $input['event_date'],
+            'certainty' => $input['certainty'] ?? 'likely',
+        ];
+
+        if (isset($input['description'])) {
+            $fields['description'] = $input['description'];
         }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'life_event',
             'route' => '/goals?tab=events',
-            'fields' => [
-                'event_name' => $input['description'],
-                'event_type' => $input['event_type'],
-                'description' => $input['description'],
-                'amount' => $input['estimated_cost'] ?? 0,
-                'expected_date' => $input['event_date'],
-                'certainty' => 'likely',
-            ],
+            'fields' => $fields,
+            'message' => "I'll fill in the form for your \"{$input['event_name']}\" life event now.",
         ];
     }
 
@@ -1025,7 +1146,12 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_value' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in(['stocks_shares_isa', 'lifetime_isa', 'personal_investment_account', 'onshore_bond', 'offshore_bond'])],
+            'account_type' => ['nullable', Rule::in([
+                'stocks_shares_isa', 'lifetime_isa', 'personal_investment_account',
+                'onshore_bond', 'offshore_bond', 'vct', 'eis',
+                'private_company', 'crowdfunding', 'saye', 'csop',
+                'emi', 'unapproved_options', 'rsu', 'other',
+            ])],
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
         ]);
@@ -1044,7 +1170,7 @@ class CoordinatingAgent extends BaseAgent
         $formAccountType = match ($accountType) {
             'stocks_shares_isa', 'lifetime_isa' => 'isa',
             'personal_investment_account' => 'gia',
-            default => $accountType,
+            default => $accountType, // vct, eis, private_company, crowdfunding, saye, csop, emi, unapproved_options, rsu, other pass through directly
         };
 
         // Form uses 'provider' as the main name field — map account_name to it
@@ -1058,12 +1184,159 @@ class CoordinatingAgent extends BaseAgent
             'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
         ];
 
+        // Bond-specific fields
+        if (in_array($accountType, ['onshore_bond', 'offshore_bond'])) {
+            $bondFields = ['bond_purchase_date', 'bond_withdrawal_taken'];
+            foreach ($bondFields as $field) {
+                if (isset($input[$field])) {
+                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                }
+            }
+        }
+
+        // Private company / Crowdfunding fields
+        if (in_array($formAccountType, ['private_company', 'crowdfunding', 'vct', 'eis'])) {
+            $privateStringFields = [
+                'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
+                'investment_date', 'instrument_type', 'funding_round', 'share_class', 'tax_relief_type',
+            ];
+            $privateNumericFields = [
+                'investment_amount', 'number_of_shares', 'price_per_share',
+            ];
+            foreach ($privateStringFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    $fields[$field] = (string) $input[$field];
+                }
+            }
+            foreach ($privateNumericFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                }
+            }
+        }
+
+        // Employee share scheme fields
+        if (in_array($formAccountType, ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'])) {
+            $schemeFields = [
+                'employer_name', 'employer_is_listed', 'grant_date', 'units_granted',
+                'exercise_price', 'market_value_at_grant', 'current_share_price',
+                'units_vested', 'units_unvested', 'vesting_type', 'full_vest_date',
+                'cliff_date', 'cliff_percentage',
+            ];
+            foreach ($schemeFields as $field) {
+                if (isset($input[$field]) && $input[$field] !== '') {
+                    if (is_bool($input[$field])) {
+                        $fields[$field] = $input[$field];
+                    } elseif (is_numeric($input[$field])) {
+                        $fields[$field] = (float) $input[$field];
+                    } else {
+                        $fields[$field] = $input[$field];
+                    }
+                }
+            }
+
+            // SAYE-specific fields
+            if ($formAccountType === 'saye') {
+                $sayeFields = ['saye_monthly_savings', 'saye_current_savings_balance', 'scheme_start_date', 'scheme_duration_months'];
+                foreach ($sayeFields as $field) {
+                    if (isset($input[$field]) && $input[$field] !== '') {
+                        $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
+                    }
+                }
+            }
+        }
+
+        // Inline holdings — pass through for holdable account types (ISA, GIA, bonds, VCT, EIS)
+        $holdableTypes = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
+        if (in_array($formAccountType, $holdableTypes) && ! empty($input['holdings']) && is_array($input['holdings'])) {
+            $holdings = [];
+            foreach ($input['holdings'] as $holding) {
+                $h = [
+                    'security_name' => $holding['security_name'] ?? '',
+                    'asset_type' => $holding['asset_type'] ?? '',
+                    'allocation_percent' => isset($holding['allocation_percent']) ? (float) $holding['allocation_percent'] : 0,
+                ];
+                if (isset($holding['cost_basis']) && $holding['cost_basis'] !== null) {
+                    $h['cost_basis'] = (float) $holding['cost_basis'];
+                }
+                $holdings[] = $h;
+            }
+            $fields['holdings'] = $holdings;
+        }
+
         return [
             'action' => 'fill_form',
             'entity_type' => 'investment_account',
             'route' => '/net-worth/investments',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$provider}\" investment account now.",
+        ];
+    }
+
+    private function handleCreateHolding(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('investment holding');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'account_name' => 'required|string|max:255',
+            'security_name' => 'required|string|max:255',
+            'ticker' => 'nullable|string|max:20',
+            'asset_type' => ['required', Rule::in(['uk_equity', 'us_equity', 'international_equity', 'fund', 'etf', 'bond', 'cash', 'alternative', 'property'])],
+            'allocation_percent' => 'nullable|numeric|min:0|max:100',
+            'purchase_price' => 'nullable|numeric|min:0|max:999999.99',
+            'current_price' => 'nullable|numeric|min:0|max:999999.99',
+            'ocf_percent' => 'nullable|numeric|min:0|max:10',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        // Look up the investment account by name/provider for this user
+        $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            ->where(function ($query) use ($input) {
+                $query->where('provider', 'LIKE', '%' . $input['account_name'] . '%')
+                    ->orWhere('account_name', 'LIKE', '%' . $input['account_name'] . '%');
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $account) {
+            return [
+                'error' => true,
+                'message' => "I couldn't find an investment account matching \"{$input['account_name']}\". Please create the account first, then I can add holdings to it.",
+            ];
+        }
+
+        $fields = [
+            'investment_account_id' => $account->id,
+            'security_name' => $input['security_name'],
+            'asset_type' => $input['asset_type'],
+        ];
+
+        if (isset($input['ticker'])) {
+            $fields['ticker'] = $input['ticker'];
+        }
+        if (isset($input['allocation_percent'])) {
+            $fields['allocation_percent'] = (float) $input['allocation_percent'];
+        }
+        if (isset($input['purchase_price'])) {
+            $fields['purchase_price'] = (float) $input['purchase_price'];
+        }
+        if (isset($input['current_price'])) {
+            $fields['current_price'] = (float) $input['current_price'];
+        }
+        if (isset($input['ocf_percent'])) {
+            $fields['ocf_percent'] = (float) $input['ocf_percent'];
+        }
+
+        return [
+            'action' => 'fill_form',
+            'entity_type' => 'investment_holding',
+            'route' => '/net-worth/investments',
+            'fields' => $fields,
+            'message' => "I'll add \"{$input['security_name']}\" to your {$account->provider} account now.",
         ];
     }
 
@@ -1105,25 +1378,36 @@ class CoordinatingAgent extends BaseAgent
         ];
 
         if ($category === 'db') {
+            $fields['employer_name'] = $input['scheme_name'] ?? $schemeName;
             $fields['scheme_type'] = $input['scheme_type'] ?? 'final_salary';
+            // scheme_status is REQUIRED by DB form validation — default to 'Active'
+            $fields['scheme_status'] = $input['scheme_status'] ?? 'Active';
             $fields['annual_income'] = isset($input['accrued_annual_pension']) ? (float) $input['accrued_annual_pension'] : 0;
             $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
-            $fields['employer_name'] = $input['scheme_name'];
+            $fields['final_salary'] = isset($input['final_salary']) ? (float) $input['final_salary'] : null;
+            $fields['accrual_rate'] = isset($input['accrual_rate']) ? (int) $input['accrual_rate'] : null;
+            $fields['normal_retirement_age'] = isset($input['normal_retirement_age']) ? (int) $input['normal_retirement_age'] : null;
         } else {
             // Map AI scheme_type to form pension_type select values
             $formPensionType = match ($input['scheme_type'] ?? 'workplace') {
                 'workplace', 'occupational' => 'occupational',
                 'sipp', 'self_invested' => 'sipp',
-                'personal' => 'personal',
+                'personal', 'personal_pension' => 'personal',
                 'stakeholder' => 'stakeholder',
                 default => 'occupational',
             };
             $fields['pension_type'] = $formPensionType;
-            $fields['provider'] = !empty($input['provider']) ? $input['provider'] : $schemeName;
+            $fields['provider'] = ! empty($input['provider']) ? $input['provider'] : $schemeName;
             $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
             $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
             $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
+            $fields['monthly_contribution_amount'] = isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : null;
+            $fields['annual_salary'] = isset($input['annual_salary']) ? (float) $input['annual_salary'] : null;
+            $fields['retirement_age'] = isset($input['retirement_age']) ? (int) $input['retirement_age'] : null;
         }
+
+        // Strip nulls and empty strings
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
@@ -1144,9 +1428,29 @@ class CoordinatingAgent extends BaseAgent
             'property_type' => ['required', Rule::in(['main_residence', 'secondary_residence', 'buy_to_let'])],
             'current_value' => 'required|numeric|min:0|max:999999999.99',
             'purchase_price' => 'nullable|numeric|min:0|max:999999999.99',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
+            'tenure_type' => ['nullable', Rule::in(['freehold', 'leasehold'])],
+            'lease_remaining_years' => 'nullable|integer|min:0|max:999',
+            'has_mortgage' => 'nullable|boolean',
+            'mortgage_outstanding_balance' => 'nullable|numeric|min:0|max:999999999.99',
+            'mortgage_interest_rate' => 'nullable|numeric|min:0|max:25',
+            'mortgage_monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
+            'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
+            'mortgage_rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
+            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
+            'monthly_council_tax' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_gas' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_electricity' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_water' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_building_insurance' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_contents_insurance' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_service_charge' => 'nullable|numeric|min:0|max:99999.99',
+            'monthly_maintenance_reserve' => 'nullable|numeric|min:0|max:99999.99',
+            'other_monthly_costs' => 'nullable|numeric|min:0|max:99999.99',
+            // Legacy field names from AiToolDefinitions (Anthropic path)
             'outstanding_mortgage' => 'nullable|numeric|min:0|max:999999999.99',
             'mortgage_rate' => 'nullable|numeric|min:0|max:25',
-            'monthly_rental_income' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1155,26 +1459,86 @@ class CoordinatingAgent extends BaseAgent
         $propertyType = $input['property_type'] ?? 'main_residence';
         $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
 
-        // Build property form fields
+        // Frontend validateForm() requires: property_type, address_line_1, city, postcode, current_value,
+        // ownership_type, ownership_percentage. Set sensible defaults for any the AI didn't provide.
+        $address = $input['address_line_1'] ?? $addressLabel;
+        $city = $input['city'] ?? 'Unknown';
+        $postcode = $input['postcode'] ?? 'N/A';
+        $ownershipType = $input['ownership_type'] ?? 'individual';
+        $ownershipPct = isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null;
+        // Auto-set ownership percentage from type if not explicitly provided
+        if ($ownershipPct === null) {
+            $ownershipPct = match ($ownershipType) {
+                'individual' => 100.0,
+                'joint' => 50.0,
+                'tenants_in_common' => 50.0,
+                'trust' => 0.0,
+                default => 100.0,
+            };
+        }
+
+        // Build property form fields — pass through all provided data
         $fields = [
             'property_type' => $propertyType,
             'current_value' => (float) $input['current_value'],
-            'address_line_1' => $input['address_line_1'] ?? null,
-            'postcode' => $input['postcode'] ?? null,
+            // Address — defaults ensure form validation passes
+            'address_line_1' => $address,
+            'address_line_2' => $input['address_line_2'] ?? null,
+            'city' => $city,
+            'county' => $input['county'] ?? null,
+            'postcode' => $postcode,
+            // Purchase
             'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
             'purchase_date' => $input['purchase_date'] ?? null,
+            'valuation_date' => $input['valuation_date'] ?? null,
+            // Ownership — defaults set above to ensure form validation passes
+            'ownership_type' => $ownershipType,
+            'ownership_percentage' => $ownershipPct,
+            'joint_owner_name' => $input['joint_owner_name'] ?? null,
+            // Tenure
+            'tenure_type' => $input['tenure_type'] ?? null,
+            'lease_remaining_years' => isset($input['lease_remaining_years']) ? (int) $input['lease_remaining_years'] : null,
+            'lease_expiry_date' => $input['lease_expiry_date'] ?? null,
+            // Monthly costs
+            'monthly_council_tax' => isset($input['monthly_council_tax']) ? (float) $input['monthly_council_tax'] : null,
+            'monthly_gas' => isset($input['monthly_gas']) ? (float) $input['monthly_gas'] : null,
+            'monthly_electricity' => isset($input['monthly_electricity']) ? (float) $input['monthly_electricity'] : null,
+            'monthly_water' => isset($input['monthly_water']) ? (float) $input['monthly_water'] : null,
+            'monthly_building_insurance' => isset($input['monthly_building_insurance']) ? (float) $input['monthly_building_insurance'] : null,
+            'monthly_contents_insurance' => isset($input['monthly_contents_insurance']) ? (float) $input['monthly_contents_insurance'] : null,
+            'monthly_service_charge' => isset($input['monthly_service_charge']) ? (float) $input['monthly_service_charge'] : null,
+            'monthly_maintenance_reserve' => isset($input['monthly_maintenance_reserve']) ? (float) $input['monthly_maintenance_reserve'] : null,
+            'other_monthly_costs' => isset($input['other_monthly_costs']) ? (float) $input['other_monthly_costs'] : null,
+            // BTL rental
             'monthly_rental_income' => isset($input['monthly_rental_income']) ? (float) $input['monthly_rental_income'] : null,
+            'tenant_name' => $input['tenant_name'] ?? null,
+            'managing_agent_name' => $input['managing_agent_name'] ?? null,
         ];
 
-        // Add mortgage fields if provided
-        if (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0) {
+        // Add mortgage fields if provided (xAI: has_mortgage flag, Anthropic: outstanding_mortgage legacy)
+        $hasMortgage = ! empty($input['has_mortgage'])
+            || (! empty($input['mortgage_outstanding_balance']) && $input['mortgage_outstanding_balance'] > 0)
+            || (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0);
+
+        if ($hasMortgage) {
             $fields['has_mortgage'] = true;
-            $fields['mortgage_outstanding_balance'] = (float) $input['outstanding_mortgage'];
-            $fields['mortgage_interest_rate'] = isset($input['mortgage_rate']) ? (float) $input['mortgage_rate'] : null;
+            // xAI uses mortgage_outstanding_balance, Anthropic uses outstanding_mortgage
+            $balance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
+            $fields['mortgage_outstanding_balance'] = isset($balance) ? (float) $balance : null;
+            // xAI uses mortgage_interest_rate, Anthropic uses mortgage_rate
+            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+            $fields['mortgage_interest_rate'] = isset($rate) ? (float) $rate : null;
+            // AI param is 'mortgage_lender', form field is 'mortgage_lender_name'
             $fields['mortgage_lender_name'] = $input['mortgage_lender'] ?? null;
-            $fields['mortgage_type'] = 'repayment';
-            $fields['mortgage_rate_type'] = 'fixed';
+            $fields['mortgage_type'] = $input['mortgage_type'] ?? null;
+            $fields['mortgage_rate_type'] = $input['mortgage_rate_type'] ?? null;
+            $fields['mortgage_monthly_payment'] = isset($input['mortgage_monthly_payment']) ? (float) $input['mortgage_monthly_payment'] : null;
+            $fields['mortgage_start_date'] = $input['mortgage_start_date'] ?? null;
+            $fields['mortgage_maturity_date'] = $input['mortgage_maturity_date'] ?? null;
         }
+
+        // Strip nulls and empty strings — only send fields with actual values
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
@@ -1195,9 +1559,11 @@ class CoordinatingAgent extends BaseAgent
             'outstanding_balance' => 'required|numeric|min:0|max:999999999.99',
             'interest_rate' => 'nullable|numeric|min:0|max:25',
             'mortgage_type' => ['nullable', Rule::in(['repayment', 'interest_only', 'mixed'])],
-            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker'])],
+            'rate_type' => ['nullable', Rule::in(['fixed', 'variable', 'tracker', 'discount', 'mixed'])],
             'monthly_payment' => 'nullable|numeric|min:0|max:999999.99',
             'remaining_term_months' => 'nullable|integer|min:1|max:480',
+            'start_date' => 'nullable|date',
+            'maturity_date' => 'nullable|date',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1213,7 +1579,12 @@ class CoordinatingAgent extends BaseAgent
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
             'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
             'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
+            'mortgage_start_date' => $input['start_date'] ?? null,
+            'mortgage_maturity_date' => $input['maturity_date'] ?? null,
         ];
+
+        // Strip nulls and empty strings
+        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
 
         return [
             'action' => 'fill_form',
@@ -1258,16 +1629,16 @@ class CoordinatingAgent extends BaseAgent
             'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
         ];
 
-        // Coverage amount: benefit_amount for income protection, sum_assured for others
-        if ($policyType === 'income_protection') {
-            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0;
+        // Coverage amount: benefit_amount for income protection and family income benefit, sum_assured for others
+        if ($policyType === 'income_protection' || $policyType === 'family_income_benefit') {
+            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : (isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0);
         } else {
             $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
         }
 
-        // Life insurance sub-type
+        // Life insurance sub-type — map generic 'term' to 'level_term' (dropdown value)
         if ($formPolicyType === 'life') {
-            $fields['life_policy_type'] = $policyType;
+            $fields['life_policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
         }
 
         // Term years (for life and critical illness)
@@ -1380,9 +1751,12 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
+        // Resolve family name references in recipient
+        $recipient = $this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'];
+
         $fields = [
             'gift_date' => substr($input['gift_date'], 0, 10),
-            'recipient' => $input['recipient'],
+            'recipient' => $recipient,
             'gift_type' => $input['gift_type'] ?? 'pet',
             'gift_value' => (float) $input['gift_value'],
         ];
@@ -1396,7 +1770,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'estate_gift',
             'route' => '/estate',
             'fields' => $fields,
-            'message' => "I'll fill in the form for your gift to \"{$input['recipient']}\" now.",
+            'message' => "I'll record your gift of £".number_format((float) $input['gift_value'])." to {$recipient} now.",
         ];
     }
 
@@ -1415,6 +1789,111 @@ class CoordinatingAgent extends BaseAgent
         }
 
         return null;
+    }
+
+    /**
+     * Resolve generic family/role references to actual names.
+     *
+     * "my wife" → "Jane Smith" or "(Wife) name to be confirmed"
+     * "myself" / "me" / "I" → "John Smith"
+     * "my children" → "Tom Smith, Emily Smith" or "(Children) names to be confirmed"
+     * "my solicitor" → "(Solicitor) name to be confirmed" (unless a name follows)
+     * "my brother" → "(Brother) name to be confirmed" (unless a name follows)
+     */
+    private function resolveFamilyNames(?string $text, User $user): ?string
+    {
+        if (! $text) {
+            return null;
+        }
+
+        $userName = trim($user->first_name.' '.$user->surname);
+        $spouse = $user->spouse;
+        $spouseFullName = $spouse ? trim($spouse->first_name.' '.$spouse->surname) : null;
+
+        $children = \App\Models\FamilyMember::where('user_id', $user->id)
+            ->where('relationship', 'child')
+            ->get();
+        $childNames = $children->count() > 0
+            ? $children->map(fn ($c) => trim($c->first_name.' '.($c->last_name ?? '')))->implode(', ')
+            : null;
+
+        // Split on comma and " and " to handle "my wife and children", "myself, solicitor"
+        $parts = preg_split('/\s*,\s*|\s+and\s+/i', $text);
+        $parts = array_map('trim', $parts);
+        $resolved = [];
+
+        foreach ($parts as $part) {
+            $lower = strtolower($part);
+
+            // Self references — full name
+            if (in_array($lower, ['myself', 'me', 'i', 'self']) || $lower === strtolower($user->first_name)) {
+                $resolved[] = $userName;
+
+                continue;
+            }
+
+            // Spouse references — full name or placeholder
+            if (preg_match('/^(my\s+)?(wife|husband|partner|spouse)$/i', $lower)) {
+                $resolved[] = $spouseFullName ?? '(Spouse) name to be confirmed';
+
+                continue;
+            }
+
+            // "my wife Jane" / "wife Sarah" — spouse role + name, keep the name
+            if (preg_match('/^(my\s+)?(wife|husband|partner|spouse)\s+(.+)$/i', $part, $m)) {
+                $resolved[] = trim($m[3]);
+
+                continue;
+            }
+
+            // Children references — expand to individual names or placeholder
+            if (preg_match('/^(my\s+|our\s+)?(children|kids)$/i', $lower)) {
+                $resolved[] = $childNames ?? '(Children) names to be confirmed';
+
+                continue;
+            }
+
+            // "wife and children" / "wife and kids" combo
+            if (preg_match('/^(my\s+|our\s+)?(wife|husband|partner|spouse)\s+and\s+(my\s+|our\s+)?(children|kids)$/i', $lower)) {
+                $spousePart = $spouseFullName ?? '(Spouse) name to be confirmed';
+                $childPart = $childNames ?? '(Children) names to be confirmed';
+                $resolved[] = $spousePart.', '.$childPart;
+
+                continue;
+            }
+
+            // Role references without a proper name — add placeholder
+            if (preg_match('/^(my\s+|the\s+|the\s+family\s+|our\s+)?(solicitor|executor|accountant|brother|sister|mother|father|son|daughter)$/i', $lower, $m)) {
+                $role = ucfirst(strtolower($m[2]));
+                $resolved[] = '('.$role.') name to be confirmed';
+
+                continue;
+            }
+
+            // "my brother David" / "my solicitor Mr Hughes" — strip "my"/"the" prefix, keep the name + role
+            if (preg_match('/^(my|the|our|the\s+family)\s+(solicitor|executor|accountant|brother|sister|mother|father|son|daughter)\s+(.+)$/i', $part, $m)) {
+                $role = ucfirst(strtolower($m[2]));
+                $name = trim($m[3]);
+                $resolved[] = $name.' ('.$role.')';
+
+                continue;
+            }
+
+            // Generic "my X" — strip "my" prefix, keep the rest
+            if (preg_match('/^(my|the|our)\s+(.+)$/i', $part, $m)) {
+                $resolved[] = trim($m[2]);
+
+                continue;
+            }
+
+            // Already a name or specific text — keep as-is
+            $resolved[] = $part;
+        }
+
+        // Clean up: remove empty entries, trim whitespace
+        $result = implode(', ', array_filter(array_map('trim', $resolved)));
+
+        return $result ?: null;
     }
 
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
@@ -1564,28 +2043,94 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'first_name' => 'required|string|max:255',
-            'relationship' => ['required', Rule::in(['spouse', 'child', 'parent', 'sibling', 'other'])],
+            'relationship' => ['required', Rule::in(['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'])],
             'surname' => 'nullable|string|max:255',
             'date_of_birth' => 'nullable|date',
-            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'is_dependent' => 'nullable|boolean',
+            'education_status' => ['nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
+            'receives_child_benefit' => 'nullable|boolean',
+            'notes' => 'nullable|string|max:1000',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        // Default surname to user's surname if not provided
+        $surname = $input['surname'] ?? $user->surname;
+
+        // Map relationships to DB-compatible values (DB enum: spouse, child, parent, other_dependent)
+        $relationship = $input['relationship'];
+        $dbRelationship = match ($relationship) {
+            'step_child' => 'child',
+            'partner' => 'other_dependent',
+            default => $relationship,
+        };
+
+        // Add note for mapped relationships
+        $mappingNote = match ($relationship) {
+            'step_child' => 'Step child',
+            'partner' => 'Partner (unmarried)',
+            default => null,
+        };
+
+        // Default is_dependent for children and dependents
+        $isDependent = $input['is_dependent'] ?? in_array($relationship, ['child', 'step_child', 'other_dependent']);
+
+        $fields = [
+            'relationship' => $dbRelationship,
+            'first_name' => $input['first_name'],
+            'last_name' => $surname,
+            'date_of_birth' => $input['date_of_birth'] ?? null,
+            'gender' => $input['gender'] ?? null,
+            'is_dependent' => $isDependent,
+        ];
+
+        // Append mapping note to existing notes
+        if ($mappingNote) {
+            $existingNotes = $input['notes'] ?? '';
+            $fields['notes'] = trim($mappingNote.($existingNotes ? '. '.$existingNotes : ''));
+        }
+
+        // Child-specific fields
+        if (in_array($dbRelationship, ['child'])) {
+            $educationStatus = $input['education_status'] ?? null;
+
+            // Infer education status from age if not provided
+            if (empty($educationStatus) && ! empty($input['date_of_birth'])) {
+                try {
+                    $age = \Carbon\Carbon::parse($input['date_of_birth'])->age;
+                    $educationStatus = match (true) {
+                        $age < 5 => 'pre_school',
+                        $age < 11 => 'primary',
+                        $age < 16 => 'secondary',
+                        $age < 18 => 'further_education',
+                        $age < 22 => 'higher_education',
+                        default => 'graduated',
+                    };
+                } catch (\Exception $e) {
+                    // Ignore parse errors
+                }
+            }
+
+            if (! empty($educationStatus)) {
+                $fields['education_status'] = $educationStatus;
+            }
+            if (isset($input['receives_child_benefit'])) {
+                $fields['receives_child_benefit'] = $input['receives_child_benefit'];
+            }
+        }
+
+        if (! empty($input['notes'])) {
+            $fields['notes'] = $input['notes'];
         }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'family_member',
             'route' => '/profile',
-            'fields' => [
-                'first_name' => $input['first_name'],
-                'last_name' => $input['surname'] ?? '',
-                'relationship' => $input['relationship'],
-                'date_of_birth' => $input['date_of_birth'] ?? null,
-                'gender' => $input['gender'] ?? null,
-                'is_dependent' => $input['is_dependent'] ?? ($input['relationship'] === 'child'),
-            ],
+            'fields' => $fields,
+            'message' => "I'll add {$input['first_name']} as a {$relationship} now.",
         ];
     }
 
@@ -1597,29 +2142,74 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'trust_name' => 'required|string|max:255',
-            'trust_type' => ['required', Rule::in(['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'])],
+            'trust_type' => ['required', Rule::in(['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance', 'mixed', 'settlor_interested'])],
+            'initial_value' => 'nullable|numeric|min:0|max:999999999.99',
             'current_value' => 'nullable|numeric|min:0|max:999999999.99',
-            'date_established' => 'nullable|date',
-            'settlor' => 'nullable|string|max:255',
+            'trust_creation_date' => 'nullable|date',
+            'beneficiaries' => 'nullable|string|max:1000',
+            'trustees' => 'nullable|string|max:1000',
+            'purpose' => 'nullable|string|max:1000',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
+        $initialValue = isset($input['initial_value']) ? (float) $input['initial_value'] : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
+        $currentValue = isset($input['current_value']) ? (float) $input['current_value'] : $initialValue;
+
+        // Resolve family references in beneficiaries and trustees
+        $beneficiaries = $this->resolveFamilyNames($input['beneficiaries'] ?? null, $user);
+        $trustees = $this->resolveFamilyNames($input['trustees'] ?? null, $user);
+
+        // Default settlor to the user (they created the trust unless stated otherwise)
+        $userName = trim($user->first_name.' '.$user->surname);
+        $settlor = $userName;
+
+        // Default creation date to today if not provided (trust is being recorded now)
+        $creationDate = $input['trust_creation_date'] ?? date('Y-m-d');
+
         $fields = [
             'trust_name' => $input['trust_name'],
             'trust_type' => $input['trust_type'],
-            'current_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
-            'trust_creation_date' => $input['date_established'] ?? null,
-            'initial_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
+            'initial_value' => $initialValue,
+            'current_value' => $currentValue,
+            'trust_creation_date' => $creationDate,
+            'beneficiaries' => $beneficiaries,
+            'trustees' => $trustees,
+            'settlor' => $settlor,
+            'purpose' => $input['purpose'] ?? null,
         ];
+
+        // Automatically record a CLT gift when a trust is created with an initial value.
+        // A trust settlement is a Chargeable Lifetime Transfer for IHT purposes — the 7-year
+        // rule and taper relief must be tracked. We save directly to DB since only one form
+        // can be filled at a time.
+        $cltMessage = '';
+        if ($initialValue > 0) {
+            try {
+                \App\Models\Estate\Gift::create([
+                    'user_id' => $user->id,
+                    'gift_date' => substr($creationDate, 0, 10),
+                    'recipient' => $input['trust_name'],
+                    'gift_type' => 'clt',
+                    'gift_value' => $initialValue,
+                    'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
+                ]);
+                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue)." for Inheritance Tax tracking.";
+            } catch (\Exception $e) {
+                Log::warning('[CoordinatingAgent] Failed to auto-create CLT gift for trust', [
+                    'trust_name' => $input['trust_name'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'trust',
             'route' => '/trusts',
             'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.",
+            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.{$cltMessage}",
         ];
     }
 
@@ -1631,10 +2221,14 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'business_name' => 'required|string|max:255',
-            'business_type' => ['required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp'])],
+            'business_type' => ['required', Rule::in(['sole_trader', 'partnership', 'limited_company', 'llp', 'other'])],
+            'industry_sector' => 'nullable|string|max:255',
             'ownership_percentage' => 'nullable|numeric|min:0|max:100',
             'estimated_value' => 'nullable|numeric|min:0|max:999999999.99',
-            'annual_profit' => 'nullable|numeric|min:0|max:999999999.99',
+            'annual_revenue' => 'nullable|numeric|min:0|max:999999999.99',
+            'annual_profit' => 'nullable|numeric|min:-999999999.99|max:999999999.99',
+            'annual_dividend_income' => 'nullable|numeric|min:0|max:999999999.99',
+            'employee_count' => 'nullable|integer|min:0|max:99999',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1643,10 +2237,27 @@ class CoordinatingAgent extends BaseAgent
         $fields = [
             'business_name' => $input['business_name'],
             'business_type' => $input['business_type'],
-            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100,
             'current_valuation' => isset($input['estimated_value']) ? (float) $input['estimated_value'] : 0,
-            'annual_profit' => isset($input['annual_profit']) ? (float) $input['annual_profit'] : 0,
         ];
+
+        if (isset($input['industry_sector'])) {
+            $fields['industry_sector'] = $input['industry_sector'];
+        }
+        if (isset($input['ownership_percentage'])) {
+            $fields['ownership_percentage'] = (float) $input['ownership_percentage'];
+        }
+        if (isset($input['annual_revenue'])) {
+            $fields['annual_revenue'] = (float) $input['annual_revenue'];
+        }
+        if (isset($input['annual_profit'])) {
+            $fields['annual_profit'] = (float) $input['annual_profit'];
+        }
+        if (isset($input['annual_dividend_income'])) {
+            $fields['annual_dividend_income'] = (float) $input['annual_dividend_income'];
+        }
+        if (isset($input['employee_count'])) {
+            $fields['employee_count'] = (int) $input['employee_count'];
+        }
 
         return [
             'action' => 'fill_form',
@@ -1676,7 +2287,7 @@ class CoordinatingAgent extends BaseAgent
 
         // Map AI category values to form chattel_type values
         $chattelType = match ($input['category'] ?? 'other') {
-            'jewellery' => 'jewellery',
+            'jewellery' => 'jewelry',
             'art' => 'art',
             'antiques' => 'antique',
             'collectibles' => 'collectible',
@@ -1697,6 +2308,58 @@ class CoordinatingAgent extends BaseAgent
             'route' => '/net-worth/chattels',
             'fields' => $fields,
             'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
+        ];
+    }
+
+    private function handleSetExpenditure(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('expenditure');
+        }
+
+        // All expenditure category fields (monthly amounts)
+        $categoryFields = [
+            'rent', 'utilities', 'food_groceries', 'transport_fuel', 'healthcare_medical', 'insurance',
+            'mobile_phones', 'internet_tv', 'subscriptions',
+            'clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets',
+            'childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities',
+            'gifts_charity', 'charitable_donations', 'other_expenditure',
+        ];
+
+        $updateData = [];
+        $total = 0;
+        foreach ($categoryFields as $field) {
+            if (isset($input[$field]) && is_numeric($input[$field]) && $input[$field] > 0) {
+                $updateData[$field] = (float) $input[$field];
+                $total += (float) $input[$field];
+            }
+        }
+
+        if (empty($updateData)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No expenditure amounts provided.'];
+        }
+
+        // Save directly to user model (same as manual form save)
+        $updateData['monthly_expenditure'] = $total;
+        $updateData['annual_expenditure'] = $total * 12;
+        $updateData['use_simple_entry'] = false;
+        $user->update($updateData);
+
+        $formatted = collect($updateData)
+            ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
+            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)) . ': £' . number_format($v, 2))
+            ->values()
+            ->implode(', ');
+
+        return [
+            'updated' => true,
+            'action' => 'navigate',
+            'route_path' => '/valuable-info?section=expenditure',
+            'section' => 'expenditure',
+            'fields_updated' => array_keys($updateData),
+            'total_monthly' => $total,
+            'total_annual' => $total * 12,
+            'message' => "Expenditure updated: {$formatted}. Total: £" . number_format($total, 2) . '/month.',
         ];
     }
 
@@ -1837,6 +2500,11 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $section = $input['section'];
+
+        // Redirect expenditure to set_expenditure tool
+        if ($section === 'expenditure') {
+            return $this->handleSetExpenditure($input['fields'] ?? $input, $user, $isPreview);
+        }
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
@@ -1844,7 +2512,8 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $allowedFields = match ($section) {
-            'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode', 'national_insurance_number'],
+            // NI number excluded — sensitive PII should not be AI-writable
+            'personal' => ['first_name', 'surname', 'date_of_birth', 'gender', 'marital_status', 'phone', 'address_line_1', 'address_line_2', 'city', 'county', 'postcode'],
             'income_occupation' => ['employment_status', 'occupation', 'employer', 'industry', 'annual_employment_income', 'annual_self_employment_income', 'annual_rental_income', 'annual_dividend_income', 'annual_other_income', 'target_retirement_age'],
             'expenditure' => ['monthly_expenditure', 'annual_expenditure', 'expenditure_entry_mode'],
             'domicile' => ['country_of_birth', 'uk_arrival_date', 'domicile_status'],

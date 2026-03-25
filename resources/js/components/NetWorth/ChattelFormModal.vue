@@ -383,6 +383,14 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'chattel' && fill.fields) {
+          // Pre-set chattel_type — it's button-based selection, needs to be set before animation
+          if (fill.fields.chattel_type) {
+            this.form.chattel_type = fill.fields.chattel_type;
+          }
+          // Pre-set name — required for validation
+          if (fill.fields.name) {
+            this.form.name = fill.fields.name;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }

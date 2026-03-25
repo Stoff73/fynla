@@ -13,6 +13,17 @@
         <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500 pl-12 sm:pl-0">{{ pageTitle }}</h1>
         <div v-else></div>
 
+        <!-- Countdown Timer -->
+        <div v-if="countdown" class="hidden sm:flex items-center space-x-1 text-body-sm font-semibold tabular-nums">
+          <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.days }}</span>
+          <span class="text-neutral-500">:</span>
+          <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.hours }}</span>
+          <span class="text-neutral-500">:</span>
+          <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.minutes }}</span>
+          <span class="text-neutral-500">:</span>
+          <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.seconds }}</span>
+        </div>
+
         <div class="flex items-center">
         <div class="hidden sm:flex sm:items-center space-x-4">
           <!-- Trial countdown (inline) -->
@@ -255,6 +266,32 @@ export default {
       router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
     };
 
+    // Countdown timer to 9 April 2026 12:00
+    const countdown = ref(null);
+    let countdownInterval = null;
+
+    const updateCountdown = () => {
+      const target = new Date('2026-04-09T12:00:00').getTime();
+      const now = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        countdown.value = null;
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        return;
+      }
+
+      const days = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
+      const hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+      const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+      const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+
+      countdown.value = { days, hours, minutes, seconds };
+    };
+
     const pageTitle = computed(() => {
       const path = route.path;
       const query = route.query;
@@ -337,14 +374,20 @@ export default {
 
     onMounted(() => {
       document.addEventListener('click', handleClickOutside);
-      fetchTrialStatus();
+      updateCountdown();
+      countdownInterval = setInterval(updateCountdown, 1000);
     });
 
     onBeforeUnmount(() => {
       document.removeEventListener('click', handleClickOutside);
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
     });
 
     return {
+      countdown,
       pageTitle,
       userDropdownOpen,
       showLogoutModal,
