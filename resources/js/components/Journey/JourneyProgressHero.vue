@@ -23,8 +23,8 @@
       <!-- Greeting above all panels -->
       <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 mb-4 pr-6">{{ greeting }}, {{ firstName }}</h2>
 
-      <!-- Three-panel row -->
-      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 lg:gap-6 pr-6">
+      <!-- Desktop: three-panel row (unchanged) -->
+      <div class="hidden lg:flex lg:flex-row lg:items-stretch gap-6 pr-6">
 
         <!-- LEFT: Scenario Completeness -->
         <div class="flex-1 min-w-0">
@@ -97,7 +97,7 @@
         </div>
 
         <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
-        <div class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Profile Completeness
             <span class="relative group">
@@ -138,7 +138,7 @@
         </div>
 
         <!-- RIGHT: Recommended Actions (desktop only) -->
-        <div v-if="topActions.length" class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Recommended Actions
             <span class="relative group">
@@ -159,6 +159,162 @@
               <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
             </router-link>
           </div>
+        </div>
+      </div>
+
+      <!-- Mobile: swipeable carousel (below lg) -->
+      <div class="lg:hidden">
+        <div
+          ref="carouselRef"
+          class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-6 px-6 gap-4"
+          @scroll="onCarouselScroll"
+        >
+          <!-- Slide 1: Scenario Completeness -->
+          <div class="snap-center flex-shrink-0 w-full">
+            <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+              Scenario Completeness
+              <span class="relative group">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+                <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                  This shows where you are in your journey. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                </span>
+              </span>
+            </h4>
+            <div class="flex items-start gap-4">
+              <!-- Progress ring -->
+              <div class="flex-shrink-0 relative w-[140px] h-[140px]">
+                <svg viewBox="0 0 96 96" class="w-[140px] h-[140px] -rotate-90">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
+                  <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
+                    :class="progressRingClass"
+                    :stroke-dasharray="251.3"
+                    :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
+                    stroke-linecap="round" />
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-2xl font-extrabold" :class="stageTextClass">
+                  {{ progressPercentage }}%
+                </div>
+              </div>
+
+              <!-- Stage info + next step + button -->
+              <div class="flex-1 min-w-0 pt-3">
+                <p class="text-sm text-neutral-500 mb-1">
+                  <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
+                  <span class="mx-1.5">&middot;</span>
+                  <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
+                </p>
+
+                <!-- Next step -->
+                <div v-if="nextStep" class="flex items-center gap-2 mt-2">
+                  <div
+                    class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    :class="stageBgClass"
+                  >
+                    {{ nextStepNumber }}
+                  </div>
+                  <span class="text-sm text-horizon-500">{{ nextStepTitle }}</span>
+                </div>
+
+                <!-- Journey complete -->
+                <div v-if="isJourneyComplete" class="flex items-center gap-2 mt-2">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-spring-600">Journey complete</p>
+                    <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps.</p>
+                  </div>
+                </div>
+
+                <button
+                  v-if="nextStep"
+                  class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+                  @click="continueJourney"
+                >
+                  Continue Journey
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2: Profile Completeness -->
+          <div class="snap-center flex-shrink-0 w-full">
+            <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+              Profile Completeness
+              <span class="relative group">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+                <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                  This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                </span>
+              </span>
+            </h4>
+            <div class="flex items-start gap-5 flex-1">
+              <!-- Progress ring -->
+              <div class="flex-shrink-0 relative w-[140px] h-[140px]">
+                <svg viewBox="0 0 96 96" class="w-[140px] h-[140px] -rotate-90">
+                  <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
+                  <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
+                    class="stroke-raspberry-500"
+                    :stroke-dasharray="251.3"
+                    :stroke-dashoffset="251.3 - (251.3 * overallProfilePercent / 100)"
+                    stroke-linecap="round" />
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-raspberry-500">
+                  {{ overallProfilePercent }}%
+                </div>
+              </div>
+              <!-- Category links with percentages -->
+              <div class="flex flex-col gap-1.5 flex-1 min-w-0 pt-1">
+                <router-link
+                  v-for="cat in categoryCompleteness"
+                  :key="cat.key"
+                  :to="cat.route"
+                  class="group flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/50 transition-colors cursor-pointer"
+                >
+                  <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ cat.label }}</span>
+                  <span class="text-xs font-bold" :class="cat.percent >= 75 ? 'text-spring-600' : cat.percent >= 25 ? 'text-horizon-400' : 'text-raspberry-500'">{{ cat.percent }}%</span>
+                </router-link>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3: Recommended Actions (only if actions exist) -->
+          <div v-if="topActions.length" class="snap-center flex-shrink-0 w-full">
+            <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
+              Recommended Actions
+              <span class="relative group">
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
+                <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                  This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                </span>
+              </span>
+            </h4>
+            <div class="space-y-1.5 pt-1">
+              <router-link
+                v-for="action in topActions.slice(0, 3)"
+                :key="action.id"
+                to="/actions"
+                class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-eggshell-500 hover:bg-light-pink-200 transition-colors"
+              >
+                <div class="w-1.5 h-1.5 rounded-full bg-raspberry-500 flex-shrink-0"></div>
+                <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
+              </router-link>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dot indicators -->
+        <div class="flex justify-center gap-2 mt-3">
+          <button
+            v-for="(_, index) in carouselSlideCount"
+            :key="index"
+            @click="scrollToSlide(index)"
+            class="w-2 h-2 rounded-full transition-colors"
+            :class="activeSlide === index ? 'bg-raspberry-500' : 'bg-neutral-300'"
+            :aria-label="'Go to slide ' + (index + 1)"
+          />
         </div>
       </div>
     </template>
@@ -183,6 +339,7 @@ export default {
   data() {
     return {
       heroCollapsed: storage.get('heroCollapsed') === 'true',
+      activeSlide: 0,
     };
   },
 
@@ -307,6 +464,10 @@ export default {
         { label: 'Planning', key: 'planning', percent: planning, route: '/goals' },
       ];
     },
+
+    carouselSlideCount() {
+      return this.topActions.length ? 3 : 2;
+    },
   },
 
   mounted() {
@@ -325,6 +486,19 @@ export default {
     toggleCollapsed() {
       this.heroCollapsed = !this.heroCollapsed;
       storage.set('heroCollapsed', this.heroCollapsed);
+    },
+
+    onCarouselScroll() {
+      const el = this.$refs.carouselRef;
+      if (!el) return;
+      const slideWidth = el.offsetWidth;
+      this.activeSlide = Math.round(el.scrollLeft / slideWidth);
+    },
+
+    scrollToSlide(index) {
+      const el = this.$refs.carouselRef;
+      if (!el) return;
+      el.scrollTo({ left: index * el.offsetWidth, behavior: 'smooth' });
     },
   },
 };
