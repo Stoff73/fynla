@@ -568,16 +568,15 @@
               </div>
               <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
-                  v-if="retirementIncomePercent > 0"
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
-                    retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
+                    retirementIncomePercent === 0 ? '' : (retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
                     retirementIncomePercent >= 15 ? 'justify-between' : 'justify-center'
                   ]"
-                  :style="{ width: Math.min(retirementIncomePercent, 100) + '%' }"
+                  :style="{ width: retirementIncomePercent > 0 ? Math.min(retirementIncomePercent, 100) + '%' : '100%' }"
                 >
                   <span v-if="retirementIncomePercent >= 15" class="text-[13px] font-semibold text-white">Income</span>
-                  <span class="text-xs font-bold text-white">{{ retirementIncomePercent }}%</span>
+                  <span class="text-xs font-bold" :class="retirementIncomePercent === 0 ? 'text-horizon-500' : 'text-white'">{{ retirementIncomePercent }}%</span>
                 </div>
               </div>
             </div>
@@ -594,16 +593,15 @@
               </div>
               <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
-                  v-if="retirementCapitalPercent > 0"
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
-                    retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
+                    retirementCapitalPercent === 0 ? '' : (retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
                     retirementCapitalPercent >= 15 ? 'justify-between' : 'justify-center'
                   ]"
-                  :style="{ width: Math.min(retirementCapitalPercent, 100) + '%' }"
+                  :style="{ width: retirementCapitalPercent > 0 ? Math.min(retirementCapitalPercent, 100) + '%' : '100%' }"
                 >
                   <span v-if="retirementCapitalPercent >= 15" class="text-[13px] font-semibold text-white">Capital</span>
-                  <span class="text-xs font-bold text-white">{{ retirementCapitalPercent }}%</span>
+                  <span class="text-xs font-bold" :class="retirementCapitalPercent === 0 ? 'text-horizon-500' : 'text-white'">{{ retirementCapitalPercent }}%</span>
                 </div>
               </div>
             </div>
@@ -651,16 +649,15 @@
                 </div>
                 <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
-                    v-if="lisaAllowanceData.percentUsed > 0"
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
-                      allowanceBarClass(lisaAllowanceData.percentUsed, false),
+                      lisaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(lisaAllowanceData.percentUsed, false),
                       lisaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
                     ]"
-                    :style="{ width: Math.min(lisaAllowanceData.percentUsed, 100) + '%' }"
+                    :style="{ width: lisaAllowanceData.percentUsed > 0 ? Math.min(lisaAllowanceData.percentUsed, 100) + '%' : '100%' }"
                   >
                     <span v-if="lisaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white">Lifetime ISA</span>
-                    <span class="text-xs font-bold text-white">{{ Math.round(lisaAllowanceData.percentUsed) }}%</span>
+                    <span class="text-xs font-bold" :class="lisaAllowanceData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(lisaAllowanceData.percentUsed) }}%</span>
                   </div>
                 </div>
                 <div class="flex justify-between text-sm mt-1.5">
@@ -683,16 +680,15 @@
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
-                  v-if="isaAllowanceData.percentUsed > 0"
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
-                    allowanceBarClass(isaAllowanceData.percentUsed, false),
+                    isaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(isaAllowanceData.percentUsed, false),
                     isaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
                   ]"
-                  :style="{ width: Math.min(isaAllowanceData.percentUsed, 100) + '%' }"
+                  :style="{ width: isaAllowanceData.percentUsed > 0 ? Math.min(isaAllowanceData.percentUsed, 100) + '%' : '100%' }"
                 >
                   <span v-if="isaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white">{{ lisaAllowanceData ? 'ISA (excl. Lifetime)' : 'ISA Allowance' }}</span>
-                  <span class="text-xs font-bold text-white">{{ Math.round(isaAllowanceData.percentUsed) }}%</span>
+                  <span class="text-xs font-bold" :class="isaAllowanceData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(isaAllowanceData.percentUsed) }}%</span>
                 </div>
               </div>
               <div class="flex justify-between text-sm mt-1.5">
@@ -731,16 +727,15 @@
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
-                  v-if="pensionStandardPercent > 0"
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
-                    allowanceBarClass(pensionStandardPercent, false),
+                    pensionStandardPercent === 0 ? '' : allowanceBarClass(pensionStandardPercent, false),
                     pensionStandardPercent >= 15 ? 'justify-between' : 'justify-center'
                   ]"
-                  :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
+                  :style="{ width: pensionStandardPercent > 0 ? Math.min(pensionStandardPercent, 100) + '%' : '100%' }"
                 >
                   <span v-if="pensionStandardPercent >= 15" class="text-[13px] font-semibold text-white">Pension Annual Allowance</span>
-                  <span class="text-xs font-bold text-white">{{ Math.round(pensionStandardPercent) }}%</span>
+                  <span class="text-xs font-bold" :class="pensionStandardPercent === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(pensionStandardPercent) }}%</span>
                 </div>
               </div>
               <div class="flex justify-between text-sm mt-1.5">
@@ -766,16 +761,15 @@
                 </div>
                 <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
-                    v-if="carryForwardData.percentUsed > 0"
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
-                      allowanceBarClass(carryForwardData.percentUsed, false),
+                      carryForwardData.percentUsed === 0 ? '' : allowanceBarClass(carryForwardData.percentUsed, false),
                       carryForwardData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
                     ]"
-                    :style="{ width: Math.min(carryForwardData.percentUsed, 100) + '%' }"
+                    :style="{ width: carryForwardData.percentUsed > 0 ? Math.min(carryForwardData.percentUsed, 100) + '%' : '100%' }"
                   >
                     <span v-if="carryForwardData.percentUsed >= 15" class="text-[13px] font-semibold text-white">Carry Forward</span>
-                    <span class="text-xs font-bold text-white">{{ Math.round(carryForwardData.percentUsed) }}%</span>
+                    <span class="text-xs font-bold" :class="carryForwardData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(carryForwardData.percentUsed) }}%</span>
                   </div>
                 </div>
                 <div class="flex justify-between text-sm mt-1.5">
