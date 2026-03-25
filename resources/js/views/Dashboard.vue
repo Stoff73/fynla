@@ -633,7 +633,7 @@
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
                     retirementIncomePercent === 0 ? '' : (retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
-                    retirementIncomePercent >= 15 ? 'justify-between' : 'justify-center'
+                    retirementIncomePercent >= 15 ? 'justify-between' : (retirementIncomePercent === 0 ? 'justify-start' : 'justify-center')
                   ]"
                   :style="{ width: retirementIncomePercent > 0 ? Math.min(retirementIncomePercent, 100) + '%' : '100%' }"
                 >
@@ -658,7 +658,7 @@
                   class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
                   :class="[
                     retirementCapitalPercent === 0 ? '' : (retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
-                    retirementCapitalPercent >= 15 ? 'justify-between' : 'justify-center'
+                    retirementCapitalPercent >= 15 ? 'justify-between' : (retirementCapitalPercent === 0 ? 'justify-start' : 'justify-center')
                   ]"
                   :style="{ width: retirementCapitalPercent > 0 ? Math.min(retirementCapitalPercent, 100) + '%' : '100%' }"
                 >
@@ -714,7 +714,7 @@
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
                       lisaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(lisaAllowanceData.percentUsed, false),
-                      lisaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                      lisaAllowanceData.percentUsed >= 15 ? 'justify-between' : (lisaAllowanceData.percentUsed === 0 ? 'justify-start' : 'justify-center')
                     ]"
                     :style="{ width: lisaAllowanceData.percentUsed > 0 ? Math.min(lisaAllowanceData.percentUsed, 100) + '%' : '100%' }"
                   >
@@ -745,7 +745,7 @@
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
                     isaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(isaAllowanceData.percentUsed, false),
-                    isaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                    isaAllowanceData.percentUsed >= 15 ? 'justify-between' : (isaAllowanceData.percentUsed === 0 ? 'justify-start' : 'justify-center')
                   ]"
                   :style="{ width: isaAllowanceData.percentUsed > 0 ? Math.min(isaAllowanceData.percentUsed, 100) + '%' : '100%' }"
                 >
@@ -792,7 +792,7 @@
                   class="h-12 rounded-full transition-all flex items-center px-4"
                   :class="[
                     pensionStandardPercent === 0 ? '' : allowanceBarClass(pensionStandardPercent, false),
-                    pensionStandardPercent >= 15 ? 'justify-between' : 'justify-center'
+                    pensionStandardPercent >= 15 ? 'justify-between' : (pensionStandardPercent === 0 ? 'justify-start' : 'justify-center')
                   ]"
                   :style="{ width: pensionStandardPercent > 0 ? Math.min(pensionStandardPercent, 100) + '%' : '100%' }"
                 >
@@ -826,7 +826,7 @@
                     class="h-12 rounded-full transition-all flex items-center px-4"
                     :class="[
                       carryForwardData.percentUsed === 0 ? '' : allowanceBarClass(carryForwardData.percentUsed, false),
-                      carryForwardData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                      carryForwardData.percentUsed >= 15 ? 'justify-between' : (carryForwardData.percentUsed === 0 ? 'justify-start' : 'justify-center')
                     ]"
                     :style="{ width: carryForwardData.percentUsed > 0 ? Math.min(carryForwardData.percentUsed, 100) + '%' : '100%' }"
                   >

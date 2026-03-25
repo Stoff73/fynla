@@ -3,11 +3,11 @@
     class="dashboard-card rounded-lg border border-light-gray p-6 transition-all duration-200"
     :class="[
       empty
-        ? 'bg-light-blue-100 cursor-pointer hover:bg-light-blue-100/80 hover:shadow-md hover:-translate-y-0.5 order-last'
+        ? 'bg-light-blue-100 cursor-pointer order-last'
         : (clickable
-          ? 'bg-white cursor-pointer hover:border-light-blue-300 hover:shadow-md hover:-translate-y-0.5 hover-blue-gradient'
+          ? 'bg-white cursor-pointer hover:shadow-md hover:-translate-y-0.5 hover-blue-gradient'
           : 'bg-white'),
-      !loading && !noGradient ? 'module-gradient' : ''
+      !loading && !noGradient && !empty ? 'module-gradient' : ''
     ]"
     @click="clickable ? $emit('click') : null"
     :role="clickable ? 'button' : undefined"

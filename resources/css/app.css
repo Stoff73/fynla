@@ -351,6 +351,11 @@
     background: linear-gradient(to top, theme('colors.light-gray'), transparent);
     pointer-events: none;
     border-radius: 0 0 theme('borderRadius.card') theme('borderRadius.card');
+    z-index: 0;
+  }
+  .module-gradient > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* Dashboard card gradient — subtle light pink fade from bottom */
@@ -371,12 +376,14 @@
   }
 
   /* Dashboard card hover — switch gradient from grey to light blue */
+  .hover-blue-gradient {
+    border: 3px solid transparent;
+  }
   .hover-blue-gradient::after {
     transition: background 0.2s ease;
   }
   .hover-blue-gradient:hover {
     border-color: theme('colors.light-blue.200');
-    box-shadow: inset 0 0 0 2px theme('colors.light-blue.200');
   }
   .hover-blue-gradient:hover::after {
     background: linear-gradient(to top, theme('colors.light-blue.100'), transparent);
