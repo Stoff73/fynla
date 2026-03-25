@@ -700,7 +700,7 @@
           <div v-if="hasAllowancesData" class="space-y-4">
             <!-- Lifetime ISA Allowance (eligible users only) -->
             <template v-if="lisaAllowanceData">
-              <div>
+              <div class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/cash')">
                 <div class="flex justify-between items-baseline mb-1">
                   <span v-if="lisaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Lifetime ISA</span>
                   <span v-else></span>
@@ -731,7 +731,7 @@
             </template>
 
             <!-- ISA Allowance -->
-            <div v-if="isaAllowanceData">
+            <div v-if="isaAllowanceData" class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/cash')"
               <div class="flex justify-between items-baseline mb-1">
                 <span v-if="isaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
                 <span v-else></span>
@@ -769,7 +769,7 @@
             <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-light-gray"></div>
 
             <!-- Pension Annual Allowance -->
-            <div v-if="pensionAllowanceData">
+            <div v-if="pensionAllowanceData" class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/retirement')"
               <div class="flex justify-between items-baseline mb-1">
                 <div class="flex items-center gap-2">
                   <span v-if="pensionStandardPercent < 15" class="text-sm font-bold text-horizon-500">Pension Annual Allowance</span>
@@ -811,7 +811,7 @@
             <!-- Carry Forward (only when contributions exceed standard allowance) -->
             <template v-if="pensionAllowanceData && carryForwardData">
               <div class="border-t border-light-gray"></div>
-              <div>
+              <div class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/retirement')"
                 <div class="flex justify-between items-baseline mb-1">
                   <div class="flex items-center gap-2">
                     <span v-if="carryForwardData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Carry Forward</span>
