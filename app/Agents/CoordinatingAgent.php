@@ -664,6 +664,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
@@ -725,6 +726,84 @@ class CoordinatingAgent extends BaseAgent
     private function handleNavigation(array $input): array
     {
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    private function handleListRecords(array $input, User $user): array
+    {
+        $entityType = $input['entity_type'] ?? null;
+        if (! $entityType) {
+            return ['error' => true, 'message' => 'entity_type is required'];
+        }
+
+        $userId = $user->id;
+        $records = [];
+
+        switch ($entityType) {
+            case 'savings_account':
+                $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($a) => ['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => (float) $a->current_balance, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate])->toArray();
+                break;
+            case 'investment_account':
+                $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($a) => ['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => (float) $a->current_value, 'holdings_count' => $a->holdings()->count()])->toArray();
+                break;
+            case 'dc_pension':
+                $items = \App\Models\DCPension::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'current_value' => (float) $p->current_value, 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0)])->toArray();
+                break;
+            case 'db_pension':
+                $items = \App\Models\DBPension::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years])->toArray();
+                break;
+            case 'property':
+                $items = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => (float) $p->current_value])->toArray();
+                break;
+            case 'life_insurance':
+                $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->life_policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->monthly_premium ?? 0)])->toArray();
+                break;
+            case 'critical_illness':
+                $items = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'sum_assured' => (float) $p->sum_assured])->toArray();
+                break;
+            case 'income_protection':
+                $items = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount])->toArray();
+                break;
+            case 'trust':
+                $items = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value])->toArray();
+                break;
+            case 'business_interest':
+                $items = \App\Models\BusinessInterest::where('user_id', $userId)->get();
+                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->estimated_value])->toArray();
+                break;
+            case 'chattel':
+                $items = \App\Models\Chattel::where('user_id', $userId)->get();
+                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->category, 'estimated_value' => (float) $c->estimated_value])->toArray();
+                break;
+            case 'estate_liability':
+                $items = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+                $records = $items->map(fn ($l) => ['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance])->toArray();
+                break;
+            case 'estate_gift':
+                $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d')])->toArray();
+                break;
+            case 'family_member':
+                $items = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null])->toArray();
+                break;
+            default:
+                return ['error' => true, 'message' => "Unknown entity type: {$entityType}"];
+        }
+
+        return [
+            'entity_type' => $entityType,
+            'count' => count($records),
+            'records' => $records,
+        ];
     }
 
     private function handleListGoals(User $user): array
@@ -1672,9 +1751,12 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
+        // Resolve family name references in recipient
+        $recipient = $this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'];
+
         $fields = [
             'gift_date' => substr($input['gift_date'], 0, 10),
-            'recipient' => $input['recipient'],
+            'recipient' => $recipient,
             'gift_type' => $input['gift_type'] ?? 'pet',
             'gift_value' => (float) $input['gift_value'],
         ];
@@ -1688,7 +1770,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'estate_gift',
             'route' => '/estate',
             'fields' => $fields,
-            'message' => "I'll fill in the form for your gift to \"{$input['recipient']}\" now.",
+            'message' => "I'll record your gift of £".number_format((float) $input['gift_value'])." to {$recipient} now.",
         ];
     }
 
@@ -1707,6 +1789,111 @@ class CoordinatingAgent extends BaseAgent
         }
 
         return null;
+    }
+
+    /**
+     * Resolve generic family/role references to actual names.
+     *
+     * "my wife" → "Jane Smith" or "(Wife) name to be confirmed"
+     * "myself" / "me" / "I" → "John Smith"
+     * "my children" → "Tom Smith, Emily Smith" or "(Children) names to be confirmed"
+     * "my solicitor" → "(Solicitor) name to be confirmed" (unless a name follows)
+     * "my brother" → "(Brother) name to be confirmed" (unless a name follows)
+     */
+    private function resolveFamilyNames(?string $text, User $user): ?string
+    {
+        if (! $text) {
+            return null;
+        }
+
+        $userName = trim($user->first_name.' '.$user->surname);
+        $spouse = $user->spouse;
+        $spouseFullName = $spouse ? trim($spouse->first_name.' '.$spouse->surname) : null;
+
+        $children = \App\Models\FamilyMember::where('user_id', $user->id)
+            ->where('relationship', 'child')
+            ->get();
+        $childNames = $children->count() > 0
+            ? $children->map(fn ($c) => trim($c->first_name.' '.($c->last_name ?? '')))->implode(', ')
+            : null;
+
+        // Split on comma and " and " to handle "my wife and children", "myself, solicitor"
+        $parts = preg_split('/\s*,\s*|\s+and\s+/i', $text);
+        $parts = array_map('trim', $parts);
+        $resolved = [];
+
+        foreach ($parts as $part) {
+            $lower = strtolower($part);
+
+            // Self references — full name
+            if (in_array($lower, ['myself', 'me', 'i', 'self']) || $lower === strtolower($user->first_name)) {
+                $resolved[] = $userName;
+
+                continue;
+            }
+
+            // Spouse references — full name or placeholder
+            if (preg_match('/^(my\s+)?(wife|husband|partner|spouse)$/i', $lower)) {
+                $resolved[] = $spouseFullName ?? '(Spouse) name to be confirmed';
+
+                continue;
+            }
+
+            // "my wife Jane" / "wife Sarah" — spouse role + name, keep the name
+            if (preg_match('/^(my\s+)?(wife|husband|partner|spouse)\s+(.+)$/i', $part, $m)) {
+                $resolved[] = trim($m[3]);
+
+                continue;
+            }
+
+            // Children references — expand to individual names or placeholder
+            if (preg_match('/^(my\s+|our\s+)?(children|kids)$/i', $lower)) {
+                $resolved[] = $childNames ?? '(Children) names to be confirmed';
+
+                continue;
+            }
+
+            // "wife and children" / "wife and kids" combo
+            if (preg_match('/^(my\s+|our\s+)?(wife|husband|partner|spouse)\s+and\s+(my\s+|our\s+)?(children|kids)$/i', $lower)) {
+                $spousePart = $spouseFullName ?? '(Spouse) name to be confirmed';
+                $childPart = $childNames ?? '(Children) names to be confirmed';
+                $resolved[] = $spousePart.', '.$childPart;
+
+                continue;
+            }
+
+            // Role references without a proper name — add placeholder
+            if (preg_match('/^(my\s+|the\s+|the\s+family\s+|our\s+)?(solicitor|executor|accountant|brother|sister|mother|father|son|daughter)$/i', $lower, $m)) {
+                $role = ucfirst(strtolower($m[2]));
+                $resolved[] = '('.$role.') name to be confirmed';
+
+                continue;
+            }
+
+            // "my brother David" / "my solicitor Mr Hughes" — strip "my"/"the" prefix, keep the name + role
+            if (preg_match('/^(my|the|our|the\s+family)\s+(solicitor|executor|accountant|brother|sister|mother|father|son|daughter)\s+(.+)$/i', $part, $m)) {
+                $role = ucfirst(strtolower($m[2]));
+                $name = trim($m[3]);
+                $resolved[] = $name.' ('.$role.')';
+
+                continue;
+            }
+
+            // Generic "my X" — strip "my" prefix, keep the rest
+            if (preg_match('/^(my|the|our)\s+(.+)$/i', $part, $m)) {
+                $resolved[] = trim($m[2]);
+
+                continue;
+            }
+
+            // Already a name or specific text — keep as-is
+            $resolved[] = $part;
+        }
+
+        // Clean up: remove empty entries, trim whitespace
+        $result = implode(', ', array_filter(array_map('trim', $resolved)));
+
+        return $result ?: null;
     }
 
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
@@ -1856,28 +2043,94 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'first_name' => 'required|string|max:255',
-            'relationship' => ['required', Rule::in(['spouse', 'child', 'parent', 'sibling', 'other'])],
+            'relationship' => ['required', Rule::in(['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'])],
             'surname' => 'nullable|string|max:255',
             'date_of_birth' => 'nullable|date',
-            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
             'is_dependent' => 'nullable|boolean',
+            'education_status' => ['nullable', Rule::in(['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'])],
+            'receives_child_benefit' => 'nullable|boolean',
+            'notes' => 'nullable|string|max:1000',
         ]);
         if ($validationError) {
             return $validationError;
+        }
+
+        // Default surname to user's surname if not provided
+        $surname = $input['surname'] ?? $user->surname;
+
+        // Map relationships to DB-compatible values (DB enum: spouse, child, parent, other_dependent)
+        $relationship = $input['relationship'];
+        $dbRelationship = match ($relationship) {
+            'step_child' => 'child',
+            'partner' => 'other_dependent',
+            default => $relationship,
+        };
+
+        // Add note for mapped relationships
+        $mappingNote = match ($relationship) {
+            'step_child' => 'Step child',
+            'partner' => 'Partner (unmarried)',
+            default => null,
+        };
+
+        // Default is_dependent for children and dependents
+        $isDependent = $input['is_dependent'] ?? in_array($relationship, ['child', 'step_child', 'other_dependent']);
+
+        $fields = [
+            'relationship' => $dbRelationship,
+            'first_name' => $input['first_name'],
+            'last_name' => $surname,
+            'date_of_birth' => $input['date_of_birth'] ?? null,
+            'gender' => $input['gender'] ?? null,
+            'is_dependent' => $isDependent,
+        ];
+
+        // Append mapping note to existing notes
+        if ($mappingNote) {
+            $existingNotes = $input['notes'] ?? '';
+            $fields['notes'] = trim($mappingNote.($existingNotes ? '. '.$existingNotes : ''));
+        }
+
+        // Child-specific fields
+        if (in_array($dbRelationship, ['child'])) {
+            $educationStatus = $input['education_status'] ?? null;
+
+            // Infer education status from age if not provided
+            if (empty($educationStatus) && ! empty($input['date_of_birth'])) {
+                try {
+                    $age = \Carbon\Carbon::parse($input['date_of_birth'])->age;
+                    $educationStatus = match (true) {
+                        $age < 5 => 'pre_school',
+                        $age < 11 => 'primary',
+                        $age < 16 => 'secondary',
+                        $age < 18 => 'further_education',
+                        $age < 22 => 'higher_education',
+                        default => 'graduated',
+                    };
+                } catch (\Exception $e) {
+                    // Ignore parse errors
+                }
+            }
+
+            if (! empty($educationStatus)) {
+                $fields['education_status'] = $educationStatus;
+            }
+            if (isset($input['receives_child_benefit'])) {
+                $fields['receives_child_benefit'] = $input['receives_child_benefit'];
+            }
+        }
+
+        if (! empty($input['notes'])) {
+            $fields['notes'] = $input['notes'];
         }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'family_member',
             'route' => '/profile',
-            'fields' => [
-                'first_name' => $input['first_name'],
-                'last_name' => $input['surname'] ?? '',
-                'relationship' => $input['relationship'],
-                'date_of_birth' => $input['date_of_birth'] ?? null,
-                'gender' => $input['gender'] ?? null,
-                'is_dependent' => $input['is_dependent'] ?? ($input['relationship'] === 'child'),
-            ],
+            'fields' => $fields,
+            'message' => "I'll add {$input['first_name']} as a {$relationship} now.",
         ];
     }
 
@@ -1889,29 +2142,74 @@ class CoordinatingAgent extends BaseAgent
 
         $validationError = $this->validateToolInput($input, [
             'trust_name' => 'required|string|max:255',
-            'trust_type' => ['required', Rule::in(['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'])],
+            'trust_type' => ['required', Rule::in(['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance', 'mixed', 'settlor_interested'])],
+            'initial_value' => 'nullable|numeric|min:0|max:999999999.99',
             'current_value' => 'nullable|numeric|min:0|max:999999999.99',
-            'date_established' => 'nullable|date',
-            'settlor' => 'nullable|string|max:255',
+            'trust_creation_date' => 'nullable|date',
+            'beneficiaries' => 'nullable|string|max:1000',
+            'trustees' => 'nullable|string|max:1000',
+            'purpose' => 'nullable|string|max:1000',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
+        $initialValue = isset($input['initial_value']) ? (float) $input['initial_value'] : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
+        $currentValue = isset($input['current_value']) ? (float) $input['current_value'] : $initialValue;
+
+        // Resolve family references in beneficiaries and trustees
+        $beneficiaries = $this->resolveFamilyNames($input['beneficiaries'] ?? null, $user);
+        $trustees = $this->resolveFamilyNames($input['trustees'] ?? null, $user);
+
+        // Default settlor to the user (they created the trust unless stated otherwise)
+        $userName = trim($user->first_name.' '.$user->surname);
+        $settlor = $userName;
+
+        // Default creation date to today if not provided (trust is being recorded now)
+        $creationDate = $input['trust_creation_date'] ?? date('Y-m-d');
+
         $fields = [
             'trust_name' => $input['trust_name'],
             'trust_type' => $input['trust_type'],
-            'current_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
-            'trust_creation_date' => $input['date_established'] ?? null,
-            'initial_value' => isset($input['current_value']) ? (float) $input['current_value'] : 0,
+            'initial_value' => $initialValue,
+            'current_value' => $currentValue,
+            'trust_creation_date' => $creationDate,
+            'beneficiaries' => $beneficiaries,
+            'trustees' => $trustees,
+            'settlor' => $settlor,
+            'purpose' => $input['purpose'] ?? null,
         ];
+
+        // Automatically record a CLT gift when a trust is created with an initial value.
+        // A trust settlement is a Chargeable Lifetime Transfer for IHT purposes — the 7-year
+        // rule and taper relief must be tracked. We save directly to DB since only one form
+        // can be filled at a time.
+        $cltMessage = '';
+        if ($initialValue > 0) {
+            try {
+                \App\Models\Estate\Gift::create([
+                    'user_id' => $user->id,
+                    'gift_date' => substr($creationDate, 0, 10),
+                    'recipient' => $input['trust_name'],
+                    'gift_type' => 'clt',
+                    'gift_value' => $initialValue,
+                    'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
+                ]);
+                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue)." for Inheritance Tax tracking.";
+            } catch (\Exception $e) {
+                Log::warning('[CoordinatingAgent] Failed to auto-create CLT gift for trust', [
+                    'trust_name' => $input['trust_name'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return [
             'action' => 'fill_form',
             'entity_type' => 'trust',
             'route' => '/trusts',
             'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.",
+            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.{$cltMessage}",
         ];
     }
 
@@ -2055,6 +2353,8 @@ class CoordinatingAgent extends BaseAgent
 
         return [
             'updated' => true,
+            'action' => 'navigate',
+            'route_path' => '/valuable-info?section=expenditure',
             'section' => 'expenditure',
             'fields_updated' => array_keys($updateData),
             'total_monthly' => $total,

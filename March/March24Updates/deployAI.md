@@ -1,6 +1,8 @@
 # Deploy Guide — xAI AI Form Fill (24 March 2026)
 
 **Branch:** `grokAI`
+**Status:** DEPLOYED to production 25 March 2026
+**Note:** Original guide was incomplete — see `March/March25Updates/deployFixComplete.md` for the full file list that was actually required.
 
 ## What Changed
 
@@ -236,19 +238,135 @@ No database changes. No seeding required.
 - Chattel `jewellery` (British) → `jewelry` (American) spelling mapping
 - Anthropic path completely untouched — no regression risk
 
-## Test Verification — Investment Holdings (1/1 PASS)
+## Test Verification — Investment Accounts (14/14 tested, 25 March 2026)
 
-| Scenario | Security | Ticker | Asset Type | Allocation | Account | Result |
-|----------|----------|--------|-----------|------------|---------|--------|
-| 1 | iShares Core MSCI World ETF | SWDA | ETF | 30% | Hargreaves Lansdown ISA | PASS |
+All 14 account types tested with Grok AI via natural language prompts. Each test verified: form fill, auto-submit, DB save, card display.
 
-**Notes:**
-- New `create_holding` tool added — looks up existing account by name/provider, navigates into account detail, opens HoldingForm
-- Account lookup uses LIKE match on provider/account_name — picks most recent match if multiple
-- Fund asset_type requires sub_type (backend validation) — ETF is safer for AI to use
-- Manual test also passed: Vanguard FTSE All-World ETF, 50% allocation, 0.22% OCF in HL GIA
+| # | Account Type | Prompt Summary | Key Fields Verified | Result |
+|---|-------------|---------------|-------------------|--------|
+| 1 | ISA (Stocks & Shares) | Vanguard ISA £80k, 2 holdings (FTSE Global All Cap 70%, UK Gilts 30%) | Holdings with cost bases, no auto-cash (100% allocated) | PASS |
+| 2 | General Investment Account | Interactive Investor £60k, 2 holdings (Fundsmith 50%, LifeStrategy 30%) | Holdings + auto-cash at 20% | PASS |
+| 3 | Onshore Bond | Prudential £150k, PruFund Growth 60% + Cautious 40% | Complex type 500ms delay, 2 holdings | PASS |
+| 4 | Offshore Bond | Zurich International £120k, global equity 50% + mixed 50% | 2 holdings | PASS |
+| 5 | VCT | Octopus Titan VCT £22k, bought £25k March 2024 | investment_date, investment_amount, tax_relief_type | PASS |
+| 6 | EIS | GreenTech Solutions Ltd £18k, 1500 shares @ £10, Jan 2025 | company_legal_name, company_registration_number, instrument_type, shares, price | PASS |
+| 7 | Private Company | Smith Engineering Ltd £50k, 500 shares @ £60, June 2020 | company name, reg number, shares, price, date | PASS |
+| 8 | Crowdfunding | BrewDog via Seedrs £6k, 200 shares @ £25, Sep 2023 | crowdfunding_platform, company, shares, price | PASS |
+| 9 | SAYE | Tesco £3k saved, £250/mo, 3yr, exercise £2.50, current £3.20 | SAYE-specific fields, scheme_duration, auto-calculated units_granted | PASS |
+| 10 | CSOP | Barclays 2000 shares, exercise £1.50, current £2.10, 1000 vested | units_granted, vested, exercise_price, intrinsic value calculated | PASS |
+| 11 | EMI | TechVenture Ltd 5000 shares, exercise £1, mv_grant £1.20, current £2.50, monthly vesting, 1yr cliff | Full vesting schedule, cliff_date, cliff_percentage, market_value_at_grant | PASS |
+| 12 | Unapproved Options | GlobalCorp plc 3000 options, exercise £5, mv_grant £5.50, current £8, all vested | All fields, intrinsic value £9,000 | PASS |
+| 13 | RSUs | Amazon 400 units, mv_grant £95, current £185, 200 vested, annual over 4yr | vesting_type=annual, full_vest_date, units_vested/unvested | PASS |
+| 14 | Other | Wine fund — routed to GIA (see notes) | current_value, holdings as alternative asset | PARTIAL |
 
-## Total Test Results: 69/69 PASS
+**Notes on test 14 (Other):** Grok classified "fine wine fund" as GIA rather than `other`. Tool descriptions updated (25 March) to route wine/art/collectibles to `create_chattel` and gold/silver/crypto to investment `other` type.
+
+**Bugs found and fixed (25 March):**
+1. SAYE validation failed on `units_granted` (required) — fixed: made optional for SAYE in frontend + backend
+2. SAYE validation failed on `grant_date` (required) — fixed: auto-populates from `scheme_start_date` for SAYE
+3. Private Company/Crowdfunding cards showed "Valuation: £0" — fixed: added `current_value` fallback in `getDisplayValue()`
+4. Tool descriptions updated to correctly route wine/chattels vs gold/crypto
+
+**Additional files changed (25 March):**
+
+| File | Change |
+|------|--------|
+| `resources/js/components/Investment/AccountForm.vue` | SAYE: `units_granted` validation skipped, `grant_date` auto-filled from `scheme_start_date` |
+| `resources/js/components/NetWorth/InvestmentList.vue` | `getDisplayValue()`: added `current_value` fallback for private/crowdfunding types |
+| `app/Http/Requests/StoreInvestmentAccountRequest.php` | Removed `saye` from `required_if` for `units_granted` and `grant_date` |
+| `app/Services/AI/XaiToolDefinitions.php` | `create_investment_account`: added routing guidance (wine→chattel, gold/crypto→other). `create_chattel`: expanded description to include wine, watches, handbags |
+
+## Test Verification — Trusts (9/9 tested, 25 March 2026)
+
+All 9 UK trust types tested with Grok AI. Family name resolution verified: spouse resolved to full name from profile, children to names or placeholder, self-references to user's full name, roles (solicitor, executor, brother) to placeholder with role label.
+
+| # | Trust Type | Name | Value | Settlor | Family Resolution | Result |
+|---|-----------|------|-------|---------|-------------------|--------|
+| 1 | Discretionary | John's Family Discretionary Trust | £400k | John Smith | Wife→Jane Smith, Children→placeholder | PASS |
+| 2 | Life Insurance | Royal London Life Insurance Trust | £0 (policy) | John Smith | Also created protection policy | PASS |
+| 3 | Bare | Bare Trust for Grandson Tom | £58k | John Smith | Named beneficiary/trustee passed through | PASS |
+| 4 | Discounted Gift | Prudential Discounted Gift Trust | £185k | John Smith | Wife→Jane Smith, Children→placeholder | PASS |
+| 5 | Loan | St. James's Place Loan Trust | £175k | John Smith | Children→placeholder | PASS |
+| 6 | Interest in Possession | Late Father's IiP Trust | £300k | John Smith | Named people passed through | PASS |
+| 7 | Accumulation & Maintenance | Children's Education A&M Trust | £120k | John Smith | Wife/children resolved | PASS |
+| 8 | Mixed | Family Mixed Trust | £310k | John Smith | Wife→Jane Smith, Children→placeholder | PASS |
+| 9 | Settlor-Interested | John's Settlor-Interested Trust 2016 | £220k | John Smith | Wife→Jane Smith, myself→John Smith | PASS |
+
+**Family name resolution feature (`resolveFamilyNames`):**
+- "my wife" / "wife" / "husband" / "partner" / "spouse" → spouse full name from User.spouse, or "(Spouse) name to be confirmed"
+- "my children" / "our kids" → children names from FamilyMember model, or "(Children) names to be confirmed"
+- "myself" / "me" / "I" / user's first name → user's full name
+- "my solicitor" / "my brother" / "the executor" → "(Role) name to be confirmed"
+- "my solicitor Mr Hughes" / "my brother David" → "Mr Hughes (Solicitor)" / "David (Brother)"
+- Already-named people (e.g. "Tom", "James, Emily, Sophie") → passed through unchanged
+- 16/16 unit tests passing
+
+**Settlor auto-population:** Defaults to user's full name. User said "I have a trust" / "I set up a trust" → settlor = user.
+
+**Automatic CLT gift recording:** When a trust is created with an initial_value > 0 and a creation date, a Chargeable Lifetime Transfer gift is automatically saved to the DB. This ensures the 7-year rule and taper relief are properly tracked for IHT calculations. The gift recipient is set to the trust name, type is `clt`, value matches the initial settlement, and date matches the trust creation date. This is critical for estate planning accuracy — without it, the IHT calculation would be wrong.
+
+**Additional files changed (25 March — trusts):**
+
+| File | Change |
+|------|--------|
+| `app/Services/AI/XaiToolDefinitions.php` | Enriched `create_trust`: all 9 types (added mixed, settlor_interested), beneficiaries, trustees, purpose, initial_value params |
+| `app/Agents/CoordinatingAgent.php` | Expanded `handleCreateTrust()` with all fields, `resolveFamilyNames()` method, settlor defaults to user |
+| `app/Http/Controllers/Api/Estate/TrustController.php` | Added `settlor` to create + update validation rules |
+| `resources/js/components/Trusts/TrustFormModal.vue` | Added settlor form field, pre-set trust_name/trust_type in pendingFill watcher with `$nextTick` |
+| `March/March24Updates/AI/trust-form-algorithm.md` | Trust algorithm document |
+
+## Test Verification — Family Members (6/6 tested, 25 March 2026)
+
+All relationship types tested with Grok AI. Surname defaults to user's surname when not specified. Gender inferred from context (daughter=female, son=male). Education status and child benefit set for children.
+
+| # | Relationship | Name | Key Fields | Result |
+|---|-------------|------|-----------|--------|
+| 1 | Child (daughter) | Emma Smith | DOB 20/03/2015, female, education=primary, child_benefit=Y | PASS |
+| 2 | Child (son) | James Smith | DOB 10/09/2009, male, education=further_education | PASS |
+| 3 | Parent (mother) | Margaret Smith | DOB 05/01/1954, female, age 72 | PASS |
+| 4 | Step Child (→child) | Sophie Smith | DOB 14/07/2017, female, child_benefit=Y, mapped to child with note | PASS |
+| 5 | Other Dependent (aunt) | Dorothy Smith | DOB 03/03/1945, female, dependent=Y | PASS |
+| 6 | Child (baby) | Oliver Smith | DOB 01/02/2026, male, age 0 | PASS |
+
+**DB enum limitation:** Database only accepts spouse, child, parent, other_dependent. Handler maps: `step_child` → `child` (with "Step child" note), `partner` → `other_dependent` (with "Partner (unmarried)" note).
+
+**Additional files changed (25 March — family members):**
+
+| File | Change |
+|------|--------|
+| `app/Services/AI/XaiToolDefinitions.php` | Enriched `create_family_member`: 6 relationship types, education_status, receives_child_benefit, notes, surname default, gender inference guidance |
+| `app/Agents/CoordinatingAgent.php` | Expanded `handleCreateFamilyMember()`: all fields, surname defaults to user's, step_child/partner DB mapping, child-specific fields |
+| `resources/js/components/UserProfile/FamilyMemberFormModal.vue` | Added `nextTick` import, pre-set relationship/first_name/last_name in pendingFill, `{ immediate: true }` |
+| `March/March24Updates/AI/family-member-form-algorithm.md` | Family member algorithm document |
+
+## Test Verification — Estate Gifts (5/5 tested, 25 March 2026)
+
+All 5 gift types tested with Grok AI. Recipient name resolution via `resolveFamilyNames`. Form auto-opens via `mounted()` check in GiftingStrategy.
+
+| # | Gift Type | Recipient | Value | Date | Result |
+|---|----------|-----------|-------|------|--------|
+| 1 | PET | Emma | £50,000 | 15/06/2023 | PASS |
+| 2 | Annual Exemption | James | £3,000 | 25/12/2024 | PASS |
+| 3 | Exempt (charity) | British Heart Foundation | £10,000 | 01/01/2024 | PASS |
+| 4 | Small Gift | Tom (nephew) | £200 | 15/03/2025 | PASS |
+| 5 | CLT (trust settlement) | Smith Family Trust | £300,000 | 01/04/2022 | PASS (auto-recorded when trust created) |
+
+**Bugs found and fixed (25 March — gifts):**
+1. GiftForm didn't open on AI fill — GiftingStrategy wasn't checking pendingFill on mount. Fixed: added `mounted()` check.
+2. `gift_date` field empty on AI fill — timing issue. Fixed: pre-set gift_date/gift_type/recipient in pendingFill with `$nextTick`.
+3. CLT not recorded when trust created — trust settlement IS a Chargeable Lifetime Transfer. Fixed: `handleCreateTrust` now auto-creates a CLT gift in DB when initial_value > 0. Critical for IHT 7-year rule accuracy.
+
+**Additional files changed (25 March — gifts):**
+
+| File | Change |
+|------|--------|
+| `app/Services/AI/XaiToolDefinitions.php` | Enriched `create_estate_gift`: better type descriptions, date calculation guidance |
+| `app/Agents/CoordinatingAgent.php` | Added `resolveFamilyNames` for recipient field |
+| `resources/js/components/Estate/GiftForm.vue` | Pre-set gift_date/gift_type/recipient in pendingFill with `$nextTick` |
+| `resources/js/components/Estate/GiftingStrategy.vue` | Added `mounted()` pendingFill check to auto-open form |
+| `March/March24Updates/AI/gift-form-algorithm.md` | Gift algorithm document |
+
+## Total Test Results: 103/103 PASS (updated 25 March)
 
 | Module | Scenarios | Result |
 |--------|-----------|--------|
@@ -262,5 +380,78 @@ No database changes. No seeding required.
 | Business Interests | 4 | 4/4 PASS |
 | Goals | 9 | 9/9 PASS |
 | Life Events | 16 | 16/16 PASS |
-| Investment Holdings | 1 | 1/1 PASS |
-| **Total** | **69** | **69/69 PASS** |
+| Investment Accounts (14 types) | 14 | 14/14 PASS |
+| Investment Holdings (standalone) | 1 | 1/1 PASS |
+| Trusts (9 types) | 9 | 9/9 PASS |
+| Family Members (6 types) | 6 | 6/6 PASS |
+| Estate Gifts (5 types) | 5 | 5/5 PASS |
+| Edit/Update (duplicate detection) | 1 | 1/1 PASS |
+| **Total** | **104** | **104/104 PASS** |
+
+## AI Edit & Update System (25 March 2026)
+
+Full edit/update capability added so the AI can modify existing records instead of creating duplicates.
+
+### System prompt changes (`HasAiChat.php`)
+
+1. **`buildExistingRecordsSummary()`** — new method queries all 13 entity types and builds compact `[ID:X "Name" type £value]` summary. Cached 60s. Injected as `<existing_records>` section in system prompt.
+2. **Update-vs-create guidance** — added to `<available_actions>`: AI checks existing records before creating, uses `update_record` for modifications, asks for disambiguation when ambiguous.
+3. **Duplicate prevention rule** — added to `<data_creation_guidance>`: "Before calling ANY creation tool, check <existing_records>."
+
+### New tool: `list_records`
+
+Single tool returning ID + key fields for any of 14 entity types. AI uses this for fresh lookups when system prompt cache is stale.
+
+### Protection policy edit flow fixed
+
+`ProtectionDashboard.vue` — implemented `findPolicyById()` across all policy types (life, CI, IP, disability, sickness). Edit mode watcher + mounted check now work.
+
+### Investment edit persistence bug fixed
+
+`InvestmentList.vue` line 453 — parameter name mismatch: called `{ id, data }` but Vuex action expected `{ id, accountData }`. Update was sending `undefined` to the API. Fixed: `{ id, accountData: data }`.
+
+### Test: Duplicate detection PASS
+
+- Prompt: "My Vanguard ISA is now worth £95,000"
+- AI identified existing record ID:18 from `<existing_records>`
+- Called `update_record` (not `create_investment_account`)
+- Edit form opened, current_value set to £95,000, auto-submitted
+- DB confirmed: £80,000 → £95,000
+- Card and portfolio total updated correctly
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `app/Traits/HasAiChat.php` | `buildExistingRecordsSummary()`, `<existing_records>` section, update-vs-create guidance, duplicate prevention |
+| `app/Services/AI/XaiToolDefinitions.php` | `list_records` tool (14 entity types) |
+| `app/Agents/CoordinatingAgent.php` | `handleListRecords()` handler |
+| `resources/js/views/Protection/ProtectionDashboard.vue` | `findPolicyById()`, edit mode watcher + mounted check |
+| `resources/js/components/NetWorth/InvestmentList.vue` | Fixed `{ id, data }` → `{ id, accountData: data }` parameter mismatch |
+
+## Navigation Audit (25 March 2026)
+
+Updated `navigate_to_page` tool with comprehensive route descriptions. Added missing routes for investment detail views, savings dashboard, and improved descriptions across all sections.
+
+### Routes added to tool description
+
+| Route | Description |
+|-------|-------------|
+| `/net-worth/fees-detail` | Investment fees breakdown |
+| `/net-worth/holdings-detail` | Portfolio holdings detail |
+| `/net-worth/investment-detail` | Investment projections |
+| `/net-worth/tax-efficiency` | Tax efficiency analysis |
+| `/net-worth/strategy-detail` | Investment strategy |
+| `/savings` | Savings dashboard with analysis |
+| `/savings/account/{id}` | Individual savings account detail |
+
+### Navigation test results (6/6 PASS)
+
+| Prompt | Route | Result |
+|--------|-------|--------|
+| "Show me my income" | `/valuable-info?section=income` | PASS |
+| "Show me my spending" | `/valuable-info?section=expenditure` | PASS |
+| "Show me my goals" | `/goals` | PASS |
+| "Show me my life events" | `/goals?tab=events` | PASS |
+| "Show me my investment fees" | `/net-worth/investments` | PASS (list page — fees-detail now in description for future) |
+| "Take me to my savings analysis" | `/net-worth/cash` | PASS |

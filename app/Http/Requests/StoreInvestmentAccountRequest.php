@@ -176,9 +176,9 @@ class StoreInvestmentAccountRequest extends FormRequest
             'ers_registered' => 'nullable|boolean',
 
             // Grant Details
-            'grant_date' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|date',
+            'grant_date' => 'required_if:account_type,csop,emi,unapproved_options,rsu|nullable|date',
             'grant_reference' => 'nullable|string|max:100',
-            'units_granted' => 'required_if:account_type,saye,csop,emi,unapproved_options,rsu|nullable|integer|min:0',
+            'units_granted' => 'required_if:account_type,csop,emi,unapproved_options,rsu|nullable|integer|min:0',
             'exercise_price' => 'required_if:account_type,saye,csop,emi,unapproved_options|nullable|numeric|min:0',
             'market_value_at_grant' => 'nullable|numeric|min:0',
             'share_class_scheme' => 'nullable|string|max:100',

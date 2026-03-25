@@ -1056,10 +1056,15 @@ export default {
           isValid = false;
         }
         if (!this.formData.grant_date) {
-          this.errors.grant_date = 'Grant date is required';
-          isValid = false;
+          // SAYE: fall back to scheme_start_date as grant date
+          if (this.formData.account_type === 'saye' && this.formData.scheme_start_date) {
+            this.formData.grant_date = this.formData.scheme_start_date;
+          } else {
+            this.errors.grant_date = 'Grant date is required';
+            isValid = false;
+          }
         }
-        if (!this.formData.units_granted || this.formData.units_granted <= 0) {
+        if (this.formData.account_type !== 'saye' && (!this.formData.units_granted || this.formData.units_granted <= 0)) {
           this.errors.units_granted = 'Units granted is required';
           isValid = false;
         }

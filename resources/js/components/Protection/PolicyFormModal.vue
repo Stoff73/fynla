@@ -671,7 +671,7 @@ export default {
           this.$nextTick(() => {
             this.handleSubmit();
             // If validation failed, report to chat
-            if (Object.keys(this.errors).length > 0) {
+            if (this.errors && Object.keys(this.errors).length > 0) {
               const errorList = Object.values(this.errors).join(', ');
               this.$store.commit('aiChat/ADD_MESSAGE', {
                 id: 'fill_error_' + Date.now(),

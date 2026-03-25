@@ -448,7 +448,7 @@ export default {
     async handleAccountSave(data) {
       try {
         if (this.editingAccount) {
-          await this.updateAccount({ id: this.editingAccount.id, data });
+          await this.updateAccount({ id: this.editingAccount.id, accountData: data });
         } else {
           await this.createAccount(data);
         }
@@ -613,10 +613,13 @@ export default {
         return unitsGranted * exercisePrice;
       }
 
-      // Private investments - use latest valuation or investment amount
+      // Private investments - use latest valuation, current value, or investment amount
       if (privateTypes.includes(account.account_type)) {
         if (account.latest_valuation && parseFloat(account.latest_valuation) > 0) {
           return parseFloat(account.latest_valuation);
+        }
+        if (account.current_value && parseFloat(account.current_value) > 0) {
+          return parseFloat(account.current_value);
         }
         if (account.investment_amount && parseFloat(account.investment_amount) > 0) {
           return parseFloat(account.investment_amount);

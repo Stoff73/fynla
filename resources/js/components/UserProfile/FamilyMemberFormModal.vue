@@ -255,7 +255,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -467,12 +467,23 @@ export default {
     };
 
     // AI Form Fill watchers
-    watch(pendingFill, (fill) => {
+    watch(pendingFill, async (fill) => {
       if (fill && fill.entityType === 'family_member' && fill.fields) {
+        // Pre-set relationship before field sequence (controls conditional fields)
+        if (fill.fields.relationship) {
+          form.value.relationship = fill.fields.relationship;
+        }
+        if (fill.fields.first_name) {
+          form.value.first_name = fill.fields.first_name;
+        }
+        if (fill.fields.last_name) {
+          form.value.last_name = fill.fields.last_name;
+        }
+        await nextTick();
         const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
         store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
       }
-    });
+    }, { immediate: true });
 
     watch(highlightedField, (fieldKey) => {
       if (fieldKey && pendingFill.value?.fields) {

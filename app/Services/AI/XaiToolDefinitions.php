@@ -102,17 +102,19 @@ class XaiToolDefinitions
                         'type' => 'string',
                         'description' => 'The application route path. Valid routes: '
                             .'MAIN: /dashboard, /profile, /settings, /settings/security, /settings/assumptions, /help. '
-                            .'INCOME & EXPENDITURE: /valuable-info?section=income (Income tab), /valuable-info?section=expenditure (Expenditure tab), /valuable-info?section=letter (Letter to Spouse tab), /valuable-info?section=risk (Risk Profile summary tab). '
-                            .'NET WORTH: /net-worth/wealth-summary, /net-worth/property, /net-worth/investments, /net-worth/retirement, /net-worth/cash (Bank Accounts & Savings), /net-worth/business, /net-worth/chattels, /net-worth/liabilities. '
-                            .'PROTECTION: /protection. '
-                            .'ESTATE: /estate (Estate Planning dashboard), /estate/will-builder (Will Builder), /estate/power-of-attorney (Power of Attorney). '
-                            .'TRUSTS: /trusts. '
-                            .'GOALS: /goals (Goals & Life Events), /goals?tab=events (Life Events tab). '
-                            .'RISK: /risk-profile. '
-                            .'PLANS: /plans (all plans), /plans/investment, /plans/retirement, /plans/protection, /plans/estate, /holistic-plan (Holistic Financial Plan). '
-                            .'ACTIONS: /actions. '
-                            .'PLANNING: /planning/journeys, /planning/what-if (What-If Scenarios). '
-                            .'NEVER use /savings or /investment — these are legacy redirects. Use /net-worth/cash and /net-worth/investments instead.',
+                            .'INCOME & EXPENDITURE: /valuable-info?section=income (Income tab — view and edit income sources), /valuable-info?section=expenditure (Expenditure tab — view and edit monthly spending), /valuable-info?section=letter (Expression of Wishes / Letter to Spouse), /valuable-info?section=risk (Risk Profile summary). '
+                            .'NET WORTH: /net-worth/wealth-summary (overall wealth), /net-worth/property (properties and mortgages), /net-worth/investments (investment accounts list), /net-worth/retirement (pensions), /net-worth/cash (Bank Accounts & Savings), /net-worth/business (business interests), /net-worth/chattels (personal valuables), /net-worth/liabilities (debts). '
+                            .'INVESTMENT DETAILS: To show a specific account\'s details (Monte Carlo, tax treatment, rebalancing, diversification, fees, holdings), navigate to /net-worth/investments — the user clicks into any account card to see its full detail view with per-account projections. Do NOT use /net-worth/investment-detail (that is a legacy portfolio-wide view). Other detail pages: /net-worth/fees-detail (fees breakdown), /net-worth/holdings-detail (portfolio holdings), /net-worth/tax-efficiency (tax efficiency analysis), /net-worth/strategy-detail (investment strategy). '
+                            .'SAVINGS DETAIL: /savings (savings dashboard with analysis), /savings/account/{id} (individual savings account detail). '
+                            .'PROTECTION: /protection (protection dashboard with coverage analysis and policies). '
+                            .'ESTATE: /estate (Estate Planning dashboard — Inheritance Tax, gifting, will status), /estate/will-builder (Will Builder), /estate/power-of-attorney (Power of Attorney). '
+                            .'TRUSTS: /trusts (trust list and management). '
+                            .'GOALS & EVENTS: /goals (Goals dashboard — all goals with progress tracking), /goals?tab=events (Life Events tab — upcoming life events). '
+                            .'RISK: /risk-profile (risk questionnaire and profile). '
+                            .'PLANS: /plans (all plans overview), /plans/investment (investment plan), /plans/retirement (retirement plan), /plans/protection (protection plan), /plans/estate (estate plan), /holistic-plan (Holistic Financial Plan combining all modules). '
+                            .'ACTIONS: /actions (recommended actions across all modules). '
+                            .'PLANNING: /planning/journeys (guided planning journeys), /planning/what-if (What-If Scenarios). '
+                            .'NEVER use /savings or /investment as standalone paths for net worth — use /net-worth/cash and /net-worth/investments instead. /savings is valid for the savings dashboard.',
                     ],
                     'description' => [
                         'type' => 'string',
@@ -129,6 +131,20 @@ class XaiToolDefinitions
     private function analysisTools(): array
     {
         return [
+            $this->wrapTool(
+                'list_records',
+                'List existing records of a given type with IDs and key details. Use this BEFORE calling update_record to find the correct entity_id. '
+                .'Also use when the user asks "what accounts do I have?" or "show me my pensions". '
+                .'The <existing_records> section in the system prompt already has a snapshot — use this tool for a fresh, detailed lookup.',
+                [
+                    'entity_type' => [
+                        'type' => 'string',
+                        'enum' => ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'life_insurance', 'critical_illness', 'income_protection', 'trust', 'business_interest', 'chattel', 'estate_liability', 'estate_gift', 'family_member'],
+                        'description' => 'The type of record to list.',
+                    ],
+                ],
+                ['entity_type']
+            ),
             $this->wrapTool(
                 'list_goals',
                 'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal.',
@@ -314,7 +330,9 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_investment_account',
-                'Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments.',
+                'Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other financial investments. '
+                .'Use account_type "other" for gold, silver, cryptocurrency, bitcoin, or other alternative financial assets. '
+                .'Do NOT use this tool for wine, art, jewellery, antiques, collectibles, or vehicles — use create_chattel instead.',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Vanguard Stocks & Shares ISA")'],
                     'account_type' => [
@@ -646,13 +664,22 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_estate_gift',
-                'Record a gift for IHT planning. Use when the user mentions gifts they have made or plan to make.',
+                'Record a gift for Inheritance Tax planning (7-year rule). Use when the user mentions gifts they have made to family, friends, trusts, or charities. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'gift_date' => ['type' => 'string', 'description' => 'Date the gift was/will be made (YYYY-MM-DD)'],
-                    'recipient' => ['type' => 'string', 'description' => 'Name of the recipient'],
-                    'gift_type' => ['type' => 'string', 'enum' => ['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'], 'description' => '"pet" for Potentially Exempt Transfer (most common), "clt" for Chargeable Lifetime Transfer, "exempt" for exempt gifts, "small_gift" up to £250, "annual_exemption" up to £3,000.'],
-                    'gift_value' => ['type' => 'number', 'description' => 'Value of the gift (£)'],
-                    'notes' => ['type' => ['string', 'null'], 'description' => 'Additional notes'],
+                    'gift_date' => ['type' => 'string', 'description' => 'Date the gift was made (YYYY-MM-DD). Must be in the past. If user says "last Christmas" calculate the date. If user says "3 years ago" calculate from today.'],
+                    'recipient' => ['type' => 'string', 'description' => 'Full name of the recipient (e.g. "Emma Smith", "Oxfam", "Smith Family Trust"). Use the person\'s actual name, not "my daughter" or "my son".'],
+                    'gift_type' => [
+                        'type' => 'string',
+                        'enum' => ['pet', 'clt', 'exempt', 'small_gift', 'annual_exemption'],
+                        'description' => '"pet" for Potentially Exempt Transfer — most common, gifts to individuals (becomes tax-free after 7 years). '
+                            .'"clt" for Chargeable Lifetime Transfer — gifts to trusts or companies (immediately taxable at 20%). '
+                            .'"exempt" for exempt gifts — to spouse, charities, political parties, or for marriage. '
+                            .'"small_gift" for Small Gift Exemption — up to £250 per person per year. '
+                            .'"annual_exemption" for Annual Exemption — first £3,000 of gifts each tax year.',
+                    ],
+                    'gift_value' => ['type' => 'number', 'description' => 'Value of the gift in pounds (£)'],
+                    'notes' => ['type' => ['string', 'null'], 'description' => 'Additional context about the gift (e.g. "Cash for house deposit", "Wedding gift", "Birthday present")'],
                 ],
                 ['gift_date', 'recipient', 'gift_type', 'gift_value', 'notes']
             ),
@@ -717,28 +744,45 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'create_family_member',
-                'Add a family member (spouse, child, dependent). Use when the user mentions family members.',
+                'Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. '
+                .'For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn. '
+                .'For multiple children, call this tool ONCE per child in separate turns.',
                 [
-                    'first_name' => ['type' => 'string', 'description' => 'First name'],
-                    'surname' => ['type' => ['string', 'null'], 'description' => 'Surname'],
-                    'relationship' => ['type' => 'string', 'enum' => ['spouse', 'child', 'parent', 'sibling', 'other'], 'description' => 'Relationship to user'],
-                    'date_of_birth' => ['type' => ['string', 'null'], 'description' => 'Date of birth (YYYY-MM-DD)'],
-                    'gender' => $this->nullableEnum(['male', 'female', 'other'], 'Gender'),
-                    'is_dependent' => ['type' => ['boolean', 'null'], 'description' => 'Whether financially dependent on the user'],
+                    'first_name' => ['type' => 'string', 'description' => 'First name of the family member'],
+                    'surname' => ['type' => ['string', 'null'], 'description' => 'Surname/last name. If not mentioned, assume same as user.'],
+                    'relationship' => [
+                        'type' => 'string',
+                        'enum' => ['spouse', 'partner', 'child', 'step_child', 'parent', 'other_dependent'],
+                        'description' => '"spouse" for married/civil partner. "partner" for unmarried partner. "child" for biological child. "step_child" for step children. "parent" for mother/father. "other_dependent" for other financially dependent relatives (aunt, grandparent, sibling etc).',
+                    ],
+                    'date_of_birth' => ['type' => ['string', 'null'], 'description' => 'Date of birth (YYYY-MM-DD). If user gives age, calculate from today. Spouse must be 16+, child max 18 (or 22 if in education).'],
+                    'gender' => $this->nullableEnum(['male', 'female', 'other', 'prefer_not_to_say'], 'Gender. Infer from name/context if obvious (e.g. "daughter" = female, "son" = male).'),
+                    'is_dependent' => ['type' => ['boolean', 'null'], 'description' => 'Whether financially dependent on the user. Default true for children, step_children, and other_dependents.'],
+                    'education_status' => $this->nullableEnum(
+                        ['pre_school', 'primary', 'secondary', 'further_education', 'higher_education', 'graduated', 'not_applicable'],
+                        'Education status. Only for child/step_child. "pre_school" for nursery/pre-school. "primary" for primary school. "secondary" for secondary school. "further_education" for sixth form/college. "higher_education" for university. "graduated" if finished university. "not_applicable" if not in education.'
+                    ),
+                    'receives_child_benefit' => ['type' => ['boolean', 'null'], 'description' => 'Whether child benefit is claimed for this child. Only for child/step_child.'],
+                    'notes' => ['type' => ['string', 'null'], 'description' => 'Any additional notes about this family member'],
                 ],
-                ['first_name', 'surname', 'relationship', 'date_of_birth', 'gender', 'is_dependent']
+                ['first_name', 'surname', 'relationship', 'date_of_birth', 'gender', 'is_dependent', 'education_status', 'receives_child_benefit', 'notes']
             ),
             $this->wrapTool(
                 'create_trust',
-                'Record a trust for estate planning.',
+                'Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. '
+                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
                 [
-                    'trust_name' => ['type' => 'string', 'description' => 'Name of the trust'],
-                    'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance'], 'description' => 'Type of trust'],
+                    'trust_name' => ['type' => 'string', 'description' => 'Name of the trust (e.g. "Smith Family Discretionary Trust")'],
+                    'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance', 'mixed', 'settlor_interested'], 'description' => 'Type of trust. "discretionary" for family discretionary trusts. "bare" for bare/absolute trusts. "interest_in_possession" for life interest trusts. "life_insurance" for trusts holding life policies. "loan" for loan trusts. "discounted_gift" for DGTs. "accumulation_maintenance" for A&M trusts. "mixed" for combined trust types. "settlor_interested" when settlor/spouse can benefit.'],
+                    'initial_value' => ['type' => ['number', 'null'], 'description' => 'Amount originally settled into the trust (£)'],
                     'current_value' => ['type' => ['number', 'null'], 'description' => 'Current value of assets in trust (£)'],
-                    'date_established' => ['type' => ['string', 'null'], 'description' => 'Date trust was established (YYYY-MM-DD)'],
-                    'settlor' => ['type' => ['string', 'null'], 'description' => 'Who settled the trust'],
+                    'trust_creation_date' => ['type' => ['string', 'null'], 'description' => 'Date trust was established (YYYY-MM-DD)'],
+                    'beneficiaries' => ['type' => ['string', 'null'], 'description' => 'Comma-separated list of beneficiaries (e.g. "James Smith, Emily Smith")'],
+                    'trustees' => ['type' => ['string', 'null'], 'description' => 'Comma-separated list of trustees (e.g. "John Smith, ABC Trustee Services Ltd")'],
+                    'purpose' => ['type' => ['string', 'null'], 'description' => 'Purpose of the trust (e.g. "Estate planning and IHT mitigation")'],
                 ],
-                ['trust_name', 'trust_type', 'current_value', 'date_established', 'settlor']
+                ['trust_name', 'trust_type', 'initial_value', 'current_value', 'trust_creation_date', 'beneficiaries', 'trustees', 'purpose']
             ),
             $this->wrapTool(
                 'create_business_interest',
@@ -759,7 +803,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_chattel',
-                'Record a personal valuable item (jewellery, art, collectibles, vehicles).',
+                'Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type "other" instead.',
                 [
                     'description' => ['type' => 'string', 'description' => 'Description of the item'],
                     'category' => ['type' => 'string', 'enum' => ['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'], 'description' => 'Category of item'],
