@@ -1,5 +1,6 @@
 <template>
-  <div class="property-list">
+  <div class="property-list module-gradient">
+    <ModuleStatusBar />
     <!-- Property Detail View (when a property is selected) -->
     <PropertyDetailInline
       v-if="selectedProperty"
@@ -60,6 +61,7 @@ import { mapActions, mapState, mapGetters } from 'vuex';
 import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import api from '@/services/api';
 
 export default {
@@ -69,6 +71,7 @@ export default {
     PropertyCard,
     PropertyForm,
     PropertyDetailInline,
+    ModuleStatusBar,
   },
 
   data() {

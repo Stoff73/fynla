@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-4 sm:py-8 px-4 sm:px-6">
+    <div class="module-gradient py-4 sm:py-8 px-4 sm:px-6">
+      <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
         <div>
@@ -200,6 +201,7 @@ import FactorBreakdownCard from '@/components/Risk/FactorBreakdownCard.vue';
 import InvestmentTypesAccordion from '@/components/Risk/InvestmentTypesAccordion.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import riskService from '@/services/riskService';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'RiskProfilePage', // Force HMR reload
@@ -210,6 +212,7 @@ export default {
     FactorBreakdownCard,
     InvestmentTypesAccordion,
     RiskMismatchWarning,
+    ModuleStatusBar,
   },
 
   data() {

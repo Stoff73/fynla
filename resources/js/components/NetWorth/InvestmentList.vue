@@ -1,5 +1,6 @@
 <template>
-  <div class="investment-list overflow-hidden">
+  <div class="investment-list module-gradient overflow-hidden">
+    <ModuleStatusBar />
     <!-- Investment Detail View (when an account is selected) -->
     <InvestmentDetailInline
       v-if="selectedAccount"
@@ -208,6 +209,7 @@ import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -228,6 +230,7 @@ export default {
     FeeBreakdown,
     TaxEfficiencyPanel,
     RiskMismatchWarning,
+    ModuleStatusBar,
   },
 
   data() {

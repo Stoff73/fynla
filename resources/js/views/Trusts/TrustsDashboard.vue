@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="trusts-dashboard">
+    <div class="trusts-dashboard module-gradient">
+      <ModuleStatusBar />
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
         <div class="w-10 h-10 border-[3px] border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
@@ -194,6 +195,7 @@ import TrustCard from '@/components/Trusts/TrustCard.vue';
 import TrustFormModal from '@/components/Trusts/TrustFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'TrustsDashboard',
@@ -205,6 +207,7 @@ export default {
     TrustCard,
     TrustFormModal,
     DocumentUploadModal,
+    ModuleStatusBar,
   },
 
   data() {

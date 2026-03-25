@@ -1,6 +1,7 @@
 <template>
   <component :is="isEmbedded ? 'div' : 'AppLayout'">
-    <div class="savings-dashboard py-2 sm:py-6">
+    <div class="savings-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
       <div class="">
       <!-- Account Detail View (when embedded and account selected) -->
       <SavingsAccountDetailInline
@@ -139,6 +140,7 @@ import AccountDetails from '@/components/Savings/AccountDetails.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'SavingsDashboard',
@@ -152,6 +154,7 @@ export default {
     SavingsAccountDetailInline,
     ModuleLifeEvents,
     ModuleGoalStrategies,
+    ModuleStatusBar,
   },
 
   data() {

@@ -1,5 +1,6 @@
 <template>
-  <div class="business-interests-list">
+  <div class="business-interests-list module-gradient">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <BusinessInterestDetailInline
       v-if="selectedBusinessId"
@@ -96,6 +97,7 @@ import BusinessInterestCard from './BusinessInterestCard.vue';
 import BusinessInterestForm from './BusinessInterestForm.vue';
 import BusinessInterestDetailInline from './BusinessInterestDetailInline.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -108,6 +110,7 @@ export default {
     BusinessInterestForm,
     BusinessInterestDetailInline,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   data() {

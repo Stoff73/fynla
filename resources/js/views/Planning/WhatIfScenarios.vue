@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-6">
+    <div class="module-gradient py-6">
+      <ModuleStatusBar />
       <div class="">
         <!-- Header -->
         <div class="mb-8">
@@ -60,6 +61,7 @@
 import { mapGetters } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import DeathOfSpouseScenario from '@/components/Dashboard/DeathOfSpouseScenario.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'WhatIfScenarios',
@@ -67,6 +69,7 @@ export default {
   components: {
     AppLayout,
     DeathOfSpouseScenario,
+    ModuleStatusBar,
   },
 
   computed: {

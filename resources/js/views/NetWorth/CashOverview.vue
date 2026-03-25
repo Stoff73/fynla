@@ -1,5 +1,6 @@
 <template>
-  <div class="cash-overview">
+  <div class="cash-overview module-gradient">
+    <ModuleStatusBar />
     <!-- Account Detail View (when account selected) -->
     <SavingsAccountDetailInline
       v-if="selectedAccount"
@@ -243,7 +244,7 @@
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-light-blue-100 rounded-lg border border-light-blue-200 p-6">
+        <div class="bg-white rounded-lg border border-light-gray p-6">
           <div class="flex items-center gap-2.5 mb-4">
             <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
             <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
@@ -310,6 +311,7 @@ import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
 import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'CashOverview',
@@ -320,6 +322,7 @@ export default {
     CashActionsPanel,
     SaveAccountModal,
     SavingsAccountDetailInline,
+    ModuleStatusBar,
   },
 
   mixins: [currencyMixin],

@@ -232,16 +232,42 @@
               </div>
             </template>
 
-            <!-- Desktop: Donut chart with category breakdown -->
+            <!-- Desktop: Custom SVG donut ring (V6 design — 40px stroke, gradients, rounded caps) -->
             <template v-else>
               <div class="flex justify-center">
-                <apexchart
-                  :key="netWorthChartKey"
-                  type="donut"
-                  :options="netWorthChartOptions"
-                  :series="netWorthChartSeries"
-                  height="260"
-                />
+                <div class="relative" style="width: 240px; height: 240px;">
+                  <svg viewBox="0 0 220 220" width="240" height="240">
+                    <defs>
+                      <linearGradient
+                        v-for="(seg, idx) in netWorthDonutSegments"
+                        :key="'grad-' + idx"
+                        :id="'nw-grad-' + idx"
+                        x1="0%" y1="0%" x2="100%" y2="0%"
+                      >
+                        <stop offset="0%" :stop-color="seg.color" />
+                        <stop offset="100%" :stop-color="seg.colorLight" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      v-for="(seg, idx) in netWorthDonutSegments"
+                      :key="'seg-' + idx"
+                      cx="110" cy="110" r="75"
+                      fill="none"
+                      :stroke="'url(#nw-grad-' + idx + ')'"
+                      stroke-width="40"
+                      stroke-linecap="round"
+                      :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+                      :stroke-dashoffset="-seg.offset"
+                      transform="rotate(-90 110 110)"
+                    />
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span
+                      class="text-xl font-black"
+                      :class="netWorthData.netWorth >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
+                    >{{ formatCurrency(netWorthData.netWorth) }}</span>
+                  </div>
+                </div>
               </div>
               <div class="flex justify-between text-sm mt-2">
                 <div>
@@ -533,19 +559,24 @@
             <!-- Income progress bar -->
             <div>
               <div class="flex justify-between items-baseline mb-2">
-                <span class="text-sm font-bold text-horizon-500">Income</span>
+                <span v-if="retirementIncomePercent < 15" class="text-sm font-bold text-horizon-500">Income</span>
+                <span v-else></span>
                 <div class="flex items-baseline gap-1.5">
                   <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedIncome) }}</span>
                   <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.targetIncome) }}/yr</span>
                 </div>
               </div>
-              <div class="w-full rounded-xl h-6 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-horizon-50'">
+              <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
-                  class="h-6 rounded-xl transition-all duration-500 flex items-center justify-end pr-2.5"
-                  :class="retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-200 to-horizon-400'"
+                  class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
+                  :class="[
+                    retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
+                    retirementIncomePercent >= 15 ? 'justify-between' : 'justify-center'
+                  ]"
                   :style="{ width: Math.min(retirementIncomePercent, 100) + '%' }"
                 >
-                  <span v-if="retirementIncomePercent >= 15" class="text-[10px] font-bold text-white">{{ retirementIncomePercent }}%</span>
+                  <span v-if="retirementIncomePercent >= 15" class="text-[13px] font-semibold text-white">Income</span>
+                  <span class="text-xs font-bold text-white">{{ retirementIncomePercent }}%</span>
                 </div>
               </div>
             </div>
@@ -553,19 +584,24 @@
             <!-- Capital progress bar -->
             <div>
               <div class="flex justify-between items-baseline mb-2">
-                <span class="text-sm font-bold text-horizon-500">Capital</span>
+                <span v-if="retirementCapitalPercent < 15" class="text-sm font-bold text-horizon-500">Capital</span>
+                <span v-else></span>
                 <div class="flex items-baseline gap-1.5">
                   <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedCapital) }}</span>
                   <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.capitalRequired) }}</span>
                 </div>
               </div>
-              <div class="w-full rounded-xl h-6 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-horizon-50'">
+              <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
                 <div
-                  class="h-6 rounded-xl transition-all duration-500 flex items-center justify-end pr-2.5"
-                  :class="retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-200 to-horizon-400'"
+                  class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
+                  :class="[
+                    retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500',
+                    retirementCapitalPercent >= 15 ? 'justify-between' : 'justify-center'
+                  ]"
                   :style="{ width: Math.min(retirementCapitalPercent, 100) + '%' }"
                 >
-                  <span v-if="retirementCapitalPercent >= 15" class="text-[10px] font-bold text-white">{{ retirementCapitalPercent }}%</span>
+                  <span v-if="retirementCapitalPercent >= 15" class="text-[13px] font-semibold text-white">Capital</span>
+                  <span class="text-xs font-bold text-white">{{ retirementCapitalPercent }}%</span>
                 </div>
               </div>
             </div>
@@ -604,24 +640,29 @@
             <template v-if="lisaAllowanceData">
               <div>
                 <div class="flex justify-between items-baseline mb-1">
-                  <span class="text-sm font-semibold text-horizon-500">Lifetime ISA</span>
-                  <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
+                  <span v-if="lisaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Lifetime ISA</span>
+                  <span v-else></span>
+                  <div>
+                    <span class="text-sm font-bold text-spring-600">{{ formatCurrency(lisaAllowanceData.used) }}</span>
+                    <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(lisaAllowanceData.limit || 4000) }}</span>
+                  </div>
                 </div>
-                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
+                <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
-                    class="h-2 rounded-full transition-all"
-                    :class="allowanceBarClass(lisaAllowanceData.percentUsed, false)"
+                    class="h-12 rounded-full transition-all flex items-center px-4"
+                    :class="[
+                      allowanceBarClass(lisaAllowanceData.percentUsed, false),
+                      lisaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                    ]"
                     :style="{ width: Math.min(lisaAllowanceData.percentUsed, 100) + '%' }"
-                  ></div>
+                  >
+                    <span v-if="lisaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white">Lifetime ISA</span>
+                    <span class="text-xs font-bold text-white">{{ Math.round(lisaAllowanceData.percentUsed) }}%</span>
+                  </div>
                 </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-neutral-500">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
-                  <span class="text-spring-600 font-medium">
-                    {{ formatCurrency(lisaAllowanceData.remaining) }} remaining
-                  </span>
-                </div>
-                <div class="text-xs text-neutral-500 mt-1">
-                  25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned of {{ formatCurrency(lisaAllowanceData.maxBonus) }} max
+                <div class="flex justify-between text-sm mt-1.5">
+                  <span class="text-xs text-neutral-500">25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned</span>
+                  <span class="text-spring-600 font-semibold text-sm">{{ formatCurrency(lisaAllowanceData.remaining) }} remaining</span>
                 </div>
               </div>
               <div class="border-t border-light-gray"></div>
@@ -630,27 +671,35 @@
             <!-- ISA Allowance -->
             <div v-if="isaAllowanceData">
               <div class="flex justify-between items-baseline mb-1">
-                <span class="text-sm font-semibold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
-                <span class="text-xs text-neutral-500">2025/26</span>
+                <span v-if="isaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
+                <span v-else></span>
+                <div>
+                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(isaAllowanceData.totalUsed) }}</span>
+                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(20000) }}</span>
+                </div>
               </div>
-              <!-- Progress bar -->
-              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
+              <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
-                  class="h-2 rounded-full transition-all"
-                  :class="allowanceBarClass(isaAllowanceData.percentUsed, false)"
+                  class="h-12 rounded-full transition-all flex items-center px-4"
+                  :class="[
+                    allowanceBarClass(isaAllowanceData.percentUsed, false),
+                    isaAllowanceData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                  ]"
                   :style="{ width: Math.min(isaAllowanceData.percentUsed, 100) + '%' }"
-                ></div>
+                >
+                  <span v-if="isaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white">{{ lisaAllowanceData ? 'ISA (excl. Lifetime)' : 'ISA Allowance' }}</span>
+                  <span class="text-xs font-bold text-white">{{ Math.round(isaAllowanceData.percentUsed) }}%</span>
+                </div>
               </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-neutral-500">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
-                <span :class="isaAllowanceData.remaining >= 0 ? 'text-spring-600' : 'text-raspberry-600'" class="font-medium">
+              <div class="flex justify-between text-sm mt-1.5">
+                <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-3 text-xs text-neutral-500">
+                  <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
+                  <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
+                </div>
+                <span v-else></span>
+                <span :class="isaAllowanceData.remaining >= 0 ? 'text-spring-600' : 'text-raspberry-600'" class="font-semibold text-sm">
                   {{ formatCurrency(isaAllowanceData.remaining) }} remaining
                 </span>
-              </div>
-              <!-- Cash / Stocks & Shares breakdown -->
-              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-neutral-500">
-                <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
-                <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
               </div>
             </div>
 
@@ -661,7 +710,7 @@
             <div v-if="pensionAllowanceData">
               <div class="flex justify-between items-baseline mb-1">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-semibold text-horizon-500">Pension Annual Allowance</span>
+                  <span v-if="pensionStandardPercent < 15" class="text-sm font-bold text-horizon-500">Pension Annual Allowance</span>
                   <span
                     v-if="pensionAllowanceData.isTapered"
                     class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700"
@@ -671,24 +720,29 @@
                     class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700"
                   >Money Purchase Annual Allowance</span>
                 </div>
-                <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
+                <div>
+                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(pensionStandardUsed) }}</span>
+                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(pensionAllowanceData.availableAllowance) }}</span>
+                </div>
               </div>
-              <!-- Progress bar -->
-              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
+              <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                 <div
-                  class="h-2 rounded-full transition-all"
-                  :class="allowanceBarClass(pensionStandardPercent, false)"
+                  class="h-12 rounded-full transition-all flex items-center px-4"
+                  :class="[
+                    allowanceBarClass(pensionStandardPercent, false),
+                    pensionStandardPercent >= 15 ? 'justify-between' : 'justify-center'
+                  ]"
                   :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
-                ></div>
+                >
+                  <span v-if="pensionStandardPercent >= 15" class="text-[13px] font-semibold text-white">Pension Annual Allowance</span>
+                  <span class="text-xs font-bold text-white">{{ Math.round(pensionStandardPercent) }}%</span>
+                </div>
               </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-neutral-500">{{ formatCurrency(pensionStandardUsed) }} used</span>
-                <span class="text-spring-600 font-medium">
+              <div class="flex justify-between text-sm mt-1.5">
+                <span class="text-xs text-neutral-500"></span>
+                <span class="text-spring-600 font-semibold text-sm">
                   {{ formatCurrency(pensionStandardRemaining) }} remaining
                 </span>
-              </div>
-              <div class="text-xs text-neutral-500 mt-1">
-                of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
               </div>
             </div>
 
@@ -697,24 +751,32 @@
               <div class="border-t border-light-gray"></div>
               <div>
                 <div class="flex justify-between items-baseline mb-1">
-                  <span class="text-sm font-semibold text-horizon-500">Carry Forward</span>
-                  <span class="text-xs text-neutral-500">{{ carryForwardTaxYear }}</span>
+                  <div class="flex items-center gap-2">
+                    <span v-if="carryForwardData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Carry Forward</span>
+                  </div>
+                  <div>
+                    <span class="text-sm font-bold text-spring-600">{{ formatCurrency(carryForwardData.used) }}</span>
+                    <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(pensionAllowanceData.availableAllowance) }}</span>
+                  </div>
                 </div>
-                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
+                <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
                   <div
-                    class="h-2 rounded-full transition-all"
-                    :class="allowanceBarClass(carryForwardData.percentUsed, false)"
+                    class="h-12 rounded-full transition-all flex items-center px-4"
+                    :class="[
+                      allowanceBarClass(carryForwardData.percentUsed, false),
+                      carryForwardData.percentUsed >= 15 ? 'justify-between' : 'justify-center'
+                    ]"
                     :style="{ width: Math.min(carryForwardData.percentUsed, 100) + '%' }"
-                  ></div>
+                  >
+                    <span v-if="carryForwardData.percentUsed >= 15" class="text-[13px] font-semibold text-white">Carry Forward</span>
+                    <span class="text-xs font-bold text-white">{{ Math.round(carryForwardData.percentUsed) }}%</span>
+                  </div>
                 </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-neutral-500">{{ formatCurrency(carryForwardData.used) }} used</span>
-                  <span class="text-spring-600 font-medium">
+                <div class="flex justify-between text-sm mt-1.5">
+                  <span class="text-xs text-neutral-500">{{ carryForwardTaxYear }}</span>
+                  <span class="text-spring-600 font-semibold text-sm">
                     {{ formatCurrency(carryForwardData.remaining) }} remaining
                   </span>
-                </div>
-                <div class="text-xs text-neutral-500 mt-1">
-                  of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
                 </div>
               </div>
             </template>
@@ -1079,7 +1141,38 @@ export default {
     },
 
     netWorthChartColors() {
-      return this.netWorthChartCategories.map(c => c.color);
+      // Fixed rotating palette: dark blue, pink, mid blue, green, light blue
+      const palette = [
+        '#1F2A44', // Horizon 500 — dark blue
+        '#E83E6D', // Raspberry 500 — pink
+        '#5854E6', // Violet 500 — mid blue
+        '#20B486', // Spring 500 — green
+        '#6C83BC', // Light Blue 500 — light blue
+      ];
+      return this.netWorthChartCategories.map((_, idx) => palette[idx % palette.length]);
+    },
+
+    // Custom SVG donut segments for V6 design (40px stroke, gradients, rounded caps)
+    netWorthDonutSegments() {
+      const categories = this.netWorthChartCategories;
+      const total = categories.reduce((sum, c) => sum + c.value, 0);
+      if (total === 0) return [];
+
+      const circumference = 471.2; // 2 * PI * 75
+      const gap = 3; // small gap between segments
+      let offset = 0;
+      return categories.map(cat => {
+        const proportion = cat.value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const seg = {
+          color: cat.color,
+          colorLight: this.lightenColor(cat.color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
 
     netWorthChartKey() {
@@ -1091,19 +1184,42 @@ export default {
       const netWorth = this.netWorthData.netWorth;
       const vm = this;
 
+      const colors = this.netWorthChartColors;
+      // Build per-segment gradient shades (lighter version of each color)
+      const gradientToColors = colors.map(hex => {
+        // Lighten each color by blending with white
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * 0.4));
+        return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+      });
+
       return {
         chart: {
           type: 'donut',
           fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         labels: this.netWorthChartLabels,
-        colors: this.netWorthChartColors,
+        colors,
         legend: { show: false },
         dataLabels: { enabled: false },
+        stroke: {
+          width: 0,
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'dark',
+            type: 'diagonal1',
+            gradientToColors,
+            stops: [0, 100],
+          },
+        },
         plotOptions: {
           pie: {
             donut: {
-              size: '65%',
+              size: '55%',
               labels: {
                 show: true,
                 name: {
@@ -1690,10 +1806,18 @@ export default {
       return provider || formattedType || fallbackType;
     },
 
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    },
+
     allowanceBarClass(percentUsed, isOverLimit) {
-      if (isOverLimit || percentUsed >= 95) return 'bg-raspberry-500';
-      if (percentUsed >= 75) return 'bg-violet-500';
-      return 'bg-spring-500';
+      if (isOverLimit || percentUsed >= 95) return 'bg-gradient-to-r from-raspberry-400 to-raspberry-600';
+      if (percentUsed >= 75) return 'bg-gradient-to-r from-violet-400 to-violet-600';
+      return 'bg-gradient-to-r from-horizon-400 to-horizon-500';
     },
 
     dismissMFABanner() {

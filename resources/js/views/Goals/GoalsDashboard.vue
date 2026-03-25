@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="goals-dashboard py-2 sm:py-6">
+    <div class="goals-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
       <div class="">
         <!-- Info Banner -->
         <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
@@ -160,6 +161,7 @@ import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
 import ContributionModal from '@/components/Goals/ContributionModal.vue';
 import EventsTab from '@/components/Goals/EventsTab.vue';
 import GoalDetailInline from '@/components/Goals/GoalDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'GoalsDashboard',
@@ -171,6 +173,7 @@ export default {
     ContributionModal,
     EventsTab,
     GoalDetailInline,
+    ModuleStatusBar,
   },
 
   data() {

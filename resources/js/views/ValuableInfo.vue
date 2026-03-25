@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-4 sm:py-8">
+    <div class="module-gradient py-4 sm:py-8">
+      <ModuleStatusBar />
       <div class="bg-white rounded-lg shadow-sm mb-6">
         <!-- Tab Content -->
         <div class="p-6">
@@ -34,6 +35,7 @@ import LetterToSpouse from '@/components/UserProfile/LetterToSpouse.vue';
 import RiskProfileSummary from '@/components/Risk/RiskProfileSummary.vue';
 import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
 import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'ValuableInfo',
@@ -44,6 +46,7 @@ export default {
     RiskProfileSummary,
     IncomeOccupation,
     ExpenditureOverview,
+    ModuleStatusBar,
   },
 
   setup() {

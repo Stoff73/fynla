@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-4 sm:py-8">
+    <div class="module-gradient py-4 sm:py-8">
+      <ModuleStatusBar />
       <!-- Back Button -->
       <button
         @click="$router.push({ name: 'WhatIfDashboard' })"
@@ -78,6 +79,7 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ModuleComparison from '@/components/WhatIf/ModuleComparison.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'WhatIfScenarioDetailView',
@@ -85,6 +87,7 @@ export default {
   components: {
     AppLayout,
     ModuleComparison,
+    ModuleStatusBar,
   },
 
   computed: {

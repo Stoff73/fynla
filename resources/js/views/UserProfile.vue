@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-4 sm:py-8">
+    <div class="module-gradient py-4 sm:py-8">
+      <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">User Profile</h1>
@@ -80,6 +81,7 @@ import PersonalInformation from '@/components/UserProfile/PersonalInformation.vu
 import HealthInformation from '@/components/UserProfile/HealthInformation.vue';
 import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
 import SubscriptionManagement from '@/components/UserProfile/SubscriptionManagement.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'UserProfile',
@@ -90,6 +92,7 @@ export default {
     HealthInformation,
     FamilyMembers,
     SubscriptionManagement,
+    ModuleStatusBar,
   },
 
   setup() {

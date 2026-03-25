@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-4 sm:py-8 px-4 sm:px-6">
+    <div class="module-gradient py-4 sm:py-8 px-4 sm:px-6">
+      <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center justify-between">
@@ -160,12 +161,14 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import riskService from '@/services/riskService';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'RiskLevelsExplainedPage',
 
   components: {
     AppLayout,
+    ModuleStatusBar,
   },
 
   data() {

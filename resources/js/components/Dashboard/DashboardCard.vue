@@ -1,11 +1,14 @@
 <template>
   <div
     class="dashboard-card rounded-lg border border-light-gray p-6 transition-all duration-200"
-    :class="empty
-      ? 'bg-light-pink-100/50 cursor-pointer hover:bg-light-pink-200/50 hover:shadow-md hover:-translate-y-0.5'
-      : (clickable
-        ? 'bg-white cursor-pointer hover:border-raspberry-400 hover:shadow-md hover:-translate-y-0.5'
-        : 'bg-light-blue-100')"
+    :class="[
+      empty
+        ? 'bg-light-pink-100/50 cursor-pointer hover:bg-light-pink-200/50 hover:shadow-md hover:-translate-y-0.5'
+        : (clickable
+          ? 'bg-white cursor-pointer hover:border-light-blue-300 hover:shadow-md hover:-translate-y-0.5 hover-blue-gradient'
+          : 'bg-white'),
+      !loading && !noGradient ? 'module-gradient' : ''
+    ]"
     @click="clickable ? $emit('click') : null"
     :role="clickable ? 'button' : undefined"
     :tabindex="clickable ? 0 : undefined"
@@ -54,6 +57,10 @@ export default {
       default: true,
     },
     empty: {
+      type: Boolean,
+      default: false,
+    },
+    noGradient: {
       type: Boolean,
       default: false,
     },

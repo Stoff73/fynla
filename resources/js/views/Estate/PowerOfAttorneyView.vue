@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-2 sm:py-6">
+    <div class="module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
       <div class="">
         <!-- Header -->
         <div class="mb-6">
@@ -22,6 +23,7 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import PowerOfAttorneyTab from '@/components/Estate/PowerOfAttorneyTab.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'PowerOfAttorneyView',
@@ -29,6 +31,7 @@ export default {
   components: {
     AppLayout,
     PowerOfAttorneyTab,
+    ModuleStatusBar,
   },
 
   data() {

@@ -1,5 +1,6 @@
 <template>
-  <div class="pension-list">
+  <div class="pension-list module-gradient">
+    <ModuleStatusBar />
     <!-- Pension Detail View (when a pension is selected) -->
     <PensionDetailInline
       v-if="selectedPension"
@@ -421,6 +422,7 @@ import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -438,6 +440,7 @@ export default {
     RetirementIncomeTab,
     CapitalAdequacyTab,
     DecumulationStrategyCard,
+    ModuleStatusBar,
   },
 
   data() {

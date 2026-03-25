@@ -1,5 +1,6 @@
 <template>
-  <div class="chattels-list">
+  <div class="chattels-list module-gradient">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <ChattelDetailInline
       v-if="selectedChattelId"
@@ -92,6 +93,7 @@ import ChattelCard from './ChattelCard.vue';
 import ChattelFormModal from './ChattelFormModal.vue';
 import ChattelDetailInline from './ChattelDetailInline.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'ChattelsList',
@@ -101,6 +103,7 @@ export default {
     ChattelFormModal,
     ChattelDetailInline,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   data() {

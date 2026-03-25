@@ -165,11 +165,9 @@ export default {
       this.fetchInfoGuidePreference();
     }
 
-    // Collapse side menu for real users with expanded docked chat
-    if (this.showDockedChat && !this.chatCollapsed && !this.sideMenuCollapsed) {
-      this.sideMenuCollapsed = true;
-      storage.set(STORAGE_KEY, true);
-    }
+    // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
+    // route change, which would override the user's explicit expand/collapse choice.
+    // The watcher on showDockedChat handles the initial collapse when chat first opens.
 
     // Track header height + footer visibility for docked chat positioning
     this._updateChatOffsets = () => {

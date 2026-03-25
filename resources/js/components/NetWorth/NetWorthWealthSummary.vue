@@ -1,5 +1,6 @@
 <template>
-  <div class="net-worth-wealth-summary">
+  <div class="net-worth-wealth-summary module-gradient">
+    <ModuleStatusBar />
     <!-- Asset Allocation Charts - Horizontal Row Above Table -->
     <div class="allocation-charts-row">
       <div class="chart-item">
@@ -54,6 +55,7 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import AssetAllocationDonut from './AssetAllocationDonut.vue';
 import WealthSummary from './WealthSummary.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'NetWorthWealthSummary',
@@ -61,6 +63,7 @@ export default {
   components: {
     AssetAllocationDonut,
     WealthSummary,
+    ModuleStatusBar,
   },
 
   data() {

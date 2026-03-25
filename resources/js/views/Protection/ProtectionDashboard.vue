@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="protection-dashboard py-2 sm:py-6">
+    <div class="protection-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
       <div class="">
       <!-- Profile Completeness Alert -->
       <ProfileCompletenessAlert
@@ -77,6 +78,7 @@ import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
 import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
 import userProfileService from '@/services/userProfileService';
 
@@ -89,6 +91,7 @@ export default {
     ProfileCompletenessAlert,
     PolicyFormModal,
     ModuleLifeEvents,
+    ModuleStatusBar,
   },
 
   data() {

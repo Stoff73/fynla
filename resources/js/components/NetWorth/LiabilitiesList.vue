@@ -1,5 +1,6 @@
 <template>
-  <div class="liabilities-list">
+  <div class="liabilities-list module-gradient">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <LiabilityDetailInline
       v-if="selectedLiabilityId"
@@ -134,6 +135,7 @@ import LiabilityCard from './LiabilityCard.vue';
 import LiabilityDetailInline from './LiabilityDetailInline.vue';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -144,6 +146,7 @@ export default {
     LiabilityDetailInline,
     LiabilityForm,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   mixins: [currencyMixin],

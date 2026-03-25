@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-6">
+    <div class="module-gradient py-6">
+      <ModuleStatusBar />
       <div class="">
         <!-- Header -->
         <div class="mb-8">
@@ -54,6 +55,7 @@
 import { mapGetters, mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import JourneyCard from '@/components/Dashboard/JourneyCard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'PlanningJourneys',
@@ -61,6 +63,7 @@ export default {
   components: {
     AppLayout,
     JourneyCard,
+    ModuleStatusBar,
   },
 
   computed: {

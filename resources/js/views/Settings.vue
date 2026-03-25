@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-8">
+    <div class="module-gradient py-8">
+      <ModuleStatusBar />
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
         <p class="mt-2 text-body-base text-neutral-500">
@@ -144,12 +145,14 @@ import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'Settings',
 
   components: {
     AppLayout,
+    ModuleStatusBar,
   },
 
   setup() {

@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-8 px-4 sm:px-6">
+    <div class="module-gradient py-8 px-4 sm:px-6">
+      <ModuleStatusBar />
       <!-- Show will overview if user already has a will -->
       <WillPlanning
         v-if="!loading && hasExistingWill"
@@ -30,6 +31,7 @@ import WillBuilderWizard from '@/components/Estate/WillBuilder/WillBuilderWizard
 import WillPlanning from '@/components/Estate/WillPlanning.vue';
 import estateService from '@/services/estateService';
 import api from '@/services/api';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'WillBuilderView',
@@ -38,6 +40,7 @@ export default {
     AppLayout,
     WillBuilderWizard,
     WillPlanning,
+    ModuleStatusBar,
   },
 
   data() {

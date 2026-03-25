@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="py-6">
+    <div class="module-gradient py-6">
+      <ModuleStatusBar />
       <div class="">
         <!-- Header -->
         <div class="mb-8">
@@ -121,10 +122,11 @@ import { mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PlanDashboardCard from '@/components/Plans/Shared/PlanDashboardCard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'PlansDashboard',
-  components: { AppLayout, PlanDashboardCard },
+  components: { AppLayout, PlanDashboardCard, ModuleStatusBar },
   mixins: [currencyMixin],
 
   computed: {

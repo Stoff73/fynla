@@ -3,7 +3,7 @@
     <!-- Minimise/Expand toggle -->
     <button
       @click="toggleCollapsed"
-      class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-md text-neutral-400 hover:text-horizon-500 hover:bg-white/50 transition-colors"
+      class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-md text-neutral-400 hover:text-horizon-500 hover:bg-white/50 transition-colors z-10"
       :title="heroCollapsed ? 'Expand' : 'Minimise'"
     >
       <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': heroCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,84 +18,125 @@
       <span class="text-sm text-neutral-500">{{ stageLabel }}</span>
     </div>
 
-    <!-- Expanded: full hero -->
+    <!-- Expanded: full status bar -->
     <template v-else>
-    <!-- Main hero row: progress ring + greeting + step info + CTA -->
-    <div class="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 pr-6">
-      <!-- Left: Circular progress ring -->
-      <div class="flex-shrink-0 relative w-[160px] h-[160px]">
-        <svg viewBox="0 0 96 96" class="w-[160px] h-[160px] -rotate-90">
-          <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
-          <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
-            :class="progressRingClass"
-            :stroke-dasharray="251.3"
-            :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
-            stroke-linecap="round" />
-        </svg>
-        <div class="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl md:text-3xl font-extrabold -mt-[2px]" :class="stageTextClass">
-          {{ progressPercentage }}%
+      <!-- Greeting above all panels -->
+      <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 mb-4 pr-6">{{ greeting }}, {{ firstName }}</h2>
+
+      <!-- Three-panel row -->
+      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 lg:gap-6 pr-6">
+
+        <!-- LEFT: Scenario Completeness -->
+        <div class="flex-1 min-w-0">
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Scenario Completeness</h4>
+          <div class="flex items-start gap-4">
+            <!-- Progress ring -->
+            <div class="flex-shrink-0 relative w-[140px] h-[140px]">
+              <svg viewBox="0 0 96 96" class="w-[140px] h-[140px] -rotate-90">
+                <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
+                <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
+                  :class="progressRingClass"
+                  :stroke-dasharray="251.3"
+                  :stroke-dashoffset="251.3 - (251.3 * progressPercentage / 100)"
+                  stroke-linecap="round" />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center text-2xl md:text-3xl font-extrabold" :class="stageTextClass">
+                {{ progressPercentage }}%
+              </div>
+            </div>
+
+            <!-- Stage info + next step + button (pt-3 aligns with visual top of progress ring) -->
+            <div class="flex-1 min-w-0 pt-3">
+              <p class="text-sm text-neutral-500 mb-1">
+                <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
+                <span class="mx-1.5">&middot;</span>
+                <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
+              </p>
+
+              <!-- Next step -->
+              <div v-if="nextStep" class="flex items-center gap-2 mt-2">
+                <div
+                  class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                  :class="stageBgClass"
+                >
+                  {{ nextStepNumber }}
+                </div>
+                <span class="text-sm text-horizon-500">{{ nextStepTitle }}</span>
+              </div>
+
+              <!-- Journey complete -->
+              <div v-if="isJourneyComplete" class="flex items-center gap-2 mt-2">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-spring-600">Journey complete</p>
+                  <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps.</p>
+                </div>
+              </div>
+
+              <button
+                v-if="nextStep"
+                class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+                @click="continueJourney"
+              >
+                Continue Journey
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
+        <div class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Profile Completeness</h4>
+          <div class="flex items-start gap-5 flex-1">
+            <!-- Progress ring (same size as scenario completeness) -->
+            <div class="flex-shrink-0 relative w-[140px] h-[140px]">
+              <svg viewBox="0 0 96 96" class="w-[140px] h-[140px] -rotate-90">
+                <circle cx="48" cy="48" r="40" fill="none" stroke-width="6" class="stroke-white/50" />
+                <circle cx="48" cy="48" r="40" fill="none" stroke-width="6"
+                  class="stroke-raspberry-500"
+                  :stroke-dasharray="251.3"
+                  :stroke-dashoffset="251.3 - (251.3 * overallProfilePercent / 100)"
+                  stroke-linecap="round" />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center text-2xl md:text-3xl font-extrabold text-raspberry-500">
+                {{ overallProfilePercent }}%
+              </div>
+            </div>
+            <!-- Category links with percentages -->
+            <div class="flex flex-col gap-1.5 flex-1 min-w-0 pt-1">
+              <router-link
+                v-for="cat in categoryCompleteness"
+                :key="cat.key"
+                :to="cat.route"
+                class="group flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/50 transition-colors cursor-pointer"
+              >
+                <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ cat.label }}</span>
+                <span class="text-xs font-bold" :class="cat.percent >= 75 ? 'text-spring-600' : cat.percent >= 25 ? 'text-horizon-400' : 'text-raspberry-500'">{{ cat.percent }}%</span>
+              </router-link>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Recommended Actions (desktop only) -->
+        <div v-if="topActions.length" class="hidden lg:flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+          <h4 class="text-lg font-semibold text-horizon-500 mb-2">Recommended Actions</h4>
+          <div class="space-y-1.5 pt-1">
+            <router-link
+              v-for="action in topActions.slice(0, 3)"
+              :key="action.id"
+              to="/actions"
+              class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-eggshell-500 hover:bg-light-pink-200 transition-colors"
+            >
+              <div class="w-1.5 h-1.5 rounded-full bg-raspberry-500 flex-shrink-0"></div>
+              <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
+            </router-link>
+          </div>
         </div>
       </div>
-
-      <!-- Centre: Greeting + stage label + next step -->
-      <div class="flex-1 min-w-0">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 -mt-[4px]">{{ greeting }}, {{ firstName }}</h2>
-        <p class="text-sm text-neutral-500 mt-1">
-          <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
-          <span class="mx-1.5">&middot;</span>
-          <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
-        </p>
-
-        <!-- Next step info (merged into same card) -->
-        <div v-if="nextStep" class="flex items-center gap-2 mt-3">
-          <div
-            class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-            :class="stageBgClass"
-          >
-            {{ nextStepNumber }}
-          </div>
-          <span class="text-sm text-horizon-500">{{ nextStepTitle }}</span>
-        </div>
-
-        <!-- Journey complete message (inline, all steps done) -->
-        <div v-if="isJourneyComplete" class="flex items-center gap-2 mt-2">
-          <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-spring-500">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-spring-600">Journey complete</p>
-            <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps. Explore your dashboard to review your financial plan.</p>
-          </div>
-        </div>
-
-        <!-- Continue Journey button (below stage text) -->
-        <button
-          v-if="nextStep"
-          class="mt-4 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
-          @click="continueJourney"
-        >
-          Continue Journey
-        </button>
-      </div>
-
-      <!-- Right: Recommended Actions (desktop only) -->
-      <div v-if="topActions.length && !heroCollapsed" class="hidden lg:block flex-shrink-0 w-1/3 pl-5 ml-2 border-l border-white/40">
-        <h4 class="text-sm font-semibold text-horizon-500 mb-2">Recommended Actions</h4>
-        <div class="space-y-1.5">
-          <router-link
-            v-for="action in topActions.slice(0, 3)"
-            :key="action.id"
-            to="/actions"
-            class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-eggshell-500 hover:bg-light-pink-200 transition-colors"
-          >
-            <div class="w-1.5 h-1.5 rounded-full bg-raspberry-500 flex-shrink-0"></div>
-            <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
-          </router-link>
-        </div>
-      </div>
-    </div>
     </template>
 
   </div>
@@ -129,7 +170,6 @@ export default {
       'progressPercentage',
       'onboardingSteps',
       'nextStep',
-      'learningMilestone',
     ]),
 
     firstName() {
@@ -225,11 +265,30 @@ export default {
         .sort((a, b) => (priorityOrder[a.priority] ?? 4) - (priorityOrder[b.priority] ?? 4))
         .slice(0, 3);
     },
+
+    overallProfilePercent() {
+      return this.$store.getters['completeness/overallCompleteness'] || 0;
+    },
+
+    categoryCompleteness() {
+      const mc = (mod) => this.$store.getters['completeness/moduleCompleteness'](mod);
+      const cashMgmt = Math.round((mc('savings') + mc('income')) / 2) || 0;
+      const finances = Math.round((mc('investment') + mc('retirement') + mc('property')) / 3) || 0;
+      const family = Math.round((mc('protection') + mc('estate')) / 2) || 0;
+      const planning = Math.round((mc('goals') + mc('coordination')) / 2) || 0;
+      return [
+        { label: 'Cash Management', key: 'cash', percent: cashMgmt, route: '/net-worth/cash' },
+        { label: 'Finances', key: 'finances', percent: finances, route: '/net-worth/investments' },
+        { label: 'Family', key: 'family', percent: family, route: '/protection' },
+        { label: 'Planning', key: 'planning', percent: planning, route: '/goals' },
+      ];
+    },
   },
 
   mounted() {
     this.$store.dispatch('plans/fetchPlan', 'protection');
     this.$store.dispatch('plans/fetchPlan', 'investment');
+    this.$store.dispatch('completeness/fetchCompleteness');
   },
 
   methods: {

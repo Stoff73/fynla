@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="estate-dashboard py-2 sm:py-6">
+    <div class="estate-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
       <div class="">
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
@@ -89,6 +90,7 @@ import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
 import estateService from '@/services/estateService';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'EstateDashboard',
@@ -99,6 +101,7 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
+    ModuleStatusBar,
   },
 
   data() {
