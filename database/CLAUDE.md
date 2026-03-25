@@ -89,7 +89,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Seeders
 
-**Execution order** (from `DatabaseSeeder.php`):
+**Execution order** (from `DatabaseSeeder.php`, 20 seeders):
 1. TaxConfigurationSeeder - 5 UK tax years
 2. TaxProductReferenceSeeder - ISA/GIA/Bond tax treatment
 3. ActuarialLifeTablesSeeder - Life expectancy data
@@ -97,7 +97,18 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 5. AdminUserSeeder - Admin test accounts
 6. PreviewUserSeeder - 6 preview personas
 7. SavingsMarketRatesSeeder - Savings benchmark rates
-8. HouseholdSeeder, TestUsersSeeder (dev/staging only)
+8. OccupationCodeSeeder - 406 occupation codes
+9. PlanConfigurationSeeder - Plan templates
+10. RetirementActionDefinitionSeeder - Retirement action triggers
+11. InvestmentActionDefinitionSeeder - Investment action triggers
+12. SavingsActionDefinitionSeeder - Savings action triggers
+13. ProtectionActionDefinitionSeeder - Protection action triggers
+14. TaxActionDefinitionSeeder - Tax action triggers
+15. EstateActionDefinitionSeeder - Estate action triggers
+16. SubscriptionPlanSeeder - Subscription plan pricing
+17. AdvisorClientSeeder - Advisor demo data
+18. HouseholdSeeder - Household linking
+19. TestUsersSeeder - Test users with full data (dev/staging only)
 
 **Idempotency:** Always use `updateOrCreate()` with unique keys to prevent duplicates on reseed.
 
@@ -105,7 +116,7 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Factories
 
-46 factories in `database/factories/`. Structure:
+55 factories in `database/factories/`. Structure:
 ```php
 class MyModelFactory extends Factory {
     protected $model = MyModel::class;

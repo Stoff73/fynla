@@ -69,20 +69,20 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Backend** (`app/`): See `app/Services/CLAUDE.md` and `app/Http/CLAUDE.md` for detailed conventions.
 - `Agents/` - Module orchestrators (ProtectionAgent, SavingsAgent, InvestmentAgent, RetirementAgent, EstateAgent, GoalsAgent, CoordinatingAgent)
-- `Services/{Module}/` - Domain calculations (183 services across 38 module directories)
-- `Http/Controllers/Api/` - API endpoints (75 controllers)
-- `Http/Requests/` - Form request validation (74 classes)
+- `Services/{Module}/` - Domain calculations (214 services across 32 module directories)
+- `Http/Controllers/Api/` - API endpoints (89 controllers)
+- `Http/Requests/` - Form request validation (83 classes)
 - `Http/Resources/` - API response transformation
 - `Traits/` - Shared behaviours (`Auditable`, `HasJointOwnership`, `CalculatesOwnershipShare`, `FormatsCurrency`, `StructuredLogging`, `PolicyCRUDTrait`, `ResolvesExpenditure`, `ResolvesIncome`, `TracksGoalContributions`)
 - `Constants/` - `TaxDefaults`, `ValidationLimits`, `EstateDefaults`
-- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (11 observers)
+- `Observers/` - Risk recalculation observers, goal contribution trackers, Monte Carlo triggers (12 observers)
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (403 across 39 module directories)
-- `views/` - Page-level route components (60 views)
-- `store/modules/` - Vuex state management (21 namespaced modules)
-- `services/` - API wrappers (36 services)
+- `components/{Module}/` - Vue components (443 across 28 module directories)
+- `views/` - Page-level route components (73 views)
+- `store/modules/` - Vuex state management (31 namespaced modules)
+- `services/` - API wrappers (44 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -277,10 +277,27 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 
 ## Authentication for Testing
 
-When testing requires login:
+**Production (fynla.org):**
 1. Enter credentials: `chris@fynla.org` / `Password1!`
 2. When the verification code screen appears, **ask the user for the code**
 3. Enter the code provided and continue testing
+
+**Local dev (localhost:8000) — get the code yourself:**
+1. Enter credentials: `john@example.com` / `password` (or any seeded test user)
+2. When the verification code screen appears, fetch it from the database:
+```bash
+php artisan tinker --execute="\$u = \App\Models\User::where('email','john@example.com')->first(); echo \App\Models\EmailVerificationCode::where('user_id', \$u->id)->latest()->first()->code ?? 'none';"
+```
+3. Enter the code and continue — do NOT ask the user for local dev codes
+
+**Test user credentials (local dev):**
+
+| Email | Password | Notes |
+|-------|----------|-------|
+| `john@example.com` | `password` | Test user with full data |
+| `jane@example.com` | `password` | Spouse of John |
+| `sarah@example.com` | `password` | Additional test user |
+| `admin@fps.com` | `admin123` | Admin user |
 
 ## Troubleshooting
 
@@ -320,7 +337,7 @@ Check routes: `php artisan route:list --path=endpoint`
 
 1. **"Browser tested" means you INTERACTED with the element in Playwright.** You CLICKED it. You FILLED the form. You SUBMITTED it. You verified the RESULT. Reading a code diff is NOT a browser test. Taking a snapshot without interacting is NOT a test.
 
-2. **You are NOT DONE until every form has been FILLED and SUBMITTED in the browser.** If login fails — ASK THE USER for the verification code. If registration needs help — ASK. Do NOT skip. Do NOT defer. Do NOT write "requires user assistance" and move on.
+2. **You are NOT DONE until every form has been FILLED and SUBMITTED in the browser.** If login fails on production — ASK THE USER for the verification code. On local dev — fetch the code from the database yourself (see Authentication for Testing). Do NOT skip. Do NOT defer. Do NOT write "requires user assistance" and move on.
 
 3. **NEVER write a completion report until ALL testing is actually complete.** Reports are the LAST thing you do. Writing a report before testing is LYING.
 
