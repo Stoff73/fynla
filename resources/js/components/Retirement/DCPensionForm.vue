@@ -222,6 +222,63 @@
             <p class="text-xs text-neutral-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
+          <!-- Platform Fee -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-500 mb-2">
+              Platform Fee
+            </label>
+            <div class="flex gap-2">
+              <div class="flex-1">
+                <input
+                  v-model.number="platformFeeValue"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  :placeholder="formData.platform_fee_type === 'percentage' ? 'e.g., 0.45' : 'e.g., 50.00'"
+                />
+              </div>
+              <div class="w-20">
+                <select
+                  v-model="formData.platform_fee_type"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option value="percentage">%</option>
+                  <option value="fixed">£</option>
+                </select>
+              </div>
+              <div class="w-32">
+                <select
+                  v-model="formData.platform_fee_frequency"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="annually">Annually</option>
+                </select>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mt-1">{{ feeHelpText }}</p>
+          </div>
+
+          <!-- Advisor Fee -->
+          <div>
+            <label for="advisor_fee_percent" class="block text-sm font-medium text-neutral-500 mb-2">
+              Advisor Fee (% p.a.)
+            </label>
+            <input
+              id="advisor_fee_percent"
+              v-model.number="formData.advisor_fee_percent"
+              type="number"
+              step="0.01"
+              min="0"
+              max="10"
+              class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              placeholder="e.g., 0.50"
+            />
+            <p class="text-xs text-neutral-500 mt-1">Annual advisor fee as a percentage of fund value</p>
+          </div>
+
           <!-- Pension Access Age (SIPP and personal pensions only) -->
           <div v-if="isPersonalPension">
             <label for="retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -436,6 +493,10 @@ export default {
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
         expected_return_percent: 5.0,
+        platform_fee_type: 'percentage',
+        platform_fee_amount: null,
+        platform_fee_frequency: 'annually',
+        advisor_fee_percent: null,
         retirement_age: null,
         salary_sacrifice: false,
         notes: '',
@@ -485,6 +546,32 @@ export default {
       return this.$store.state.userProfile?.incomeOccupation?.target_retirement_age
         || this.$store.getters['auth/user']?.target_retirement_age
         || null;
+    },
+
+    platformFeeValue: {
+      get() {
+        return this.formData.platform_fee_type === 'percentage'
+          ? this.formData.platform_fee_percent
+          : this.formData.platform_fee_amount;
+      },
+      set(value) {
+        if (this.formData.platform_fee_type === 'percentage') {
+          this.formData.platform_fee_percent = value;
+          this.formData.platform_fee_amount = null;
+        } else {
+          this.formData.platform_fee_amount = value;
+          this.formData.platform_fee_percent = null;
+        }
+      },
+    },
+
+    feeHelpText() {
+      const frequencyText = { monthly: 'per month', quarterly: 'per quarter', annually: 'per year' };
+      const freq = frequencyText[this.formData.platform_fee_frequency] || 'per year';
+      if (this.formData.platform_fee_type === 'percentage') {
+        return `Platform fee as a percentage of assets ${freq}`;
+      }
+      return `Fixed platform fee charged ${freq}`;
     },
 
     calculatedEmployeeContribution() {
