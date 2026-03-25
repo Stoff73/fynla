@@ -147,6 +147,30 @@ For each test scenario from the algorithm:
 
 ---
 
+## Inline Sub-Entity Pattern (Holdings)
+
+Some forms support creating sub-entities inline during the parent entity creation. This avoids a separate tool call and multi-step navigation.
+
+**Investment Holdings Example:**
+
+The `create_investment_account` tool accepts an optional `holdings` array. When present:
+
+1. The CoordinatingAgent passes `holdings` through in the `fields` array
+2. The `highlightedField` watcher in `AccountForm.vue` sets `formData.holdings = [{...}]`
+3. `InlineHoldingsEditor.vue` renders the holdings rows from the prop
+4. On submit, the backend `storeAccount()` creates account + holdings in a single DB transaction
+5. Any unallocated remainder auto-creates a Cash holding
+
+**When to use inline vs standalone:**
+- **Inline (preferred):** User mentions holdings AND account in the same message, account doesn't exist yet → pass `holdings` in `create_investment_account`
+- **Standalone:** User wants to add holdings to an existing account → use `create_holding` tool
+
+**Eligible types for inline holdings:** ISA, GIA, onshore/offshore bonds, VCT, EIS
+
+This pattern could be extended to other entities with sub-entities (e.g. properties with mortgages) in future.
+
+---
+
 ## Common Pitfalls
 
 1. **Select values mismatch** — AI sends `income_protection`, form expects `incomeProtection`. The handler must translate.
@@ -155,3 +179,4 @@ For each test scenario from the algorithm:
 4. **Dropdown value not in options** — if AI sends `family_income_benefit` but the `<select>` only has `decreasing_term`, `level_term`, `whole_of_life`, the value won't stick. Must add the option to the dropdown.
 5. **xAI returns `"null"` string** — handled globally in `executeTool()` but watch for it.
 6. **xAI HTML entities** — `&amp;` in "NS&I" — handled globally in `executeTool()`.
+7. **Array fields in AI fill** — when the AI sends an array (e.g. `holdings`), the `highlightedField` watcher sets `formData[key] = arrayValue` directly. The child component must watch its prop for changes. The `allowedFields` filter in `submitForm()` must include the array field name, and the MissingValue object filter already skips arrays (`!Array.isArray()` check).
