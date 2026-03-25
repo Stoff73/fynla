@@ -1,48 +1,25 @@
 # TODO — Fynla
 
-*Last updated: 25 March 2026 — session 7 (inline investment holdings feature + AI tool updates)*
+*Last updated: 25 March 2026 — dashboard branch session (batches 9-10)*
+*Previous session: 25 March 2026 (grokAI branch — inline investment holdings)*
 
-## Completed This Session (grokAI branch)
+## Carried Forward (from previous session)
 
-### Inline Investment Holdings Feature
-- [x] Design spec: brainstormed, reviewed, approved (`docs/superpowers/specs/2026-03-24-integrated-investment-holdings-design.md`)
-- [x] Implementation plan: written, reviewed (`March/March24Updates/investment-holdings-plan.md`)
-- [x] Backend: `StoreInvestmentAccountRequest` — holdings array validation + total allocation check
-- [x] Backend: `InvestmentController::storeAccount()` — DB::transaction for account + holdings + auto-cash
-- [x] Backend: 5 Pest tests passing (create with holdings, without, explicit cash, >100% rejection, 100% no auto-cash)
-- [x] Frontend: `InlineHoldingsEditor.vue` — new spreadsheet-style component (286 lines)
-- [x] Frontend: `AccountForm.vue` — embedded editor, HoldingForm for details, both watchers updated
-- [x] Frontend: `InvestmentDetailInline.vue` — always-visible holdings section with Details links
-- [x] Browser tested: ISA created with 2 holdings + auto-cash, detail view shows all 3, Details modal opens
-
-### AI Tool Updates (code written, NOT tested with Grok)
-- [x] `XaiToolDefinitions.php` — added `holdings` array param to `create_investment_account`
-- [x] `CoordinatingAgent.php` — `handleCreateInvestmentAccount` passes holdings through for holdable types
-- [x] Updated `create_holding` description to clarify standalone vs inline usage
-- [x] Algorithm doc rewritten: `March/March24Updates/AI/investment-holding-form-algorithm.md`
-- [x] Process doc updated: `March/March24Updates/AI/aiProcess.md` (inline sub-entity pattern)
-
-## CRITICAL — AI Form Fill NOT TESTED WITH GROK
-
-The AI tool updates (XaiToolDefinitions + CoordinatingAgent) were coded but Steps 4-10 of the aiProcess.md were NOT completed:
-
+### CRITICAL — AI Form Fill NOT TESTED WITH GROK
 - [ ] Step 4: Manual browser fill for EVERY variant (ISA, GIA, bond, VCT, EIS with holdings)
 - [ ] Step 5: Verify DB save and dashboard display for each variant
 - [ ] Step 6: Algorithm doc needs updating AFTER manual testing confirms it works
 - [ ] Step 10: Test with Grok — send natural language prompts, verify form fills, verify DB saves
-
-### Investment Accounts — Still Needs Full Process
 - [ ] `create_investment_account` with holdings — UNTESTED with Grok
 - [ ] Previous issue: Grok creates accounts with £0 value — may still be broken
 - [ ] Account lookup LIKE query too loose — picks wrong account when multiple share provider name
 
-## Known Issues (Carried Forward)
-
+### Known Issues (Carried Forward)
 - [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow)
 - [ ] Console errors: Protection TypeError at PolicyFormModal.vue:196 during AI fill (non-blocking)
 - [ ] property_sale life event: Grok also creates property record (double navigation)
 
-## Tech Debt
+### Tech Debt (Carried Forward)
 - [ ] Debug console.log statements in AccountForm.vue (remove before deploy)
 - [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking)
 - [ ] LiabilitiesStep.vue: DEPRECATED comment
@@ -50,25 +27,59 @@ The AI tool updates (XaiToolDefinitions + CoordinatingAgent) were coded but Step
 - [ ] WARN-002: Security sessions API returns 500 on /api/auth/sessions
 - [ ] WARN-003: Vue error on holistic-plan page
 
-## Grok AI Migration (branch: grokAI)
-
-### Next Session Tasks
+### Grok AI Migration (branch: grokAI)
 - [ ] Get xAI API key from https://console.x.ai
-- [ ] Set AI_PROVIDER=xai and XAI_API_KEY in local .env
-- [ ] Complete AI form fill testing — follow aiProcess.md Steps 4-10 for investment holdings
+- [ ] Complete AI form fill testing — follow aiProcess.md Steps 4-10
 - [ ] Test with xAI locally — chat, streaming, tool calling, navigation
 - [ ] Test document extraction with xAI
 - [ ] Phase 5 remaining: remove Anthropic SDK, delete Python scripts, update legal text
 - [ ] Merge grokAI branch to main
-- [ ] Deploy to production
+
+## Completed This Session (dashboard branch)
+
+### Dashboard Batch 9
+- [x] Grid breakpoint xl:grid-cols-3 for smaller desktops
+- [x] Hover border fix — box-shadow then 3px transparent border
+- [x] 0% progress bars show "0%" text in horizon blue
+- [x] DashboardSparkline component (GA-style, ApexCharts)
+- [x] Cash & Savings card redesign — sparkline + collapsible accounts
+- [x] Investments card — mirror pattern
+- [x] Goals bar chart — Horizon blue from designSystem
+- [x] Income donut chart — designSystem colours
+
+### Dashboard Batch 10
+- [x] Card gradient z-index — renders below content
+- [x] 3px hover border on dashboard cards
+- [x] 0% progress bars left-aligned
+- [x] Empty cards (Protection, Estate) — no gradient or hover
+- [x] Allowances ISA → /net-worth/cash, Pension → /retirement
+- [x] Mobile status bar carousel with swipe and dots
+- [x] CashOverview: account cards grey gradient, Open Banking light blue
+- [x] Rename General → Settings in nav
+- [x] Settings tab navigation (General/Security/Privacy/Assumptions)
+- [x] Remove Your Information from Settings
+
+## Outstanding from This Session
+
+### Dashboard Branch — Needs Browser Testing
+- [ ] Full browser walkthrough of all batch 9-10 changes across personas
+- [ ] Verify mobile carousel works on actual touch device / responsive mode
+- [ ] Verify Settings tab navigation works on all 4 sub-pages
+- [ ] Verify CashOverview card gradients display correctly
+- [ ] Test allowance section clickthrough navigation
+
+### Dashboard Branch — Merge to Main
+- [ ] Merge dashboard branch to main when browser testing complete
+- [ ] Deploy frontend build to production
 
 ## Context for Next Session
 
-Session 25 March built the inline investment holdings feature (design → plan → implement → browser test). The feature works — accounts can be created with inline holdings in a single transaction, and the detail view shows all holdings. However, the AI tool updates (XaiToolDefinitions + CoordinatingAgent) were coded WITHOUT following the aiProcess.md properly — Steps 4-10 were skipped. Next session MUST start by completing the AI form fill process: manual browser fill of each variant, DB verification, then Grok testing. DO NOT write more code until manual testing is done.
+Dashboard branch has 17 new commits covering batches 9-10. All changes are frontend-only (Vue/CSS/JS). Build compiles cleanly. The branch is pushed to origin/dashboard. No browser testing was done this session — next session should start with a full visual walkthrough across personas before merging to main. The grokAI branch work (AI form fill testing) is still outstanding from the previous session.
 
-Key process file: `March/March24Updates/AI/aiProcess.md` — follow it step by step, no shortcuts.
+Key files: Deploy notes at `March/March25Updates/deploy.md`.
 
 ## Files to Review
-- `app/Services/AI/XaiToolDefinitions.php` — holdings param added but untested
-- `app/Agents/CoordinatingAgent.php` — holdings passthrough added but untested
-- `March/March24Updates/AI/investment-holding-form-algorithm.md` — needs updating after manual testing
+- `resources/js/components/Journey/JourneyProgressHero.vue` — mobile carousel (new, untested)
+- `resources/js/components/Settings/SettingsTabBar.vue` — new component (untested)
+- `resources/js/views/Settings.vue` — restructured (Your Info removed, tabs added)
+- `resources/js/views/Dashboard.vue` — extensive changes (sparklines, progress bars, allowances)
