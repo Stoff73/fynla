@@ -16,18 +16,18 @@ Read the project memory to understand current state:
 cat /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/MEMORY.md
 ```
 
-**Read TODO.md** — this is the handover from the previous session. It contains outstanding items, tech debt, known issues, and context for what to pick up:
+**Read CSJTODO.md** — this is the handover from the previous session. It contains outstanding items, tech debt, known issues, and context for what to pick up:
 
 ```bash
-cat TODO.md 2>/dev/null || echo "No TODO.md — clean slate"
+cat CSJTODO.md 2>/dev/null || echo "No CSJTODO.md — clean slate"
 ```
 
-If TODO.md exists and has unchecked items, present them to the user prominently:
+If CSJTODO.md exists and has unchecked items, present them to the user prominently:
 
 ```markdown
 ## Outstanding from Previous Session
 
-[items from TODO.md]
+[items from CSJTODO.md]
 
 Would you like to address these first, or work on something else?
 ```
@@ -110,7 +110,7 @@ If any reports from the last 7 days, read and summarise key findings (tech debt,
 
 ```bash
 git status
-git branch --show-current
+git rev-parse --abbrev-ref HEAD
 git fetch origin
 ```
 
