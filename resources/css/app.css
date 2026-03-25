@@ -376,7 +376,7 @@
   }
   .hover-blue-gradient:hover {
     border-color: theme('colors.light-blue.200');
-    border-width: 3px;
+    box-shadow: inset 0 0 0 2px theme('colors.light-blue.200');
   }
   .hover-blue-gradient:hover::after {
     background: linear-gradient(to top, theme('colors.light-blue.100'), transparent);
