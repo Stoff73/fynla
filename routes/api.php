@@ -1023,6 +1023,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     // Subscription stats
     Route::get('/subscriptions/stats', [\App\Http\Controllers\Api\AdminController::class, 'getSubscriptionStats']);
 
+    // AI provider management
+    Route::get('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'getAiProvider']);
+    Route::post('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'setAiProvider']);
+
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
         Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);

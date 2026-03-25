@@ -61,6 +61,7 @@ class TrustController extends Controller
             'annual_premium' => 'nullable|numeric|min:0',
             'beneficiaries' => 'nullable|string',
             'trustees' => 'nullable|string',
+            'settlor' => 'nullable|string|max:255',
             'purpose' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
@@ -108,6 +109,7 @@ class TrustController extends Controller
             'annual_premium' => 'nullable|numeric|min:0',
             'beneficiaries' => 'nullable|string',
             'trustees' => 'nullable|string',
+            'settlor' => 'nullable|string|max:255',
             'purpose' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'nullable|boolean',

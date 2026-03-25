@@ -190,6 +190,72 @@
       </div>
     </div>
 
+    <!-- Always-visible Holdings Section (for holdable standard accounts only) -->
+    <div v-if="isHoldableAccountType" class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-horizon-500">Holdings</h3>
+        <button
+          v-preview-disabled="'add'"
+          @click="openHoldingModal(null)"
+          class="text-sm text-violet-600 hover:text-violet-700 font-medium"
+        >
+          + Add Holding
+        </button>
+      </div>
+
+      <!-- Holdings list -->
+      <div v-if="account.holdings && account.holdings.length > 0">
+        <!-- Header row -->
+        <div class="grid grid-cols-12 gap-2 text-xs text-neutral-500 font-medium pb-2 border-b border-light-gray mb-2">
+          <div class="col-span-4 sm:col-span-5">Security</div>
+          <div class="col-span-2">Type</div>
+          <div class="col-span-2 text-right">Allocation</div>
+          <div class="col-span-2 text-right">Value</div>
+          <div class="col-span-2 sm:col-span-1 text-right"></div>
+        </div>
+
+        <!-- Holding rows -->
+        <div
+          v-for="holding in account.holdings"
+          :key="holding.id"
+          class="grid grid-cols-12 gap-2 items-center py-2 border-b border-light-gray last:border-b-0 text-sm"
+        >
+          <div class="col-span-4 sm:col-span-5 font-medium text-horizon-500 truncate">
+            {{ holding.security_name }}
+          </div>
+          <div class="col-span-2 text-neutral-500 text-xs">
+            {{ formatAssetType(holding.asset_type) }}
+          </div>
+          <div class="col-span-2 text-right text-horizon-500">
+            {{ holding.allocation_percent }}%
+          </div>
+          <div class="col-span-2 text-right text-horizon-500 font-medium">
+            {{ formatCurrency(holding.current_value) }}
+          </div>
+          <div class="col-span-2 sm:col-span-1 text-right">
+            <button
+              @click="openHoldingModal(holding)"
+              class="text-xs text-violet-600 hover:text-violet-700 hover:underline"
+            >
+              Details
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else class="text-center py-6 text-neutral-500">
+        <p class="text-sm">No holdings — default allocation is 100% cash</p>
+        <button
+          v-preview-disabled="'add'"
+          @click="openHoldingModal(null)"
+          class="mt-2 text-sm text-violet-600 hover:text-violet-700 font-medium"
+        >
+          Add your first holding
+        </button>
+      </div>
+    </div>
+
     <!-- Edit Modal -->
     <AccountForm
       :show="showEditModal"
@@ -221,7 +287,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import AccountSummaryPanel from '@/views/Investment/AccountSummaryPanel.vue';
@@ -277,6 +343,13 @@ export default {
   },
 
   computed: {
+    ...mapState('aiFormFill', ['pendingFill']),
+
+    isHoldableAccountType() {
+      const holdableTypes = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
+      return holdableTypes.includes(this.account.account_type);
+    },
+
     // Determine which detail component to render based on account type
     detailComponentType() {
       const type = this.account.account_type;
@@ -515,6 +588,17 @@ export default {
     },
   },
 
+  watch: {
+    pendingFill: {
+      handler(fill) {
+        if (fill && fill.entityType === 'investment_holding' && fill.fields?.investment_account_id === this.account?.id) {
+          this.openHoldingModal(null);
+        }
+      },
+      immediate: true,
+    },
+  },
+
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
 
@@ -649,6 +733,22 @@ export default {
       }
     },
 
+    formatAssetType(type) {
+      const labels = {
+        equity: 'Equity',
+        uk_equity: 'UK Equity',
+        us_equity: 'US Equity',
+        international_equity: 'Intl Equity',
+        fund: 'Fund',
+        etf: 'ETF',
+        bond: 'Bond',
+        cash: 'Cash',
+        alternative: 'Alternative',
+        property: 'Property',
+      };
+      return labels[type] || type;
+    },
+
     openHoldingModal(holding = null) {
       this.editingHolding = holding;
       this.showHoldingModal = true;
@@ -667,6 +767,10 @@ export default {
         } else {
           // Create new holding
           await this.createHolding(holdingData);
+        }
+        // Complete AI fill if this was an AI-driven save
+        if (this.$store.state.aiFormFill.pendingFill) {
+          this.$store.dispatch('aiFormFill/completeFill');
         }
         this.closeHoldingModal();
         await this.fetchInvestmentData();

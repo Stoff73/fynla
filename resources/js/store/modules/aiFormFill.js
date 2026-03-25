@@ -15,6 +15,7 @@ const ENTITY_LABELS = {
   estate_asset: 'estate asset',
   estate_liability: 'liability',
   estate_gift: 'gift',
+  investment_holding: 'investment holding',
 };
 
 // Multi-step form: map logical step numbers to field keys
@@ -31,6 +32,7 @@ const STEP_FIELD_MAP = {
 const state = {
   pendingFill: null,      // { entityType, fields, route, mode, entityId }
   filling: false,
+  formReady: false,       // Set to true when the form component acknowledges receipt
   currentFieldIndex: 0,
   fieldOrder: [],
   highlightedField: null,
@@ -47,6 +49,7 @@ const getters = {
 const mutations = {
   SET_PENDING_FILL(state, fill) { state.pendingFill = fill; },
   SET_FILLING(state, filling) { state.filling = filling; },
+  SET_FORM_READY(state, ready) { state.formReady = ready; },
   SET_FIELD_ORDER(state, order) { state.fieldOrder = order; },
   SET_CURRENT_FIELD_INDEX(state, index) { state.currentFieldIndex = index; },
   SET_HIGHLIGHTED_FIELD(state, field) { state.highlightedField = field; },
@@ -54,6 +57,7 @@ const mutations = {
   CLEAR(state) {
     state.pendingFill = null;
     state.filling = false;
+    state.formReady = false;
     state.currentFieldIndex = 0;
     state.fieldOrder = [];
     state.highlightedField = null;
@@ -65,6 +69,12 @@ let fallbackTimer = null;
 
 const actions = {
   startFill({ commit, state: s }, { entityType, fields, route, mode, entityId }) {
+    // Clear any stale state from a previous fill before starting a new one
+    clearTimeout(fallbackTimer);
+    if (s.pendingFill || s.filling) {
+      commit('CLEAR');
+    }
+
     commit('SET_PENDING_FILL', {
       entityType,
       fields,
@@ -72,18 +82,38 @@ const actions = {
       mode: mode || 'create',
       entityId: entityId || null,
     });
+    commit('SET_FORM_READY', false);
 
-    // If the fill hasn't started within 3 seconds (page didn't load / modal didn't open),
-    // clear state so the user can retry or Fyn can fall back
-    clearTimeout(fallbackTimer);
+    // Fallback: if the form hasn't acknowledged within 30 seconds, clear state
+    // and inform the user. This is a safety net — normally the form acknowledges
+    // within 1-2 seconds via acknowledgeFormReady().
     fallbackTimer = setTimeout(() => {
-      if (!s.filling) {
+      if (!s.formReady && !s.filling) {
+        const label = ENTITY_LABELS[entityType] || entityType.replace(/_/g, ' ');
+        commit('aiChat/ADD_MESSAGE', {
+          id: 'fill_timeout_' + Date.now(),
+          role: 'assistant',
+          content: `The form for your ${label} didn't load in time. Please try again, or add it manually using the form on the page.`,
+          created_at: new Date().toISOString(),
+        }, { root: true });
         commit('CLEAR');
       }
-    }, 10000);
+    }, 30000);
+  },
+
+  /**
+   * Called by form components when they detect a pendingFill and are ready to process it.
+   * This confirms the form has mounted and the pendingFill watcher has fired.
+   */
+  acknowledgeFormReady({ commit }) {
+    commit('SET_FORM_READY', true);
+    clearTimeout(fallbackTimer);
   },
 
   beginFieldSequence({ commit, state: s, dispatch }, fieldOrder) {
+    // Acknowledge form is ready — centralised here so every form component
+    // gets the handshake automatically when they call beginFieldSequence
+    commit('SET_FORM_READY', true);
     clearTimeout(fallbackTimer);
     commit('SET_FIELD_ORDER', fieldOrder);
     commit('SET_CURRENT_FIELD_INDEX', 0);
@@ -120,6 +150,9 @@ const actions = {
    * The form component calls this per step and advances its own wizard.
    */
   fillStepFields({ commit, state: s, dispatch }, { stepNumber, fieldOrder }) {
+    // Acknowledge form is ready (multi-step forms use this instead of beginFieldSequence)
+    commit('SET_FORM_READY', true);
+    clearTimeout(fallbackTimer);
     // Only fill fields that have AI data
     const fieldsWithData = fieldOrder.filter(k => {
       const val = s.pendingFill?.fields?.[k];

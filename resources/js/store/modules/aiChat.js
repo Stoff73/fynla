@@ -322,6 +322,9 @@ const actions = {
                                 break;
 
                             case 'fill_form':
+                                // Clear any stale fill state from a previous fill
+                                dispatch('aiFormFill/cancelFill', null, { root: true });
+
                                 // Navigate to the page first
                                 if (event.route) {
                                     commit('SET_PENDING_NAVIGATION', event.route);

@@ -673,6 +673,16 @@ export default {
     pendingFill: {
       handler(fill) {
         if (fill && fill.entityType === 'business_interest' && fill.fields) {
+          // Pre-set key fields before field sequence so Vue reactivity works
+          if (fill.fields.business_name) {
+            this.form.business_name = fill.fields.business_name;
+          }
+          if (fill.fields.business_type) {
+            this.form.business_type = fill.fields.business_type;
+          }
+          if (fill.fields.current_valuation) {
+            this.form.current_valuation = fill.fields.current_valuation;
+          }
           const fieldOrder = Object.keys(fill.fields).filter(k => fill.fields[k] !== null && fill.fields[k] !== '');
           this.$store.dispatch('aiFormFill/beginFieldSequence', fieldOrder);
         }
@@ -692,8 +702,19 @@ export default {
     filling(isFilling) {
       if (isFilling === false && this.pendingFill?.entityType === 'business_interest') {
         setTimeout(() => {
-          this.handleSubmit();
-        }, 250);
+          this.$nextTick(() => {
+            this.handleSubmit();
+            if (this.error) {
+              this.$store.commit('aiChat/ADD_MESSAGE', {
+                id: 'fill_error_' + Date.now(),
+                role: 'assistant',
+                content: `I wasn't able to save the business — ${this.error}. Please check the form and try again.`,
+                created_at: new Date().toISOString(),
+              }, { root: true });
+              this.$store.dispatch('aiFormFill/cancelFill');
+            }
+          });
+        }, 500);
       }
     },
   },

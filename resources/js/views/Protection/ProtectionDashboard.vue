@@ -122,7 +122,10 @@ export default {
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'protection_policy') {
         if (fill.mode === 'edit' && fill.entityId) {
-          // Edit mode not supported for protection policies via AI fill yet
+          const policy = this.findPolicyById(fill.entityId);
+          if (policy) {
+            this.handleEditPolicy(policy);
+          }
         } else {
           this.handleAddPolicy();
         }
@@ -133,8 +136,15 @@ export default {
   mounted() {
     // Check for pending AI form fill (in case pendingFill was set before mount)
     const fill = this.$store.state.aiFormFill?.pendingFill;
-    if (fill && fill.entityType === 'protection_policy' && fill.mode !== 'edit') {
-      this.handleAddPolicy();
+    if (fill && fill.entityType === 'protection_policy') {
+      if (fill.mode === 'edit' && fill.entityId) {
+        const policy = this.findPolicyById(fill.entityId);
+        if (policy) {
+          this.handleEditPolicy(policy);
+        }
+      } else {
+        this.handleAddPolicy();
+      }
     }
 
     this.loadProtectionData();
@@ -165,6 +175,18 @@ export default {
       } finally {
         this.loadingCompleteness = false;
       }
+    },
+
+    findPolicyById(id) {
+      const policies = this.$store.state.protection?.policies || {};
+      const allPolicies = [
+        ...(policies.life || []),
+        ...(policies.criticalIllness || []),
+        ...(policies.incomeProtection || []),
+        ...(policies.disability || []),
+        ...(policies.sicknessIllness || []),
+      ];
+      return allPolicies.find(p => p.id === id) || null;
     },
 
     handleAddPolicy() {

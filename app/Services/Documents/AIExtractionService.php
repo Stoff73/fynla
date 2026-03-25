@@ -14,9 +14,11 @@ use Smalot\PdfParser\Parser as PdfParser;
 
 class AIExtractionService
 {
-    private const API_URL = 'https://api.anthropic.com/v1/messages';
+    private const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-    private const MODEL = 'claude-3-5-haiku-20241022';
+    private const ANTHROPIC_MODEL = 'claude-3-5-haiku-20241022';
+
+    private const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
 
     private const MAX_TOKENS = 4096;
 
@@ -35,7 +37,7 @@ class AIExtractionService
     ) {}
 
     /**
-     * Extract data from a document using Claude Vision API.
+     * Extract data from a document using AI Vision API (Anthropic or xAI).
      */
     public function extract(Document $document): DocumentExtraction
     {
@@ -95,7 +97,9 @@ class AIExtractionService
             $extraction = DocumentExtraction::create([
                 'document_id' => $document->id,
                 'extraction_version' => $version,
-                'model_used' => self::MODEL,
+                'model_used' => $response['model'] ?? (\Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
+                    ? config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning')
+                    : self::ANTHROPIC_MODEL),
                 'input_tokens' => $response['usage']['input_tokens'] ?? null,
                 'output_tokens' => $response['usage']['output_tokens'] ?? null,
                 'raw_response' => json_encode($response),
@@ -151,17 +155,13 @@ class AIExtractionService
     }
 
     /**
-     * Call the Claude Vision API.
+     * Call the vision API (supports both Anthropic and xAI providers).
      */
     private function callClaudeAPI(string $base64, string $mediaType, string $prompt): array
     {
-        $apiKey = config('services.anthropic.api_key');
+        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
 
-        if (! $apiKey) {
-            throw new RuntimeException('Anthropic API key not configured');
-        }
-
-        // For images, resize if exceeds Claude API 5MB limit
+        // For images, resize if exceeds API limits
         $processedData = $base64;
         $processedMediaType = $mediaType;
 
@@ -171,35 +171,96 @@ class AIExtractionService
             $processedMediaType = $result['media_type'];
 
             if ($result['was_resized']) {
-                Log::info('Image was resized for Claude API', [
+                Log::info('Image was resized for API', [
                     'original_media_type' => $mediaType,
                     'new_media_type' => $processedMediaType,
                 ]);
             }
         }
 
-        // Build content based on media type
-        $contentBlock = $this->buildContentBlock($processedData, $processedMediaType);
+        if ($isXai) {
+            return $this->callXaiVisionAPI($processedData, $processedMediaType, $prompt);
+        }
 
-        // Build headers - PDF support is now GA, no beta header needed
+        return $this->callAnthropicVisionAPI($processedData, $processedMediaType, $prompt);
+    }
+
+    /**
+     * Call xAI vision API (OpenAI-compatible format).
+     */
+    private function callXaiVisionAPI(string $base64, string $mediaType, string $prompt): array
+    {
+        $apiKey = config('services.xai.api_key');
+        if (! $apiKey) {
+            throw new RuntimeException('XAI_API_KEY is not configured');
+        }
+
+        $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+
+        // Build image content block in OpenAI format
+        $imageUrl = "data:{$mediaType};base64,{$base64}";
+        $content = [
+            ['type' => 'image_url', 'image_url' => ['url' => $imageUrl]],
+            ['type' => 'text', 'text' => $prompt],
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Content-Type' => 'application/json',
+        ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
+            'model' => $model,
+            'max_tokens' => self::MAX_TOKENS,
+            'messages' => [
+                ['role' => 'user', 'content' => $content],
+            ],
+        ]);
+
+        if (! $response->successful()) {
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['error']['message'] ?? $response->body();
+            throw new RuntimeException('xAI API error: ' . $errorMessage);
+        }
+
+        $json = $response->json();
+
+        // Normalise response to common format for parseResponse()
+        return [
+            'content' => [['text' => $json['choices'][0]['message']['content'] ?? '']],
+            'usage' => [
+                'input_tokens' => $json['usage']['prompt_tokens'] ?? 0,
+                'output_tokens' => $json['usage']['completion_tokens'] ?? 0,
+            ],
+            'model' => $json['model'] ?? $model,
+        ];
+    }
+
+    /**
+     * Call Anthropic vision API (legacy).
+     */
+    private function callAnthropicVisionAPI(string $base64, string $mediaType, string $prompt): array
+    {
+        $apiKey = config('services.anthropic.api_key');
+        if (! $apiKey) {
+            throw new RuntimeException('Anthropic API key not configured');
+        }
+
+        $contentBlock = $this->buildContentBlock($base64, $mediaType);
+
         $headers = [
             'x-api-key' => $apiKey,
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
         ];
 
-        $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::API_URL, [
-            'model' => self::MODEL,
+        $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
+            'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
             'messages' => [
                 [
                     'role' => 'user',
                     'content' => [
                         $contentBlock,
-                        [
-                            'type' => 'text',
-                            'text' => $prompt,
-                        ],
+                        ['type' => 'text', 'text' => $prompt],
                     ],
                 ],
             ],
@@ -208,47 +269,79 @@ class AIExtractionService
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('Claude API error: '.$errorMessage);
+            throw new RuntimeException('Claude API error: ' . $errorMessage);
         }
 
         return $response->json();
     }
 
     /**
-     * Call Claude API with text content (for spreadsheets).
+     * Call AI API with text content (for spreadsheets and text-based PDFs).
      */
     private function callClaudeAPIWithText(string $textContent, string $prompt): array
     {
-        $apiKey = config('services.anthropic.api_key');
+        $isXai = \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai';
+        $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
 
+        if ($isXai) {
+            $apiKey = config('services.xai.api_key');
+            if (! $apiKey) {
+                throw new RuntimeException('XAI_API_KEY is not configured');
+            }
+
+            $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+            ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
+                'model' => $model,
+                'max_tokens' => self::MAX_TOKENS,
+                'messages' => [
+                    ['role' => 'user', 'content' => $fullPrompt],
+                ],
+            ]);
+
+            if (! $response->successful()) {
+                $errorBody = $response->json();
+                $errorMessage = $errorBody['error']['message'] ?? $response->body();
+                throw new RuntimeException('xAI API error: ' . $errorMessage);
+            }
+
+            $json = $response->json();
+
+            return [
+                'content' => [['text' => $json['choices'][0]['message']['content'] ?? '']],
+                'usage' => [
+                    'input_tokens' => $json['usage']['prompt_tokens'] ?? 0,
+                    'output_tokens' => $json['usage']['completion_tokens'] ?? 0,
+                ],
+                'model' => $json['model'] ?? $model,
+            ];
+        }
+
+        // Anthropic path
+        $apiKey = config('services.anthropic.api_key');
         if (! $apiKey) {
             throw new RuntimeException('Anthropic API key not configured');
         }
 
-        $headers = [
+        $response = Http::withHeaders([
             'x-api-key' => $apiKey,
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
-        ];
-
-        // Combine spreadsheet content with the prompt
-        $fullPrompt = "Here is the spreadsheet data:\n\n{$textContent}\n\n{$prompt}";
-
-        $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::API_URL, [
-            'model' => self::MODEL,
+        ])->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
+            'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
             'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => $fullPrompt,
-                ],
+                ['role' => 'user', 'content' => $fullPrompt],
             ],
         ]);
 
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('Claude API error: '.$errorMessage);
+            throw new RuntimeException('Claude API error: ' . $errorMessage);
         }
 
         return $response->json();
