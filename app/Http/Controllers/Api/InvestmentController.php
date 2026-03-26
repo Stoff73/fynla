@@ -391,7 +391,6 @@ class InvestmentController extends Controller
                         'asset_type' => $holdingData['asset_type'],
                         'allocation_percent' => $holdingData['allocation_percent'],
                         'cost_basis' => $holdingData['cost_basis'] ?? null,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                         'current_value' => $currentValue,
                     ]);
                 }
