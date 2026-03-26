@@ -1,5 +1,7 @@
 # Deploy Guide — 26 March 2026 (Session 14) — Pension & Investment Edit Fixes
 
+**Status: DEPLOYED AND WORKING — 26 March 2026**
+
 ## Summary
 
 Fixed pension and investment edit flows — holdings sync, beneficiary/policy number persistence, Monte Carlo projection £0 bug.
@@ -21,6 +23,7 @@ Fixed pension and investment edit flows — holdings sync, beneficiary/policy nu
 app/Http/Controllers/Api/InvestmentController.php
 app/Http/Controllers/Api/RetirementController.php
 app/Http/Requests/Retirement/StoreDCPensionRequest.php
+app/Http/Requests/StoreInvestmentAccountRequest.php
 app/Http/Requests/UpdateInvestmentAccountRequest.php
 app/Services/Retirement/PensionProjector.php
 ```
@@ -28,6 +31,7 @@ app/Services/Retirement/PensionProjector.php
 ## Frontend (included in build)
 
 ```
+resources/js/components/Investment/AccountForm.vue
 resources/js/components/NetWorth/PensionDetailInline.vue
 resources/js/components/NetWorth/PensionList.vue
 resources/js/components/Retirement/DCPensionForm.vue
@@ -52,6 +56,40 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 ```
 
 No migrations or seeders required for this deploy.
+
+---
+
+## Update 2 — Investment Holdings Detail View
+
+Rewrote `AccountHoldingsPanel.vue` to match the pension holdings tab format exactly. Previously showed a complex table (Units, Purchase Date, Unit Costs, Initial/Current allocations) with no OCF, no fee summary, no 10-year impact.
+
+Now matches pension format:
+- Simple table: Fund Name, Type, Allocation %, Value, OCF %
+- Cash (unallocated) footer row
+- Fee summary bar (Weighted Avg OCF + Total Annual Cost)
+- 10-Year Fee Impact (Cumulative Fees, Lost Growth, Total Impact)
+
+### Additional File to Upload (frontend — rebuild required)
+
+```
+resources/js/views/Investment/AccountHoldingsPanel.vue
+```
+
+### Build + Upload
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Re-upload `public/build/` directory.
+
+### SSH (clear caches)
+
+```bash
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+```
+
+---
 
 ## Browser Testing Performed
 
