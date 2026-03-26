@@ -79,6 +79,7 @@ class StoreInvestmentAccountRequest extends FormRequest
             ])],
             'holdings.*.allocation_percent' => 'required_with:holdings|numeric|min:0|max:100',
             'holdings.*.cost_basis' => 'nullable|numeric|min:0',
+            'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
     }
 

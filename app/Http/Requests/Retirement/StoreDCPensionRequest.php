@@ -57,6 +57,8 @@ class StoreDCPensionRequest extends FormRequest
             'projected_value_at_retirement' => ['nullable', 'numeric', 'min:0'],
             'has_flexibly_accessed' => ['nullable', 'boolean'],
             'flexible_access_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'beneficiary_id' => ['nullable', 'integer', 'exists:users,id'],
+            'beneficiary_name' => ['nullable', 'string', 'max:255'],
             // Inline holdings (created alongside pension in a transaction)
             'holdings' => ['nullable', 'array'],
             'holdings.*.security_name' => ['required_with:holdings', 'string', 'max:255'],

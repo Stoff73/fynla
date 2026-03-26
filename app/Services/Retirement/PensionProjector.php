@@ -234,13 +234,22 @@ class PensionProjector
     }
 
     /**
-     * Get user's current age from retirement profile.
+     * Get user's current age from retirement profile or date of birth.
      */
     private function getUserAge(int $userId): int
     {
         $profile = \App\Models\RetirementProfile::where('user_id', $userId)->first();
 
-        return $profile ? $profile->current_age : 67; // Default to state pension age if no profile
+        if ($profile && $profile->current_age) {
+            return $profile->current_age;
+        }
+
+        $user = \App\Models\User::find($userId);
+        if ($user && $user->date_of_birth) {
+            return (int) $user->date_of_birth->diffInYears(now());
+        }
+
+        return 40; // Conservative fallback
     }
 
     /**
