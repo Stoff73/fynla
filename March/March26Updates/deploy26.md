@@ -204,3 +204,56 @@ resources/js/views/Protection/ProtectionDashboard.vue
 - Route list loads (no broken references)
 - Migration ran successfully (premium_frequency)
 - ProfileCompletenessCheckerTest: 12/12 pass (39 assertions)
+
+---
+
+## Complete File Upload List (All 3 PRs)
+
+### PHP Files
+
+```
+app/Models/IncomeProtectionPolicy.php
+app/Services/Protection/ProtectionActionDefinitionService.php
+app/Services/Retirement/ContributionOptimizer.php
+app/Services/Retirement/PensionPortfolioAnalyzer.php
+app/Services/Retirement/PensionProjector.php
+app/Services/Retirement/RetirementActionDefinitionService.php
+app/Services/UserProfile/ProfileCompletenessChecker.php
+database/migrations/2026_03_26_103410_add_premium_frequency_to_income_protection_policies_table.php
+database/seeders/ProtectionActionDefinitionSeeder.php
+database/seeders/RetirementActionDefinitionSeeder.php
+```
+
+### Frontend (included in build)
+
+```
+resources/js/components/Investment/InlineHoldingsEditor.vue
+resources/js/components/NetWorth/PensionDetailInline.vue
+resources/js/components/Protection/CurrentSituation.vue
+resources/js/views/Protection/ProtectionDashboard.vue
+```
+
+### Build + Upload
+
+```bash
+./deploy/fynla-org/build.sh
+```
+
+Upload `public/build/` directory after building.
+
+### SSH Commands (in order)
+
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+
+# 1. Run migration
+php artisan migrate
+
+# 2. Reseed action definitions
+php artisan db:seed --class=RetirementActionDefinitionSeeder --force
+php artisan db:seed --class=ProtectionActionDefinitionSeeder --force
+
+# 3. Clear caches
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+```
