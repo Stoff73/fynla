@@ -1,5 +1,5 @@
 <template>
-  <div class="wealth-summary">
+  <div class="wealth-summary module-gradient">
     <h3 class="chart-title">Wealth Summary</h3>
 
     <div v-if="hasData" class="summary-content" :class="{ 'has-spouse': hasSpouse }">
@@ -468,7 +468,8 @@ export default {
 }
 
 .clickable-row:hover {
-  @apply bg-savannah-100;
+  @apply bg-light-pink-100;
+  border-radius: 8px;
 }
 
 .clickable-row:hover .row-label {
@@ -476,7 +477,8 @@ export default {
 }
 
 .clickable-row:hover .column-value {
-  @apply bg-savannah-200;
+  @apply bg-light-pink-200;
+  border-radius: 6px;
 }
 
 /* Section header rows */
@@ -486,12 +488,14 @@ export default {
 }
 
 .section-header-row .section-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 600;
-  @apply text-neutral-500;
+  font-weight: 700;
+  @apply text-horizon-500 bg-light-blue-100;
+  padding: 6px 14px;
+  border-radius: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -520,9 +524,9 @@ export default {
   padding: 8px 16px;
   @apply bg-savannah-100;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
   @apply text-horizon-500;
-  font-weight: 600;
+  font-weight: 500;
   transition: background-color 0.15s ease;
 }
 
@@ -532,8 +536,8 @@ export default {
 }
 
 .total-row .row-label.total-label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   @apply text-horizon-500;
 }
 
@@ -541,8 +545,8 @@ export default {
   text-align: right;
   padding: 8px 16px;
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   @apply text-horizon-500;
 }
 
@@ -564,10 +568,13 @@ export default {
 }
 
 .net-worth-row .row-label.net-worth-label {
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .net-worth-row .column-value.net-worth-value {
+  font-size: 18px;
+  font-weight: 900;
   background: linear-gradient(135deg, theme('colors.sky.50') 0%, white 100%);
 }
 

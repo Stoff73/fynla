@@ -271,8 +271,7 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  @apply text-horizon-500;
-  background: #FAD6E0;
+  @apply text-horizon-500 bg-light-pink-100;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -280,6 +279,6 @@ export default {
 }
 
 .add-account-btn:hover {
-  background: #F5B3C5;
+  @apply bg-light-pink-200;
 }
 </style>

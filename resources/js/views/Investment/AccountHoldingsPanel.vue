@@ -570,7 +570,7 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  @apply bg-white border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
 }
 

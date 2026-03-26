@@ -1,8 +1,8 @@
 <template>
   <AppLayout>
-    <div class="module-gradient py-4 sm:py-8">
+    <div class="bg-eggshell-500 py-4 sm:py-8">
       <ModuleStatusBar />
-      <div class="bg-white rounded-lg shadow-sm mb-6">
+      <div class="bg-white rounded-lg shadow-sm mb-6 module-gradient">
         <!-- Tab Content -->
         <div class="p-6">
           <!-- Loading State -->

@@ -1,15 +1,12 @@
 <template>
   <AppLayout>
-    <div class="module-gradient py-4 sm:py-8 px-4 sm:px-6">
+    <div class="bg-eggshell-500 py-4 sm:py-8 px-4 sm:px-6">
       <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-horizon-500">Risk Profile</h1>
-          <p class="mt-2 text-sm sm:text-base text-neutral-500">
-            Your risk profile is automatically calculated from your financial data
-          </p>
-        </div>
+        <p class="text-lg font-semibold text-neutral-500">
+          Your risk profile is automatically calculated from your financial data
+        </p>
       </div>
 
       <!-- Loading state -->
@@ -25,7 +22,7 @@
         />
 
         <!-- Section 1: Calculated Risk Level -->
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6 module-gradient">
           <h2 class="text-lg font-semibold text-horizon-500 mb-4">Your Risk Level</h2>
 
           <!-- Risk Level Display - Clickable to see explanation -->
@@ -66,7 +63,7 @@
         </div>
 
         <!-- Section 2: Factor Breakdown -->
-        <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+        <div v-if="factorBreakdown && factorBreakdown.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6 module-gradient">
           <h3 class="text-lg font-semibold text-horizon-500 mb-2">How Your Risk Level is Calculated</h3>
           <p class="text-sm text-neutral-500 mb-4">
             Your risk profile is determined by analysing 9 financial factors. The most common risk level across all factors becomes your overall risk level.
@@ -101,7 +98,7 @@
         </div>
 
         <!-- Section 3: Understanding Your Risk Level -->
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6 module-gradient">
           <h3 class="text-lg font-semibold text-horizon-500 mb-4">Understanding Your Risk Level</h3>
           <div class="text-sm text-neutral-500 space-y-3">
             <p>
@@ -152,7 +149,7 @@
         </div>
 
         <!-- Section 5: Products with Custom Risk -->
-        <div v-if="productsWithCustomRisk.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+        <div v-if="productsWithCustomRisk.length > 0" class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6 module-gradient">
           <h3 class="text-lg font-semibold text-horizon-500 mb-2">Products with Custom Risk Settings</h3>
           <p class="text-sm text-neutral-500 mb-4">
             These investments have risk levels that differ from your main profile.
@@ -186,7 +183,7 @@
         </div>
 
         <!-- Section 6: Investment Types (Educational) -->
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6 mb-6 module-gradient">
           <InvestmentTypesAccordion />
         </div>
       </template>

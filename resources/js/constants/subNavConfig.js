@@ -43,6 +43,16 @@ export const SUB_NAV_CONFIG = [
       '/net-worth/property': [
         { label: 'Add Property', icon: 'plus', action: 'addProperty', style: 'primary' },
       ],
+      '/net-worth/liabilities': [
+        { label: 'Add Liability', icon: 'plus', action: 'addLiability', style: 'primary' },
+      ],
+      '/net-worth/chattels': [
+        { label: 'Add Valuable', icon: 'plus', action: 'addValuable', style: 'primary' },
+        { label: 'Import', icon: 'upload', action: 'importValuables', style: 'secondary' },
+      ],
+      '/net-worth/business': [
+        { label: 'Add Business', icon: 'plus', action: 'addBusiness', style: 'primary' },
+      ],
     },
   },
   {

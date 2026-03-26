@@ -55,7 +55,7 @@
     <!-- Income Card — Full Width -->
     <div class="space-y-6">
       <form @submit.prevent="handleSubmit">
-        <div class="bg-white rounded-lg border border-light-gray p-6">
+        <div class="bg-white rounded-lg border border-light-gray p-6 module-gradient">
           <div class="flex justify-between items-start mb-6">
             <div>
               <h3 class="text-h4 font-semibold text-horizon-500">Income</h3>

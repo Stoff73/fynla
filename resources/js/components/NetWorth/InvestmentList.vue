@@ -1,5 +1,5 @@
 <template>
-  <div class="investment-list module-gradient overflow-hidden">
+  <div class="investment-list overflow-hidden">
     <ModuleStatusBar />
     <!-- Investment Detail View (when an account is selected) -->
     <InvestmentDetailInline
@@ -36,15 +36,20 @@
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
       </div>
 
-      <!-- Two-column layout: Account Cards (left) + Performance Chart (right) -->
-      <div v-else class="main-content-grid">
-        <!-- Left Column: Compact Account Cards -->
-        <div class="accounts-column">
+      <!-- Full-width layout: Chart first, account cards below -->
+      <div v-else class="space-y-6">
+        <!-- Portfolio Performance (full width) -->
+        <div class="performance-section module-gradient">
+          <Performance @navigate-to-tab="activePortfolioTab = $event" />
+        </div>
+
+        <!-- Account Cards (horizontal row) -->
+        <div class="accounts-row">
           <div
             v-for="account in accounts"
             :key="account.id"
             @click="selectAccount(account)"
-            class="compact-account-card"
+            class="compact-account-card module-gradient"
           >
               <!-- Joint Badge - Top Right Corner -->
               <span
@@ -78,7 +83,7 @@
                     </div>
                     <div class="detail-row">
                       <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                      <span class="detail-value text-purple-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
+                      <span class="detail-value text-violet-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
                     </div>
                   </template>
                   <!-- Individual account -->
@@ -107,20 +112,27 @@
               </div>
             </div>
           </div>
-
-        <!-- Right Column: Portfolio Performance -->
-        <div class="performance-section">
-          <Performance @navigate-to-tab="activePortfolioTab = $event" />
-        </div>
       </div>
 
       <!-- Data integration notice -->
-      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-4 mt-5">
-        <div class="flex items-start gap-3">
+      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5 mt-5">
+        <div class="flex items-start gap-3 mb-3">
+          <h4 class="text-base font-semibold text-horizon-500">Analytics</h4>
           <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 mt-0.5">Coming Soon</span>
-          <p class="text-sm text-neutral-500">
-            We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
-          </p>
+        </div>
+        <p class="text-sm text-neutral-500 mb-3">
+          We will be connecting this section to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">Bloomberg</span>
+          </div>
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">Morningstar</span>
+          </div>
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">FE Analytics</span>
+          </div>
         </div>
       </div>
 
@@ -168,22 +180,26 @@
     </template>
 
     <!-- Account Form Modal -->
-    <AccountForm
-      :show="showAccountForm"
-      :account="editingAccount"
-      :is-edit="!!editingAccount"
-      @close="closeAccountForm"
-      @save="handleAccountSave"
-    />
+    <Teleport to="body">
+      <AccountForm
+        :show="showAccountForm"
+        :account="editingAccount"
+        :is-edit="!!editingAccount"
+        @close="closeAccountForm"
+        @save="handleAccountSave"
+      />
+    </Teleport>
 
     <!-- Document Upload Modal -->
-    <DocumentUploadModal
-      v-if="showUploadModal"
-      document-type="investment_statement"
-      @close="showUploadModal = false"
-      @saved="handleDocumentSaved"
-      @manual-entry="showUploadModal = false; showAccountForm = true;"
-    />
+    <Teleport to="body">
+      <DocumentUploadModal
+        v-if="showUploadModal"
+        document-type="investment_statement"
+        @close="showUploadModal = false"
+        @saved="handleDocumentSaved"
+        @manual-entry="showUploadModal = false; showAccountForm = true;"
+      />
+    </Teleport>
 
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
@@ -783,21 +799,14 @@ export default {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  @apply bg-eggshell-500;
 }
 
 
-/* Two-column layout: Account Cards (left) + Performance Chart (right) */
-.main-content-grid {
+.accounts-row {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.accounts-column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .compact-account-card {
@@ -832,11 +841,20 @@ export default {
 
 .compact-account-card:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 .performance-section {
   min-width: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-light-gray;
+  transition: border-color 0.2s;
+}
+
+.performance-section:hover {
+  @apply border-horizon-300;
 }
 
 .investment-card {
@@ -1017,10 +1035,9 @@ export default {
 }
 
 .empty-state {
-  background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-icon {
@@ -1217,18 +1234,8 @@ export default {
 }
 
 @media (max-width: 1024px) {
-  .main-content-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .accounts-column {
-    display: grid;
+  .accounts-row {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    order: 2;
-  }
-
-  .performance-section {
-    order: 1;
   }
 }
 
@@ -1237,12 +1244,7 @@ export default {
     padding: 16px;
   }
 
-  .main-content-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .accounts-column {
+  .accounts-row {
     grid-template-columns: 1fr;
   }
 

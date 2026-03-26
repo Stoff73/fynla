@@ -1,5 +1,5 @@
 <template>
-  <div class="chattels-list module-gradient">
+  <div class="chattels-list">
     <ModuleStatusBar />
     <!-- Detail View -->
     <ChattelDetailInline
@@ -12,41 +12,16 @@
 
     <!-- List View -->
     <div v-else>
-      <div class="list-header">
-        <h2 class="list-title">Personal Valuables</h2>
-        <div class="list-controls">
-          <select v-model="filterType" class="filter-select">
-            <option value="all">All Types</option>
-            <option value="vehicle">Vehicles</option>
-            <option value="art">Art</option>
-            <option value="antique">Antiques</option>
-            <option value="jewelry">Jewellery</option>
-            <option value="collectible">Collectibles</option>
-            <option value="other">Other</option>
-          </select>
-          <div class="relative" ref="importDropdown">
-            <button @click.stop="showImportDropdown = !showImportDropdown" class="import-button">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-              Import
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div v-if="showImportDropdown" class="import-dropdown">
-              <button @click="handleImport('csv')" class="import-option">Import CSV</button>
-              <button @click="handleImport('excel')" class="import-option">Import Excel</button>
-              <button @click="downloadTemplate" class="import-option">Download Template</button>
-            </div>
-          </div>
-          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Valuable
-          </button>
-        </div>
+      <div class="list-controls">
+        <select v-model="filterType" class="filter-select">
+          <option value="all">All Types</option>
+          <option value="vehicle">Vehicles</option>
+          <option value="art">Art</option>
+          <option value="antique">Antiques</option>
+          <option value="jewelry">Jewellery</option>
+          <option value="collectible">Collectibles</option>
+          <option value="other">Other</option>
+        </select>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -108,7 +83,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import ChattelCard from './ChattelCard.vue';
 import ChattelFormModal from './ChattelFormModal.vue';
 import ChattelDetailInline from './ChattelDetailInline.vue';
@@ -139,6 +114,15 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addValuable') {
+        this.openAddModal();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'importValuables') {
+        this.showImportDropdown = !this.showImportDropdown;
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'chattel') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -156,6 +140,7 @@ export default {
 
   computed: {
     ...mapState('chattels', ['chattels', 'loading', 'error']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredChattels() {
       let filtered = [...this.chattels];
@@ -304,28 +289,14 @@ export default {
 <style scoped>
 .chattels-list {
   padding: 24px;
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.list-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-horizon-500;
-  margin: 0;
+  @apply bg-eggshell-500;
 }
 
 .list-controls {
   display: flex;
   gap: 12px;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .filter-select {
@@ -467,7 +438,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-icon {
@@ -498,7 +469,7 @@ export default {
   gap: 8px;
   margin-top: 24px;
   padding: 12px 24px;
-  @apply bg-pink-500;
+  @apply bg-horizon-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -509,7 +480,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-pink-600;
+  @apply bg-horizon-600;
 }
 
 @media (max-width: 768px) {
@@ -517,20 +488,12 @@ export default {
     padding: 16px;
   }
 
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .list-controls {
     width: 100%;
-    flex-direction: column;
   }
 
-  .filter-select,
-  .add-button {
+  .filter-select {
     width: 100%;
-    justify-content: center;
   }
 
   .chattels-grid {

@@ -3,7 +3,7 @@
     <div class="text-xs text-neutral-500 mb-1">Last 6 months</div>
     <apexchart
       v-if="chartReady"
-      type="line"
+      type="area"
       :options="chartOptions"
       :series="chartSeries"
       :height="height"
@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { SECONDARY_COLORS, BORDER_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SECONDARY_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'DashboardSparkline',
@@ -58,31 +58,31 @@ export default {
       return {
         chart: {
           ...CHART_DEFAULTS.chart,
-          type: 'line',
+          type: 'area',
           toolbar: { show: false },
           zoom: { enabled: false },
           sparkline: { enabled: false },
         },
         colors: [this.color],
         stroke: {
-          curve: 'straight',
-          width: 3.5,
-          lineCap: 'round',
+          curve: 'smooth',
+          width: 2.5,
         },
         markers: {
-          size: 7,
-          colors: [this.color],
-          strokeColors: '#ffffff',
-          strokeWidth: 3.5,
-          hover: { sizeOffset: 2 },
+          size: 6,
+          colors: ['#ffffff'],
+          strokeColors: [this.color],
+          strokeWidth: 3,
+          hover: { sizeOffset: 3 },
         },
         fill: {
           type: 'gradient',
           gradient: {
-            shade: 'light',
+            shadeIntensity: 1,
             type: 'vertical',
-            opacityFrom: 0.12,
-            opacityTo: 0.01,
+            opacityFrom: 0.35,
+            opacityTo: 0.05,
+            stops: [0, 100],
           },
         },
         xaxis: {
@@ -93,12 +93,13 @@ export default {
           axisBorder: { show: false },
           axisTicks: { show: false },
         },
-        yaxis: { show: false },
+        yaxis: {
+          show: false,
+          min: (min) => min * 0.9,
+          max: (max) => max * 1.05,
+        },
         grid: {
-          borderColor: BORDER_COLORS.default,
-          strokeDashArray: 0,
-          xaxis: { lines: { show: false } },
-          yaxis: { lines: { show: true } },
+          show: false,
           padding: { left: 0, right: 0, top: -10, bottom: 0 },
         },
         tooltip: { enabled: false },

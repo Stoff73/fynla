@@ -1,5 +1,5 @@
 <template>
-  <div class="property-card" @click="viewDetails">
+  <div class="property-card module-gradient" @click="viewDetails">
     <div class="card-header">
       <span class="property-type-badge" :class="typeClass">
         {{ propertyTypeLabel }}
@@ -174,7 +174,7 @@ export default {
 .property-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 .card-header {

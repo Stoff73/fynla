@@ -1,5 +1,5 @@
 <template>
-  <div class="business-interests-list module-gradient">
+  <div class="business-interests-list">
     <ModuleStatusBar />
     <!-- Detail View -->
     <BusinessInterestDetailInline
@@ -12,17 +12,6 @@
 
     <!-- List View -->
     <div v-else>
-      <div class="list-header">
-        <h2 class="list-title">Business Interests</h2>
-        <div class="list-controls">
-          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Business
-          </button>
-        </div>
-      </div>
 
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -124,6 +113,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addBusiness') {
+        this.openAddModal();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'business_interest') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -142,6 +137,7 @@ export default {
   computed: {
     ...mapState('businessInterests', ['businesses', 'loading', 'error']),
     ...mapGetters('businessInterests', ['totalBusinessValue']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredBusinesses() {
       return [...this.businesses];
@@ -244,6 +240,7 @@ export default {
 <style scoped>
 .business-interests-list {
   padding: 24px;
+  @apply bg-eggshell-500;
 }
 
 .list-header {

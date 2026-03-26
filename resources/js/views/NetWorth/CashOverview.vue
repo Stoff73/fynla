@@ -636,7 +636,7 @@ export default {
 
 .card-total {
   width: 100%;
-  text-align: center;
+  text-align: left;
   margin-bottom: 12px;
   padding-bottom: 12px;
   @apply border-b border-light-gray;
@@ -661,7 +661,7 @@ export default {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #FAD6E0;
+  @apply bg-light-pink-100;
   border: none;
   cursor: pointer;
   display: flex;
@@ -673,7 +673,7 @@ export default {
 }
 
 .add-icon-btn:hover {
-  background: #F5B3C5;
+  @apply bg-light-pink-200;
 }
 
 .empty-message {
@@ -748,13 +748,13 @@ export default {
   font-size: 13px;
   font-weight: 500;
   @apply text-horizon-500 rounded-lg;
-  background: #FAD6E0;
+  @apply bg-light-pink-100;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  background: #F5B3C5;
+  @apply bg-light-pink-200;
 }
 </style>

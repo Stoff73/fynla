@@ -155,7 +155,7 @@
               <!-- Retirement Planner Cards Row -->
               <div class="planner-cards-row">
                 <!-- Retirement Income Planner Card -->
-                <div class="planner-card income clickable" @click="setActiveTab('income')">
+                <div class="planner-card income clickable module-gradient" @click="setActiveTab('income')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon income">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -177,7 +177,7 @@
                 </div>
 
                 <!-- Capital Adequacy Planner Card -->
-                <div class="planner-card capital clickable" @click="setActiveTab('capital')">
+                <div class="planner-card capital clickable module-gradient" @click="setActiveTab('capital')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon capital">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -192,7 +192,7 @@
                       <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Current pension potential growth:</span>
+                      <span class="planner-metric-label">Current potential growth:</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
@@ -203,7 +203,7 @@
                 </div>
 
                 <!-- Drawdown Strategy Card (shown when within 10 years of retirement) -->
-                <div v-if="showDrawdownCard" class="planner-card drawdown clickable" @click="setActiveTab('drawdown')">
+                <div v-if="showDrawdownCard" class="planner-card drawdown clickable module-gradient" @click="setActiveTab('drawdown')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon drawdown">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -956,13 +956,12 @@ export default {
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 /* Empty Standalone State */
 .empty-standalone {
-  background: white;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 32px 20px;
   text-align: center;
@@ -1121,9 +1120,8 @@ export default {
 .empty-compact {
   text-align: center;
   padding: 24px 16px;
-  @apply bg-savannah-100;
   border-radius: 8px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-compact p {
@@ -1168,18 +1166,16 @@ export default {
 .empty-projections {
   text-align: center;
   padding: 80px 40px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 /* Full-width Empty State - matches investment list */
 .empty-state {
   text-align: center;
   padding: 80px 40px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-state p {
@@ -1353,7 +1349,7 @@ export default {
   border-radius: 12px;
   padding: 20px;
   transition: all 0.2s ease;
-  @apply border-[3px] border-light-gray;
+  @apply border border-light-gray;
 }
 
 .planner-card.income,
@@ -1365,7 +1361,7 @@ export default {
 .planner-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  @apply border-horizon-300;
+  @apply border-light-gray;
 }
 
 .planner-card-header {

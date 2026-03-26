@@ -1,7 +1,6 @@
 <template>
   <div
-    class="module-status-bar rounded-lg mb-4 overflow-hidden transition-all duration-200"
-    style="background: #FAD6E0; position: relative; z-index: 1;"
+    class="module-status-bar rounded-lg mb-4 overflow-hidden transition-all duration-200 bg-light-pink-100 relative z-[1]"
   >
     <!-- Minimised bar (always visible) -->
     <button
@@ -78,7 +77,7 @@
               <svg class="w-4 h-4 flex-shrink-0 text-spring-500" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              <span class="text-horizon-500">{{ item.label }}</span>
+              <span class="text-neutral-400 line-through">{{ item.label }}</span>
             </template>
             <!-- Missing -->
             <template v-else>

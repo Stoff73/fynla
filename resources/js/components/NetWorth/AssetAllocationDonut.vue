@@ -1,9 +1,9 @@
 <template>
-  <div class="asset-allocation-donut">
+  <div class="asset-allocation-donut module-gradient">
     <h3 class="chart-title">{{ title }}</h3>
     <div v-if="hasData" class="chart-container">
-      <div class="relative" style="width: 200px; height: 200px;">
-        <svg viewBox="0 0 220 220" width="200" height="200">
+      <div class="relative w-full aspect-square max-w-[280px] mx-auto">
+        <svg viewBox="0 0 220 220" class="w-full h-full">
           <defs>
             <linearGradient
               v-for="(seg, idx) in donutSegments"
@@ -31,9 +31,18 @@
             @mouseleave="onSegmentLeave"
           />
         </svg>
-        <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-[10px] font-semibold text-horizon-400">Total</span>
-          <span class="text-base font-bold text-horizon-700">{{ formatCurrency(total) }}</span>
+        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span class="text-sm font-semibold text-horizon-400">Total</span>
+          <span class="text-xl sm:text-2xl font-black text-horizon-700">{{ formatCurrency(total) }}</span>
+        </div>
+        <!-- Hover tooltip -->
+        <div
+          v-if="hoveredIndex !== null && hoveredIndex < filteredCategories.length"
+          class="donut-tooltip"
+        >
+          <span class="donut-tooltip-label">{{ filteredCategories[hoveredIndex].label }}</span>
+          <span class="donut-tooltip-value">{{ formatCurrency(filteredCategories[hoveredIndex].value) }}</span>
+          <span class="donut-tooltip-pct">{{ ((filteredCategories[hoveredIndex].value / total) * 100).toFixed(1) }}%</span>
         </div>
       </div>
     </div>
@@ -63,6 +72,12 @@ export default {
       type: String,
       default: 'Wealth Allocation',
     },
+  },
+
+  data() {
+    return {
+      hoveredIndex: null,
+    };
   },
 
   computed: {
@@ -124,6 +139,7 @@ export default {
     },
 
     onSegmentHover(idx) {
+      this.hoveredIndex = idx;
       const cat = this.filteredCategories[idx];
       if (cat) {
         this.$emit('highlight', { category: cat.key, color: cat.color });
@@ -131,6 +147,7 @@ export default {
     },
 
     onSegmentLeave() {
+      this.hoveredIndex = null;
       this.$emit('clear-highlight');
     },
   },
@@ -140,12 +157,12 @@ export default {
 <style scoped>
 .asset-allocation-donut {
   @apply bg-white rounded-card p-4 shadow-sm border border-light-gray transition-all duration-200;
-  height: 255px;
   display: flex;
   flex-direction: column;
   overflow: visible;
   position: relative;
   z-index: 1;
+  height: 100%;
 }
 
 .asset-allocation-donut:hover {
@@ -161,10 +178,40 @@ export default {
 }
 
 .chart-title {
-  @apply text-xs font-semibold text-horizon-500 mb-2;
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-horizon-500 mb-4;
+}
+
+.donut-tooltip {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  @apply bg-horizon-500 text-white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.donut-tooltip-label {
+  font-weight: 600;
+}
+
+.donut-tooltip-value {
+  font-weight: 700;
+}
+
+.donut-tooltip-pct {
+  opacity: 0.8;
+  font-size: 11px;
 }
 
 .no-data {

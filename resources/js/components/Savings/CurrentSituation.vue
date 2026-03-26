@@ -515,9 +515,8 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-message {
@@ -528,8 +527,7 @@ export default {
 
 .add-account-button {
   padding: 12px 24px;
-  background: #FAD6E0;
-  @apply text-horizon-500;
+  @apply bg-horizon-500 text-white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -539,7 +537,7 @@ export default {
 }
 
 .add-account-button:hover {
-  background: #F5B3C5;
+  @apply bg-horizon-600;
 }
 
 /* Open Banking Promo Card */

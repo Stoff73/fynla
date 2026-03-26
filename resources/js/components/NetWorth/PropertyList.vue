@@ -1,5 +1,5 @@
 <template>
-  <div class="property-list module-gradient">
+  <div class="property-list">
     <ModuleStatusBar />
     <!-- Property Detail View (when a property is selected) -->
     <PropertyDetailInline
@@ -44,13 +44,15 @@
     </template>
 
     <!-- Property Form Modal -->
-    <PropertyForm
-      v-if="showPropertyForm"
-      :property="selectedProperty"
-      :user-address="userAddress"
-      @save="handleSaveProperty"
-      @close="closePropertyForm"
-    />
+    <Teleport to="body">
+      <PropertyForm
+        v-if="showPropertyForm"
+        :property="selectedProperty"
+        :user-address="userAddress"
+        @save="handleSaveProperty"
+        @close="closePropertyForm"
+      />
+    </Teleport>
 
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
@@ -316,6 +318,7 @@ export default {
 <style scoped>
 .property-list {
   padding: 24px;
+  @apply bg-eggshell-500;
 }
 
 .list-header {
