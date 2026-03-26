@@ -116,6 +116,23 @@
       </div>
     </section>
 
+    <!-- Moments -->
+    <section class="py-10 bg-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-base font-bold text-horizon-500 mb-4">Moments where Fynla makes a difference</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">Saved Thousands on a Mortgage</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">"Fynla alerted me that my fixed-rate mortgage was ending in 6 months. I locked in a new rate early — before rates went up. That single alert saved me thousands over the next 5 years."</p>
+          </div>
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">ISA Allowance — Use It or Lose It</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">Fynla tracks your ISA contributions across all your accounts and shows you how much allowance you have left this tax year. No more scrambling in March or accidentally exceeding the limit.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Try a demo persona -->
     <section class="py-10 bg-eggshell-500">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

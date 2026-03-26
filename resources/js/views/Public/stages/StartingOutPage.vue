@@ -116,6 +116,23 @@
       </div>
     </section>
 
+    <!-- Moments -->
+    <section class="py-10 bg-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-base font-bold text-horizon-500 mb-4">Small steps that make a big difference</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">Your First £1,000</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">Building an emergency fund feels impossible at first. Fynla breaks it into monthly targets and tracks your progress — so you can see that £1,000 safety net getting closer every month.</p>
+          </div>
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">Free Money You Might Be Missing</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">If your employer matches pension contributions and you're not contributing enough to get the full match, you're leaving free money on the table. Fynla shows you exactly what you're missing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Try a demo persona -->
     <section class="py-10 bg-eggshell-500">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

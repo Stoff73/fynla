@@ -38,6 +38,29 @@ const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
 const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
 const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
 const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
+const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
+const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
+const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
+const WhatIsInheritanceTaxPage = () => import('@/views/Public/learn/WhatIsInheritanceTaxPage.vue');
+const WhenShouldIMakeAWillPage = () => import('@/views/Public/learn/WhenShouldIMakeAWillPage.vue');
+const ShouldIUseALisaOrIsaPage = () => import('@/views/Public/learn/ShouldIUseALisaOrIsaPage.vue');
+const WhenCanIAffordToRetirePage = () => import('@/views/Public/learn/WhenCanIAffordToRetirePage.vue');
+const BuildingFoundationsGuidePage = () => import('@/views/Public/learn/guide/BuildingFoundationsGuidePage.vue');
+const ProtectingAndGrowingGuidePage = () => import('@/views/Public/learn/guide/ProtectingAndGrowingGuidePage.vue');
+const PlanningYourFutureGuidePage = () => import('@/views/Public/learn/guide/PlanningYourFutureGuidePage.vue');
+const EnjoyingYourWealthGuidePage = () => import('@/views/Public/learn/guide/EnjoyingYourWealthGuidePage.vue');
+const PensionAnnualAllowancePage = () => import('@/views/Public/learn/tax/PensionAnnualAllowancePage.vue');
+const IhtThresholdsPage = () => import('@/views/Public/learn/tax/IhtThresholdsPage.vue');
+const CapitalGainsTaxPage = () => import('@/views/Public/learn/tax/CapitalGainsTaxPage.vue');
+const TaxYearChecklistPage = () => import('@/views/Public/learn/tax/TaxYearChecklistPage.vue');
+const IsaAllowanceTaxPage = () => import('@/views/Public/learn/tax/IsaAllowanceTaxPage.vue');
+const FynlaVsProjectionLabPage = () => import('@/views/Public/compare/FynlaVsProjectionLabPage.vue');
+const FynlaVsVoyantPage = () => import('@/views/Public/compare/FynlaVsVoyantPage.vue');
+const FynlaVsMoneyhubPage = () => import('@/views/Public/compare/FynlaVsMoneyhubPage.vue');
+const FynlaVsSpreadsheetsPage = () => import('@/views/Public/compare/FynlaVsSpreadsheetsPage.vue');
+const BestFinancialPlanningToolsPage = () => import('@/views/Public/compare/BestFinancialPlanningToolsPage.vue');
+const ContactPage = () => import('@/views/Public/ContactPage.vue');
+const FynlaVsMoneyHelperPage = () => import('@/views/Public/compare/FynlaVsMoneyHelperPage.vue');
 
 const NetWorthDashboardFeature = () => import('@/views/Public/features/NetWorthDashboardFeature.vue');
 const IceLettersFeature = () => import('@/views/Public/features/IceLettersFeature.vue');
@@ -266,6 +289,35 @@ const routes = [
   { path: '/insights', name: 'InsightsHub', component: InsightsHubPage, meta: { public: true } },
   { path: '/insights/pension-iht-changes-2027', name: 'InsightPensionIHT', component: PensionIhtChanges2027Page, meta: { public: true } },
   { path: '/insights/isa-allowance-2025-26', name: 'InsightISAAllowance', component: IsaAllowance202526Page, meta: { public: true } },
+  // Learn — Concept Explainers
+  { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
+  { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
+  { path: '/learn/what-is-a-sipp', name: 'LearnSIPP', component: WhatIsASippPage, meta: { public: true } },
+  { path: '/learn/what-is-inheritance-tax', name: 'LearnIHT', component: WhatIsInheritanceTaxPage, meta: { public: true } },
+  // Learn — Decision Guides
+  { path: '/learn/when-should-i-make-a-will', name: 'LearnMakeAWill', component: WhenShouldIMakeAWillPage, meta: { public: true } },
+  { path: '/learn/should-i-use-a-lisa-or-isa', name: 'LearnLISAvsISA', component: ShouldIUseALisaOrIsaPage, meta: { public: true } },
+  { path: '/learn/when-can-i-afford-to-retire', name: 'LearnAffordRetire', component: WhenCanIAffordToRetirePage, meta: { public: true } },
+  // Learn — Life Stage Guides
+  { path: '/learn/guide/building-foundations', name: 'LearnGuideBuildingFoundations', component: BuildingFoundationsGuidePage, meta: { public: true } },
+  { path: '/learn/guide/protecting-and-growing', name: 'LearnGuideProtecting', component: ProtectingAndGrowingGuidePage, meta: { public: true } },
+  { path: '/learn/guide/planning-your-future', name: 'LearnGuidePlanning', component: PlanningYourFutureGuidePage, meta: { public: true } },
+  { path: '/learn/guide/enjoying-your-wealth', name: 'LearnGuideEnjoying', component: EnjoyingYourWealthGuidePage, meta: { public: true } },
+  // Learn — Tax & Allowances
+  { path: '/learn/tax/pension-annual-allowance', name: 'LearnTaxPensionAA', component: PensionAnnualAllowancePage, meta: { public: true } },
+  { path: '/learn/tax/iht-thresholds', name: 'LearnTaxIHT', component: IhtThresholdsPage, meta: { public: true } },
+  { path: '/learn/tax/capital-gains-tax', name: 'LearnTaxCGT', component: CapitalGainsTaxPage, meta: { public: true } },
+  { path: '/learn/tax/tax-year-checklist', name: 'LearnTaxChecklist', component: TaxYearChecklistPage, meta: { public: true } },
+  { path: '/learn/tax/isa-allowance', name: 'LearnTaxISA', component: IsaAllowanceTaxPage, meta: { public: true } },
+  // Compare
+  { path: '/compare/fynla-vs-projectionlab', name: 'CompareProjectionLab', component: FynlaVsProjectionLabPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-voyant', name: 'CompareVoyant', component: FynlaVsVoyantPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-moneyhub', name: 'CompareMoneyhub', component: FynlaVsMoneyhubPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-spreadsheets', name: 'CompareSpreadsheets', component: FynlaVsSpreadsheetsPage, meta: { public: true } },
+  { path: '/compare/best-financial-planning-tools-uk', name: 'CompareBest', component: BestFinancialPlanningToolsPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-moneyhelper', name: 'CompareMoneyHelper', component: FynlaVsMoneyHelperPage, meta: { public: true } },
+  // Contact
+  { path: '/contact', name: 'Contact', component: ContactPage, meta: { public: true } },
 
   // Auth routes
   {

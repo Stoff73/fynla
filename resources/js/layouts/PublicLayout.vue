@@ -104,7 +104,6 @@
                     <router-link to="/why-fynla/one-platform" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">One Platform Story</router-link>
                     <router-link to="/why-fynla/independent" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Not Tied to an Adviser</router-link>
                     <router-link to="/security" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Security &amp; Privacy</router-link>
-                    <router-link to="/why-fynla/alternatives" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Fynla vs Alternatives</router-link>
                   </div>
                 </div>
               </div>
@@ -215,7 +214,6 @@
               <router-link to="/why-fynla/one-platform" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">One Platform Story</router-link>
               <router-link to="/why-fynla/independent" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Not Tied to an Adviser</router-link>
               <router-link to="/security" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Security &amp; Privacy</router-link>
-              <router-link to="/why-fynla/alternatives" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Fynla vs Alternatives</router-link>
             </div>
           </div>
 
@@ -244,22 +242,13 @@
             </p>
           </div>
 
-          <!-- Your Stage -->
-          <div>
-            <h3 class="text-sm font-bold text-horizon-500 mb-4">Your stage</h3>
-            <ul class="space-y-2">
-              <li v-for="stage in stages" :key="stage.slug">
-                <router-link :to="`/stage/${stage.slug}`" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">{{ stage.name }}</router-link>
-              </li>
-            </ul>
-          </div>
-
           <!-- Help Centre -->
           <div>
             <h3 class="text-sm font-bold text-horizon-500 mb-4">Help centre</h3>
             <ul class="space-y-2">
               <li><router-link to="/faq" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">FAQ</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Learning Centre</router-link></li>
+              <li><router-link to="/learn" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Guides &amp; Explainers</router-link></li>
+              <li><router-link to="/learning-centre" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">What is Financial Planning?</router-link></li>
               <li><router-link to="/calculators" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">Calculators</router-link></li>
               <li><a href="/?demo=true" class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors">View demo</a></li>
             </ul>

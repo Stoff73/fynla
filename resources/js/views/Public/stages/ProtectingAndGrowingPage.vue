@@ -127,6 +127,23 @@
       </div>
     </section>
 
+    <!-- Moments -->
+    <section class="py-10 bg-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-base font-bold text-horizon-500 mb-4">Moments where Fynla makes a difference</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">The Document Your Family Needs</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">If something happened to you tonight, would your partner know where the pensions are? The mortgage account number? The life insurance provider? Fynla's ICE letter puts everything in one document — auto-populated from your plan.</p>
+          </div>
+          <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5">
+            <p class="text-sm font-semibold text-horizon-500 mb-1">The Cover You Didn't Know You Were Missing</p>
+            <p class="text-xs text-neutral-500 leading-relaxed">Your workplace life insurance pays 2x salary. Your mortgage is 6x salary. Fynla calculates what your family would actually need and shows you the gap — across life insurance, income protection, and critical illness.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Try a demo persona -->
     <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

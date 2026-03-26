@@ -241,6 +241,82 @@
       </div>
     </section>
 
+    <!-- What Fynla Does Differently -->
+    <section class="py-10 bg-eggshell-500">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-base font-bold text-horizon-500 mb-2">What Fynla Does Differently</h2>
+        <p class="text-sm text-neutral-500 mb-6">These aren't features on a list. They're moments where Fynla makes a real difference.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- Mortgage rate alert story -->
+          <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-spring-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-horizon-500 mb-1">Saved Thousands on a Mortgage</p>
+                <p class="text-xs text-neutral-500 leading-relaxed">"Fynla alerted me that my fixed-rate mortgage was ending in 6 months. I locked in a new rate early — before rates went up. That single alert saved me thousands over the next 5 years."</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ICE letter story -->
+          <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-raspberry-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-horizon-500 mb-1">Everything in One Document</p>
+                <p class="text-xs text-neutral-500 leading-relaxed">Your partner doesn't know the mortgage provider's name. Your children have no idea where the pensions are. Fynla's ICE letter puts everything your family needs in one document — auto-populated from your plan. 15 minutes now could save them months of stress.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Protection gap story -->
+          <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-horizon-500 mb-1">The Cover You Didn't Know You Were Missing</p>
+                <p class="text-xs text-neutral-500 leading-relaxed">Your workplace life insurance pays 2x your salary. Sounds decent — until you realise your mortgage alone is 6x your salary. Fynla calculates exactly what your family would need and shows you the gap in black and white.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pension consolidation story -->
+          <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-horizon-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-horizon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-horizon-500 mb-1">Six Jobs, Six Forgotten Pension Pots</p>
+                <p class="text-xs text-neutral-500 leading-relaxed">The average UK worker has 11 jobs in their lifetime. That's potentially 11 pension pots with 11 different providers. Fynla brings them all into one dashboard so you can finally see what you've actually got — and whether it's enough.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Will guidance story -->
+          <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-savannah-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-savannah-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-horizon-500 mb-1">54% of UK Adults Don't Have a Will</p>
+                <p class="text-xs text-neutral-500 leading-relaxed">Without a will, the law decides who gets what — and unmarried partners get nothing. Fynla helps you understand what's at stake and guides you through getting your estate in order, including wills, Lasting Powers of Attorney, and Inheritance Tax planning.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
     <!-- Meet Fyn Section -->
     <section class="py-16 bg-white">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
