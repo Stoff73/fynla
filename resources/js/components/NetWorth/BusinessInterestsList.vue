@@ -330,10 +330,9 @@ export default {
 }
 
 .empty-state {
-  background: white;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
   text-align: center;
 }
 
@@ -364,7 +363,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  @apply bg-raspberry-500;
+  @apply bg-horizon-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -375,7 +374,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-raspberry-600;
+  @apply bg-horizon-600;
 }
 
 .summary-bar {

@@ -107,12 +107,40 @@
                 <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-600 mx-auto"></div>
               </div>
               <div v-else-if="hasAllocationData" class="donut-container">
-                <apexchart
-                  type="donut"
-                  :options="allocationChartOptions"
-                  :series="allocationSeries"
-                  height="140"
-                />
+                <div class="relative mx-auto" style="width: 140px; height: 140px;">
+                  <svg viewBox="0 0 220 220" width="140" height="140">
+                    <defs>
+                      <linearGradient
+                        v-for="(seg, idx) in allocationDonutSegments"
+                        :key="'grad-' + idx"
+                        :id="'inv-proj-grad-' + idx"
+                        x1="0%" y1="0%" x2="100%" y2="0%"
+                      >
+                        <stop offset="0%" :stop-color="seg.color" />
+                        <stop offset="100%" :stop-color="seg.colorLight" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      v-for="(seg, idx) in allocationDonutSegments"
+                      :key="'seg-' + idx"
+                      cx="110" cy="110" r="75"
+                      fill="none"
+                      :stroke="'url(#inv-proj-grad-' + idx + ')'"
+                      stroke-width="40"
+                      stroke-linecap="round"
+                      :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+                      :stroke-dashoffset="-seg.offset"
+                      transform="rotate(-90 110 110)"
+                    />
+                  </svg>
+                </div>
+                <!-- Mini legend -->
+                <div class="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-0.5">
+                  <div v-for="(label, idx) in allocationLabels" :key="label" class="flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: chartColors[idx % chartColors.length] }"></span>
+                    <span class="text-[10px] text-neutral-500">{{ label }} {{ allocationSeries[idx]?.toFixed(0) }}%</span>
+                  </div>
+                </div>
               </div>
               <div v-else class="no-allocation">
                 <span>Set asset types on holdings to see allocation</span>
@@ -162,7 +190,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import InvestmentProjectionChart from '@/components/Investment/InvestmentProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'InvestmentProjections',
@@ -178,6 +206,7 @@ export default {
     return {
       selectedProjectionYears: 10,
       analysisLoading: false,
+      chartColors: CHART_COLORS,
     };
   },
 
@@ -295,51 +324,27 @@ export default {
       return allocation.map(item => this.formatAssetType(item.asset_type || 'Unknown'));
     },
 
-    allocationChartOptions() {
-      const labels = this.allocationLabels;
+    allocationDonutSegments() {
+      const series = this.allocationSeries;
+      const total = series.reduce((sum, v) => sum + v, 0);
+      if (total === 0) return [];
 
-      return {
-        chart: {
-          type: 'donut',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-          toolbar: { show: false },
-        },
-        labels: labels,
-        colors: CHART_COLORS,
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '60%',
-              labels: {
-                show: false,
-              },
-            },
-          },
-        },
-        dataLabels: { enabled: false },
-        legend: {
-          show: true,
-          position: 'right',
-          fontSize: '11px',
-          fontWeight: 500,
-          markers: { width: 8, height: 8, radius: 2 },
-          itemMargin: { horizontal: 0, vertical: 2 },
-          formatter: (seriesName, opts) => {
-            const value = opts.w.globals.series[opts.seriesIndex];
-            return `${seriesName} ${value.toFixed(0)}%`;
-          },
-        },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: (val) => `${val.toFixed(1)}%`,
-          },
-        },
-        stroke: {
-          width: 1,
-          colors: ['#fff'],
-        },
-      };
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return series.map((value, idx) => {
+        const proportion = value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        const seg = {
+          color,
+          colorLight: this.lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
 
     // Fees
@@ -400,6 +405,14 @@ export default {
 
   methods: {
     ...mapActions('investment', ['fetchInvestmentData', 'fetchPortfolioProjections', 'analyseInvestment']),
+
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    },
 
     goBack() {
       const base = this.isPreviewMode ? '/preview' : '';

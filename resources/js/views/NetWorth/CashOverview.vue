@@ -73,6 +73,9 @@
               </button>
             </div>
             <template v-if="currentAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(currentAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in currentAccounts"
                 :key="account.id"
@@ -97,7 +100,6 @@
               </div>
             </template>
             <template v-else>
-              <p class="empty-message">No current accounts</p>
               <button @click="openAddAccountModal('current_account')" class="add-account-btn">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -118,6 +120,9 @@
               </button>
             </div>
             <template v-if="savingsAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(savingsAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in savingsAccounts"
                 :key="account.id"
@@ -142,7 +147,6 @@
               </div>
             </template>
             <template v-else>
-              <p class="empty-message">No savings accounts</p>
               <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -163,6 +167,9 @@
               </button>
             </div>
             <template v-if="isaAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(isaAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in isaAccounts"
                 :key="account.id"
@@ -187,7 +194,6 @@
               </div>
             </template>
             <template v-else>
-              <p class="empty-message">No cash ISAs</p>
               <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -208,6 +214,9 @@
               </button>
             </div>
             <template v-if="nsiAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(nsiAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in nsiAccounts"
                 :key="account.id"
@@ -232,7 +241,6 @@
               </div>
             </template>
             <template v-else>
-              <p class="empty-message">No NS&I accounts</p>
               <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -369,6 +377,22 @@ export default {
       return this.accounts.filter(a =>
         ['premium_bonds', 'nsi'].includes(a.account_type)
       );
+    },
+
+    currentAccountsTotal() {
+      return this.currentAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    savingsAccountsTotal() {
+      return this.savingsAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    isaAccountsTotal() {
+      return this.isaAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    nsiAccountsTotal() {
+      return this.nsiAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
     },
 
     // Monthly income from user profile (full month - assumed payday has occurred)
@@ -608,6 +632,14 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.card-total {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  @apply border-b border-light-gray;
 }
 
 .card-header {

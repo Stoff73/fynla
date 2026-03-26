@@ -24,6 +24,22 @@
             <option value="collectible">Collectibles</option>
             <option value="other">Other</option>
           </select>
+          <div class="relative" ref="importDropdown">
+            <button @click.stop="showImportDropdown = !showImportDropdown" class="import-button">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              Import
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div v-if="showImportDropdown" class="import-dropdown">
+              <button @click="handleImport('csv')" class="import-option">Import CSV</button>
+              <button @click="handleImport('excel')" class="import-option">Import Excel</button>
+              <button @click="downloadTemplate" class="import-option">Download Template</button>
+            </div>
+          </div>
           <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -68,22 +84,26 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <ChattelFormModal
-      v-if="showFormModal"
-      :chattel="editingChattel"
-      :is-editing="!!editingChattel"
-      @close="closeFormModal"
-      @save="handleSave"
-    />
+    <Teleport to="body">
+      <ChattelFormModal
+        v-if="showFormModal"
+        :chattel="editingChattel"
+        :is-editing="!!editingChattel"
+        @close="closeFormModal"
+        @save="handleSave"
+      />
+    </Teleport>
 
     <!-- Delete Confirmation -->
-    <ConfirmDialog
-      :show="showDeleteConfirm"
-      title="Delete Chattel"
-      message="Are you sure you want to delete this item? This action cannot be undone."
-      @confirm="handleDelete"
-      @cancel="showDeleteConfirm = false"
-    />
+    <Teleport to="body">
+      <ConfirmDialog
+        :show="showDeleteConfirm"
+        title="Delete Chattel"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+        @confirm="handleDelete"
+        @cancel="showDeleteConfirm = false"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -114,6 +134,7 @@ export default {
       editingChattel: null,
       deletingChattel: null,
       selectedChattelId: null,
+      showImportDropdown: false,
     };
   },
 
@@ -161,10 +182,51 @@ export default {
     this.fetchData();
     // Fetch family members to ensure spouse data is available for joint ownership dropdown
     await this.$store.dispatch('userProfile/fetchFamilyMembers');
+
+    document.addEventListener('click', this.handleClickOutsideImport);
+  },
+
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideImport);
   },
 
   methods: {
     ...mapActions('chattels', ['fetchChattels', 'createChattel', 'updateChattel', 'deleteChattel']),
+
+    handleClickOutsideImport(event) {
+      if (this.$refs.importDropdown && !this.$refs.importDropdown.contains(event.target)) {
+        this.showImportDropdown = false;
+      }
+    },
+
+    handleImport(format) {
+      this.showImportDropdown = false;
+      // File input for CSV/Excel upload — backend endpoint TBD
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = format === 'csv' ? '.csv' : '.xlsx,.xls';
+      input.onchange = () => {
+        // Future: upload file to backend for processing
+      };
+      input.click();
+    },
+
+    downloadTemplate() {
+      this.showImportDropdown = false;
+      const headers = [
+        'Type', 'Name', 'Description', 'Make', 'Model', 'Year',
+        'Registration', 'Current Value', 'Valuation Date',
+        'Purchase Price', 'Purchase Date', 'Ownership Type',
+        'Ownership Percentage', 'Joint Owner', 'Notes',
+      ];
+      const csvContent = headers.join(',') + '\n';
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'personal_valuables_template.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    },
 
     async fetchData() {
       try {
@@ -280,6 +342,61 @@ export default {
   outline: none;
   @apply border-pink-500;
   box-shadow: 0 0 0 3px rgba(232, 62, 109, 0.1);
+}
+
+.import-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  @apply bg-horizon-100 text-horizon-500 border border-horizon-300;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.import-button:hover {
+  @apply bg-horizon-200;
+}
+
+.import-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border-radius: 8px;
+  @apply border border-light-gray;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 180px;
+}
+
+.import-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 14px;
+  @apply text-neutral-500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.import-option:hover {
+  @apply bg-eggshell-500;
+}
+
+.import-option:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.import-option:last-child {
+  border-radius: 0 0 8px 8px;
 }
 
 .add-button {

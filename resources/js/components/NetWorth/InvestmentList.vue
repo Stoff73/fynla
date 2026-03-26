@@ -13,17 +13,6 @@
 
     <!-- Investment List View (default) -->
     <template v-else>
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-5">
-        <div class="flex items-start">
-          <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <p class="ml-3 text-sm text-violet-800">
-            We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
-          </p>
-        </div>
-      </div>
-
       <!-- Risk Mismatch Warning -->
       <RiskMismatchWarning
         v-if="riskMismatch"
@@ -122,6 +111,16 @@
         <!-- Right Column: Portfolio Performance -->
         <div class="performance-section">
           <Performance @navigate-to-tab="activePortfolioTab = $event" />
+        </div>
+      </div>
+
+      <!-- Data integration notice -->
+      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-4 mt-5">
+        <div class="flex items-start gap-3">
+          <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 mt-0.5">Coming Soon</span>
+          <p class="text-sm text-neutral-500">
+            We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
+          </p>
         </div>
       </div>
 

@@ -3,14 +3,61 @@
     <h3 class="chart-title">Spending ({{ dateRangeLabel }})</h3>
 
     <template v-if="hasExpenditureData">
-      <div v-if="chartReady" class="chart-container">
-        <apexchart
-          :key="chartKey"
-          type="donut"
-          :options="chartOptions"
-          :series="series"
-          height="320"
-        />
+      <div class="chart-container">
+        <div class="relative mx-auto" style="width: 260px; height: 260px;">
+          <svg viewBox="0 0 220 220" width="260" height="260">
+            <defs>
+              <linearGradient
+                v-for="(seg, idx) in donutSegments"
+                :key="'grad-' + idx"
+                :id="'spend-grad-' + idx"
+                x1="0%" y1="0%" x2="100%" y2="0%"
+              >
+                <stop offset="0%" :stop-color="seg.color" />
+                <stop offset="100%" :stop-color="seg.colorLight" />
+              </linearGradient>
+            </defs>
+            <circle
+              v-for="(seg, idx) in donutSegments"
+              :key="'seg-' + idx"
+              cx="110" cy="110" r="75"
+              fill="none"
+              :stroke="'url(#spend-grad-' + idx + ')'"
+              stroke-width="40"
+              stroke-linecap="round"
+              :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+              :stroke-dashoffset="-seg.offset"
+              transform="rotate(-90 110 110)"
+              class="cursor-pointer"
+              @mouseenter="hoveredIndex = idx"
+              @mouseleave="hoveredIndex = null"
+            />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <template v-if="hoveredIndex !== null && hoveredIndex < labels.length">
+              <span class="text-[10px] font-semibold text-horizon-400">{{ labels[hoveredIndex] }}</span>
+              <span class="text-lg font-bold text-horizon-700">{{ formatSpending(series[hoveredIndex]) }}</span>
+            </template>
+            <template v-else>
+              <span class="text-[10px] font-semibold text-horizon-400">Total Spent</span>
+              <span class="text-lg font-bold text-horizon-700">{{ formatSpending(totalSpending) }}</span>
+            </template>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 max-w-xs mx-auto">
+          <div
+            v-for="(label, idx) in labels"
+            :key="label"
+            class="flex items-center gap-2"
+          >
+            <span
+              class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              :style="{ backgroundColor: spendingColors[idx % spendingColors.length] }"
+            ></span>
+            <span class="text-xs text-neutral-500 truncate">{{ label }}</span>
+          </div>
+        </div>
       </div>
     </template>
     <template v-else>
@@ -22,18 +69,13 @@
 
 <script>
 import { mapState } from 'vuex';
-import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { TEXT_COLORS, SPENDING_COLORS } from '@/constants/designSystem';
+import { SPENDING_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'SpendingDonutChart',
 
   mixins: [currencyMixin],
-
-  components: {
-    apexchart: VueApexCharts,
-  },
 
   props: {
     financialCommitments: {
@@ -44,18 +86,13 @@ export default {
 
   data() {
     return {
-      chartReady: false,
-      renderTimeout: null,
+      hoveredIndex: null,
+      spendingColors: SPENDING_COLORS,
     };
   },
 
   computed: {
     ...mapState('savings', ['expenditureProfile']),
-
-    chartKey() {
-      const total = this.series?.reduce((a, b) => a + b, 0) || 0;
-      return `spending-${this.series?.length || 0}-${Math.round(total)}`;
-    },
 
     // Pro-rata factor for current month (day of month / days in month)
     monthProRata() {
@@ -73,13 +110,11 @@ export default {
     },
 
     hasExpenditureData() {
-      // Show chart if there's expenditure data OR financial commitments
       const hasExpenditure = this.expenditureProfile && this.discretionaryTotal > 0;
       const hasCommitments = Object.keys(this.financialCommitments).length > 0;
       return hasExpenditure || hasCommitments;
     },
 
-    // Sum of all discretionary expenditure categories (monthly total)
     discretionaryTotal() {
       if (!this.expenditureProfile) return 0;
       const profile = this.expenditureProfile;
@@ -104,8 +139,6 @@ export default {
       );
     },
 
-    // Build spending categories from user's expenditure profile
-    // Apply pro-rata for month-to-date spending
     expenditureCategories() {
       if (!this.expenditureProfile) return {};
 
@@ -113,60 +146,29 @@ export default {
       const profile = this.expenditureProfile;
       const proRata = this.monthProRata;
 
-      // Apply pro-rata to each discretionary category
-      if (profile.food_groceries > 0) {
-        categories['Food & Groceries'] = profile.food_groceries * proRata;
-      }
-      if (profile.transport_fuel > 0) {
-        categories['Transport'] = profile.transport_fuel * proRata;
-      }
-      if (profile.healthcare_medical > 0) {
-        categories['Healthcare'] = profile.healthcare_medical * proRata;
-      }
-      if (profile.insurance > 0) {
-        categories['Insurance'] = profile.insurance * proRata;
-      }
-      if (profile.clothing_personal_care > 0) {
-        categories['Clothing & Personal'] = profile.clothing_personal_care * proRata;
-      }
-      if (profile.entertainment_dining > 0) {
-        categories['Entertainment'] = profile.entertainment_dining * proRata;
-      }
-      if (profile.childcare > 0) {
-        categories['Childcare'] = profile.childcare * proRata;
-      }
-      if (profile.school_fees > 0) {
-        categories['School Fees'] = profile.school_fees * proRata;
-      }
-      if (profile.holidays_travel > 0) {
-        categories['Holidays'] = profile.holidays_travel * proRata;
-      }
-      if (profile.other_expenditure > 0) {
-        categories['Other'] = profile.other_expenditure * proRata;
-      }
+      if (profile.food_groceries > 0) categories['Food & Groceries'] = profile.food_groceries * proRata;
+      if (profile.transport_fuel > 0) categories['Transport'] = profile.transport_fuel * proRata;
+      if (profile.healthcare_medical > 0) categories['Healthcare'] = profile.healthcare_medical * proRata;
+      if (profile.insurance > 0) categories['Insurance'] = profile.insurance * proRata;
+      if (profile.clothing_personal_care > 0) categories['Clothing & Personal'] = profile.clothing_personal_care * proRata;
+      if (profile.entertainment_dining > 0) categories['Entertainment'] = profile.entertainment_dining * proRata;
+      if (profile.childcare > 0) categories['Childcare'] = profile.childcare * proRata;
+      if (profile.school_fees > 0) categories['School Fees'] = profile.school_fees * proRata;
+      if (profile.holidays_travel > 0) categories['Holidays'] = profile.holidays_travel * proRata;
+      if (profile.other_expenditure > 0) categories['Other'] = profile.other_expenditure * proRata;
 
       return categories;
     },
 
-    // Combine all spending into one dataset
-    // Financial commitments: full monthly (assumed already paid)
-    // Discretionary: pro-rata based on day of month
     combinedSpendingData() {
       const data = {};
 
-      // Add financial commitments first (full monthly amount)
-      // These are: Property Expenses, Pension Contributions, Protection Premiums, Loan Payments
       Object.entries(this.financialCommitments).forEach(([key, value]) => {
-        if (value > 0) {
-          data[key] = value;
-        }
+        if (value > 0) data[key] = value;
       });
 
-      // Add discretionary expenditure categories (pro-rata applied in expenditureCategories)
       Object.entries(this.expenditureCategories).forEach(([key, value]) => {
-        if (value > 0) {
-          data[key] = value;
-        }
+        if (value > 0) data[key] = value;
       });
 
       return data;
@@ -184,80 +186,40 @@ export default {
       return this.series.reduce((sum, val) => sum + val, 0);
     },
 
-    chartOptions() {
-      const total = this.totalSpending;
-      return {
-        chart: {
-          type: 'donut',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          toolbar: { show: false },
-        },
-        labels: this.labels,
-        colors: SPENDING_COLORS,
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '65%',
-              labels: {
-                show: true,
-                name: {
-                  show: true,
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: TEXT_COLORS.muted,
-                  offsetY: -10,
-                },
-                value: {
-                  show: true,
-                  fontSize: '24px',
-                  fontWeight: 700,
-                  color: TEXT_COLORS.primary,
-                  offsetY: 5,
-                  formatter: (val) => `£${parseFloat(val).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                },
-                total: {
-                  show: true,
-                  showAlways: true,
-                  label: 'Total Spent',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: TEXT_COLORS.muted,
-                  formatter: () => `£${total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                },
-              },
-            },
-          },
-        },
-        dataLabels: { enabled: false },
-        legend: { show: false },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: (val) => `£${val.toFixed(2)}`,
-          },
-        },
-        responsive: [
-          {
-            breakpoint: 768,
-            options: {
-              chart: { height: 260 },
-            },
-          },
-        ],
-      };
+    donutSegments() {
+      if (this.totalSpending === 0) return [];
+
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return this.series.map((value, idx) => {
+        const proportion = value / this.totalSpending;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = SPENDING_COLORS[idx % SPENDING_COLORS.length];
+        const seg = {
+          color,
+          colorLight: this.lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
   },
 
-  mounted() {
-    this.$nextTick(() => {
-      this.renderTimeout = setTimeout(() => {
-        this.chartReady = true;
-      }, 100);
-    });
-  },
+  methods: {
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    },
 
-  beforeUnmount() {
-    if (this.renderTimeout) clearTimeout(this.renderTimeout);
+    formatSpending(val) {
+      return `£${parseFloat(val).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    },
   },
 };
 </script>
@@ -290,7 +252,7 @@ export default {
 
 .add-info-link {
   font-size: 13px;
-  @apply text-purple-600;
+  @apply text-violet-600;
   font-weight: 500;
   text-decoration: none;
 }

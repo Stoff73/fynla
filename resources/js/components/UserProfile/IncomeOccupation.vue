@@ -78,13 +78,36 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <!-- Left: Donut Chart -->
               <div v-if="incomeChartData.length > 0" class="flex items-center justify-center">
-                <div>
-                  <apexchart
-                    type="donut"
-                    :options="incomeChartOptions"
-                    :series="incomeChartSeries"
-                    width="280"
-                  />
+                <div class="relative" style="width: 240px; height: 240px;">
+                  <svg viewBox="0 0 220 220" width="240" height="240">
+                    <defs>
+                      <linearGradient
+                        v-for="(seg, idx) in incomeDonutSegments"
+                        :key="'grad-' + idx"
+                        :id="'income-grad-' + idx"
+                        x1="0%" y1="0%" x2="100%" y2="0%"
+                      >
+                        <stop offset="0%" :stop-color="seg.color" />
+                        <stop offset="100%" :stop-color="seg.colorLight" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      v-for="(seg, idx) in incomeDonutSegments"
+                      :key="'seg-' + idx"
+                      cx="110" cy="110" r="75"
+                      fill="none"
+                      :stroke="'url(#income-grad-' + idx + ')'"
+                      stroke-width="40"
+                      stroke-linecap="round"
+                      :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+                      :stroke-dashoffset="-seg.offset"
+                      transform="rotate(-90 110 110)"
+                    />
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-semibold text-horizon-400">Total Annual</span>
+                    <span class="text-lg font-bold text-horizon-700">{{ formatCurrency(totalIncomeValue) }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -424,7 +447,7 @@ import { useStore } from 'vuex';
 import TaxIncomeCard from './TaxIncomeCard.vue';
 import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
-import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS } from '@/constants/designSystem';
 import api from '@/services/api';
 
 export default {
@@ -501,43 +524,36 @@ export default {
       return sources.filter(s => s.value > 0);
     });
 
-    const incomeChartSeries = computed(() => incomeChartData.value.map(s => s.value));
+    const lightenColor = (hex, amount) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    };
 
-    const incomeChartOptions = computed(() => ({
-      chart: {
-        type: 'donut',
-        fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-        toolbar: { show: false },
-      },
-      labels: incomeChartData.value.map(s => s.label),
-      colors: CHART_COLORS,
-      legend: { position: 'bottom', fontSize: '12px', fontFamily: 'Segoe UI, Inter, system-ui, sans-serif' },
-      dataLabels: { enabled: false },
-      plotOptions: {
-        pie: {
-          donut: {
-            size: '65%',
-            labels: {
-              show: true,
-              name: { show: true, fontSize: '12px', color: TEXT_COLORS.muted },
-              value: { show: true, fontSize: '18px', fontWeight: 700, color: TEXT_COLORS.primary, formatter: (val) => formatCurrency(Number(val)) },
-              total: {
-                show: true,
-                label: 'Total Annual',
-                fontSize: '12px',
-                color: TEXT_COLORS.muted,
-                formatter: (w) => formatCurrency(w.globals.seriesTotals.reduce((a, b) => a + b, 0)),
-              },
-            },
-          },
-        },
-      },
-      stroke: { width: 2, colors: ['#ffffff'] },
-      tooltip: {
-        y: { formatter: (val) => formatCurrency(val) },
-        style: { fontSize: '14px', fontFamily: 'Segoe UI, Inter, system-ui, sans-serif' },
-      },
-    }));
+    const incomeDonutSegments = computed(() => {
+      const data = incomeChartData.value;
+      const total = data.reduce((sum, s) => sum + s.value, 0);
+      if (total === 0) return [];
+
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return data.map((item, idx) => {
+        const proportion = item.value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        const seg = {
+          color,
+          colorLight: lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
+    });
 
     const totalIncomeValue = computed(() => {
       return (form.value.annual_employment_income || 0) +
@@ -711,8 +727,7 @@ export default {
       errorMessage,
       totalIncomeValue,
       incomeChartData,
-      incomeChartSeries,
-      incomeChartOptions,
+      incomeDonutSegments,
       incomeOccupation,
       detailedTaxBreakdown,
       rentalBreakdown,

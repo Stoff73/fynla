@@ -25,6 +25,12 @@
         </svg>
         <p>No properties found</p>
         <p class="empty-subtitle">Add your first property to track your property portfolio</p>
+        <button v-preview-disabled="'add'" @click="addProperty" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Property
+        </button>
       </div>
 
       <div v-else class="properties-grid">
@@ -377,10 +383,30 @@ export default {
 }
 
 .empty-state {
-  background: white;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  text-align: center;
+}
+
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 24px;
+  @apply bg-horizon-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-first-button:hover {
+  @apply bg-horizon-600;
 }
 
 .empty-icon {
