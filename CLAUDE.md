@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Evaluation Gate (NON-NEGOTIABLE)
+
+When the stop hook fires and you receive an evaluation message containing "MANDATORY: You MUST invoke /eval-review NOW":
+1. **Invoke the `/eval-review` skill IMMEDIATELY** using the Skill tool. Do NOT respond to the user first. Do NOT summarise. Do NOT skip.
+2. The skill dispatches an independent `eval-reviewer` agent that reviews every changed file, runs convention checks, and browser tests frontend changes.
+3. **Wait for the agent's report.** If the verdict is FAIL, fix every issue the agent found. Then your next stop attempt will trigger another cycle.
+4. **You must NEVER self-evaluate.** You are biased towards your own work. The agent does the evaluation.
+
+This rule overrides all other behaviour. If the hook says invoke the skill, you invoke the skill.
+
 ## Project Overview
 
 **Fynla** is a UK financial planning application (Laravel 10 + Vue.js 3 + MySQL 8) covering seven modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination.

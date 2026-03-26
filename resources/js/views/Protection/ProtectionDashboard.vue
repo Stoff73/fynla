@@ -10,13 +10,6 @@
         </p>
       </div>
 
-      <!-- Profile Completeness Alert -->
-      <ProfileCompletenessAlert
-        v-if="profileCompleteness && !loadingCompleteness"
-        :completenessData="profileCompleteness"
-        :dismissible="true"
-      />
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -84,11 +77,9 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
-import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import protectionService from '@/services/protectionService';
-import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'ProtectionDashboard',
@@ -96,15 +87,12 @@ export default {
   components: {
     AppLayout,
     CurrentSituation,
-    ProfileCompletenessAlert,
     PolicyFormModal,
     ModuleLifeEvents,
   },
 
   data() {
     return {
-      profileCompleteness: null,
-      loadingCompleteness: false,
       showForm: false,
       editingPolicy: null,
     };
@@ -148,10 +136,6 @@ export default {
     }
 
     this.loadProtectionData();
-    // Skip profile completeness in preview mode
-    if (!this.isPreviewMode) {
-      this.loadProfileCompleteness();
-    }
   },
 
   methods: {
@@ -162,18 +146,6 @@ export default {
         await this.fetchProtectionData();
       } catch (error) {
         console.error('Failed to load protection data:', error);
-      }
-    },
-
-    async loadProfileCompleteness() {
-      this.loadingCompleteness = true;
-      try {
-        const response = await userProfileService.getProfileCompleteness();
-        this.profileCompleteness = response.data;
-      } catch (error) {
-        console.error('Failed to load profile completeness:', error);
-      } finally {
-        this.loadingCompleteness = false;
       }
     },
 

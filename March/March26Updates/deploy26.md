@@ -137,9 +137,51 @@ php artisan db:seed --class=ProtectionActionDefinitionSeeder --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
 
+## Phase 3 — Protection UI (protectionUI branch)
+
+### 9. ProfileCompletenessChecker — Remove Domicile
+**File:** `app/Services/UserProfile/ProfileCompletenessChecker.php`
+
+- Removed `domicile_info` check from both `checkMarriedUser()` and `checkSingleUser()`
+- Removed dead `hasDomicileInfo()` private method
+- Domicile is irrelevant for protection planning — remains in estate/profile services where it belongs
+
+### 10. ProtectionDashboard.vue — Remove Redundant Completeness UI
+**File:** `resources/js/views/Protection/ProtectionDashboard.vue`
+
+- Removed `ProfileCompletenessAlert` component (was top-of-page card)
+- Removed custom info icon + popover next to heading (was added then removed in same session)
+- Removed `profileCompleteness` data, `loadProfileCompleteness()` method, `userProfileService` import
+- Data completeness is now handled by the existing **"What powers this view"** InfoGuidePanel (question mark icon in top nav) — one central system for all modules
+
+### 11. CurrentSituation.vue — Simplified No Coverage Card
+**File:** `resources/js/components/Protection/CurrentSituation.vue`
+
+- Replaced 2 buttons ("View Gap Analysis" + "I Have Protection to Add") with single **"Add Protection"** raspberry CTA
+- Removed "I currently have no protection policies" checkbox and message
+- Removed dead code: `hasNoPoliciesChecked` data, watcher, `updateHasNoPoliciesFlag()` method, `delayTimeout` data/cleanup, unused `protectionService` import
+
+### 12. ProfileCompletenessCheckerTest — Updated
+**File:** `tests/Unit/Services/ProfileCompletenessCheckerTest.php`
+
+- Domicile test rewritten from `toHaveKey('domicile_info')` to `not->toHaveKey('domicile_info')`
+- All 12 tests pass (39 assertions)
+
+### Phase 3 Files to Upload
+
+```
+app/Services/UserProfile/ProfileCompletenessChecker.php
+resources/js/components/Protection/CurrentSituation.vue
+resources/js/views/Protection/ProtectionDashboard.vue
+```
+
+(Test file not deployed — dev only)
+
 ## Testing Performed
 
 ### Browser (Playwright)
+
+**Pension (Phase 1+2):**
 - Logged in as thomas.greenfield@test.com
 - Clicked into all 3 pensions (SIPP, Occupational, Stakeholder)
 - Clicked Holdings tab on each — verified holdings table, OCF values, fee summary, 10-year impact
@@ -147,8 +189,18 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - Occupational: Cumulative £5,024, Lost Growth £5,657, Total Impact £10,680
 - Stakeholder: Cumulative £4,032, Lost Growth £3,218, Total Impact £7,250
 
+**Protection (Phase 3):**
+- Logged in as john@example.com
+- Protection page loads with zero console errors
+- "No Protection Coverage" card shows single "Add Protection" raspberry button
+- No gap analysis button, no "I Have Protection" button, no checkbox
+- No info icon or popover next to heading
+- "What powers this view" question mark in top nav works — shows 56% completeness, data requirements, "Add now" links
+- "Add Protection" button opens PolicyFormModal correctly
+
 ### Backend
 - All seeders ran without errors
-- PHP syntax check passed on all 6 changed PHP files
+- PHP syntax check passed on all changed PHP files
 - Route list loads (no broken references)
-- Migration ran successfully
+- Migration ran successfully (premium_frequency)
+- ProfileCompletenessCheckerTest: 12/12 pass (39 assertions)
