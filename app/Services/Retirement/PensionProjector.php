@@ -40,8 +40,20 @@ class PensionProjector
         $currentValue = (float) $pension->current_fund_value;
         $annualContribution = $this->calculateAnnualContribution($pension);
 
-        // Account for platform fees
-        $netGrowthRate = $growthRate - ((float) $pension->platform_fee_percent ?? 0.0) / 100;
+        // Account for all fees: platform + advisor + weighted OCF
+        $platformFeePercent = (float) ($pension->platform_fee_percent ?? 0);
+        if (($pension->platform_fee_type ?? 'percentage') === 'fixed' && $currentValue > 0) {
+            $fixedAmount = (float) ($pension->platform_fee_amount ?? 0);
+            $annualFixed = match ($pension->platform_fee_frequency ?? 'annually') {
+                'monthly' => $fixedAmount * 12,
+                'quarterly' => $fixedAmount * 4,
+                default => $fixedAmount,
+            };
+            $platformFeePercent = ($annualFixed / $currentValue) * 100;
+        }
+        $advisorFeePercent = (float) ($pension->advisor_fee_percent ?? 0);
+        $totalFeePercent = $platformFeePercent + $advisorFeePercent;
+        $netGrowthRate = $growthRate - ($totalFeePercent / 100);
 
         // Future value of current fund
         $futureValueOfCurrentFund = $currentValue * pow(1 + $netGrowthRate, $yearsToRetirement);

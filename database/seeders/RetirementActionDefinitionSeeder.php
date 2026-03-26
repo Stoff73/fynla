@@ -314,6 +314,63 @@ class RetirementActionDefinitionSeeder extends Seeder
                 'notes' => 'Triggers when user has 3 or more DC pensions, suggesting consolidation.',
             ],
 
+            [
+                'key' => 'high_pension_total_fees',
+                'source' => 'agent',
+                'title_template' => 'Review total fees on {pension_name}',
+                'description_template' => 'Total annual fees on {pension_name} are {total_fee_percent}% ({annual_fees} per year). Reducing fees could significantly improve your retirement pot over time.',
+                'action_template' => 'Compare your pension provider\'s charges with lower-cost alternatives. Even a small reduction compounds significantly over decades.',
+                'category' => 'Pension Fees',
+                'priority' => 'high',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'pension_total_fee_percent_above',
+                    'threshold' => 1.0,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 66,
+                'notes' => 'Triggers per DC pension when platform + advisor + weighted OCF exceeds threshold.',
+            ],
+
+            [
+                'key' => 'high_pension_platform_fees',
+                'source' => 'agent',
+                'title_template' => 'Platform fees are high on {pension_name}',
+                'description_template' => 'The platform fee on {pension_name} is {platform_fee_percent}%. Consider transferring to a lower-cost provider.',
+                'action_template' => 'Compare platform fees across providers. Platforms like Vanguard and Fidelity offer competitive rates for pension holders.',
+                'category' => 'Pension Fees',
+                'priority' => 'medium',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'pension_platform_fee_percent_above',
+                    'threshold' => 0.8,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 67,
+                'notes' => 'Triggers per DC pension when platform fee alone exceeds threshold.',
+            ],
+
+            [
+                'key' => 'high_pension_fund_fees',
+                'source' => 'agent',
+                'title_template' => 'Fund charges are high on {pension_name}',
+                'description_template' => 'The weighted average fund charge on {pension_name} is {weighted_ocf}%. Switching to lower-cost index funds could save {potential_saving} per year.',
+                'action_template' => 'Review your fund selection and consider index tracker funds with ongoing charges below 0.25%.',
+                'category' => 'Pension Fees',
+                'priority' => 'medium',
+                'scope' => 'account',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'pension_weighted_ocf_above',
+                    'threshold' => 0.5,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 68,
+                'notes' => 'Triggers per DC pension when weighted average OCF from holdings exceeds threshold.',
+            ],
+
             // ── Goal-sourced actions (3) ──────────────────────────
 
             [

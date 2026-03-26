@@ -44,7 +44,7 @@ class RetirementActionDefinitionService
 
         $userId = $analysisData['profile']['user_id'];
         $profile = RetirementProfile::find($analysisData['profile']['id']);
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = DCPension::where('user_id', $userId)->with('holdings')->get();
 
         foreach ($definitions as $definition) {
             $results = $this->evaluateAgentTrigger($definition, $analysisData, $profile, $dcPensions, $priority);
@@ -186,6 +186,9 @@ class RetirementActionDefinitionService
             'no_state_pension_forecast' => $this->evaluateStatePensionNoForecast($definition, $analysisData, $priority),
             'within_years_of_retirement' => $this->evaluateApproachingDecumulation($definition, $analysisData, $config, $priority),
             'multiple_dc_pensions' => $this->evaluatePensionConsolidation($definition, $dcPensions, $config, $priority),
+            'pension_total_fee_percent_above' => $this->evaluateHighPensionTotalFees($definition, $dcPensions, $config, $priority),
+            'pension_platform_fee_percent_above' => $this->evaluateHighPensionPlatformFees($definition, $dcPensions, $config, $priority),
+            'pension_weighted_ocf_above' => $this->evaluateHighPensionFundFees($definition, $dcPensions, $config, $priority),
             default => [],
         };
     }
@@ -2117,6 +2120,218 @@ class RetirementActionDefinitionService
             'scope' => $definition->scope,
             'decision_trace' => $trace,
         ]];
+    }
+
+    /**
+     * High total fees: triggers per DC pension when platform + advisor + weighted OCF exceeds threshold.
+     */
+    private function evaluateHighPensionTotalFees(
+        RetirementActionDefinition $definition,
+        $dcPensions,
+        array $config,
+        int $priority
+    ): array {
+        $threshold = (float) ($config['threshold'] ?? 1.0);
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            $fundValue = (float) ($pension->current_fund_value ?? 0);
+            if ($fundValue <= 0) {
+                continue;
+            }
+
+            $platformFeePercent = $this->calculateAnnualisedPlatformFeePercent($pension);
+            $advisorFeePercent = (float) ($pension->advisor_fee_percent ?? 0);
+            $weightedOCF = $this->calculateWeightedOCF($pension);
+            $totalFeePercent = $platformFeePercent + $advisorFeePercent + $weightedOCF;
+
+            if ($totalFeePercent <= $threshold) {
+                continue;
+            }
+
+            $annualFees = round($fundValue * $totalFeePercent / 100, 0);
+            $pensionName = ($pension->provider ?? '').' '.($pension->scheme_name ?? 'Pension');
+
+            $vars = [
+                'pension_name' => trim($pensionName),
+                'total_fee_percent' => number_format($totalFeePercent, 2),
+                'annual_fees' => '£'.number_format($annualFees, 0),
+            ];
+
+            $results[] = [
+                'priority' => $priority,
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars),
+                'impact' => ucfirst($definition->priority),
+                'scope' => $definition->scope,
+                'estimated_impact' => round($annualFees * 0.4, 2),
+                'decision_trace' => [[
+                    'question' => 'Are total fees on this pension above '.number_format($threshold, 1).'%?',
+                    'data_field' => 'total_fee_percent',
+                    'data_value' => number_format($totalFeePercent, 2).'% (platform '.number_format($platformFeePercent, 2).'% + advisor '.number_format($advisorFeePercent, 2).'% + fund OCF '.number_format($weightedOCF, 2).'%)',
+                    'threshold' => number_format($threshold, 1).'%',
+                    'passed' => false,
+                    'explanation' => trim($pensionName).' has total annual fees of '.number_format($totalFeePercent, 2).'% (£'.number_format($annualFees, 0).'/year), exceeding the '.number_format($threshold, 1).'% threshold.',
+                ]],
+            ];
+            $priority++;
+        }
+
+        return $results;
+    }
+
+    /**
+     * High platform fees: triggers per DC pension when platform fee alone exceeds threshold.
+     */
+    private function evaluateHighPensionPlatformFees(
+        RetirementActionDefinition $definition,
+        $dcPensions,
+        array $config,
+        int $priority
+    ): array {
+        $threshold = (float) ($config['threshold'] ?? 0.8);
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            $fundValue = (float) ($pension->current_fund_value ?? 0);
+            if ($fundValue <= 0) {
+                continue;
+            }
+
+            $platformFeePercent = $this->calculateAnnualisedPlatformFeePercent($pension);
+
+            if ($platformFeePercent <= $threshold) {
+                continue;
+            }
+
+            $pensionName = ($pension->provider ?? '').' '.($pension->scheme_name ?? 'Pension');
+
+            $vars = [
+                'pension_name' => trim($pensionName),
+                'platform_fee_percent' => number_format($platformFeePercent, 2),
+            ];
+
+            $results[] = [
+                'priority' => $priority,
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars),
+                'impact' => ucfirst($definition->priority),
+                'scope' => $definition->scope,
+                'decision_trace' => [[
+                    'question' => 'Is the platform fee above '.number_format($threshold, 1).'%?',
+                    'data_field' => 'platform_fee_percent',
+                    'data_value' => number_format($platformFeePercent, 2).'%',
+                    'threshold' => number_format($threshold, 1).'%',
+                    'passed' => false,
+                    'explanation' => trim($pensionName).' has a platform fee of '.number_format($platformFeePercent, 2).'%, above the '.number_format($threshold, 1).'% threshold.',
+                ]],
+            ];
+            $priority++;
+        }
+
+        return $results;
+    }
+
+    /**
+     * High fund fees: triggers per DC pension when weighted average OCF exceeds threshold.
+     */
+    private function evaluateHighPensionFundFees(
+        RetirementActionDefinition $definition,
+        $dcPensions,
+        array $config,
+        int $priority
+    ): array {
+        $threshold = (float) ($config['threshold'] ?? 0.5);
+        $results = [];
+
+        foreach ($dcPensions as $pension) {
+            $fundValue = (float) ($pension->current_fund_value ?? 0);
+            if ($fundValue <= 0 || ! $pension->relationLoaded('holdings') || $pension->holdings->isEmpty()) {
+                continue;
+            }
+
+            $weightedOCF = $this->calculateWeightedOCF($pension);
+
+            if ($weightedOCF <= $threshold) {
+                continue;
+            }
+
+            $potentialSaving = round($fundValue * ($weightedOCF - 0.25) / 100, 0);
+            $pensionName = ($pension->provider ?? '').' '.($pension->scheme_name ?? 'Pension');
+
+            $vars = [
+                'pension_name' => trim($pensionName),
+                'weighted_ocf' => number_format($weightedOCF, 2),
+                'potential_saving' => '£'.number_format(max(0, $potentialSaving), 0),
+            ];
+
+            $results[] = [
+                'priority' => $priority,
+                'category' => $definition->category,
+                'title' => $definition->renderTitle($vars),
+                'description' => $definition->renderDescription($vars),
+                'action' => $definition->renderAction($vars),
+                'impact' => ucfirst($definition->priority),
+                'scope' => $definition->scope,
+                'decision_trace' => [[
+                    'question' => 'Is the weighted fund charge above '.number_format($threshold, 1).'%?',
+                    'data_field' => 'weighted_ocf',
+                    'data_value' => number_format($weightedOCF, 2).'%',
+                    'threshold' => number_format($threshold, 1).'%',
+                    'passed' => false,
+                    'explanation' => trim($pensionName).' has a weighted average fund charge of '.number_format($weightedOCF, 2).'%, above the '.number_format($threshold, 1).'% threshold. Switching to index funds could save approximately £'.number_format(max(0, $potentialSaving), 0).'/year.',
+                ]],
+            ];
+            $priority++;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Calculate annualised platform fee as a percentage for a DC pension.
+     * Handles both percentage and fixed fee types.
+     */
+    private function calculateAnnualisedPlatformFeePercent(DCPension $pension): float
+    {
+        $fundValue = (float) ($pension->current_fund_value ?? 0);
+
+        if (($pension->platform_fee_type ?? 'percentage') === 'fixed' && $fundValue > 0) {
+            $amount = (float) ($pension->platform_fee_amount ?? 0);
+            $frequency = $pension->platform_fee_frequency ?? 'annually';
+            $annualAmount = match ($frequency) {
+                'monthly' => $amount * 12,
+                'quarterly' => $amount * 4,
+                default => $amount,
+            };
+
+            return ($annualAmount / $fundValue) * 100;
+        }
+
+        return (float) ($pension->platform_fee_percent ?? 0);
+    }
+
+    /**
+     * Calculate weighted average OCF across a pension's holdings.
+     */
+    private function calculateWeightedOCF(DCPension $pension): float
+    {
+        $fundValue = (float) ($pension->current_fund_value ?? 0);
+        if ($fundValue <= 0 || ! $pension->relationLoaded('holdings') || $pension->holdings->isEmpty()) {
+            return 0.0;
+        }
+
+        $totalWeightedOCF = $pension->holdings->sum(function ($holding) use ($fundValue) {
+            $holdingValue = $fundValue * ((float) ($holding->allocation_percent ?? 0)) / 100;
+
+            return $holdingValue * ((float) ($holding->ocf_percent ?? 0));
+        });
+
+        return $totalWeightedOCF / $fundValue;
     }
 
     /**

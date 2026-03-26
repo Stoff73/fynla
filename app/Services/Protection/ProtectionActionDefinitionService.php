@@ -101,6 +101,9 @@ class ProtectionActionDefinitionService
             'education_funding_gap' => $this->evaluateEducationFundingGap($definition, $comprehensivePlan),
             'non_earning_spouse_no_cover' => $this->evaluateNonEarningSpouse($definition, $comprehensivePlan),
 
+            // Premium affordability
+            'premium_percent_of_income_above' => $this->evaluatePremiumAffordability($definition, $comprehensivePlan),
+
             default => null,
         };
     }
@@ -2235,5 +2238,112 @@ class ProtectionActionDefinitionService
 
             return $parts;
         })->implode('; ');
+    }
+
+    // =============================================
+    // Premium Affordability Evaluators
+    // =============================================
+
+    /**
+     * Premium affordability: triggers when total annual premiums exceed a percentage of gross income.
+     */
+    private function evaluatePremiumAffordability(ProtectionActionDefinition $definition, array $comprehensivePlan): ?array
+    {
+        $threshold = (float) ($definition->trigger_config['threshold'] ?? 0.05);
+        $userId = $comprehensivePlan['user_id'] ?? null;
+
+        if (! $userId) {
+            return null;
+        }
+
+        $profile = ProtectionProfile::where('user_id', $userId)->first();
+        if (! $profile || ! $profile->annual_income || $profile->annual_income <= 0) {
+            return null;
+        }
+
+        $annualIncome = (float) $profile->annual_income;
+
+        // Calculate total annual premiums across all policy types
+        $totalAnnualPremiums = 0.0;
+
+        $lifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
+        foreach ($lifePolicies as $policy) {
+            $totalAnnualPremiums += $this->convertToAnnualPremium(
+                (float) ($policy->premium_amount ?? 0),
+                $policy->premium_frequency ?? 'monthly'
+            );
+        }
+
+        $ciPolicies = CriticalIllnessPolicy::where('user_id', $userId)->get();
+        foreach ($ciPolicies as $policy) {
+            $totalAnnualPremiums += $this->convertToAnnualPremium(
+                (float) ($policy->premium_amount ?? 0),
+                $policy->premium_frequency ?? 'monthly'
+            );
+        }
+
+        $ipPolicies = IncomeProtectionPolicy::where('user_id', $userId)->get();
+        foreach ($ipPolicies as $policy) {
+            $totalAnnualPremiums += $this->convertToAnnualPremium(
+                (float) ($policy->premium_amount ?? 0),
+                $policy->premium_frequency ?? 'monthly'
+            );
+        }
+
+        if ($totalAnnualPremiums <= 0) {
+            return null;
+        }
+
+        $premiumPercent = $totalAnnualPremiums / $annualIncome;
+
+        if ($premiumPercent <= $threshold) {
+            return null;
+        }
+
+        $vars = [
+            'annual_premiums' => '£'.number_format($totalAnnualPremiums, 0),
+            'premium_percent' => number_format($premiumPercent * 100, 1),
+        ];
+
+        $trace = [[
+            'question' => 'Do total protection premiums exceed '.number_format($threshold * 100, 0).'% of gross income?',
+            'data_field' => 'premium_percent_of_income',
+            'data_value' => number_format($premiumPercent * 100, 1).'% (£'.number_format($totalAnnualPremiums, 0).' on £'.number_format($annualIncome, 0).' income)',
+            'threshold' => number_format($threshold * 100, 0).'% of gross income',
+            'passed' => false,
+            'explanation' => 'Total annual premiums of £'.number_format($totalAnnualPremiums, 0).' represent '.number_format($premiumPercent * 100, 1).'% of gross income (£'.number_format($annualIncome, 0).'), exceeding the '.number_format($threshold * 100, 0).'% threshold.',
+        ]];
+
+        return [
+            'priority' => $this->getPriorityValue($definition->priority),
+            'category' => $definition->category,
+            'title' => $definition->renderTitle($vars),
+            'description' => $definition->renderDescription($vars),
+            'action' => $definition->renderAction($vars),
+            'impact' => ucfirst($definition->priority),
+            'scope' => $definition->scope,
+            'decision_trace' => $trace,
+        ];
+    }
+
+    private function convertToAnnualPremium(float $amount, string $frequency): float
+    {
+        return match ($frequency) {
+            'monthly' => $amount * 12,
+            'quarterly' => $amount * 4,
+            'annually' => $amount,
+            default => $amount * 12,
+        };
+    }
+
+    private function getPriorityValue(string $priority): int
+    {
+        return match ($priority) {
+            'critical' => 1,
+            'high' => 2,
+            'medium' => 3,
+            'low' => 4,
+            default => 5,
+        };
     }
 }
