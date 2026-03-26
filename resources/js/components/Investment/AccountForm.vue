@@ -691,6 +691,7 @@ export default {
                 asset_type: h.asset_type,
                 allocation_percent: h.allocation_percent,
                 cost_basis: h.cost_basis,
+                ocf_percent: h.ocf_percent,
               }));
           } else {
             this.formData.holdings = [];
@@ -731,6 +732,7 @@ export default {
                 asset_type: h.asset_type,
                 allocation_percent: h.allocation_percent,
                 cost_basis: h.cost_basis,
+                ocf_percent: h.ocf_percent,
               }));
           } else {
             this.formData.holdings = [];
