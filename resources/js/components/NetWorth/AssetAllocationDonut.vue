@@ -27,7 +27,8 @@
             :stroke-dashoffset="-seg.offset"
             transform="rotate(-90 110 110)"
             class="cursor-pointer"
-            @mouseenter="onSegmentHover(idx)"
+            @mouseenter="onSegmentHover(idx, $event)"
+            @mousemove="onSegmentMove($event)"
             @mouseleave="onSegmentLeave"
           />
         </svg>
@@ -35,10 +36,11 @@
           <span class="text-sm font-semibold text-horizon-400">Total</span>
           <span class="text-xl sm:text-2xl font-black text-horizon-700">{{ formatCurrency(total) }}</span>
         </div>
-        <!-- Hover tooltip -->
+        <!-- Hover tooltip (follows cursor) -->
         <div
           v-if="hoveredIndex !== null && hoveredIndex < filteredCategories.length"
           class="donut-tooltip"
+          :style="tooltipStyle"
         >
           <span class="donut-tooltip-label">{{ filteredCategories[hoveredIndex].label }}</span>
           <span class="donut-tooltip-value">{{ formatCurrency(filteredCategories[hoveredIndex].value) }}</span>
@@ -77,6 +79,8 @@ export default {
   data() {
     return {
       hoveredIndex: null,
+      mouseX: 0,
+      mouseY: 0,
     };
   },
 
@@ -102,6 +106,17 @@ export default {
 
     total() {
       return this.filteredCategories.reduce((sum, c) => sum + c.value, 0);
+    },
+
+    tooltipStyle() {
+      if (this.hoveredIndex === null || this.hoveredIndex >= this.filteredCategories.length) return {};
+      const cat = this.filteredCategories[this.hoveredIndex];
+      return {
+        position: 'fixed',
+        left: `${this.mouseX + 3}px`,
+        top: `${this.mouseY - 3}px`,
+        backgroundColor: cat.color,
+      };
     },
 
     donutSegments() {
@@ -138,12 +153,22 @@ export default {
       return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
     },
 
-    onSegmentHover(idx) {
+    onSegmentHover(idx, event) {
       this.hoveredIndex = idx;
+      this.updateMousePosition(event);
       const cat = this.filteredCategories[idx];
       if (cat) {
         this.$emit('highlight', { category: cat.key, color: cat.color });
       }
+    },
+
+    onSegmentMove(event) {
+      this.updateMousePosition(event);
+    },
+
+    updateMousePosition(event) {
+      this.mouseX = event.clientX;
+      this.mouseY = event.clientY;
     },
 
     onSegmentLeave() {
@@ -184,21 +209,17 @@ export default {
 }
 
 .donut-tooltip {
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  @apply bg-horizon-500 text-white;
+  color: white;
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .donut-tooltip-label {
