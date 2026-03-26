@@ -338,6 +338,28 @@
                 <span class="font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</span>
               </div>
             </div>
+
+            <!-- 10-Year Fee Impact -->
+            <div v-if="annualFeeCost > 0" class="bg-white border border-light-gray rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-horizon-500 mb-3">10-Year Fee Impact</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <p class="text-xs text-neutral-500">Cumulative Fees Paid</p>
+                  <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.totalFees) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-neutral-500">Lost Growth (Fee Drag)</p>
+                  <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.lostGrowth) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-neutral-500">Total Impact</p>
+                  <p class="text-base font-semibold text-horizon-500">{{ formatCurrency(feeImpact10yr.totalImpact) }}</p>
+                </div>
+              </div>
+              <p class="text-xs text-neutral-500 mt-2">
+                Assuming {{ pension.growth_rate ? (pension.growth_rate * 100).toFixed(1) + '%' : '5%' }} growth rate and current contribution levels.
+              </p>
+            </div>
           </div>
 
           <!-- Projections Tab (DC pensions only) -->
@@ -615,6 +637,34 @@ export default {
     annualFeeCost() {
       const fundValue = parseFloat(this.pension.current_fund_value) || 0;
       return fundValue * (this.totalFeePercent / 100);
+    },
+
+    // 10-year fee impact projection
+    feeImpact10yr() {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      const feeRate = this.totalFeePercent / 100;
+      const grossGrowth = this.pension.growth_rate ? parseFloat(this.pension.growth_rate) : 0.05;
+      const annualContribution = this.totalMonthlyContribution * 12;
+      const years = 10;
+
+      // Project WITH fees (net growth)
+      const netGrowth = grossGrowth - feeRate;
+      let valueWithFees = fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithFees = (valueWithFees + annualContribution) * (1 + netGrowth);
+      }
+
+      // Project WITHOUT fees (gross growth)
+      let valueWithoutFees = fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithoutFees = (valueWithoutFees + annualContribution) * (1 + grossGrowth);
+      }
+
+      const totalFees = this.annualFeeCost * years;
+      const lostGrowth = Math.max(0, valueWithoutFees - valueWithFees - totalFees);
+      const totalImpact = totalFees + lostGrowth;
+
+      return { totalFees, lostGrowth, totalImpact };
     },
   },
 

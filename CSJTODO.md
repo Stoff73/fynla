@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 26 March 2026 — session 11*
+*Last updated: 26 March 2026 — sessions 11 & 12*
 
 ---
 
@@ -14,13 +14,26 @@
 - [x] Fees section: total annual cost includes platform + advisor + weighted OCF
 - [x] InlineHoldingsEditor: OCF % column added (captures OCF on holding creation)
 - [x] Fixed CSS conflicts: font-medium/font-semibold, purple-600 → violet-600
-- [x] Browser tested: registered new user, created 3 pensions (SIPP, Occupational, Stakeholder) with holdings + OCF + fees
+- [x] Browser tested: 3 pensions (SIPP, Occupational, Stakeholder) with holdings + OCF + fees
 - [x] Edit tested: modified SIPP fund value and contribution, verified save
-- [x] All tabs verified: Overview, Holdings, Projections, Documents
-- [x] Deploy guide written: March/March26Updates/deploy26.md
+- [x] Merged to main (PR #162)
+
+## Session 12 (26 March) — Fee System Gaps: Actions, Projections, Premiums
+
+### Completed
+- [x] Fee system map: comprehensive trace across Investment, Pension, Protection (feesMap.md)
+- [x] 3 pension fee action triggers: high total (>1.0%), high platform (>0.8%), high fund OCF (>0.5%)
+- [x] PensionPortfolioAnalyzer: handles fixed fee types + advisor fee in total calculation
+- [x] PensionProjector + ContributionOptimizer: deduct platform + advisor fees from growth rate
+- [x] 2 protection premium actions: high premiums (>5% income), affordability warning (>10% income)
+- [x] IncomeProtectionPolicy: added premium_frequency field + migration
+- [x] 10-year fee impact added to pension Holdings tab (cumulative fees, lost growth, total impact)
+- [x] IPT confirmed not applicable (life/CI/IP all exempt per TaxConfig)
+- [x] Browser tested: all 3 pensions verified with 10-year fee impact rendering correctly
+- [x] Deploy guide updated: March/March26Updates/deploy26.md
 
 ### Branch
-- `pensionUI` — ready for merge to main
+- `fees` — ready for merge to main
 
 ---
 
@@ -30,6 +43,10 @@
 - [ ] Test expenditure AI fill on production
 - [ ] Verify admin AI Provider panel shows Anthropic/xAI toggle cards
 - [ ] Policy number not displaying in detail view (shows N/A despite being entered) — investigate
+
+### Tier 3 (Future — from feesMap.md)
+- [ ] Standardise all fee thresholds into PlanConfigService (currently hardcoded in seeders)
+- [ ] Cross-module fee dashboard (total annual cost across investments + pensions + protection)
 
 ### Tech Debt (carried forward)
 - [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking)
@@ -43,4 +60,4 @@
 
 ## Context for Next Session
 
-Pension detail view now has a dedicated Holdings tab with OCF values displayed correctly. The InlineHoldingsEditor (shared by investments and pensions) now captures OCF % on creation. Fee display in the overview handles all fee types (percentage, fixed £, advisor). All changes are on the `pensionUI` branch — needs building and deploying. The OCF input change also affects the investment account form since they share InlineHoldingsEditor — verify investment creation still works after merge.
+Fee system gaps now closed for Tier 1 + 2. Pension actions will fire for high fees (matching investment module parity). Protection premium affordability actions now exist. PensionProjector and ContributionOptimizer now deduct all fees from growth projections (was platform-only before). The `fees` branch needs merging, building, and deploying. On production: run migration, reseed RetirementActionDefinitionSeeder + ProtectionActionDefinitionSeeder. Tier 3 items (threshold standardisation + cross-module dashboard) are documented in feesMap.md for future planning.

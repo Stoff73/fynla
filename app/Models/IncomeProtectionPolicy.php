@@ -28,6 +28,7 @@ class IncomeProtectionPolicy extends Model
         'deferred_period_weeks',
         'benefit_period_months',
         'premium_amount',
+        'premium_frequency',
         'occupation_class',
         'policy_start_date',
     ];
