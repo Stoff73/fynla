@@ -602,6 +602,7 @@ export default {
           // Editing existing pension - populate form with pension data
           this.formData = {
             ...newPension,
+            policy_number: newPension.member_number || '',
             risk_preference: newPension.risk_preference || null,
             beneficiary_id: newPension.beneficiary_id || null,
             beneficiary_name: newPension.beneficiary_name || '',
@@ -814,7 +815,14 @@ export default {
         return;
       }
 
-      this.$emit('save', this.formData);
+      // Map frontend field names to backend DB column names
+      const payload = { ...this.formData };
+      if (payload.policy_number !== undefined) {
+        payload.member_number = payload.policy_number;
+        delete payload.policy_number;
+      }
+
+      this.$emit('save', payload);
     },
   },
 };

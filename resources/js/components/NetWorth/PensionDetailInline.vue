@@ -89,7 +89,7 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Policy Number:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.policy_number || 'N/A' }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.member_number || pension.policy_number || 'N/A' }}</dd>
                     </div>
                   </dl>
                 </div>
