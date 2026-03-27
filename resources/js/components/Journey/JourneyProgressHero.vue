@@ -84,7 +84,7 @@
 
               <button
                 v-if="nextStep"
-                class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+                class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap relative z-10"
                 @click="continueJourney"
               >
                 Continue Journey

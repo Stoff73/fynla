@@ -252,7 +252,7 @@
             </button>
           </div>
           <p class="text-xs text-horizon-400 mt-1.5">
-            Not regulated financial advice. Press Enter to send.
+            Not regulated financial advice.<br>Press Enter to send.
           </p>
         </div>
       </div>
@@ -447,7 +447,7 @@
             </button>
           </div>
           <p class="text-xs text-horizon-400 mt-1.5 flex-shrink-0">
-            Not regulated financial advice. Press Enter to send.
+            Not regulated financial advice.<br>Press Enter to send.
           </p>
         </div>
       </div>
