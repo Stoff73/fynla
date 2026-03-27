@@ -391,6 +391,7 @@ class InvestmentController extends Controller
                         'asset_type' => $holdingData['asset_type'],
                         'allocation_percent' => $holdingData['allocation_percent'],
                         'cost_basis' => $holdingData['cost_basis'] ?? null,
+                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
                         'current_value' => $currentValue,
                     ]);
                 }
@@ -504,8 +505,46 @@ class InvestmentController extends Controller
             }
         }
 
+        // Extract holdings before updating (not a model field)
+        $holdings = $validated['holdings'] ?? null;
+        unset($validated['holdings']);
+
         // Single-record pattern: Update directly (no reciprocal update)
         $account->update($validated);
+
+        // Sync holdings if provided
+        if ($holdings !== null) {
+            $account->holdings()->delete();
+
+            foreach ($holdings as $holdingData) {
+                $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+
+                $account->holdings()->create([
+                    'holdable_type' => InvestmentAccount::class,
+                    'holdable_id' => $account->id,
+                    'security_name' => $holdingData['security_name'],
+                    'asset_type' => $holdingData['asset_type'],
+                    'allocation_percent' => $holdingData['allocation_percent'],
+                    'cost_basis' => $holdingData['cost_basis'] ?? null,
+                    'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                    'current_value' => $currentValue,
+                ]);
+            }
+
+            // Auto-create cash holding for remainder
+            $totalAllocated = collect($holdings)->sum('allocation_percent');
+            if ($totalAllocated < 100) {
+                $remainderPercent = 100 - $totalAllocated;
+                $account->holdings()->create([
+                    'holdable_type' => InvestmentAccount::class,
+                    'holdable_id' => $account->id,
+                    'security_name' => 'Cash',
+                    'asset_type' => 'cash',
+                    'allocation_percent' => $remainderPercent,
+                    'current_value' => ($account->current_value * $remainderPercent) / 100,
+                ]);
+            }
+        }
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);

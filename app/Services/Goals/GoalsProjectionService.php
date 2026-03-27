@@ -128,7 +128,9 @@ class GoalsProjectionService
 
         // Start with current values
         $cash = $netWorth['breakdown']['cash'] ?? 0;
-        $investments = $netWorth['breakdown']['investments'] ?? 0;
+        $investments = ($netWorth['breakdown']['investments'] ?? 0)
+            + ($netWorth['breakdown']['business'] ?? 0)
+            + ($netWorth['breakdown']['chattels'] ?? 0);
         $property = $netWorth['breakdown']['property'] ?? 0;
         $pensions = $netWorth['breakdown']['pensions'] ?? 0;
         $mortgage = $netWorth['liabilities_breakdown']['mortgages'] ?? 0;
@@ -154,16 +156,25 @@ class GoalsProjectionService
         $goalsByYear = $this->indexEventsByYear($goals, $user, 'target_date');
         $lifeEventsByYear = $this->indexEventsByYear($lifeEvents, $user, 'expected_date');
 
+        // Non-mortgage liabilities (credit cards, loans, etc.)
+        $otherLiabilities = ($netWorth['liabilities_breakdown']['credit_cards'] ?? 0)
+            + ($netWorth['liabilities_breakdown']['loans'] ?? 0)
+            + ($netWorth['liabilities_breakdown']['other'] ?? 0);
+
         for ($age = $currentAge; $age <= $endAge; $age++) {
             $year = $currentYear + ($age - $currentAge);
             $phase = $age >= $retirementAge ? 'retirement' : 'accumulation';
             $yearsElapsed = $age - $currentAge;
 
-            // Deduct annual expenditure from cash
-            $cash -= $annualExpenditure;
-            if ($cash < 0) {
-                $investments = max(0, $investments + $cash);
-                $cash = 0;
+            // First year shows actual current snapshot — no income/expense adjustments
+            if ($age > $currentAge) {
+                // Apply annual surplus (income minus expenditure) to cash
+                $annualSurplus = $annualNetIncome - $annualExpenditure;
+                $cash += $annualSurplus;
+                if ($cash < 0) {
+                    $investments = max(0, $investments + $cash);
+                    $cash = 0;
+                }
             }
 
             // Apply life event impacts for this year
@@ -202,8 +213,13 @@ class GoalsProjectionService
 
             // Record this year's data before applying growth
             $totalAssets = $cash + $investments + $property + $pensions;
-            $totalLiabilities = $mortgage;
+            $totalLiabilities = $mortgage + $otherLiabilities;
             $netWorthValue = $totalAssets - $totalLiabilities;
+
+            // Reduce other liabilities year-on-year (assume paid from surplus)
+            if ($age > $currentAge && $otherLiabilities > 0) {
+                $otherLiabilities = max(0, $otherLiabilities * 0.5);
+            }
 
             $yearlyData[] = [
                 'age' => $age,

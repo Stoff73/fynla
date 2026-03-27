@@ -89,7 +89,7 @@
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Policy Number:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ pension.policy_number || 'N/A' }}</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ pension.member_number || pension.policy_number || 'N/A' }}</dd>
                     </div>
                   </dl>
                 </div>
@@ -99,7 +99,7 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Current Fund Value:</dt>
-                      <dd class="text-sm font-medium text-violet-600 font-semibold">{{ formatCurrency(pension.current_fund_value) }}</dd>
+                      <dd class="text-sm font-semibold text-violet-600">{{ formatCurrency(pension.current_fund_value) }}</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Valuation Date:</dt>
@@ -157,7 +157,11 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Platform Fee:</dt>
-                      <dd class="text-sm font-medium text-horizon-500">{{ platformFeePercent.toFixed(2) }}%</dd>
+                      <dd class="text-sm font-medium text-horizon-500">{{ platformFeeDisplay }}</dd>
+                    </div>
+                    <div v-if="advisorFeePercent > 0" class="flex justify-between">
+                      <dt class="text-sm text-neutral-500">Advisor Fee:</dt>
+                      <dd class="text-sm font-medium text-horizon-500">{{ advisorFeePercent.toFixed(2) }}% p.a.</dd>
                     </div>
                     <div v-if="hasHoldings" class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Avg Fund Fee (OCF):</dt>
@@ -200,7 +204,7 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Annual Pension:</dt>
-                      <dd class="text-sm font-medium text-purple-600 font-semibold">{{ formatCurrency(pension.accrued_annual_pension) }}/yr</dd>
+                      <dd class="text-sm font-semibold text-violet-600">{{ formatCurrency(pension.accrued_annual_pension) }}/yr</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Lump Sum Entitlement:</dt>
@@ -253,7 +257,7 @@
                   <dl class="space-y-2">
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Forecast Annual Amount:</dt>
-                      <dd class="text-sm font-medium text-spring-600 font-semibold">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}/yr</dd>
+                      <dd class="text-sm font-semibold text-spring-600">{{ formatCurrency(pension.state_pension_forecast_annual || 0) }}/yr</dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-sm text-neutral-500">Weekly Amount:</dt>
@@ -286,6 +290,75 @@
             <div v-if="pension.notes" class="mt-6">
               <h3 class="text-lg font-semibold text-horizon-500 mb-3">Notes</h3>
               <p class="text-neutral-500 whitespace-pre-wrap">{{ pension.notes }}</p>
+            </div>
+          </div>
+
+          <!-- Holdings Tab (DC pensions with holdings) -->
+          <div v-show="activeTab === 'holdings'" class="space-y-4">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-light-gray">
+                    <th class="text-left py-2 text-neutral-500 font-medium">Fund Name</th>
+                    <th class="text-left py-2 text-neutral-500 font-medium">Type</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium">Allocation</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium">Value</th>
+                    <th class="text-right py-2 text-neutral-500 font-medium">OCF</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="holding in pension.holdings" :key="holding.id" class="border-b border-light-gray last:border-0">
+                    <td class="py-2 text-horizon-500 font-medium">{{ holding.security_name || 'Unnamed' }}</td>
+                    <td class="py-2 text-neutral-500 capitalize">{{ formatAssetType(holding.asset_type) }}</td>
+                    <td class="py-2 text-right text-horizon-500">{{ holding.allocation_percent || 0 }}%</td>
+                    <td class="py-2 text-right text-horizon-500">{{ formatCurrency(holdingValue(holding)) }}</td>
+                    <td class="py-2 text-right text-neutral-500">{{ holding.ocf_percent ? parseFloat(holding.ocf_percent).toFixed(2) + '%' : '—' }}</td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="holdingsCashPercent > 0">
+                  <tr class="border-t border-light-gray">
+                    <td class="py-2 text-neutral-500 italic">Cash (unallocated)</td>
+                    <td></td>
+                    <td class="py-2 text-right text-neutral-500">{{ holdingsCashPercent.toFixed(1) }}%</td>
+                    <td class="py-2 text-right text-neutral-500">{{ formatCurrency(holdingsCashValue) }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <!-- Fee summary tied to holdings -->
+            <div class="bg-savannah-100 rounded-lg p-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-neutral-500">Weighted Avg Fund Fee (OCF)</span>
+                <span class="font-medium text-horizon-500">{{ weightedAverageOCF.toFixed(2) }}%</span>
+              </div>
+              <div class="flex justify-between text-sm mt-1">
+                <span class="text-neutral-500">Total Annual Cost (platform + advisor + fund fees)</span>
+                <span class="font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</span>
+              </div>
+            </div>
+
+            <!-- 10-Year Fee Impact -->
+            <div v-if="annualFeeCost > 0" class="bg-white border border-light-gray rounded-lg p-4">
+              <h4 class="text-sm font-semibold text-horizon-500 mb-3">10-Year Fee Impact</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <p class="text-xs text-neutral-500">Cumulative Fees Paid</p>
+                  <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.totalFees) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-neutral-500">Lost Growth (Fee Drag)</p>
+                  <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.lostGrowth) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-neutral-500">Total Impact</p>
+                  <p class="text-base font-semibold text-horizon-500">{{ formatCurrency(feeImpact10yr.totalImpact) }}</p>
+                </div>
+              </div>
+              <p class="text-xs text-neutral-500 mt-2">
+                Assuming {{ pension.growth_rate ? (pension.growth_rate * 100).toFixed(1) + '%' : '5%' }} growth rate and current contribution levels.
+              </p>
             </div>
           </div>
 
@@ -415,9 +488,11 @@ export default {
         { id: 'overview', label: 'Overview' },
         { id: 'documents', label: 'Documents' },
       ];
-      // Only DC pensions get Projections tab
       if (this.pensionType === 'dc') {
-        baseTabs.splice(1, 0, { id: 'projections', label: 'Projections' });
+        if (this.hasHoldings) {
+          baseTabs.splice(1, 0, { id: 'holdings', label: 'Holdings' });
+        }
+        baseTabs.splice(this.hasHoldings ? 2 : 1, 0, { id: 'projections', label: 'Projections' });
       }
       return baseTabs;
     },
@@ -484,17 +559,58 @@ export default {
       return this.totalMonthlyContribution * 12;
     },
 
-    // Platform fee percentage for DC pensions
+    // Platform fee as annualised percentage
     platformFeePercent() {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      if (this.pension.platform_fee_type === 'fixed' && fundValue > 0) {
+        const amount = parseFloat(this.pension.platform_fee_amount) || 0;
+        let annualAmount = amount;
+        if (this.pension.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
+        else if (this.pension.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
+        return (annualAmount / fundValue) * 100;
+      }
       return parseFloat(this.pension.platform_fee_percent) || 0;
     },
 
-    // Check if pension has holdings with OCF data
+    // Platform fee display string matching the form inputs
+    platformFeeDisplay() {
+      if (this.pension.platform_fee_type === 'fixed') {
+        const amount = parseFloat(this.pension.platform_fee_amount) || 0;
+        const freqLabel = { monthly: '/month', quarterly: '/quarter', annually: '/year' };
+        const freq = freqLabel[this.pension.platform_fee_frequency] || '/year';
+        return this.formatCurrency(amount) + freq;
+      }
+      return this.platformFeePercent.toFixed(2) + '% p.a.';
+    },
+
+    // Advisor fee percentage
+    advisorFeePercent() {
+      return parseFloat(this.pension.advisor_fee_percent) || 0;
+    },
+
+    // Check if pension has holdings
     hasHoldings() {
       return this.pension.holdings?.length > 0;
     },
 
-    // Total holdings value
+    // Total allocation percentage across holdings
+    totalHoldingsAllocation() {
+      if (!this.hasHoldings) return 0;
+      return this.pension.holdings.reduce((sum, h) => sum + (parseFloat(h.allocation_percent) || 0), 0);
+    },
+
+    // Cash percentage (unallocated)
+    holdingsCashPercent() {
+      return Math.max(0, 100 - this.totalHoldingsAllocation);
+    },
+
+    // Cash value
+    holdingsCashValue() {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      return fundValue * (this.holdingsCashPercent / 100);
+    },
+
+    // Total holdings value (by current_value if available, otherwise by allocation)
     totalHoldingsValue() {
       if (!this.pension.holdings?.length) return 0;
       return this.pension.holdings.reduce((sum, h) => sum + (parseFloat(h.current_value) || 0), 0);
@@ -502,22 +618,53 @@ export default {
 
     // Weighted average OCF across holdings
     weightedAverageOCF() {
-      if (!this.hasHoldings || this.totalHoldingsValue === 0) return 0;
+      if (!this.hasHoldings) return 0;
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      if (fundValue === 0) return 0;
       const totalWeightedOCF = this.pension.holdings.reduce((sum, h) => {
-        return sum + ((parseFloat(h.current_value) || 0) * (parseFloat(h.ocf_percent) || 0));
+        const value = this.holdingValue(h);
+        return sum + (value * (parseFloat(h.ocf_percent) || 0));
       }, 0);
-      return totalWeightedOCF / this.totalHoldingsValue;
+      return totalWeightedOCF / fundValue;
     },
 
-    // Total fee percentage (platform + weighted OCF)
+    // Total fee percentage (platform + advisor + weighted OCF)
     totalFeePercent() {
-      return this.platformFeePercent + this.weightedAverageOCF;
+      return this.platformFeePercent + this.advisorFeePercent + this.weightedAverageOCF;
     },
 
     // Annual fee cost in pounds
     annualFeeCost() {
       const fundValue = parseFloat(this.pension.current_fund_value) || 0;
       return fundValue * (this.totalFeePercent / 100);
+    },
+
+    // 10-year fee impact projection
+    feeImpact10yr() {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      const feeRate = this.totalFeePercent / 100;
+      const grossGrowth = this.pension.growth_rate ? parseFloat(this.pension.growth_rate) : 0.05;
+      const annualContribution = this.totalMonthlyContribution * 12;
+      const years = 10;
+
+      // Project WITH fees (net growth)
+      const netGrowth = grossGrowth - feeRate;
+      let valueWithFees = fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithFees = (valueWithFees + annualContribution) * (1 + netGrowth);
+      }
+
+      // Project WITHOUT fees (gross growth)
+      let valueWithoutFees = fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithoutFees = (valueWithoutFees + annualContribution) * (1 + grossGrowth);
+      }
+
+      const totalFees = this.annualFeeCost * years;
+      const lostGrowth = Math.max(0, valueWithoutFees - valueWithFees - totalFees);
+      const totalImpact = totalFees + lostGrowth;
+
+      return { totalFees, lostGrowth, totalImpact };
     },
   },
 
@@ -546,6 +693,27 @@ export default {
         month: '2-digit',
         year: 'numeric',
       });
+    },
+
+    holdingValue(holding) {
+      const fundValue = parseFloat(this.pension.current_fund_value) || 0;
+      return fundValue * (parseFloat(holding.allocation_percent) || 0) / 100;
+    },
+
+    formatAssetType(type) {
+      const labels = {
+        equity: 'Equity',
+        uk_equity: 'UK Equity',
+        us_equity: 'US Equity',
+        international_equity: 'Intl Equity',
+        fund: 'Fund',
+        etf: 'ETF',
+        bond: 'Bond',
+        cash: 'Cash',
+        alternative: 'Alternative',
+        property: 'Property',
+      };
+      return labels[type] || type || '—';
     },
 
     formatDCPensionType(type) {

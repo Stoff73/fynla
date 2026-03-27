@@ -103,29 +103,47 @@ class PensionPortfolioAnalyzer
      */
     public function analyzeFees(Collection $dcPensions, Collection $allHoldings): array
     {
-        $totalValue = $allHoldings->sum('current_value');
+        $totalValue = $dcPensions->sum(fn ($p) => (float) ($p->current_fund_value ?? 0));
 
-        // Platform fees (from pension level)
+        // Platform fees (handles both percentage and fixed types)
         $platformFees = $dcPensions->sum(function ($pension) {
-            return $pension->current_fund_value * ($pension->platform_fee_percent / 100);
+            $fundValue = (float) ($pension->current_fund_value ?? 0);
+
+            if (($pension->platform_fee_type ?? 'percentage') === 'fixed' && $fundValue > 0) {
+                $amount = (float) ($pension->platform_fee_amount ?? 0);
+
+                return match ($pension->platform_fee_frequency ?? 'annually') {
+                    'monthly' => $amount * 12,
+                    'quarterly' => $amount * 4,
+                    default => $amount,
+                };
+            }
+
+            return $fundValue * ((float) ($pension->platform_fee_percent ?? 0) / 100);
+        });
+
+        // Advisor fees (from pension level)
+        $advisorFees = $dcPensions->sum(function ($pension) {
+            return (float) ($pension->current_fund_value ?? 0) * ((float) ($pension->advisor_fee_percent ?? 0) / 100);
         });
 
         // Fund OCF fees (from holdings level)
         $fundFees = $allHoldings->sum(function ($holding) {
-            return $holding->current_value * ($holding->ocf_percent / 100);
+            return (float) ($holding->current_value ?? 0) * ((float) ($holding->ocf_percent ?? 0) / 100);
         });
 
-        $totalAnnualFees = $platformFees + $fundFees;
+        $totalAnnualFees = $platformFees + $advisorFees + $fundFees;
         $feePercentage = $totalValue > 0 ? ($totalAnnualFees / $totalValue) * 100 : 0;
 
         // Low-cost comparison (assume 0.20% for low-cost index funds)
-        $lowCostEquivalent = $totalValue * 0.002; // 0.20%
+        $lowCostEquivalent = $totalValue * 0.002;
         $potentialSaving = max(0, $totalAnnualFees - $lowCostEquivalent);
 
         return [
             'total_annual_fees' => round($totalAnnualFees, 2),
             'fee_percentage' => round($feePercentage, 4),
             'platform_fees' => round($platformFees, 2),
+            'advisor_fees' => round($advisorFees, 2),
             'fund_ocf_fees' => round($fundFees, 2),
             'low_cost_comparison' => [
                 'low_cost_equivalent' => round($lowCostEquivalent, 2),

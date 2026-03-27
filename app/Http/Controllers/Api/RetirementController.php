@@ -28,6 +28,7 @@ use App\Services\Retirement\RetirementStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Retirement Controller
@@ -72,9 +73,23 @@ class RetirementController extends Controller
             $goalsSummary = null;
         }
 
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+
+        // Fall back to the user's target_retirement_age when the profile doesn't have one
+        if ($user->target_retirement_age) {
+            if ($profile && ! $profile->target_retirement_age) {
+                $profile->target_retirement_age = $user->target_retirement_age;
+            } elseif (! $profile) {
+                $profile = (object) [
+                    'target_retirement_age' => $user->target_retirement_age,
+                    'current_age' => $user->date_of_birth?->age,
+                ];
+            }
+        }
+
         $data = [
-            'profile' => RetirementProfile::where('user_id', $user->id)->first(),
-            'dc_pensions' => DCPension::where('user_id', $user->id)->get(),
+            'profile' => $profile,
+            'dc_pensions' => DCPension::where('user_id', $user->id)->with('holdings')->get(),
             'db_pensions' => DBPension::where('user_id', $user->id)->get(),
             'state_pension' => StatePension::where('user_id', $user->id)->first(),
             'life_events' => $lifeEvents,
@@ -295,10 +310,58 @@ class RetirementController extends Controller
             $data['risk_preference'] = $riskProfile->risk_level;
         }
 
-        $pension = DCPension::create($data);
+        // Extract holdings before creating pension (not a model field)
+        $holdings = $data['holdings'] ?? [];
+        unset($data['holdings']);
+
+        $pension = null;
+
+        DB::transaction(function () use ($data, $holdings, &$pension) {
+            $pension = DCPension::create($data);
+
+            if (! empty($holdings)) {
+                $hasCashHolding = false;
+
+                foreach ($holdings as $holdingData) {
+                    $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
+
+                    if (($holdingData['asset_type'] ?? '') === 'cash') {
+                        $hasCashHolding = true;
+                    }
+
+                    $pension->holdings()->create([
+                        'holdable_type' => DCPension::class,
+                        'holdable_id' => $pension->id,
+                        'security_name' => $holdingData['security_name'],
+                        'asset_type' => $holdingData['asset_type'] ?? 'fund',
+                        'allocation_percent' => $holdingData['allocation_percent'],
+                        'current_value' => $currentValue,
+                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                        'cost_basis' => $holdingData['cost_basis'] ?? null,
+                    ]);
+                }
+
+                // Auto-create cash holding for remainder
+                $totalAllocated = collect($holdings)->sum('allocation_percent');
+                if ($totalAllocated < 100 && ! $hasCashHolding) {
+                    $remainderPercent = 100 - $totalAllocated;
+                    $pension->holdings()->create([
+                        'holdable_type' => DCPension::class,
+                        'holdable_id' => $pension->id,
+                        'security_name' => 'Cash',
+                        'asset_type' => 'cash',
+                        'allocation_percent' => $remainderPercent,
+                        'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
+                    ]);
+                }
+            }
+        });
 
         // Invalidate cache
         $this->invalidateRetirementCache($user->id);
+
+        // Load holdings for response
+        $pension->load('holdings');
 
         return response()->json([
             'success' => true,
@@ -315,10 +378,62 @@ class RetirementController extends Controller
         $user = $request->user();
         $pension = DCPension::where('user_id', $user->id)->findOrFail($id);
 
-        $pension->update($request->validated());
+        $data = $request->validated();
+
+        // Extract holdings before updating pension (not a model field)
+        $holdings = $data['holdings'] ?? null;
+        unset($data['holdings']);
+
+        DB::transaction(function () use ($pension, $data, $holdings) {
+            $pension->update($data);
+
+            // Sync holdings if provided
+            if ($holdings !== null) {
+                // Delete existing holdings
+                $pension->holdings()->delete();
+
+                $hasCashHolding = false;
+
+                foreach ($holdings as $holdingData) {
+                    $currentValue = ($pension->current_fund_value * $holdingData['allocation_percent']) / 100;
+
+                    if (($holdingData['asset_type'] ?? '') === 'cash') {
+                        $hasCashHolding = true;
+                    }
+
+                    $pension->holdings()->create([
+                        'holdable_type' => DCPension::class,
+                        'holdable_id' => $pension->id,
+                        'security_name' => $holdingData['security_name'],
+                        'asset_type' => $holdingData['asset_type'] ?? 'fund',
+                        'allocation_percent' => $holdingData['allocation_percent'],
+                        'current_value' => $currentValue,
+                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                        'cost_basis' => $holdingData['cost_basis'] ?? null,
+                    ]);
+                }
+
+                // Auto-create cash holding for remainder
+                $totalAllocated = collect($holdings)->sum('allocation_percent');
+                if ($totalAllocated < 100 && ! $hasCashHolding) {
+                    $remainderPercent = 100 - $totalAllocated;
+                    $pension->holdings()->create([
+                        'holdable_type' => DCPension::class,
+                        'holdable_id' => $pension->id,
+                        'security_name' => 'Cash',
+                        'asset_type' => 'cash',
+                        'allocation_percent' => $remainderPercent,
+                        'current_value' => ($pension->current_fund_value * $remainderPercent) / 100,
+                    ]);
+                }
+            }
+        });
 
         // Invalidate cache
         $this->invalidateRetirementCache($user->id);
+
+        // Load holdings for response
+        $pension->load('holdings');
 
         return response()->json([
             'success' => true,
