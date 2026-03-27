@@ -128,7 +128,9 @@ class GoalsProjectionService
 
         // Start with current values
         $cash = $netWorth['breakdown']['cash'] ?? 0;
-        $investments = $netWorth['breakdown']['investments'] ?? 0;
+        $investments = ($netWorth['breakdown']['investments'] ?? 0)
+            + ($netWorth['breakdown']['business'] ?? 0)
+            + ($netWorth['breakdown']['chattels'] ?? 0);
         $property = $netWorth['breakdown']['property'] ?? 0;
         $pensions = $netWorth['breakdown']['pensions'] ?? 0;
         $mortgage = $netWorth['liabilities_breakdown']['mortgages'] ?? 0;
