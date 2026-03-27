@@ -320,7 +320,7 @@
           <!-- Company Info -->
           <div class="lg:col-span-2">
             <div class="-mt-3 mb-4">
-              <img :src="footerLogoUrl" alt="Fynla" width="124" height="56" class="h-14 w-auto" />
+              <router-link to="/"><img :src="footerLogoUrl" alt="Fynla" width="124" height="56" class="h-14 w-auto" /></router-link>
             </div>
             <p class="text-sm text-white/70 leading-relaxed">
               Financial freedom mapping -<br />your financial companion for life<br />through one single finance platform

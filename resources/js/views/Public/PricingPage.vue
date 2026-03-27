@@ -15,7 +15,7 @@
     </div>
 
     <!-- Pricing Cards -->
-    <div class="relative bg-light-pink-100 py-20 overflow-hidden">
+    <div class="relative bg-light-pink-100 pt-10 pb-20 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Billing Toggle -->
         <div class="flex justify-center mb-10">
@@ -214,6 +214,12 @@
                 </svg>
                 <span class="text-white/70 text-sm">Priority support</span>
               </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-white text-sm font-medium">No monthly upload limits</span>
+              </li>
             </ul>
 
             <button
@@ -230,6 +236,7 @@
     <!-- Trust Indicators -->
     <div class="bg-eggshell-500 py-12 border-t border-light-gray">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-10">Why Fynla?</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-3">
@@ -259,6 +266,10 @@
             <p class="text-sm text-slate-600">No lock-in contracts. Downgrade or cancel whenever you like.</p>
           </div>
         </div>
+        <p class="text-center text-sm text-neutral-500 mt-8">
+          To find out more about how Fynla can help you, take a look at our
+          <router-link to="/?demo=true" class="text-raspberry-500 hover:text-raspberry-600 font-medium">scenarios</router-link>.
+        </p>
       </div>
     </div>
 
@@ -288,7 +299,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="openFaq === index" class="px-6 pb-4 pt-1">
+            <div v-if="openFaq === index" class="px-6 pb-4 pt-[5px]">
               <p class="text-sm text-white/80 leading-relaxed">{{ faq.answer }}</p>
             </div>
           </div>
@@ -297,16 +308,13 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
-      <div class="absolute inset-0">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-3xl"></div>
-      </div>
+    <div class="relative bg-light-pink-100 py-16 overflow-hidden">
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-white mb-4">Ready to Take Control of Your Finances?</h2>
-        <p class="text-slate-300 mb-8">Start your 7-day free trial today. No credit card required.</p>
+        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to Take Control of Your Finances?</h2>
+        <p class="text-neutral-500 mb-8">Start your 7-day free trial today. No credit card required.</p>
         <router-link
           to="/register"
-          class="inline-flex items-center px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-50 transition-all shadow-lg hover:shadow-xl"
+          class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
         >
           Get Started Free
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
