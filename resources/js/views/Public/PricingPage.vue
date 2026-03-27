@@ -8,56 +8,57 @@
           <span class="text-raspberry-300">Transparent</span>
           Pricing
         </h1>
-        <p class="text-lg text-white/70 mb-6">
+        <p class="text-lg text-white/70">
           Start with a 7-day free trial on any plan. No credit card required.
         </p>
-
-        <!-- Billing Toggle -->
-        <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full p-1.5 border border-white/20">
-          <button
-            @click="isYearly = false"
-            :class="[
-              'px-5 py-2 rounded-full text-sm font-medium transition-all',
-              !isYearly ? 'bg-white text-slate-900 shadow-md' : 'text-white/70 hover:text-white'
-            ]"
-          >
-            Monthly
-          </button>
-          <button
-            @click="isYearly = true"
-            :class="[
-              'px-5 py-2 rounded-full text-sm font-medium transition-all',
-              isYearly ? 'bg-white text-slate-900 shadow-md' : 'text-white/70 hover:text-white'
-            ]"
-          >
-            Yearly
-            <span class="ml-1 text-xs text-spring-600 font-semibold" v-if="isYearly">Save up to 32%</span>
-          </button>
-        </div>
       </div>
     </div>
 
     <!-- Pricing Cards -->
-    <div class="relative bg-eggshell-500 py-20 overflow-hidden">
+    <div class="relative bg-light-pink-100 py-20 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Billing Toggle -->
+        <div class="flex justify-center mb-10">
+          <div class="inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-light-gray shadow-sm">
+            <button
+              @click="isYearly = false"
+              :class="[
+                'px-5 py-2 rounded-full text-sm font-medium transition-all',
+                !isYearly ? 'bg-horizon-500 text-white shadow-md' : 'text-horizon-400 hover:text-horizon-500'
+              ]"
+            >
+              Monthly
+            </button>
+            <button
+              @click="isYearly = true"
+              :class="[
+                'px-5 py-2 rounded-full text-sm font-medium transition-all',
+                isYearly ? 'bg-horizon-500 text-white shadow-md' : 'text-horizon-400 hover:text-horizon-500'
+              ]"
+            >
+              Yearly
+              <span class="ml-1 text-xs text-spring-500 font-semibold" v-if="isYearly">Save up to 32%</span>
+            </button>
+          </div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
 
           <!-- Student Plan -->
-          <div class="bg-light-pink-100 rounded-2xl border border-light-gray p-8 flex flex-col">
+          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-horizon-500 mb-1">Student</h3>
-              <p class="text-sm text-neutral-500">Get started with the essentials</p>
+              <h3 class="text-lg font-semibold text-white mb-1">Student</h3>
+              <p class="text-sm text-white/60">Get started with the essentials</p>
             </div>
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-4xl font-bold text-horizon-500">{{ isYearly ? '£30' : '£3.99' }}</span>
-                <span class="text-neutral-500 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="text-4xl font-bold text-white">{{ isYearly ? '£30' : '£3.99' }}</span>
+                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 37%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-eggshell-500 border border-light-gray rounded-full text-horizon-500 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -69,25 +70,25 @@
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Budgeting tools</span>
+                <span class="text-white/70 text-sm">Budgeting tools</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Debt tracking</span>
+                <span class="text-white/70 text-sm">Debt tracking</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Basic investment tracking</span>
+                <span class="text-white/70 text-sm">Basic investment tracking</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Goal setting</span>
+                <span class="text-white/70 text-sm">Goal setting</span>
               </li>
             </ul>
 
@@ -100,25 +101,25 @@
           </div>
 
           <!-- Standard Plan (Featured) -->
-          <div class="bg-light-pink-100 rounded-2xl border-2 border-raspberry-500 p-8 flex flex-col relative">
+          <div class="bg-horizon-500 rounded-2xl border-[3px] border-raspberry-500 p-8 flex flex-col relative">
             <div class="absolute -top-4 left-1/2 -translate-x-1/2">
               <span class="px-4 py-1.5 bg-raspberry-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
             </div>
 
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-horizon-500 mb-1">Standard</h3>
-              <p class="text-sm text-neutral-500">Full platform access</p>
+              <h3 class="text-lg font-semibold text-white mb-1">Standard</h3>
+              <p class="text-sm text-white/60">Full platform access</p>
             </div>
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-4xl font-bold text-horizon-500">{{ isYearly ? '£100' : '£10.99' }}</span>
-                <span class="text-neutral-500 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="text-4xl font-bold text-white">{{ isYearly ? '£100' : '£10.99' }}</span>
+                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 24%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-eggshell-500 border border-light-gray rounded-full text-horizon-500 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -130,37 +131,37 @@
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">All platform capabilities</span>
+                <span class="text-white/70 text-sm">All platform capabilities</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Protection, Savings, Investments</span>
+                <span class="text-white/70 text-sm">Protection, Savings, Investments</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Retirement & Estate planning</span>
+                <span class="text-white/70 text-sm">Retirement & Estate planning</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Spouse linking & joint assets</span>
+                <span class="text-white/70 text-sm">Spouse linking & joint assets</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">1 document upload per day</span>
+                <span class="text-white/70 text-sm">1 document upload per day</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">5 uploads per month maximum</span>
+                <span class="text-white/70 text-sm">5 uploads per month maximum</span>
               </li>
             </ul>
 
@@ -173,21 +174,21 @@
           </div>
 
           <!-- Pro Plan -->
-          <div class="bg-light-pink-100 rounded-2xl border border-light-gray p-8 flex flex-col">
+          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-horizon-500 mb-1">Pro</h3>
-              <p class="text-sm text-neutral-500">For power users who need it all</p>
+              <h3 class="text-lg font-semibold text-white mb-1">Pro</h3>
+              <p class="text-sm text-white/60">For power users who need it all</p>
             </div>
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-4xl font-bold text-horizon-500">{{ isYearly ? '£200' : '£19.99' }}</span>
-                <span class="text-neutral-500 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="text-4xl font-bold text-white">{{ isYearly ? '£200' : '£19.99' }}</span>
+                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 17%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-eggshell-500 border border-light-gray rounded-full text-horizon-500 text-xs font-medium mb-6 w-fit">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -199,19 +200,19 @@
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Everything in Standard</span>
+                <span class="text-white/70 text-sm">Everything in Standard</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-horizon-500 text-sm font-medium">Unlimited document uploads</span>
+                <span class="text-white text-sm font-medium">Unlimited document uploads</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-neutral-500 text-sm">Priority support</span>
+                <span class="text-white/70 text-sm">Priority support</span>
               </li>
             </ul>
 
@@ -236,7 +237,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <h3 class="text-base font-semibold text-slate-900 mb-1">7-Day Free Trial</h3>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">7-Day Free Trial</h3>
             <p class="text-sm text-slate-600">Try any plan risk-free. No credit card required to start.</p>
           </div>
           <div class="flex flex-col items-center">
@@ -245,16 +246,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <h3 class="text-base font-semibold text-slate-900 mb-1">UK Data Security</h3>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">UK Data Security</h3>
             <p class="text-sm text-slate-600">AES-256 encryption. Data stored in UK data centres. GDPR compliant.</p>
           </div>
           <div class="flex flex-col items-center">
-            <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
-              <svg class="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-light-blue-100 rounded-xl flex items-center justify-center mb-3 border border-light-gray">
+              <svg class="w-6 h-6 text-horizon-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
             </div>
-            <h3 class="text-base font-semibold text-slate-900 mb-1">Cancel Anytime</h3>
+            <h3 class="text-lg font-semibold text-horizon-500 mb-1">Cancel Anytime</h3>
             <p class="text-sm text-slate-600">No lock-in contracts. Downgrade or cancel whenever you like.</p>
           </div>
         </div>
@@ -265,7 +266,7 @@
     <div class="bg-horizon-500 py-16">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-          <h2 class="text-3xl font-bold text-white mb-3">Frequently Asked Questions</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently Asked Questions</h2>
           <p class="text-white/70">Everything you need to know about Fynla plans</p>
         </div>
 
@@ -287,7 +288,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="openFaq === index" class="px-6 pb-4">
+            <div v-if="openFaq === index" class="px-6 pb-4 pt-1">
               <p class="text-sm text-white/80 leading-relaxed">{{ faq.answer }}</p>
             </div>
           </div>
