@@ -199,6 +199,20 @@ export default {
       this.activeTab = tab === 'events' ? 'events' : 'overview';
     },
 
+    actionCounter() {
+      if (this.pendingAction === 'addGoal') {
+        this.openCreateModal();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'addLifeEvent') {
+        this.activeTab = 'events';
+        this.$nextTick(() => {
+          // EventsTab will handle opening the modal via its own create flow
+          // Dispatch event to trigger the EventsTab's create modal
+          this.$store.dispatch('subNav/consumeCta');
+        });
+      }
+    },
+
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (!fill) return;
       if (fill.entityType === 'goal') {
@@ -217,6 +231,7 @@ export default {
   computed: {
     ...mapState('goals', ['loading', 'error', 'goals']),
     ...mapGetters('goals', ['dashboardData']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     summary() {
       return {

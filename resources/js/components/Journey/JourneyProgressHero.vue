@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-light-pink-100 rounded-xl p-6 relative">
+  <div class="hero-container bg-light-pink-100 rounded-xl p-6 relative">
     <!-- Minimise/Expand toggle -->
     <button
       @click="toggleCollapsed"
@@ -23,8 +23,8 @@
       <!-- Greeting above all panels -->
       <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-horizon-500 mb-4 pr-6">{{ greeting }}, {{ firstName }}</h2>
 
-      <!-- Desktop: three-panel row (unchanged) -->
-      <div class="hidden lg:flex lg:flex-row lg:items-stretch gap-6 pr-6">
+      <!-- Desktop: three-panel row (container-query responsive) -->
+      <div class="hero-desktop-layout gap-6 pr-6">
 
         <!-- LEFT: Scenario Completeness -->
         <div class="flex-1 min-w-0">
@@ -55,11 +55,8 @@
 
             <!-- Stage info + next step + button (pt-3 aligns with visual top of progress ring) -->
             <div class="flex-1 min-w-0 pt-3">
-              <p class="text-sm text-neutral-500 mb-1">
-                <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
-                <span class="mx-1.5">&middot;</span>
-                <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
-              </p>
+              <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
+              <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
 
               <!-- Next step -->
               <div v-if="nextStep" class="flex items-center gap-2 mt-2">
@@ -97,13 +94,13 @@
         </div>
 
         <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
-        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40 status-divider">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Profile Completeness
             <span class="relative group">
               <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
               <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                Fyn takes your information and processes the data to provide recommendations on what you should consider to action to help change your financial future.
               </span>
             </span>
           </h4>
@@ -138,13 +135,13 @@
         </div>
 
         <!-- RIGHT: Recommended Actions (desktop only) -->
-        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40">
+        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40 status-divider">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
-            Recommended Actions
+            Fyn's Recommended Actions
             <span class="relative group">
               <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
               <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                Fyn takes your information and processes the data to provide recommendations on what you should consider to action to help change your financial future.
               </span>
             </span>
           </h4>
@@ -162,8 +159,8 @@
         </div>
       </div>
 
-      <!-- Mobile: swipeable carousel (below lg) -->
-      <div class="lg:hidden">
+      <!-- Mobile/narrow: swipeable carousel -->
+      <div class="hero-mobile-layout">
         <div
           ref="carouselRef"
           class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-6 px-6 gap-4"
@@ -196,13 +193,10 @@
                 </div>
               </div>
 
-              <!-- Stage info + next step + button -->
+              <!-- Stage info + next step -->
               <div class="flex-1 min-w-0 pt-3">
-                <p class="text-sm text-neutral-500 mb-1">
-                  <span class="font-semibold text-horizon-500">{{ stageLabel }}</span>
-                  <span class="mx-1.5">&middot;</span>
-                  <span>{{ completedCount }} of {{ totalSteps }} steps complete</span>
-                </p>
+                <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
+                <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
 
                 <!-- Next step -->
                 <div v-if="nextStep" class="flex items-center gap-2 mt-2">
@@ -227,16 +221,17 @@
                     <p class="text-xs text-neutral-500 mt-0.5">You have completed all onboarding steps.</p>
                   </div>
                 </div>
-
-                <button
-                  v-if="nextStep"
-                  class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
-                  @click="continueJourney"
-                >
-                  Continue Journey
-                </button>
               </div>
             </div>
+
+            <!-- Continue Journey button below the ring row -->
+            <button
+              v-if="nextStep"
+              class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+              @click="continueJourney"
+            >
+              Continue Journey
+            </button>
           </div>
 
           <!-- Slide 2: Profile Completeness -->
@@ -246,7 +241,7 @@
               <span class="relative group">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
                 <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                  This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                  Fyn takes your information and processes the data to provide recommendations on what you should consider to action to help change your financial future.
                 </span>
               </span>
             </h4>
@@ -283,11 +278,11 @@
           <!-- Slide 3: Recommended Actions (only if actions exist) -->
           <div v-if="topActions.length" class="snap-center flex-shrink-0 w-full">
             <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
-              Recommended Actions
+              Fyn's Recommended Actions
               <span class="relative group">
                 <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-horizon-500 text-white text-xs font-bold cursor-help">?</span>
                 <span class="absolute left-1/2 -translate-x-1/2 top-7 w-64 bg-horizon-500 text-white text-xs rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                  This shows the data and features that you haven't taken advantage of yet. Completing your profile will mean that Fyn can give you more accurate recommendations.
+                  Fyn takes your information and processes the data to provide recommendations on what you should consider to action to help change your financial future.
                 </span>
               </span>
             </h4>
@@ -503,3 +498,36 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.hero-container {
+  container-type: inline-size;
+}
+
+/* Desktop 3-panel: show when container is wide enough */
+.hero-desktop-layout {
+  display: none;
+}
+
+.hero-mobile-layout {
+  display: block;
+}
+
+@container (min-width: 850px) {
+  .hero-desktop-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .hero-mobile-layout {
+    display: none;
+  }
+}
+
+@media (max-width: 1500px) {
+  .status-divider {
+    border-left: none;
+  }
+}
+</style>

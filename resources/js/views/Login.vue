@@ -232,6 +232,9 @@ export default {
     });
 
     const handleLogin = async () => {
+      if (typeof gtag === 'function') {
+        gtag('event', 'login_attempt', { event_label: 'sign_in' });
+      }
       errors.value = {};
       errorMessage.value = '';
       isSubmitting.value = true;

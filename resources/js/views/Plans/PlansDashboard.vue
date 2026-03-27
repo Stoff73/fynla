@@ -3,14 +3,6 @@
     <div class="module-gradient py-6">
       <ModuleStatusBar />
       <div class="">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-horizon-500 mb-2">Financial Plans</h1>
-          <p class="text-neutral-500">
-            Personalised plans built from your financial data, with actionable recommendations
-          </p>
-        </div>
-
         <!-- Holistic Plan - Featured -->
         <div
           class="bg-white rounded-lg border border-raspberry-200 shadow-sm p-6 mb-8

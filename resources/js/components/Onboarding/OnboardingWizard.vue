@@ -835,6 +835,9 @@ export default {
 
     // Journey Map Modal handlers
     const handleStageSelected = async (stageId) => {
+      if (typeof gtag === 'function') {
+        gtag('event', 'journey_select', { event_label: stageId });
+      }
       // Stage selected from FocusAreaSelection (after user viewed journey map inline and clicked Start My Journey)
       await store.dispatch('lifeStage/setStage', stageId);
       lifeStageStarted.value = true;
@@ -1146,6 +1149,9 @@ export default {
 
       if (isQuickMode.value && nextIndex >= quickSteps.length) {
         await store.dispatch('onboarding/completeQuickOnboarding');
+        if (typeof gtag === 'function') {
+          gtag('event', 'onboarding_complete', { method: 'quick' });
+        }
         await store.dispatch('auth/fetchUser', null, { root: true });
         router.push({ name: 'Dashboard' });
         return;
@@ -1169,6 +1175,9 @@ export default {
 
       if (isLast) {
         await store.dispatch('journeys/completeJourney', currentJourneyName.value);
+        if (typeof gtag === 'function') {
+          gtag('event', 'journey_complete', { event_label: currentJourneyName.value });
+        }
         showJourneyCompletion.value = true;
       } else {
         store.dispatch('journeys/nextStep');

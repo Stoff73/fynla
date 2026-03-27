@@ -2,22 +2,10 @@
   <div class="events-tab">
     <!-- Header (hidden when detail view is active) -->
     <template v-if="!selectedEvent">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h3 class="text-lg font-semibold text-horizon-500">Life Events</h3>
-          <p class="text-sm text-neutral-500 mt-1">
-            Future occurrences that will impact your financial position
-          </p>
-        </div>
-        <button
-          @click="openCreateModal"
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-raspberry-600 rounded-button hover:bg-raspberry-700 transition-colors"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Life Event
-        </button>
+      <div class="mb-6">
+        <p class="text-sm text-neutral-500">
+          Future occurrences that will impact your financial position
+        </p>
       </div>
 
       <!-- Summary Cards -->
@@ -200,6 +188,8 @@ export default {
   computed: {
     ...mapState('goals', ['lifeEvents', 'lifeEventsLoading']),
     ...mapState('aiFormFill', ['pendingFill']),
+    subNavAction() { return this.$store.getters['subNav/pendingAction']; },
+    subNavCounter() { return this.$store.getters['subNav/actionCounter']; },
 
     loading() {
       return this.lifeEventsLoading;
@@ -263,6 +253,13 @@ export default {
   },
 
   watch: {
+    subNavCounter() {
+      if (this.subNavAction === 'addLifeEvent') {
+        this.openCreateModal();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
+
     pendingFill(fill) {
       if (fill && fill.entityType === 'life_event') {
         if (fill.mode === 'edit' && fill.entityId) {

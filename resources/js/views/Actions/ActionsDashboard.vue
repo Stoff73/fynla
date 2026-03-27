@@ -1,12 +1,6 @@
 <template>
   <AppLayout>
     <div class="py-8">
-      <!-- Page header -->
-      <div class="mb-8">
-        <h1 class="text-h2 font-display text-horizon-500">Actions</h1>
-        <p class="text-body-sm text-neutral-500 mt-2">Recommended actions from your financial plans</p>
-      </div>
-
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center h-64">
         <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>

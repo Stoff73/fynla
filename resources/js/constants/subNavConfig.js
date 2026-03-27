@@ -92,6 +92,9 @@ export const SUB_NAV_CONFIG = [
       '/goals': [
         { label: 'Add Goal', icon: 'plus', action: 'addGoal', style: 'primary' },
       ],
+      '/goals?tab=events': [
+        { label: 'Add Life Event', icon: 'plus', action: 'addLifeEvent', style: 'primary' },
+      ],
     },
   },
   {
@@ -163,6 +166,15 @@ export function findActiveTab(category, routePath, routeQuery = {}) {
 // Helper: get CTAs for the active tab's route
 export function getActiveCtas(category, activeTab) {
   if (!category || !activeTab || !category.ctas) return [];
-  const tabPath = typeof activeTab.to === 'string' ? activeTab.to : activeTab.to.path;
-  return category.ctas[tabPath] || [];
+  // Build a key that includes query params for query-based tabs
+  let tabKey;
+  if (typeof activeTab.to === 'string') {
+    tabKey = activeTab.to;
+  } else if (activeTab.to.query && Object.keys(activeTab.to.query).length) {
+    const queryString = Object.entries(activeTab.to.query).map(([k, v]) => `${k}=${v}`).join('&');
+    tabKey = `${activeTab.to.path}?${queryString}`;
+  } else {
+    tabKey = activeTab.to.path;
+  }
+  return category.ctas[tabKey] || [];
 }

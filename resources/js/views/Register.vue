@@ -310,6 +310,9 @@ export default {
     };
 
     const completeRegistration = async (data) => {
+      if (typeof gtag === 'function') {
+        gtag('event', 'sign_up', { method: 'email' });
+      }
       // Store the token
       await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
