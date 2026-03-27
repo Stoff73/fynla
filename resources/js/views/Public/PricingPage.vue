@@ -206,19 +206,19 @@
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-white text-sm font-medium">Unlimited document uploads</span>
+                <span class="text-white/70 text-sm">Unlimited document uploads</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-white/70 text-sm">No monthly upload limits</span>
               </li>
               <li class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 <span class="text-white/70 text-sm">Priority support</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white text-sm font-medium">No monthly upload limits</span>
               </li>
             </ul>
 
@@ -299,7 +299,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="openFaq === index" class="px-6 pb-4 pt-[5px]">
+            <div v-if="openFaq === index" class="px-6 pb-4 pt-[10px]">
               <p class="text-sm text-white/80 leading-relaxed">{{ faq.answer }}</p>
             </div>
           </div>
