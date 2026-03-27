@@ -37,6 +37,13 @@
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+            <div class="flex justify-center mt-3">
+              <img
+                src="/images/Website/Adobe Express - Fyn-Brain-Animation-White.gif"
+                alt="Fynla Brain"
+                class="w-24 h-auto rounded-lg"
+              />
+            </div>
           </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
@@ -50,7 +57,7 @@
           style="width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;"
         >
           <img
-            src="/images/Website/Homepage-Header-Desktop.png"
+            src="/images/Website/Homepage-Header-Desktopv2.png"
             alt="Fynla Brain — your financial planning intelligence"
             width="1315"
             height="489"
@@ -63,9 +70,18 @@
           </div>
 
           <!-- Caption card: centre -->
-          <div class="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-3 max-w-[28%] xl:max-w-xs text-center">
-            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
-            <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+          <div class="absolute top-14 bottom-0 left-1/2 -translate-x-1/2 py-3 max-w-[28%] xl:max-w-xs text-center flex flex-col overflow-hidden">
+            <div class="px-4">
+              <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
+              <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+            </div>
+            <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
+              <img
+                src="/images/Website/Adobe Express - Fyn-Brain-Animation-White.gif"
+                alt="Fynla Brain"
+                class="w-auto max-w-full max-h-full object-contain object-bottom"
+              />
+            </div>
           </div>
 
           <!-- Caption card: right -->
