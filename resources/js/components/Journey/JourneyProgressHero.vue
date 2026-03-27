@@ -300,16 +300,32 @@
           </div>
         </div>
 
-        <!-- Dot indicators -->
-        <div class="flex justify-center gap-2 mt-3">
+        <!-- Arrow + dot indicators -->
+        <div class="flex justify-center items-center gap-2.5 mt-3">
           <button
-            v-for="(_, index) in carouselSlideCount"
-            :key="index"
-            @click="scrollToSlide(index)"
-            class="w-2 h-2 rounded-full transition-colors"
-            :class="activeSlide === index ? 'bg-raspberry-500' : 'bg-neutral-300'"
-            :aria-label="'Go to slide ' + (index + 1)"
-          />
+            @click="scrollToSlide(Math.max(0, activeSlide - 1))"
+            class="text-raspberry-500 p-1"
+            aria-label="Previous slide"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="flex gap-1.5">
+            <button
+              v-for="(_, index) in carouselSlideCount"
+              :key="index"
+              @click="scrollToSlide(index)"
+              class="w-2 h-2 rounded-full transition-colors"
+              :class="activeSlide === index ? 'bg-raspberry-500' : 'bg-neutral-300'"
+              :aria-label="'Go to slide ' + (index + 1)"
+            />
+          </div>
+          <button
+            @click="scrollToSlide(Math.min(carouselSlideCount - 1, activeSlide + 1))"
+            class="text-raspberry-500 p-1"
+            aria-label="Next slide"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
         </div>
       </div>
     </template>
