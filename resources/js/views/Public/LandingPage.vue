@@ -39,7 +39,7 @@
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
             <div class="flex justify-center mt-3">
               <img
-                src="/images/Website/Adobe Express - Fyn-Brain-Animation-White.gif"
+                src="/images/Website/Fyn-Brain-Animated-Short.gif"
                 alt="Fynla Brain"
                 class="w-24 h-auto rounded-lg"
               />
@@ -77,7 +77,7 @@
             </div>
             <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
               <img
-                src="/images/Website/Adobe Express - Fyn-Brain-Animation-White.gif"
+                src="/images/Website/Fyn-Brain-Animated-Short.gif"
                 alt="Fynla Brain"
                 class="w-auto max-w-full max-h-full object-contain object-bottom"
               />
