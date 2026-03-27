@@ -38,7 +38,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🔒 STOP GATE — MANDATORY VERIFICATION\n\nBefore ending, confirm:\n□ All implementation matches the plan (re-read the plan document)\n□ All browser test checkpoints passed with snapshots\n□ All sub-agent work was verified (not self-approved)\n□ No TODO stubs presenting false functionality\n□ No console.log left in changed files\n□ No hardcoded hex in changed Vue files\n□ All user-facing text uses British spelling\n\nIf ANY of these are unchecked, address them before stopping.'"
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/eval-gate.sh",
+            "timeout": 30,
+            "statusMessage": "Evaluation gate checking..."
           }
         ]
       }
