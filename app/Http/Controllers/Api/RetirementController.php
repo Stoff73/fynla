@@ -73,8 +73,22 @@ class RetirementController extends Controller
             $goalsSummary = null;
         }
 
+        $profile = RetirementProfile::where('user_id', $user->id)->first();
+
+        // Fall back to the user's target_retirement_age when the profile doesn't have one
+        if ($user->target_retirement_age) {
+            if ($profile && ! $profile->target_retirement_age) {
+                $profile->target_retirement_age = $user->target_retirement_age;
+            } elseif (! $profile) {
+                $profile = (object) [
+                    'target_retirement_age' => $user->target_retirement_age,
+                    'current_age' => $user->date_of_birth?->age,
+                ];
+            }
+        }
+
         $data = [
-            'profile' => RetirementProfile::where('user_id', $user->id)->first(),
+            'profile' => $profile,
             'dc_pensions' => DCPension::where('user_id', $user->id)->with('holdings')->get(),
             'db_pensions' => DBPension::where('user_id', $user->id)->get(),
             'state_pension' => StatePension::where('user_id', $user->id)->first(),

@@ -620,6 +620,7 @@ export default {
       expandedAllowances: false,
       expandedNRB: false,
       expandedRNRB: false,
+      IHT_NIL_RATE_BAND,
     };
   },
 

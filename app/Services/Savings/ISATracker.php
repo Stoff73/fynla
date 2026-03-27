@@ -65,6 +65,11 @@ class ISATracker
             ->where('tax_year', $taxYear)
             ->sum('isa_subscription_current_year');
 
+        // When no explicit subscription tracked, estimate from monthly contributions
+        if ($stocksSharesIsaUsed <= 0) {
+            $stocksSharesIsaUsed = $this->estimateStocksSharesIsaUsage($userId);
+        }
+
         $totalUsed = $cashIsaUsed + $stocksSharesIsaUsed + $lisaUsed;
         $totalAllowance = (float) $tracking->total_allowance;
         $remaining = max(0, $totalAllowance - $totalUsed);
@@ -86,7 +91,8 @@ class ISATracker
 
         // Calculate projected ISA usage from regular contributions
         $projectedCashIsa = $this->calculateProjectedSubscriptions($userId, $taxYear, 'cash');
-        $projectedTotal = $projectedCashIsa + round($stocksSharesIsaUsed, 2) + round($lisaUsed, 2);
+        $projectedStocksSharesIsa = $this->estimateStocksSharesIsaUsage($userId, true);
+        $projectedTotal = $projectedCashIsa + round(max($stocksSharesIsaUsed, $projectedStocksSharesIsa), 2) + round($lisaUsed, 2);
 
         return [
             'cash_isa_used' => round($cashIsaUsed, 2),
@@ -225,6 +231,37 @@ class ISATracker
         }
 
         return $total;
+    }
+
+    /**
+     * Estimate S&S ISA usage from monthly contributions on investment accounts.
+     */
+    private function estimateStocksSharesIsaUsage(int $userId, bool $fullYear = false): float
+    {
+        $accounts = InvestmentAccount::where('user_id', $userId)
+            ->where('account_type', 'isa')
+            ->where('monthly_contribution_amount', '>', 0)
+            ->get();
+
+        if ($accounts->isEmpty()) {
+            return 0.0;
+        }
+
+        $taxYearStart = $this->getTaxYearStartDate();
+        $now = Carbon::now();
+        $monthsElapsed = max(1, (int) $taxYearStart->diffInMonths($now));
+
+        $total = 0.0;
+        foreach ($accounts as $account) {
+            $monthly = (float) $account->monthly_contribution_amount;
+            if ($fullYear) {
+                $total += $monthly * 12;
+            } else {
+                $total += $monthly * $monthsElapsed;
+            }
+        }
+
+        return round($total, 2);
     }
 
     /**

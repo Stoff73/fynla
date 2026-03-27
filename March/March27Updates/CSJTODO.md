@@ -1,38 +1,26 @@
 # CSJTODO — Fynla
 
-*Last updated: 26 March 2026 — sessions 11-13*
+*Last updated: 26 March 2026 — session 14*
 
 ---
 
-## Session 11 (26 March) — Pension Detail View: Holdings Tab + Fee Display + OCF Input
+## Session 14 (26 March) — Pension & Investment Edit Fixes + Holdings Detail
 
 ### Completed
-- [x] Holdings moved to dedicated tab, fee display updated, OCF input on holdings form
-- [x] Merged to main (PR #162)
-
-## Session 12 (26 March) — Fee System Gaps
-
-### Completed
-- [x] 3 pension fee actions, projection fixes, 2 protection premium actions, 10-year impact, premium_frequency migration
-- [x] Merged to main (PR #163)
-
-## Session 13 (26 March) — Protection UI + Eval Gate + Investment OCF Fix
-
-### Completed
-- [x] Remove domicile from completeness, simplify No Coverage card, unify to InfoGuidePanel
-- [x] Merged to main (PR #164)
-- [x] Eval-gate skill + eval-reviewer agent infrastructure
-
-### REVERTED — Needs Browser Testing
-- [ ] **Investment OCF fix** — PR #165 merged then reverted. Fix on `investmentFix-v2` branch. Adds `ocf_percent` to InvestmentController creation, StoreInvestmentAccountRequest validation, AccountForm edit loading. **MUST browser test before re-merging.**
+- [x] Browser tested investment OCF fix — create, save, edit, verify DB
+- [x] Fixed Monte Carlo £0 projection (PensionProjector.getUserAge DOB fallback)
+- [x] Fixed pension edit always creating duplicates — routes to updateDCPension
+- [x] Added holdings sync to pension and investment update controllers
+- [x] Fixed beneficiary and policy number persistence in pension
+- [x] Added holdings validation to UpdateInvestmentAccountRequest
+- [x] Rewrote investment AccountHoldingsPanel to match pension format
+- [x] Built and deployed all changes to production
+- [x] Merged PR #166, pushed holdings rewrite to main
+- [x] Policy number now displaying in pension detail view (was N/A)
 
 ---
 
 ## Outstanding Items
-
-### CRITICAL — First Thing Next Session
-- [ ] Browser test investment OCF fix on `investmentFix-v2` — create investment with holdings + OCF, verify saves, edit and verify loads back, then merge
-- [ ] Build and deploy all changes to production
 
 ### Tier 3 (Future — from feesMap.md)
 - [ ] Standardise all fee thresholds into PlanConfigService
@@ -41,7 +29,6 @@
 ### Next Priority Tasks
 - [ ] Test expenditure AI fill on production
 - [ ] Verify admin AI Provider panel shows Anthropic/xAI toggle cards
-- [ ] Policy number not displaying in pension detail view (shows N/A)
 
 ### Tech Debt
 - [ ] OnboardingWizard.vue: Vue warn about failed component resolution
@@ -57,4 +44,4 @@
 
 ## Context for Next Session
 
-`investmentFix-v2` branch has the OCF fix (3 files, 4 lines). Was merged as PR #165 but reverted because not browser tested. Fix is correct (pension side works identically). Start by: checkout investmentFix-v2, start dev, test, then merge. Production deploy pending — full file list in March/March26Updates/deploy26.md.
+All pension and investment edit flows now work correctly — holdings sync, OCF, beneficiary, policy number. Monte Carlo projections working. Investment and pension holdings detail views now use the same format. Everything deployed to production and verified working.
