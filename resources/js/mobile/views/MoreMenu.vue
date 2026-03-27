@@ -11,7 +11,7 @@
       class="w-full py-3 text-sm font-medium text-raspberry-500"
       @click="handleLogout"
     >
-      Log out
+      Sign Out
     </button>
 
     <!-- Version -->

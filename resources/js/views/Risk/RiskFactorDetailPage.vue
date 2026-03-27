@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="max-w-3xl mx-auto py-4 sm:py-8 px-4 sm:px-6">
+    <div class="module-gradient py-4 sm:py-8 px-4 sm:px-6">
+      <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center justify-between">
@@ -322,6 +323,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'RiskFactorDetailPage',
@@ -330,6 +332,7 @@ export default {
 
   components: {
     AppLayout,
+    ModuleStatusBar,
   },
 
   data() {

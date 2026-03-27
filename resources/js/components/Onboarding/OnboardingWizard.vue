@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-eggshell-500">
-
     <!-- Top Navigation Bar -->
     <div class="bg-white border-b border-light-gray">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
@@ -836,6 +835,9 @@ export default {
 
     // Journey Map Modal handlers
     const handleStageSelected = async (stageId) => {
+      if (typeof gtag === 'function') {
+        gtag('event', 'journey_select', { event_label: stageId });
+      }
       // Stage selected from FocusAreaSelection (after user viewed journey map inline and clicked Start My Journey)
       await store.dispatch('lifeStage/setStage', stageId);
       lifeStageStarted.value = true;
@@ -1147,6 +1149,9 @@ export default {
 
       if (isQuickMode.value && nextIndex >= quickSteps.length) {
         await store.dispatch('onboarding/completeQuickOnboarding');
+        if (typeof gtag === 'function') {
+          gtag('event', 'onboarding_complete', { method: 'quick' });
+        }
         await store.dispatch('auth/fetchUser', null, { root: true });
         router.push({ name: 'Dashboard' });
         return;
@@ -1170,6 +1175,9 @@ export default {
 
       if (isLast) {
         await store.dispatch('journeys/completeJourney', currentJourneyName.value);
+        if (typeof gtag === 'function') {
+          gtag('event', 'journey_complete', { event_label: currentJourneyName.value });
+        }
         showJourneyCompletion.value = true;
       } else {
         store.dispatch('journeys/nextStep');

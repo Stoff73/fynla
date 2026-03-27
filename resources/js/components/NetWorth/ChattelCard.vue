@@ -1,5 +1,5 @@
 <template>
-  <div class="chattel-card" @click="$emit('click')">
+  <div class="chattel-card module-gradient" @click="$emit('click')">
     <div class="card-header">
       <div class="header-left">
         <span class="chattel-type-badge" :class="typeClass">
@@ -106,7 +106,7 @@ export default {
 .chattel-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-pink-500;
+  @apply border-horizon-300;
 }
 
 .card-header {

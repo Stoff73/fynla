@@ -21,12 +21,10 @@
     >
       <div ref="appHeader">
         <Navbar />
+        <SubNavBar />
 
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
-
-        <!-- Trial Countdown Banner (non-preview users only) -->
-        <TrialCountdownBanner v-if="isAuthenticated && !isPreviewMode" />
 
         <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
         <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
@@ -36,8 +34,8 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500" :class="showDockedChat ? 'lg:mr-[380px]' : ''">
-        <div class="max-w-7xl mx-auto py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
+      <main class="flex-grow bg-eggshell-500" :class="showDockedChat && !chatCollapsed ? 'lg:mr-[285px]' : showDockedChat && chatCollapsed ? 'lg:mr-10' : ''">
+        <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
       </main>
@@ -46,12 +44,31 @@
     </div>
 
     <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
+    <!-- Expanded chat panel -->
     <aside
-      v-if="showDockedChat"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-[380px] border-l border-light-gray bg-white z-30 transition-all duration-100"
+      v-if="showDockedChat && !chatCollapsed"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-[285px] border-l border-light-gray bg-white z-30 transition-all duration-300"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
-      <AiChatPanel :docked="true" />
+      <AiChatPanel :docked="true" @collapse="toggleChat" />
+    </aside>
+
+    <!-- Collapsed chat strip -->
+    <aside
+      v-if="showDockedChat && chatCollapsed"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-10 bg-[#EEEEEE] border-l border-light-gray z-30 items-center pt-3 gap-3 transition-all duration-300"
+      :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
+    >
+      <button
+        @click="toggleChat"
+        class="w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
+        title="Expand Fyn chat"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+        </svg>
+      </button>
+      <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
     </aside>
 
     <!-- Information Guide panel (button moved to Navbar) -->
@@ -77,6 +94,7 @@ import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
+import SubNavBar from '@/components/SubNavBar.vue';
 import storage from '@/utils/storage';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
@@ -97,12 +115,14 @@ export default {
     SideMenuMobileToggle,
     OfflineBanner,
     AdvisorBanner,
+    SubNavBar,
   },
 
   data() {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
+      chatCollapsed: storage.get('fynChatCollapsed') === null ? false : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
     };
@@ -131,9 +151,9 @@ export default {
   },
 
   watch: {
-    // Collapse side menu when docked chat becomes active
+    // Collapse side menu when docked chat becomes active and expanded
     showDockedChat(active) {
-      if (active && !this.sideMenuCollapsed) {
+      if (active && !this.chatCollapsed && !this.sideMenuCollapsed) {
         this.sideMenuCollapsed = true;
         storage.set(STORAGE_KEY, true);
       }
@@ -145,18 +165,17 @@ export default {
       this.fetchInfoGuidePreference();
     }
 
-    // Collapse side menu for real users with docked chat
-    if (this.showDockedChat && !this.sideMenuCollapsed) {
-      this.sideMenuCollapsed = true;
-      storage.set(STORAGE_KEY, true);
-    }
+    // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
+    // route change, which would override the user's explicit expand/collapse choice.
+    // The watcher on showDockedChat handles the initial collapse when chat first opens.
 
     // Track header height + footer visibility for docked chat positioning
     this._updateChatOffsets = () => {
-      // Header: measure actual height of navbar + banners
+      // Header: use visible portion of header (shrinks to 0 as header scrolls out)
       const header = this.$refs.appHeader;
       if (header) {
-        this.headerOffset = header.offsetHeight;
+        const headerRect = header.getBoundingClientRect();
+        this.headerOffset = Math.max(0, headerRect.bottom);
       }
 
       // Footer: adjust bottom when footer scrolls into view
@@ -197,6 +216,11 @@ export default {
     toggleSideMenu() {
       this.sideMenuCollapsed = !this.sideMenuCollapsed;
       storage.set(STORAGE_KEY, this.sideMenuCollapsed);
+    },
+
+    toggleChat() {
+      this.chatCollapsed = !this.chatCollapsed;
+      storage.set('fynChatCollapsed', this.chatCollapsed);
     },
   },
 };

@@ -1,5 +1,14 @@
 <template>
   <AppLayout>
+    <div class="protection-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
+      <div class="">
+      <!-- Profile Completeness Alert -->
+      <ProfileCompletenessAlert
+        v-if="profileCompleteness && !loadingCompleteness"
+        :completenessData="profileCompleteness"
+        :dismissible="true"
+      />
     <div class="protection-dashboard py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
       <!-- Header -->
@@ -50,13 +59,11 @@
           :impact-summary="lifeEventImpact"
         />
 
-      <div class="bg-white rounded-lg shadow">
-        <div class="p-6">
-          <CurrentSituation
-            @add-policy="handleAddPolicy"
-            @edit-policy="handleEditPolicy"
-          />
-        </div>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <CurrentSituation
+          @add-policy="handleAddPolicy"
+          @edit-policy="handleEditPolicy"
+        />
       </div>
       </div> <!-- v-else -->
 
@@ -79,6 +86,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
 
 export default {
@@ -89,6 +97,7 @@ export default {
     CurrentSituation,
     PolicyFormModal,
     ModuleLifeEvents,
+    ModuleStatusBar,
   },
 
   data() {

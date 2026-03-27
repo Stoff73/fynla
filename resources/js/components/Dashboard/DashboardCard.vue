@@ -1,10 +1,18 @@
 <template>
   <div
-    class="dashboard-card bg-white rounded-lg border border-light-gray p-6 transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-400"
-    @click="$emit('click')"
-    role="button"
-    tabindex="0"
-    @keypress.enter="$emit('click')"
+    class="dashboard-card rounded-lg border border-light-gray p-6 transition-all duration-200"
+    :class="[
+      empty
+        ? 'bg-light-blue-100 cursor-pointer order-last'
+        : (clickable
+          ? 'bg-white cursor-pointer hover:shadow-md hover:-translate-y-0.5 hover-blue-gradient'
+          : 'bg-white'),
+      !loading && !noGradient && !empty ? 'module-gradient' : ''
+    ]"
+    @click="clickable ? $emit('click') : null"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    @keypress.enter="clickable ? $emit('click') : null"
   >
     <!-- Loading state -->
     <div v-if="loading" class="animate-pulse">
@@ -18,8 +26,11 @@
     <!-- Content -->
     <div v-else>
       <!-- Card header with title -->
-      <div class="mb-4">
+      <div class="mb-4 flex items-start justify-between">
         <h3 class="text-lg font-semibold text-horizon-500">{{ title }}</h3>
+        <svg v-if="clickable" class="w-4 h-4 text-neutral-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
       </div>
 
       <!-- Card content slot -->
@@ -38,6 +49,18 @@ export default {
       required: true,
     },
     loading: {
+      type: Boolean,
+      default: false,
+    },
+    clickable: {
+      type: Boolean,
+      default: true,
+    },
+    empty: {
+      type: Boolean,
+      default: false,
+    },
+    noGradient: {
       type: Boolean,
       default: false,
     },

@@ -1,5 +1,6 @@
 <template>
   <div class="investment-list overflow-hidden">
+    <ModuleStatusBar />
     <!-- Investment Detail View (when an account is selected) -->
     <InvestmentProjections
       v-if="selectedAccount"
@@ -12,44 +13,6 @@
 
     <!-- Investment List View (default) -->
     <template v-else>
-      <div class="list-header">
-        <div class="title-row">
-          <h2 class="list-title">Investments
-            <span class="relative inline-flex ml-1 group">
-              <svg class="w-4 h-4 text-violet-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-              <span class="absolute left-1/2 -translate-x-1/2 top-6 w-72 p-3 bg-horizon-500 text-white text-xs font-normal rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 leading-relaxed">
-                We will be connecting this section to Bloomberg, Morningstar or FE Analytics to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
-              </span>
-            </span>
-          </h2>
-          <router-link
-            to="/risk-profile"
-            class="risk-profile-link"
-          >
-            <svg class="risk-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Risk Profile
-          </router-link>
-        </div>
-        <div class="header-buttons">
-          <button @click="showAccountForm = true" class="add-account-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Account
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload Statement
-          </button>
-        </div>
-      </div>
-
       <!-- Risk Mismatch Warning -->
       <RiskMismatchWarning
         v-if="riskMismatch"
@@ -73,15 +36,20 @@
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
       </div>
 
-      <!-- Two-column layout: Account Cards (left) + Performance Chart (right) -->
-      <div v-else class="main-content-grid">
-        <!-- Left Column: Compact Account Cards -->
-        <div class="accounts-column">
+      <!-- Full-width layout: Chart first, account cards below -->
+      <div v-else class="space-y-6">
+        <!-- Portfolio Performance (full width) -->
+        <div class="performance-section module-gradient">
+          <Performance @navigate-to-tab="activePortfolioTab = $event" />
+        </div>
+
+        <!-- Account Cards (horizontal row) -->
+        <div class="accounts-row">
           <div
             v-for="account in accounts"
             :key="account.id"
             @click="selectAccount(account)"
-            class="compact-account-card"
+            class="compact-account-card module-gradient"
           >
               <!-- Joint Badge - Top Right Corner -->
               <span
@@ -115,7 +83,7 @@
                     </div>
                     <div class="detail-row">
                       <span class="detail-label">Your Share ({{ account.ownership_percentage || 50 }}%)</span>
-                      <span class="detail-value text-purple-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
+                      <span class="detail-value text-violet-600">{{ formatCurrency(getDisplayValue(account) * ((account.ownership_percentage || 50) / 100)) }}</span>
                     </div>
                   </template>
                   <!-- Individual account -->
@@ -144,10 +112,27 @@
               </div>
             </div>
           </div>
+      </div>
 
-        <!-- Right Column: Portfolio Performance -->
-        <div class="performance-section">
-          <Performance @navigate-to-tab="activePortfolioTab = $event" />
+      <!-- Data integration notice -->
+      <div class="bg-eggshell-500 rounded-lg border border-light-gray p-5 mt-5">
+        <div class="flex items-start gap-3 mb-3">
+          <h4 class="text-base font-semibold text-horizon-500">Analytics</h4>
+          <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 mt-0.5">Coming Soon</span>
+        </div>
+        <p class="text-sm text-neutral-500 mb-3">
+          We will be connecting this section to give an in-depth view of investments and holdings. For now we offer a Monte Carlo (1,000 iterations) for a simple forward look, once connected we can include the past data for your account and holdings.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">Bloomberg</span>
+          </div>
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">Morningstar</span>
+          </div>
+          <div class="flex items-center gap-2 bg-white rounded-lg border border-light-gray px-3 py-2">
+            <span class="text-sm font-semibold text-horizon-500">FE Analytics</span>
+          </div>
         </div>
       </div>
 
@@ -195,22 +180,26 @@
     </template>
 
     <!-- Account Form Modal -->
-    <AccountForm
-      :show="showAccountForm"
-      :account="editingAccount"
-      :is-edit="!!editingAccount"
-      @close="closeAccountForm"
-      @save="handleAccountSave"
-    />
+    <Teleport to="body">
+      <AccountForm
+        :show="showAccountForm"
+        :account="editingAccount"
+        :is-edit="!!editingAccount"
+        @close="closeAccountForm"
+        @save="handleAccountSave"
+      />
+    </Teleport>
 
     <!-- Document Upload Modal -->
-    <DocumentUploadModal
-      v-if="showUploadModal"
-      document-type="investment_statement"
-      @close="showUploadModal = false"
-      @saved="handleDocumentSaved"
-      @manual-entry="showUploadModal = false; showAccountForm = true;"
-    />
+    <Teleport to="body">
+      <DocumentUploadModal
+        v-if="showUploadModal"
+        document-type="investment_statement"
+        @close="showUploadModal = false"
+        @saved="handleDocumentSaved"
+        @manual-entry="showUploadModal = false; showAccountForm = true;"
+      />
+    </Teleport>
 
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
@@ -235,6 +224,7 @@ import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
 import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -255,6 +245,7 @@ export default {
     FeeBreakdown,
     TaxEfficiencyPanel,
     RiskMismatchWarning,
+    ModuleStatusBar,
   },
 
   data() {
@@ -286,6 +277,7 @@ export default {
       'totalPortfolioValue',
       'holdingsCount',
     ]),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {
@@ -364,6 +356,15 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addAccount') {
+        this.showAccountForm = true;
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadStatement') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (!fill) return;
       if (fill.entityType === 'investment_account') {
@@ -798,113 +799,14 @@ export default {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  @apply bg-eggshell-500;
 }
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
 
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.list-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-horizon-500;
-  margin: 0;
-}
-
-.risk-profile-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  @apply bg-violet-50;
-  @apply text-violet-600;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.risk-profile-link:hover {
-  @apply bg-violet-100;
-}
-
-.risk-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.add-account-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  @apply bg-raspberry-500;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.add-account-button:hover {
-  @apply bg-raspberry-500;
-}
-
-.upload-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: white;
-  @apply text-raspberry-500;
-  @apply border-2 border-raspberry-500;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.upload-button:hover {
-  @apply bg-violet-50;
-}
-
-.button-icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* Two-column layout: Account Cards (left) + Performance Chart (right) */
-.main-content-grid {
+.accounts-row {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.accounts-column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .compact-account-card {
@@ -939,11 +841,20 @@ export default {
 
 .compact-account-card:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 .performance-section {
   min-width: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  @apply border border-light-gray;
+  transition: border-color 0.2s;
+}
+
+.performance-section:hover {
+  @apply border-horizon-300;
 }
 
 .investment-card {
@@ -1124,10 +1035,9 @@ export default {
 }
 
 .empty-state {
-  background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-icon {
@@ -1324,18 +1234,8 @@ export default {
 }
 
 @media (max-width: 1024px) {
-  .main-content-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .accounts-column {
-    display: grid;
+  .accounts-row {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    order: 2;
-  }
-
-  .performance-section {
-    order: 1;
   }
 }
 
@@ -1344,28 +1244,7 @@ export default {
     padding: 16px;
   }
 
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-buttons {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .add-account-button,
-  .upload-button {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .main-content-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .accounts-column {
+  .accounts-row {
     grid-template-columns: 1fr;
   }
 

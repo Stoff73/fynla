@@ -15,14 +15,59 @@
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
     </div>
 
-    <div v-else-if="hasData && !loading && chartReady" class="chart-container">
-      <apexchart
-        :key="chartKey"
-        type="donut"
-        :options="chartOptions"
-        :series="series"
-        height="350"
-      />
+    <div v-else-if="hasData && !loading" class="chart-container">
+      <div class="flex justify-center">
+        <div class="relative" style="width: 300px; height: 300px;">
+          <svg viewBox="0 0 220 220" width="300" height="300">
+            <defs>
+              <linearGradient
+                v-for="(seg, idx) in donutSegments"
+                :key="'grad-' + idx"
+                :id="'asset-alloc-grad-' + idx"
+                x1="0%" y1="0%" x2="100%" y2="0%"
+              >
+                <stop offset="0%" :stop-color="seg.color" />
+                <stop offset="100%" :stop-color="seg.colorLight" />
+              </linearGradient>
+            </defs>
+            <circle
+              v-for="(seg, idx) in donutSegments"
+              :key="'seg-' + idx"
+              cx="110" cy="110" r="75"
+              fill="none"
+              :stroke="'url(#asset-alloc-grad-' + idx + ')'"
+              stroke-width="40"
+              stroke-linecap="round"
+              :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+              :stroke-dashoffset="-seg.offset"
+              transform="rotate(-90 110 110)"
+              class="cursor-pointer"
+              @mouseenter="hoveredIndex = idx"
+              @mouseleave="hoveredIndex = null"
+            />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <template v-if="hoveredIndex !== null && hoveredIndex < chartLabels.length">
+              <span class="text-[10px] font-semibold text-horizon-400">{{ chartLabels[hoveredIndex] }}</span>
+              <span class="text-xl font-bold text-horizon-700">{{ series[hoveredIndex].toFixed(1) }}%</span>
+            </template>
+            <template v-else>
+              <span class="text-[10px] font-semibold text-horizon-400">Total</span>
+              <span class="text-xl font-bold text-horizon-700">{{ totalPercent.toFixed(1) }}%</span>
+            </template>
+          </div>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div class="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
+        <div v-for="(label, idx) in chartLabels" :key="label" class="flex items-center gap-2">
+          <span
+            class="w-3 h-3 rounded-full flex-shrink-0"
+            :style="{ backgroundColor: chartColors[idx % chartColors.length] }"
+          ></span>
+          <span class="text-sm text-neutral-500">{{ label }}: {{ series[idx].toFixed(1) }}%</span>
+        </div>
+      </div>
     </div>
 
     <div v-else class="flex items-center justify-center h-64 text-neutral-500">
@@ -57,17 +102,12 @@
 </template>
 
 <script>
-import VueApexCharts from 'vue3-apexcharts';
-import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetAllocationChart',
 
   emits: ['view-details', 'add-holding'],
-
-  components: {
-    apexchart: VueApexCharts,
-  },
 
   props: {
     allocation: {
@@ -87,8 +127,8 @@ export default {
 
   data() {
     return {
-      chartReady: false,
-      renderTimeout: null,
+      hoveredIndex: null,
+      chartColors: CHART_COLORS,
     };
   },
 
@@ -97,130 +137,56 @@ export default {
       return this.allocation && Object.keys(this.allocation).length > 0;
     },
 
-    chartKey() {
-      const total = this.series?.reduce((a, b) => a + b, 0) || 0;
-      return `asset-donut-${this.series?.length || 0}-${Math.round(total)}`;
-    },
-
     series() {
       if (!this.hasData) return [];
-
       return Object.values(this.allocation).map(item =>
         typeof item === 'object' ? item.percentage : item
       );
     },
 
-    chartOptions() {
-      const labels = Object.keys(this.allocation).map(key => {
-        // Convert snake_case to Title Case
+    chartLabels() {
+      return Object.keys(this.allocation).map(key => {
         return key.split('_')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
       });
+    },
 
-      return {
-        chart: {
-          type: 'donut',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-          toolbar: {
-            show: false,
-          },
-        },
-        labels: labels,
-        colors: CHART_COLORS,
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '65%',
-              labels: {
-                show: true,
-                name: {
-                  show: true,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: TEXT_COLORS.secondary,
-                },
-                value: {
-                  show: true,
-                  fontSize: '24px',
-                  fontWeight: 700,
-                  color: TEXT_COLORS.primary,
-                  formatter: (val) => `${val.toFixed(1)}%`,
-                },
-                total: {
-                  show: true,
-                  label: 'Total Value',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: TEXT_COLORS.muted,
-                  formatter: () => {
-                    const total = this.series.reduce((sum, val) => sum + val, 0);
-                    return `${total.toFixed(1)}%`;
-                  },
-                },
-              },
-            },
-          },
-        },
-        dataLabels: {
-          enabled: false,
-        },
-        legend: {
-          position: 'bottom',
-          fontSize: '14px',
-          fontWeight: 500,
-          labels: {
-            colors: TEXT_COLORS.secondary,
-          },
-          markers: {
-            width: 12,
-            height: 12,
-            radius: 3,
-          },
-          itemMargin: {
-            horizontal: 10,
-            vertical: 5,
-          },
-          formatter: (seriesName, opts) => {
-            const value = opts.w.globals.series[opts.seriesIndex];
-            return `${seriesName}: ${value.toFixed(1)}%`;
-          },
-        },
-        tooltip: {
-          enabled: true,
-          y: {
-            formatter: (val) => `${val.toFixed(2)}%`,
-          },
-        },
-        responsive: [
-          {
-            breakpoint: 768,
-            options: {
-              chart: {
-                height: 300,
-              },
-              legend: {
-                position: 'bottom',
-                fontSize: '12px',
-              },
-            },
-          },
-        ],
-      };
+    totalPercent() {
+      return this.series.reduce((sum, val) => sum + val, 0);
+    },
+
+    donutSegments() {
+      const total = this.totalPercent;
+      if (total === 0) return [];
+
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return this.series.map((value, idx) => {
+        const proportion = value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        const seg = {
+          color,
+          colorLight: this.lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
   },
 
-  mounted() {
-    this.$nextTick(() => {
-      // Delay chart rendering to ensure DOM is ready
-      this.renderTimeout = setTimeout(() => {
-        this.chartReady = true;
-      }, 100);
-    });
-  },
-
-  beforeUnmount() {
-    if (this.renderTimeout) clearTimeout(this.renderTimeout);
+  methods: {
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    },
   },
 };
 </script>

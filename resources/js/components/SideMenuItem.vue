@@ -104,24 +104,10 @@ export default {
       return 'text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500';
     },
     activeBgClass() {
-      const colourMap = {
-        'violet': 'bg-violet-50 text-violet-700',
-        'spring': 'bg-spring-50 text-spring-700',
-        'raspberry': 'bg-raspberry-50 text-raspberry-700',
-        'light-blue': 'bg-light-blue-100 text-horizon-700',
-        'horizon': 'bg-horizon-100 text-horizon-700',
-      };
-      return colourMap[this.activeColour] || 'bg-raspberry-50 text-raspberry-700';
+      return 'bg-horizon-500 text-white';
     },
     activeIconClass() {
-      const colourMap = {
-        'violet': 'text-violet-500',
-        'spring': 'text-spring-500',
-        'raspberry': 'text-raspberry-500',
-        'light-blue': 'text-light-blue-500',
-        'horizon': 'text-horizon-500',
-      };
-      return colourMap[this.activeColour] || 'text-raspberry-500';
+      return 'text-white';
     },
   },
 };

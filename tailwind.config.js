@@ -15,11 +15,16 @@ export default {
     'bg-raspberry-50', 'bg-raspberry-100', 'bg-raspberry-500', 'text-raspberry-500', 'text-raspberry-700', 'border-raspberry-300',
     'bg-spring-50', 'bg-spring-100', 'bg-spring-500', 'text-spring-500', 'text-spring-700', 'border-spring-300',
     'bg-violet-50', 'bg-violet-100', 'bg-violet-500', 'text-violet-500', 'text-violet-700', 'border-violet-300',
-    'bg-horizon-50', 'bg-horizon-100', 'text-horizon-500', 'border-horizon-200',
+    'bg-horizon-50', 'bg-horizon-100', 'bg-horizon-400', 'text-horizon-500', 'border-horizon-200',
+    // Progress bar gradients
+    'from-horizon-400', 'to-horizon-500', 'from-horizon-200', 'to-horizon-400',
+    'from-raspberry-400', 'to-raspberry-600', 'from-violet-400', 'to-violet-600',
     'bg-savannah-100', 'bg-eggshell-500',
     // Life stage sidebar — dynamic stage colours (progress ring, active states, badges)
     'stroke-violet-500', 'stroke-spring-500', 'stroke-raspberry-500', 'stroke-light-blue-500', 'stroke-horizon-500',
-    'bg-light-blue-100', 'bg-light-blue-500', 'text-light-blue-500',
+    'bg-light-blue-100', 'bg-light-blue-500', 'text-light-blue-500', 'hover:bg-light-blue-600',
+    'bg-light-pink-100', 'hover:bg-light-pink-400', 'bg-light-pink-50',
+    'bg-light-pink-200', 'border-light-pink-200', 'border-light-pink-300', 'hover:bg-light-pink-100',
     'bg-horizon-500', 'text-horizon-700', 'stroke-light-gray',
   ],
   theme: {
@@ -103,6 +108,8 @@ export default {
         'light-pink': {
           50: '#FDF0F4',
           100: '#FAD6E0',
+          200: '#F5B3C5',
+          300: '#F095AD',
           400: '#EF7598',
         },
 

@@ -4,20 +4,6 @@
     <div class="account-overview">
       <div class="section-header-row">
         <h3 class="section-title">Account Overview</h3>
-        <div class="flex gap-3">
-          <button v-preview-disabled="'add'" @click="handleAddAccount" class="add-account-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="btn-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Account
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-btn">
-            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Upload Statement
-          </button>
-        </div>
       </div>
 
       <!-- Preview Mode: Show full dashboard -->
@@ -200,6 +186,7 @@ export default {
   computed: {
     ...mapState('savings', ['accounts']),
     ...mapGetters('savings', ['totalSavings', 'emergencyFundRunway']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -209,6 +196,18 @@ export default {
       if (this.emergencyFundRunway >= 6) return 'text-spring-600';
       if (this.emergencyFundRunway >= 3) return 'text-violet-600';
       return 'text-raspberry-600';
+    },
+  },
+
+  watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addAccount') {
+        this.handleAddAccount();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadStatement') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
     },
   },
 
@@ -393,7 +392,7 @@ export default {
 }
 
 .upload-btn:hover {
-  @apply bg-violet-50;
+  @apply bg-light-pink-50;
 }
 
 .btn-icon {
@@ -516,9 +515,8 @@ export default {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-message {
@@ -529,8 +527,7 @@ export default {
 
 .add-account-button {
   padding: 12px 24px;
-  @apply bg-raspberry-500;
-  color: white;
+  @apply bg-horizon-500 text-white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -540,7 +537,7 @@ export default {
 }
 
 .add-account-button:hover {
-  @apply bg-raspberry-500;
+  @apply bg-horizon-600;
 }
 
 /* Open Banking Promo Card */

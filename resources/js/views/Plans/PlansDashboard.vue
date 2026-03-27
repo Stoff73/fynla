@@ -1,40 +1,26 @@
 <template>
   <AppLayout>
-    <div class="py-6">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-horizon-500 mb-2">Financial Plans</h1>
-          <p class="text-neutral-500">
-            Personalised plans built from your financial data, with actionable recommendations
-          </p>
-        </div>
-
-        <!-- Holistic Plan - Featured -->
+    <div class="module-gradient py-6">
+      <ModuleStatusBar />
+      <div class="">
+        <!-- Holistic Plan - Premium CTA -->
         <div
-          class="bg-white rounded-lg border border-raspberry-200 shadow-sm p-6 mb-8
-                 hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-300
-                 transition-all duration-200 cursor-pointer"
+          class="holistic-cta relative overflow-hidden rounded-2xl p-8 mb-8 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
           @click="$router.push('/holistic-plan')"
         >
-          <div class="flex items-center gap-6">
-            <div class="flex-shrink-0 p-4 bg-raspberry-50 rounded-lg">
-              <svg class="w-10 h-10 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
-              </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <h2 class="text-xl font-semibold text-horizon-500 mb-1">Holistic Financial Plan</h2>
-              <p class="text-neutral-500 text-sm">
-                Your complete financial strategy across all modules — net worth projection, cross-module recommendations, cashflow allocation, and risk assessment
-              </p>
-            </div>
-            <div class="flex-shrink-0 flex items-center text-raspberry-500 font-medium text-sm">
-              <span>View Plan</span>
-              <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="absolute -right-5 -top-5 w-44 h-44 rounded-full bg-white/5"></div>
+          <div class="absolute right-10 -bottom-8 w-28 h-28 rounded-full bg-white/[0.03]"></div>
+          <div class="relative z-10">
+            <h2 class="text-xl sm:text-2xl font-black text-white mb-2">Your Holistic Financial Plan</h2>
+            <p class="text-sm text-white/80 mb-5 max-w-2xl">
+              Your complete financial strategy across all modules — net worth projection, cross-module recommendations, cashflow allocation, and risk assessment
+            </p>
+            <span class="inline-flex items-center gap-2 bg-raspberry-500 hover:bg-raspberry-600 text-white px-6 py-2.5 rounded-button text-sm font-semibold transition-colors">
+              View Your Plan
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
-            </div>
+            </span>
           </div>
         </div>
 
@@ -121,10 +107,11 @@ import { mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import AppLayout from '@/layouts/AppLayout.vue';
 import PlanDashboardCard from '@/components/Plans/Shared/PlanDashboardCard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'PlansDashboard',
-  components: { AppLayout, PlanDashboardCard },
+  components: { AppLayout, PlanDashboardCard, ModuleStatusBar },
   mixins: [currencyMixin],
 
   computed: {
@@ -168,3 +155,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.holistic-cta {
+  background: linear-gradient(135deg, #1F2A44 0%, #2D3A5C 100%);
+}
+</style>

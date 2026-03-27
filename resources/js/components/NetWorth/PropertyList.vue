@@ -1,5 +1,6 @@
 <template>
   <div class="property-list">
+    <ModuleStatusBar />
     <!-- Property Detail View (when a property is selected) -->
     <PropertyDetailInline
       v-if="selectedProperty"
@@ -10,16 +11,6 @@
 
     <!-- Property List View (default) -->
     <template v-else>
-      <div class="list-header">
-        <h2 class="list-title">Properties</h2>
-        <button v-preview-disabled="'add'" @click="addProperty" class="add-property-button">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Property
-        </button>
-      </div>
-
       <div v-if="loading" class="loading-state">
         <p>Loading properties...</p>
       </div>
@@ -34,6 +25,12 @@
         </svg>
         <p>No properties found</p>
         <p class="empty-subtitle">Add your first property to track your property portfolio</p>
+        <button v-preview-disabled="'add'" @click="addProperty" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Property
+        </button>
       </div>
 
       <div v-else class="properties-grid">
@@ -47,13 +44,15 @@
     </template>
 
     <!-- Property Form Modal -->
-    <PropertyForm
-      v-if="showPropertyForm"
-      :property="selectedProperty"
-      :user-address="userAddress"
-      @save="handleSaveProperty"
-      @close="closePropertyForm"
-    />
+    <Teleport to="body">
+      <PropertyForm
+        v-if="showPropertyForm"
+        :property="selectedProperty"
+        :user-address="userAddress"
+        @save="handleSaveProperty"
+        @close="closePropertyForm"
+      />
+    </Teleport>
 
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
@@ -70,6 +69,7 @@ import { mapActions, mapState, mapGetters } from 'vuex';
 import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import api from '@/services/api';
 
 export default {
@@ -79,6 +79,7 @@ export default {
     PropertyCard,
     PropertyForm,
     PropertyDetailInline,
+    ModuleStatusBar,
   },
 
   data() {
@@ -99,6 +100,7 @@ export default {
   computed: {
     ...mapState('netWorth', ['isDetailView']),
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -125,6 +127,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addProperty') {
+        this.addProperty();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     // Clear selection when sidebar link is clicked (sets isDetailView to false)
     isDetailView(newVal) {
       if (!newVal && this.selectedProperty) {
@@ -310,6 +318,7 @@ export default {
 <style scoped>
 .property-list {
   padding: 24px;
+  @apply bg-eggshell-500;
 }
 
 .list-header {
@@ -377,10 +386,30 @@ export default {
 }
 
 .empty-state {
-  background: white;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  text-align: center;
+}
+
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 24px;
+  @apply bg-horizon-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-first-button:hover {
+  @apply bg-horizon-600;
 }
 
 .empty-icon {

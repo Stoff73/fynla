@@ -1,5 +1,6 @@
 <template>
-  <div class="cash-overview">
+  <div class="cash-overview module-gradient">
+    <ModuleStatusBar />
     <!-- Account Detail View (when account selected) -->
     <SavingsAccountDetailInline
       v-if="selectedAccount"
@@ -62,9 +63,19 @@
         <!-- Account Cards - 4 Column Grid -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Current Account Card -->
-          <div class="account-card">
-            <h4 class="card-title">Current Accounts</h4>
+          <div class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">Current Accounts</h4>
+              <button @click="openAddAccountModal('current_account')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="currentAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(currentAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in currentAccounts"
                 :key="account.id"
@@ -88,19 +99,30 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No current accounts</p>
-            <button @click="openAddAccountModal('current_account')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <button @click="openAddAccountModal('current_account')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- Savings Account Card -->
-          <div class="account-card">
-            <h4 class="card-title">Savings Accounts</h4>
+          <div class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">Savings Accounts</h4>
+              <button @click="openAddAccountModal('savings_account')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="savingsAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(savingsAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in savingsAccounts"
                 :key="account.id"
@@ -124,19 +146,30 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No savings accounts</p>
-            <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <button @click="openAddAccountModal('savings_account')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- Cash ISA Card -->
-          <div class="account-card">
-            <h4 class="card-title">Cash ISAs</h4>
+          <div class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">Cash ISAs</h4>
+              <button @click="openAddAccountModal('cash_isa')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="isaAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(isaAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in isaAccounts"
                 :key="account.id"
@@ -160,19 +193,30 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No cash ISAs</p>
-            <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <button @click="openAddAccountModal('cash_isa')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
 
           <!-- NS&I Card -->
-          <div class="account-card">
-            <h4 class="card-title">NS&I</h4>
+          <div class="account-card module-gradient">
+            <div class="card-header">
+              <h4 class="card-title">NS&I</h4>
+              <button @click="openAddAccountModal('premium_bonds')" class="add-icon-btn" title="Add Account">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <template v-if="nsiAccounts.length > 0">
+              <div class="card-total">
+                <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(nsiAccountsTotal) }}</span>
+              </div>
               <div
                 v-for="account in nsiAccounts"
                 :key="account.id"
@@ -196,21 +240,22 @@
                 </div>
               </div>
             </template>
-            <p v-else class="empty-message">No NS&I accounts</p>
-            <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Account
-            </button>
+            <template v-else>
+              <button @click="openAddAccountModal('premium_bonds')" class="add-account-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Account
+              </button>
+            </template>
           </div>
         </div>
 
         <!-- Open Banking Card -->
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
-          <div class="flex items-start justify-between mb-4">
+        <div class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+          <div class="flex items-center gap-2.5 mb-4">
             <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
-            <span class="text-xs font-medium text-neutral-500 bg-savannah-100 px-2 py-1 rounded">Coming Soon</span>
+            <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
           </div>
           <p class="text-sm text-neutral-500 mb-4">
             Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
@@ -274,6 +319,7 @@ import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
 import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
 import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'CashOverview',
@@ -284,6 +330,7 @@ export default {
     CashActionsPanel,
     SaveAccountModal,
     SavingsAccountDetailInline,
+    ModuleStatusBar,
   },
 
   mixins: [currencyMixin],
@@ -307,6 +354,7 @@ export default {
     ...mapGetters('savings', ['totalSavings']),
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Filter accounts by type for real users view
     currentAccounts() {
@@ -329,6 +377,22 @@ export default {
       return this.accounts.filter(a =>
         ['premium_bonds', 'nsi'].includes(a.account_type)
       );
+    },
+
+    currentAccountsTotal() {
+      return this.currentAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    savingsAccountsTotal() {
+      return this.savingsAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    isaAccountsTotal() {
+      return this.isaAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
+    },
+
+    nsiAccountsTotal() {
+      return this.nsiAccounts.reduce((sum, a) => sum + this.getUserShare(a), 0);
     },
 
     // Monthly income from user profile (full month - assumed payday has occurred)
@@ -411,6 +475,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addAccount') {
+        this.openAddAccountModal('current_account');
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'savings_account') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -556,20 +626,54 @@ export default {
 
 .account-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  @apply border border-light-gray;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+.card-total {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  @apply border-b border-light-gray;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   @apply text-horizon-500;
-  margin: 0 0 12px 0;
-  align-self: flex-start;
+  margin: 0;
+}
+
+.add-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  @apply bg-light-pink-100;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  @apply text-horizon-500;
+  transition: background 0.2s;
+}
+
+.add-icon-btn:hover {
+  @apply bg-light-pink-200;
 }
 
 .empty-message {
@@ -643,12 +747,14 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  @apply text-violet-600 bg-violet-50 border border-violet-200 rounded-lg;
+  @apply text-horizon-500 rounded-lg;
+  @apply bg-light-pink-100;
+  border: none;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  @apply bg-violet-100 border-violet-300;
+  @apply bg-light-pink-200;
 }
 </style>

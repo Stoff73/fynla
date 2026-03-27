@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-4 sm:py-8">
+    <div class="module-gradient py-4 sm:py-8">
+      <ModuleStatusBar />
       <div class="flex justify-between items-center mb-6">
         <div>
           <h1 class="text-h2 font-display text-horizon-500">What If Scenarios</h1>
@@ -50,6 +51,7 @@ import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ScenarioCard from '@/components/WhatIf/ScenarioCard.vue';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'WhatIfDashboard',
@@ -57,6 +59,7 @@ export default {
   components: {
     AppLayout,
     ScenarioCard,
+    ModuleStatusBar,
   },
 
   mixins: [previewModeMixin],

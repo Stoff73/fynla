@@ -1,5 +1,6 @@
 <template>
   <div class="business-interests-list">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <BusinessInterestDetailInline
       v-if="selectedBusinessId"
@@ -11,17 +12,6 @@
 
     <!-- List View -->
     <div v-else>
-      <div class="list-header">
-        <h2 class="list-title">Business Interests</h2>
-        <div class="list-controls">
-          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Business
-          </button>
-        </div>
-      </div>
 
       <div v-if="loading" class="loading-state">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -96,6 +86,7 @@ import BusinessInterestCard from './BusinessInterestCard.vue';
 import BusinessInterestForm from './BusinessInterestForm.vue';
 import BusinessInterestDetailInline from './BusinessInterestDetailInline.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -108,6 +99,7 @@ export default {
     BusinessInterestForm,
     BusinessInterestDetailInline,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   data() {
@@ -121,6 +113,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addBusiness') {
+        this.openAddModal();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'business_interest') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -139,6 +137,7 @@ export default {
   computed: {
     ...mapState('businessInterests', ['businesses', 'loading', 'error']),
     ...mapGetters('businessInterests', ['totalBusinessValue']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredBusinesses() {
       return [...this.businesses];
@@ -241,6 +240,7 @@ export default {
 <style scoped>
 .business-interests-list {
   padding: 24px;
+  @apply bg-eggshell-500;
 }
 
 .list-header {
@@ -327,10 +327,9 @@ export default {
 }
 
 .empty-state {
-  background: white;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
   text-align: center;
 }
 
@@ -361,7 +360,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  @apply bg-raspberry-500;
+  @apply bg-horizon-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -372,7 +371,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-raspberry-600;
+  @apply bg-horizon-600;
 }
 
 .summary-bar {

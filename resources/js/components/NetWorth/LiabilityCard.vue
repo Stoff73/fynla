@@ -1,5 +1,5 @@
 <template>
-  <div class="liability-card" :class="{ 'is-external': isExternalSource }" @click="handleClick">
+  <div class="liability-card module-gradient" :class="{ 'is-external': isExternalSource }" @click="handleClick">
     <div class="card-header">
       <div class="header-left">
         <span class="liability-type-badge" :class="typeClass">
@@ -131,7 +131,7 @@ export default {
 .liability-card:not(.is-external):hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 .liability-card.is-external {

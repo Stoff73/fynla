@@ -213,3 +213,393 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.account-holdings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-horizon-500;
+  margin: 0;
+}
+
+.add-holding-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  @apply bg-raspberry-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-holding-btn:hover {
+  @apply bg-raspberry-500;
+}
+
+.btn-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Default Period Banner */
+.default-period-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  @apply bg-violet-50 border border-violet-500;
+  border-radius: 8px;
+}
+
+.banner-icon {
+  width: 20px;
+  height: 20px;
+  @apply text-violet-600;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.banner-content {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  @apply text-violet-800;
+  margin: 0 0 4px 0;
+}
+
+.banner-text {
+  font-size: 13px;
+  @apply text-violet-700;
+  margin: 0;
+}
+
+/* Holdings Table */
+.holdings-table-container {
+  overflow-x: auto;
+  @apply border border-light-gray;
+  border-radius: 12px;
+}
+
+.holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.holdings-table th,
+.holdings-table td {
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.holdings-table th {
+  @apply bg-eggshell-500 text-neutral-500 border-b border-light-gray;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.holding-row {
+  @apply border-b border-light-gray;
+}
+
+.holding-row:last-child {
+  border-bottom: none;
+}
+
+.holding-row:hover {
+  @apply bg-eggshell-500;
+}
+
+.holding-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.holding-name {
+  font-weight: 600;
+  @apply text-horizon-500;
+}
+
+.holding-ticker {
+  font-size: 12px;
+  @apply text-raspberry-500;
+  font-weight: 500;
+}
+
+.holding-isin {
+  font-size: 11px;
+  @apply text-horizon-400;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.td-units,
+.td-cost,
+.td-price,
+.td-initial-value,
+.td-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.td-date {
+  white-space: nowrap;
+}
+
+.date-text {
+  font-size: 13px;
+  @apply text-neutral-500;
+}
+
+.date-default {
+  font-size: 12px;
+  @apply text-violet-700 bg-violet-50;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: help;
+}
+
+.td-initial-value {
+  @apply text-neutral-500;
+}
+
+.td-value {
+  font-weight: 600;
+  @apply text-horizon-500;
+}
+
+.td-initial-allocation {
+  @apply text-neutral-500;
+}
+
+.totals-initial-value {
+  @apply text-neutral-500;
+}
+
+.totals-initial-allocation {
+  @apply text-neutral-500;
+}
+
+.allocation-text {
+  font-size: 13px;
+  @apply text-neutral-500;
+}
+
+.totals-row {
+  @apply bg-eggshell-500;
+  font-weight: 600;
+}
+
+.totals-label {
+  text-align: right;
+  @apply text-neutral-500;
+}
+
+.totals-value {
+  @apply text-horizon-500;
+  font-size: 16px;
+}
+
+.totals-allocation {
+  @apply text-neutral-500;
+}
+
+/* Mobile Cards (hidden on desktop) */
+.holdings-cards-mobile {
+  display: none;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  @apply bg-light-blue-100 border border-light-gray;
+  border-radius: 12px;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  @apply text-horizon-400;
+  margin: 0 auto 16px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  @apply text-neutral-500;
+  margin: 0 0 8px 0;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  @apply text-neutral-500;
+  margin: 0 0 20px 0;
+}
+
+.add-first-btn {
+  padding: 12px 24px;
+  @apply bg-raspberry-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-first-btn:hover {
+  @apply bg-raspberry-500;
+}
+
+/* Allocation Summary */
+.allocation-summary {
+  @apply bg-white border border-light-gray;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.summary-title {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-horizon-500;
+  margin: 0 0 16px 0;
+}
+
+.allocation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.allocation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  @apply bg-eggshell-500;
+  border-radius: 8px;
+}
+
+.allocation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.allocation-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.allocation-type {
+  font-size: 14px;
+  @apply text-neutral-500;
+}
+
+.allocation-values {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.allocation-amount {
+  font-size: 16px;
+  font-weight: 600;
+  @apply text-horizon-500;
+}
+
+.allocation-percent {
+  font-size: 14px;
+  @apply text-neutral-500;
+}
+
+@media (max-width: 768px) {
+  .holdings-table-container {
+    display: none;
+  }
+
+  .holdings-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .holding-card {
+    background: white;
+    @apply border border-light-gray;
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .card-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detail-label {
+    font-size: 12px;
+    @apply text-neutral-500;
+  }
+
+  .detail-value {
+    font-size: 14px;
+    @apply text-horizon-500;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .add-holding-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>

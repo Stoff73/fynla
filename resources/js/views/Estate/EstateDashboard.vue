@@ -1,15 +1,8 @@
 <template>
   <AppLayout>
-    <div class="estate-dashboard py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Estate Planning</h1>
-        <p class="text-neutral-500">
-          Plan your estate with Inheritance Tax calculations, gifting strategies, and trust planning
-        </p>
-      </div>
-
+    <div class="estate-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
+      <div class="">
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -47,7 +40,7 @@
         <div v-if="!hasWillDocument" class="mb-6">
           <router-link
             to="/estate/will-builder"
-            class="block bg-white border border-light-gray rounded-lg p-5 hover:border-raspberry-300 hover:shadow-sm transition-all group"
+            class="block bg-white border border-light-gray rounded-lg p-5 hover:bg-[#EEEEEE] hover:shadow-sm transition-all group"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-4">
@@ -97,6 +90,7 @@ import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
 import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
 import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
 import estateService from '@/services/estateService';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'EstateDashboard',
@@ -107,6 +101,7 @@ export default {
     GiftingStrategy,
     LifePolicyStrategy,
     TrustPlanning,
+    ModuleStatusBar,
   },
 
   data() {

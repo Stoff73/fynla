@@ -1,5 +1,6 @@
 <template>
   <div class="liabilities-list">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <LiabilityDetailInline
       v-if="selectedLiabilityId"
@@ -11,28 +12,19 @@
 
     <!-- List View -->
     <div v-else>
-      <div class="list-header">
-        <h2 class="list-title">Liabilities</h2>
-        <div class="list-controls">
-          <select v-model="filterType" class="filter-select">
-            <option value="all">All Types</option>
-            <option value="mortgage">Mortgages</option>
-            <option value="student_loan">Student Loans</option>
-            <option value="personal_loan">Personal Loans</option>
-            <option value="secured_loan">Secured Loans</option>
-            <option value="business_loan">Business Loans</option>
-            <option value="hire_purchase">Hire Purchase</option>
-            <option value="credit_card">Credit Cards</option>
-            <option value="overdraft">Overdrafts</option>
-            <option value="other">Other</option>
-          </select>
-          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Liability
-          </button>
-        </div>
+      <div class="list-controls">
+        <select v-model="filterType" class="filter-select">
+          <option value="all">All Types</option>
+          <option value="mortgage">Mortgages</option>
+          <option value="student_loan">Student Loans</option>
+          <option value="personal_loan">Personal Loans</option>
+          <option value="secured_loan">Secured Loans</option>
+          <option value="business_loan">Business Loans</option>
+          <option value="hire_purchase">Hire Purchase</option>
+          <option value="credit_card">Credit Cards</option>
+          <option value="overdraft">Overdrafts</option>
+          <option value="other">Other</option>
+        </select>
       </div>
 
       <!-- Info banner when external liabilities exist -->
@@ -94,46 +86,51 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div v-if="showFormModal" class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="closeFormModal">
-      <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
-        <div class="overflow-y-auto max-h-[90vh]">
-          <!-- Modal Close Button -->
-          <button
-            @click="closeFormModal"
-            class="absolute top-4 right-4 z-20 text-horizon-400 hover:text-neutral-500 transition-colors"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <Teleport to="body">
+      <div v-if="showFormModal" class="fixed inset-0 bg-horizon-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center" @click.self="closeFormModal">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden" @click.stop>
+          <div class="overflow-y-auto max-h-[90vh]">
+            <!-- Modal Close Button -->
+            <button
+              @click="closeFormModal"
+              class="absolute top-4 right-4 z-20 text-horizon-400 hover:text-neutral-500 transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
-          <LiabilityForm
-            :liability="editingLiability"
-            :mode="editingLiability ? 'edit' : 'create'"
-            @save="handleSave"
-            @cancel="closeFormModal"
-          />
+            <LiabilityForm
+              :liability="editingLiability"
+              :mode="editingLiability ? 'edit' : 'create'"
+              @save="handleSave"
+              @cancel="closeFormModal"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Delete Confirmation -->
-    <ConfirmDialog
-      :show="showDeleteConfirm"
-      title="Delete Liability"
-      message="Are you sure you want to delete this liability? This action cannot be undone."
-      @confirm="handleDelete"
-      @cancel="showDeleteConfirm = false"
-    />
+    <Teleport to="body">
+      <ConfirmDialog
+        :show="showDeleteConfirm"
+        title="Delete Liability"
+        message="Are you sure you want to delete this liability? This action cannot be undone."
+        @confirm="handleDelete"
+        @cancel="showDeleteConfirm = false"
+      />
+    </Teleport>
   </div>
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import LiabilityCard from './LiabilityCard.vue';
 import LiabilityDetailInline from './LiabilityDetailInline.vue';
 import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -144,6 +141,7 @@ export default {
     LiabilityDetailInline,
     LiabilityForm,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   mixins: [currencyMixin],
@@ -161,6 +159,7 @@ export default {
 
   computed: {
     ...mapState('estate', ['liabilities', 'loading', 'error']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredLiabilities() {
       let filtered = [...this.liabilities];
@@ -189,6 +188,12 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addLiability') {
+        this.openAddModal();
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'estate_liability') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -302,28 +307,14 @@ export default {
 <style scoped>
 .liabilities-list {
   padding: 24px;
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.list-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-horizon-500;
-  margin: 0;
+  @apply bg-eggshell-500;
 }
 
 .list-controls {
   display: flex;
   gap: 12px;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .filter-select {
@@ -451,10 +442,9 @@ export default {
 }
 
 .empty-state {
-  background: white;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
 }
 
 .empty-icon {
@@ -485,7 +475,7 @@ export default {
   gap: 8px;
   margin-top: 24px;
   padding: 12px 24px;
-  @apply bg-raspberry-500;
+  @apply bg-horizon-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -496,7 +486,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-raspberry-600;
+  @apply bg-horizon-600;
 }
 
 /* Mobile */
@@ -505,20 +495,12 @@ export default {
     padding: 16px;
   }
 
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .list-controls {
     width: 100%;
-    flex-direction: column;
   }
 
-  .filter-select,
-  .add-button {
+  .filter-select {
     width: 100%;
-    justify-content: center;
   }
 
   .liabilities-grid {

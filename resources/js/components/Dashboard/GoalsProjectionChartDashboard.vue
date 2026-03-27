@@ -158,7 +158,7 @@ export default {
             updated: () => this.updateEventMarkers(),
           },
         },
-        colors: ['#A8B8D8'], // Muted periwinkle blue
+        colors: [SECONDARY_COLORS[500]],
         fill: { type: 'solid' },
         dataLabels: { enabled: false },
         stroke: { width: 0 },

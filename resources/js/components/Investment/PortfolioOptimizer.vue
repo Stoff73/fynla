@@ -183,13 +183,46 @@
       <!-- Allocation Chart -->
       <div class="bg-white rounded-lg border border-light-gray p-6">
         <h4 class="text-sm font-semibold text-horizon-500 mb-4">Optimal Allocation</h4>
-        <apexchart
-          v-if="allocationChartReady"
-          type="donut"
-          :options="allocationChartOptions"
-          :series="allocationSeries"
-          height="300"
-        />
+        <div v-if="allocationSeries.length > 0" class="flex justify-center">
+          <div class="relative" style="width: 260px; height: 260px;">
+            <svg viewBox="0 0 220 220" width="260" height="260">
+              <defs>
+                <linearGradient
+                  v-for="(seg, idx) in optimizerDonutSegments"
+                  :key="'grad-' + idx"
+                  :id="'opt-grad-' + idx"
+                  x1="0%" y1="0%" x2="100%" y2="0%"
+                >
+                  <stop offset="0%" :stop-color="seg.color" />
+                  <stop offset="100%" :stop-color="seg.colorLight" />
+                </linearGradient>
+              </defs>
+              <circle
+                v-for="(seg, idx) in optimizerDonutSegments"
+                :key="'seg-' + idx"
+                cx="110" cy="110" r="75"
+                fill="none"
+                :stroke="'url(#opt-grad-' + idx + ')'"
+                stroke-width="40"
+                stroke-linecap="round"
+                :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+                :stroke-dashoffset="-seg.offset"
+                transform="rotate(-90 110 110)"
+              />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-[10px] font-semibold text-horizon-400">Total</span>
+              <span class="text-xl font-bold text-horizon-700">100%</span>
+            </div>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div v-if="allocationSeries.length > 0" class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+          <div v-for="(weight, idx) in optimizerFilteredWeights" :key="idx" class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: chartColors[idx % chartColors.length] }"></span>
+            <span class="text-xs text-neutral-500">Asset {{ weight.originalIndex + 1 }}: {{ (weight.value * 100).toFixed(1) }}%</span>
+          </div>
+        </div>
       </div>
 
       <!-- Allocation Table -->
@@ -268,7 +301,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'PortfolioOptimiser',
@@ -290,7 +323,7 @@ export default {
         maxWeight: 1.00,
       },
       optimizationResult: null,
-      allocationChartReady: false,
+      chartColors: CHART_COLORS,
 
       strategies: [
         {
@@ -332,45 +365,34 @@ export default {
       return this.optimizationResult.weights.filter(w => w > 0.001);
     },
 
-    allocationChartOptions() {
-      const labels = this.optimizationResult.weights
-        .map((w, i) => `Asset ${i + 1}`)
-        .filter((_, i) => this.optimizationResult.weights[i] > 0.001);
+    optimizerFilteredWeights() {
+      if (!this.optimizationResult?.weights) return [];
+      return this.optimizationResult.weights
+        .map((value, originalIndex) => ({ value, originalIndex }))
+        .filter(w => w.value > 0.001);
+    },
 
-      return {
-        chart: {
-          type: 'donut',
-        },
-        labels: labels,
-        colors: CHART_COLORS,
-        legend: {
-          position: 'bottom',
-        },
-        dataLabels: {
-          enabled: true,
-          formatter: (val) => val.toFixed(1) + '%',
-        },
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '65%',
-              labels: {
-                show: true,
-                total: {
-                  show: true,
-                  label: 'Total',
-                  formatter: () => '100%',
-                },
-              },
-            },
-          },
-        },
-        tooltip: {
-          y: {
-            formatter: (val) => val.toFixed(2) + '%',
-          },
-        },
-      };
+    optimizerDonutSegments() {
+      const series = this.allocationSeries;
+      const total = series.reduce((sum, v) => sum + v, 0);
+      if (total === 0) return [];
+
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return series.map((value, idx) => {
+        const proportion = value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        const seg = {
+          color,
+          colorLight: this.lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
   },
 
@@ -396,9 +418,6 @@ export default {
 
         if (response.success) {
           this.optimizationResult = response.data;
-          this.$nextTick(() => {
-            this.allocationChartReady = true;
-          });
         } else {
           this.error = response.message || 'Optimization failed';
         }
@@ -412,12 +431,19 @@ export default {
 
     resetOptimiser() {
       this.optimizationResult = null;
-      this.allocationChartReady = false;
       this.error = null;
     },
 
     applyAllocation() {
       this.$emit('apply-allocation', this.optimizationResult);
+    },
+
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
     },
 
     formatPercentage(value) {

@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <div v-else class="text-sm text-neutral-500 text-center py-8 border-2 border-dashed border-horizon-300 rounded">
+        <div v-else class="text-sm text-neutral-500 text-center py-8 bg-light-blue-100 border border-light-gray rounded">
           No gifts recorded within last 7 years
         </div>
       </div>
@@ -46,7 +46,7 @@
 
         <div v-if="spouseTimeline.show_empty_timeline">
           <!-- Empty state with data sharing message -->
-          <div class="border-2 border-dashed border-horizon-300 rounded-lg p-8 text-center">
+          <div class="bg-light-blue-100 border border-light-gray rounded-lg p-8 text-center">
             <svg
               class="mx-auto h-12 w-12 text-horizon-400"
               xmlns="http://www.w3.org/2000/svg"
@@ -97,7 +97,7 @@
           </div>
         </div>
 
-        <div v-else class="text-sm text-neutral-500 text-center py-8 border-2 border-dashed border-horizon-300 rounded">
+        <div v-else class="text-sm text-neutral-500 text-center py-8 bg-light-blue-100 border border-light-gray rounded">
           No gifts recorded within last 7 years
         </div>
       </div>
@@ -123,7 +123,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, CHART_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'DualGiftingTimeline',
@@ -147,10 +147,7 @@ export default {
   methods: {
     getUserChartOptions() {
       return {
-        chart: {
-          type: 'rangeBar',
-          height: 300,
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'rangeBar', height: 300 },
         plotOptions: {
           bar: {
             horizontal: true,

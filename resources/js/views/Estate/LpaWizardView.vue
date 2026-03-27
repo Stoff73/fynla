@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="max-w-3xl mx-auto py-6 px-4">
+    <div class="module-gradient py-6 px-4">
+      <ModuleStatusBar />
       <LpaWizard
         :lpa-type="lpaType"
         :edit-id="editId"
@@ -14,6 +15,7 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import LpaWizard from '@/components/Estate/LpaWizard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'LpaWizardView',
@@ -21,6 +23,7 @@ export default {
   components: {
     AppLayout,
     LpaWizard,
+    ModuleStatusBar,
   },
 
   computed: {

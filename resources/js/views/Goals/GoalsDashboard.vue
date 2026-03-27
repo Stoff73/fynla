@@ -1,15 +1,8 @@
 <template>
   <AppLayout>
-    <div class="goals-dashboard py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Goals & Life Events</h1>
-          <p class="text-neutral-500">
-            Set financial goals, track your progress, and stay on track to achieve what matters most
-          </p>
-        </div>
-
+    <div class="goals-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
+      <div class="">
         <!-- Info Banner -->
         <div class="bg-violet-50 border border-violet-200 rounded-lg p-4 mb-6">
           <div class="flex items-start">
@@ -56,7 +49,7 @@
         />
 
         <!-- Main Content -->
-        <div v-else-if="!loading && !error" class="bg-white rounded-lg shadow">
+        <div v-else-if="!loading && !error" class="bg-white rounded-lg border border-light-gray">
           <!-- Tab Navigation -->
           <div class="border-b border-light-gray">
             <nav class="-mb-px flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
@@ -168,6 +161,7 @@ import GoalsOverview from '@/components/Goals/GoalsOverview.vue';
 import ContributionModal from '@/components/Goals/ContributionModal.vue';
 import EventsTab from '@/components/Goals/EventsTab.vue';
 import GoalDetailInline from '@/components/Goals/GoalDetailInline.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'GoalsDashboard',
@@ -179,6 +173,7 @@ export default {
     ContributionModal,
     EventsTab,
     GoalDetailInline,
+    ModuleStatusBar,
   },
 
   data() {
@@ -204,6 +199,20 @@ export default {
       this.activeTab = tab === 'events' ? 'events' : 'overview';
     },
 
+    actionCounter() {
+      if (this.pendingAction === 'addGoal') {
+        this.openCreateModal();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'addLifeEvent') {
+        this.activeTab = 'events';
+        this.$nextTick(() => {
+          // EventsTab will handle opening the modal via its own create flow
+          // Dispatch event to trigger the EventsTab's create modal
+          this.$store.dispatch('subNav/consumeCta');
+        });
+      }
+    },
+
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (!fill) return;
       if (fill.entityType === 'goal') {
@@ -222,6 +231,7 @@ export default {
   computed: {
     ...mapState('goals', ['loading', 'error', 'goals']),
     ...mapGetters('goals', ['dashboardData']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     summary() {
       return {
