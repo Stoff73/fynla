@@ -248,7 +248,7 @@
               <div class="analysis-header">
                 <h3 class="analysis-title">Holdings ({{ holdingsCount }})</h3>
               </div>
-              <div v-else-if="hasAllocationData" class="donut-container">
+              <div v-if="hasAllocationData" class="donut-container">
                 <div class="relative mx-auto" style="width: 140px; height: 140px;">
                   <svg viewBox="0 0 220 220" width="140" height="140">
                     <defs>
@@ -283,13 +283,6 @@
                     <span class="text-[10px] text-neutral-500">{{ label }} {{ allocationSeries[idx]?.toFixed(0) }}%</span>
                   </div>
                 </div>
-              <div v-if="hasHoldings && hasAllocationData" class="donut-container">
-                <apexchart
-                  type="donut"
-                  :options="allocationChartOptions"
-                  :series="allocationSeries"
-                  height="140"
-                />
               </div>
               <div v-else class="no-allocation">
                 <span>Add holdings to see allocation</span>
@@ -497,9 +490,8 @@
 import { mapActions, mapState } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 import { TAX_CONFIG } from '@/constants/taxConfig';
-import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 // Data loading services
 import investmentService from '@/services/investmentService';
@@ -771,6 +763,7 @@ export default {
         offset += proportion * circumference;
         return seg;
       });
+    },
     yearsToRetirement() {
       const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
       const currentAge = this.currentUser?.date_of_birth
@@ -880,7 +873,7 @@ export default {
           formatter: (seriesName, opts) => `${seriesName} ${opts.w.globals.series[opts.seriesIndex].toFixed(0)}%`,
         },
         tooltip: { enabled: true, y: { formatter: (val) => `${val.toFixed(1)}%` } },
-        stroke: { width: 1, colors: ['#fff'] },
+        stroke: { width: 1, colors: ['white'] },
       };
     },
   },
@@ -935,9 +928,6 @@ export default {
       return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
     },
 
-    goBack() {
-      const base = this.isPreviewMode ? '/preview' : '';
-      this.$router.push(`${base}/net-worth/investments`);
     // ---- Navigation ----
     handleBackClick() {
       if (this.detailComponentType !== 'standard') { this.$emit('back'); return; }

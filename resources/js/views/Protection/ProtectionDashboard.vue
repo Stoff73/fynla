@@ -2,14 +2,12 @@
   <AppLayout>
     <div class="protection-dashboard module-gradient py-2 sm:py-6">
       <ModuleStatusBar />
-      <div class="">
       <!-- Profile Completeness Alert -->
       <ProfileCompletenessAlert
         v-if="profileCompleteness && !loadingCompleteness"
         :completenessData="profileCompleteness"
         :dismissible="true"
       />
-    <div class="protection-dashboard py-2 sm:py-6">
       <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-6 sm:mb-8">
