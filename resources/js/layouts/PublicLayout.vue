@@ -37,7 +37,7 @@
                     <div class="flex gap-8">
                       <!-- Left column: Discover Fynla -->
                       <div class="w-[260px] flex-shrink-0">
-                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Discover Fynla</p>
+                        <p class="text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-4">Discover Fynla</p>
                         <div class="space-y-2">
                           <router-link to="/how-it-works" class="flex items-start gap-3 p-3 rounded-lg hover:bg-light-pink-100 transition-colors group" @click="howOpen = false">
                             <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -56,10 +56,10 @@
                         </div>
                       </div>
                       <!-- Divider -->
-                      <div class="w-px bg-light-gray"></div>
-                      <!-- Right column: Your life stage -->
+                      <div class="w-px bg-neutral-300"></div>
+                      <!-- Right column: Your personal journey -->
                       <div class="flex-1">
-                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Your life stage</p>
+                        <p class="text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-4">Your personal journey</p>
                         <div class="grid grid-cols-3 gap-3">
                           <router-link
                             v-for="stage in stages"
@@ -99,7 +99,7 @@
                       <router-link to="/calculators" class="flex items-start gap-3 p-3 rounded-lg hover:bg-light-pink-100 transition-colors group" @click="resourcesOpen = false">
                         <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 7h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" /></svg>
                         <div>
-                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Calculators</p>
+                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Free calculators</p>
                           <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Free financial calculators for retirement, tax, and more.</p>
                         </div>
                       </router-link>
@@ -275,7 +275,7 @@
             <div v-if="howOpen" class="pl-6 pb-1 space-y-0.5">
               <router-link to="/how-it-works" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; howOpen = false">Getting started</router-link>
               <router-link to="/features" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; howOpen = false">Features</router-link>
-              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider pt-2 pb-1">Your life stage</p>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider pt-2 pb-1">Your personal journey</p>
               <router-link
                 v-for="stage in stages"
                 :key="stage.slug"

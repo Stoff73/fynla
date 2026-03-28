@@ -280,7 +280,7 @@
     <!-- Scenarios -->
     <div id="solutions" class="bg-light-pink-100 pt-10 lg:pt-12 pb-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Scenarios</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your personal journey</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
           <!-- Starting out -->
