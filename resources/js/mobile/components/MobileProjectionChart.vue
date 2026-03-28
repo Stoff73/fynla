@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import { formatCurrency } from '@/utils/currency';
 
 export default {
@@ -40,10 +40,8 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
-          toolbar: { show: false },
-          zoom: { enabled: false },
-          fontFamily: 'Segoe UI, Inter, sans-serif',
         },
         colors: CHART_COLORS,
         dataLabels: { enabled: false },
@@ -84,7 +82,7 @@ export default {
         legend: {
           position: 'bottom',
           fontSize: '11px',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
+          fontFamily: CHART_DEFAULTS.chart.fontFamily,
           labels: { colors: TEXT_COLORS.muted },
           markers: { size: 4, shape: 'circle' },
         },

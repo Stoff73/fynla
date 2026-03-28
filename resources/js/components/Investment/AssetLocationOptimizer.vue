@@ -310,7 +310,7 @@
 
 <script>
 import api from '@/services/api';
-import { SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'AssetLocationOptimiser',
@@ -340,6 +340,7 @@ export default {
     optimizationScoreChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'radialBar',
           sparkline: {
             enabled: true,

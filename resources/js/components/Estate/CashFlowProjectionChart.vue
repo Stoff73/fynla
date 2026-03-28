@@ -94,7 +94,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, BORDER_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, BORDER_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'CashFlowProjectionChart',
@@ -204,24 +204,14 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
           height: 400,
           toolbar: {
             show: true,
-            tools: {
-              download: true,
-              zoom: false,
-              zoomin: false,
-              zoomout: false,
-              pan: false,
-              reset: false,
-            },
+            tools: { download: true, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false },
           },
-          animations: {
-            enabled: true,
-            easing: 'easeinout',
-            speed: 800,
-          },
+          animations: { enabled: true, easing: 'easeinout', speed: 800 },
         },
         plotOptions: {
           bar: {

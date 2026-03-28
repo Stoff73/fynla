@@ -17,7 +17,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'IncomeDrawdownChart',
@@ -82,8 +82,8 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: true,
             tools: {
@@ -95,9 +95,6 @@ export default {
               pan: false,
               reset: false,
             },
-          },
-          zoom: {
-            enabled: false,
           },
           animations: {
             enabled: true,

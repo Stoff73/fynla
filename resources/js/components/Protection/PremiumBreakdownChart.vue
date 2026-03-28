@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'PremiumBreakdownChart',
@@ -77,10 +77,7 @@ export default {
 
     chartOptions() {
       return {
-        chart: {
-          type: 'pie',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'pie' },
         labels: [
           'Life Insurance',
           'Critical Illness',

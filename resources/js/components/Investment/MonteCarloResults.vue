@@ -173,7 +173,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 // Target annotation color (violet-500)
 const TARGET_COLOR = '#8b5cf6';
@@ -288,8 +288,8 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           toolbar: {
             show: true,
             tools: {

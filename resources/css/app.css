@@ -375,10 +375,7 @@
     border-radius: 0 0 theme('borderRadius.card') theme('borderRadius.card');
   }
 
-  /* Dashboard card hover — switch gradient from grey to light blue */
-  .hover-blue-gradient {
-    border: 3px solid transparent;
-  }
+  /* Dashboard card hover — switch border colour and gradient from grey to light blue */
   .hover-blue-gradient::after {
     transition: background 0.2s ease;
   }

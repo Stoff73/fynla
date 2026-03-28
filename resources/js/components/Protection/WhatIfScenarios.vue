@@ -110,7 +110,7 @@
 <script>
 import ScenarioBuilder from './ScenarioBuilder.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'WhatIfScenarios',
@@ -143,11 +143,7 @@ export default {
 
     coverageComparisonOptions() {
       return {
-        chart: {
-          type: 'bar',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
-          toolbar: { show: false },
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'bar' },
         plotOptions: {
           bar: {
             horizontal: false,
@@ -187,11 +183,7 @@ export default {
 
     premiumComparisonOptions() {
       return {
-        chart: {
-          type: 'bar',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
-          toolbar: { show: false },
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'bar' },
         plotOptions: {
           bar: {
             horizontal: false,
@@ -243,11 +235,7 @@ export default {
 
     financialImpactOptions() {
       return {
-        chart: {
-          type: 'area',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
-          toolbar: { show: false },
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'area' },
         colours: [WARNING_COLORS[500], SUCCESS_COLORS[500]],
         fill: {
           type: 'gradient',

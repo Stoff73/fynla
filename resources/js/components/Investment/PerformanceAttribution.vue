@@ -311,7 +311,7 @@
 
 <script>
 import api from '@/services/api';
-import { PRIMARY_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PerformanceAttribution',
@@ -334,10 +334,8 @@ export default {
     attributionChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
-          toolbar: {
-            show: false,
-          },
         },
         plotOptions: {
           bar: {

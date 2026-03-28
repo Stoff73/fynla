@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'NetWorthWaterfallChart',
@@ -109,14 +109,10 @@ export default {
 
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
           height: 350,
-          toolbar: {
-            show: true,
-            tools: {
-              download: true,
-            },
-          },
+          toolbar: { show: true, tools: { download: true } },
         },
         plotOptions: {
           bar: {

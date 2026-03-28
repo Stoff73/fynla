@@ -311,7 +311,7 @@
 
 <script>
 import api from '@/services/api';
-import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, WARNING_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GoalProjection',
@@ -336,10 +336,8 @@ export default {
     distributionChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
-          toolbar: {
-            show: false,
-          },
         },
         dataLabels: {
           enabled: false,
@@ -393,6 +391,7 @@ export default {
     timelineChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'line',
           toolbar: {
             show: true,
@@ -463,10 +462,8 @@ export default {
     sensitivityChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
-          toolbar: {
-            show: false,
-          },
         },
         plotOptions: {
           bar: {
@@ -492,11 +489,9 @@ export default {
     glidePathChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
           stacked: true,
-          toolbar: {
-            show: false,
-          },
         },
         dataLabels: {
           enabled: false,

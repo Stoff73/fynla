@@ -12,7 +12,7 @@
 
 <script>
 import { mapState } from 'vuex';
-import { CHART_COLORS, BORDER_COLORS, WARNING_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, BORDER_COLORS, WARNING_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'IncomeProjectionChart',
@@ -119,6 +119,7 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
           stacked: this.viewMode === 'stacked',
           height: 400,
@@ -163,12 +164,11 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
             style: {
-              fontFamily: 'Segoe UI, Inter, sans-serif',
+              colors: TEXT_COLORS.muted,
             },
           },
         },
@@ -178,7 +178,6 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
@@ -186,7 +185,7 @@ export default {
               return '£' + value.toLocaleString();
             },
             style: {
-              fontFamily: 'Segoe UI, Inter, sans-serif',
+              colors: TEXT_COLORS.muted,
             },
           },
         },
@@ -202,7 +201,6 @@ export default {
         legend: {
           position: 'top',
           horizontalAlign: 'centre',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
           fontSize: '14px',
           markers: {
             width: 12,
@@ -225,7 +223,6 @@ export default {
                 style: {
                   color: '#fff',
                   background: WARNING_COLORS[500],
-                  fontFamily: 'Segoe UI, Inter, sans-serif',
                 },
                 text: 'Target Income: £' + this.targetIncome.toLocaleString(),
               },

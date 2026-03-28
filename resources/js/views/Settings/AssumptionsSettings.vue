@@ -1,9 +1,9 @@
 <template>
   <AppLayout>
-    <div class="assumptions-settings">
-      <div class="page-header">
-        <h1 class="page-title">Planning Assumptions</h1>
-        <p class="page-description">
+    <div class="assumptions-settings module-gradient py-8">
+      <div class="mb-8">
+        <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
+        <p class="mt-2 text-body-base text-neutral-500">
           Configure the assumptions used in your pension and investment projections.
           These values help calculate future growth estimates.
         </p>
@@ -757,27 +757,6 @@ export default {
 </script>
 
 <style scoped>
-.assumptions-settings {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  @apply text-horizon-700;
-  margin-bottom: 0.5rem;
-}
-
-.page-description {
-  @apply text-neutral-500;
-}
-
 .loading-state,
 .error-state {
   text-align: center;
