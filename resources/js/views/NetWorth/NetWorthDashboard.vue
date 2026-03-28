@@ -32,8 +32,6 @@ export default {
 
 <style scoped>
 .net-worth-dashboard {
-  max-width: 1400px;
-  margin: 0 auto;
   overflow: visible;
 }
 

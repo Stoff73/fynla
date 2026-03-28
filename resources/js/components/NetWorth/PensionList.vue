@@ -1,5 +1,6 @@
 <template>
   <div class="pension-list">
+    <ModuleStatusBar />
     <!-- Pension Detail View (when a pension is selected) -->
     <PensionDetailInline
       v-if="selectedPension"
@@ -12,36 +13,6 @@
 
     <!-- Main Dashboard View -->
     <template v-else>
-      <!-- Header -->
-      <div class="list-header">
-        <div class="title-row">
-          <h2 class="list-title">Pensions</h2>
-          <router-link
-            to="/risk-profile"
-            class="risk-profile-link"
-          >
-            <svg class="risk-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Risk Profile
-          </router-link>
-        </div>
-        <div v-if="activeTab === 'current'" class="header-buttons">
-          <button v-preview-disabled="'add'" @click="showPensionForm = true" class="add-pension-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Pension
-          </button>
-          <button v-preview-disabled="'upload'" @click="showUploadModal = true" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="button-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            Upload Statement
-          </button>
-        </div>
-      </div>
-
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
@@ -75,92 +46,9 @@
 
       <!-- Current Pensions Tab - New 3-Column Layout -->
       <template v-else-if="activeTab === 'current'">
-        <!-- Main 3-Column Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- Left Panel - Pension Cards (3 cols) -->
-          <div class="lg:col-span-3 pension-cards-column">
-            <!-- DC Pensions -->
-            <div
-              v-for="pension in dcPensions"
-              :key="'dc-' + pension.id"
-              @click="selectPension(pension, 'dc')"
-              class="pension-card-standalone"
-            >
-              <div class="card-header">
-                <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
-              </div>
-              <div class="card-content">
-                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Contribution Pension' }}</h4>
-                <div class="pension-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Current Value</span>
-                    <span class="detail-value">{{ formatCurrency(pension.current_fund_value) }}</span>
-                  </div>
-                  <div v-if="pension.monthly_contribution_amount" class="detail-row">
-                    <span class="detail-label">Monthly Contribution</span>
-                    <span class="detail-value text-spring-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- DB Pensions -->
-            <div
-              v-for="pension in dbPensions"
-              :key="'db-' + pension.id"
-              @click="selectPension(pension, 'db')"
-              class="pension-card-standalone"
-            >
-              <div class="card-header">
-                <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
-              </div>
-              <div class="card-content">
-                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Benefit Pension' }}</h4>
-                <div class="pension-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Annual Pension</span>
-                    <span class="detail-value">{{ formatCurrency(pension.accrued_annual_pension) }}</span>
-                  </div>
-                  <div v-if="pension.lump_sum_entitlement" class="detail-row">
-                    <span class="detail-label">Lump Sum</span>
-                    <span class="detail-value text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- State Pension -->
-            <div
-              v-if="statePension"
-              @click="selectPension(statePension, 'state')"
-              class="pension-card-standalone"
-            >
-              <div class="card-header">
-                <span class="badge badge-state">State Pension</span>
-              </div>
-              <div class="card-content">
-                <h4 class="pension-provider">UK State Pension</h4>
-                <div class="pension-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Annual Pension</span>
-                    <span class="detail-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fund Depletion Warning (hide for retired users - not relevant) -->
-            <div v-if="fundDepletionAge && hasDCPensions && !isRetired" class="depletion-warning-standalone">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-              <span>Defined Contribution fund depletes at age {{ fundDepletionAge }}</span>
-            </div>
-          </div>
-
-          <!-- Center/Right Panel - Projections & Strategies (9 cols) -->
-          <div class="lg:col-span-9 space-y-6">
-            <!-- Projections Loading -->
+        <!-- Full-width layout: Projections first, pension cards below -->
+        <div class="space-y-6">
+          <!-- Projections & Strategies -->
             <div v-if="projectionsLoading" class="projection-loading">
               <div class="w-12 h-12 border-4 border-light-gray border-t-raspberry-500 rounded-full animate-spin mb-4"></div>
               <p>Running Monte Carlo simulation...</p>
@@ -267,7 +155,7 @@
               <!-- Retirement Planner Cards Row -->
               <div class="planner-cards-row">
                 <!-- Retirement Income Planner Card -->
-                <div class="planner-card income clickable" @click="setActiveTab('income')">
+                <div class="planner-card income clickable module-gradient" @click="setActiveTab('income')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon income">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -289,7 +177,7 @@
                 </div>
 
                 <!-- Capital Adequacy Planner Card -->
-                <div class="planner-card capital clickable" @click="setActiveTab('capital')">
+                <div class="planner-card capital clickable module-gradient" @click="setActiveTab('capital')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon capital">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -304,7 +192,7 @@
                       <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Current pension potential growth:</span>
+                      <span class="planner-metric-label">Current potential growth:</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
@@ -315,7 +203,7 @@
                 </div>
 
                 <!-- Drawdown Strategy Card (shown when within 10 years of retirement) -->
-                <div v-if="showDrawdownCard" class="planner-card drawdown clickable" @click="setActiveTab('drawdown')">
+                <div v-if="showDrawdownCard" class="planner-card drawdown clickable module-gradient" @click="setActiveTab('drawdown')">
                   <div class="planner-card-header">
                     <div class="planner-card-icon drawdown">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -338,7 +226,7 @@
               </div>
 
               <!-- Monte Carlo Chart -->
-              <div class="chart-card">
+              <div class="chart-card module-gradient">
                 <div class="chart-header">
                   <h3 class="chart-title">Pension Pot Projection <span class="text-sm font-normal">(using high probability of 80% of achieving {{ projections.pension_pot_projection?.expected_return }}% returns)</span></h3>
                   <span class="risk-badge-corner">{{ formatRiskLevel(projections.pension_pot_projection?.risk_level) }} Risk</span>
@@ -375,6 +263,86 @@
                 />
               </div>
             </template>
+
+          <!-- Pension Cards - Horizontal Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- DC Pensions -->
+            <div
+              v-for="pension in dcPensions"
+              :key="'dc-' + pension.id"
+              @click="selectPension(pension, 'dc')"
+              class="pension-card-standalone module-gradient"
+            >
+              <div class="card-header">
+                <span class="badge badge-dc">{{ formatDCPensionType(pension.pension_type) }}</span>
+              </div>
+              <div class="card-content">
+                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Contribution Pension' }}</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Current Value</span>
+                    <span class="detail-value">{{ formatCurrency(pension.current_fund_value) }}</span>
+                  </div>
+                  <div v-if="pension.monthly_contribution_amount" class="detail-row">
+                    <span class="detail-label">Monthly Contribution</span>
+                    <span class="detail-value text-spring-600">{{ formatCurrency(pension.monthly_contribution_amount) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- DB Pensions -->
+            <div
+              v-for="pension in dbPensions"
+              :key="'db-' + pension.id"
+              @click="selectPension(pension, 'db')"
+              class="pension-card-standalone module-gradient"
+            >
+              <div class="card-header">
+                <span class="badge badge-db">{{ formatDBPensionType(pension.scheme_type) }}</span>
+              </div>
+              <div class="card-content">
+                <h4 class="pension-provider">{{ pension.scheme_name || 'Defined Benefit Pension' }}</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Annual Pension</span>
+                    <span class="detail-value">{{ formatCurrency(pension.accrued_annual_pension) }}</span>
+                  </div>
+                  <div v-if="pension.lump_sum_entitlement" class="detail-row">
+                    <span class="detail-label">Lump Sum</span>
+                    <span class="detail-value text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- State Pension -->
+            <div
+              v-if="statePension"
+              @click="selectPension(statePension, 'state')"
+              class="pension-card-standalone module-gradient"
+            >
+              <div class="card-header">
+                <span class="badge badge-state">State Pension</span>
+              </div>
+              <div class="card-content">
+                <h4 class="pension-provider">UK State Pension</h4>
+                <div class="pension-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Annual Pension</span>
+                    <span class="detail-value">{{ formatCurrency(statePension.state_pension_forecast_annual || 0) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fund Depletion Warning -->
+            <div v-if="fundDepletionAge && hasDCPensions && !isRetired" class="depletion-warning-standalone">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <span>Defined Contribution fund depletes at age {{ fundDepletionAge }}</span>
+            </div>
           </div>
         </div>
 
@@ -451,6 +419,7 @@ import FutureValueTab from '@/components/Retirement/FutureValueTab.vue';
 import RetirementIncomeTab from '@/components/Retirement/RetirementIncomeTab.vue';
 import CapitalAdequacyTab from '@/components/Retirement/CapitalAdequacyTab.vue';
 import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrategyCard.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -468,6 +437,7 @@ export default {
     RetirementIncomeTab,
     CapitalAdequacyTab,
     DecumulationStrategyCard,
+    ModuleStatusBar,
   },
 
   data() {
@@ -500,6 +470,7 @@ export default {
       'retirementIncome',
     ]),
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     // Check if user is retired
     isRetired() {
@@ -643,6 +614,15 @@ export default {
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addPension') {
+        this.showPensionForm = true;
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'uploadStatement') {
+        this.showUploadModal = true;
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     activeTab(newTab) {
       if (newTab === 'future' && !this.projections) {
         this.loadProjections();
@@ -686,7 +666,9 @@ export default {
       'fetchRequiredCapital',
       'fetchRetirementIncome',
       'createDCPension',
+      'updateDCPension',
       'createDBPension',
+      'updateDBPension',
       'updateStatePension',
       'setActiveTab',
     ]),
@@ -756,9 +738,17 @@ export default {
         if (pensionType === 'state') {
           await this.updateStatePension(data);
         } else if (pensionType === 'dc') {
-          await this.createDCPension(data);
+          if (this.editingPension) {
+            await this.updateDCPension({ id: this.editingPension.id, data });
+          } else {
+            await this.createDCPension(data);
+          }
         } else if (pensionType === 'db') {
-          await this.createDBPension(data);
+          if (this.editingPension) {
+            await this.updateDBPension({ id: this.editingPension.id, data });
+          } else {
+            await this.createDBPension(data);
+          }
         }
 
         // Complete AI fill if this was an AI-driven save
@@ -859,6 +849,7 @@ export default {
 <style scoped>
 .pension-list {
   padding: 24px;
+  @apply bg-eggshell-500;
 }
 
 .list-header {
@@ -946,7 +937,7 @@ export default {
 }
 
 .upload-button:hover {
-  @apply bg-violet-50;
+  @apply bg-light-pink-50;
 }
 
 .button-icon {
@@ -975,13 +966,12 @@ export default {
 
 .pension-card-standalone:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  @apply border-raspberry-500;
+  @apply border-horizon-300;
 }
 
 /* Empty Standalone State */
 .empty-standalone {
-  background: white;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
   border-radius: 12px;
   padding: 32px 20px;
   text-align: center;
@@ -1140,9 +1130,8 @@ export default {
 .empty-compact {
   text-align: center;
   padding: 24px 16px;
-  @apply bg-savannah-100;
   border-radius: 8px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-compact p {
@@ -1187,18 +1176,16 @@ export default {
 .empty-projections {
   text-align: center;
   padding: 80px 40px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 /* Full-width Empty State - matches investment list */
 .empty-state {
   text-align: center;
   padding: 80px 40px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-state p {
@@ -1362,7 +1349,7 @@ export default {
 /* Planner Cards Row */
 .planner-cards-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 24px;
 }
@@ -1372,38 +1359,19 @@ export default {
   border-radius: 12px;
   padding: 20px;
   transition: all 0.2s ease;
+  @apply border border-light-gray;
 }
 
-.planner-card.income {
-  @apply border-2 border-violet-200;
-  background: linear-gradient(135deg, white 0%, theme('colors.blue.50') 100%);
-}
-
-.planner-card.capital {
-  @apply border-2 border-teal-200;
-  background: linear-gradient(135deg, white 0%, theme('colors.teal.50') 100%);
+.planner-card.income,
+.planner-card.capital,
+.planner-card.drawdown {
+  background: white;
 }
 
 .planner-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.planner-card.income:hover {
-  @apply border-violet-400;
-}
-
-.planner-card.capital:hover {
-  @apply border-teal-400;
-}
-
-.planner-card.drawdown {
-  @apply border-2 border-raspberry-200;
-  background: linear-gradient(135deg, white 0%, theme('colors.pink.50') 100%);
-}
-
-.planner-card.drawdown:hover {
-  @apply border-raspberry-400;
+  @apply border-light-gray;
 }
 
 .planner-card-header {
@@ -1499,9 +1467,7 @@ export default {
 }
 
 .planner-metric-value {
-  font-size: 18px;
-  font-weight: 700;
-  @apply text-horizon-500;
+  @apply text-xl sm:text-2xl font-black text-horizon-500;
 }
 
 .planner-metric-value.green {

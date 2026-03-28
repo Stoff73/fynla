@@ -1,71 +1,85 @@
 # CSJTODO — Fynla
 
-*Last updated: 25 March 2026 — sessions 8, 9 & 10*
+*Last updated: 25 March 2026 — dashboard branch session (batches 9-10)*
+*Previous session: 25 March 2026 (grokAI branch — inline investment holdings)*
 
----
+## Carried Forward (from previous session)
 
-## Session 8 (25 March) — Production Deploy + AI Testing
+### CRITICAL — AI Form Fill NOT TESTED WITH GROK
+- [ ] Step 4: Manual browser fill for EVERY variant (ISA, GIA, bond, VCT, EIS with holdings)
+- [ ] Step 5: Verify DB save and dashboard display for each variant
+- [ ] Step 6: Algorithm doc needs updating AFTER manual testing confirms it works
+- [ ] Step 10: Test with Grok — send natural language prompts, verify form fills, verify DB saves
+- [ ] `create_investment_account` with holdings — UNTESTED with Grok
+- [ ] Previous issue: Grok creates accounts with £0 value — may still be broken
+- [ ] Account lookup LIKE query too loose — picks wrong account when multiple share provider name
 
-### Completed
-- [x] grokAI branch merged to main (PR #160)
-- [x] Deployed AI form fill to production (fynla.org)
-- [x] Fixed missing files in deploy guide (config/services.php, AppServiceProvider, XaiClient, routes, AdminController, composer)
-- [x] Tested 14/14 AI modules on production via Playwright — all PASS
-- [x] Trust 422 fix (default creation_date to today)
-- [x] Protection TypeError fix (null guard on this.errors)
-- [x] Family member education_status inference from age
-- [x] Expenditure navigation after direct save
-- [x] InvestmentList.vue tooltip restored (lost in merge)
-- [x] Stale branches cleaned up (grokAI, aiFormFill deleted)
+### Known Issues (Carried Forward)
+- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow)
+- [ ] Console errors: Protection TypeError at PolicyFormModal.vue:196 during AI fill (non-blocking)
+- [ ] property_sale life event: Grok also creates property record (double navigation)
 
-## Session 9 (25 March) — Vault Gateway + CLAUDE.md Cleanup
-
-### Completed
-- [x] Vault gateway system designed and implemented (5 components)
-- [x] vault-context skill created (/vault-context [module])
-- [x] session-start enhanced with vault context loading
-- [x] CLAUDE.md vault reference map + agent dispatch protocol added
-- [x] Pre-edit vault reminder hook created
-- [x] All 6 CLAUDE.md files updated with current metrics
-- [x] Local dev auth self-service added (tinker command for verification codes)
-- [x] session-end skill updated: CSJTODO naming, deploy completeness, pre-merge checks, append mode
-- [x] Frontend build done — ready for upload
-
-## Session 10 (25 March) — Investment UI + DC Pension Holdings/Fees
-
-### Completed
-- [x] Investment detail view consolidated — 2 views merged into 1 card-based layout (PR #161)
-- [x] InvestmentProjections.vue rewritten: per-account Monte Carlo, header card, all analysis cards, drill-downs
-- [x] InvestmentDetailInline.vue retired
-- [x] DC pension inline holdings — reused InlineHoldingsEditor
-- [x] DC pension fee fields — platform fee (% or £, with frequency) + advisor fee
-- [x] Migration: add_fee_fields_to_dc_pensions_table
-- [x] Fixed ocf_percent NOT NULL constraint in holdings creation
-- [x] Fixed InlineHoldingsEditor Amount Invested auto-populate on allocation % change
-- [x] Both features deployed and tested on fynla.org
-
-### Reverted
-- Pension detail view enhancements (pensionUI branch) — holdings/fees tabs + header metrics. Branch deleted, changes reverted.
-
----
-
-## Outstanding Items
-
-### Next Priority Tasks
-- [ ] Pension detail view — add holdings tab, fees tab, header metrics (redo properly)
-- [ ] Test expenditure AI fill on production
-- [ ] Verify admin AI Provider panel shows Anthropic/xAI toggle cards
-
-### Tech Debt (carried forward)
+### Tech Debt (Carried Forward)
+- [ ] Debug console.log statements in AccountForm.vue (remove before deploy)
 - [ ] OnboardingWizard.vue: Vue warn about failed component resolution (non-blocking)
 - [ ] LiabilitiesStep.vue: DEPRECATED comment
-- [ ] IncomeStatementTab.vue: orphaned (never imported)
-- [ ] DB enum missing step_child/partner — handler maps as workaround
+- [ ] IncomeStatementTab.vue is orphaned (never imported)
+- [ ] WARN-002: Security sessions API returns 500 on /api/auth/sessions
+- [ ] WARN-003: Vue error on holistic-plan page
 
-### Known Issues
-- [ ] DB pension field mapping mismatch (pre-existing — employer_name vs scheme_name)
-- [ ] Expenditure form fill doesn't animate through form (direct DB save pattern)
+### Grok AI Migration (branch: grokAI)
+- [ ] Get xAI API key from https://console.x.ai
+- [ ] Complete AI form fill testing — follow aiProcess.md Steps 4-10
+- [ ] Test with xAI locally — chat, streaming, tool calling, navigation
+- [ ] Test document extraction with xAI
+- [ ] Phase 5 remaining: remove Anthropic SDK, delete Python scripts, update legal text
+- [ ] Merge grokAI branch to main
+
+## Completed This Session (dashboard branch)
+
+### Dashboard Batch 9
+- [x] Grid breakpoint xl:grid-cols-3 for smaller desktops
+- [x] Hover border fix — box-shadow then 3px transparent border
+- [x] 0% progress bars show "0%" text in horizon blue
+- [x] DashboardSparkline component (GA-style, ApexCharts)
+- [x] Cash & Savings card redesign — sparkline + collapsible accounts
+- [x] Investments card — mirror pattern
+- [x] Goals bar chart — Horizon blue from designSystem
+- [x] Income donut chart — designSystem colours
+
+### Dashboard Batch 10
+- [x] Card gradient z-index — renders below content
+- [x] 3px hover border on dashboard cards
+- [x] 0% progress bars left-aligned
+- [x] Empty cards (Protection, Estate) — no gradient or hover
+- [x] Allowances ISA → /net-worth/cash, Pension → /retirement
+- [x] Mobile status bar carousel with swipe and dots
+- [x] CashOverview: account cards grey gradient, Open Banking light blue
+- [x] Rename General → Settings in nav
+- [x] Settings tab navigation (General/Security/Privacy/Assumptions)
+- [x] Remove Your Information from Settings
+
+## Outstanding from This Session
+
+### Dashboard Branch — Needs Browser Testing
+- [ ] Full browser walkthrough of all batch 9-10 changes across personas
+- [ ] Verify mobile carousel works on actual touch device / responsive mode
+- [ ] Verify Settings tab navigation works on all 4 sub-pages
+- [ ] Verify CashOverview card gradients display correctly
+- [ ] Test allowance section clickthrough navigation
+
+### Dashboard Branch — Merge to Main
+- [ ] Merge dashboard branch to main when browser testing complete
+- [ ] Deploy frontend build to production
 
 ## Context for Next Session
 
-Investment detail view consolidated into card-based layout on InvestmentProjections.vue — deployed and working on production. DC pensions now have inline holdings and fee fields matching investments — deployed. The pension detail view (PensionDetailInline.vue) still needs holdings/fees tabs and header metrics added — attempted on pensionUI branch but reverted due to issues. This is the top priority for next session. Approach carefully — test scroll behaviour before committing.
+Dashboard branch has 17 new commits covering batches 9-10. All changes are frontend-only (Vue/CSS/JS). Build compiles cleanly. The branch is pushed to origin/dashboard. No browser testing was done this session — next session should start with a full visual walkthrough across personas before merging to main. The grokAI branch work (AI form fill testing) is still outstanding from the previous session.
+
+Key files: Deploy notes at `March/March25Updates/deploy.md`.
+
+## Files to Review
+- `resources/js/components/Journey/JourneyProgressHero.vue` — mobile carousel (new, untested)
+- `resources/js/components/Settings/SettingsTabBar.vue` — new component (untested)
+- `resources/js/views/Settings.vue` — restructured (Your Info removed, tabs added)
+- `resources/js/views/Dashboard.vue` — extensive changes (sparklines, progress bars, allowances)

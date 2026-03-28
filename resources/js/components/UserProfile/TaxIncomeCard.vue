@@ -333,6 +333,7 @@ const hasNI = computed(() => {
 });
 
 const formatPercent = (value) => {
-  return `${Math.round((value ?? 0) * 100)}%`;
+  const pct = (value ?? 0) * 100;
+  return Number.isInteger(pct) ? `${pct}%` : `${parseFloat(pct.toFixed(2))}%`;
 };
 </script>

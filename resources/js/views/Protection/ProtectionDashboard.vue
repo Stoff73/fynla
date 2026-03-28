@@ -1,6 +1,13 @@
 <template>
   <AppLayout>
-    <div class="protection-dashboard py-2 sm:py-6">
+    <div class="protection-dashboard module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
+      <!-- Profile Completeness Alert -->
+      <ProfileCompletenessAlert
+        v-if="profileCompleteness && !loadingCompleteness"
+        :completenessData="profileCompleteness"
+        :dismissible="true"
+      />
       <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="mb-6 sm:mb-8">
@@ -9,13 +16,6 @@
           Analyse your protection coverage and identify gaps in your insurance portfolio
         </p>
       </div>
-
-      <!-- Profile Completeness Alert -->
-      <ProfileCompletenessAlert
-        v-if="profileCompleteness && !loadingCompleteness"
-        :completenessData="profileCompleteness"
-        :dismissible="true"
-      />
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
@@ -57,13 +57,11 @@
           :impact-summary="lifeEventImpact"
         />
 
-      <div class="bg-white rounded-lg shadow">
-        <div class="p-6">
-          <CurrentSituation
-            @add-policy="handleAddPolicy"
-            @edit-policy="handleEditPolicy"
-          />
-        </div>
+      <div class="bg-white rounded-lg border border-light-gray p-6">
+        <CurrentSituation
+          @add-policy="handleAddPolicy"
+          @edit-policy="handleEditPolicy"
+        />
       </div>
       </div> <!-- v-else -->
 
@@ -84,11 +82,10 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
-import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
-import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'ProtectionDashboard',
@@ -96,15 +93,13 @@ export default {
   components: {
     AppLayout,
     CurrentSituation,
-    ProfileCompletenessAlert,
     PolicyFormModal,
     ModuleLifeEvents,
+    ModuleStatusBar,
   },
 
   data() {
     return {
-      profileCompleteness: null,
-      loadingCompleteness: false,
       showForm: false,
       editingPolicy: null,
     };
@@ -148,10 +143,6 @@ export default {
     }
 
     this.loadProtectionData();
-    // Skip profile completeness in preview mode
-    if (!this.isPreviewMode) {
-      this.loadProfileCompleteness();
-    }
   },
 
   methods: {
@@ -165,16 +156,16 @@ export default {
       }
     },
 
-    async loadProfileCompleteness() {
-      this.loadingCompleteness = true;
-      try {
-        const response = await userProfileService.getProfileCompleteness();
-        this.profileCompleteness = response.data;
-      } catch (error) {
-        console.error('Failed to load profile completeness:', error);
-      } finally {
-        this.loadingCompleteness = false;
-      }
+    findPolicyById(id) {
+      const policies = this.$store.state.protection?.policies || {};
+      const allPolicies = [
+        ...(policies.life || []),
+        ...(policies.criticalIllness || []),
+        ...(policies.incomeProtection || []),
+        ...(policies.disability || []),
+        ...(policies.sicknessIllness || []),
+      ];
+      return allPolicies.find(p => p.id === id) || null;
     },
 
     findPolicyById(id) {

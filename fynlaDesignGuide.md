@@ -485,6 +485,46 @@ For tertiary actions.
 </button>
 ```
 
+### Light Pink Button
+
+For soft secondary actions (e.g. "Set a Financial Goal").
+
+```html
+<button class="px-4 py-2 bg-light-pink-100 text-neutral-500 rounded-button font-medium
+               hover:bg-light-pink-200 active:bg-light-pink-300
+               transition-all duration-150">
+  Set a Financial Goal
+</button>
+```
+
+| State | Background | Text | Border |
+|-------|------------|------|--------|
+| Default | `bg-light-pink-100` | `text-neutral-500` | none |
+| Hover | `bg-light-pink-200` | `text-neutral-500` | none |
+| Active | `bg-light-pink-300` | `text-neutral-500` | none |
+
+**Rule:** Light pink buttons must only use regular grey text (`text-neutral-500`). Never use white, raspberry, or horizon text on light pink buttons.
+
+### Success Button (Green)
+
+For positive/forward actions (e.g. "Start a Planning Journey").
+
+```html
+<button class="px-4 py-2 bg-spring-500 text-white rounded-button font-medium
+               hover:bg-spring-600 active:bg-spring-700
+               transition-all duration-150 shadow-sm hover:shadow-md">
+  Start a Planning Journey
+</button>
+```
+
+| State | Background | Text | Border |
+|-------|------------|------|--------|
+| Default | `bg-spring-500` | `text-white` | none |
+| Hover | `bg-spring-600` | `text-white` | none |
+| Active | `bg-spring-700` | `text-white` | none |
+
+**Rule:** Green (spring) buttons must only use white text. Never use dark or coloured text on green buttons.
+
 ### Danger Button
 
 For destructive actions.

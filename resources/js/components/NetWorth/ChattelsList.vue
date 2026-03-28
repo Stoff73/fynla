@@ -1,5 +1,6 @@
 <template>
   <div class="chattels-list">
+    <ModuleStatusBar />
     <!-- Detail View -->
     <ChattelDetailInline
       v-if="selectedChattelId"
@@ -11,25 +12,16 @@
 
     <!-- List View -->
     <div v-else>
-      <div class="list-header">
-        <h2 class="list-title">Personal Valuables</h2>
-        <div class="list-controls">
-          <select v-model="filterType" class="filter-select">
-            <option value="all">All Types</option>
-            <option value="vehicle">Vehicles</option>
-            <option value="art">Art</option>
-            <option value="antique">Antiques</option>
-            <option value="jewelry">Jewellery</option>
-            <option value="collectible">Collectibles</option>
-            <option value="other">Other</option>
-          </select>
-          <button v-preview-disabled="'add'" @click="openAddModal" class="add-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Valuable
-          </button>
-        </div>
+      <div class="list-controls">
+        <select v-model="filterType" class="filter-select">
+          <option value="all">All Types</option>
+          <option value="vehicle">Vehicles</option>
+          <option value="art">Art</option>
+          <option value="antique">Antiques</option>
+          <option value="jewelry">Jewellery</option>
+          <option value="collectible">Collectibles</option>
+          <option value="other">Other</option>
+        </select>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -67,31 +59,36 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <ChattelFormModal
-      v-if="showFormModal"
-      :chattel="editingChattel"
-      :is-editing="!!editingChattel"
-      @close="closeFormModal"
-      @save="handleSave"
-    />
+    <Teleport to="body">
+      <ChattelFormModal
+        v-if="showFormModal"
+        :chattel="editingChattel"
+        :is-editing="!!editingChattel"
+        @close="closeFormModal"
+        @save="handleSave"
+      />
+    </Teleport>
 
     <!-- Delete Confirmation -->
-    <ConfirmDialog
-      :show="showDeleteConfirm"
-      title="Delete Chattel"
-      message="Are you sure you want to delete this item? This action cannot be undone."
-      @confirm="handleDelete"
-      @cancel="showDeleteConfirm = false"
-    />
+    <Teleport to="body">
+      <ConfirmDialog
+        :show="showDeleteConfirm"
+        title="Delete Chattel"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+        @confirm="handleDelete"
+        @cancel="showDeleteConfirm = false"
+      />
+    </Teleport>
   </div>
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import ChattelCard from './ChattelCard.vue';
 import ChattelFormModal from './ChattelFormModal.vue';
 import ChattelDetailInline from './ChattelDetailInline.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'ChattelsList',
@@ -101,6 +98,7 @@ export default {
     ChattelFormModal,
     ChattelDetailInline,
     ConfirmDialog,
+    ModuleStatusBar,
   },
 
   data() {
@@ -111,10 +109,20 @@ export default {
       editingChattel: null,
       deletingChattel: null,
       selectedChattelId: null,
+      showImportDropdown: false,
     };
   },
 
   watch: {
+    actionCounter() {
+      if (this.pendingAction === 'addValuable') {
+        this.openAddModal();
+        this.$store.dispatch('subNav/consumeCta');
+      } else if (this.pendingAction === 'importValuables') {
+        this.showImportDropdown = !this.showImportDropdown;
+        this.$store.dispatch('subNav/consumeCta');
+      }
+    },
     '$store.state.aiFormFill.pendingFill'(fill) {
       if (fill && fill.entityType === 'chattel') {
         if (fill.mode === 'edit' && fill.entityId) {
@@ -132,6 +140,7 @@ export default {
 
   computed: {
     ...mapState('chattels', ['chattels', 'loading', 'error']),
+    ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
 
     filteredChattels() {
       let filtered = [...this.chattels];
@@ -158,10 +167,51 @@ export default {
     this.fetchData();
     // Fetch family members to ensure spouse data is available for joint ownership dropdown
     await this.$store.dispatch('userProfile/fetchFamilyMembers');
+
+    document.addEventListener('click', this.handleClickOutsideImport);
+  },
+
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideImport);
   },
 
   methods: {
     ...mapActions('chattels', ['fetchChattels', 'createChattel', 'updateChattel', 'deleteChattel']),
+
+    handleClickOutsideImport(event) {
+      if (this.$refs.importDropdown && !this.$refs.importDropdown.contains(event.target)) {
+        this.showImportDropdown = false;
+      }
+    },
+
+    handleImport(format) {
+      this.showImportDropdown = false;
+      // File input for CSV/Excel upload — backend endpoint TBD
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = format === 'csv' ? '.csv' : '.xlsx,.xls';
+      input.onchange = () => {
+        // Future: upload file to backend for processing
+      };
+      input.click();
+    },
+
+    downloadTemplate() {
+      this.showImportDropdown = false;
+      const headers = [
+        'Type', 'Name', 'Description', 'Make', 'Model', 'Year',
+        'Registration', 'Current Value', 'Valuation Date',
+        'Purchase Price', 'Purchase Date', 'Ownership Type',
+        'Ownership Percentage', 'Joint Owner', 'Notes',
+      ];
+      const csvContent = headers.join(',') + '\n';
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'personal_valuables_template.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    },
 
     async fetchData() {
       try {
@@ -239,28 +289,14 @@ export default {
 <style scoped>
 .chattels-list {
   padding: 24px;
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.list-title {
-  font-size: 24px;
-  font-weight: 700;
-  @apply text-horizon-500;
-  margin: 0;
+  @apply bg-eggshell-500;
 }
 
 .list-controls {
   display: flex;
   gap: 12px;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .filter-select {
@@ -277,6 +313,61 @@ export default {
   outline: none;
   @apply border-pink-500;
   box-shadow: 0 0 0 3px rgba(232, 62, 109, 0.1);
+}
+
+.import-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  @apply bg-horizon-100 text-horizon-500 border border-horizon-300;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.import-button:hover {
+  @apply bg-horizon-200;
+}
+
+.import-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border-radius: 8px;
+  @apply border border-light-gray;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 180px;
+}
+
+.import-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 14px;
+  @apply text-neutral-500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.import-option:hover {
+  @apply bg-eggshell-500;
+}
+
+.import-option:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.import-option:last-child {
+  border-radius: 0 0 8px 8px;
 }
 
 .add-button {
@@ -347,7 +438,7 @@ export default {
   background: white;
   border-radius: 12px;
   padding: 80px 40px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-icon {
@@ -378,7 +469,7 @@ export default {
   gap: 8px;
   margin-top: 24px;
   padding: 12px 24px;
-  @apply bg-pink-500;
+  @apply bg-horizon-500;
   color: white;
   border: none;
   border-radius: 8px;
@@ -389,7 +480,7 @@ export default {
 }
 
 .add-first-button:hover {
-  @apply bg-pink-600;
+  @apply bg-horizon-600;
 }
 
 @media (max-width: 768px) {
@@ -397,20 +488,12 @@ export default {
     padding: 16px;
   }
 
-  .list-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .list-controls {
     width: 100%;
-    flex-direction: column;
   }
 
-  .filter-select,
-  .add-button {
+  .filter-select {
     width: 100%;
-    justify-content: center;
   }
 
   .chattels-grid {

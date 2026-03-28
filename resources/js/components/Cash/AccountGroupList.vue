@@ -271,16 +271,14 @@ export default {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
-  @apply text-violet-600;
-  @apply bg-violet-50;
-  @apply border border-violet-200;
+  @apply text-horizon-500 bg-light-pink-100;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-account-btn:hover {
-  @apply bg-violet-100;
-  @apply border-violet-300;
+  @apply bg-light-pink-200;
 }
 </style>

@@ -61,11 +61,11 @@
 
   /* Clickable cards get premium hover effects automatically */
   .card.cursor-pointer {
-    @apply hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-300;
+    @apply hover:shadow-md hover:-translate-y-0.5 hover:bg-[#EEEEEE];
   }
 
   .card-hover {
-    @apply bg-white rounded-card border border-light-gray shadow-sm hover:shadow-md transform hover:-translate-y-0.5 hover:border-raspberry-300 transition-all duration-200 cursor-pointer p-6;
+    @apply bg-white rounded-card border border-light-gray shadow-sm hover:shadow-md transform hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 cursor-pointer p-6;
   }
 
   .input-field {
@@ -333,6 +333,61 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: theme('colors.savannah.100'); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: theme('colors.horizon.300'); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: theme('colors.horizon.400'); }
+
+  /* Module page gradient — subtle light grey fade from bottom with light grey border */
+  .module-gradient {
+    position: relative;
+    border: 1px solid theme('colors.light-gray');
+    border-radius: theme('borderRadius.card');
+    overflow: hidden;
+  }
+  .module-gradient::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, theme('colors.light-gray'), transparent);
+    pointer-events: none;
+    border-radius: 0 0 theme('borderRadius.card') theme('borderRadius.card');
+    z-index: 0;
+  }
+  .module-gradient > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Dashboard card gradient — subtle light pink fade from bottom */
+  .module-gradient-pink {
+    position: relative;
+    overflow: hidden;
+  }
+  .module-gradient-pink::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, theme('colors.light-pink.100'), transparent);
+    pointer-events: none;
+    border-radius: 0 0 theme('borderRadius.card') theme('borderRadius.card');
+  }
+
+  /* Dashboard card hover — switch gradient from grey to light blue */
+  .hover-blue-gradient {
+    border: 3px solid transparent;
+  }
+  .hover-blue-gradient::after {
+    transition: background 0.2s ease;
+  }
+  .hover-blue-gradient:hover {
+    border-color: theme('colors.light-blue.200');
+  }
+  .hover-blue-gradient:hover::after {
+    background: linear-gradient(to top, theme('colors.light-blue.100'), transparent);
+  }
 
   /* Animation utilities */
   .animate-fade-in { animation: fadeIn 0.3s ease-out; }

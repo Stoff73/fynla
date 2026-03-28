@@ -26,52 +26,19 @@
       ]"
     >
       <!-- Logo -->
-      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'px-4'">
+      <div class="flex items-center h-16 border-b border-light-gray flex-shrink-0" :class="effectiveCollapsed ? 'justify-center px-2' : 'pl-[8px] pr-4'">
         <router-link to="/dashboard" class="flex items-center flex-shrink-0 overflow-hidden" @click="closeMobile">
-          <!-- Collapsed: progress ring around favicon (when progress data loaded) -->
-          <div v-if="effectiveCollapsed && showProgress" class="relative" :title="`Journey: ${progressPercentage}% complete`">
-            <svg viewBox="0 0 40 40" class="w-10 h-10 -rotate-90">
-              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3" class="stroke-light-gray" />
-              <circle cx="20" cy="20" r="17" fill="none" stroke-width="3"
-                :class="progressRingColourClass"
-                :stroke-dasharray="106.8"
-                :stroke-dashoffset="106.8 - (106.8 * progressPercentage / 100)"
-                stroke-linecap="round" />
-            </svg>
-            <img :src="faviconUrl" alt="Fynla" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5" />
-          </div>
-          <!-- Collapsed: no stage, just favicon -->
-          <img v-else-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
+          <!-- Collapsed: just favicon -->
+          <img v-if="effectiveCollapsed" :src="faviconUrl" alt="Fynla" class="h-8 w-8" />
           <!-- Expanded: full logo -->
-          <img v-else :src="logoUrl" alt="Fynla" class="h-20 w-auto mt-3" />
+          <img v-else :src="logoUrl" alt="Fynla" class="h-14 w-auto" />
         </router-link>
-      </div>
-
-      <!-- Stage badge & progress bar (expanded, when progress data loaded) -->
-      <div v-if="!effectiveCollapsed && showProgress" class="px-4 py-2 border-b border-light-gray flex-shrink-0">
-        <div class="text-xs font-semibold" :class="stageLabelColourClass">
-          {{ stageLabel }}
-        </div>
-        <div class="mt-2">
-          <div class="flex justify-between text-xs mb-1">
-            <span class="text-neutral-500">Journey Progress</span>
-            <span :class="stageLabelColourClass" class="font-bold">{{ progressPercentage }}%</span>
-          </div>
-          <div class="h-1 bg-light-gray rounded-full overflow-hidden">
-            <div class="h-1 rounded-full transition-all duration-500" :class="progressBarColourClass" :style="{ width: progressPercentage + '%' }"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Collapsed: tiny progress percentage below ring -->
-      <div v-if="effectiveCollapsed && showProgress" class="text-center flex-shrink-0 -mt-1 mb-1">
-        <span class="text-[9px] font-bold" :class="stageLabelColourClass">{{ progressPercentage }}%</span>
       </div>
 
       <!-- Collapse toggle (desktop only) -->
       <button
         @click="toggleCollapsed"
-        class="hidden sm:flex items-center justify-center h-8 mx-2 mt-2 mb-1 rounded-md text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 transition-colors flex-shrink-0"
+        class="hidden sm:flex items-center justify-center h-8 mx-2 mt-2 mb-1 rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors flex-shrink-0"
         :title="collapsed ? 'Expand menu' : 'Collapse menu'"
       >
         <svg class="w-5 h-5 transition-transform duration-300" :class="collapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +77,7 @@
         </SideMenuSection>
 
         <!-- Family (has spouse) / Admin (no spouse) -->
-        <SideMenuSection :label="hasSpouse ? 'Family' : 'Admin'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
+        <SideMenuSection :label="hasSpouse ? 'Family' : 'Personal Affairs'" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('family')" @toggle="toggleSection('family')">
           <SideMenuItem icon="shield-check" label="Protection" to="/protection" :collapsed="effectiveCollapsed" :active="isActive('/protection')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="document-check" label="Will" to="/estate/will-builder" :collapsed="effectiveCollapsed" :active="isWillBuilderActive" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
           <SideMenuItem icon="envelope" :label="hasSpouse ? 'Letter to Spouse' : 'Expression of Wishes'" :to="{ path: '/valuable-info', query: { section: 'letter' } }" :collapsed="effectiveCollapsed" :active="isValuableInfoSection('letter')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
@@ -130,27 +97,6 @@
           <SideMenuItem icon="lightning-bolt" label="Actions" to="/actions" :collapsed="effectiveCollapsed" :active="isActive('/actions')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
         </SideMenuSection>
 
-        <!-- Account -->
-        <SideMenuSection label="Account" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('account')" @toggle="toggleSection('account')">
-          <SideMenuItem icon="user" label="User Profile" to="/profile" :collapsed="effectiveCollapsed" :active="isActive('/profile')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem icon="cog" label="Settings" to="/settings" :collapsed="effectiveCollapsed" :active="isActive('/settings')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-        </SideMenuSection>
-
-        <!-- Support -->
-        <SideMenuSection label="Support" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('support')" @toggle="toggleSection('support')">
-          <SideMenuItem icon="question-mark-circle" label="Help" to="/help" :collapsed="effectiveCollapsed" :active="isActive('/help')" :active-colour="currentStage ? stageColour : ''" @navigate="closeMobile" />
-          <SideMenuItem
-            icon="chat-bubble"
-            label="Feedback"
-            href="https://docs.google.com/forms/d/e/1FAIpQLSeEotaP8CrnnhPYcuLdhl9fwIDT2V8GoduC0ytNtPcyD4FdSw/viewform?usp=publish-editor"
-            :collapsed="effectiveCollapsed"
-            :active="false"
-            external
-            @navigate="closeMobile"
-          />
-          <SideMenuItem icon="bug" label="Bug Report" :collapsed="effectiveCollapsed" :active="false" @action="openBugReport" />
-        </SideMenuSection>
-
         <!-- Advisor (conditional) -->
         <SideMenuSection v-if="isAdvisor" label="Advisor" :collapsed="effectiveCollapsed" :expanded="isSectionExpanded('advisorPanel')" @toggle="toggleSection('advisorPanel')">
           <SideMenuItem icon="briefcase" label="Advisor Dashboard" to="/advisor" :collapsed="effectiveCollapsed" :active="isActive('/advisor')" @navigate="closeMobile" />
@@ -162,18 +108,34 @@
         </SideMenuSection>
       </div>
 
+      <!-- Upgrade Now link -->
+      <div class="border-t border-light-gray p-2 flex-shrink-0">
+        <router-link
+          to="/pricing"
+          class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
+          :class="effectiveCollapsed ? 'justify-center' : ''"
+          :title="effectiveCollapsed ? 'Upgrade Now' : ''"
+          @click="closeMobile"
+        >
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Upgrade Now</span>
+        </router-link>
+      </div>
+
       <!-- Logout button -->
       <div class="border-t border-light-gray p-2 flex-shrink-0">
         <button
           @click="handleLogout"
           class="flex items-center w-full rounded-md px-3 py-2.5 text-neutral-500 hover:bg-savannah-100 hover:text-horizon-500 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
-          :title="effectiveCollapsed ? 'Logout' : ''"
+          :title="effectiveCollapsed ? 'Sign Out' : ''"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Logout</span>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Sign Out</span>
         </button>
       </div>
     </nav>
@@ -276,9 +238,9 @@ export default {
       },
     };
 
-    const stageLabelColourClass = computed(() => COLOUR_CLASSES.text[stageColour.value] || 'text-horizon-500');
-    const progressBarColourClass = computed(() => COLOUR_CLASSES.bg[stageColour.value] || 'bg-horizon-500');
-    const progressRingColourClass = computed(() => COLOUR_CLASSES.stroke[stageColour.value] || 'stroke-horizon-500');
+    const stageLabelColourClass = computed(() => 'text-horizon-500');
+    const progressBarColourClass = computed(() => 'bg-raspberry-500');
+    const progressRingColourClass = computed(() => 'stroke-raspberry-500');
     // ---------------------------------------------------------------
     // Active state detection (used by both legacy and stage layouts)
     // ---------------------------------------------------------------
@@ -371,12 +333,15 @@ export default {
     const STORAGE_KEY = 'sideMenuExpandedSections';
     const expandedSections = ref({});
 
+    const INIT_KEY = 'sideMenuInitialised';
+
     const loadExpandedState = () => {
       try {
         const stored = storage.get(STORAGE_KEY);
         if (stored) {
           expandedSections.value = JSON.parse(stored);
         }
+        // On first ever visit, all sections start collapsed (empty object is default)
       } catch {
         expandedSections.value = {};
       }
@@ -425,9 +390,6 @@ export default {
       if (path.startsWith('/profile') || path.startsWith('/settings')) {
         return 'account';
       }
-      if (path.startsWith('/help')) {
-        return 'support';
-      }
       if (path.startsWith('/advisor')) {
         return 'advisorPanel';
       }
@@ -446,22 +408,18 @@ export default {
       return expandedSections.value[key] || false;
     };
 
-    // Auto-expand section when route changes
-    watch(() => route.fullPath, () => {
-      {
-        const activeKey = activeSectionKey.value;
-        if (activeKey && !expandedSections.value[activeKey]) {
-          expandedSections.value = { ...expandedSections.value, [activeKey]: true };
-          saveExpandedState();
-        }
-      }
-    });
+    const PENDING_EXPAND_KEY = 'sideMenuPendingExpand';
 
     const toggleCollapsed = () => {
       emit('toggle');
     };
 
     const closeMobile = () => {
+      // If menu is collapsed on desktop and user clicked a nav item,
+      // set a flag so the next mount auto-expands the menu + section
+      if (props.collapsed && !props.mobileOpen) {
+        storage.set(PENDING_EXPAND_KEY, 'true');
+      }
       if (props.mobileOpen) {
         emit('update:mobileOpen', false);
       }
@@ -496,11 +454,18 @@ export default {
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
-      // Auto-expand the section containing the active route on initial load
-      {
-        const activeKey = activeSectionKey.value;
-        if (activeKey && !expandedSections.value[activeKey]) {
-          expandedSections.value = { ...expandedSections.value, [activeKey]: true };
+
+      // Auto-expand menu + section when navigating from collapsed state
+      if (storage.get(PENDING_EXPAND_KEY) === 'true') {
+        storage.remove(PENDING_EXPAND_KEY);
+        // Expand the menu if currently collapsed
+        if (props.collapsed) {
+          emit('toggle');
+        }
+        // Expand the section for the current route
+        const sectionKey = activeSectionKey.value;
+        if (sectionKey && !expandedSections.value[sectionKey]) {
+          expandedSections.value = { ...expandedSections.value, [sectionKey]: true };
           saveExpandedState();
         }
       }

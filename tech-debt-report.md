@@ -1,42 +1,56 @@
-# Tech Debt Report — Session 12 March 2026 (Evening)
+# Tech Debt Report — Session 26 March 2026
 
-**Files analysed:** 7 (module detail views + card components changed today)
-**Issues found:** 5
-**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
+**Files analysed:** 15
+**Issues found:** 28
+**Severity breakdown:** 4 high, 7 medium, 4 low
 
-## Warnings
+## High Priority
 
-### 1. Repeated Fyn summary card markup across 5 detail views
-**Files:** `resources/js/mobile/views/SavingsDetail.vue:22-25`, `RetirementDetail.vue:22-25`, `InvestmentDetail.vue:22-25`, `EstateDetail.vue:27-30`, `ProtectionDetail.vue:29-32`
-**Category:** Duplicate Code
-**What's wrong:** The identical Fyn summary card (horizon-500 background, favicon image, white text) is copy-pasted across all 5 module detail views. Any design change requires editing 5 files.
-**Suggested fix:** Extract to a `MobileFynCard.vue` component that takes a `summary` string prop.
+### 1. Duplicate `lightenColor` method (8 files)
+Identical method copied across 8 components. Should be extracted to `utils/color.js`.
+- `Cash/SpendingDonutChart.vue:212`
+- `Investment/AssetAllocationChart.vue:183`
+- `Investment/HoldingsTable.vue:480`
+- `Investment/PortfolioOptimizer.vue:441`
+- `NetWorth/AssetAllocationDonut.vue:118`
+- `NetWorth/InvestmentProjections.vue:409`
+- `UserProfile/IncomeOccupation.vue:527`
+- `mobile/MobileAllocationChart.vue:102`
 
-### 2. Repeated hero card markup across 5 detail views
-**Files:** `resources/js/mobile/views/SavingsDetail.vue:14-19`, `RetirementDetail.vue:14-20`, `InvestmentDetail.vue:14-19`, `EstateDetail.vue:14-24`, `ProtectionDetail.vue:16-26`
-**Category:** Duplicate Code
-**What's wrong:** All 5 detail views have a nearly identical hero card (white bg, rounded-xl, border, centered text, emoji, title, currency value, subtitle). Minor variations exist (badges, extra rows) but the core pattern is duplicated.
-**Suggested fix:** Extract to a `MobileHeroCard.vue` component with props for `icon`, `title`, `value`, `subtitle`, and an optional slot for badges/extras.
+### 2. Vue 3 `_uid` deprecation
+- `NetWorth/AssetAllocationDonut.vue:115` — `this._uid` should be `this.$.uid`
 
-## Suggestions
+### 3. Non-palette `pink-*` colours in ChattelsList (6 occurrences)
+- Lines 53, 343, 407, 418, 501, 512 — should be `raspberry-*`
 
-### 3. Hardcoded IHT allowance fallbacks in EstateDetail.vue
-**File:** `resources/js/mobile/views/EstateDetail.vue:157,164`
-**Category:** Convention Violations (Rule 3 — no hardcoded tax values)
-**What's wrong:** NRB defaults to `325000` and RNRB to `175000` as fallback values. While the actual calculation uses backend data, these magic numbers could drift from real values if allowances change.
-**Suggested fix:** Consider importing from `constants/taxConfig.js` or relying solely on the backend response without frontend fallbacks.
+### 4. Hardcoded hex + non-palette colours in CashOverview
+- Lines 664, 676, 751, 758 — hardcoded `#FAD6E0`, `#F5B3C5`
+- Lines 22, 26, 31 — `red-*` should be `raspberry-*`
+- Line 733 — `green-600` should be `spring-600`
 
-### 4. Repeated loading skeleton pattern
-**Files:** All 5 detail views (`SavingsDetail.vue:3-10`, `RetirementDetail.vue:3-10`, `InvestmentDetail.vue:3-10`, `EstateDetail.vue:3-10`, `ProtectionDetail.vue:4-12`)
-**Category:** Duplicate Code
-**What's wrong:** Similar loading skeleton markup (animate-pulse divs with savannah-100 placeholders) is repeated in every detail view. Not identical (varying row counts), but structurally the same.
-**Suggested fix:** Extract to a `MobileDetailSkeleton.vue` component with a `rows` prop.
+## Medium Priority
 
-### 5. Repeated empty state pattern
-**Files:** All 5 detail views (e.g. `SavingsDetail.vue:83-87`, `RetirementDetail.vue:110-114`)
-**Category:** Duplicate Code
-**What's wrong:** The empty state block (emoji, title, subtitle) follows the same structure across all views. Only the text content differs.
-**Suggested fix:** Extract to a `MobileEmptyState.vue` component with `icon`, `title`, `subtitle` props.
+### 5. Unused imports/components (7 instances)
+- `PortfolioOptimizer.vue:302,312` — VueApexCharts no longer needed
+- `InvestmentProjections.vue:190,193,202` — VueApexCharts + CHART_DEFAULTS unused
+- `HoldingsTable.vue:349` — TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS unused
+- `PensionList.vue:416,434` — RiskBadge unused
+- `InvestmentList.vue:206-207,227-228` — AssetLocationOptimizer, WrapperOptimizer unused
+
+### 6. Non-palette `purple-*` colours (6 occurrences)
+- Should be `violet-*` in: BusinessInterestsList, InvestmentList, InvestmentProjections, PensionList
+
+### 7. Non-palette colours in IncomeOccupation
+- `success-*` tokens (lines 4, 7), `blue-*` tokens (lines 27, 162, 428)
+
+## Low Priority
+
+### 8. Dead computed properties in IncomeOccupation
+- `disposableIncomeClass` and `monthlyDisposable` — defined but never used in template
+
+### 9. Acronyms in user-facing text
+- `HoldingsTable.vue:213` — "OCF (%)" should be "Ongoing Charge (%)"
+- `CashOverview.vue:89-91` — "(TiC...)" should be "(Tenants in Common...)"
 
 ---
 *Generated by tech-debt-session skill*

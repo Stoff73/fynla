@@ -160,7 +160,7 @@ describe('ProfileCompletenessChecker - Married Users', function () {
         expect($result['missing_fields']['dependants']['priority'])->toBe('high');
     });
 
-    it('identifies missing domicile info for married user', function () {
+    it('does not include domicile info in completeness checks', function () {
         $spouse = User::factory()->create();
 
         $user = User::factory()->create([
@@ -171,35 +171,10 @@ describe('ProfileCompletenessChecker - Married Users', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        FamilyMember::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Child',
-            'first_name' => 'Test',
-            'last_name' => 'Child',
-            'relationship' => 'child',
-            'date_of_birth' => now()->subYears(10),
-            'is_dependent' => true,
-        ]);
-
-        Asset::create([
-            'user_id' => $user->id,
-            'asset_name' => 'Property',
-            'asset_type' => 'property',
-            'current_value' => 300000,
-            'valuation_date' => now(),
-        ]);
-
-        ProtectionProfile::create([
-            'user_id' => $user->id,
-            'annual_income' => 50000,
-            'monthly_expenditure' => 3000,
-            'number_of_dependents' => 1,
-        ]);
-
         $result = $this->checker->checkCompleteness($user);
 
-        expect($result['missing_fields'])->toHaveKey('domicile_info');
-        expect($result['missing_fields']['domicile_info']['priority'])->toBe('medium');
+        expect($result['missing_fields'])->not->toHaveKey('domicile_info');
+        expect($result['all_checks'])->not->toHaveKey('domicile_info');
     });
 });
 

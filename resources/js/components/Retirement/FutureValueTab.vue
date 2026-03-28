@@ -204,9 +204,8 @@ export default {
 .empty-state {
   text-align: center;
   padding: 80px 40px;
-  background: white;
   border-radius: 12px;
-  @apply border-2 border-dashed border-horizon-300;
+  @apply bg-light-blue-100 border border-light-gray;
 }
 
 .empty-icon {

@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="module-gradient py-8">
+      <ModuleStatusBar />
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-h2 font-display text-horizon-500">Help & Documentation</h1>
@@ -707,12 +708,14 @@
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'Help',
 
   components: {
     AppLayout,
+    ModuleStatusBar,
   },
 
   setup() {

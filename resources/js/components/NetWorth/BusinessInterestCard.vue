@@ -1,5 +1,5 @@
 <template>
-  <div class="business-interest-card" @click="handleClick">
+  <div class="business-interest-card module-gradient" @click="handleClick">
     <div class="card-header">
       <div class="badges">
         <span class="business-type-badge" :class="typeClass">
@@ -153,7 +153,7 @@ export default {
 .business-interest-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  @apply border-fuchsia-700;
+  @apply border-horizon-300;
 }
 
 .card-header {

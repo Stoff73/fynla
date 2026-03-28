@@ -1,7 +1,8 @@
 <template>
   <AppLayout>
-    <div class="py-2 sm:py-6">
-      <div class="max-w-7xl mx-auto">
+    <div class="module-gradient py-2 sm:py-6">
+      <ModuleStatusBar />
+      <div class="">
         <!-- Header -->
         <div class="mb-6">
           <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Lasting Power of Attorney</h1>
@@ -22,6 +23,7 @@
 <script>
 import AppLayout from '@/layouts/AppLayout.vue';
 import PowerOfAttorneyTab from '@/components/Estate/PowerOfAttorneyTab.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'PowerOfAttorneyView',
@@ -29,6 +31,7 @@ export default {
   components: {
     AppLayout,
     PowerOfAttorneyTab,
+    ModuleStatusBar,
   },
 
   data() {

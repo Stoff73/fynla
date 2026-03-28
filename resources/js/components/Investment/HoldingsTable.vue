@@ -58,14 +58,46 @@
           </span>
         </h3>
         <div class="flex justify-center">
-          <apexchart
-            :key="chartKey"
-            type="donut"
-            :options="chartOptions"
-            :series="chartSeries"
-            height="350"
-            width="100%"
-          />
+          <div class="relative" style="width: 300px; height: 300px;">
+            <svg viewBox="0 0 220 220" width="300" height="300">
+              <defs>
+                <linearGradient
+                  v-for="(seg, idx) in holdingsDonutSegments"
+                  :key="'grad-' + idx"
+                  :id="'holdings-grad-' + idx"
+                  x1="0%" y1="0%" x2="100%" y2="0%"
+                >
+                  <stop offset="0%" :stop-color="seg.color" />
+                  <stop offset="100%" :stop-color="seg.colorLight" />
+                </linearGradient>
+              </defs>
+              <circle
+                v-for="(seg, idx) in holdingsDonutSegments"
+                :key="'seg-' + idx"
+                cx="110" cy="110" r="75"
+                fill="none"
+                :stroke="'url(#holdings-grad-' + idx + ')'"
+                stroke-width="40"
+                stroke-linecap="round"
+                :stroke-dasharray="seg.arcLength + ' ' + 471.2"
+                :stroke-dashoffset="-seg.offset"
+                transform="rotate(-90 110 110)"
+                class="cursor-pointer"
+                @mouseenter="hoveredHoldingIdx = idx"
+                @mouseleave="hoveredHoldingIdx = null"
+              />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <template v-if="hoveredHoldingIdx !== null && hoveredHoldingIdx < sortedByValue.length">
+                <span class="text-[10px] font-semibold text-horizon-400 text-center px-4 truncate max-w-[160px]">{{ sortedByValue[hoveredHoldingIdx].security_name }}</span>
+                <span class="text-xl font-bold text-horizon-700">{{ formatCurrency(sortedByValue[hoveredHoldingIdx].current_value) }}</span>
+              </template>
+              <template v-else>
+                <span class="text-[10px] font-semibold text-horizon-400">Total Value</span>
+                <span class="text-xl font-bold text-horizon-700">{{ formatCurrency(totalFilteredValue) }}</span>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -314,7 +346,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'HoldingsTable',
@@ -347,6 +379,7 @@ export default {
       sortDirection: 'asc',
       expandedRow: null,
       chartColours: CHART_COLORS,
+      hoveredHoldingIdx: null,
     };
   },
 
@@ -416,105 +449,42 @@ export default {
       return this.sortedByValue.map(h => parseFloat(h.current_value) || 0);
     },
 
-    // Chart options
-    chartOptions() {
-      const self = this;
-      return {
-        chart: {
-          type: 'donut',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-        },
-        labels: this.sortedByValue.map(h => h.security_name),
-        colors: this.chartColours,
-        legend: {
-          show: false, // We'll use custom legend in separate card
-        },
-        dataLabels: {
-          enabled: true,
-          formatter: function(val) {
-            return val.toFixed(1) + '%';
-          },
-          style: {
-            fontSize: '12px',
-            fontWeight: 600,
-          },
-          dropShadow: {
-            enabled: false,
-          },
-        },
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '65%',
-              labels: {
-                show: true,
-                name: {
-                  show: true,
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: TEXT_COLORS.primary,
-                },
-                value: {
-                  show: true,
-                  fontSize: '28px',
-                  fontWeight: 700,
-                  color: TEXT_COLORS.primary,
-                  formatter: function(val) {
-                    return new Intl.NumberFormat('en-GB', {
-                      style: 'currency',
-                      currency: 'GBP',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(val);
-                  },
-                },
-                total: {
-                  show: true,
-                  label: 'Total Value',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: TEXT_COLORS.muted,
-                  formatter: function(w) {
-                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                    return new Intl.NumberFormat('en-GB', {
-                      style: 'currency',
-                      currency: 'GBP',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(total);
-                  },
-                },
-              },
-            },
-          },
-        },
-        tooltip: {
-          y: {
-            formatter: function(val) {
-              return new Intl.NumberFormat('en-GB', {
-                style: 'currency',
-                currency: 'GBP',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }).format(val);
-            },
-          },
-        },
-        responsive: [
-          {
-            breakpoint: 480,
-            options: {
-              chart: {
-                width: 300,
-              },
-            },
-          },
-        ],
-      };
+    totalFilteredValue() {
+      return this.chartSeries.reduce((sum, v) => sum + v, 0);
+    },
+
+    holdingsDonutSegments() {
+      const total = this.totalFilteredValue;
+      if (total === 0) return [];
+
+      const circumference = 471.2;
+      const gap = 3;
+      let offset = 0;
+      return this.chartSeries.map((value, idx) => {
+        const proportion = value / total;
+        const arcLength = Math.max(proportion * circumference - gap, 2);
+        const color = this.chartColours[idx % this.chartColours.length];
+        const seg = {
+          color,
+          colorLight: this.lightenColor(color, 0.35),
+          arcLength,
+          offset,
+        };
+        offset += proportion * circumference;
+        return seg;
+      });
     },
   },
 
   methods: {
+    lightenColor(hex, amount) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
+      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+    },
+
     sortBy(field) {
       if (this.sortField === field) {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';

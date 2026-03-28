@@ -1,5 +1,5 @@
 <template>
-  <div class="policy-card bg-white rounded-lg border border-light-gray shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-raspberry-500 transition-all duration-200 cursor-pointer" @click="viewDetails">
+  <div class="policy-card bg-white rounded-lg border border-light-gray shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 cursor-pointer" @click="viewDetails">
     <!-- Card Header (Always Visible) -->
     <div class="p-4">
       <div class="flex items-start justify-between">

@@ -63,12 +63,12 @@
 
                   <div class="detail-row">
                     <span class="detail-label">Retirement Age</span>
-                    <span class="detail-value">{{ pension.retirement_age || 67 }}</span>
+                    <span class="detail-value">{{ pension.retirement_age || currentUser?.target_retirement_age || 67 }}</span>
                   </div>
 
                   <div class="detail-row">
                     <span class="detail-label">Monthly Contribution</span>
-                    <span class="detail-value">{{ formatCurrency(pension.monthly_contribution_amount || 0) }}</span>
+                    <span class="detail-value">{{ formatCurrency(getPensionMonthlyContribution(pension)) }}</span>
                   </div>
                 </div>
               </div>
@@ -508,6 +508,7 @@ export default {
     // Read which tabs to show from life stage config
     const assetsConfig = computed(() => store.getters['lifeStage/formFields']?.('assets'));
     const allowedTabs = computed(() => assetsConfig.value?.visibleTabs || null);
+    const currentUser = computed(() => store.getters['auth/currentUser']);
 
     const activeTab = ref('retirement');
 
@@ -994,6 +995,22 @@ export default {
       return types[type] || 'Defined Contribution Pension';
     };
 
+    const getPensionMonthlyContribution = (pension) => {
+      if (pension.monthly_contribution_amount > 0) {
+        return pension.monthly_contribution_amount;
+      }
+      const salary = parseFloat(pension.annual_salary || 0);
+      if (salary > 0) {
+        const employeePercent = parseFloat(pension.employee_contribution_percent || 0);
+        const employerPercent = parseFloat(pension.employer_contribution_percent || 0);
+        const totalPercent = employeePercent + employerPercent;
+        if (totalPercent > 0) {
+          return (salary * (totalPercent / 100)) / 12;
+        }
+      }
+      return 0;
+    };
+
     const formatDBPensionType = (type) => {
       const types = {
         final_salary: 'Final Salary',
@@ -1136,6 +1153,8 @@ export default {
       openUploadModal,
       closeUploadModal,
       handleDocumentSaved,
+      // User
+      currentUser,
       // Common
       loading,
       error,
@@ -1146,6 +1165,7 @@ export default {
       formatCurrency,
       formatDCPensionType,
       formatDBPensionType,
+      getPensionMonthlyContribution,
       // Investment helpers
       formatInvestmentAccountType,
       getInvestmentTypeBadgeClass,

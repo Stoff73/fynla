@@ -9,6 +9,8 @@
         </p>
       </div>
 
+      <SettingsTabBar />
+
       <div v-if="loading" class="loading-state">
         <div class="w-10 h-10 border-[3px] border-light-gray border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
         <p>Loading assumptions...</p>
@@ -471,12 +473,14 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import assumptionsService from '@/services/assumptionsService';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 
 export default {
   name: 'AssumptionsSettings',
 
   components: {
     AppLayout,
+    SettingsTabBar,
   },
 
   mixins: [currencyMixin],

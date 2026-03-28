@@ -1,48 +1,56 @@
 <template>
-  <div class="net-worth-wealth-summary">
-    <!-- Asset Allocation Charts - Horizontal Row Above Table -->
-    <div class="allocation-charts-row">
-      <div class="chart-item">
+  <div class="net-worth-wealth-summary module-gradient">
+    <ModuleStatusBar />
+    <!-- Charts Row: Pie Chart + Bar Chart side by side -->
+    <div class="charts-row">
+      <!-- Left: Asset Allocation Donut -->
+      <div class="chart-column">
         <AssetAllocationDonut
           :breakdown="overview.breakdown"
           :title="`${currentUserName}'s Asset Allocation`"
           @highlight="onChartHighlight('user', $event)"
           @clear-highlight="onChartClearHighlight"
         />
+        <div v-if="filteredSpouseOverview" class="mt-4 grid grid-cols-2 gap-4">
+          <AssetAllocationDonut
+            :breakdown="filteredSpouseOverview.breakdown || {}"
+            :title="`${filteredSpouseName}'s Asset Allocation`"
+            @highlight="onChartHighlight('spouse', $event)"
+            @clear-highlight="onChartClearHighlight"
+          />
+          <AssetAllocationDonut
+            :breakdown="combinedBreakdown"
+            title="Combined Asset Allocation"
+            @highlight="onChartHighlight('total', $event)"
+            @clear-highlight="onChartClearHighlight"
+          />
+        </div>
       </div>
-      <div v-if="filteredSpouseOverview" class="chart-item">
-        <AssetAllocationDonut
-          :breakdown="filteredSpouseOverview.breakdown || {}"
-          :title="`${filteredSpouseName}'s Asset Allocation`"
-          @highlight="onChartHighlight('spouse', $event)"
-          @clear-highlight="onChartClearHighlight"
-        />
-      </div>
-      <div v-if="filteredSpouseOverview" class="chart-item">
-        <AssetAllocationDonut
-          :breakdown="combinedBreakdown"
-          title="Combined Asset Allocation"
-          @highlight="onChartHighlight('total', $event)"
-          @clear-highlight="onChartClearHighlight"
+
+      <!-- Right: Assets vs Liabilities Bar Chart -->
+      <div class="bar-chart-column">
+        <AssetBreakdownBar
+          :breakdown="overview.breakdown"
+          :liabilities-breakdown="overview.liabilitiesBreakdown"
+          :total-assets="overview.totalAssets"
+          :total-liabilities="overview.totalLiabilities"
         />
       </div>
     </div>
 
-    <!-- Wealth Summary Table -->
-    <div class="wealth-summary-column">
-      <WealthSummary
-        :breakdown="overview.breakdown"
-        :liabilities-breakdown="overview.liabilitiesBreakdown"
-        :total-assets="overview.totalAssets"
-        :total-liabilities="overview.totalLiabilities"
-        :spouse-data="filteredSpouseOverview"
-        :user-name="currentUserName"
-        :spouse-name="filteredSpouseName"
-        :has-db-pensions="overview.hasDbPensions"
-        :spouse-has-db-pensions="filteredSpouseOverview?.hasDbPensions || false"
-        :highlighted-cell="highlightedCell"
-      />
-    </div>
+    <!-- Wealth Summary Table (full width below) -->
+    <WealthSummary
+      :breakdown="overview.breakdown"
+      :liabilities-breakdown="overview.liabilitiesBreakdown"
+      :total-assets="overview.totalAssets"
+      :total-liabilities="overview.totalLiabilities"
+      :spouse-data="filteredSpouseOverview"
+      :user-name="currentUserName"
+      :spouse-name="filteredSpouseName"
+      :has-db-pensions="overview.hasDbPensions"
+      :spouse-has-db-pensions="filteredSpouseOverview?.hasDbPensions || false"
+      :highlighted-cell="highlightedCell"
+    />
 
     <div v-if="asOfDate" class="last-updated">
       <p>Last updated: {{ formatDate(asOfDate) }}</p>
@@ -53,14 +61,18 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import AssetAllocationDonut from './AssetAllocationDonut.vue';
+import AssetBreakdownBar from './AssetBreakdownBar.vue';
 import WealthSummary from './WealthSummary.vue';
+import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 export default {
   name: 'NetWorthWealthSummary',
 
   components: {
     AssetAllocationDonut,
+    AssetBreakdownBar,
     WealthSummary,
+    ModuleStatusBar,
   },
 
   data() {
@@ -175,18 +187,21 @@ export default {
   overflow: visible;
 }
 
-.allocation-charts-row {
+.charts-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
 }
 
-.chart-item {
+.chart-column {
   min-width: 0;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
-.wealth-summary-column {
+.bar-chart-column {
   min-width: 0;
 }
 
@@ -204,7 +219,7 @@ export default {
 }
 
 @media (max-width: 640px) {
-  .allocation-charts-row {
+  .charts-row {
     grid-template-columns: 1fr;
   }
 }

@@ -959,7 +959,7 @@ class IHTCalculationService
         foreach ($user->liabilities as $liability) {
             $projectedLiabilities += $this->projectSingleLiability(
                 (float) ($liability->current_balance ?? 0),
-                $liability->end_date ?? null,
+                $liability->maturity_date ?? $this->estimatePayoffDate($liability),
                 $currentAge,
                 $retirementAge,
                 $yearsToProject,
@@ -983,7 +983,7 @@ class IHTCalculationService
             foreach ($spouse->liabilities as $liability) {
                 $projectedLiabilities += $this->projectSingleLiability(
                     (float) ($liability->current_balance ?? 0),
-                    $liability->end_date ?? null,
+                    $liability->maturity_date ?? $this->estimatePayoffDate($liability),
                     $currentAge,
                     $retirementAge,
                     $yearsToProject,
@@ -1033,6 +1033,34 @@ class IHTCalculationService
         $projectedBalance = $currentBalance * ($remainingTerm / $yearsUntilEnd);
 
         return max(0, $projectedBalance);
+    }
+
+    /**
+     * Estimate payoff date from balance, monthly payment, and interest rate.
+     */
+    private function estimatePayoffDate($liability): ?string
+    {
+        $balance = (float) ($liability->current_balance ?? 0);
+        $monthly = (float) ($liability->monthly_payment ?? 0);
+
+        if ($balance <= 0 || $monthly <= 0) {
+            return null;
+        }
+
+        $annualRate = (float) ($liability->interest_rate ?? 0);
+        $monthlyRate = $annualRate / 100 / 12;
+
+        if ($monthlyRate > 0 && $monthly <= $balance * $monthlyRate) {
+            return null; // Payment doesn't cover interest
+        }
+
+        if ($monthlyRate > 0) {
+            $months = (int) ceil(-log(1 - ($balance * $monthlyRate / $monthly)) / log(1 + $monthlyRate));
+        } else {
+            $months = (int) ceil($balance / $monthly);
+        }
+
+        return now()->addMonths($months)->format('Y-m-d');
     }
 
     /**
