@@ -64,13 +64,6 @@ class ProfileCompletenessChecker
                 'priority' => 'medium',
                 'link' => '/profile#family',
             ],
-            'domicile_info' => [
-                'required' => true,
-                'filled' => $this->hasDomicileInfo($user),
-                'message' => 'Complete domicile information for accurate IHT planning',
-                'priority' => 'medium',
-                'link' => '/profile#domicile',
-            ],
             'income' => [
                 'required' => true,
                 'filled' => $this->hasIncome($user),
@@ -114,13 +107,6 @@ class ProfileCompletenessChecker
                 'message' => 'Add dependants (if any) for protection planning',
                 'priority' => 'high',
                 'link' => '/profile#family',
-            ],
-            'domicile_info' => [
-                'required' => true,
-                'filled' => $this->hasDomicileInfo($user),
-                'message' => 'Complete domicile information for accurate IHT planning',
-                'priority' => 'medium',
-                'link' => '/profile#domicile',
             ],
             'income' => [
                 'required' => true,
@@ -183,14 +169,6 @@ class ProfileCompletenessChecker
         }
 
         return $hasSpouse || $hasChildren || $spouseHasChildren;
-    }
-
-    /**
-     * Check if user has domicile information
-     */
-    private function hasDomicileInfo(User $user): bool
-    {
-        return ! is_null($user->domicile_status) && ! is_null($user->country_of_birth);
     }
 
     /**

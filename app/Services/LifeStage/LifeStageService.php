@@ -435,6 +435,7 @@ class LifeStageService
     {
         $steps['personal-info'] = array_merge($base, $extra);
         $steps['income-career'] = ['employment_status', 'has_income'];
+        $steps['expenditure'] = ['has_expenditure'];
         $steps['assets'] = ['has_any_assets'];
         $steps['goals'] = ['has_goals'];
     }
@@ -444,7 +445,9 @@ class LifeStageService
         $steps['personal-info'] = array_merge($base, $extra);
         $steps['family'] = ['has_family_members'];
         $steps['income'] = ['employment_status', 'has_income'];
+        $steps['expenditure'] = ['has_expenditure'];
         $steps['assets'] = ['has_any_assets'];
+        $steps['liabilities'] = ['has_liabilities'];
         $steps['protection-insurance'] = ['has_protection'];
         $steps['will-estate'] = ['has_will'];
         $steps['goals'] = ['has_goals'];
@@ -455,7 +458,9 @@ class LifeStageService
         $steps['personal-info'] = array_merge($base, $extra);
         $steps['family'] = ['has_family_members'];
         $steps['income-tax'] = ['employment_status', 'has_income'];
+        $steps['expenditure'] = ['has_expenditure'];
         $steps['assets'] = ['has_any_assets'];
+        $steps['liabilities'] = ['has_liabilities'];
         $steps['estate-iht'] = ['has_will'];
         $steps['goals'] = ['has_goals'];
     }
@@ -464,8 +469,9 @@ class LifeStageService
     {
         $steps['personal-info'] = array_merge($base, $extra);
         $steps['family'] = ['has_family_members'];
-        $steps['assets'] = ['has_any_assets'];
         $steps['income-tax'] = ['employment_status', 'has_income'];
+        $steps['expenditure'] = ['has_expenditure'];
+        $steps['assets'] = ['has_any_assets'];
         $steps['estate-legacy'] = ['has_will'];
         $steps['goals'] = ['has_goals'];
     }

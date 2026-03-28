@@ -254,13 +254,16 @@ const actions = {
                 // Set the life stage from the persona mapping
                 dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
 
-                // On native, use SPA navigation to avoid page reload (which loses in-memory state)
+                // Use SPA navigation to preserve in-memory state (token, user)
                 const router = window.__appRouter;
                 if (router && isNativePlatform()) {
                     logger.info('[Preview] SPA navigate to /m/home');
                     router.push('/m/home');
+                } else if (router) {
+                    logger.info('[Preview] SPA navigate to /dashboard');
+                    router.push('/dashboard');
                 } else {
-                    logger.info('[Preview] Navigating to /dashboard');
+                    logger.info('[Preview] Fallback navigate to /dashboard');
                     window.location.href = '/dashboard';
                 }
 
@@ -307,10 +310,12 @@ const actions = {
                 // Set the life stage from the persona mapping
                 dispatch('lifeStage/setStageFromPersona', personaId, { root: true });
 
-                // On native, use SPA navigation; on web, reload for fresh state
+                // Use SPA navigation to preserve in-memory state
                 const router = window.__appRouter;
                 if (router && isNativePlatform()) {
                     router.replace({ path: '/m/home', query: { _t: Date.now() } });
+                } else if (router) {
+                    router.replace({ path: '/dashboard', query: { _t: Date.now() } });
                 } else {
                     window.location.reload();
                 }

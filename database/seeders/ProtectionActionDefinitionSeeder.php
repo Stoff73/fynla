@@ -188,6 +188,44 @@ class ProtectionActionDefinitionSeeder extends Seeder
             ],
 
             [
+                'key' => 'high_premium_cost',
+                'source' => 'agent',
+                'title_template' => 'Your protection premiums exceed 5% of income',
+                'description_template' => 'Your total annual protection premiums of {annual_premiums} represent {premium_percent}% of your gross income. Consider reviewing your policies for better value or adjusting cover levels.',
+                'action_template' => 'Review each policy to check whether the cover level and provider are still appropriate. Shopping around at renewal could reduce costs.',
+                'category' => 'Premium Review',
+                'priority' => 'medium',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'premium_percent_of_income_above',
+                    'threshold' => 0.05,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 75,
+                'notes' => 'Triggers when total annual premiums exceed 5% of gross income.',
+            ],
+
+            [
+                'key' => 'premium_affordability_warning',
+                'source' => 'agent',
+                'title_template' => 'Protection premiums may be unaffordable',
+                'description_template' => 'Your total annual protection premiums of {annual_premiums} represent {premium_percent}% of your gross income, exceeding the 10% affordability threshold. You may be over-insured or paying above-market rates.',
+                'action_template' => 'Urgently review your protection cover. Consider reducing cover on lower-priority policies, increasing deferred periods on income protection, or seeking competitive quotes.',
+                'category' => 'Premium Review',
+                'priority' => 'high',
+                'scope' => 'portfolio',
+                'what_if_impact_type' => 'default',
+                'trigger_config' => [
+                    'condition' => 'premium_percent_of_income_above',
+                    'threshold' => 0.10,
+                ],
+                'is_enabled' => true,
+                'sort_order' => 74,
+                'notes' => 'Triggers when total annual premiums exceed 10% of gross income (unaffordable).',
+            ],
+
+            [
                 'key' => 'protection_profile_missing',
                 'source' => 'agent',
                 'title_template' => 'Complete your protection profile',

@@ -2,13 +2,20 @@
   <AppLayout>
     <div class="protection-dashboard module-gradient py-2 sm:py-6">
       <ModuleStatusBar />
-      <div class="">
       <!-- Profile Completeness Alert -->
       <ProfileCompletenessAlert
         v-if="profileCompleteness && !loadingCompleteness"
         :completenessData="profileCompleteness"
         :dismissible="true"
       />
+      <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500 mb-2">Protection Planning</h1>
+        <p class="text-neutral-500">
+          Analyse your protection coverage and identify gaps in your insurance portfolio
+        </p>
+      </div>
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-12">
@@ -75,12 +82,10 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
-import ProfileCompletenessAlert from '@/components/Shared/ProfileCompletenessAlert.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
-import userProfileService from '@/services/userProfileService';
 
 export default {
   name: 'ProtectionDashboard',
@@ -88,7 +93,6 @@ export default {
   components: {
     AppLayout,
     CurrentSituation,
-    ProfileCompletenessAlert,
     PolicyFormModal,
     ModuleLifeEvents,
     ModuleStatusBar,
@@ -96,8 +100,6 @@ export default {
 
   data() {
     return {
-      profileCompleteness: null,
-      loadingCompleteness: false,
       showForm: false,
       editingPolicy: null,
     };
@@ -141,10 +143,6 @@ export default {
     }
 
     this.loadProtectionData();
-    // Skip profile completeness in preview mode
-    if (!this.isPreviewMode) {
-      this.loadProfileCompleteness();
-    }
   },
 
   methods: {
@@ -158,16 +156,16 @@ export default {
       }
     },
 
-    async loadProfileCompleteness() {
-      this.loadingCompleteness = true;
-      try {
-        const response = await userProfileService.getProfileCompleteness();
-        this.profileCompleteness = response.data;
-      } catch (error) {
-        console.error('Failed to load profile completeness:', error);
-      } finally {
-        this.loadingCompleteness = false;
-      }
+    findPolicyById(id) {
+      const policies = this.$store.state.protection?.policies || {};
+      const allPolicies = [
+        ...(policies.life || []),
+        ...(policies.criticalIllness || []),
+        ...(policies.incomeProtection || []),
+        ...(policies.disability || []),
+        ...(policies.sicknessIllness || []),
+      ];
+      return allPolicies.find(p => p.id === id) || null;
     },
 
     findPolicyById(id) {

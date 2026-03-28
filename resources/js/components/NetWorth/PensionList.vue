@@ -666,7 +666,9 @@ export default {
       'fetchRequiredCapital',
       'fetchRetirementIncome',
       'createDCPension',
+      'updateDCPension',
       'createDBPension',
+      'updateDBPension',
       'updateStatePension',
       'setActiveTab',
     ]),
@@ -736,9 +738,17 @@ export default {
         if (pensionType === 'state') {
           await this.updateStatePension(data);
         } else if (pensionType === 'dc') {
-          await this.createDCPension(data);
+          if (this.editingPension) {
+            await this.updateDCPension({ id: this.editingPension.id, data });
+          } else {
+            await this.createDCPension(data);
+          }
         } else if (pensionType === 'db') {
-          await this.createDBPension(data);
+          if (this.editingPension) {
+            await this.updateDBPension({ id: this.editingPension.id, data });
+          } else {
+            await this.createDBPension(data);
+          }
         }
 
         // Complete AI fill if this was an AI-driven save

@@ -40,8 +40,20 @@ class PensionProjector
         $currentValue = (float) $pension->current_fund_value;
         $annualContribution = $this->calculateAnnualContribution($pension);
 
-        // Account for platform fees
-        $netGrowthRate = $growthRate - ((float) $pension->platform_fee_percent ?? 0.0) / 100;
+        // Account for all fees: platform + advisor + weighted OCF
+        $platformFeePercent = (float) ($pension->platform_fee_percent ?? 0);
+        if (($pension->platform_fee_type ?? 'percentage') === 'fixed' && $currentValue > 0) {
+            $fixedAmount = (float) ($pension->platform_fee_amount ?? 0);
+            $annualFixed = match ($pension->platform_fee_frequency ?? 'annually') {
+                'monthly' => $fixedAmount * 12,
+                'quarterly' => $fixedAmount * 4,
+                default => $fixedAmount,
+            };
+            $platformFeePercent = ($annualFixed / $currentValue) * 100;
+        }
+        $advisorFeePercent = (float) ($pension->advisor_fee_percent ?? 0);
+        $totalFeePercent = $platformFeePercent + $advisorFeePercent;
+        $netGrowthRate = $growthRate - ($totalFeePercent / 100);
 
         // Future value of current fund
         $futureValueOfCurrentFund = $currentValue * pow(1 + $netGrowthRate, $yearsToRetirement);
@@ -222,13 +234,22 @@ class PensionProjector
     }
 
     /**
-     * Get user's current age from retirement profile.
+     * Get user's current age from retirement profile or date of birth.
      */
     private function getUserAge(int $userId): int
     {
         $profile = \App\Models\RetirementProfile::where('user_id', $userId)->first();
 
-        return $profile ? $profile->current_age : 67; // Default to state pension age if no profile
+        if ($profile && $profile->current_age) {
+            return $profile->current_age;
+        }
+
+        $user = \App\Models\User::find($userId);
+        if ($user && $user->date_of_birth) {
+            return (int) $user->date_of_birth->diffInYears(now());
+        }
+
+        return 40; // Conservative fallback
     }
 
     /**

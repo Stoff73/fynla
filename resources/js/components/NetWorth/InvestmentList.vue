@@ -2,7 +2,7 @@
   <div class="investment-list overflow-hidden">
     <ModuleStatusBar />
     <!-- Investment Detail View (when an account is selected) -->
-    <InvestmentDetailInline
+    <InvestmentProjections
       v-if="selectedAccount"
       :account="selectedAccount"
       @back="clearSelection"
@@ -213,7 +213,7 @@
 
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
-import InvestmentDetailInline from './InvestmentDetailInline.vue';
+import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import Holdings from '@/components/Investment/Holdings.vue';
@@ -234,7 +234,7 @@ export default {
   mixins: [currencyMixin],
 
   components: {
-    InvestmentDetailInline,
+    InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
     Holdings,

@@ -1,179 +1,96 @@
 <template>
-  <div class="account-holdings-panel">
+  <div class="space-y-4">
     <!-- Header with Add Button -->
-    <div class="panel-header">
-      <h3 class="panel-title">Holdings in {{ account.account_name }}</h3>
-      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="add-holding-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="btn-icon">
+    <div class="flex justify-between items-center">
+      <h3 class="text-lg font-semibold text-horizon-500">Holdings in {{ account.account_name || account.provider }}</h3>
+      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="inline-flex items-center gap-2 px-4 py-2 bg-raspberry-500 text-white rounded-lg text-sm font-semibold hover:bg-raspberry-600 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
         Add Holding
       </button>
     </div>
 
-    <!-- Info Banner for Default Holding Period -->
-    <div v-if="hasHoldings && holdingsWithoutDates > 0" class="default-period-banner">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="banner-icon">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-      </svg>
-      <div class="banner-content">
-        <p class="banner-title">{{ holdingsWithoutDates }} holding{{ holdingsWithoutDates > 1 ? 's' : '' }} without purchase date</p>
-        <p class="banner-text">Annualised returns use a <strong>3-year default</strong> holding period. Add purchase dates for more accurate return calculations.</p>
-      </div>
-    </div>
-
     <!-- Holdings Table -->
-    <div v-if="hasHoldings" class="holdings-table-container">
-      <table class="holdings-table">
+    <div v-if="hasHoldings" class="overflow-x-auto">
+      <table class="w-full text-sm">
         <thead>
-          <tr>
-            <th class="th-name">Name</th>
-            <th class="th-type">Type</th>
-            <th class="th-units">Units</th>
-            <th class="th-date">Purchase Date</th>
-            <th class="th-cost">Initial Unit Cost</th>
-            <th class="th-price">Current Unit Price</th>
-            <th class="th-initial-value">Initial Value</th>
-            <th class="th-value">Current Value</th>
-            <th class="th-initial-allocation">Initial Alloc</th>
-            <th class="th-allocation">Current Alloc</th>
+          <tr class="border-b border-light-gray">
+            <th class="text-left py-2 text-neutral-500 font-medium">Fund Name</th>
+            <th class="text-left py-2 text-neutral-500 font-medium">Type</th>
+            <th class="text-right py-2 text-neutral-500 font-medium">Allocation</th>
+            <th class="text-right py-2 text-neutral-500 font-medium">Value</th>
+            <th class="text-right py-2 text-neutral-500 font-medium">OCF</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="holding in sortedHoldings" :key="holding.id" class="holding-row">
-            <td class="td-name">
-              <div class="holding-info">
-                <span class="holding-name">{{ holding.security_name }}</span>
-                <span v-if="holding.ticker" class="holding-ticker">{{ holding.ticker }}</span>
-                <span v-if="holding.isin" class="holding-isin">{{ holding.isin }}</span>
-              </div>
-            </td>
-            <td class="td-type">
-              <span
-                class="type-badge"
-                :class="getAssetTypeBadgeClass(holding.asset_type)"
-              >
-                {{ formatAssetType(holding.asset_type) }}
-              </span>
-            </td>
-            <td class="td-units">{{ formatNumber(holding.quantity) }}</td>
-            <td class="td-date">
-              <span v-if="holding.purchase_date" class="date-text">{{ formatDate(holding.purchase_date) }}</span>
-              <span v-else class="date-default" title="Default: 3 years assumed">3yr default</span>
-            </td>
-            <td class="td-cost">{{ formatCurrencyWithPence(holding.purchase_price) }}</td>
-            <td class="td-price">{{ formatCurrencyWithPence(holding.current_price) }}</td>
-            <td class="td-initial-value">{{ formatCurrency(getInitialValue(holding)) }}</td>
-            <td class="td-value">{{ formatCurrency(holding.current_value) }}</td>
-            <td class="td-initial-allocation">
-              <span class="allocation-text">{{ initialAllocations.get(holding.id) }}%</span>
-            </td>
-            <td class="td-allocation">
-              <span class="allocation-text">{{ currentAllocations.get(holding.id) }}%</span>
-            </td>
+          <tr v-for="holding in sortedHoldings" :key="holding.id" class="border-b border-light-gray last:border-0">
+            <td class="py-2 text-horizon-500 font-medium">{{ holding.security_name || 'Unnamed' }}</td>
+            <td class="py-2 text-neutral-500 capitalize">{{ formatAssetType(holding.asset_type) }}</td>
+            <td class="py-2 text-right text-horizon-500">{{ holding.allocation_percent || 0 }}%</td>
+            <td class="py-2 text-right text-horizon-500">{{ formatCurrency(holdingValue(holding)) }}</td>
+            <td class="py-2 text-right text-neutral-500">{{ holding.ocf_percent ? parseFloat(holding.ocf_percent).toFixed(2) + '%' : '—' }}</td>
           </tr>
         </tbody>
-        <tfoot>
-          <tr class="totals-row">
-            <td colspan="6" class="totals-label">Total</td>
-            <td class="totals-initial-value">{{ formatCurrency(totalInitialValue) }}</td>
-            <td class="totals-value">{{ formatCurrency(totalValue) }}</td>
-            <td class="totals-initial-allocation">100%</td>
-            <td class="totals-allocation">100%</td>
+        <tfoot v-if="cashPercent > 0">
+          <tr class="border-t border-light-gray">
+            <td class="py-2 text-neutral-500 italic">Cash (unallocated)</td>
+            <td></td>
+            <td class="py-2 text-right text-neutral-500">{{ cashPercent.toFixed(1) }}%</td>
+            <td class="py-2 text-right text-neutral-500">{{ formatCurrency(cashValue) }}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
     </div>
 
-    <!-- Mobile Cards View -->
-    <div v-if="hasHoldings" class="holdings-cards-mobile">
-      <div v-for="holding in sortedHoldings" :key="holding.id" class="holding-card">
-        <div class="card-header">
-          <div class="holding-info">
-            <span class="holding-name">{{ holding.security_name }}</span>
-            <span v-if="holding.ticker" class="holding-ticker">{{ holding.ticker }}</span>
-          </div>
-          <span
-            class="type-badge"
-            :class="getAssetTypeBadgeClass(holding.asset_type)"
-          >
-            {{ formatAssetType(holding.asset_type) }}
-          </span>
-        </div>
-        <div class="card-details">
-          <div class="detail-row">
-            <span class="detail-label">Units</span>
-            <span class="detail-value">{{ formatNumber(holding.quantity) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Initial Unit Cost</span>
-            <span class="detail-value">{{ formatCurrencyWithPence(holding.purchase_price) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Current Unit Price</span>
-            <span class="detail-value">{{ formatCurrencyWithPence(holding.current_price) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Initial Value</span>
-            <span class="detail-value">{{ formatCurrency(getInitialValue(holding)) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Current Value</span>
-            <span class="detail-value font-bold">{{ formatCurrency(holding.current_value) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Initial Allocation</span>
-            <span class="detail-value">{{ initialAllocations.get(holding.id) }}%</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Current Allocation</span>
-            <span class="detail-value">{{ currentAllocations.get(holding.id) }}%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Empty State -->
-    <div v-else class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
-      </svg>
-      <p class="empty-title">No holdings yet</p>
-      <p class="empty-subtitle">Add your first holding to track your investments</p>
-      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="add-first-btn">
+    <div v-else class="text-center py-12 bg-white border-2 border-dashed border-horizon-300 rounded-lg">
+      <p class="text-lg font-semibold text-neutral-500 mb-2">No holdings yet</p>
+      <p class="text-sm text-neutral-500 mb-5">Add your first holding to track your investments</p>
+      <button v-preview-disabled="'add'" @click="$emit('open-holding-modal')" class="px-6 py-3 bg-raspberry-500 text-white rounded-lg text-sm font-semibold hover:bg-raspberry-600 transition-colors">
         Add First Holding
       </button>
     </div>
 
-    <!-- Asset Allocation Summary -->
-    <div v-if="hasHoldings" class="allocation-summary">
-      <h4 class="summary-title">Asset Allocation Summary</h4>
-      <div class="allocation-grid">
-        <div
-          v-for="(allocation, index) in assetAllocationSummary"
-          :key="index"
-          class="allocation-item"
-        >
-          <div class="allocation-header">
-            <span
-              class="allocation-dot"
-              :style="{ backgroundColor: getAssetColor(allocation.type) }"
-            ></span>
-            <span class="allocation-type">{{ formatAssetType(allocation.type) }}</span>
-          </div>
-          <div class="allocation-values">
-            <span class="allocation-amount">{{ formatCurrency(allocation.value) }}</span>
-            <span class="allocation-percent">{{ allocation.percentage.toFixed(1) }}%</span>
-          </div>
+    <!-- Fee summary tied to holdings -->
+    <div v-if="hasHoldings" class="bg-savannah-100 rounded-lg p-4">
+      <div class="flex justify-between text-sm">
+        <span class="text-neutral-500">Weighted Avg Fund Fee (OCF)</span>
+        <span class="font-medium text-horizon-500">{{ weightedAverageOCF.toFixed(2) }}%</span>
+      </div>
+      <div class="flex justify-between text-sm mt-1">
+        <span class="text-neutral-500">Total Annual Cost (platform + fund fees)</span>
+        <span class="font-semibold text-horizon-500">{{ totalFeePercent.toFixed(2) }}%</span>
+      </div>
+    </div>
+
+    <!-- 10-Year Fee Impact -->
+    <div v-if="annualFeeCost > 0" class="bg-white border border-light-gray rounded-lg p-4">
+      <h4 class="text-sm font-semibold text-horizon-500 mb-3">10-Year Fee Impact</h4>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <p class="text-xs text-neutral-500">Cumulative Fees Paid</p>
+          <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.totalFees) }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-neutral-500">Lost Growth (Fee Drag)</p>
+          <p class="text-base font-semibold text-raspberry-600">{{ formatCurrency(feeImpact10yr.lostGrowth) }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-neutral-500">Total Impact</p>
+          <p class="text-base font-semibold text-horizon-500">{{ formatCurrency(feeImpact10yr.totalImpact) }}</p>
         </div>
       </div>
+      <p class="text-xs text-neutral-500 mt-2">
+        Assuming 5% growth rate and current contribution levels.
+      </p>
     </div>
   </div>
 </template>
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_COLORS, ASSET_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccountHoldingsPanel',
@@ -191,152 +108,107 @@ export default {
 
   computed: {
     holdings() {
-      return this.account.holdings || [];
+      return (this.account.holdings || []).filter(h => h.asset_type !== 'cash');
     },
 
     hasHoldings() {
       return this.holdings.length > 0;
     },
 
-    holdingsWithoutDates() {
-      return this.holdings.filter(h => !h.purchase_date).length;
-    },
-
     sortedHoldings() {
-      return [...this.holdings].sort((a, b) => {
-        return (b.current_value || 0) - (a.current_value || 0);
-      });
+      return [...this.holdings].sort((a, b) => (b.current_value || 0) - (a.current_value || 0));
     },
 
-    totalValue() {
-      return this.holdings.reduce((sum, holding) => {
-        return sum + (parseFloat(holding.current_value) || 0);
+    fundValue() {
+      return parseFloat(this.account.current_value) || 0;
+    },
+
+    totalAllocation() {
+      return this.holdings.reduce((sum, h) => sum + (parseFloat(h.allocation_percent) || 0), 0);
+    },
+
+    cashPercent() {
+      return Math.max(0, 100 - this.totalAllocation);
+    },
+
+    cashValue() {
+      return this.fundValue * (this.cashPercent / 100);
+    },
+
+    platformFeePercent() {
+      if (this.account.platform_fee_type === 'fixed' && this.fundValue > 0) {
+        const amount = parseFloat(this.account.platform_fee_amount) || 0;
+        let annualAmount = amount;
+        if (this.account.platform_fee_frequency === 'monthly') annualAmount = amount * 12;
+        else if (this.account.platform_fee_frequency === 'quarterly') annualAmount = amount * 4;
+        return (annualAmount / this.fundValue) * 100;
+      }
+      return parseFloat(this.account.platform_fee_percent) || 0;
+    },
+
+    weightedAverageOCF() {
+      if (!this.hasHoldings || this.fundValue <= 0) return 0;
+      const totalWeightedOCF = this.holdings.reduce((sum, h) => {
+        const value = this.holdingValue(h);
+        return sum + (value * (parseFloat(h.ocf_percent) || 0));
       }, 0);
+      return totalWeightedOCF / this.fundValue;
     },
 
-    totalInitialValue() {
-      return this.holdings.reduce((sum, holding) => {
-        return sum + this.getInitialValue(holding);
-      }, 0);
+    totalFeePercent() {
+      return this.platformFeePercent + this.weightedAverageOCF;
     },
 
-    assetAllocationSummary() {
-      const allocation = {};
-
-      this.holdings.forEach(holding => {
-        const value = parseFloat(holding.current_value || 0);
-        const assetType = holding.asset_type || 'other';
-
-        if (!allocation[assetType]) {
-          allocation[assetType] = 0;
-        }
-        allocation[assetType] += value;
-      });
-
-      return Object.entries(allocation)
-        .map(([type, value]) => ({
-          type,
-          value,
-          percentage: this.totalValue > 0 ? (value / this.totalValue) * 100 : 0,
-        }))
-        .sort((a, b) => b.percentage - a.percentage);
+    annualFeeCost() {
+      return this.fundValue * (this.totalFeePercent / 100);
     },
 
-    // Adjusted allocations to ensure they sum to exactly 100%
-    currentAllocations() {
-      return this.calculateAdjustedAllocations(
-        this.sortedHoldings,
-        (h) => parseFloat(h.current_value) || 0,
-        this.totalValue
-      );
-    },
+    feeImpact10yr() {
+      const feeRate = this.totalFeePercent / 100;
+      const grossGrowth = 0.05;
+      const years = 10;
+      const monthlyContribution = parseFloat(this.account.monthly_contribution_amount) || 0;
+      const annualContribution = monthlyContribution * 12;
 
-    initialAllocations() {
-      return this.calculateAdjustedAllocations(
-        this.sortedHoldings,
-        (h) => this.getInitialValue(h),
-        this.totalInitialValue
-      );
+      const netGrowth = grossGrowth - feeRate;
+      let valueWithFees = this.fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithFees = (valueWithFees + annualContribution) * (1 + netGrowth);
+      }
+
+      let valueWithoutFees = this.fundValue;
+      for (let i = 0; i < years; i++) {
+        valueWithoutFees = (valueWithoutFees + annualContribution) * (1 + grossGrowth);
+      }
+
+      const totalFees = this.annualFeeCost * years;
+      const lostGrowth = Math.max(0, valueWithoutFees - valueWithFees - totalFees);
+      const totalImpact = totalFees + lostGrowth;
+
+      return { totalFees, lostGrowth, totalImpact };
     },
   },
 
   methods: {
-    calculateAdjustedAllocations(holdings, getValueFn, total) {
-      if (total === 0 || holdings.length === 0) {
-        return new Map(holdings.map(h => [h.id, 0]));
-      }
-
-      // Calculate raw percentages and round to 1 decimal
-      const allocations = holdings.map(h => ({
-        id: h.id,
-        raw: (getValueFn(h) / total) * 100,
-        rounded: Math.round((getValueFn(h) / total) * 1000) / 10
-      }));
-
-      // Calculate sum of rounded values
-      const roundedSum = allocations.reduce((sum, a) => sum + a.rounded, 0);
-      const difference = Math.round((100 - roundedSum) * 10) / 10;
-
-      // Adjust the first (largest) item to make total exactly 100%
-      if (allocations.length > 0 && difference !== 0) {
-        allocations[0].rounded = Math.round((allocations[0].rounded + difference) * 10) / 10;
-      }
-
-      return new Map(allocations.map(a => [a.id, a.rounded]));
-    },
-
-    formatNumber(value) {
-      if (!value) return '0';
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(Math.round(value));
+    holdingValue(holding) {
+      if (holding.current_value) return parseFloat(holding.current_value);
+      return this.fundValue * ((parseFloat(holding.allocation_percent) || 0) / 100);
     },
 
     formatAssetType(type) {
       const types = {
         equity: 'Equity',
-        fixed_income: 'Fixed Income',
-        property: 'Property',
-        commodities: 'Commodities',
+        uk_equity: 'UK Equity',
+        us_equity: 'US Equity',
+        international_equity: 'Int\'l Equity',
+        bond: 'Bond',
+        fund: 'Fund',
+        etf: 'ETF',
         cash: 'Cash',
-        alternatives: 'Alternatives',
-        other: 'Other',
+        alternative: 'Alternative',
+        property: 'Property',
       };
       return types[type] || type?.charAt(0).toUpperCase() + type?.slice(1) || 'Other';
-    },
-
-    getAssetTypeBadgeClass(type) {
-      const classes = {
-        equity: 'bg-violet-100 text-violet-800',
-        fixed_income: 'bg-spring-100 text-spring-800',
-        property: 'bg-violet-100 text-violet-800',
-        commodities: 'bg-violet-100 text-violet-800',
-        cash: 'bg-savannah-100 text-horizon-500',
-        alternatives: 'bg-pink-100 text-pink-800',
-        other: 'bg-slate-100 text-slate-800',
-      };
-      return classes[type] || 'bg-slate-100 text-slate-800';
-    },
-
-    getAssetColor(type) {
-      return ASSET_COLORS[type] || ASSET_COLORS.other;
-    },
-
-    getInitialValue(holding) {
-      const quantity = parseFloat(holding.quantity) || 0;
-      const purchasePrice = parseFloat(holding.purchase_price) || 0;
-      return quantity * purchasePrice;
-    },
-
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
     },
   },
 };

@@ -22,44 +22,14 @@
               <li>Protects your family's lifestyle and future plans</li>
             </ul>
           </div>
-          <div class="space-y-4">
-            <div class="flex gap-3">
-              <button
-                @click="$router.push('/protection')"
-                class="px-4 py-2 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors font-medium text-sm"
-              >
-                View Gap Analysis →
-              </button>
-              <button
-                v-preview-disabled="'add'"
-                @click="$emit('add-policy')"
-                class="px-4 py-2 bg-white text-violet-600 border border-violet-600 rounded-button hover:bg-violet-50 transition-colors font-medium text-sm"
-              >
-                I Have Protection to Add
-              </button>
-            </div>
-
-            <!-- I Don't Have Protection Checkbox -->
-            <div class="flex items-start pt-2 border-t border-violet-200">
-              <div class="flex items-center h-5">
-                <input
-                  id="has_no_policies"
-                  v-model="hasNoPoliciesChecked"
-                  v-preview-disabled="'edit'"
-                  type="checkbox"
-                  class="h-4 w-4 text-violet-600 border-horizon-300 rounded focus:ring-violet-500"
-                  @change="updateHasNoPoliciesFlag"
-                />
-              </div>
-              <div class="ml-3 text-sm">
-                <label for="has_no_policies" class="font-medium text-neutral-500 cursor-pointer">
-                  I currently have no protection policies
-                </label>
-                <p class="text-neutral-500 text-xs mt-1">
-                  Check this box if you don't have any life insurance or protection coverage. This will mark your protection profile as complete, but we strongly recommend considering protection for your family's financial security.
-                </p>
-              </div>
-            </div>
+          <div>
+            <button
+              v-preview-disabled="'add'"
+              @click="$emit('add-policy')"
+              class="px-5 py-2.5 bg-raspberry-500 text-white rounded-button hover:bg-raspberry-600 transition-colors font-medium text-sm"
+            >
+              Add Protection
+            </button>
           </div>
         </div>
       </div>
@@ -496,7 +466,6 @@
 import { mapState, mapGetters } from 'vuex';
 import PolicyCard from './PolicyCard.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import protectionService from '@/services/protectionService';
 import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
@@ -514,7 +483,6 @@ export default {
 
   data() {
     return {
-      hasNoPoliciesChecked: false,
       showUploadModal: false,
       fetchedTotalDebt: 0,
       fetchedMortgageDebt: 0,
@@ -523,17 +491,11 @@ export default {
       fetchedEmploymentIncome: 0,
       fetchedSelfEmploymentIncome: 0,
       spouseName: null,
-      delayTimeout: null,
     };
   },
 
   async mounted() {
-    // Fetch liabilities and user data for gap analysis
     await this.fetchUserData();
-  },
-
-  beforeUnmount() {
-    if (this.delayTimeout) clearTimeout(this.delayTimeout);
   },
 
   computed: {
@@ -794,18 +756,6 @@ export default {
     },
   },
 
-  watch: {
-    profile: {
-      handler(newProfile) {
-        // Sync checkbox state with profile data when it loads or changes
-        if (newProfile && typeof newProfile.has_no_policies !== 'undefined') {
-          this.hasNoPoliciesChecked = newProfile.has_no_policies;
-        }
-      },
-      immediate: true,
-    },
-  },
-
   methods: {
     async fetchUserData() {
       try {
@@ -848,32 +798,6 @@ export default {
         high: 'bg-raspberry-500 text-white',
       };
       return classes[severity] || 'bg-eggshell-500 text-white';
-    },
-
-    async updateHasNoPoliciesFlag() {
-      if (this.isPreviewMode) {
-        return;
-      }
-      try {
-
-        // Call the API directly using protectionService and WAIT for it to complete
-        const response = await protectionService.updateHasNoPolicies(this.hasNoPoliciesChecked);
-
-
-        // Wait a moment to ensure the database transaction is committed
-        if (this.delayTimeout) clearTimeout(this.delayTimeout);
-        await new Promise(resolve => {
-          this.delayTimeout = setTimeout(resolve, 500);
-        });
-
-        // Force page reload to refresh all completeness calculations
-        window.location.reload();
-      } catch (error) {
-        console.error('Failed to update has_no_policies flag:', error);
-        alert('Failed to update profile. Please try again.');
-        // Revert checkbox on error
-        this.hasNoPoliciesChecked = !this.hasNoPoliciesChecked;
-      }
     },
 
     handleEditPolicy(policy) {

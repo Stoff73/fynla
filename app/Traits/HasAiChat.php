@@ -736,6 +736,17 @@ DATA_CREATION_GUIDANCE;
             $lines = [];
             $modules = $analysis['module_analysis'] ?? [];
 
+            // Net worth from dedicated service (accurate, includes all assets & liabilities)
+            try {
+                $netWorthService = app(\App\Services\NetWorth\NetWorthService::class);
+                $netWorthData = $netWorthService->calculateNetWorth($user);
+                $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
+                $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
+                $lines[] = '- Total liabilities: £'.number_format($netWorthData['total_liabilities'], 0);
+            } catch (\Exception $e) {
+                // Fall through — individual modules below will provide partial data
+            }
+
             // Available surplus
             $surplus = $analysis['available_surplus'] ?? 0;
             if ($surplus !== 0) {
@@ -789,17 +800,14 @@ DATA_CREATION_GUIDANCE;
             }
 
             // Property
-            $ownsProperty = Property::where('user_id', $user->id)->exists();
+            $ownsProperty = Property::forUserOrJoint($user->id)->exists();
             $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
 
-            // Estate
+            // Estate (IHT-specific — separate from net worth)
             if (isset($modules['estate'])) {
                 $est = $modules['estate'];
                 if (($est['iht_liability'] ?? 0) > 0) {
                     $lines[] = '- Estimated Inheritance Tax liability: £'.number_format($est['iht_liability'], 0);
-                }
-                if (($est['net_worth'] ?? 0) > 0) {
-                    $lines[] = '- Net estate value: £'.number_format($est['net_worth'], 0);
                 }
             }
 

@@ -68,6 +68,17 @@ class UpdateInvestmentAccountRequest extends FormRequest
 
             // Employee Share Scheme fields
             ...$this->getEmployeeShareSchemeRules(),
+
+            // Inline holdings
+            'holdings' => 'sometimes|array',
+            'holdings.*.security_name' => 'required_with:holdings|string|max:255',
+            'holdings.*.asset_type' => ['required_with:holdings', Rule::in([
+                'equity', 'bond', 'fund', 'etf', 'alternative',
+                'uk_equity', 'us_equity', 'international_equity', 'cash', 'property',
+            ])],
+            'holdings.*.allocation_percent' => 'required_with:holdings|numeric|min:0|max:100',
+            'holdings.*.cost_basis' => 'nullable|numeric|min:0',
+            'holdings.*.ocf_percent' => 'nullable|numeric|min:0|max:100',
         ];
     }
 
