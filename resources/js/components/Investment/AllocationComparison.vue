@@ -108,7 +108,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AllocationComparison',
@@ -188,7 +188,6 @@ export default {
 
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'bar',
           height: 350,
           toolbar: {

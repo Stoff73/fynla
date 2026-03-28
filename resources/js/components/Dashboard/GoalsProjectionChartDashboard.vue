@@ -72,7 +72,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS, SUCCESS_COLORS, ERROR_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS, SUCCESS_COLORS, ERROR_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import EventIcon from '@/components/Goals/EventIcon.vue';
 
 export default {
@@ -144,9 +144,11 @@ export default {
     chartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           id: 'goals-projection-dashboard',
           type: 'bar',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           animations: {
             enabled: true,
             easing: 'easeinout',
@@ -158,18 +160,6 @@ export default {
         },
         colors: [SECONDARY_COLORS[500]],
         fill: { type: 'solid' },
-        states: {
-          hover: {
-            filter: {
-              type: 'none',
-            },
-          },
-          active: {
-            filter: {
-              type: 'none',
-            },
-          },
-        },
         dataLabels: { enabled: false },
         stroke: { width: 0 },
         plotOptions: {
@@ -184,10 +174,10 @@ export default {
           type: 'category',
           title: {
             text: 'Age',
-            style: { fontSize: '11px', fontWeight: 500, color: TEXT_COLORS.muted },
+            style: { fontSize: '11px', fontWeight: 500, color: '#717171' },
           },
           labels: {
-            style: { fontSize: '10px', colors: TEXT_COLORS.muted },
+            style: { fontSize: '10px', colors: '#717171' },
           },
           axisBorder: { show: false },
           axisTicks: { show: false },
@@ -196,11 +186,11 @@ export default {
         yaxis: {
           title: {
             text: 'Net Worth',
-            style: { fontSize: '11px', fontWeight: 500, color: TEXT_COLORS.muted },
+            style: { fontSize: '11px', fontWeight: 500, color: '#717171' },
           },
           labels: {
             formatter: (val) => this.formatCompact(val),
-            style: { fontSize: '10px', colors: TEXT_COLORS.muted },
+            style: { fontSize: '10px', colors: '#717171' },
           },
           min: 0,
           max: this.yAxisMax,
@@ -472,10 +462,5 @@ export default {
 
 :deep(.apexcharts-tooltip-custom) {
   min-width: 180px;
-}
-
-/* Light blue hover on bar chart bars */
-:deep(.apexcharts-bar-area:hover) {
-  fill: #DDE2EF !important;
 }
 </style>

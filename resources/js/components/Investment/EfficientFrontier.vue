@@ -203,7 +203,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
-import { CHART_COLORS, BORDER_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'EfficientFrontier',
@@ -310,7 +310,6 @@ export default {
     chartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'scatter',
           height: 450,
           zoom: {

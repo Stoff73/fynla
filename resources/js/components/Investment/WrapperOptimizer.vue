@@ -441,7 +441,7 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'WrapperOptimiser',
@@ -464,8 +464,10 @@ export default {
     comparisonChartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'bar',
+          toolbar: {
+            show: false,
+          },
         },
         plotOptions: {
           bar: {

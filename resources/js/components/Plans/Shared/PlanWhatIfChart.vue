@@ -12,7 +12,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PlanWhatIfChart',
@@ -70,7 +70,12 @@ export default {
     chartOptions() {
       const self = this;
       return {
-        chart: { ...CHART_DEFAULTS.chart, type: 'bar' },
+        chart: {
+          type: 'bar',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+        },
         plotOptions: {
           bar: {
             horizontal: true,
@@ -101,7 +106,7 @@ export default {
           },
         },
         grid: {
-          borderColor: BORDER_COLORS.default,
+          borderColor: '#E2E8F0',
           strokeDashArray: 4,
           xaxis: { lines: { show: true } },
           yaxis: { lines: { show: false } },
@@ -110,13 +115,13 @@ export default {
           position: 'top',
           horizontalAlign: 'right',
           fontSize: '12px',
-          fontFamily: CHART_DEFAULTS.chart.fontFamily,
+          fontFamily: 'Inter, system-ui, sans-serif',
           markers: { radius: 2 },
         },
         tooltip: {
           style: {
             fontSize: '14px',
-            fontFamily: CHART_DEFAULTS.chart.fontFamily,
+            fontFamily: 'Inter, system-ui, sans-serif',
           },
           y: {
             formatter(val) {

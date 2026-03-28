@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CoverageGapChart',
@@ -58,7 +58,13 @@ export default {
 
     chartOptions() {
       return {
-        chart: { ...CHART_DEFAULTS.chart, type: 'heatmap' },
+        chart: {
+          type: 'heatmap',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
+          toolbar: {
+            show: false,
+          },
+        },
         dataLabels: {
           enabled: false,
         },

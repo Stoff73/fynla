@@ -92,7 +92,7 @@
           </router-link>
 
           <!-- Support Dropdown -->
-          <div class="relative" data-dropdown="support">
+          <div class="relative">
             <button
               @click="supportDropdownOpen = !supportDropdownOpen"
               class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
@@ -155,7 +155,7 @@
           </div>
 
           <!-- User Dropdown Menu -->
-          <div class="relative" data-dropdown="user">
+          <div class="relative">
             <button
               type="button"
               @click="userDropdownOpen = !userDropdownOpen"
@@ -387,19 +387,11 @@ export default {
       showBugReportModal.value = true;
     };
 
-    // Close dropdowns when clicking outside or when clicking the other dropdown
+    // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
-      // Check if click is inside the user dropdown wrapper
-      const userDropdownEl = event.target.closest('[data-dropdown="user"]');
-      // Check if click is inside the support dropdown wrapper
-      const supportDropdownEl = event.target.closest('[data-dropdown="support"]');
-
-      // Close user dropdown if click is outside it
-      if (!userDropdownEl) {
+      const dropdown = event.target.closest('.relative');
+      if (!dropdown) {
         userDropdownOpen.value = false;
-      }
-      // Close support dropdown if click is outside it
-      if (!supportDropdownEl) {
         supportDropdownOpen.value = false;
       }
     };

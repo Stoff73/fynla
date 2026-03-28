@@ -402,7 +402,7 @@
 
 <script>
 import api from '@/services/api';
-import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'ContributionPlanner',
@@ -431,7 +431,6 @@ export default {
     taxEfficiencyChartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'radialBar',
           sparkline: {
             enabled: true,

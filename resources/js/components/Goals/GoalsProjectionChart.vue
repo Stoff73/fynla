@@ -131,7 +131,6 @@ import {
   BORDER_COLORS,
   ASSET_COLORS,
   TEXT_COLORS,
-  CHART_DEFAULTS,
 } from '@/constants/designSystem';
 import ViewToggle from '../Shared/ViewToggle.vue';
 import ProjectionSummaryCards from './ProjectionSummaryCards.vue';
@@ -284,7 +283,6 @@ export default {
     chartOptions() {
       const baseOptions = {
         chart: {
-          ...CHART_DEFAULTS.chart,
           id: 'goals-projection-chart',
           type: this.computedChartType,
           stacked: this.chartView === 'asset_breakdown',
@@ -300,6 +298,10 @@ export default {
               reset: false,
             },
           },
+          zoom: {
+            enabled: false,
+          },
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           animations: {
             enabled: true,
             easing: 'easeinout',
@@ -323,13 +325,13 @@ export default {
             style: {
               fontSize: '12px',
               fontWeight: 500,
-              color: TEXT_COLORS.muted,
+              color: '#717171',
             },
           },
           labels: {
             style: {
               fontSize: '11px',
-              colors: TEXT_COLORS.muted,
+              colors: '#717171',
             },
           },
           axisBorder: { show: false },
@@ -342,14 +344,14 @@ export default {
             style: {
               fontSize: '12px',
               fontWeight: 500,
-              color: TEXT_COLORS.muted,
+              color: '#717171',
             },
           },
           labels: {
             formatter: (val) => this.formatCompact(val),
             style: {
               fontSize: '11px',
-              colors: TEXT_COLORS.muted,
+              colors: '#717171',
             },
           },
         },
@@ -367,7 +369,7 @@ export default {
           position: 'top',
           horizontalAlign: 'left',
           fontSize: '13px',
-          fontFamily: CHART_DEFAULTS.chart.fontFamily,
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           markers: {
             radius: 3,
           },

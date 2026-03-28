@@ -1,9 +1,9 @@
 <template>
   <AppLayout>
-    <div class="security-settings module-gradient py-8">
-    <div class="mb-8">
-      <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
-      <p class="mt-2 text-body-base text-neutral-500">
+    <div class="security-settings">
+    <div class="page-header">
+      <h1 class="page-title">Security Settings</h1>
+      <p class="page-description">
         Manage your account security and privacy settings
       </p>
     </div>
@@ -400,6 +400,27 @@ export default {
 </script>
 
 <style scoped>
+.security-settings {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  @apply text-horizon-500;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.page-description {
+  @apply text-neutral-500;
+}
+
 .settings-section {
   background: white;
   border-radius: 0.5rem;

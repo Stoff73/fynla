@@ -52,7 +52,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'PerformanceLineChart',
@@ -164,8 +164,8 @@ export default {
     chartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'line',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
           zoom: {
             enabled: true,
             type: 'x',

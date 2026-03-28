@@ -1,14 +1,14 @@
 <template>
   <AppLayout>
-    <div class="py-2 sm:py-3">
+    <div class="py-1 sm:py-2">
       <!-- 2FA Security Reminder Banner -->
       <div
         v-if="showMFABanner"
-        class="mb-6 bg-spring-100 border border-spring-300 rounded-lg p-4 shadow-sm"
+        class="mb-4 bg-spring-100 border border-spring-300 rounded-lg p-3 shadow-sm"
       >
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-spring-200 rounded-full flex items-center justify-center">
+            <div class="w-8 h-8 bg-spring-200 rounded-full flex items-center justify-center">
               <svg class="w-5 h-5 text-spring-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -48,65 +48,6 @@
         </div>
       </div>
 
-      <!-- Investment Knowledge Nudge -->
-      <div
-        v-if="showKnowledgeNudge"
-        class="mb-6 bg-light-pink-50 border border-light-pink-200 rounded-lg p-4 shadow-sm"
-      >
-        <div class="flex items-start gap-4">
-          <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-light-pink-100 rounded-full flex items-center justify-center">
-              <svg class="w-5 h-5 text-raspberry-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-sm font-semibold text-raspberry-800">How would you describe your investment knowledge?</h3>
-            <p class="mt-1 text-sm text-raspberry-700">
-              This helps us tailor investment recommendations to your experience level.
-            </p>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                @click="setKnowledgeLevel('novice')"
-                :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
-              >
-                Beginner — I'm new to investing
-              </button>
-              <button
-                @click="setKnowledgeLevel('intermediate')"
-                :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
-              >
-                Intermediate — I understand the basics
-              </button>
-              <button
-                @click="setKnowledgeLevel('experienced')"
-                :disabled="savingKnowledgeLevel"
-                class="px-4 py-2 text-sm font-medium rounded-button border border-light-pink-300 text-raspberry-700 bg-white hover:bg-light-pink-100 transition-colors"
-              >
-                Experienced — I'm confident with investments
-              </button>
-            </div>
-          </div>
-          <button
-            @click="dismissKnowledgeNudge"
-            class="flex-shrink-0 text-raspberry-400 hover:text-raspberry-600"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
-      <JourneyProgressHero
-        v-if="currentStage"
-        class="mb-3"
-      />
-
       <!-- Empty Dashboard (no financial data) -->
       <template v-if="showEmptyDashboard">
         <div class="grid grid-cols-1 gap-3">
@@ -115,24 +56,24 @@
       </template>
 
       <!-- Three-column dashboard grid -->
-      <div v-else class="dashboard-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
         <!-- Areas to Complete Card (shown first when user has skipped steps) -->
-        <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-6">
+        <div v-if="hasAreasToComplete" class="bg-white rounded-lg border border-light-gray p-4">
           <AreasToCompleteCard />
         </div>
 
         <!-- Profile Completion Cards (shown for quick onboarding users) -->
         <ProfileCompletionCards v-if="isQuickOnboardingUser" />
 
-        <!-- Student: Recent Activity Card (replaces Net Worth) — maps to 'budget-tracker' -->
+        <!-- Student: Recent Activity Card (replaces Net Worth) -->
         <DashboardCard
-          v-if="isStudentPersona && isCardVisible('budget-tracker')"
+          v-if="isStudentPersona"
           title="Recent Activity"
           :loading="false"
           @click="navigateTo('/net-worth/cash')"
         >
           <div v-if="recentTransactions.length" class="space-y-0">
-            <div class="max-h-[340px] overflow-y-auto -mx-1 px-1">
+            <div class="max-h-[280px] overflow-y-auto -mx-1 px-1">
               <div
                 v-for="(tx, idx) in recentTransactions"
                 :key="idx"
@@ -160,15 +101,15 @@
           </div>
         </DashboardCard>
 
-        <!-- Student: Student Debt Card — maps to 'student-loan' -->
+        <!-- Student: Student Debt Card -->
         <DashboardCard
-          v-if="isStudentPersona && isCardVisible('student-loan')"
+          v-if="isStudentPersona"
           title="Student Debt"
           :loading="loading.netWorth"
           @click="navigateTo('/net-worth/liabilities')"
         >
-          <div v-if="studentLiability" class="space-y-4">
-            <div class="border-b border-light-gray pb-4">
+          <div v-if="studentLiability" class="space-y-2.5">
+            <div class="border-b border-light-gray pb-2.5">
               <span class="text-sm text-neutral-500">Outstanding Balance</span>
               <div class="mt-1">
                 <span class="text-xl font-bold text-raspberry-600">
@@ -180,7 +121,7 @@
             <div class="space-y-3">
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Plan Type</span>
-                <span class="font-medium text-horizon-500">{{ studentLiability.planType }}</span>
+                <span class="font-medium text-horizon-500">Plan 5</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Interest Rate</span>
@@ -188,7 +129,7 @@
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Repayment Threshold</span>
-                <span class="font-medium text-horizon-500">{{ formatCurrency(studentLoanDetails.threshold) }}/yr</span>
+                <span class="font-medium text-horizon-500">{{ formatCurrency(25000) }}/yr</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Monthly Repayments</span>
@@ -196,9 +137,9 @@
               </div>
             </div>
 
-            <div class="bg-light-pink-50 border border-light-pink-200 rounded-lg p-3 mt-3">
-              <p class="text-xs text-raspberry-700">
-                Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(studentLoanDetails.threshold) }} per year. Your loan is written off after {{ studentLoanDetails.writeOff }} years.
+            <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 mt-3">
+              <p class="text-xs text-violet-700">
+                Repayments begin the April after you graduate or leave your course, but only if you earn above {{ formatCurrency(25000) }} per year. Your loan is written off after 40 years.
               </p>
             </div>
           </div>
@@ -207,12 +148,11 @@
           </div>
         </DashboardCard>
 
-        <!-- Net Worth Card (hidden for student persona) — maps to 'net-worth' -->
+        <!-- Net Worth Card (hidden for student persona) -->
         <DashboardCard
-          v-if="!isStudentPersona && isCardVisible('net-worth')"
+          v-if="!isStudentPersona"
           title="Net Worth"
           :loading="loading.netWorth"
-          :empty="!hasNetWorthData"
           @click="navigateTo('/net-worth/wealth-summary')"
         >
           <div v-if="hasNetWorthData">
@@ -223,7 +163,7 @@
                 type="bar"
                 :options="netWorthBarChartOptions"
                 :series="netWorthBarChartSeries"
-                height="280"
+                height="220"
               />
               <div class="text-center text-sm mt-1">
                 <span class="font-semibold" :class="netWorthData.netWorth >= 0 ? 'text-spring-600' : 'text-raspberry-600'">
@@ -232,43 +172,15 @@
               </div>
             </template>
 
-            <!-- Desktop: Custom SVG donut ring (V6 design — 40px stroke, gradients, rounded caps) -->
+            <!-- Desktop: Donut chart with category breakdown -->
             <template v-else>
-              <div class="flex justify-center">
-                <div class="relative" style="width: 240px; height: 240px;">
-                  <svg viewBox="0 0 220 220" width="240" height="240">
-                    <defs>
-                      <linearGradient
-                        v-for="(seg, idx) in netWorthDonutSegments"
-                        :key="'grad-' + idx"
-                        :id="'nw-grad-' + idx"
-                        x1="0%" y1="0%" x2="100%" y2="0%"
-                      >
-                        <stop offset="0%" :stop-color="seg.color" />
-                        <stop offset="100%" :stop-color="seg.colorLight" />
-                      </linearGradient>
-                    </defs>
-                    <circle
-                      v-for="(seg, idx) in netWorthDonutSegments"
-                      :key="'seg-' + idx"
-                      cx="110" cy="110" r="75"
-                      fill="none"
-                      :stroke="'url(#nw-grad-' + idx + ')'"
-                      stroke-width="40"
-                      stroke-linecap="round"
-                      :stroke-dasharray="seg.arcLength + ' ' + 471.2"
-                      :stroke-dashoffset="-seg.offset"
-                      transform="rotate(-90 110 110)"
-                    />
-                  </svg>
-                  <div class="absolute inset-0 flex items-center justify-center">
-                    <span
-                      class="text-xl font-black"
-                      :class="netWorthData.netWorth >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
-                    >{{ formatCurrency(netWorthData.netWorth) }}</span>
-                  </div>
-                </div>
-              </div>
+              <apexchart
+                :key="netWorthChartKey"
+                type="donut"
+                :options="netWorthChartOptions"
+                :series="netWorthChartSeries"
+                height="200"
+              />
               <div class="flex justify-between text-sm mt-2">
                 <div>
                   <span class="text-neutral-500">Assets</span>
@@ -283,242 +195,38 @@
           </div>
 
           <!-- Empty state when no assets or liabilities -->
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">No assets or liabilities added yet.</p>
-            <router-link to="/net-worth/wealth-summary" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Assets &amp; Liabilities
-            </router-link>
+          <div v-else class="space-y-2.5">
+            <div class="border-b border-light-gray pb-2.5">
+              <span class="text-xl font-bold text-horizon-400">
+                {{ formatCurrency(0) }}
+              </span>
+            </div>
+            <p class="text-sm text-neutral-500">
+              Add your assets and liabilities to see your net worth here.
+            </p>
           </div>
         </DashboardCard>
 
-        <!-- Protection Card — maps to 'protection' -->
+        <!-- Estate Planning Card -->
         <DashboardCard
-          v-if="isCardVisible('protection')"
-          title="Protection"
-          :loading="loading.protection"
-          :empty="!hasProtectionData"
-          @click="navigateTo('/protection')"
-        >
-          <div v-if="hasProtectionData" class="space-y-4">
-            <div class="border-b border-light-gray pb-4">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl bg-light-blue-100 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-8 h-8 text-horizon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                </div>
-                <div>
-                  <span class="text-sm text-neutral-500">Total Coverage</span>
-                  <div class="mt-0.5">
-                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-horizon-500">{{ formatCurrency(protectionData.totalCoverage) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-neutral-500">Monthly Premiums</span>
-              <span class="font-medium text-horizon-500">{{ formatCurrency(protectionData.premiumTotal) }}/mo</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="font-semibold text-horizon-500">Policies</span>
-              <span class="font-medium text-horizon-500">{{ protectionData.policyCount }}</span>
-            </div>
-            <!-- Policy list -->
-            <div class="pt-3 border-t border-light-gray space-y-2">
-              <div v-for="policy in protectionPolicyList" :key="policy.name" class="flex justify-between text-sm">
-                <span class="text-neutral-500">{{ policy.name }}</span>
-                <span class="font-medium text-horizon-500">{{ formatCurrency(policy.cover) }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">No protection policies added yet.</p>
-            <router-link to="/protection" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Protection Policy
-            </router-link>
-          </div>
-        </DashboardCard>
-
-        <!-- Cash & Savings Card — maps to 'cash-savings' / 'savings' -->
-        <DashboardCard
-          v-if="isCardVisible('cash-savings') || isCardVisible('savings')"
-          title="Cash & Savings"
-          :loading="loading.taxAllowances"
-          :empty="!hasSavingsData"
-          @click="navigateTo('/net-worth/cash')"
-        >
-          <div v-if="hasSavingsData" class="space-y-3">
-            <!-- Hero metric -->
-            <div class="border-b border-light-gray pb-3">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl bg-spring-100 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-8 h-8 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <span class="text-sm text-neutral-500">Total Savings</span>
-                  <div class="mt-0.5">
-                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-spring-600">{{ formatCurrency(savingsTotalBalance) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 6-month sparkline -->
-            <DashboardSparkline :data="savingsSparklineData" />
-
-            <!-- Collapsible accounts -->
-            <div class="border-t border-light-gray pt-2">
-              <button
-                class="w-full flex justify-between items-center py-1.5 text-sm"
-                :aria-expanded="savingsAccountsExpanded"
-                aria-controls="savings-account-list"
-                @click.stop="savingsAccountsExpanded = !savingsAccountsExpanded"
-              >
-                <span class="font-semibold text-horizon-500">Accounts ({{ savingsAccountCount }})</span>
-                <svg
-                  class="w-4 h-4 text-neutral-400 transition-transform duration-200"
-                  :class="{ 'rotate-180': savingsAccountsExpanded }"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div
-                v-if="savingsAccountsExpanded"
-                id="savings-account-list"
-                class="space-y-2 pt-2"
-              >
-                <div v-for="acc in visibleSavingsAccounts" :key="acc.id" class="flex justify-between text-sm">
-                  <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
-                  <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
-                </div>
-                <div v-if="savingsAccountCount > 3" class="text-center pt-1">
-                  <router-link
-                    to="/net-worth/cash"
-                    class="text-xs font-semibold text-horizon-500 hover:text-horizon-600"
-                    @click.stop
-                  >
-                    View all {{ savingsAccountCount }} accounts &rarr;
-                  </router-link>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">No savings accounts added yet.</p>
-            <router-link to="/net-worth/cash" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Savings Account
-            </router-link>
-          </div>
-        </DashboardCard>
-
-        <!-- Investment Card — maps to 'investments' -->
-        <DashboardCard
-          v-if="isCardVisible('investments')"
-          title="Investments"
-          :loading="loading.investment"
-          :empty="!hasInvestmentData"
-          @click="navigateTo('/net-worth/investments')"
-        >
-          <div v-if="hasInvestmentData" class="space-y-3">
-            <!-- Hero metric -->
-            <div class="border-b border-light-gray pb-3">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-8 h-8 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-                <div>
-                  <span class="text-sm text-neutral-500">Portfolio Value</span>
-                  <div class="mt-0.5">
-                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-horizon-500">{{ formatCurrency(investmentPortfolioValue) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 6-month sparkline -->
-            <DashboardSparkline :data="investmentSparklineData" />
-
-            <!-- Collapsible accounts -->
-            <div class="border-t border-light-gray pt-2">
-              <button
-                class="w-full flex justify-between items-center py-1.5 text-sm"
-                :aria-expanded="investmentAccountsExpanded"
-                aria-controls="investment-account-list"
-                @click.stop="investmentAccountsExpanded = !investmentAccountsExpanded"
-              >
-                <span class="font-semibold text-horizon-500">Accounts ({{ investmentAccountCount }})</span>
-                <svg
-                  class="w-4 h-4 text-neutral-400 transition-transform duration-200"
-                  :class="{ 'rotate-180': investmentAccountsExpanded }"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div
-                v-if="investmentAccountsExpanded"
-                id="investment-account-list"
-                class="space-y-2 pt-2"
-              >
-                <div v-for="acc in visibleInvestmentAccounts" :key="acc.id" class="flex justify-between text-sm">
-                  <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
-                  <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_value || acc.total_value || 0) }}</span>
-                </div>
-                <div v-if="investmentAccountCount > 3" class="text-center pt-1">
-                  <router-link
-                    to="/net-worth/investments"
-                    class="text-xs font-semibold text-horizon-500 hover:text-horizon-600"
-                    @click.stop
-                  >
-                    View all {{ investmentAccountCount }} accounts &rarr;
-                  </router-link>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">No investment accounts added yet.</p>
-            <router-link to="/net-worth/investments" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Investment Account
-            </router-link>
-          </div>
-        </DashboardCard>
-
-        <!-- Estate Planning Card — maps to 'estate' -->
-        <DashboardCard
-          v-if="isCardVisible('estate')"
+          v-if="hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          :empty="!hasEstateData"
           @click="navigateTo('/estate')"
         >
-          <div v-if="hasEstateData" class="space-y-4">
+          <div v-if="hasEstateData" class="space-y-2.5">
             <!-- Taxable Estate Now -->
-            <div class="border-b border-light-gray pb-4">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl bg-raspberry-50 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-8 h-8 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
-                </div>
-                <div>
-                  <span class="text-sm text-neutral-500">Taxable Estate on Joint Death</span>
-                  <div class="mt-0.5">
-                    <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-raspberry-500">
-                      {{ formatCurrency(estateData.taxableEstate) }}
-                    </span>
-                  </div>
-                </div>
+            <div class="border-b border-light-gray pb-2.5">
+              <span class="text-sm text-neutral-500">Taxable Estate on Joint Death Now</span>
+              <div class="mt-1">
+                <span class="text-lg font-semibold text-raspberry-500">
+                  {{ formatCurrency(estateData.taxableEstate) }}
+                </span>
               </div>
             </div>
 
             <!-- Current IHT Liability -->
-            <div class="border-b border-light-gray pb-4">
+            <div class="border-b border-light-gray pb-2.5">
               <div class="text-sm font-semibold text-horizon-500 mb-2">Current Inheritance Tax Liability</div>
               <div class="flex justify-between text-sm">
                 <span class="text-neutral-500">Amount Due</span>
@@ -526,16 +234,38 @@
               </div>
             </div>
 
+            <!-- Trusts -->
+            <div v-if="trustsList.length > 0" class="space-y-3">
+              <div class="text-sm font-semibold text-horizon-500">Trusts</div>
+              <div
+                v-for="trust in trustsList"
+                :key="trust.id"
+                class="pb-2 border-b border-light-gray last:border-0 last:pb-0"
+              >
+                <div class="flex justify-between text-sm">
+                  <span class="font-medium text-horizon-500">{{ trust.trust_name }}</span>
+                  <span class="font-medium text-horizon-500">{{ formatCurrency(trust.total_asset_value || trust.current_value || 0) }}</span>
+                </div>
+                <div v-if="trust.beneficiaries" class="text-xs text-neutral-500 mt-1">
+                  Beneficiaries: {{ trust.beneficiaries }}
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Empty state when no estate data -->
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">
-              No estate details added yet.
+          <div v-else class="space-y-2.5">
+            <div class="border-b border-light-gray pb-2.5">
+              <span class="text-sm text-neutral-500">Taxable Estate</span>
+              <div class="mt-1">
+                <span class="text-xl font-bold text-horizon-400">
+                  {{ formatCurrency(0) }}
+                </span>
+              </div>
+            </div>
+            <p class="text-sm text-neutral-500">
+              Add your assets and liabilities to see your estate value and inheritance tax position.
             </p>
-            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Estate Details
-            </router-link>
           </div>
 
           <!-- Will question when not yet answered -->
@@ -566,15 +296,13 @@
         </DashboardCard>
 
 
-        <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
+        <!-- Retirement Card (hidden for users under 35) -->
         <DashboardCard
-          v-if="(userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
+          v-if="hasRetirementData && (userAge === null || userAge >= 35)"
           :title="retirementCardTitle"
           :loading="loading.retirement"
-          :empty="!hasRetirementData"
           @click="navigateTo('/net-worth/retirement')"
         >
-          <template v-if="hasRetirementData">
           <!-- RETIRED USER: Show income breakdown -->
           <div v-if="isRetired" class="space-y-3">
             <!-- Income Sources Breakdown -->
@@ -613,57 +341,48 @@
                 {{ formatCurrency(Math.abs(retiredIncomeData.totalIncome - retirementData.targetIncome)) }}/yr
               </span>
             </div>
-
           </div>
 
-          <!-- NON-RETIRED USER: Show projections with progress bars -->
-          <div v-else class="space-y-4">
-            <!-- Income progress bar -->
-            <div>
-              <div class="flex justify-between items-baseline mb-2">
-                <span v-if="retirementIncomePercent < 15" class="text-sm font-bold text-horizon-500">Income</span>
-                <span v-else></span>
-                <div class="flex items-baseline gap-1.5">
-                  <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedIncome) }}</span>
-                  <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.targetIncome) }}/yr</span>
+          <!-- NON-RETIRED USER: Show projections -->
+          <div v-else class="space-y-2.5">
+            <!-- Income row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-light-gray pb-2.5">
+              <div>
+                <span class="text-sm text-neutral-500">Projected Income</span>
+                <div class="flex items-baseline gap-1 mt-1">
+                  <span class="text-lg font-semibold text-spring-600">
+                    {{ formatCurrency(retirementData.projectedIncome) }}
+                  </span>
+                  <span class="text-xs text-neutral-500">/yr</span>
                 </div>
               </div>
-              <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementIncomePercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
-                <div
-                  class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
-                  :class="[
-                    retirementIncomePercent === 0 ? '' : (retirementIncomePercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
-                    retirementIncomePercent >= 15 ? 'justify-between' : (retirementIncomePercent === 0 ? 'justify-start' : 'justify-center')
-                  ]"
-                  :style="{ width: retirementIncomePercent > 0 ? Math.min(retirementIncomePercent, 100) + '%' : '100%' }"
-                >
-                  <span v-if="retirementIncomePercent >= 15" class="text-[13px] font-semibold text-white leading-tight">Income</span>
-                  <span class="text-xs font-bold" :class="retirementIncomePercent === 0 ? 'text-horizon-500' : 'text-white'">{{ retirementIncomePercent }}%</span>
+              <div class="text-right">
+                <span class="text-sm text-neutral-500">Required Income</span>
+                <div class="flex items-baseline justify-end gap-1 mt-1">
+                  <span class="text-lg font-semibold text-horizon-500">
+                    {{ formatCurrency(retirementData.targetIncome) }}
+                  </span>
+                  <span class="text-xs text-neutral-500">/yr</span>
                 </div>
               </div>
             </div>
 
-            <!-- Capital progress bar -->
-            <div>
-              <div class="flex justify-between items-baseline mb-2">
-                <span v-if="retirementCapitalPercent < 15" class="text-sm font-bold text-horizon-500">Capital</span>
-                <span v-else></span>
-                <div class="flex items-baseline gap-1.5">
-                  <span class="text-sm font-extrabold text-spring-600">{{ formatCurrency(retirementData.projectedCapital) }}</span>
-                  <span class="text-xs text-neutral-500">of {{ formatCurrency(retirementData.capitalRequired) }}</span>
+            <!-- Capital row: Projected and Required inline -->
+            <div class="flex justify-between border-b border-light-gray pb-2.5">
+              <div>
+                <span class="text-sm text-neutral-500">Projected Capital</span>
+                <div class="mt-1">
+                  <span class="text-lg font-semibold text-spring-600">
+                    {{ formatCurrency(retirementData.projectedCapital) }}
+                  </span>
                 </div>
               </div>
-              <div class="w-full rounded-full h-12 overflow-hidden" :class="retirementCapitalPercent >= 100 ? 'bg-spring-100' : 'bg-light-blue-100'">
-                <div
-                  class="h-12 rounded-full transition-all duration-500 flex items-center px-4"
-                  :class="[
-                    retirementCapitalPercent === 0 ? '' : (retirementCapitalPercent >= 100 ? 'bg-gradient-to-r from-spring-500 to-spring-400' : 'bg-gradient-to-r from-horizon-400 to-horizon-500'),
-                    retirementCapitalPercent >= 15 ? 'justify-between' : (retirementCapitalPercent === 0 ? 'justify-start' : 'justify-center')
-                  ]"
-                  :style="{ width: retirementCapitalPercent > 0 ? Math.min(retirementCapitalPercent, 100) + '%' : '100%' }"
-                >
-                  <span v-if="retirementCapitalPercent >= 15" class="text-[13px] font-semibold text-white leading-tight">Capital</span>
-                  <span class="text-xs font-bold" :class="retirementCapitalPercent === 0 ? 'text-horizon-500' : 'text-white'">{{ retirementCapitalPercent }}%</span>
+              <div class="text-right">
+                <span class="text-sm text-neutral-500">Capital Required</span>
+                <div class="mt-1">
+                  <span class="text-lg font-semibold text-horizon-500">
+                    {{ formatCurrency(retirementData.capitalRequired) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -671,97 +390,74 @@
             <!-- Retirement age and years -->
             <div class="flex justify-between">
               <div v-if="retirementData.retirementAge" class="text-center">
-                <span class="text-sm text-neutral-500">Retirement Age</span>
-                <div class="text-base font-semibold text-horizon-500">{{ retirementData.retirementAge }}</div>
+                <span class="text-xs text-neutral-500">Retirement Age</span>
+                <div class="text-sm font-semibold text-horizon-500">{{ retirementData.retirementAge }}</div>
               </div>
               <div v-if="retirementData.yearsToRetirement !== null" class="text-center">
-                <span class="text-sm text-neutral-500">Years to Retirement</span>
-                <div class="text-base font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
+                <span class="text-xs text-neutral-500">Years to Retirement</span>
+                <div class="text-sm font-semibold text-horizon-500">{{ retirementData.yearsToRetirement }} years</div>
               </div>
             </div>
-
-          </div>
-          </template>
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">No pension data added yet.</p>
-            <router-link to="/net-worth/retirement" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Pension
-            </router-link>
           </div>
         </DashboardCard>
 
-        <!-- Allowances Card — maps to 'tax-allowances' -->
+        <!-- Allowances Card -->
         <DashboardCard
-          v-if="isCardVisible('tax-allowances')"
           title="Allowances"
           :loading="loading.taxAllowances"
-          :clickable="false"
         >
-          <div v-if="hasAllowancesData" class="space-y-4">
+          <div v-if="hasAllowancesData" class="space-y-2.5">
             <!-- Lifetime ISA Allowance (eligible users only) -->
             <template v-if="lisaAllowanceData">
-              <div class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/cash')">
-                <div class="flex justify-between items-baseline mb-0.5 gap-2">
-                  <span v-if="lisaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Lifetime ISA</span>
-                  <span v-else></span>
-                  <div>
-                    <span class="text-sm font-bold text-spring-600">{{ formatCurrency(lisaAllowanceData.used) }}</span>
-                    <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(lisaAllowanceData.limit || 4000) }}</span>
-                  </div>
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-sm font-semibold text-horizon-500">Lifetime ISA</span>
+                  <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
                 </div>
-                <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
+                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                   <div
-                    class="h-12 rounded-full transition-all flex items-center px-4"
-                    :class="[
-                      lisaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(lisaAllowanceData.percentUsed, false),
-                      lisaAllowanceData.percentUsed >= 15 ? 'justify-between' : (lisaAllowanceData.percentUsed === 0 ? 'justify-start' : 'justify-center')
-                    ]"
-                    :style="{ width: lisaAllowanceData.percentUsed > 0 ? Math.min(lisaAllowanceData.percentUsed, 100) + '%' : '100%' }"
-                  >
-                    <span v-if="lisaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white leading-tight">Lifetime ISA</span>
-                    <span class="text-xs font-bold" :class="lisaAllowanceData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(lisaAllowanceData.percentUsed) }}%</span>
-                  </div>
+                    class="h-2 rounded-full transition-all"
+                    :class="allowanceBarClass(lisaAllowanceData.percentUsed, false)"
+                    :style="{ width: Math.min(lisaAllowanceData.percentUsed, 100) + '%' }"
+                  ></div>
                 </div>
-                <div class="flex justify-between text-sm mt-1">
-                  <span class="text-xs text-neutral-500">25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned</span>
-                  <span class="text-spring-600 font-semibold text-sm">{{ formatCurrency(lisaAllowanceData.remaining) }} remaining</span>
+                <div class="flex justify-between text-sm">
+                  <span class="text-neutral-500">{{ formatCurrency(lisaAllowanceData.used) }} used</span>
+                  <span class="text-spring-600 font-medium">
+                    {{ formatCurrency(lisaAllowanceData.remaining) }} remaining
+                  </span>
+                </div>
+                <div class="text-xs text-neutral-500 mt-1">
+                  25% bonus: {{ formatCurrency(lisaAllowanceData.bonusEarned) }} earned of {{ formatCurrency(lisaAllowanceData.maxBonus) }} max
                 </div>
               </div>
               <div class="border-t border-light-gray"></div>
             </template>
 
             <!-- ISA Allowance -->
-            <div v-if="isaAllowanceData" class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/cash')">
-              <div class="flex justify-between items-baseline mb-0.5 gap-2">
-                <span v-if="isaAllowanceData.percentUsed < 15" class="text-sm font-bold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
-                <span v-else></span>
-                <div>
-                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(isaAllowanceData.totalUsed) }}</span>
-                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(20000) }}</span>
-                </div>
+            <div v-if="isaAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-sm font-semibold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
+                <span class="text-xs text-neutral-500">2025/26</span>
               </div>
-              <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
+              <!-- Progress bar -->
+              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                 <div
-                  class="h-12 rounded-full transition-all flex items-center px-4"
-                  :class="[
-                    isaAllowanceData.percentUsed === 0 ? '' : allowanceBarClass(isaAllowanceData.percentUsed, false),
-                    isaAllowanceData.percentUsed >= 15 ? 'justify-between' : (isaAllowanceData.percentUsed === 0 ? 'justify-start' : 'justify-center')
-                  ]"
-                  :style="{ width: isaAllowanceData.percentUsed > 0 ? Math.min(isaAllowanceData.percentUsed, 100) + '%' : '100%' }"
-                >
-                  <span v-if="isaAllowanceData.percentUsed >= 15" class="text-[13px] font-semibold text-white leading-tight">{{ lisaAllowanceData ? 'ISA (excl. Lifetime)' : 'ISA Allowance' }}</span>
-                  <span class="text-xs font-bold" :class="isaAllowanceData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(isaAllowanceData.percentUsed) }}%</span>
-                </div>
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(isaAllowanceData.percentUsed, false)"
+                  :style="{ width: Math.min(isaAllowanceData.percentUsed, 100) + '%' }"
+                ></div>
               </div>
-              <div class="flex justify-between text-sm mt-1">
-                <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-3 text-xs text-neutral-500">
-                  <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
-                  <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
-                </div>
-                <span v-else></span>
-                <span :class="isaAllowanceData.remaining >= 0 ? 'text-spring-600' : 'text-raspberry-600'" class="font-semibold text-sm">
+              <div class="flex justify-between text-sm">
+                <span class="text-neutral-500">{{ formatCurrency(isaAllowanceData.totalUsed) }} used</span>
+                <span :class="isaAllowanceData.remaining >= 0 ? 'text-spring-600' : 'text-raspberry-600'" class="font-medium">
                   {{ formatCurrency(isaAllowanceData.remaining) }} remaining
                 </span>
+              </div>
+              <!-- Cash / Stocks & Shares breakdown -->
+              <div v-if="isaAllowanceData.cashUsed > 0 || isaAllowanceData.ssUsed > 0" class="flex gap-4 mt-1 text-xs text-neutral-500">
+                <span v-if="isaAllowanceData.cashUsed > 0">Cash ISA: {{ formatCurrency(isaAllowanceData.cashUsed) }}</span>
+                <span v-if="isaAllowanceData.ssUsed > 0">Stocks &amp; Shares ISA: {{ formatCurrency(isaAllowanceData.ssUsed) }}</span>
               </div>
             </div>
 
@@ -769,10 +465,10 @@
             <div v-if="isaAllowanceData && pensionAllowanceData" class="border-t border-light-gray"></div>
 
             <!-- Pension Annual Allowance -->
-            <div v-if="pensionAllowanceData" class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/retirement')">
-              <div class="flex justify-between items-baseline mb-0.5 gap-2">
+            <div v-if="pensionAllowanceData">
+              <div class="flex justify-between items-baseline mb-1">
                 <div class="flex items-center gap-2">
-                  <span v-if="pensionStandardPercent < 15" class="text-sm font-bold text-horizon-500">Pension Annual Allowance</span>
+                  <span class="text-sm font-semibold text-horizon-500">Pension Annual Allowance</span>
                   <span
                     v-if="pensionAllowanceData.isTapered"
                     class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700"
@@ -782,63 +478,50 @@
                     class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-raspberry-100 text-raspberry-700"
                   >Money Purchase Annual Allowance</span>
                 </div>
-                <div>
-                  <span class="text-sm font-bold text-spring-600">{{ formatCurrency(pensionStandardUsed) }}</span>
-                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(pensionAllowanceData.availableAllowance) }}</span>
-                </div>
+                <span class="text-xs text-neutral-500">{{ currentTaxYear }}</span>
               </div>
-              <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
+              <!-- Progress bar -->
+              <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
                 <div
-                  class="h-12 rounded-full transition-all flex items-center px-4"
-                  :class="[
-                    pensionStandardPercent === 0 ? '' : allowanceBarClass(pensionStandardPercent, false),
-                    pensionStandardPercent >= 15 ? 'justify-between' : (pensionStandardPercent === 0 ? 'justify-start' : 'justify-center')
-                  ]"
-                  :style="{ width: pensionStandardPercent > 0 ? Math.min(pensionStandardPercent, 100) + '%' : '100%' }"
-                >
-                  <span v-if="pensionStandardPercent >= 15" class="text-[13px] font-semibold text-white leading-tight">Pension Annual Allowance</span>
-                  <span class="text-xs font-bold" :class="pensionStandardPercent === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(pensionStandardPercent) }}%</span>
-                </div>
+                  class="h-2 rounded-full transition-all"
+                  :class="allowanceBarClass(pensionStandardPercent, false)"
+                  :style="{ width: Math.min(pensionStandardPercent, 100) + '%' }"
+                ></div>
               </div>
-              <div class="flex justify-between text-sm mt-1">
-                <span class="text-xs text-neutral-500"></span>
-                <span class="text-spring-600 font-semibold text-sm">
+              <div class="flex justify-between text-sm">
+                <span class="text-neutral-500">{{ formatCurrency(pensionStandardUsed) }} used</span>
+                <span class="text-spring-600 font-medium">
                   {{ formatCurrency(pensionStandardRemaining) }} remaining
                 </span>
+              </div>
+              <div class="text-xs text-neutral-500 mt-1">
+                of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
               </div>
             </div>
 
             <!-- Carry Forward (only when contributions exceed standard allowance) -->
             <template v-if="pensionAllowanceData && carryForwardData">
               <div class="border-t border-light-gray"></div>
-              <div class="cursor-pointer hover:opacity-80 transition-opacity" @click.stop="navigateTo('/net-worth/retirement')">
-                <div class="flex justify-between items-baseline mb-0.5 gap-2">
-                  <div class="flex items-center gap-2">
-                    <span v-if="carryForwardData.percentUsed < 15" class="text-sm font-bold text-horizon-500">Carry Forward</span>
-                  </div>
-                  <div>
-                    <span class="text-sm font-bold text-spring-600">{{ formatCurrency(carryForwardData.used) }}</span>
-                    <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(pensionAllowanceData.availableAllowance) }}</span>
-                  </div>
-                </div>
-                <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
-                  <div
-                    class="h-12 rounded-full transition-all flex items-center px-4"
-                    :class="[
-                      carryForwardData.percentUsed === 0 ? '' : allowanceBarClass(carryForwardData.percentUsed, false),
-                      carryForwardData.percentUsed >= 15 ? 'justify-between' : (carryForwardData.percentUsed === 0 ? 'justify-start' : 'justify-center')
-                    ]"
-                    :style="{ width: carryForwardData.percentUsed > 0 ? Math.min(carryForwardData.percentUsed, 100) + '%' : '100%' }"
-                  >
-                    <span v-if="carryForwardData.percentUsed >= 15" class="text-[13px] font-semibold text-white leading-tight">Carry Forward</span>
-                    <span class="text-xs font-bold" :class="carryForwardData.percentUsed === 0 ? 'text-horizon-500' : 'text-white'">{{ Math.round(carryForwardData.percentUsed) }}%</span>
-                  </div>
-                </div>
-                <div class="flex justify-between text-sm mt-1">
+              <div>
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="text-sm font-semibold text-horizon-500">Carry Forward</span>
                   <span class="text-xs text-neutral-500">{{ carryForwardTaxYear }}</span>
-                  <span class="text-spring-600 font-semibold text-sm">
+                </div>
+                <div class="w-full bg-savannah-100 rounded-full h-2 mb-2">
+                  <div
+                    class="h-2 rounded-full transition-all"
+                    :class="allowanceBarClass(carryForwardData.percentUsed, false)"
+                    :style="{ width: Math.min(carryForwardData.percentUsed, 100) + '%' }"
+                  ></div>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-neutral-500">{{ formatCurrency(carryForwardData.used) }} used</span>
+                  <span class="text-spring-600 font-medium">
                     {{ formatCurrency(carryForwardData.remaining) }} remaining
                   </span>
+                </div>
+                <div class="text-xs text-neutral-500 mt-1">
+                  of {{ formatCurrency(pensionAllowanceData.availableAllowance) }} allowance
                 </div>
               </div>
             </template>
@@ -846,7 +529,7 @@
 
           <!-- Empty state -->
           <div v-else class="text-center py-4">
-            <div class="mx-auto w-12 h-12 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
+            <div class="mx-auto w-10 h-10 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
               <svg class="w-6 h-6 text-raspberry-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
@@ -858,12 +541,12 @@
           </div>
         </DashboardCard>
 
-        <!-- Goals & Events Card (spans full width on larger screens) — legacy, hidden when stage-curated GoalsCard is shown -->
+        <!-- Goals & Events Card (spans 2 columns on larger screens) -->
         <DashboardCard
-          v-if="hasGoalsData && !currentStage"
+          v-if="hasGoalsData"
           title="Goals & Life Events"
           :loading="loading.goals"
-          class="xl:col-span-3"
+          class="lg:col-span-2"
           @click="navigateTo('/goals')"
         >
           <!-- Bar chart with event icons - simplified for dashboard -->
@@ -873,7 +556,7 @@
 
           <!-- Empty state for goals -->
           <div v-else class="text-center py-4">
-            <div class="mx-auto w-12 h-12 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
+            <div class="mx-auto w-10 h-10 rounded-full bg-raspberry-100 flex items-center justify-center mb-3">
               <svg class="w-6 h-6 text-raspberry-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
@@ -885,32 +568,17 @@
           </div>
         </DashboardCard>
 
-        <!-- Goals projection chart (spans full width) -->
-        <DashboardCard
-          v-if="currentStage && isCardVisible('goals')"
-          title="Goals & Life Events"
-          :loading="loading.goals"
-          class="xl:col-span-3"
-          @click="navigateTo('/goals')"
-        >
-          <div v-if="goalsData.hasProjection || goalsData.hasGoals" class="cursor-pointer">
-            <GoalsProjectionChartDashboard />
+        <!-- UK Taxes card removed — accessible via /uk-taxes route and admin panel -->
+
+        <!-- Cross-Module Insights (all non-student users) -->
+        <template v-if="!isStudentPersona">
+          <div class="lg:col-span-3">
+            <h2 class="text-sm font-semibold text-horizon-500 uppercase tracking-wide mt-2 mb-1">Cross-Module Insights</h2>
           </div>
-          <div v-else class="text-center py-4">
-            <h3 class="text-sm font-semibold text-horizon-500 mb-1">Set Your First Goal</h3>
-            <p class="text-xs text-neutral-500">Track your financial goals and life events</p>
+          <div class="lg:col-span-3">
+            <CrossModuleInsights />
           </div>
-        </DashboardCard>
-
-
-        <!-- Stage-curated: Life Timeline Card (horizontal, spans 3 columns) -->
-        <LifeTimelineCard
-          v-if="currentStage && isCardVisible('life-timeline')"
-          class="xl:col-span-3"
-          :horizontal="true"
-        />
-
-        <!-- Cross-Module Insights removed from dashboard -->
+        </template>
       </div>
     </div>
   </AppLayout>
@@ -923,18 +591,13 @@ import DashboardCard from '@/components/Dashboard/DashboardCard.vue';
 import GoalsProjectionChartDashboard from '@/components/Dashboard/GoalsProjectionChartDashboard.vue';
 import AreasToCompleteCard from '@/components/Dashboard/AreasToCompleteCard.vue';
 import ProfileCompletionCards from '@/components/Dashboard/ProfileCompletionCards.vue';
-// CrossModuleInsights removed from dashboard
+import CrossModuleInsights from '@/components/Dashboard/CrossModuleInsights.vue';
 import EmptyDashboard from '@/components/Dashboard/EmptyDashboard.vue';
-import DashboardSparkline from '@/components/Dashboard/DashboardSparkline.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { ASSET_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
-
-// Life stage journey components
-import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
-import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 export default {
   name: 'Dashboard',
@@ -945,10 +608,8 @@ export default {
     GoalsProjectionChartDashboard,
     AreasToCompleteCard,
     ProfileCompletionCards,
+    CrossModuleInsights,
     EmptyDashboard,
-    JourneyProgressHero,
-    LifeTimelineCard,
-    DashboardSparkline,
   },
 
   mixins: [currencyMixin],
@@ -963,7 +624,6 @@ export default {
         protection: true,
         goals: true,
         taxAllowances: true,
-        plans: false,
       },
       errors: {
         protection: null,
@@ -971,10 +631,6 @@ export default {
       },
       dataLoaded: false,
       mfaBannerDismissed: storage.get('mfaBannerDismissed') === 'true',
-      knowledgeNudgeDismissed: storage.get('knowledgeNudgeDismissed') === 'true',
-      savingKnowledgeLevel: false,
-      savingsAccountsExpanded: false,
-      investmentAccountsExpanded: false,
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
@@ -984,15 +640,9 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAdmin', 'currentUser']),
     ...mapGetters('preview', ['effectivePersonaData']),
-    ...mapGetters('plans', { getPlan: 'getPlan' }),
-    ...mapGetters('lifeStage', {
-      currentStage: 'currentStage',
-      stageDashboardCards: 'dashboardCards',
-    }),
 
     isStudentPersona() {
-      return this.currentUser?.preview_persona_id === 'student'
-        && this.currentUser?.is_preview_user === true;
+      return this.currentUser?.preview_persona_id === 'student';
     },
 
     recentTransactions() {
@@ -1006,52 +656,29 @@ export default {
 
     studentLiability() {
       if (!this.isStudentPersona) return null;
-
-      const extractPlanType = (name) => {
-        const match = (name || '').match(/Plan\s*(\d)/i);
-        return match ? `Plan ${match[1]}` : null;
-      };
-
-      const buildResult = (loan) => {
-        const name = loan.liability_name || loan.name || 'Student Loan';
-        const planType = extractPlanType(name) || 'Plan 2';
-        return {
-          balance: parseFloat(loan.current_balance || 0),
-          name,
-          planType,
-          interestRate: parseFloat(loan.interest_rate || 0),
-          notes: loan.notes || '',
-        };
-      };
-
-      // Check estate store liabilities first (real user data)
-      const estateLiabilities = this.$store.state.estate?.liabilities || [];
-      const storeLoan = estateLiabilities.find(l => (l.liability_type || '').includes('student'));
-      if (storeLoan) return buildResult(storeLoan);
-
-      // Fallback: net worth overview liabilities
       const overview = this.netWorthOverview;
       const liabilities = overview?.liabilities || [];
       const loan = liabilities.find(l => (l.liability_type || '').includes('student'));
-      if (loan) return buildResult(loan);
-
-      // Fallback: persona JSON data
+      if (loan) {
+        return {
+          balance: parseFloat(loan.current_balance || 0),
+          name: loan.liability_name || 'Student Loan',
+          interestRate: parseFloat(loan.interest_rate || 0),
+          notes: loan.notes || '',
+        };
+      }
+      // Fallback: use persona JSON data
       const personaLiabilities = this.effectivePersonaData?.liabilities || [];
       const personaLoan = personaLiabilities.find(l => (l.liability_type || '').includes('student'));
-      if (personaLoan) return buildResult(personaLoan);
-
+      if (personaLoan) {
+        return {
+          balance: parseFloat(personaLoan.current_balance || 0),
+          name: personaLoan.liability_name || 'Student Loan',
+          interestRate: parseFloat(personaLoan.interest_rate || 0),
+          notes: personaLoan.notes || '',
+        };
+      }
       return null;
-    },
-
-    studentLoanDetails() {
-      const planType = this.studentLiability?.planType || 'Plan 2';
-      const details = {
-        'Plan 1': { threshold: 24990, writeOff: 25 },
-        'Plan 2': { threshold: 27295, writeOff: 30 },
-        'Plan 4': { threshold: 31395, writeOff: 30 },
-        'Plan 5': { threshold: 25000, writeOff: 40 },
-      };
-      return details[planType] || details['Plan 2'];
     },
 
     hasAreasToComplete() {
@@ -1068,7 +695,7 @@ export default {
     },
 
     hasAnyFinancialData() {
-      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData || this.hasSavingsData || this.hasActualGoals;
+      return this.hasNetWorthData || this.hasProtectionData || this.hasInvestmentData || this.hasRetirementData;
     },
 
     // Check if the user is currently retired
@@ -1100,20 +727,6 @@ export default {
       if (user.is_preview_user) return false;
       if (this.mfaBannerDismissed) return false;
       return user.mfa_enabled !== true;
-    },
-
-    showKnowledgeNudge() {
-      const user = this.currentUser;
-      if (!user) return false;
-      if (user.is_preview_user) return false;
-      // Already answered — never ask again (check actual data, not just localStorage)
-      const riskProfile = this.$store.state.investment?.riskProfile;
-      if (riskProfile?.knowledge_level) return false;
-      // Dismissed this session — don't pester
-      if (this.knowledgeNudgeDismissed) return false;
-      // Only show if user has investment or pension accounts
-      const hasInvestments = this.$store.getters['completeness/hasModuleData']?.('investment') || this.$store.getters['completeness/hasModuleData']?.('retirement');
-      return hasInvestments;
     },
 
     // Net Worth data
@@ -1207,38 +820,7 @@ export default {
     },
 
     netWorthChartColors() {
-      // Fixed rotating palette: dark blue, pink, mid blue, green, light blue
-      const palette = [
-        '#1F2A44', // Horizon 500 — dark blue
-        '#E83E6D', // Raspberry 500 — pink
-        '#5854E6', // Violet 500 — mid blue
-        '#20B486', // Spring 500 — green
-        '#6C83BC', // Light Blue 500 — light blue
-      ];
-      return this.netWorthChartCategories.map((_, idx) => palette[idx % palette.length]);
-    },
-
-    // Custom SVG donut segments for V6 design (40px stroke, gradients, rounded caps)
-    netWorthDonutSegments() {
-      const categories = this.netWorthChartCategories;
-      const total = categories.reduce((sum, c) => sum + c.value, 0);
-      if (total === 0) return [];
-
-      const circumference = 471.2; // 2 * PI * 75
-      const gap = 3; // small gap between segments
-      let offset = 0;
-      return categories.map(cat => {
-        const proportion = cat.value / total;
-        const arcLength = Math.max(proportion * circumference - gap, 2);
-        const seg = {
-          color: cat.color,
-          colorLight: this.lightenColor(cat.color, 0.35),
-          arcLength,
-          offset,
-        };
-        offset += proportion * circumference;
-        return seg;
-      });
+      return this.netWorthChartCategories.map(c => c.color);
     },
 
     netWorthChartKey() {
@@ -1250,42 +832,19 @@ export default {
       const netWorth = this.netWorthData.netWorth;
       const vm = this;
 
-      const colors = this.netWorthChartColors;
-      // Build per-segment gradient shades (lighter version of each color)
-      const gradientToColors = colors.map(hex => {
-        // Lighten each color by blending with white
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * 0.4));
-        return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
-      });
-
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'donut',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         labels: this.netWorthChartLabels,
-        colors,
+        colors: this.netWorthChartColors,
         legend: { show: false },
         dataLabels: { enabled: false },
-        stroke: {
-          width: 0,
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'dark',
-            type: 'diagonal1',
-            gradientToColors,
-            stops: [0, 100],
-          },
-        },
         plotOptions: {
           pie: {
             donut: {
-              size: '55%',
+              size: '65%',
               labels: {
                 show: true,
                 name: {
@@ -1293,8 +852,8 @@ export default {
                 },
                 value: {
                   show: true,
-                  fontSize: '22px',
-                  fontWeight: 900,
+                  fontSize: '16px',
+                  fontWeight: 700,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   offsetY: 24,
                   formatter: () => vm.formatCurrency(netWorth),
@@ -1303,8 +862,8 @@ export default {
                   show: true,
                   showAlways: true,
                   label: '',
-                  fontSize: '22px',
-                  fontWeight: 900,
+                  fontSize: '16px',
+                  fontWeight: 700,
                   color: netWorth >= 0 ? '#16A34A' : '#DC2626',
                   formatter: () => vm.formatCurrency(netWorth),
                 },
@@ -1345,8 +904,9 @@ export default {
       const categories = this.netWorthChartCategories;
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'bar',
+          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
+          toolbar: { show: false },
           offsetY: 0,
         },
         plotOptions: {
@@ -1385,7 +945,7 @@ export default {
           },
         },
         grid: {
-          borderColor: BORDER_COLORS.default,
+          borderColor: '#E2E8F0',
           strokeDashArray: 4,
         },
       };
@@ -1415,16 +975,6 @@ export default {
       return (this.dcPensions && this.dcPensions.length > 0) ||
              (this.dbPensions && this.dbPensions.length > 0) ||
              !!this.statePension;
-    },
-
-    retirementIncomePercent() {
-      if (!this.retirementData?.targetIncome || this.retirementData.targetIncome === 0) return 0;
-      return Math.round((this.retirementData.projectedIncome / this.retirementData.targetIncome) * 100);
-    },
-
-    retirementCapitalPercent() {
-      if (!this.retirementData?.capitalRequired || this.retirementData.capitalRequired === 0) return 0;
-      return Math.round((this.retirementData.projectedCapital / this.retirementData.capitalRequired) * 100);
     },
 
     // Retired user income breakdown - calculates actual income from pension sources
@@ -1506,11 +1056,6 @@ export default {
       return {
         totalCoverage: this.protectionTotalCoverage || 0,
         premiumTotal: this.protectionTotalPremium || 0, // Already monthly from store getter
-        policyCount: (this.protectionLifePolicies?.length || 0) +
-          (this.protectionCriticalIllnessPolicies?.length || 0) +
-          (this.protectionIncomeProtectionPolicies?.length || 0) +
-          (this.protectionDisabilityPolicies?.length || 0) +
-          (this.protectionSicknessIllnessPolicies?.length || 0),
       };
     },
 
@@ -1568,11 +1113,6 @@ export default {
     hasGoalsData() {
       // Always show goals card - it has empty state
       return true;
-    },
-
-    hasActualGoals() {
-      const goals = this.$store.state.goals?.goals || [];
-      return goals.length > 0;
     },
 
     // ISA Allowance computed — uses server-calculated tracking data
@@ -1732,127 +1272,11 @@ export default {
     hasAllowancesData() {
       return !!this.lisaAllowanceData || !!this.isaAllowanceData || !!this.pensionAllowanceData;
     },
-
-    estateActions() {
-      const plan = this.getPlan('estate');
-      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
-    },
-    protectionActions() {
-      const plan = this.getPlan('protection');
-      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
-    },
-    savingsActions() {
-      const plan = this.getPlan('savings');
-      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
-    },
-    investmentActions() {
-      const plan = this.getPlan('investment');
-      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
-    },
-    retirementActions() {
-      const plan = this.getPlan('retirement');
-      return (plan?.actions || []).filter(a => a.enabled).slice(0, 2);
-    },
-
-    hasSavingsData() {
-      const accounts = this.$store.state.savings.accounts || [];
-      return accounts.length > 0;
-    },
-
-    savingsTotalBalance() {
-      const accounts = this.$store.state.savings.accounts || [];
-      return accounts.reduce((sum, acc) => sum + parseFloat(acc.current_balance || 0), 0);
-    },
-
-    savingsAccountCount() {
-      return (this.$store.state.savings.accounts || []).length;
-    },
-
-    investmentPortfolioValue() {
-      return this.$store.getters['investment/totalPortfolioValue'] || 0;
-    },
-
-    investmentAccountCount() {
-      return (this.$store.state.investment.accounts || []).length;
-    },
-
-    protectionPolicyList() {
-      const list = [];
-      (this.protectionLifePolicies || []).forEach(p => list.push({ name: p.policy_name || 'Life Insurance', cover: p.cover_amount || 0 }));
-      (this.protectionCriticalIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Critical Illness', cover: p.cover_amount || 0 }));
-      (this.protectionIncomeProtectionPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Income Protection', cover: p.monthly_benefit || 0 }));
-      return list.slice(0, 4);
-    },
-
-    savingsSparklineData() {
-      const total = this.savingsTotalBalance || 0;
-      const now = new Date();
-      const labels = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('en-GB', { month: 'short' }));
-      }
-      // Natural growth curve with slight dips for realism
-      const factors = [0.88, 0.91, 0.89, 0.93, 0.96, 1.0];
-      return labels.map((label, i) => ({
-        label,
-        value: Math.round(total * factors[i]),
-      }));
-    },
-
-    visibleSavingsAccounts() {
-      const sorted = [...(this.savingsAccountList || [])].sort((a, b) =>
-        (b.current_balance || 0) - (a.current_balance || 0) || (a.account_name || a.provider || '').localeCompare(b.account_name || b.provider || '')
-      );
-      if (!this.savingsAccountsExpanded) return [];
-      return sorted.slice(0, 3);
-    },
-
-    investmentSparklineData() {
-      const total = this.investmentPortfolioValue || 0;
-      const labels = [];
-      const now = new Date();
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('en-GB', { month: 'short' }));
-      }
-      // Volatile growth curve typical of investments
-      const factors = [0.85, 0.90, 0.87, 0.94, 0.92, 1.0];
-      return labels.map((label, i) => ({
-        label,
-        value: Math.round(total * factors[i]),
-      }));
-    },
-
-    visibleInvestmentAccounts() {
-      const sorted = [...(this.investmentAccountList || [])].sort((a, b) =>
-        ((b.current_value || b.total_value || 0) - (a.current_value || a.total_value || 0)) || (a.account_name || a.provider || '').localeCompare(b.account_name || b.provider || '')
-      );
-      if (!this.investmentAccountsExpanded) return [];
-      return sorted.slice(0, 3);
-    },
-
-    savingsAccountList() {
-      return (this.$store.state.savings.accounts || []).slice(0, 4);
-    },
-
-    investmentAccountList() {
-      return (this.$store.state.investment.accounts || []).slice(0, 4);
-    },
   },
 
   methods: {
     ...mapActions('goals', ['fetchDashboardOverview', 'fetchProjection']),
     ...mapActions('retirement', ['fetchRequiredCapital']),
-
-    /**
-     * Card visibility — always show cards that have data.
-     * Life stage only affects the onboarding wizard steps, not what's
-     * displayed on the dashboard. If the user has data, show the card.
-     */
-    isCardVisible() {
-      return true;
-    },
 
     // Format asset category names for display
     formatAssetCategory(category) {
@@ -1919,41 +1343,15 @@ export default {
       return provider || formattedType || fallbackType;
     },
 
-    lightenColor(hex, amount) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
-      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
-    },
-
     allowanceBarClass(percentUsed, isOverLimit) {
-      if (isOverLimit || percentUsed >= 95) return 'bg-gradient-to-r from-raspberry-400 to-raspberry-600';
-      if (percentUsed >= 75) return 'bg-gradient-to-r from-violet-400 to-violet-600';
-      return 'bg-gradient-to-r from-horizon-400 to-horizon-500';
+      if (isOverLimit || percentUsed >= 95) return 'bg-raspberry-500';
+      if (percentUsed >= 75) return 'bg-violet-500';
+      return 'bg-spring-500';
     },
 
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
       storage.set('mfaBannerDismissed', 'true');
-    },
-
-    dismissKnowledgeNudge() {
-      this.knowledgeNudgeDismissed = true;
-      storage.set('knowledgeNudgeDismissed', 'true');
-    },
-
-    async setKnowledgeLevel(level) {
-      this.savingKnowledgeLevel = true;
-      try {
-        await this.$store.dispatch('investment/updateKnowledgeLevel', level);
-        this.knowledgeNudgeDismissed = true;
-        storage.set('knowledgeNudgeDismissed', 'true');
-      } catch (error) {
-        console.error('Failed to save investment knowledge level:', error);
-      } finally {
-        this.savingKnowledgeLevel = false;
-      }
     },
 
     navigateTo(path) {
@@ -1993,13 +1391,10 @@ export default {
       // Student persona: only load modules they actually use
       const moduleLoaders = this.isStudentPersona ? [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
-        { name: 'estate', action: 'estate/fetchEstateData' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'userProfile/fetchProfile' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
-        { name: 'goals', action: 'goals/fetchGoals' },
-        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
       ] : [
         { name: 'netWorth', action: 'netWorth/fetchOverview' },
         { name: 'protection', action: 'protection/fetchProtectionData' },
@@ -2016,13 +1411,6 @@ export default {
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
         { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
-        { name: 'goals', action: 'goals/fetchGoals' },
-        { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },
-        { name: 'plans', action: 'plans/fetchPlan', payload: 'estate' },
-        { name: 'plans', action: 'plans/fetchPlan', payload: 'protection' },
-        { name: 'plans', action: 'plans/fetchPlan', payload: 'savings' },
-        { name: 'plans', action: 'plans/fetchPlan', payload: 'investment' },
-        { name: 'plans', action: 'plans/fetchPlan', payload: 'retirement' },
       ];
 
       Object.keys(this.loading).forEach(key => {
@@ -2032,9 +1420,8 @@ export default {
         this.errors[key] = null;
       });
 
-      // Load financial commitments and module completeness
+      // Load financial commitments
       this.loadFinancialCommitments();
-      this.$store.dispatch('completeness/fetchCompleteness');
 
       const moduleActionCounts = {};
       moduleLoaders.forEach(loader => {
@@ -2087,10 +1474,6 @@ export default {
       this.isMobile = window.innerWidth < 768;
     };
     window.addEventListener('resize', this._handleResize);
-
-    // Always refresh journey progress when returning to dashboard
-    // (e.g. after onboarding, adding data via Fyn, etc.)
-    this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
   },
 
   beforeUnmount() {
@@ -2105,8 +1488,6 @@ export default {
       handler(user) {
         if (user && !this.dataLoaded) {
           this.dataLoaded = true;
-          // Fetch life stage data (for stage-curated dashboard)
-          this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         }
       }
@@ -2116,9 +1497,5 @@ export default {
 </script>
 
 <style scoped>
-/* Empty cards use order-last to sink below populated cards in the grid */
-
-.dashboard-grid > * {
-  min-width: 0;
-}
+/* Card styling inherited from DashboardCard component */
 </style>

@@ -27,7 +27,7 @@
 <script>
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { PRIMARY_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GoalsProjectionChartMini',
@@ -62,11 +62,13 @@ export default {
     chartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           id: 'goals-projection-mini',
           type: 'area',
           sparkline: {
             enabled: true,
+          },
+          toolbar: {
+            show: false,
           },
           animations: {
             enabled: true,

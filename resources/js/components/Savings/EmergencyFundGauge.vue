@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'EmergencyFundGauge',
@@ -46,7 +46,10 @@ export default {
 
     chartOptions() {
       return {
-        chart: { ...CHART_DEFAULTS.chart, type: 'radialBar' },
+        chart: {
+          type: 'radialBar',
+          fontFamily: 'Segoe UI, Inter, sans-serif',
+        },
         plotOptions: {
           radialBar: {
             startAngle: -135,

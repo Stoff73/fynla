@@ -308,7 +308,7 @@
 </template>
 
 <script>
-import { ERROR_COLORS, SUCCESS_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { ERROR_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'FeeSavingsCalculator',
@@ -331,7 +331,6 @@ export default {
     comparisonChartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'area',
           stacked: false,
           toolbar: {

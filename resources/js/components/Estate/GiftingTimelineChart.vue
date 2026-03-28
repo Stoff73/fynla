@@ -89,7 +89,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'GiftingTimelineChart',
@@ -169,12 +169,18 @@ export default {
     chartOptions() {
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'rangeBar',
           height: 400,
           toolbar: {
             show: true,
-            tools: { download: true, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false },
+            tools: {
+              download: true,
+              zoom: false,
+              zoomin: false,
+              zoomout: false,
+              pan: false,
+              reset: false,
+            },
           },
         },
         plotOptions: {

@@ -1,9 +1,9 @@
 # CSJTODO — Fynla
 
-*Last updated: 26 March 2026 — dashboard branch session 2 (visual consistency + net worth restructure)*
-*Previous session: 26 March 2026 (donut unification + net worth consistency)*
+*Last updated: 25 March 2026 — dashboard branch session (batches 9-10)*
+*Previous session: 25 March 2026 (grokAI branch — inline investment holdings)*
 
-## Carried Forward (from previous sessions)
+## Carried Forward (from previous session)
 
 ### CRITICAL — AI Form Fill NOT TESTED WITH GROK
 - [ ] Step 4: Manual browser fill for EVERY variant (ISA, GIA, bond, VCT, EIS with holdings)
@@ -15,7 +15,7 @@
 - [ ] Account lookup LIKE query too loose — picks wrong account when multiple share provider name
 
 ### Known Issues (Carried Forward)
-- [ ] AI form fill: remaining entity types untested
+- [ ] AI form fill: remaining entity types untested (DB pension, property, mortgage, estate assets/gifts, trusts, business interests, chattels, goals, life events, family members, edit flow)
 - [ ] Console errors: Protection TypeError at PolicyFormModal.vue:196 during AI fill (non-blocking)
 - [ ] property_sale life event: Grok also creates property record (double navigation)
 
@@ -30,52 +30,43 @@
 ### Grok AI Migration (branch: grokAI)
 - [ ] Get xAI API key from https://console.x.ai
 - [ ] Complete AI form fill testing — follow aiProcess.md Steps 4-10
+- [ ] Test with xAI locally — chat, streaming, tool calling, navigation
+- [ ] Test document extraction with xAI
+- [ ] Phase 5 remaining: remove Anthropic SDK, delete Python scripts, update legal text
 - [ ] Merge grokAI branch to main
 
-## Completed This Session
+## Completed This Session (dashboard branch)
 
-- [x] Replaced hardcoded hex (#FAD6E0/#F5B3C5) with light-pink palette tokens (6 files)
-- [x] Eggshell backgrounds on Income, Property, Liabilities, Valuables, Risk Profile, Business, Investments
-- [x] Module-gradient on cards: PropertyCard, LiabilityCard, ChattelCard, BusinessInterestCard, Risk sections
-- [x] Grey hover borders replacing pink/raspberry across all card components
-- [x] Teleport fix on Property, Liabilities, Investment modals
-- [x] Sub-nav CTAs: Add Liability, Add Valuable/Import, Add Business via subNavConfig
-- [x] Removed page titles (Liabilities, Valuables, Business, Risk Profile), left-aligned filters
-- [x] All empty states: bg-light-blue-100 + horizon-500 buttons (16 files)
-- [x] Net Worth: pie chart with cursor-following hover tooltip (coloured to match segment)
-- [x] Net Worth: new Assets & Liabilities bar chart (positive/negative)
-- [x] Net Worth: layout restructured — charts row + wealth summary below
-- [x] Wealth Summary: light-pink hover, larger text hierarchy, light-blue section headers
-- [x] Dashboard sparkline: larger markers (size 6), white fill + coloured border
-- [x] Bank accounts: left-aligned totals
-- [x] Donut chart title: 18px to match Wealth Summary heading
-- [x] Pie chart card height matches bar chart card height
-- [x] Analytics coming soon box with Bloomberg/Morningstar/FE Analytics pills
-- [x] "Current pension potential growth:" → "Current potential growth:"
+### Dashboard Batch 9
+- [x] Grid breakpoint xl:grid-cols-3 for smaller desktops
+- [x] Hover border fix — box-shadow then 3px transparent border
+- [x] 0% progress bars show "0%" text in horizon blue
+- [x] DashboardSparkline component (GA-style, ApexCharts)
+- [x] Cash & Savings card redesign — sparkline + collapsible accounts
+- [x] Investments card — mirror pattern
+- [x] Goals bar chart — Horizon blue from designSystem
+- [x] Income donut chart — designSystem colours
+
+### Dashboard Batch 10
+- [x] Card gradient z-index — renders below content
+- [x] 3px hover border on dashboard cards
+- [x] 0% progress bars left-aligned
+- [x] Empty cards (Protection, Estate) — no gradient or hover
+- [x] Allowances ISA → /net-worth/cash, Pension → /retirement
+- [x] Mobile status bar carousel with swipe and dots
+- [x] CashOverview: account cards grey gradient, Open Banking light blue
+- [x] Rename General → Settings in nav
+- [x] Settings tab navigation (General/Security/Privacy/Assumptions)
+- [x] Remove Your Information from Settings
 
 ## Outstanding from This Session
 
-### Tech Debt (from audit — 28 issues, partially addressed)
-- [x] Fix hardcoded hex in CashOverview, AccountGroupList, ModuleStatusBar, CurrentSituation, PortfolioOverview (done — light-pink tokens)
-- [ ] Extract `lightenColor` to `utils/color.js` — duplicated in 8 files
-- [ ] Fix `this._uid` to `this.$.uid` in AssetAllocationDonut.vue (Vue 3 compatibility)
-- [ ] Fix non-palette `pink-*` colours in ChattelsList.vue (6 occurrences) — should be `raspberry-*`
-- [ ] Remove unused VueApexCharts imports from PortfolioOptimizer, InvestmentProjections
-- [ ] Remove unused TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS imports from HoldingsTable
-- [ ] Remove unused RiskBadge from PensionList
-- [ ] Fix `purple-*` to `violet-*` in BusinessInterestsList, InvestmentList, InvestmentProjections, PensionList
-- [ ] Fix `success-*` and `blue-*` tokens in IncomeOccupation.vue
-- [ ] Remove dead `disposableIncomeClass` and `monthlyDisposable` from IncomeOccupation.vue
-- [ ] Spell out "OCF" in HoldingsTable column header
-- [ ] Spell out "TiC" in CashOverview badge text
-
-### Browser Testing Still Needed
-- [ ] Test all net worth sub-pages across personas (empty + populated states)
-- [ ] Test sub-nav CTA buttons (Add Liability, Add Valuable, Import, Add Business)
-- [ ] Test pie chart hover tooltip across browsers
-- [ ] Test Assets & Liabilities bar chart with various data combinations
-- [ ] Test mobile responsiveness of all restructured pages
-- [ ] Full browser walkthrough of batch 9-10 dashboard changes
+### Dashboard Branch — Needs Browser Testing
+- [ ] Full browser walkthrough of all batch 9-10 changes across personas
+- [ ] Verify mobile carousel works on actual touch device / responsive mode
+- [ ] Verify Settings tab navigation works on all 4 sub-pages
+- [ ] Verify CashOverview card gradients display correctly
+- [ ] Test allowance section clickthrough navigation
 
 ### Dashboard Branch — Merge to Main
 - [ ] Merge dashboard branch to main when browser testing complete
@@ -83,13 +74,12 @@
 
 ## Context for Next Session
 
-Dashboard branch has extensive visual consistency work across all net worth sub-pages. 3 commits today (48 files changed). All frontend-only, build compiles cleanly. Key additions: Assets & Liabilities bar chart on net worth page, cursor-following pie chart tooltips, eggshell backgrounds with module-gradient cards pattern applied consistently. The tech debt audit found 28 issues — hex colours were fixed but `lightenColor` duplication (8 files) and unused imports remain. Browser testing is the main outstanding item before merge to main.
+Dashboard branch has 17 new commits covering batches 9-10. All changes are frontend-only (Vue/CSS/JS). Build compiles cleanly. The branch is pushed to origin/dashboard. No browser testing was done this session — next session should start with a full visual walkthrough across personas before merging to main. The grokAI branch work (AI form fill testing) is still outstanding from the previous session.
 
-Key files: Deploy notes at `March/March26Updates/deploy.md`, tech debt at `tech-debt-report.md`.
+Key files: Deploy notes at `March/March25Updates/deploy.md`.
 
 ## Files to Review
-- `AssetAllocationDonut.vue` — hover tooltip (fixed positioning, cursor tracking)
-- `AssetBreakdownBar.vue` — new component (bar chart with positive/negative bars)
-- `NetWorthWealthSummary.vue` — layout restructure (charts row + summary below)
-- `subNavConfig.js` — new CTAs for Liabilities, Valuables, Business
-- All card components (PropertyCard, LiabilityCard, ChattelCard, BusinessInterestCard) — module-gradient + hover changes
+- `resources/js/components/Journey/JourneyProgressHero.vue` — mobile carousel (new, untested)
+- `resources/js/components/Settings/SettingsTabBar.vue` — new component (untested)
+- `resources/js/views/Settings.vue` — restructured (Your Info removed, tabs added)
+- `resources/js/views/Dashboard.vue` — extensive changes (sparklines, progress bars, allowances)

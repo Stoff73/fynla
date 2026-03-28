@@ -1,78 +1,63 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <div class="relative bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          Financial
-          <span class="text-raspberry-300">Calculators</span>
+    <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-12">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">
+          Financial Calculators &amp; Planning Tools
         </h1>
-        <p class="text-lg text-white/70">
-          Free tools to help you understand your finances better.
+        <p class="text-base text-white/80 max-w-2xl mx-auto">
+          Free tools to help you understand your finances. Planning tools require a free Fynla account.
         </p>
       </div>
     </div>
 
-    <!-- Calculator Selection -->
-    <div class="bg-eggshell-500 pt-8 pb-4">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <button
-            v-for="calc in calculators"
-            :key="'nav-' + calc.id"
-            @click="activeCalculator = calc.id"
-            :class="[
-              'group relative p-4 rounded-xl transition-all duration-300 text-center',
-              activeCalculator === calc.id
-                ? 'bg-raspberry-500 text-white shadow-lg shadow-raspberry-500/25'
-                : 'bg-white text-horizon-500 hover:bg-light-pink-100 border border-light-gray'
-            ]"
-          >
-            <div :class="[
-              'w-10 h-10 mx-auto mb-2 rounded-lg flex items-center justify-center transition-colors',
-              activeCalculator === calc.id ? 'bg-white/20' : 'bg-eggshell-500'
-            ]">
-              <svg v-if="calc.id === 'income-tax'" class="w-5 h-5" :class="activeCalculator === calc.id ? 'text-white' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <svg v-else-if="calc.id === 'mortgage'" class="w-5 h-5" :class="activeCalculator === calc.id ? 'text-white' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <svg v-else-if="calc.id === 'loan'" class="w-5 h-5" :class="activeCalculator === calc.id ? 'text-white' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <svg v-else-if="calc.id === 'emergency-fund'" class="w-5 h-5" :class="activeCalculator === calc.id ? 'text-white' : 'text-spring-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <svg v-else-if="calc.id === 'pension'" class="w-5 h-5" :class="activeCalculator === calc.id ? 'text-white' : 'text-violet-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <span class="font-medium text-sm">{{ calc.name }}</span>
-          </button>
+    <!-- Grouped Calculator Cards -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div v-for="stage in calculatorStages" :key="stage.name" class="mb-8 last:mb-0">
+        <!-- Stage header -->
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.colour }"></div>
+          <h2 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">{{ stage.name }}</h2>
+        </div>
+        <!-- Cards -->
+        <div class="space-y-2">
+          <CalculatorCard
+            v-for="item in stage.items"
+            :key="item.id"
+            :name="item.name"
+            :description="item.description"
+            :icon="item.icon"
+            :type="item.type"
+            :calculator-id="item.id"
+            :active="activeCalculator === item.id"
+            @select="selectCalculator"
+          />
         </div>
       </div>
     </div>
 
     <!-- Calculator Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div id="calculator-panel" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <!-- Income Tax Calculator -->
       <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'income-tax'">
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-          <h2 class="text-2xl font-bold text-white">Income Tax Calculator</h2>
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+          <h2 class="text-xl font-bold text-white">Income Tax Calculator</h2>
           <p class="text-violet-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
         </div>
 
-        <div class="p-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-6">
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Gross Income</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="incomeTax.income"
-                    type="number"
+                    :value="formatInputDisplay(incomeTax.income)"
+                    @input="parseInputValue($event, incomeTax, 'income')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="50,000"
                   />
@@ -84,8 +69,10 @@
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="incomeTax.pension"
-                    type="number"
+                    :value="formatInputDisplay(incomeTax.pension)"
+                    @input="parseInputValue($event, incomeTax, 'pension')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="0"
                   />
@@ -154,38 +141,30 @@
         </div>
       </div>
 
-      <!-- Mortgage Calculator -->
+      <!-- Mortgage Repayment Calculator -->
       <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'mortgage'">
-        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-6">
-          <h2 class="text-2xl font-bold text-white">Mortgage Affordability Calculator</h2>
-          <p class="text-indigo-100 mt-1">Calculate how much you can afford to borrow and your monthly repayments</p>
+        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Mortgage Repayment Calculator</h2>
+          <p class="text-indigo-100 mt-1">Calculate your monthly payments, total cost, and see how your mortgage is paid off over time</p>
         </div>
 
-        <div class="p-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-5">
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Income</label>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Property Price</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
                   <input
-                    v-model.number="mortgage.income"
-                    type="number"
+                    :value="formatInputDisplay(mortgage.propertyValue)"
+                    @input="parseInputValue($event, mortgage, 'propertyValue')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    placeholder="50,000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Property Value</label>
-                <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
-                  <input
-                    v-model.number="mortgage.propertyValue"
-                    type="number"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    placeholder="250,000"
+                    placeholder="300,000"
                   />
                 </div>
               </div>
@@ -193,86 +172,151 @@
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Deposit</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
                   <input
-                    v-model.number="mortgage.deposit"
-                    type="number"
+                    :value="formatInputDisplay(mortgage.deposit)"
+                    @input="parseInputValue($event, mortgage, 'deposit')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    placeholder="25,000"
+                    placeholder="30,000"
                   />
+                </div>
+                <div v-if="mortgage.propertyValue > 0 && mortgage.deposit > 0" class="mt-2 flex gap-4 text-xs text-neutral-500">
+                  <span>Deposit: {{ mortgageDepositPercent }}%</span>
+                  <span>Loan to Value: {{ mortgageLTV }}%</span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">Interest Rate (%)</label>
-                  <input
-                    v-model.number="mortgage.interestRate"
-                    type="number"
-                    step="0.1"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    placeholder="5.5"
-                  />
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  Mortgage Term: {{ mortgage.term }} years
+                </label>
+                <input
+                  v-model.number="mortgage.term"
+                  type="range"
+                  min="5"
+                  max="40"
+                  step="1"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>5 yrs</span>
+                  <span>40 yrs</span>
                 </div>
+              </div>
 
-                <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">Term (years)</label>
-                  <input
-                    v-model.number="mortgage.term"
-                    type="number"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                    placeholder="25"
-                  />
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Interest Rate (%)</label>
+                <input
+                  v-model.number="mortgage.interestRate"
+                  type="number"
+                  step="0.1"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  placeholder="4.5"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Repayment Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    @click="mortgage.repaymentType = 'repayment'"
+                    class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
+                    :class="mortgage.repaymentType === 'repayment' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
+                  >
+                    Repayment
+                  </button>
+                  <button
+                    type="button"
+                    @click="mortgage.repaymentType = 'interest_only'"
+                    class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
+                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
+                  >
+                    Interest Only
+                  </button>
                 </div>
               </div>
 
               <button
                 @click="calculateMortgage"
-                class="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
+                class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
               >
-                Calculate Mortgage
+                Calculate
               </button>
             </div>
 
-            <div v-if="mortgage.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Results
-              </h3>
-              <div class="space-y-3">
-                <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Property Value</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.propertyValue) }}</span>
+            <!-- Results -->
+            <div v-if="mortgage.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border border-indigo-200">
+                <p class="text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">Monthly Payment</p>
+                <p class="text-2xl font-bold text-indigo-700">{{ formatCurrency(mortgage.result.monthlyPayment) }}</p>
+                <p class="text-xs text-indigo-600 mt-1">{{ mortgage.repaymentType === 'interest_only' ? 'Interest only — capital not repaid' : 'Capital and interest' }}</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Loan Amount</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(mortgage.result.loanAmount) }}</p>
                 </div>
-                <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Deposit ({{ mortgage.result.ltv }}% LTV)</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.deposit) }}</span>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Loan to Value</p>
+                  <p class="text-lg font-bold text-slate-900">{{ mortgage.result.ltv }}%</p>
                 </div>
-                <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Loan Amount</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.loanAmount) }}</span>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(mortgage.result.totalRepayment) }}</p>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-indigo-50 -mx-6 px-6 rounded-lg">
-                  <span class="font-bold text-slate-900">Monthly Payment</span>
-                  <span class="font-bold text-2xl text-indigo-600">{{ formatCurrency(mortgage.result.monthlyPayment) }}</span>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Interest</p>
+                  <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(mortgage.result.totalInterest) }}</p>
                 </div>
-                <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Total Interest</span>
-                  <span class="font-semibold text-raspberry-600">{{ formatCurrency(mortgage.result.totalInterest) }}</span>
-                </div>
-                <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Total Repayment</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(mortgage.result.totalRepayment) }}</span>
-                </div>
-                <div class="mt-4 bg-violet-50 border border-violet-200 rounded-xl p-4">
-                  <p class="text-sm text-violet-900">
-                    <strong>Maximum Affordable (4.5x income):</strong><br />
-                    {{ formatCurrency(mortgage.result.maxAffordable) }}
+              </div>
+
+              <!-- LTV warning -->
+              <div v-if="mortgage.result.ltv > 90" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="text-sm text-violet-700">
+                    Your Loan to Value is above 90%. Fewer mortgage deals are available at this level and rates tend to be higher. A larger deposit would improve your options.
                   </p>
                 </div>
+              </div>
+
+              <!-- Interest only warning -->
+              <div v-if="mortgage.repaymentType === 'interest_only'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="text-sm text-violet-700">
+                    With interest-only, you still owe the full {{ formatCurrency(mortgage.result.loanAmount) }} at the end of the term. You'll need a repayment strategy.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Amortisation chart -->
+              <div v-if="mortgage.repaymentType === 'repayment'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold mb-3">Capital vs Interest Over Term</p>
+                <apexchart
+                  type="bar"
+                  height="220"
+                  :options="mortgageChartOptions"
+                  :series="mortgageChartSeries"
+                />
+              </div>
+
+              <!-- CTA -->
+              <div class="mt-4">
+                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Model your mortgage alongside your full financial picture in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
               </div>
             </div>
 
@@ -281,7 +325,7 @@
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                <p class="text-slate-500">Enter your details and click Calculate to see results</p>
+                <p class="text-slate-500">Enter your mortgage details to see your repayment breakdown</p>
               </div>
             </div>
           </div>
@@ -290,21 +334,23 @@
 
       <!-- Loan Repayment Calculator -->
       <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'loan'">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-          <h2 class="text-2xl font-bold text-white">Loan Repayment Calculator</h2>
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
+          <h2 class="text-xl font-bold text-white">Loan Repayment Calculator</h2>
           <p class="text-slate-200 mt-1">Calculate monthly payments and total interest on personal loans</p>
         </div>
 
-        <div class="p-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-6">
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Amount</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="loan.amount"
-                    type="number"
+                    :value="formatInputDisplay(loan.amount)"
+                    @input="parseInputValue($event, loan, 'amount')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="10,000"
                   />
@@ -390,21 +436,23 @@
 
       <!-- Emergency Fund Calculator -->
       <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'emergency-fund'">
-        <div class="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6">
-          <h2 class="text-2xl font-bold text-white">Emergency Fund Calculator</h2>
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+          <h2 class="text-xl font-bold text-white">Emergency Fund Calculator</h2>
           <p class="text-spring-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
         </div>
 
-        <div class="p-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-6">
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Expenses</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="emergencyFund.monthlyExpenses"
-                    type="number"
+                    :value="formatInputDisplay(emergencyFund.monthlyExpenses)"
+                    @input="parseInputValue($event, emergencyFund, 'monthlyExpenses')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="2,500"
                   />
@@ -416,8 +464,10 @@
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="emergencyFund.currentSavings"
-                    type="number"
+                    :value="formatInputDisplay(emergencyFund.currentSavings)"
+                    @input="parseInputValue($event, emergencyFund, 'currentSavings')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="5,000"
                   />
@@ -520,21 +570,23 @@
 
       <!-- Pension Growth Calculator -->
       <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension'">
-        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6">
-          <h2 class="text-2xl font-bold text-white">Pension Growth Calculator</h2>
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+          <h2 class="text-xl font-bold text-white">Pension Growth Calculator</h2>
           <p class="text-purple-100 mt-1">Project your pension pot at retirement with regular contributions</p>
         </div>
 
-        <div class="p-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-5">
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Current Pension Value</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="pension.currentValue"
-                    type="number"
+                    :value="formatInputDisplay(pension.currentValue)"
+                    @input="parseInputValue($event, pension, 'currentValue')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="50,000"
                   />
@@ -546,8 +598,10 @@
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
                   <input
-                    v-model.number="pension.monthlyContribution"
-                    type="number"
+                    :value="formatInputDisplay(pension.monthlyContribution)"
+                    @input="parseInputValue($event, pension, 'monthlyContribution')"
+                    type="text"
+                    inputmode="numeric"
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="500"
                   />
@@ -653,35 +707,867 @@
           </div>
         </div>
       </div>
+
+      <!-- Student Loan Repayment Calculator -->
+      <div v-if="activeCalculator === 'student-loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'student-loan'">
+        <div class="bg-gradient-to-r from-spring-600 to-spring-700 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Starting Out</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Student Loan Repayment Calculator</h2>
+          <p class="text-spring-100 mt-1">Estimate your monthly repayments, total cost, and when your loan will be cleared</p>
+        </div>
+
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Inputs -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Plan</label>
+                <select
+                  v-model="studentLoan.plan"
+                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                >
+                  <option v-for="(plan, key) in studentLoan.plans" :key="key" :value="key">{{ plan.label }}</option>
+                </select>
+                <div class="mt-2 flex gap-4 text-xs text-neutral-500">
+                  <span>Threshold: {{ formatCurrency(studentLoan.plans[studentLoan.plan].threshold) }}/yr</span>
+                  <span>Interest: {{ studentLoan.plans[studentLoan.plan].rate }}%</span>
+                  <span>Written off after: {{ studentLoan.plans[studentLoan.plan].writeOff }} years</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Loan Balance</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input
+                    :value="formatInputDisplay(studentLoan.balance)"
+                    @input="parseInputValue($event, studentLoan, 'balance')"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    placeholder="45,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Annual Salary</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input
+                    :value="formatInputDisplay(studentLoan.salary)"
+                    @input="parseInputValue($event, studentLoan, 'salary')"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    placeholder="30,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  Expected Salary Growth: {{ studentLoan.salaryGrowth }}% per year
+                </label>
+                <input
+                  v-model.number="studentLoan.salaryGrowth"
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.5"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500"
+                />
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>0%</span>
+                  <span>10%</span>
+                </div>
+              </div>
+
+              <button
+                @click="calculateStudentLoan"
+                class="w-full py-3 bg-spring-600 text-white font-semibold rounded-xl hover:bg-spring-700 transition-colors"
+              >
+                Calculate Repayments
+              </button>
+            </div>
+
+            <!-- Results -->
+            <div v-if="studentLoan.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-spring-50 to-spring-100 rounded-xl p-6 border border-spring-200">
+                <p class="text-xs text-spring-600 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
+                <p class="text-2xl font-bold text-spring-700">{{ formatCurrency(studentLoan.result.monthlyRepayment) }}</p>
+                <p class="text-xs text-spring-600 mt-1">at your current salary</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Time to Repay</p>
+                  <p class="text-lg font-bold text-slate-900">{{ studentLoan.result.yearsToRepay }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(studentLoan.result.totalRepaid) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Interest</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(studentLoan.result.totalInterest) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Write-off Date</p>
+                  <p class="text-lg font-bold text-slate-900">{{ studentLoan.result.writeOffYear }}</p>
+                </div>
+              </div>
+
+              <!-- Write-off warning -->
+              <div v-if="studentLoan.result.writtenOff" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-sm font-semibold text-violet-700">Loan likely to be written off</p>
+                    <p class="text-xs text-violet-600 mt-1">
+                      Based on your salary and growth projections, your loan balance of {{ formatCurrency(studentLoan.result.remainingAtWriteOff) }} would be written off after {{ studentLoan.plans[studentLoan.plan].writeOff }} years. You would repay {{ formatCurrency(studentLoan.result.totalRepaid) }} of the original {{ formatCurrency(studentLoan.balance) }} balance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fully repaid message -->
+              <div v-else class="bg-spring-50 border border-spring-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-sm font-semibold text-spring-700">Loan fully repaid</p>
+                    <p class="text-xs text-spring-600 mt-1">
+                      You would clear your loan in {{ studentLoan.result.yearsToRepay }} before the {{ studentLoan.plans[studentLoan.plan].writeOff }}-year write-off period.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CTA -->
+              <div class="mt-4">
+                <router-link to="/stage/starting-out" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Factor your student loan into your full financial plan in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+                <p class="text-slate-500">Enter your loan details to see your repayment projection</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Savings Goal Calculator -->
+      <div v-if="activeCalculator === 'savings-goal'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'savings-goal'">
+        <div class="bg-gradient-to-r from-raspberry-500 to-raspberry-600 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Starting Out</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Savings Goal Calculator</h2>
+          <p class="text-raspberry-100 mt-1">See how long it takes to reach your savings target with compound interest</p>
+        </div>
+
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Inputs -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Target Amount</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input
+                    :value="formatInputDisplay(savingsGoal.target)"
+                    @input="parseInputValue($event, savingsGoal, 'target')"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    placeholder="10,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Savings</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input
+                    :value="formatInputDisplay(savingsGoal.current)"
+                    @input="parseInputValue($event, savingsGoal, 'current')"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    placeholder="1,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Contribution</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input
+                    :value="formatInputDisplay(savingsGoal.monthly)"
+                    @input="parseInputValue($event, savingsGoal, 'monthly')"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    placeholder="200"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                  Interest Rate / Expected Return: {{ savingsGoal.rate }}% per year
+                </label>
+                <input
+                  v-model.number="savingsGoal.rate"
+                  type="range"
+                  min="0"
+                  max="8"
+                  step="0.25"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-raspberry-500"
+                />
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>0%</span>
+                  <span>8%</span>
+                </div>
+              </div>
+
+              <button
+                @click="calculateSavingsGoal"
+                class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors"
+              >
+                Calculate
+              </button>
+            </div>
+
+            <!-- Results -->
+            <div v-if="savingsGoal.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-raspberry-50 to-raspberry-100 rounded-xl p-6 border border-raspberry-200">
+                <p class="text-xs text-raspberry-600 font-semibold uppercase tracking-wider mb-1">Time to Reach Goal</p>
+                <p class="text-2xl font-bold text-raspberry-700">{{ savingsGoal.result.yearsText }}</p>
+                <p class="text-xs text-raspberry-600 mt-1">to save {{ formatCurrency(savingsGoal.target) }}</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Contributions</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(savingsGoal.result.totalContributions) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Interest Earned</p>
+                  <p class="text-lg font-bold text-spring-600">{{ formatCurrency(savingsGoal.result.totalInterest) }}</p>
+                </div>
+              </div>
+
+              <!-- Growth chart -->
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold mb-3">Savings Growth Over Time</p>
+                <apexchart
+                  type="area"
+                  height="200"
+                  :options="savingsGoalChartOptions"
+                  :series="savingsGoalChartSeries"
+                />
+              </div>
+
+              <!-- CTA -->
+              <div class="mt-4">
+                <router-link to="/stage/starting-out" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Set and track your savings goals in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <p class="text-slate-500">Enter your savings details to see your projection</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Mortgage Affordability Calculator -->
+      <div v-if="activeCalculator === 'mortgage-afford'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'mortgage-afford'">
+        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Mortgage Affordability Calculator</h2>
+          <p class="text-indigo-100 mt-1">Estimate how much you could borrow based on your income</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Salary (Applicant 1)</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="45,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Salary (Applicant 2, optional)</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="0" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Other Monthly Debt Commitments</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="200" />
+                </div>
+                <p class="text-xs text-neutral-500 mt-1">Loans, car finance, credit card minimums, etc.</p>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Deposit Available</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
+                </div>
+              </div>
+              <button @click="calculateMortgageAfford" class="w-full py-3 bg-indigo-500 text-white font-semibold rounded-xl hover:bg-indigo-600 transition-colors">Calculate Affordability</button>
+            </div>
+            <div v-if="mortgageAfford.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border border-indigo-200">
+                <p class="text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">Estimated Maximum Borrowing</p>
+                <div class="flex items-baseline gap-4">
+                  <div>
+                    <p class="text-3xl font-bold text-indigo-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
+                    <p class="text-xs text-indigo-500">at 4x income</p>
+                  </div>
+                  <div>
+                    <p class="text-3xl font-bold text-indigo-500">{{ formatCurrency(mortgageAfford.result.max45x) }}</p>
+                    <p class="text-xs text-indigo-500">at 4.5x income</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-slate-500 font-semibold mb-2">Maximum Property Price by Deposit</p>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
+                    <p class="text-xs text-slate-500">10% deposit</p>
+                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property10) }}</p>
+                  </div>
+                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
+                    <p class="text-xs text-slate-500">15% deposit</p>
+                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property15) }}</p>
+                  </div>
+                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
+                    <p class="text-xs text-slate-500">20% deposit</p>
+                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property20) }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <p class="text-sm text-violet-700">Lenders assess affordability differently — this is a guide only. Your actual borrowing will depend on credit history, outgoings, and lender criteria.</p>
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>See how a mortgage fits into your full financial plan in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                <p class="text-slate-500">Enter your income details to see what you could borrow</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stamp Duty Calculator -->
+      <div v-if="activeCalculator === 'stamp-duty'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'stamp-duty'">
+        <div class="bg-gradient-to-r from-horizon-500 to-horizon-600 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Stamp Duty Calculator</h2>
+          <p class="text-white/80 mt-1">Calculate Stamp Duty Land Tax, Land and Buildings Transaction Tax, or Land Transaction Tax</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Property Price</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(stampDuty.price)" @input="parseInputValue($event, stampDuty, 'price')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="300,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Buyer Type</label>
+                <select v-model="stampDuty.buyerType" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
+                  <option value="first-time">First-time buyer</option>
+                  <option value="home-mover">Home mover</option>
+                  <option value="additional">Additional property</option>
+                  <option value="non-uk">Non-UK resident</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Country</label>
+                <select v-model="stampDuty.country" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
+                  <option value="england">England &amp; Northern Ireland (SDLT)</option>
+                  <option value="scotland">Scotland (LBTT)</option>
+                  <option value="wales">Wales (LTT)</option>
+                </select>
+              </div>
+              <button @click="calculateStampDuty" class="w-full py-3 bg-horizon-500 text-white font-semibold rounded-xl hover:bg-horizon-600 transition-colors">Calculate Stamp Duty</button>
+            </div>
+            <div v-if="stampDuty.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-horizon-50 to-horizon-100 rounded-xl p-6 border border-horizon-200">
+                <p class="text-xs text-horizon-400 font-semibold uppercase tracking-wider mb-1">{{ stampDuty.result.taxName }}</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(stampDuty.result.totalTax) }}</p>
+                <p class="text-xs text-horizon-400 mt-1">Effective rate: {{ stampDuty.result.effectiveRate }}%</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold mb-2">Breakdown by Band</p>
+                <div class="space-y-1.5">
+                  <div v-for="(band, i) in stampDuty.result.bands" :key="i" class="flex justify-between text-xs">
+                    <span class="text-slate-600">{{ band.label }}</span>
+                    <span class="font-medium text-slate-900">{{ formatCurrency(band.tax) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="stampDuty.result.saving > 0" class="bg-spring-50 border border-spring-200 rounded-xl p-4">
+                <p class="text-sm text-spring-700">First-time buyer relief saves you {{ formatCurrency(stampDuty.result.saving) }} compared to standard rates.</p>
+              </div>
+              <div v-if="stampDuty.buyerType === 'additional'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <p class="text-sm text-violet-700">Additional property surcharge of 5% has been applied to all bands.</p>
+              </div>
+              <div v-if="stampDuty.buyerType === 'non-uk'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <p class="text-sm text-violet-700">Non-UK resident surcharge of 2% has been applied to all bands.</p>
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Factor stamp duty into your home buying plan in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+                <p class="text-slate-500">Enter a property price to see the stamp duty breakdown</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compound Interest Calculator -->
+      <div v-if="activeCalculator === 'compound-interest'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'compound-interest'">
+        <div class="bg-gradient-to-r from-spring-600 to-spring-700 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Compound Interest Calculator</h2>
+          <p class="text-spring-100 mt-1">See how your money grows over time with the power of compound interest</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Initial Lump Sum</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(compoundInterest.lumpSum)" @input="parseInputValue($event, compoundInterest, 'lumpSum')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="5,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Contribution</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(compoundInterest.monthly)" @input="parseInputValue($event, compoundInterest, 'monthly')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="200" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Return: {{ compoundInterest.rate }}%</label>
+                <input v-model.number="compoundInterest.rate" type="range" min="0" max="12" step="0.5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500" />
+                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>0%</span><span>12%</span></div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Investment Term: {{ compoundInterest.term }} years</label>
+                <input v-model.number="compoundInterest.term" type="range" min="1" max="40" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500" />
+                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 yr</span><span>40 yrs</span></div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Compound Frequency</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" @click="compoundInterest.frequency = 'monthly'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'monthly' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Monthly</button>
+                  <button type="button" @click="compoundInterest.frequency = 'annually'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'annually' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Annually</button>
+                </div>
+              </div>
+              <button @click="calculateCompoundInterest" class="w-full py-3 bg-spring-600 text-white font-semibold rounded-xl hover:bg-spring-700 transition-colors">Calculate Growth</button>
+            </div>
+            <div v-if="compoundInterest.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-spring-50 to-spring-100 rounded-xl p-6 border border-spring-200">
+                <p class="text-xs text-spring-600 font-semibold uppercase tracking-wider mb-1">Final Value</p>
+                <p class="text-2xl font-bold text-spring-700">{{ formatCurrency(compoundInterest.result.finalValue) }}</p>
+                <p class="text-xs text-spring-600 mt-1">after {{ compoundInterest.term }} years</p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Contributions</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(compoundInterest.result.totalContributions) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Growth Earned</p>
+                  <p class="text-lg font-bold text-spring-600">{{ formatCurrency(compoundInterest.result.totalGrowth) }}</p>
+                </div>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold mb-3">Growth Over Time</p>
+                <apexchart type="area" height="220" :options="compoundChartOptions" :series="compoundChartSeries" />
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>See your investments in the context of your full financial picture in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <p class="text-slate-500">Enter your investment details to see projected growth</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Loan Calculator -->
+      <div v-if="activeCalculator === 'personal-loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'personal-loan'">
+        <div class="bg-gradient-to-r from-violet-600 to-violet-700 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Personal Loan Calculator</h2>
+          <p class="text-violet-100 mt-1">Calculate your monthly repayments and total cost of borrowing</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Amount</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(personalLoan.amount)" @input="parseInputValue($event, personalLoan, 'amount')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="10,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Interest Rate (%)</label>
+                <input v-model.number="personalLoan.rate" type="number" step="0.1" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="6.9" />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Term: {{ personalLoan.term }} years</label>
+                <input v-model.number="personalLoan.term" type="range" min="1" max="10" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-500" />
+                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 yr</span><span>10 yrs</span></div>
+              </div>
+              <button @click="calculatePersonalLoan" class="w-full py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition-colors">Calculate Repayments</button>
+            </div>
+            <div v-if="personalLoan.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl p-6 border border-violet-200">
+                <p class="text-xs text-violet-600 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
+                <p class="text-2xl font-bold text-violet-700">{{ formatCurrency(personalLoan.result.monthlyPayment) }}</p>
+                <p class="text-xs text-violet-600 mt-1">over {{ personalLoan.term }} years</p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(personalLoan.result.totalRepaid) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Total Interest</p>
+                  <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(personalLoan.result.totalInterest) }}</p>
+                </div>
+              </div>
+              <div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <p class="text-sm text-violet-700">The APR (Annual Percentage Rate) may differ from the interest rate as it includes any fees. Always check the APR when comparing loan offers.</p>
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>See how debt fits into your financial picture in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <p class="text-slate-500">Enter your loan details to see your repayment breakdown</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Pension Withdrawal Tax Calculator -->
+      <div v-if="activeCalculator === 'pension-withdrawal'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension-withdrawal'">
+        <div class="bg-gradient-to-r from-horizon-500 to-horizon-600 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Enjoying Your Wealth</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Pension Withdrawal Tax Calculator</h2>
+          <p class="text-white/80 mt-1">See how much tax you'll pay when withdrawing from your pension</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Total Pension Pot</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.pot)" @input="parseInputValue($event, pensionWithdrawal, 'pot')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="250,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Withdrawal Amount</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.withdrawal)" @input="parseInputValue($event, pensionWithdrawal, 'withdrawal')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="50,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Withdrawal Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'lump'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'lump' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Lump Sum</button>
+                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'annual'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'annual' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Annual Income</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Other Annual Income</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.otherIncome)" @input="parseInputValue($event, pensionWithdrawal, 'otherIncome')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="12,570" />
+                </div>
+                <p class="text-xs text-neutral-500 mt-1">State pension, employment, rental income, etc.</p>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Tax-Free Cash Already Taken?</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = false" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="!pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">No</button>
+                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = true" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Yes</button>
+                </div>
+              </div>
+              <button @click="calculatePensionWithdrawal" class="w-full py-3 bg-horizon-500 text-white font-semibold rounded-xl hover:bg-horizon-600 transition-colors">Calculate Tax</button>
+            </div>
+            <div v-if="pensionWithdrawal.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-horizon-50 to-horizon-100 rounded-xl p-6 border border-horizon-200">
+                <p class="text-xs text-horizon-400 font-semibold uppercase tracking-wider mb-1">Net Amount Received</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(pensionWithdrawal.result.netReceived) }}</p>
+                <p class="text-xs text-horizon-400 mt-1">from a {{ formatCurrency(pensionWithdrawal.withdrawal) }} withdrawal</p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Tax-Free Portion</p>
+                  <p class="text-lg font-bold text-spring-600">{{ formatCurrency(pensionWithdrawal.result.taxFree) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Taxable Portion</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(pensionWithdrawal.result.taxable) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Income Tax Due</p>
+                  <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(pensionWithdrawal.result.taxDue) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Effective Tax Rate</p>
+                  <p class="text-lg font-bold text-slate-900">{{ pensionWithdrawal.result.effectiveRate }}%</p>
+                </div>
+              </div>
+              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p class="text-sm text-violet-700">Taking large lump sums can push you into higher tax bands. Consider spreading withdrawals across tax years to reduce the overall tax burden.</p>
+                </div>
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/enjoying-your-wealth" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Plan your pension withdrawals in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p class="text-slate-500">Enter your pension withdrawal details to see the tax impact</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pension Tax Relief Calculator -->
+      <div v-if="activeCalculator === 'pension-relief'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension-relief'">
+        <div class="bg-gradient-to-r from-violet-600 to-violet-700 px-6 py-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Planning Your Future</span>
+          </div>
+          <h2 class="text-xl font-bold text-white">Pension Tax Relief Calculator</h2>
+          <p class="text-violet-100 mt-1">See how much tax relief you get on your pension contributions</p>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Pension Contribution</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionRelief.contribution)" @input="parseInputValue($event, pensionRelief, 'contribution')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="5,000" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Tax Band</label>
+                <select v-model="pensionRelief.taxBand" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all">
+                  <option value="basic">Basic rate (20%)</option>
+                  <option value="higher">Higher rate (40%)</option>
+                  <option value="additional">Additional rate (45%)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Pension Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button type="button" @click="pensionRelief.pensionType = 'relief-at-source'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'relief-at-source' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Relief at Source</button>
+                  <button type="button" @click="pensionRelief.pensionType = 'net-pay'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'net-pay' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Net Pay</button>
+                </div>
+                <p class="text-xs text-neutral-500 mt-2">
+                  <span v-if="pensionRelief.pensionType === 'relief-at-source'">Relief at source: you pay from net pay, provider claims 20% from HMRC. Higher/additional rate taxpayers claim the rest via self-assessment.</span>
+                  <span v-else>Net pay: contributions taken before tax from your gross salary. Tax relief is automatic — nothing to claim.</span>
+                </p>
+              </div>
+              <button @click="calculatePensionRelief" class="w-full py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition-colors">Calculate Relief</button>
+            </div>
+            <div v-if="pensionRelief.result" class="space-y-4">
+              <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl p-6 border border-violet-200">
+                <p class="text-xs text-violet-600 font-semibold uppercase tracking-wider mb-1">Total Pension Contribution (Gross)</p>
+                <p class="text-2xl font-bold text-violet-700">{{ formatCurrency(pensionRelief.result.gross) }}</p>
+                <p class="text-xs text-violet-600 mt-1">from {{ formatCurrency(pensionRelief.result.effectiveCost) }} effective cost to you</p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Your Contribution (Net)</p>
+                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(pensionRelief.result.netContribution) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p class="text-xs text-slate-500">Government Top-Up (20%)</p>
+                  <p class="text-lg font-bold text-spring-600">{{ formatCurrency(pensionRelief.result.basicRelief) }}</p>
+                </div>
+              </div>
+              <div v-if="pensionRelief.result.additionalRelief > 0" class="bg-spring-50 border border-spring-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <div>
+                    <p class="text-sm font-semibold text-spring-700">Additional relief: {{ formatCurrency(pensionRelief.result.additionalRelief) }}</p>
+                    <p class="text-xs text-spring-600 mt-1" v-if="pensionRelief.pensionType === 'relief-at-source'">As a {{ pensionRelief.taxBand === 'higher' ? 'higher' : 'additional' }} rate taxpayer with a relief at source pension, you need to claim this {{ formatCurrency(pensionRelief.result.additionalRelief) }} via your self-assessment tax return.</p>
+                    <p class="text-xs text-spring-600 mt-1" v-else>With net pay, your full relief is applied automatically through your payslip. No self-assessment claim needed.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="text-slate-600">Effective cost to you</span>
+                  <span class="font-bold text-slate-900">{{ formatCurrency(pensionRelief.result.effectiveCost) }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-600">Total relief received</span>
+                  <span class="font-bold text-spring-600">{{ formatCurrency(pensionRelief.result.totalRelief) }}</span>
+                </div>
+              </div>
+              <div class="mt-4">
+                <router-link to="/stage/planning-your-future" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                  <span class="flex items-center justify-between">
+                    <span>Track your pension contributions in Fynla</span>
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+                <p class="text-slate-500">Enter your contribution details to see your tax relief</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- CTA Section -->
-    <div class="relative bg-light-pink-100 py-16 overflow-hidden">
+    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/50 to-slate-900/80"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-3xl"></div>
+      </div>
       <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-horizon-500 mb-4">
-          Ready for Comprehensive Financial Planning?
-        </h2>
-        <p class="text-lg text-neutral-500 mb-8 max-w-2xl mx-auto">
-          Create a free account to access all planning tools and get a complete view of your finances.
-        </p>
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <router-link
-            to="/register"
-            class="group px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
-          >
-            <span class="flex items-center justify-center">
-              Get Started Free
-              <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-          </router-link>
-          <router-link
-            to="/login"
-            class="px-8 py-4 bg-light-pink-200 text-horizon-500 rounded-xl font-semibold text-lg hover:bg-light-pink-100 transition-all border border-light-gray"
-          >
-            Sign In
-          </router-link>
+        <div class="bg-white/5 backdrop-blur-md rounded-3xl p-10 border border-white/10">
+          <h2 class="text-3xl md:text-2xl font-bold text-white mb-4">
+            Ready for Comprehensive Financial Planning?
+          </h2>
+          <p class="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+            Create a free account to access all planning tools and get a complete view of your finances.
+          </p>
+          <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <router-link
+              to="/register"
+              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-50 transition-all shadow-lg hover:shadow-xl"
+            >
+              <span class="flex items-center justify-center">
+                Get Started Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+            </router-link>
+            <router-link
+              to="/login"
+              class="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
+            >
+              Sign In
+            </router-link>
+          </div>
         </div>
       </div>
     </div>
@@ -690,6 +1576,7 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import CalculatorCard from '@/components/Public/CalculatorCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -698,17 +1585,57 @@ export default {
 
   components: {
     PublicLayout,
+    CalculatorCard,
   },
 
   data() {
     return {
       activeCalculator: 'income-tax',
-      calculators: [
-        { id: 'income-tax', name: 'Income Tax', icon: 'IconTax' },
-        { id: 'mortgage', name: 'Mortgage', icon: 'IconHome' },
-        { id: 'loan', name: 'Loan', icon: 'IconLoan' },
-        { id: 'emergency-fund', name: 'Emergency Fund', icon: 'IconShield' },
-        { id: 'pension', name: 'Pension', icon: 'IconChart' },
+      calculatorStages: [
+        {
+          name: 'Starting Out', colour: '#1D9E75',
+          items: [
+            { id: 'student-loan', name: 'Student Loan Repayment', description: 'Estimate repayments, write-off date, and total cost by plan type', icon: '🎓', type: 'free' },
+            { id: 'savings-goal', name: 'Savings Goal', description: 'See how long it takes to reach your savings target with compound interest', icon: '✨', type: 'free' },
+            { id: 'emergency-fund', name: 'Emergency Fund', description: 'Calculate how many months of expenses you have covered', icon: '🛡', type: 'free' },
+          ],
+        },
+        {
+          name: 'Building Foundations', colour: '#5DCAA5',
+          items: [
+            { id: 'mortgage', name: 'Mortgage Repayment', description: 'Monthly payments, total interest, and amortisation breakdown', icon: '🏠', type: 'free' },
+            { id: 'mortgage-afford', name: 'Mortgage Affordability', description: 'How much could you borrow based on your income?', icon: '🔑', type: 'free' },
+            { id: 'stamp-duty', name: 'Stamp Duty', description: 'SDLT, LBTT, or LTT breakdown for England, Scotland, or Wales', icon: '📜', type: 'free' },
+            { id: 'personal-loan', name: 'Personal Loan', description: 'Monthly repayments and total cost of borrowing', icon: '💷', type: 'free' },
+            { id: 'compound-interest', name: 'Compound Interest', description: 'See how your money grows over time with compound returns', icon: '📈', type: 'free' },
+          ],
+        },
+        {
+          name: 'Protecting and Growing', colour: '#378ADD',
+          items: [
+            { id: 'life-insurance', name: 'Life Insurance Needs', description: 'How much cover does my family actually need?', icon: '🛡️', type: 'gated-free' },
+            { id: 'income-protection', name: 'Income Protection', description: 'What would I need if I couldn\'t work?', icon: '☂️', type: 'gated-free' },
+          ],
+        },
+        {
+          name: 'Planning Your Future', colour: '#7F77DD',
+          items: [
+            { id: 'income-tax', name: 'Income Tax', description: 'Calculate your UK income tax and National Insurance for 2025/26', icon: '🧮', type: 'free' },
+            { id: 'pension', name: 'Pension Growth', description: 'Project your pension pot value at retirement', icon: '📊', type: 'free' },
+            { id: 'pension-relief', name: 'Pension Tax Relief', description: 'See how much tax relief you get on pension contributions', icon: '🧾', type: 'free' },
+            { id: 'salary-sacrifice', name: 'Salary Sacrifice', description: 'Take-home pay vs pension boost — what\'s the real trade-off?', icon: '⚖️', type: 'gated-free' },
+            { id: 'retirement-budget', name: 'Retirement Budget Planner', description: 'Detailed income vs spending plan for retirement', icon: '📋', type: 'gated-paid' },
+          ],
+        },
+        {
+          name: 'Enjoying Your Wealth', colour: '#EF9F27',
+          items: [
+            { id: 'pension-withdrawal', name: 'Pension Withdrawal Tax', description: 'See how much tax you\'ll pay when withdrawing from your pension', icon: '💰', type: 'free' },
+            { id: 'iht-checker', name: 'Inheritance Tax Exposure Checker', description: 'Estimated inheritance tax liability with full breakdown', icon: '🏛️', type: 'gated-free' },
+            { id: 'drawdown-runway', name: 'Pension Drawdown / Runway', description: 'How long will my pension pot last?', icon: '⏳', type: 'gated-free' },
+            { id: 'annuity-vs-drawdown', name: 'Annuity vs Drawdown Comparison', description: 'Which gives you more over your lifetime?', icon: '⚖️', type: 'gated-paid' },
+          ],
+        },
       ],
       incomeTax: {
         income: null,
@@ -719,8 +1646,9 @@ export default {
         income: null,
         propertyValue: null,
         deposit: null,
-        interestRate: 5.5,
+        interestRate: 4.5,
         term: 25,
+        repaymentType: 'repayment',
         result: null,
       },
       loan: {
@@ -743,10 +1671,167 @@ export default {
         growthRate: 5.0,
         result: null,
       },
+      savingsGoal: {
+        target: null,
+        current: null,
+        monthly: null,
+        rate: 4,
+        result: null,
+      },
+      mortgageAfford: {
+        salary1: null,
+        salary2: null,
+        monthlyDebts: null,
+        deposit: null,
+        result: null,
+      },
+      stampDuty: {
+        price: null,
+        buyerType: 'home-mover',
+        country: 'england',
+        result: null,
+      },
+      compoundInterest: {
+        lumpSum: null,
+        monthly: null,
+        rate: 6,
+        term: 20,
+        frequency: 'monthly',
+        result: null,
+      },
+      personalLoan: {
+        amount: null,
+        rate: null,
+        term: 5,
+        result: null,
+      },
+      pensionWithdrawal: {
+        pot: null,
+        withdrawal: null,
+        withdrawalType: 'lump',
+        otherIncome: null,
+        taxFreeTaken: false,
+        result: null,
+      },
+      pensionRelief: {
+        contribution: null,
+        taxBand: 'basic',
+        pensionType: 'relief-at-source',
+        result: null,
+      },
+      studentLoan: {
+        plan: 'plan2',
+        balance: null,
+        salary: null,
+        salaryGrowth: 3,
+        result: null,
+        plans: {
+          plan1: { label: 'Plan 1', threshold: 24990, rate: 6.25, writeOff: 25 },
+          plan2: { label: 'Plan 2', threshold: 27295, rate: 7.3, writeOff: 30 },
+          plan4: { label: 'Plan 4 (Scotland)', threshold: 31395, rate: 6.25, writeOff: 30 },
+          plan5: { label: 'Plan 5', threshold: 25000, rate: 7.3, writeOff: 40 },
+        },
+      },
     };
   },
 
+  computed: {
+    mortgageDepositPercent() {
+      if (!this.mortgage.propertyValue || !this.mortgage.deposit) return 0;
+      return Math.round((this.mortgage.deposit / this.mortgage.propertyValue) * 100);
+    },
+    mortgageLTV() {
+      return 100 - this.mortgageDepositPercent;
+    },
+    mortgageChartOptions() {
+      if (!this.mortgage.result?.amortisation) return {};
+      return {
+        chart: { type: 'bar', stacked: true, toolbar: { show: false } },
+        colors: ['#4f46e5', '#E83E6D'],
+        plotOptions: { bar: { columnWidth: '70%', borderRadius: 2 } },
+        xaxis: {
+          categories: this.mortgage.result.amortisation.map(d => `Yr ${d.year}`),
+          labels: { style: { fontSize: '10px', colors: '#94a3b8' }, rotate: 0, hideOverlappingLabels: true },
+        },
+        yaxis: { labels: { formatter: (v) => '£' + Math.round(v / 1000) + 'k', style: { fontSize: '10px', colors: '#94a3b8' } } },
+        tooltip: { y: { formatter: (v) => '£' + Math.round(v).toLocaleString() } },
+        legend: { position: 'top', fontSize: '11px' },
+        dataLabels: { enabled: false },
+        grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+      };
+    },
+    mortgageChartSeries() {
+      if (!this.mortgage.result?.amortisation) return [];
+      return [
+        { name: 'Capital', data: this.mortgage.result.amortisation.map(d => d.capital) },
+        { name: 'Interest', data: this.mortgage.result.amortisation.map(d => d.interest) },
+      ];
+    },
+    savingsGoalChartOptions() {
+      if (!this.savingsGoal.result?.chartData) return {};
+      return {
+        chart: { type: 'area', toolbar: { show: false }, sparkline: { enabled: false } },
+        colors: ['#E83E6D', '#94a3b8'],
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+        stroke: { curve: 'smooth', width: 2 },
+        xaxis: {
+          categories: this.savingsGoal.result.chartData.map(d => {
+            const y = Math.floor(d.month / 12);
+            const m = d.month % 12;
+            return d.month === 0 ? 'Now' : (y > 0 ? `${y}y${m > 0 ? ` ${m}m` : ''}` : `${m}m`);
+          }),
+          labels: { style: { fontSize: '10px', colors: '#94a3b8' } },
+        },
+        yaxis: { labels: { formatter: (v) => '£' + Math.round(v / 1000) + 'k', style: { fontSize: '10px', colors: '#94a3b8' } } },
+        tooltip: { y: { formatter: (v) => '£' + v.toLocaleString() } },
+        legend: { position: 'top', fontSize: '11px' },
+        dataLabels: { enabled: false },
+        grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+      };
+    },
+    savingsGoalChartSeries() {
+      if (!this.savingsGoal.result?.chartData) return [];
+      return [
+        { name: 'Total Balance', data: this.savingsGoal.result.chartData.map(d => d.balance) },
+        { name: 'Contributions Only', data: this.savingsGoal.result.chartData.map(d => d.contributions) },
+      ];
+    },
+    compoundChartOptions() {
+      if (!this.compoundInterest.result?.chartData) return {};
+      return {
+        chart: { type: 'area', toolbar: { show: false } },
+        colors: ['#20B486', '#94a3b8'],
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+        stroke: { curve: 'smooth', width: 2 },
+        xaxis: {
+          categories: this.compoundInterest.result.chartData.map(d => d.year === 0 ? 'Now' : `Yr ${d.year}`),
+          labels: { style: { fontSize: '10px', colors: '#94a3b8' } },
+        },
+        yaxis: { labels: { formatter: (v) => '£' + Math.round(v / 1000) + 'k', style: { fontSize: '10px', colors: '#94a3b8' } } },
+        tooltip: { y: { formatter: (v) => '£' + Math.round(v).toLocaleString() } },
+        legend: { position: 'top', fontSize: '11px' },
+        dataLabels: { enabled: false },
+        grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+      };
+    },
+    compoundChartSeries() {
+      if (!this.compoundInterest.result?.chartData) return [];
+      return [
+        { name: 'With Contributions', data: this.compoundInterest.result.chartData.map(d => d.withContributions) },
+        { name: 'Without Contributions', data: this.compoundInterest.result.chartData.map(d => d.withoutContributions) },
+      ];
+    },
+  },
+
   methods: {
+    selectCalculator(id) {
+      this.activeCalculator = id;
+      this.$nextTick(() => {
+        const el = document.getElementById('calculator-panel');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    },
+
     calculateIncomeTax() {
       const income = this.incomeTax.income || 0;
       const pension = this.incomeTax.pension || 0;
@@ -816,28 +1901,60 @@ export default {
       const propertyValue = this.mortgage.propertyValue || 0;
       const deposit = this.mortgage.deposit || 0;
       const loanAmount = propertyValue - deposit;
-      const monthlyRate = (this.mortgage.interestRate / 100) / 12;
-      const numberOfPayments = this.mortgage.term * 12;
+      const annualRate = this.mortgage.interestRate / 100;
+      const monthlyRate = annualRate / 12;
+      const term = this.mortgage.term || 25;
+      const numberOfPayments = term * 12;
+      const isInterestOnly = this.mortgage.repaymentType === 'interest_only';
 
-      // Monthly payment formula
-      const monthlyPayment = loanAmount *
-        (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
-        (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      if (loanAmount <= 0 || annualRate <= 0) return;
 
-      const totalRepayment = monthlyPayment * numberOfPayments;
-      const totalInterest = totalRepayment - loanAmount;
-      const ltv = ((loanAmount / propertyValue) * 100).toFixed(0);
-      const maxAffordable = (this.mortgage.income || 0) * 4.5;
+      let monthlyPayment, totalRepayment, totalInterest;
+
+      if (isInterestOnly) {
+        monthlyPayment = loanAmount * monthlyRate;
+        totalRepayment = (monthlyPayment * numberOfPayments) + loanAmount;
+        totalInterest = monthlyPayment * numberOfPayments;
+      } else {
+        monthlyPayment = loanAmount *
+          (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+          (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+        totalRepayment = monthlyPayment * numberOfPayments;
+        totalInterest = totalRepayment - loanAmount;
+      }
+
+      const ltv = propertyValue > 0 ? Math.round((loanAmount / propertyValue) * 100) : 0;
+
+      // Build amortisation data (yearly) for repayment mortgages
+      let amortisation = null;
+      if (!isInterestOnly) {
+        amortisation = [];
+        let balance = loanAmount;
+        for (let year = 1; year <= term; year++) {
+          let yearCapital = 0;
+          let yearInterest = 0;
+          for (let m = 0; m < 12; m++) {
+            const interestPortion = balance * monthlyRate;
+            const capitalPortion = monthlyPayment - interestPortion;
+            yearCapital += capitalPortion;
+            yearInterest += interestPortion;
+            balance -= capitalPortion;
+          }
+          amortisation.push({
+            year,
+            capital: Math.round(yearCapital),
+            interest: Math.round(yearInterest),
+          });
+        }
+      }
 
       this.mortgage.result = {
-        propertyValue: propertyValue,
-        deposit: deposit,
         loanAmount: loanAmount,
         ltv: ltv,
         monthlyPayment: Math.round(monthlyPayment),
         totalInterest: Math.round(totalInterest),
         totalRepayment: Math.round(totalRepayment),
-        maxAffordable: maxAffordable,
+        amortisation: amortisation,
       };
     },
 
@@ -925,6 +2042,380 @@ export default {
         annualIncome: Math.round(annualIncome),
         monthlyIncome: Math.round(monthlyIncome),
       };
+    },
+
+    calculateSavingsGoal() {
+      const target = this.savingsGoal.target || 0;
+      const current = this.savingsGoal.current || 0;
+      const monthly = this.savingsGoal.monthly || 0;
+      const annualRate = (this.savingsGoal.rate || 0) / 100;
+      const monthlyRate = annualRate / 12;
+
+      if (target <= 0 || monthly <= 0) return;
+      if (current >= target) {
+        this.savingsGoal.result = { months: 0, yearsText: 'Already reached', totalContributions: 0, totalInterest: 0, chartData: [] };
+        return;
+      }
+
+      let balance = current;
+      let months = 0;
+      let totalContributions = current;
+      const chartData = [{ month: 0, balance: Math.round(current), contributions: Math.round(current) }];
+
+      while (balance < target && months < 600) {
+        const interest = balance * monthlyRate;
+        balance += interest + monthly;
+        totalContributions += monthly;
+        months++;
+        if (months % 3 === 0 || balance >= target) {
+          chartData.push({ month: months, balance: Math.round(Math.min(balance, target)), contributions: Math.round(totalContributions) });
+        }
+      }
+
+      const years = Math.floor(months / 12);
+      const remainingMonths = months % 12;
+      let yearsText = '';
+      if (years > 0 && remainingMonths > 0) yearsText = `${years} yr ${remainingMonths} mo`;
+      else if (years > 0) yearsText = `${years} year${years > 1 ? 's' : ''}`;
+      else yearsText = `${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
+
+      const totalInterest = Math.round(balance - totalContributions);
+
+      this.savingsGoal.result = {
+        months,
+        yearsText,
+        totalContributions: Math.round(totalContributions - current),
+        totalInterest: Math.max(0, totalInterest),
+        chartData,
+      };
+    },
+
+    calculateStudentLoan() {
+      const plan = this.studentLoan.plans[this.studentLoan.plan];
+      let balance = this.studentLoan.balance || 0;
+      let salary = this.studentLoan.salary || 0;
+      const growthRate = (this.studentLoan.salaryGrowth || 0) / 100;
+      const interestRate = plan.rate / 100;
+      const threshold = plan.threshold;
+      const writeOffYears = plan.writeOff;
+
+      if (balance <= 0 || salary <= 0) return;
+
+      let totalRepaid = 0;
+      let year = 0;
+      let repaid = false;
+
+      // Current monthly repayment at starting salary
+      const initialAnnualRepayment = salary > threshold ? (salary - threshold) * 0.09 : 0;
+      const monthlyRepayment = Math.round(initialAnnualRepayment / 12);
+
+      // Simulate year by year
+      let runningBalance = balance;
+      let currentSalary = salary;
+
+      while (year < writeOffYears && runningBalance > 0) {
+        // Interest accrues on balance
+        const interest = runningBalance * interestRate;
+        runningBalance += interest;
+
+        // Annual repayment based on current salary
+        const annualRepayment = currentSalary > threshold ? (currentSalary - threshold) * 0.09 : 0;
+
+        if (annualRepayment >= runningBalance) {
+          totalRepaid += runningBalance;
+          runningBalance = 0;
+          repaid = true;
+          year++;
+          break;
+        }
+
+        runningBalance -= annualRepayment;
+        totalRepaid += annualRepayment;
+        year++;
+
+        // Salary grows
+        currentSalary *= (1 + growthRate);
+      }
+
+      const writtenOff = !repaid && runningBalance > 0;
+      const totalInterest = totalRepaid - balance + (writtenOff ? runningBalance : 0);
+      const currentYear = new Date().getFullYear();
+
+      this.studentLoan.result = {
+        monthlyRepayment: monthlyRepayment,
+        yearsToRepay: repaid ? (year + (year === 1 ? ' year' : ' years')) : ('Written off after ' + writeOffYears + ' years'),
+        totalRepaid: Math.round(totalRepaid),
+        totalInterest: Math.max(0, Math.round(totalInterest)),
+        writeOffYear: String(currentYear + writeOffYears),
+        writtenOff: writtenOff,
+        remainingAtWriteOff: writtenOff ? Math.round(runningBalance) : 0,
+      };
+    },
+
+    calculateMortgageAfford() {
+      const salary1 = this.mortgageAfford.salary1 || 0;
+      const salary2 = this.mortgageAfford.salary2 || 0;
+      const monthlyDebts = this.mortgageAfford.monthlyDebts || 0;
+      const deposit = this.mortgageAfford.deposit || 0;
+      const totalIncome = salary1 + salary2;
+      if (totalIncome <= 0) return;
+      const debtAdjustment = monthlyDebts * 12 * 4;
+      const max4x = Math.max(0, (totalIncome * 4) - debtAdjustment);
+      const max45x = Math.max(0, (totalIncome * 4.5) - debtAdjustment);
+      this.mortgageAfford.result = {
+        totalIncome,
+        max4x: Math.round(max4x),
+        max45x: Math.round(max45x),
+        property10: Math.round(max45x + deposit) + Math.round(deposit * 0.11),
+        property15: Math.round((max45x / 0.85)),
+        property20: Math.round((max45x / 0.8)),
+      };
+    },
+
+    calculateStampDuty() {
+      const price = this.stampDuty.price || 0;
+      if (price <= 0) return;
+      const buyerType = this.stampDuty.buyerType;
+      const country = this.stampDuty.country;
+      let bands, taxName, surcharge = 0;
+
+      if (country === 'scotland') {
+        taxName = 'Land and Buildings Transaction Tax';
+        bands = [
+          { threshold: 145000, rate: 0 },
+          { threshold: 250000, rate: 2 },
+          { threshold: 325000, rate: 5 },
+          { threshold: 750000, rate: 10 },
+          { threshold: Infinity, rate: 12 },
+        ];
+        if (buyerType === 'additional') surcharge = 6;
+        if (buyerType === 'non-uk') surcharge = 2;
+      } else if (country === 'wales') {
+        taxName = 'Land Transaction Tax';
+        bands = [
+          { threshold: 225000, rate: 0 },
+          { threshold: 400000, rate: 6 },
+          { threshold: 750000, rate: 7.5 },
+          { threshold: 1500000, rate: 10 },
+          { threshold: Infinity, rate: 12 },
+        ];
+        if (buyerType === 'additional') surcharge = 4;
+        if (buyerType === 'non-uk') surcharge = 2;
+      } else {
+        taxName = 'Stamp Duty Land Tax';
+        if (buyerType === 'first-time' && price <= 625000) {
+          bands = [
+            { threshold: 425000, rate: 0 },
+            { threshold: 625000, rate: 5 },
+          ];
+        } else {
+          bands = [
+            { threshold: 250000, rate: 0 },
+            { threshold: 925000, rate: 5 },
+            { threshold: 1500000, rate: 10 },
+            { threshold: Infinity, rate: 12 },
+          ];
+        }
+        if (buyerType === 'additional') surcharge = 5;
+        if (buyerType === 'non-uk') surcharge = 2;
+      }
+
+      let totalTax = 0;
+      let prev = 0;
+      const bandResults = [];
+      for (const band of bands) {
+        const taxable = Math.min(price, band.threshold) - prev;
+        if (taxable <= 0) { prev = band.threshold; continue; }
+        const effectiveRate = band.rate + surcharge;
+        const tax = taxable * (effectiveRate / 100);
+        totalTax += tax;
+        bandResults.push({ label: `£${prev.toLocaleString()} - £${Math.min(price, band.threshold).toLocaleString()} at ${effectiveRate}%`, tax: Math.round(tax) });
+        prev = band.threshold;
+        if (prev >= price) break;
+      }
+
+      let saving = 0;
+      if (buyerType === 'first-time' && country === 'england' && price <= 625000) {
+        let standardTax = 0;
+        let sPrev = 0;
+        const stdBands = [
+          { threshold: 250000, rate: 0 },
+          { threshold: 925000, rate: 5 },
+          { threshold: 1500000, rate: 10 },
+          { threshold: Infinity, rate: 12 },
+        ];
+        for (const b of stdBands) {
+          const t = Math.min(price, b.threshold) - sPrev;
+          if (t > 0) standardTax += t * (b.rate / 100);
+          sPrev = b.threshold;
+          if (sPrev >= price) break;
+        }
+        saving = Math.round(standardTax - totalTax);
+      }
+
+      this.stampDuty.result = {
+        taxName,
+        totalTax: Math.round(totalTax),
+        effectiveRate: price > 0 ? ((totalTax / price) * 100).toFixed(1) : '0',
+        bands: bandResults,
+        saving,
+      };
+    },
+
+    calculateCompoundInterest() {
+      const lumpSum = this.compoundInterest.lumpSum || 0;
+      const monthly = this.compoundInterest.monthly || 0;
+      const annualRate = (this.compoundInterest.rate || 0) / 100;
+      const term = this.compoundInterest.term || 1;
+      const isMonthly = this.compoundInterest.frequency === 'monthly';
+      if (lumpSum <= 0 && monthly <= 0) return;
+
+      const chartData = [{ year: 0, withContributions: lumpSum, withoutContributions: lumpSum }];
+      let balanceWith = lumpSum;
+      let balanceWithout = lumpSum;
+      let totalContributions = lumpSum;
+
+      for (let y = 1; y <= term; y++) {
+        if (isMonthly) {
+          const mr = annualRate / 12;
+          for (let m = 0; m < 12; m++) {
+            balanceWith = balanceWith * (1 + mr) + monthly;
+            balanceWithout = balanceWithout * (1 + mr);
+          }
+        } else {
+          balanceWith = (balanceWith + monthly * 12) * (1 + annualRate);
+          balanceWithout = balanceWithout * (1 + annualRate);
+        }
+        totalContributions += monthly * 12;
+        chartData.push({ year: y, withContributions: Math.round(balanceWith), withoutContributions: Math.round(balanceWithout) });
+      }
+
+      this.compoundInterest.result = {
+        finalValue: Math.round(balanceWith),
+        totalContributions: Math.round(totalContributions),
+        totalGrowth: Math.round(balanceWith - totalContributions),
+        chartData,
+      };
+    },
+
+    calculatePersonalLoan() {
+      const amount = this.personalLoan.amount || 0;
+      const annualRate = (this.personalLoan.rate || 0) / 100;
+      const term = this.personalLoan.term || 1;
+      if (amount <= 0 || annualRate <= 0) return;
+      const monthlyRate = annualRate / 12;
+      const months = term * 12;
+      const monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+      const totalRepaid = monthlyPayment * months;
+      this.personalLoan.result = {
+        monthlyPayment: Math.round(monthlyPayment),
+        totalRepaid: Math.round(totalRepaid),
+        totalInterest: Math.round(totalRepaid - amount),
+      };
+    },
+
+    calculatePensionWithdrawal() {
+      const pot = this.pensionWithdrawal.pot || 0;
+      const withdrawal = Math.min(this.pensionWithdrawal.withdrawal || 0, pot);
+      const otherIncome = this.pensionWithdrawal.otherIncome || 0;
+      const taxFreeTaken = this.pensionWithdrawal.taxFreeTaken;
+      if (withdrawal <= 0) return;
+
+      // Tax-free cash: 25% of pot, max £268,275 lifetime limit
+      let taxFree = 0;
+      if (!taxFreeTaken) {
+        taxFree = Math.min(withdrawal * 0.25, pot * 0.25, 268275);
+      }
+      const taxable = withdrawal - taxFree;
+
+      // Calculate income tax on taxable portion + other income
+      const totalTaxableIncome = otherIncome + taxable;
+      const taxOnTotal = this._calculateIncomeTax2526(totalTaxableIncome);
+      const taxOnOther = this._calculateIncomeTax2526(otherIncome);
+      const taxDue = Math.max(0, Math.round(taxOnTotal - taxOnOther));
+
+      const netReceived = withdrawal - taxDue;
+      const effectiveRate = withdrawal > 0 ? ((taxDue / withdrawal) * 100).toFixed(1) : '0';
+
+      this.pensionWithdrawal.result = {
+        taxFree: Math.round(taxFree),
+        taxable: Math.round(taxable),
+        taxDue,
+        netReceived: Math.round(netReceived),
+        effectiveRate,
+      };
+    },
+
+    // Helper: calculate 2025/26 income tax on a given amount
+    _calculateIncomeTax2526(income) {
+      const pa = 12570;
+      // Personal allowance taper above £100k
+      let adjustedPA = pa;
+      if (income > 100000) {
+        adjustedPA = Math.max(0, pa - ((income - 100000) / 2));
+      }
+      const taxableIncome = Math.max(0, income - adjustedPA);
+      let tax = 0;
+      // Basic rate: 20% on first £37,700
+      const basicBand = Math.min(taxableIncome, 37700);
+      tax += basicBand * 0.20;
+      // Higher rate: 40% on £37,701 to £125,140
+      const higherBand = Math.min(Math.max(0, taxableIncome - 37700), 125140 - 37700);
+      tax += higherBand * 0.40;
+      // Additional rate: 45% above £125,140
+      const additionalBand = Math.max(0, taxableIncome - 125140);
+      tax += additionalBand * 0.45;
+      return tax;
+    },
+
+    calculatePensionRelief() {
+      const contribution = this.pensionRelief.contribution || 0;
+      if (contribution <= 0) return;
+      const band = this.pensionRelief.taxBand;
+      const isNetPay = this.pensionRelief.pensionType === 'net-pay';
+
+      // For relief at source: you pay net (after 20% relief), provider claims 20%
+      // For net pay: contribution comes from gross salary, full relief automatic
+      const gross = contribution;
+      const basicRelief = Math.round(gross * 0.20);
+      let additionalRelief = 0;
+      let effectiveCost = gross;
+
+      if (band === 'higher') {
+        additionalRelief = Math.round(gross * 0.20); // extra 20% (40% - 20%)
+        effectiveCost = Math.round(gross * 0.60);
+      } else if (band === 'additional') {
+        additionalRelief = Math.round(gross * 0.25); // extra 25% (45% - 20%)
+        effectiveCost = Math.round(gross * 0.55);
+      } else {
+        effectiveCost = Math.round(gross * 0.80);
+      }
+
+      const totalRelief = basicRelief + additionalRelief;
+
+      // For relief at source, net contribution is what you actually pay out of pocket
+      const netContribution = isNetPay ? gross : Math.round(gross * 0.80);
+
+      this.pensionRelief.result = {
+        gross,
+        netContribution,
+        basicRelief,
+        additionalRelief,
+        totalRelief,
+        effectiveCost,
+      };
+    },
+
+    formatInputDisplay(value) {
+      if (value === null || value === undefined || value === '') return '';
+      return Number(value).toLocaleString('en-GB');
+    },
+
+    parseInputValue(event, obj, key) {
+      const raw = event.target.value.replace(/[^0-9.]/g, '');
+      const num = parseFloat(raw) || 0;
+      obj[key] = num;
+      event.target.value = num ? num.toLocaleString('en-GB') : '';
     },
 
     // formatCurrency provided by currencyMixin

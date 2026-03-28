@@ -133,7 +133,7 @@
 import retirementService from '../../services/retirementService';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, TEXT_COLORS, BORDER_COLORS, SECONDARY_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, TEXT_COLORS, BORDER_COLORS, SECONDARY_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'StrategyCard',
@@ -222,8 +222,9 @@ export default {
 
       return {
         chart: {
-          ...CHART_DEFAULTS.chart,
           type: 'area',
+          toolbar: { show: false },
+          zoom: { enabled: false },
           animations: { enabled: true, speed: 500 },
         },
         colors: [SUCCESS_COLORS[500], SECONDARY_COLORS[500]],

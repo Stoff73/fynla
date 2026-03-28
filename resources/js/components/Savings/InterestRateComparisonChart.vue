@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SUCCESS_COLORS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'InterestRateComparisonChart',
@@ -41,7 +41,13 @@ export default {
   computed: {
     chartOptions() {
       return {
-        chart: { ...CHART_DEFAULTS.chart, type: 'bar' },
+        chart: {
+          type: 'bar',
+          toolbar: {
+            show: false,
+          },
+          fontFamily: 'Segoe UI, Inter, sans-serif',
+        },
         plotOptions: {
           bar: {
             horizontal: false,
