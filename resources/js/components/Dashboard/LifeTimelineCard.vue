@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-lg border border-light-gray shadow-sm p-6 bg-light-blue-100">
+  <div class="rounded-lg border border-light-gray shadow-sm p-6" :class="timelineEvents.length > 0 ? 'bg-white module-gradient' : 'bg-light-blue-100'">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-horizon-500">Life Timeline</h3>

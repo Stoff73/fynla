@@ -266,7 +266,7 @@
 
 <script>
 import api from '@/services/api';
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'BenchmarkComparison',
@@ -289,6 +289,7 @@ export default {
     performanceChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'line',
           toolbar: {
             show: true,
@@ -354,10 +355,8 @@ export default {
     riskReturnChartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'scatter',
-          toolbar: {
-            show: false,
-          },
         },
         xaxis: {
           title: {

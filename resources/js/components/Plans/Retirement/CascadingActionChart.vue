@@ -22,7 +22,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CascadingActionChart',
@@ -59,13 +59,7 @@ export default {
     chartOptions() {
       const self = this;
       return {
-        chart: {
-          type: 'line',
-          toolbar: { show: false },
-          zoom: { enabled: false },
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-          sparkline: { enabled: false },
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'line', sparkline: { enabled: false } },
         colors: [CHART_COLORS[1], CHART_COLORS[2]],
         stroke: {
           curve: 'smooth',
@@ -74,7 +68,7 @@ export default {
         xaxis: {
           categories: Array.from({ length: this.years + 1 }, (_, i) => `Year ${i}`),
           labels: {
-            style: { fontSize: '10px', colors: '#64748B' },
+            style: { fontSize: '10px', colors: TEXT_COLORS.muted },
             rotate: 0,
             hideOverlappingLabels: true,
           },
@@ -84,11 +78,11 @@ export default {
         yaxis: {
           labels: {
             formatter: (val) => self.formatCurrencyCompact(val),
-            style: { fontSize: '10px', colors: '#64748B' },
+            style: { fontSize: '10px', colors: TEXT_COLORS.muted },
           },
         },
         grid: {
-          borderColor: '#E2E8F0',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 3,
           padding: { left: 5, right: 5, top: 0, bottom: 0 },
         },

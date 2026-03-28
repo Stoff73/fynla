@@ -173,7 +173,7 @@
 </template>
 
 <script>
-import { SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, ERROR_COLORS, BORDER_COLORS, PRIMARY_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'DrawdownSimulator',
@@ -213,11 +213,9 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'line',
           height: 300,
-          toolbar: {
-            show: false,
-          },
         },
         stroke: {
           curve: 'smooth',
@@ -231,7 +229,11 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
+            },
+          },
+          labels: {
+            style: {
+              colors: TEXT_COLORS.muted,
             },
           },
         },
@@ -241,7 +243,6 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
@@ -258,7 +259,7 @@ export default {
           },
         },
         grid: {
-          borderColour: BORDER_COLORS.default,
+          borderColor: BORDER_COLORS.default,
         },
       };
     },
