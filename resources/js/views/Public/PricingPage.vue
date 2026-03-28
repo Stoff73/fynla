@@ -9,7 +9,8 @@
           Pricing
         </h1>
         <p class="text-lg text-white/70">
-          Start with a 7-day free trial on any plan. No credit card required.
+          <template v-if="isAuthenticated">Choose the plan that's right for you.</template>
+          <template v-else>Start with a 7-day free trial on any plan. No credit card required.</template>
         </p>
       </div>
     </div>
@@ -58,7 +59,7 @@
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 37%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
+            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -96,7 +97,7 @@
               @click="startTrial('student')"
               class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
             >
-              Start Free Trial
+              {{ ctaLabel }}
             </button>
           </div>
 
@@ -119,7 +120,7 @@
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 24%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
+            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -169,7 +170,7 @@
               @click="startTrial('standard')"
               class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all shadow-lg"
             >
-              Start Free Trial
+              {{ ctaLabel }}
             </button>
           </div>
 
@@ -188,7 +189,7 @@
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 17%</p>
             </div>
 
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
+            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -226,7 +227,7 @@
               @click="startTrial('pro')"
               class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
             >
-              Start Free Trial
+              {{ ctaLabel }}
             </button>
           </div>
         </div>
@@ -268,7 +269,7 @@
         </div>
         <p class="text-center text-sm text-neutral-500 mt-8">
           To find out more about how Fynla can help you, take a look at our
-          <router-link to="/?demo=true" class="text-raspberry-500 hover:text-raspberry-600 font-medium">scenarios</router-link>.
+          <router-link to="/features" class="text-raspberry-500 hover:text-raspberry-600 font-medium">our features</router-link>.
         </p>
       </div>
     </div>
@@ -311,7 +312,10 @@
     <div class="relative bg-light-pink-100 py-16 overflow-hidden">
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to Take Control of Your Finances?</h2>
-        <p class="text-neutral-500 mb-8">Start your 7-day free trial today. No credit card required.</p>
+        <p class="text-neutral-500 mb-8">
+          <template v-if="isAuthenticated">Upgrade your plan to unlock more features.</template>
+          <template v-else>Start your 7-day free trial today. No credit card required.</template>
+        </p>
         <router-link
           to="/register"
           class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
@@ -327,6 +331,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 
 export default {
@@ -334,6 +339,14 @@ export default {
 
   components: {
     PublicLayout,
+  },
+
+  computed: {
+    ...mapGetters('auth', ['isAuthenticated']),
+
+    ctaLabel() {
+      return this.isAuthenticated ? 'Upgrade now' : 'Start Free Trial';
+    },
   },
 
   data() {
@@ -371,13 +384,23 @@ export default {
 
   methods: {
     startTrial(plan) {
-      this.$router.push({
-        path: '/register',
-        query: {
-          plan,
-          billing: this.isYearly ? 'yearly' : 'monthly',
-        },
-      });
+      if (this.isAuthenticated) {
+        this.$router.push({
+          path: '/checkout',
+          query: {
+            plan,
+            cycle: this.isYearly ? 'yearly' : 'monthly',
+          },
+        });
+      } else {
+        this.$router.push({
+          path: '/register',
+          query: {
+            plan,
+            billing: this.isYearly ? 'yearly' : 'monthly',
+          },
+        });
+      }
     },
 
     toggleFaq(index) {

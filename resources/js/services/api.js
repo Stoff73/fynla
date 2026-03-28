@@ -100,7 +100,8 @@ api.interceptors.response.use(
       if (error.response.status === 401) {
         // Don't redirect if we're already on login/register endpoints (let component handle it)
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
-          error.config?.url?.includes('/auth/register');
+          error.config?.url?.includes('/auth/register') ||
+          error.config?.url?.includes('/preview/exit');
 
         // Check if we're in preview mode - don't redirect, just reject silently
         const isPreviewMode = store.getters['preview/isPreviewMode'];

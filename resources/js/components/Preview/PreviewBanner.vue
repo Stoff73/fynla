@@ -1,10 +1,10 @@
 <template>
-    <div class="text-white px-3 sm:px-4 py-2 shadow-md" :class="bannerColorClass">
-        <div class="max-w-7xl mx-auto">
+    <div class="text-white py-2 shadow-md" :class="bannerColorClass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Mobile layout -->
             <div class="flex flex-col sm:hidden space-y-2">
                 <!-- Top row: Preview badge + Persona selector -->
-                <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
                     <div class="flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -35,7 +35,7 @@
                 </div>
 
                 <!-- Bottom row: Actions -->
-                <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
                     <button @click="exitPreviewMode" :class="[buttonColorClass, 'text-xs font-medium transition-colors']">
                         Exit
                     </button>
@@ -196,27 +196,11 @@ export default {
         },
 
         buttonColorClass() {
-            const colors = {
-                young_family: 'text-blue-100 hover:text-white',
-                peak_earners: 'text-green-100 hover:text-white',
-                entrepreneur: 'text-fuchsia-100 hover:text-white',
-                young_saver: 'text-cyan-100 hover:text-white',
-                student: 'text-teal-100 hover:text-white',
-                retired_couple: 'text-rose-100 hover:text-white',
-            };
-            return colors[this.basePersonaId] || 'text-neutral-100 hover:text-white';
+            return 'bg-white text-horizon-500 hover:bg-white/90 px-4 py-1.5 rounded-md';
         },
 
         registerButtonClass() {
-            const colors = {
-                young_family: 'bg-white text-blue-600 hover:bg-blue-50',
-                peak_earners: 'bg-white text-green-600 hover:bg-green-50',
-                entrepreneur: 'bg-white text-fuchsia-600 hover:bg-fuchsia-50',
-                young_saver: 'bg-white text-cyan-600 hover:bg-cyan-50',
-                student: 'bg-white text-teal-600 hover:bg-teal-50',
-                retired_couple: 'bg-white text-rose-600 hover:bg-rose-50',
-            };
-            return colors[this.basePersonaId] || 'bg-white text-neutral-500 hover:bg-savannah-100';
+            return 'bg-raspberry-500 text-white hover:bg-raspberry-600';
         },
 
         loadingTextClass() {
@@ -254,7 +238,6 @@ export default {
 
         async exitPreviewMode() {
             await this.exitPreview();
-            this.$router.push('/');
         },
 
         handlePersonaSelected(persona) {
