@@ -168,6 +168,18 @@ export default {
       return allPolicies.find(p => p.id === id) || null;
     },
 
+    findPolicyById(id) {
+      const policies = this.$store.state.protection?.policies || {};
+      const allPolicies = [
+        ...(policies.life || []),
+        ...(policies.criticalIllness || []),
+        ...(policies.incomeProtection || []),
+        ...(policies.disability || []),
+        ...(policies.sicknessIllness || []),
+      ];
+      return allPolicies.find(p => p.id === id) || null;
+    },
+
     handleAddPolicy() {
       this.editingPolicy = null;
       this.showForm = true;

@@ -11,11 +11,10 @@
 
     <!-- Column Headers -->
     <div v-if="localHoldings.length > 0" class="grid grid-cols-12 gap-2 mb-2 text-xs text-neutral-500 font-medium">
-      <div class="col-span-3">Security Name</div>
+      <div class="col-span-4">Security Name</div>
       <div class="col-span-2">Type</div>
       <div class="col-span-2">Alloc. %</div>
-      <div class="col-span-2">Amount Invested</div>
-      <div class="col-span-2">OCF %</div>
+      <div class="col-span-3">Amount Invested</div>
       <div class="col-span-1"></div>
     </div>
 
@@ -27,7 +26,7 @@
     >
       <div class="grid grid-cols-12 gap-2 items-center">
         <!-- Security Name -->
-        <div class="col-span-3">
+        <div class="col-span-4">
           <input
             v-model="holding.security_name"
             type="text"
@@ -69,7 +68,7 @@
         </div>
 
         <!-- Amount Invested (cost_basis) -->
-        <div class="col-span-2">
+        <div class="col-span-3">
           <div class="relative">
             <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-500">&pound;</span>
             <input
@@ -81,23 +80,6 @@
               placeholder="Optional"
               @input="onFieldChange"
             />
-          </div>
-        </div>
-
-        <!-- OCF % -->
-        <div class="col-span-2">
-          <div class="relative">
-            <input
-              v-model.number="holding.ocf_percent"
-              type="number"
-              min="0"
-              max="5"
-              step="0.01"
-              class="w-full border border-horizon-300 rounded-md px-2 py-1.5 text-sm text-right pr-6 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="e.g. 0.23"
-              @input="onFieldChange"
-            />
-            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-neutral-500">%</span>
           </div>
         </div>
 
@@ -253,7 +235,6 @@ export default {
         asset_type: h.asset_type || '',
         allocation_percent: h.allocation_percent ?? null,
         cost_basis: h.cost_basis ?? null,
-        ocf_percent: h.ocf_percent ?? null,
         _isNew: !h.id,
       }));
     },
@@ -265,7 +246,6 @@ export default {
         asset_type: '',
         allocation_percent: null,
         cost_basis: null,
-        ocf_percent: null,
         _isNew: true,
       });
       this.onFieldChange();
@@ -296,7 +276,6 @@ export default {
         asset_type: h.asset_type,
         allocation_percent: h.allocation_percent,
         cost_basis: h.cost_basis,
-        ocf_percent: h.ocf_percent,
       }));
     },
 

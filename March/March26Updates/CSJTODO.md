@@ -1,6 +1,5 @@
 # CSJTODO — Fynla
 
-<<<<<<< dashboard
 *Last updated: 25 March 2026 — dashboard branch session (batches 9-10)*
 *Previous session: 25 March 2026 (grokAI branch — inline investment holdings)*
 
@@ -84,7 +83,8 @@ Key files: Deploy notes at `March/March25Updates/deploy.md`.
 - `resources/js/components/Settings/SettingsTabBar.vue` — new component (untested)
 - `resources/js/views/Settings.vue` — restructured (Your Info removed, tabs added)
 - `resources/js/views/Dashboard.vue` — extensive changes (sparklines, progress bars, allowances)
-=======
+---
+
 *Last updated: 26 March 2026 — sessions 11 & 12*
 
 ---
@@ -146,4 +146,3 @@ Key files: Deploy notes at `March/March25Updates/deploy.md`.
 ## Context for Next Session
 
 Fee system gaps now closed for Tier 1 + 2. Pension actions will fire for high fees (matching investment module parity). Protection premium affordability actions now exist. PensionProjector and ContributionOptimizer now deduct all fees from growth projections (was platform-only before). The `fees` branch needs merging, building, and deploying. On production: run migration, reseed RetirementActionDefinitionSeeder + ProtectionActionDefinitionSeeder. Tier 3 items (threshold standardisation + cross-module dashboard) are documented in feesMap.md for future planning.
->>>>>>> main

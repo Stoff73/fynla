@@ -248,41 +248,13 @@
               <div class="analysis-header">
                 <h3 class="analysis-title">Holdings ({{ holdingsCount }})</h3>
               </div>
-              <div v-if="hasAllocationData" class="donut-container">
-                <div class="relative mx-auto" style="width: 140px; height: 140px;">
-                  <svg viewBox="0 0 220 220" width="140" height="140">
-                    <defs>
-                      <linearGradient
-                        v-for="(seg, idx) in allocationDonutSegments"
-                        :key="'grad-' + idx"
-                        :id="'inv-proj-grad-' + idx"
-                        x1="0%" y1="0%" x2="100%" y2="0%"
-                      >
-                        <stop offset="0%" :stop-color="seg.color" />
-                        <stop offset="100%" :stop-color="seg.colorLight" />
-                      </linearGradient>
-                    </defs>
-                    <circle
-                      v-for="(seg, idx) in allocationDonutSegments"
-                      :key="'seg-' + idx"
-                      cx="110" cy="110" r="75"
-                      fill="none"
-                      :stroke="'url(#inv-proj-grad-' + idx + ')'"
-                      stroke-width="40"
-                      stroke-linecap="round"
-                      :stroke-dasharray="seg.arcLength + ' ' + 471.2"
-                      :stroke-dashoffset="-seg.offset"
-                      transform="rotate(-90 110 110)"
-                    />
-                  </svg>
-                </div>
-                <!-- Mini legend -->
-                <div class="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-0.5">
-                  <div v-for="(label, idx) in allocationLabels" :key="label" class="flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: chartColors[idx % chartColors.length] }"></span>
-                    <span class="text-[10px] text-neutral-500">{{ label }} {{ allocationSeries[idx]?.toFixed(0) }}%</span>
-                  </div>
-                </div>
+              <div v-if="hasHoldings && hasAllocationData" class="donut-container">
+                <apexchart
+                  type="donut"
+                  :options="allocationChartOptions"
+                  :series="allocationSeries"
+                  height="140"
+                />
               </div>
               <div v-else class="no-allocation">
                 <span>Add holdings to see allocation</span>
@@ -490,8 +462,8 @@
 import { mapActions, mapState } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, CHART_DEFAULTS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 import { TAX_CONFIG } from '@/constants/taxConfig';
+import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 // Data loading services
 import investmentService from '@/services/investmentService';
@@ -560,8 +532,6 @@ export default {
       allProjections: null,
       projectionData: null,
       selectedProjectionYears: 10,
-      analysisLoading: false,
-      chartColors: CHART_COLORS,
       isChartReady: false,
       projectionError: null,
       dataLoading: true,
@@ -742,28 +712,6 @@ export default {
       return this.account.include_in_retirement === true;
     },
 
-    allocationDonutSegments() {
-      const series = this.allocationSeries;
-      const total = series.reduce((sum, v) => sum + v, 0);
-      if (total === 0) return [];
-
-      const circumference = 471.2;
-      const gap = 3;
-      let offset = 0;
-      return series.map((value, idx) => {
-        const proportion = value / total;
-        const arcLength = Math.max(proportion * circumference - gap, 2);
-        const color = CHART_COLORS[idx % CHART_COLORS.length];
-        const seg = {
-          color,
-          colorLight: this.lightenColor(color, 0.35),
-          arcLength,
-          offset,
-        };
-        offset += proportion * circumference;
-        return seg;
-      });
-    },
     yearsToRetirement() {
       const retirementAge = this.profile?.target_retirement_age || this.currentUser?.target_retirement_age || 68;
       const currentAge = this.currentUser?.date_of_birth
@@ -873,7 +821,7 @@ export default {
           formatter: (seriesName, opts) => `${seriesName} ${opts.w.globals.series[opts.seriesIndex].toFixed(0)}%`,
         },
         tooltip: { enabled: true, y: { formatter: (val) => `${val.toFixed(1)}%` } },
-        stroke: { width: 1, colors: ['white'] },
+        stroke: { width: 1, colors: ['#fff'] },
       };
     },
   },
@@ -919,14 +867,6 @@ export default {
 
   methods: {
     ...mapActions('investment', ['updateAccount', 'deleteAccount', 'fetchInvestmentData', 'createHolding', 'updateHolding']),
-
-    lightenColor(hex, amount) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      const lighten = (c) => Math.min(255, Math.round(c + (255 - c) * amount));
-      return `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
-    },
 
     // ---- Navigation ----
     handleBackClick() {
