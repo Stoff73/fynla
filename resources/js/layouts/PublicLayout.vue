@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-eggshell-500">
     <!-- Navigation -->
     <nav class="bg-white shadow-sm border-b border-light-gray sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
             <!-- Logo -->
@@ -19,74 +19,124 @@
                 Home
               </router-link>
 
-              <!-- Your stage dropdown -->
-              <div class="relative" @mouseenter="stageOpen = true" @mouseleave="stageOpen = false">
+              <!-- How it works dropdown trigger -->
+              <div class="relative" @mouseenter="howOpen = true" @mouseleave="howOpen = false">
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-                  :class="{ 'text-raspberry-500': stageOpen }"
+                  :class="{ 'text-raspberry-500': howOpen }"
                 >
-                  Your stage
-                  <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': stageOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  How it works
+                  <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': howOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div v-if="stageOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-[400px] z-50 pt-2">
-                  <div class="bg-white rounded-xl shadow-lg border border-light-gray p-4">
-                    <router-link
-                      v-for="stage in stages"
-                      :key="stage.slug"
-                      :to="`/stage/${stage.slug}`"
-                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-savannah-50 transition-colors group"
-                      @click="stageOpen = false"
-                    >
-                      <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ backgroundColor: stage.colour }"></div>
-                      <div>
-                        <p class="text-sm font-semibold text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ stage.name }}</p>
-                        <p class="text-xs text-neutral-500">{{ stage.sub }}</p>
+                <!-- How it works mega menu panel -->
+                <div v-if="howOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-[960px] z-50 pt-2">
+                  <div class="bg-white rounded-xl shadow-lg border border-light-gray p-6">
+                    <div class="flex gap-8">
+                      <!-- Left column: Discover Fynla -->
+                      <div class="w-[260px] flex-shrink-0">
+                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Discover Fynla</p>
+                        <div class="space-y-2">
+                          <router-link to="/how-it-works" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="howOpen = false">
+                            <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            <div>
+                              <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Getting started</p>
+                              <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">See how Fynla works and what you can do.</p>
+                            </div>
+                          </router-link>
+                          <router-link to="/features" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="howOpen = false">
+                            <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                            <div>
+                              <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Features</p>
+                              <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Compare plans and see what's included.</p>
+                            </div>
+                          </router-link>
+                        </div>
                       </div>
-                    </router-link>
+                      <!-- Divider -->
+                      <div class="w-px bg-light-gray"></div>
+                      <!-- Right column: Your life stage -->
+                      <div class="flex-1">
+                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Your life stage</p>
+                        <div class="grid grid-cols-3 gap-3">
+                          <router-link
+                            v-for="stage in stages"
+                            :key="stage.slug"
+                            :to="`/stage/${stage.slug}`"
+                            class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group"
+                            @click="howOpen = false"
+                          >
+                            <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="stage.icon" /></svg>
+                            <div>
+                              <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ stage.name }}</p>
+                              <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">{{ stage.sub }}</p>
+                            </div>
+                          </router-link>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <router-link
-                to="/how-it-works"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                How it works
-              </router-link>
-
-              <!-- Learn dropdown -->
-              <div class="relative" @mouseenter="learnOpen = true" @mouseleave="learnOpen = false">
+              <!-- Resources dropdown (mega menu) -->
+              <div class="relative" @mouseenter="resourcesOpen = true" @mouseleave="resourcesOpen = false">
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-                  :class="{ 'text-raspberry-500': learnOpen }"
+                  :class="{ 'text-raspberry-500': resourcesOpen }"
                 >
-                  Learn
-                  <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': learnOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  Resources
+                  <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': resourcesOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div v-if="learnOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-56 z-50 pt-2">
-                  <div class="bg-white rounded-xl shadow-lg border border-light-gray py-2">
-                    <router-link to="/learn" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Guides &amp; Explainers</router-link>
-                    <router-link to="/learn/glossary" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Glossary A-Z</router-link>
-                    <router-link to="/insights" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">Latest Insights</router-link>
-                    <router-link to="/faq" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="learnOpen = false">FAQ</router-link>
+                <div v-if="resourcesOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-[720px] z-50 pt-4" style="margin-top: -8px;">
+                  <div class="bg-white rounded-xl shadow-lg border border-light-gray p-6">
+                    <div class="grid grid-cols-3 gap-3">
+                      <router-link to="/calculators" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="resourcesOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 7h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Calculators</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Free financial calculators for retirement, tax, and more.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/learn" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="resourcesOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Guides &amp; Explainers</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Plain-English guides to pensions, ISAs, tax, and more.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/learn/glossary" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="resourcesOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Glossary A-Z</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Look up financial terms in plain English.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/insights" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="resourcesOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Latest Insights</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Timely articles on tax changes and financial news.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/faq" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="resourcesOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">FAQ</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Answers to common questions about Fynla.</p>
+                        </div>
+                      </router-link>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <router-link
-                to="/calculators"
-                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-              >
-                Calculators
-              </router-link>
-
-              <!-- Why Fynla dropdown -->
+              <!-- Why Fynla dropdown (mega menu) -->
               <div class="relative" @mouseenter="whyOpen = true" @mouseleave="whyOpen = false">
                 <button
                   type="button"
@@ -98,12 +148,38 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                <div v-if="whyOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-56 z-50 pt-2">
-                  <div class="bg-white rounded-xl shadow-lg border border-light-gray py-2">
-                    <router-link to="/why-fynla/our-approach" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Our Approach</router-link>
-                    <router-link to="/why-fynla/one-platform" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">One Platform Story</router-link>
-                    <router-link to="/why-fynla/independent" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Not Tied to an Adviser</router-link>
-                    <router-link to="/security" class="block px-4 py-2 text-sm text-neutral-500 hover:bg-savannah-50 hover:text-raspberry-500 transition-colors" @click="whyOpen = false">Security &amp; Privacy</router-link>
+                <div v-if="whyOpen" class="absolute left-1/2 -translate-x-1/2 top-full w-[720px] z-50 pt-4" style="margin-top: -8px;">
+                  <div class="bg-white rounded-xl shadow-lg border border-light-gray p-6">
+                    <div class="grid grid-cols-3 gap-3">
+                      <router-link to="/why-fynla/our-approach" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="whyOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Our Approach</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">How we think about financial planning differently.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/why-fynla/one-platform" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="whyOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">One Platform Story</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Everything in one place — no spreadsheets needed.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/why-fynla/independent" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="whyOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Not Tied to an Adviser</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Independent, unbiased, and always on your side.</p>
+                        </div>
+                      </router-link>
+                      <router-link to="/security" class="flex items-start gap-3 p-3 rounded-lg hover:bg-savannah-100 transition-colors group" @click="whyOpen = false">
+                        <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <div>
+                          <p class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Security &amp; Privacy</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Bank-grade encryption and data protection.</p>
+                        </div>
+                      </router-link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -140,6 +216,7 @@
             </button>
           </div>
         </div>
+
       </div>
 
       <!-- Mobile menu -->
@@ -147,25 +224,28 @@
         <div class="pt-2 pb-3 space-y-1">
           <router-link to="/" class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500" @click="mobileMenuOpen = false">Home</router-link>
 
-          <!-- Mobile: Your stage accordion -->
+          <!-- Mobile: How it works accordion -->
           <div>
             <button
               type="button"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-              @click="stageOpen = !stageOpen"
+              @click="howOpen = !howOpen"
             >
-              Your stage
-              <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': stageOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              How it works
+              <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': howOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="stageOpen" class="pl-6 pb-1 space-y-0.5">
+            <div v-if="howOpen" class="pl-6 pb-1 space-y-0.5">
+              <router-link to="/how-it-works" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; howOpen = false">Getting started</router-link>
+              <router-link to="/features" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; howOpen = false">Features</router-link>
+              <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider pt-2 pb-1">Your life stage</p>
               <router-link
                 v-for="stage in stages"
                 :key="stage.slug"
                 :to="`/stage/${stage.slug}`"
                 class="flex items-center gap-2 py-1.5 text-sm text-neutral-500 hover:text-raspberry-500"
-                @click="mobileMenuOpen = false; stageOpen = false"
+                @click="mobileMenuOpen = false; howOpen = false"
               >
                 <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: stage.colour }"></div>
                 {{ stage.name }}
@@ -173,29 +253,26 @@
             </div>
           </div>
 
-          <router-link to="/how-it-works" class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500" @click="mobileMenuOpen = false">How it works</router-link>
-
-          <!-- Mobile: Learn accordion -->
+          <!-- Mobile: Resources accordion -->
           <div>
             <button
               type="button"
               class="flex w-full items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500"
-              @click="learnOpen = !learnOpen"
+              @click="resourcesOpen = !resourcesOpen"
             >
-              Learn
-              <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': learnOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              Resources
+              <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': resourcesOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="learnOpen" class="pl-6 pb-1 space-y-0.5">
-              <router-link to="/learn" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Guides &amp; Explainers</router-link>
-              <router-link to="/learn/glossary" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Glossary A-Z</router-link>
-              <router-link to="/insights" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">Latest Insights</router-link>
-              <router-link to="/faq" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; learnOpen = false">FAQ</router-link>
+            <div v-if="resourcesOpen" class="pl-6 pb-1 space-y-0.5">
+              <router-link to="/calculators" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; resourcesOpen = false">Calculators</router-link>
+              <router-link to="/learn" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; resourcesOpen = false">Guides &amp; Explainers</router-link>
+              <router-link to="/learn/glossary" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; resourcesOpen = false">Glossary A-Z</router-link>
+              <router-link to="/insights" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; resourcesOpen = false">Latest Insights</router-link>
+              <router-link to="/faq" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; resourcesOpen = false">FAQ</router-link>
             </div>
           </div>
-
-          <router-link to="/calculators" class="block pl-3 pr-4 py-2 text-base font-medium text-horizon-500 hover:bg-savannah-100 hover:text-raspberry-500" @click="mobileMenuOpen = false">Calculators</router-link>
 
           <!-- Mobile: Why Fynla accordion -->
           <div>
@@ -309,17 +386,17 @@ export default {
   data() {
     return {
       mobileMenuOpen: false,
-      stageOpen: false,
-      learnOpen: false,
+      howOpen: false,
+      resourcesOpen: false,
       whyOpen: false,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',
       footerLogoUrl: '/images/logos/LogoHiResFynlaLight.png',
       stages: [
-        { slug: 'starting-out', name: 'Starting Out', sub: 'First job, first steps', colour: '#1D9E75' },
-        { slug: 'building-foundations', name: 'Building Foundations', sub: 'Saving, buying, growing', colour: '#5DCAA5' },
-        { slug: 'protecting-and-growing', name: 'Protecting and Growing', sub: 'Family, home, investments', colour: '#378ADD' },
-        { slug: 'planning-your-future', name: 'Planning Your Future', sub: 'Peak earning, retirement prep', colour: '#7F77DD' },
-        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', sub: 'Later life, legacy, estate', colour: '#EF9F27' },
+        { slug: 'starting-out', name: 'Starting Out', sub: 'First job, first steps', colour: '#1D9E75', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+        { slug: 'building-foundations', name: 'Building Foundations', sub: 'Saving, buying, growing', colour: '#5DCAA5', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { slug: 'protecting-and-growing', name: 'Protecting and Growing', sub: 'Family, home, investments', colour: '#378ADD', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+        { slug: 'planning-your-future', name: 'Planning Your Future', sub: 'Peak earning, retirement prep', colour: '#7F77DD', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', sub: 'Later life, legacy, estate', colour: '#EF9F27', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7' },
       ],
     };
   },
@@ -327,8 +404,8 @@ export default {
   watch: {
     $route() {
       this.mobileMenuOpen = false;
-      this.stageOpen = false;
-      this.learnOpen = false;
+      this.howOpen = false;
+      this.resourcesOpen = false;
       this.whyOpen = false;
     }
   }
