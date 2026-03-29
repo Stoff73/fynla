@@ -57,7 +57,7 @@
           style="width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;"
         >
           <img
-            src="/images/Website/Homepage-Header-Desktopv2.png"
+            src="/images/Website/Homepage-Header-Desktopv3.png"
             alt="Fynla Brain — your financial planning intelligence"
             width="1315"
             height="489"

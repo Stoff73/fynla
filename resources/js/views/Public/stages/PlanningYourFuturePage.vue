@@ -98,21 +98,21 @@
     <!-- Features as answers -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that answer your questions</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that may be relevant to you</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <router-link to="/features/when-can-i-retire" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/when-can-i-retire" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">When Can I Retire?</p>
             <p class="text-sm text-neutral-500">The question everyone asks. Fynla gives you a data-driven answer based on your actual finances.</p>
           </router-link>
-          <router-link to="/features/monte-carlo" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/monte-carlo" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Monte Carlo simulations</p>
             <p class="text-sm text-neutral-500">Don't rely on a single forecast. See the range of outcomes and the probability of success.</p>
           </router-link>
-          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Pension tracker</p>
             <p class="text-sm text-neutral-500">Every pension in one place — Defined Contribution, Defined Benefit, State Pension, and Self-Invested Personal Pensions.</p>
           </router-link>
-          <router-link to="/features/iht-planning" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/iht-planning" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Inheritance Tax planning</p>
             <p class="text-sm text-neutral-500">Understand your Inheritance Tax exposure and the strategies available to reduce it — including the 2027 pension changes.</p>
           </router-link>

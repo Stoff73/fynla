@@ -4,92 +4,139 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          Everything you need,
-          <span class="text-raspberry-300">one platform</span>
+          Fynla
+          <span class="text-raspberry-300">features</span>
         </h1>
-        <p class="text-lg text-white/70">
-          Compare plans and see exactly what's included at every level.
+        <p class="text-lg text-white/70 mb-6">
+          See how Fynla compares to other financial tools across the features that matter.
         </p>
+        <router-link
+          to="/register"
+          class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors"
+        >
+          Get started free
+        </router-link>
       </div>
     </div>
 
     <!-- Comparison Table -->
-    <div class="relative bg-light-pink-100 pt-10 pb-20 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-gradient-to-r from-horizon-600 to-horizon-700 py-14">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center mb-4">Everything you need, one platform</h2>
+
+        <!-- Legend -->
+        <div class="flex items-center justify-center gap-6 mb-8">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 rounded-full bg-spring-500"></span>
+            <span class="text-xs text-white/50">Full feature</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 rounded-full harvey-half"></span>
+            <span class="text-xs text-white/50">Partial / limited</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 rounded-full bg-white/[0.08] border-2 border-white/[0.15]"></span>
+            <span class="text-xs text-white/50">Not available</span>
+          </div>
+        </div>
+
+        <!-- Table -->
         <div class="overflow-x-auto">
-          <table class="w-full border-collapse">
+          <table class="w-full" style="border-collapse: separate; border-spacing: 8px 0; margin-bottom: 16px;">
+            <colgroup>
+              <col style="width: 34%;" />
+              <col style="width: 16.5%;" />
+              <col style="width: 16.5%;" />
+              <col style="width: 16.5%;" />
+              <col style="width: 16.5%;" />
+            </colgroup>
             <thead>
               <tr>
-                <th class="text-left py-4 px-6 text-sm font-bold text-horizon-500 w-1/3">Feature</th>
-                <th class="text-center py-4 px-4 w-1/6">
-                  <div class="bg-horizon-500 rounded-xl py-4 px-3">
-                    <p class="text-white font-semibold text-sm">Student</p>
-                    <p class="text-white/60 text-xs mt-0.5">From £3.99/mo</p>
-                  </div>
+                <th class="text-left py-5 px-5">
+                  <span class="text-base font-bold text-white uppercase tracking-wider">Feature</span>
                 </th>
-                <th class="text-center py-4 px-4 w-1/6">
-                  <div class="bg-raspberry-500 rounded-xl py-4 px-3 ring-2 ring-raspberry-300 ring-offset-2">
-                    <p class="text-white font-semibold text-sm">Pro</p>
-                    <p class="text-white/60 text-xs mt-0.5">From £7.99/mo</p>
-                  </div>
+                <th class="text-center py-5 px-4">
+                  <span class="text-base font-bold text-raspberry-300 uppercase tracking-wider">Fynla</span>
                 </th>
-                <th class="text-center py-4 px-4 w-1/6">
-                  <div class="bg-horizon-500 rounded-xl py-4 px-3">
-                    <p class="text-white font-semibold text-sm">Family</p>
-                    <p class="text-white/60 text-xs mt-0.5">From £10.99/mo</p>
-                  </div>
+                <th class="text-center py-5 px-4">
+                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial centralisation<br/>platform</span>
+                </th>
+                <th class="text-center py-5 px-4">
+                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial planning<br/>platform</span>
+                </th>
+                <th class="text-center py-5 px-4">
+                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial investment<br/>platform</span>
                 </th>
               </tr>
             </thead>
             <tbody>
               <template v-for="(section, sIdx) in featureSections" :key="'s-'+sIdx">
-                <tr class="border-b border-light-gray/50">
-                  <td colspan="4" class="pt-6 pb-2 px-6">
-                    <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{{ section.heading }}</p>
+                <!-- Section heading -->
+                <tr>
+                  <td class="pt-6 pb-2 px-5">
+                    <p class="text-[0.85rem] font-bold text-neutral-300 uppercase tracking-widest">{{ section.heading }}</p>
                   </td>
+                  <td :class="sIdx === 0 ? 'fynla-border-top' : 'fynla-border-mid'" style="padding: 0;"></td>
+                  <td :class="sIdx === 0 ? 'other-border-top' : 'other-border-mid'" style="padding: 0;"></td>
+                  <td :class="sIdx === 0 ? 'other-border-top' : 'other-border-mid'" style="padding: 0;"></td>
+                  <td :class="sIdx === 0 ? 'other-border-top' : 'other-border-mid'" style="padding: 0;"></td>
                 </tr>
-                <tr v-for="(feat, fIdx) in section.features" :key="sIdx+'-'+fIdx" class="border-b border-light-gray/30 hover:bg-white/60 transition-colors">
-                  <td class="py-3.5 px-6">
-                    <p class="text-sm text-horizon-500 font-medium">{{ feat.name }}</p>
-                    <p v-if="feat.desc" class="text-xs text-neutral-500 mt-0.5">{{ feat.desc }}</p>
+                <!-- Feature rows -->
+                <tr
+                  v-for="(feat, fIdx) in section.features"
+                  :key="sIdx+'-'+fIdx"
+                  class="hover:bg-white/[0.04] transition-colors"
+                >
+                  <td class="py-4 px-5 border-b border-white/[0.05]">
+                    <p class="text-base font-semibold text-white">{{ feat.name }}</p>
+                    <p v-if="feat.desc" class="text-[0.8rem] text-white/[0.45] mt-0.5">{{ feat.desc }}</p>
                   </td>
-                  <td class="py-3.5 px-4 text-center">
-                    <span v-if="feat.student === true" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-spring-100">
-                      <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                    </span>
-                    <span v-else-if="feat.student === false" class="text-neutral-300">&mdash;</span>
-                    <span v-else class="text-xs text-neutral-500 font-medium">{{ feat.student }}</span>
+                  <td
+                    class="py-4 px-4 text-center"
+                    :class="isLastFeature(sIdx, fIdx) ? 'fynla-border-bot' : 'fynla-border-mid'"
+                  >
+                    <span class="inline-block w-6 h-6 rounded-full" :class="harveyClass(feat.fynla)"></span>
                   </td>
-                  <td class="py-3.5 px-4 text-center">
-                    <span v-if="feat.pro === true" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-spring-100">
-                      <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                    </span>
-                    <span v-else-if="feat.pro === false" class="text-neutral-300">&mdash;</span>
-                    <span v-else class="text-xs text-neutral-500 font-medium">{{ feat.pro }}</span>
+                  <td
+                    class="py-4 px-4 text-center"
+                    :class="isLastFeature(sIdx, fIdx) ? 'other-border-bot' : 'other-border-mid'"
+                  >
+                    <span class="inline-block w-6 h-6 rounded-full" :class="harveyClass(feat.centralisation)"></span>
                   </td>
-                  <td class="py-3.5 px-4 text-center">
-                    <span v-if="feat.family === true" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-spring-100">
-                      <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                    </span>
-                    <span v-else-if="feat.family === false" class="text-neutral-300">&mdash;</span>
-                    <span v-else class="text-xs text-neutral-500 font-medium">{{ feat.family }}</span>
+                  <td
+                    class="py-4 px-4 text-center"
+                    :class="isLastFeature(sIdx, fIdx) ? 'other-border-bot' : 'other-border-mid'"
+                  >
+                    <span class="inline-block w-6 h-6 rounded-full" :class="harveyClass(feat.planning)"></span>
+                  </td>
+                  <td
+                    class="py-4 px-4 text-center"
+                    :class="isLastFeature(sIdx, fIdx) ? 'other-border-bot' : 'other-border-mid'"
+                  >
+                    <span class="inline-block w-6 h-6 rounded-full" :class="harveyClass(feat.investment)"></span>
                   </td>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
 
-        <!-- CTA -->
-        <div class="text-center mt-12">
-          <router-link
-            to="/register"
-            class="inline-block px-8 py-3 bg-raspberry-500 text-white font-semibold rounded-lg hover:bg-raspberry-600 transition-colors shadow-sm hover:shadow-md"
-          >
-            Start your free trial
-          </router-link>
-          <p class="text-sm text-neutral-500 mt-3">7-day free trial on any plan. No credit card required.</p>
-        </div>
+    <!-- CTA Section -->
+    <div class="bg-light-pink-100 py-16">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to take control of your finances?</h2>
+        <p class="text-neutral-500 mb-8">Start your free trial today. No credit card required.</p>
+        <router-link
+          to="/register"
+          class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
+        >
+          Get started free
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </router-link>
       </div>
     </div>
   </PublicLayout>
@@ -104,84 +151,94 @@ export default {
 
   data() {
     return {
+      // Values: 'full', 'half', 'empty'
       featureSections: [
         {
-          heading: 'Dashboard & Overview',
+          heading: 'Budgeting & Savings',
           features: [
-            { name: 'Net worth dashboard', desc: 'See your full financial picture at a glance', student: true, pro: true, family: true },
-            { name: 'Module summary cards', desc: 'Protection, savings, investment, retirement, estate', student: true, pro: true, family: true },
-            { name: 'Life events timeline', student: true, pro: true, family: true },
-            { name: 'Goals tracking', student: true, pro: true, family: true },
-            { name: 'Fyn — AI financial companion', desc: 'Ask Fyn anything about your finances', student: '5 chats/mo', pro: 'Unlimited', family: 'Unlimited' },
+            { name: 'Savings goal tracker', desc: 'Set targets and track progress toward your savings goals.', fynla: 'full', centralisation: 'full', planning: 'half', investment: 'empty' },
+            { name: 'ISA allowance tracking', desc: 'Monitor your annual ISA allowance usage across all accounts.', fynla: 'full', centralisation: 'empty', planning: 'empty', investment: 'half' },
+            { name: 'Student loan planning', desc: 'Understand your plan type, repayment threshold, and strategy.', fynla: 'full', centralisation: 'empty', planning: 'empty', investment: 'empty' },
+            { name: 'Budgeting tools', desc: 'Track income, expenditure, and build a realistic spending plan.', fynla: 'full', centralisation: 'full', planning: 'half', investment: 'empty' },
           ],
         },
         {
-          heading: 'Protection',
+          heading: 'Net Worth & Investments',
           features: [
-            { name: 'Life insurance tracking', student: true, pro: true, family: true },
-            { name: 'Critical illness cover', student: false, pro: true, family: true },
-            { name: 'Income protection analysis', student: false, pro: true, family: true },
-            { name: 'Coverage gap analysis', student: false, pro: true, family: true },
+            { name: 'Net worth dashboard', desc: 'Everything you own minus everything you owe — one clear number.', fynla: 'full', centralisation: 'full', planning: 'full', investment: 'empty' },
+            { name: 'Investment analysis', desc: 'Portfolio tracking, asset allocation, and risk profile matching.', fynla: 'full', centralisation: 'half', planning: 'half', investment: 'full' },
           ],
         },
         {
-          heading: 'Savings & Cash',
+          heading: 'Pensions & Retirement',
           features: [
-            { name: 'Bank account tracking', student: true, pro: true, family: true },
-            { name: 'ISA allowance tracker', student: true, pro: true, family: true },
-            { name: 'Emergency fund gauge', student: true, pro: true, family: true },
-            { name: 'Interest rate comparison', student: false, pro: true, family: true },
+            { name: 'Pension tracker', desc: 'All your UK pensions in one place with combined projections.', fynla: 'full', centralisation: 'empty', planning: 'half', investment: 'half' },
+            { name: 'When Can I Retire?', desc: 'Data-driven retirement age projection based on your actual finances.', fynla: 'full', centralisation: 'empty', planning: 'full', investment: 'empty' },
+            { name: 'Monte Carlo simulations', desc: 'Thousands of market scenarios to test the probability of your plan succeeding.', fynla: 'full', centralisation: 'empty', planning: 'full', investment: 'empty' },
+            { name: 'Drawdown management', desc: 'Track pension drawdown rate and model how long your pot will last.', fynla: 'full', centralisation: 'empty', planning: 'half', investment: 'empty' },
           ],
         },
         {
-          heading: 'Investment',
+          heading: 'Protection & Estate Planning',
           features: [
-            { name: 'Portfolio overview', student: true, pro: true, family: true },
-            { name: 'Holdings tracking', student: true, pro: true, family: true },
-            { name: 'Risk profiling', student: false, pro: true, family: true },
-            { name: 'Monte Carlo projections', student: false, pro: true, family: true },
-            { name: 'Fee analysis & optimisation', student: false, pro: true, family: true },
-          ],
-        },
-        {
-          heading: 'Retirement',
-          features: [
-            { name: 'Defined Contribution pensions', student: true, pro: true, family: true },
-            { name: 'State Pension forecast', student: true, pro: true, family: true },
-            { name: 'Defined Benefit pensions', student: false, pro: true, family: true },
-            { name: 'Retirement income projection', student: false, pro: true, family: true },
-            { name: 'Drawdown simulator', student: false, pro: true, family: true },
-          ],
-        },
-        {
-          heading: 'Estate Planning',
-          features: [
-            { name: 'Inheritance Tax calculator', student: false, pro: true, family: true },
-            { name: 'Gifting strategy planner', student: false, pro: true, family: true },
-            { name: 'Estate value projections', student: false, pro: true, family: true },
-            { name: 'In Case of Emergency letters', student: false, pro: true, family: true },
-          ],
-        },
-        {
-          heading: 'Household & Sharing',
-          features: [
-            { name: 'Joint asset tracking', student: false, pro: true, family: true },
-            { name: 'Spouse/partner account', student: false, pro: false, family: true },
-            { name: 'Household dashboard', student: false, pro: false, family: true },
-            { name: 'Shared goals', student: false, pro: false, family: true },
-          ],
-        },
-        {
-          heading: 'Plans & Actions',
-          features: [
-            { name: 'Personalised action plans', student: false, pro: true, family: true },
-            { name: 'Retirement plan', student: false, pro: true, family: true },
-            { name: 'Investment plan', student: false, pro: true, family: true },
-            { name: 'What-if scenarios', student: false, pro: true, family: true },
+            { name: 'Protection gap analyser', desc: 'See where your life insurance and income protection fall short.', fynla: 'full', centralisation: 'empty', planning: 'empty', investment: 'empty' },
+            { name: 'Inheritance Tax planning', desc: 'Estate valuation, nil-rate bands, gifting strategies, and 2027 pension changes.', fynla: 'full', centralisation: 'empty', planning: 'empty', investment: 'empty' },
+            { name: 'In Case of Emergency letters', desc: 'A complete guide to your finances for your family if the worst happens.', fynla: 'full', centralisation: 'empty', planning: 'empty', investment: 'empty' },
           ],
         },
       ],
     };
   },
+
+  methods: {
+    harveyClass(value) {
+      if (value === 'full') return 'bg-spring-500';
+      if (value === 'half') return 'harvey-half';
+      return 'bg-white/[0.08] border-2 border-white/[0.15]';
+    },
+
+    isLastFeature(sIdx, fIdx) {
+      const isLastSection = sIdx === this.featureSections.length - 1;
+      const isLastInSection = fIdx === this.featureSections[sIdx].features.length - 1;
+      return isLastSection && isLastInSection;
+    },
+  },
+
+  mounted() {
+    document.title = 'Fynla Features — Compare Financial Planning Tools | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'See how Fynla compares to financial centralisation, planning, and investment platforms. 14 features across budgeting, pensions, protection, and estate planning.');
+  },
 };
 </script>
+
+<style scoped>
+.harvey-half {
+  background: linear-gradient(to right, #37B679 50%, rgba(255, 255, 255, 0.08) 50%);
+}
+
+/* Column border styles using box-shadow (avoids table border-radius issues) */
+.fynla-border-top {
+  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595, inset 0 2px 0 #F06595;
+  border-radius: 16px 16px 0 0;
+}
+.fynla-border-mid {
+  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595;
+}
+.fynla-border-bot {
+  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595, inset 0 -2px 0 #F06595;
+  border-radius: 0 0 16px 16px;
+}
+
+.other-border-top {
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 16px 16px 0 0;
+}
+.other-border-mid {
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08);
+}
+.other-border-bot {
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 0 0 16px 16px;
+}
+</style>

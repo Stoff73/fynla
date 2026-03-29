@@ -98,25 +98,25 @@
     <!-- Features as answers -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that answer your questions</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that may be relevant to you</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <router-link to="/features/protection-gap" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/protection-gap" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Protection gap analyser</p>
             <p class="text-sm text-neutral-500">Fynla calculates exactly how much cover you need based on your mortgage, income, and family situation.</p>
           </router-link>
-          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Net worth dashboard</p>
             <p class="text-sm text-neutral-500">Track your complete financial position including property equity, pensions, investments, and debts.</p>
           </router-link>
-          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Pension tracker</p>
             <p class="text-sm text-neutral-500">Consolidate the view of multiple workplace pensions and see what they add up to at retirement.</p>
           </router-link>
-          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Investment analysis</p>
             <p class="text-sm text-neutral-500">Understand your portfolio allocation, risk profile, and whether your investments match your goals.</p>
           </router-link>
-          <router-link to="/features/ice-letters" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/ice-letters" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">In Case of Emergency letters</p>
             <p class="text-sm text-neutral-500">Give your family a clear guide to your finances if the worst happens — policies, accounts, contacts, all in one place.</p>
           </router-link>

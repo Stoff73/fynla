@@ -91,21 +91,21 @@
     <!-- Features as answers -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that answer your questions</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Features that may be relevant to you</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Net worth dashboard</p>
             <p class="text-sm text-neutral-500">Everything you own minus everything you owe — one number that tells you where you stand.</p>
           </router-link>
-          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">ISA tracking</p>
             <p class="text-sm text-neutral-500">See your ISA contributions, remaining allowance, and tax-free growth at a glance.</p>
           </router-link>
-          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/net-worth-dashboard" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Savings goals</p>
             <p class="text-sm text-neutral-500">Set targets for your deposit, emergency fund, or anything else — and track your progress.</p>
           </router-link>
-          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border border-light-gray hover:border-raspberry-300 hover:border-[3px] hover:-translate-y-0.5 transition-all">
+          <router-link to="/features/pension-tracker" class="block bg-white rounded-lg p-5 border-[3px] border-transparent hover:border-raspberry-300 transition-all">
             <p class="text-lg font-bold text-horizon-500 mb-2">Pension tracker</p>
             <p class="text-sm text-neutral-500">Understand your workplace pension contributions and see long-term projections.</p>
           </router-link>
