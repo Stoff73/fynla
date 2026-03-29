@@ -246,7 +246,11 @@
           </div>
         </div>
 
-        <div class="text-center mt-10">
+        <div class="text-center mt-10 flex items-center justify-center gap-3">
+          <router-link to="/features" class="text-white font-medium hover:text-white/70 transition-colors">
+            View detailed list of features &gt;
+          </router-link>
+          <span class="text-white/30">|</span>
           <a href="/?demo=true" class="text-white font-medium hover:text-white/70 transition-colors" @click.prevent="enterPreviewMode">
             View demos &gt;
           </a>

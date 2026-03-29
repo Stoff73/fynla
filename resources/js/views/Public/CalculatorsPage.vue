@@ -1,52 +1,74 @@
 <template>
   <PublicLayout>
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-12">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">
-          Financial Calculators &amp; Planning Tools
+    <!-- Hero Section — matches pricing page -->
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Free Financial
+          <span class="text-raspberry-300">Calculators</span>
         </h1>
-        <p class="text-base text-white/80 max-w-2xl mx-auto">
+        <p class="text-lg text-white/70">
           Free tools to help you understand your finances. Planning tools require a free Fynla account.
         </p>
       </div>
     </div>
 
-    <!-- Grouped Calculator Cards -->
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div v-for="stage in calculatorStages" :key="stage.name" class="mb-8 last:mb-0">
-        <!-- Stage header -->
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.colour }"></div>
-          <h2 class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">{{ stage.name }}</h2>
-        </div>
-        <!-- Cards -->
-        <div class="space-y-2">
-          <CalculatorCard
-            v-for="item in stage.items"
-            :key="item.id"
-            :name="item.name"
-            :description="item.description"
-            :icon="item.icon"
-            :type="item.type"
-            :calculator-id="item.id"
-            :active="activeCalculator === item.id"
-            @select="selectCalculator"
-          />
+    <!-- Two-column layout: sidebar + calculator -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 items-start">
+
+      <!-- Left sidebar: collapsible filter menus -->
+      <div class="w-[280px] flex-shrink-0 sticky top-20">
+        <div v-for="stage in calculatorStages" :key="stage.name" class="mb-1">
+          <!-- Stage header (collapsible) -->
+          <button
+            type="button"
+            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg hover:bg-horizon-500/[0.05] transition-colors"
+            @click="toggleStage(stage.name)"
+          >
+            <div class="flex items-center gap-2.5">
+              <svg class="w-5 h-5 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="stage.icon" />
+              </svg>
+              <span class="text-xs font-bold text-horizon-500 uppercase tracking-wider">{{ stage.name }}</span>
+            </div>
+            <svg
+              class="w-4 h-4 text-neutral-400 transition-transform duration-200"
+              :class="{ 'rotate-180': expandedStages[stage.name] }"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <!-- Calculator items -->
+          <div v-if="expandedStages[stage.name]" class="pb-1">
+            <button
+              v-for="item in stage.items"
+              :key="item.id"
+              type="button"
+              class="w-full flex items-center gap-2.5 px-3.5 py-2 pl-11 rounded-lg text-sm transition-all"
+              :class="activeCalculator === item.id ? 'bg-light-blue-100 text-horizon-500 font-semibold' : 'text-neutral-500 hover:bg-light-pink-100 hover:text-horizon-500'"
+              @click="item.type === 'free' ? selectCalculator(item.id) : null"
+            >
+              <svg class="w-4 h-4 text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.menuIcon || 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 7h16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z'" />
+              </svg>
+              <span class="truncate">{{ item.name }}</span>
+              <span v-if="item.type !== 'free'" class="ml-auto text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-md bg-light-pink-100 text-raspberry-500">Free trial</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Calculator Content -->
-    <div id="calculator-panel" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <!-- Right: Calculator panel -->
+      <div class="flex-1 min-w-0" id="calculator-panel">
       <!-- Income Tax Calculator -->
-      <div v-if="activeCalculator === 'income-tax'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'income-tax'">
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-          <h2 class="text-xl font-bold text-white">Income Tax Calculator</h2>
-          <p class="text-violet-100 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
+      <div v-if="activeCalculator === 'income-tax'" class="animate-fade-in-slide" :key="'income-tax'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Income Tax Calculator</h2>
+          <p class="text-white/60 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -82,13 +104,13 @@
 
               <button
                 @click="calculateIncomeTax"
-                class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                class="w-full px-6 py-4 bg-raspberry-500 text-white rounded-xl font-semibold hover:bg-raspberry-600 transition-all"
               >
                 Calculate Tax
               </button>
             </div>
 
-            <div v-if="incomeTax.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
+            <div v-if="incomeTax.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -129,7 +151,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -142,16 +164,16 @@
       </div>
 
       <!-- Mortgage Repayment Calculator -->
-      <div v-if="activeCalculator === 'mortgage'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'mortgage'">
-        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+      <div v-if="activeCalculator === 'mortgage'" class="animate-fade-in-slide" :key="'mortgage'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Mortgage Repayment Calculator</h2>
-          <p class="text-indigo-100 mt-1">Calculate your monthly payments, total cost, and see how your mortgage is paid off over time</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Mortgage Repayment Calculator</h2>
+          <p class="text-white/60 mt-1">Calculate your monthly payments, total cost, and see how your mortgage is paid off over time</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -241,7 +263,7 @@
 
               <button
                 @click="calculateMortgage"
-                class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+                class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors"
               >
                 Calculate
               </button>
@@ -249,10 +271,10 @@
 
             <!-- Results -->
             <div v-if="mortgage.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border border-indigo-200">
-                <p class="text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">Monthly Payment</p>
-                <p class="text-2xl font-bold text-indigo-700">{{ formatCurrency(mortgage.result.monthlyPayment) }}</p>
-                <p class="text-xs text-indigo-600 mt-1">{{ mortgage.repaymentType === 'interest_only' ? 'Interest only — capital not repaid' : 'Capital and interest' }}</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Monthly Payment</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(mortgage.result.monthlyPayment) }}</p>
+                <p class="text-xs text-neutral-500 mt-1">{{ mortgage.repaymentType === 'interest_only' ? 'Interest only — capital not repaid' : 'Capital and interest' }}</p>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -275,7 +297,7 @@
               </div>
 
               <!-- LTV warning -->
-              <div v-if="mortgage.result.ltv > 90" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="mortgage.result.ltv > 90" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -287,7 +309,7 @@
               </div>
 
               <!-- Interest only warning -->
-              <div v-if="mortgage.repaymentType === 'interest_only'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="mortgage.repaymentType === 'interest_only'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -311,7 +333,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Model your mortgage alongside your full financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -320,7 +342,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -333,13 +355,13 @@
       </div>
 
       <!-- Loan Repayment Calculator -->
-      <div v-if="activeCalculator === 'loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'loan'">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
-          <h2 class="text-xl font-bold text-white">Loan Repayment Calculator</h2>
-          <p class="text-slate-200 mt-1">Calculate monthly payments and total interest on personal loans</p>
+      <div v-if="activeCalculator === 'loan'" class="animate-fade-in-slide" :key="'loan'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Loan Repayment Calculator</h2>
+          <p class="text-white/60 mt-1">Calculate monthly payments and total interest on personal loans</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -380,13 +402,13 @@
 
               <button
                 @click="calculateLoan"
-                class="w-full px-6 py-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg shadow-slate-500/25 hover:shadow-slate-500/40"
+                class="w-full px-6 py-4 bg-raspberry-500 text-white rounded-xl font-semibold hover:bg-raspberry-600 transition-all"
               >
                 Calculate Loan
               </button>
             </div>
 
-            <div v-if="loan.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
+            <div v-if="loan.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -422,7 +444,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -435,13 +457,13 @@
       </div>
 
       <!-- Emergency Fund Calculator -->
-      <div v-if="activeCalculator === 'emergency-fund'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'emergency-fund'">
-        <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-          <h2 class="text-xl font-bold text-white">Emergency Fund Calculator</h2>
-          <p class="text-spring-100 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
+      <div v-if="activeCalculator === 'emergency-fund'" class="animate-fade-in-slide" :key="'emergency-fund'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Emergency Fund Calculator</h2>
+          <p class="text-white/60 mt-1">Calculate how much you should save for emergencies (3-6 months of expenses)</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -489,13 +511,13 @@
 
               <button
                 @click="calculateEmergencyFund"
-                class="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+                class="w-full px-6 py-4 bg-raspberry-500 text-white rounded-xl font-semibold hover:bg-raspberry-600 transition-all"
               >
                 Calculate Fund
               </button>
             </div>
 
-            <div v-if="emergencyFund.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
+            <div v-if="emergencyFund.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -556,7 +578,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -569,13 +591,13 @@
       </div>
 
       <!-- Pension Growth Calculator -->
-      <div v-if="activeCalculator === 'pension'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension'">
-        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
-          <h2 class="text-xl font-bold text-white">Pension Growth Calculator</h2>
-          <p class="text-purple-100 mt-1">Project your pension pot at retirement with regular contributions</p>
+      <div v-if="activeCalculator === 'pension'" class="animate-fade-in-slide" :key="'pension'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Pension Growth Calculator</h2>
+          <p class="text-white/60 mt-1">Project your pension pot at retirement with regular contributions</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -645,13 +667,13 @@
 
               <button
                 @click="calculatePension"
-                class="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
+                class="w-full px-6 py-4 bg-raspberry-500 text-white rounded-xl font-semibold hover:bg-raspberry-600 transition-all"
               >
                 Calculate Projection
               </button>
             </div>
 
-            <div v-if="pension.result" class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
+            <div v-if="pension.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
               <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -672,7 +694,7 @@
                   <span class="font-semibold text-slate-900">{{ formatCurrency(pension.result.totalContributions) }}</span>
                 </div>
                 <div class="border-t border-slate-300 my-2"></div>
-                <div class="flex justify-between items-center py-3 bg-purple-50 -mx-6 px-6 rounded-lg">
+                <div class="flex justify-between items-center py-3 bg-light-pink-100 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-slate-900">Projected Pot at {{ pension.retirementAge }}</span>
                   <span class="font-bold text-2xl text-purple-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
                 </div>
@@ -680,7 +702,7 @@
                   <span class="text-slate-600">Investment Growth</span>
                   <span class="font-semibold text-spring-600">{{ formatCurrency(pension.result.investmentGrowth) }}</span>
                 </div>
-                <div class="mt-4 bg-violet-50 border border-violet-200 rounded-xl p-4">
+                <div class="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
                   <p class="text-sm text-violet-900 font-semibold mb-2">At 4% withdrawal rate:</p>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -696,7 +718,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -709,16 +731,16 @@
       </div>
 
       <!-- Student Loan Repayment Calculator -->
-      <div v-if="activeCalculator === 'student-loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'student-loan'">
-        <div class="bg-gradient-to-r from-spring-600 to-spring-700 px-6 py-4">
+      <div v-if="activeCalculator === 'student-loan'" class="animate-fade-in-slide" :key="'student-loan'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Starting Out</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Student Loan Repayment Calculator</h2>
-          <p class="text-spring-100 mt-1">Estimate your monthly repayments, total cost, and when your loan will be cleared</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Student Loan Repayment Calculator</h2>
+          <p class="text-white/60 mt-1">Estimate your monthly repayments, total cost, and when your loan will be cleared</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Inputs -->
             <div class="space-y-4">
@@ -787,7 +809,7 @@
 
               <button
                 @click="calculateStudentLoan"
-                class="w-full py-3 bg-spring-600 text-white font-semibold rounded-xl hover:bg-spring-700 transition-colors"
+                class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors"
               >
                 Calculate Repayments
               </button>
@@ -795,10 +817,10 @@
 
             <!-- Results -->
             <div v-if="studentLoan.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-spring-50 to-spring-100 rounded-xl p-6 border border-spring-200">
-                <p class="text-xs text-spring-600 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
-                <p class="text-2xl font-bold text-spring-700">{{ formatCurrency(studentLoan.result.monthlyRepayment) }}</p>
-                <p class="text-xs text-spring-600 mt-1">at your current salary</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(studentLoan.result.monthlyRepayment) }}</p>
+                <p class="text-xs text-neutral-500 mt-1">at your current salary</p>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -821,14 +843,14 @@
               </div>
 
               <!-- Write-off warning -->
-              <div v-if="studentLoan.result.writtenOff" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="studentLoan.result.writtenOff" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
                     <p class="text-sm font-semibold text-violet-700">Loan likely to be written off</p>
-                    <p class="text-xs text-violet-600 mt-1">
+                    <p class="text-xs text-neutral-500 mt-1">
                       Based on your salary and growth projections, your loan balance of {{ formatCurrency(studentLoan.result.remainingAtWriteOff) }} would be written off after {{ studentLoan.plans[studentLoan.plan].writeOff }} years. You would repay {{ formatCurrency(studentLoan.result.totalRepaid) }} of the original {{ formatCurrency(studentLoan.balance) }} balance.
                     </p>
                   </div>
@@ -843,7 +865,7 @@
                   </svg>
                   <div>
                     <p class="text-sm font-semibold text-spring-700">Loan fully repaid</p>
-                    <p class="text-xs text-spring-600 mt-1">
+                    <p class="text-xs text-neutral-500 mt-1">
                       You would clear your loan in {{ studentLoan.result.yearsToRepay }} before the {{ studentLoan.plans[studentLoan.plan].writeOff }}-year write-off period.
                     </p>
                   </div>
@@ -852,7 +874,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/starting-out" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Factor your student loan into your full financial plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -861,7 +883,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
@@ -875,16 +897,16 @@
       </div>
 
       <!-- Savings Goal Calculator -->
-      <div v-if="activeCalculator === 'savings-goal'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'savings-goal'">
-        <div class="bg-gradient-to-r from-raspberry-500 to-raspberry-600 px-6 py-4">
+      <div v-if="activeCalculator === 'savings-goal'" class="animate-fade-in-slide" :key="'savings-goal'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Starting Out</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Savings Goal Calculator</h2>
-          <p class="text-raspberry-100 mt-1">See how long it takes to reach your savings target with compound interest</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Savings Goal Calculator</h2>
+          <p class="text-white/60 mt-1">See how long it takes to reach your savings target with compound interest</p>
         </div>
 
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Inputs -->
             <div class="space-y-4">
@@ -961,9 +983,9 @@
 
             <!-- Results -->
             <div v-if="savingsGoal.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-raspberry-50 to-raspberry-100 rounded-xl p-6 border border-raspberry-200">
+              <div class="bg-light-pink-100 rounded-xl p-6">
                 <p class="text-xs text-raspberry-600 font-semibold uppercase tracking-wider mb-1">Time to Reach Goal</p>
-                <p class="text-2xl font-bold text-raspberry-700">{{ savingsGoal.result.yearsText }}</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ savingsGoal.result.yearsText }}</p>
                 <p class="text-xs text-raspberry-600 mt-1">to save {{ formatCurrency(savingsGoal.target) }}</p>
               </div>
 
@@ -991,7 +1013,7 @@
 
               <!-- CTA -->
               <div class="mt-4">
-                <router-link to="/stage/starting-out" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/starting-out" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Set and track your savings goals in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1000,7 +1022,7 @@
               </div>
             </div>
 
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -1012,15 +1034,15 @@
         </div>
       </div>
       <!-- Mortgage Affordability Calculator -->
-      <div v-if="activeCalculator === 'mortgage-afford'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'mortgage-afford'">
-        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4">
+      <div v-if="activeCalculator === 'mortgage-afford'" class="animate-fade-in-slide" :key="'mortgage-afford'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Mortgage Affordability Calculator</h2>
-          <p class="text-indigo-100 mt-1">Estimate how much you could borrow based on your income</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Mortgage Affordability Calculator</h2>
+          <p class="text-white/60 mt-1">Estimate how much you could borrow based on your income</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1052,11 +1074,11 @@
                   <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
                 </div>
               </div>
-              <button @click="calculateMortgageAfford" class="w-full py-3 bg-indigo-500 text-white font-semibold rounded-xl hover:bg-indigo-600 transition-colors">Calculate Affordability</button>
+              <button @click="calculateMortgageAfford" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Affordability</button>
             </div>
             <div v-if="mortgageAfford.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border border-indigo-200">
-                <p class="text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">Estimated Maximum Borrowing</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Estimated Maximum Borrowing</p>
                 <div class="flex items-baseline gap-4">
                   <div>
                     <p class="text-3xl font-bold text-indigo-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
@@ -1085,11 +1107,11 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p class="text-sm text-violet-700">Lenders assess affordability differently — this is a guide only. Your actual borrowing will depend on credit history, outgoings, and lender criteria.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See how a mortgage fits into your full financial plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1097,7 +1119,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                 <p class="text-slate-500">Enter your income details to see what you could borrow</p>
@@ -1108,15 +1130,15 @@
       </div>
 
       <!-- Stamp Duty Calculator -->
-      <div v-if="activeCalculator === 'stamp-duty'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'stamp-duty'">
-        <div class="bg-gradient-to-r from-horizon-500 to-horizon-600 px-6 py-4">
+      <div v-if="activeCalculator === 'stamp-duty'" class="animate-fade-in-slide" :key="'stamp-duty'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Stamp Duty Calculator</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Stamp Duty Calculator</h2>
           <p class="text-white/80 mt-1">Calculate Stamp Duty Land Tax, Land and Buildings Transaction Tax, or Land Transaction Tax</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1143,10 +1165,10 @@
                   <option value="wales">Wales (LTT)</option>
                 </select>
               </div>
-              <button @click="calculateStampDuty" class="w-full py-3 bg-horizon-500 text-white font-semibold rounded-xl hover:bg-horizon-600 transition-colors">Calculate Stamp Duty</button>
+              <button @click="calculateStampDuty" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Stamp Duty</button>
             </div>
             <div v-if="stampDuty.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-horizon-50 to-horizon-100 rounded-xl p-6 border border-horizon-200">
+              <div class="bg-light-pink-100 rounded-xl p-6">
                 <p class="text-xs text-horizon-400 font-semibold uppercase tracking-wider mb-1">{{ stampDuty.result.taxName }}</p>
                 <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(stampDuty.result.totalTax) }}</p>
                 <p class="text-xs text-horizon-400 mt-1">Effective rate: {{ stampDuty.result.effectiveRate }}%</p>
@@ -1163,14 +1185,14 @@
               <div v-if="stampDuty.result.saving > 0" class="bg-spring-50 border border-spring-200 rounded-xl p-4">
                 <p class="text-sm text-spring-700">First-time buyer relief saves you {{ formatCurrency(stampDuty.result.saving) }} compared to standard rates.</p>
               </div>
-              <div v-if="stampDuty.buyerType === 'additional'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="stampDuty.buyerType === 'additional'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p class="text-sm text-violet-700">Additional property surcharge of 5% has been applied to all bands.</p>
               </div>
-              <div v-if="stampDuty.buyerType === 'non-uk'" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="stampDuty.buyerType === 'non-uk'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p class="text-sm text-violet-700">Non-UK resident surcharge of 2% has been applied to all bands.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Factor stamp duty into your home buying plan in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1178,7 +1200,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
                 <p class="text-slate-500">Enter a property price to see the stamp duty breakdown</p>
@@ -1189,15 +1211,15 @@
       </div>
 
       <!-- Compound Interest Calculator -->
-      <div v-if="activeCalculator === 'compound-interest'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'compound-interest'">
-        <div class="bg-gradient-to-r from-spring-600 to-spring-700 px-6 py-4">
+      <div v-if="activeCalculator === 'compound-interest'" class="animate-fade-in-slide" :key="'compound-interest'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Compound Interest Calculator</h2>
-          <p class="text-spring-100 mt-1">See how your money grows over time with the power of compound interest</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Compound Interest Calculator</h2>
+          <p class="text-white/60 mt-1">See how your money grows over time with the power of compound interest</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1231,13 +1253,13 @@
                   <button type="button" @click="compoundInterest.frequency = 'annually'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'annually' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Annually</button>
                 </div>
               </div>
-              <button @click="calculateCompoundInterest" class="w-full py-3 bg-spring-600 text-white font-semibold rounded-xl hover:bg-spring-700 transition-colors">Calculate Growth</button>
+              <button @click="calculateCompoundInterest" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Growth</button>
             </div>
             <div v-if="compoundInterest.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-spring-50 to-spring-100 rounded-xl p-6 border border-spring-200">
-                <p class="text-xs text-spring-600 font-semibold uppercase tracking-wider mb-1">Final Value</p>
-                <p class="text-2xl font-bold text-spring-700">{{ formatCurrency(compoundInterest.result.finalValue) }}</p>
-                <p class="text-xs text-spring-600 mt-1">after {{ compoundInterest.term }} years</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Final Value</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(compoundInterest.result.finalValue) }}</p>
+                <p class="text-xs text-neutral-500 mt-1">after {{ compoundInterest.term }} years</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -1254,7 +1276,7 @@
                 <apexchart type="area" height="220" :options="compoundChartOptions" :series="compoundChartSeries" />
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See your investments in the context of your full financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1262,7 +1284,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                 <p class="text-slate-500">Enter your investment details to see projected growth</p>
@@ -1273,15 +1295,15 @@
       </div>
 
       <!-- Personal Loan Calculator -->
-      <div v-if="activeCalculator === 'personal-loan'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'personal-loan'">
-        <div class="bg-gradient-to-r from-violet-600 to-violet-700 px-6 py-4">
+      <div v-if="activeCalculator === 'personal-loan'" class="animate-fade-in-slide" :key="'personal-loan'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Building Foundations</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Personal Loan Calculator</h2>
-          <p class="text-violet-100 mt-1">Calculate your monthly repayments and total cost of borrowing</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Personal Loan Calculator</h2>
+          <p class="text-white/60 mt-1">Calculate your monthly repayments and total cost of borrowing</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1300,13 +1322,13 @@
                 <input v-model.number="personalLoan.term" type="range" min="1" max="10" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-500" />
                 <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 yr</span><span>10 yrs</span></div>
               </div>
-              <button @click="calculatePersonalLoan" class="w-full py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition-colors">Calculate Repayments</button>
+              <button @click="calculatePersonalLoan" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Repayments</button>
             </div>
             <div v-if="personalLoan.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl p-6 border border-violet-200">
-                <p class="text-xs text-violet-600 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
-                <p class="text-2xl font-bold text-violet-700">{{ formatCurrency(personalLoan.result.monthlyPayment) }}</p>
-                <p class="text-xs text-violet-600 mt-1">over {{ personalLoan.term }} years</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Monthly Repayment</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(personalLoan.result.monthlyPayment) }}</p>
+                <p class="text-xs text-neutral-500 mt-1">over {{ personalLoan.term }} years</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -1318,11 +1340,11 @@
                   <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(personalLoan.result.totalInterest) }}</p>
                 </div>
               </div>
-              <div class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p class="text-sm text-violet-700">The APR (Annual Percentage Rate) may differ from the interest rate as it includes any fees. Always check the APR when comparing loan offers.</p>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/building-foundations" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/building-foundations" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>See how debt fits into your financial picture in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1330,7 +1352,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                 <p class="text-slate-500">Enter your loan details to see your repayment breakdown</p>
@@ -1340,15 +1362,15 @@
         </div>
       </div>
       <!-- Pension Withdrawal Tax Calculator -->
-      <div v-if="activeCalculator === 'pension-withdrawal'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension-withdrawal'">
-        <div class="bg-gradient-to-r from-horizon-500 to-horizon-600 px-6 py-4">
+      <div v-if="activeCalculator === 'pension-withdrawal'" class="animate-fade-in-slide" :key="'pension-withdrawal'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Enjoying Your Wealth</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Pension Withdrawal Tax Calculator</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Pension Withdrawal Tax Calculator</h2>
           <p class="text-white/80 mt-1">See how much tax you'll pay when withdrawing from your pension</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1387,10 +1409,10 @@
                   <button type="button" @click="pensionWithdrawal.taxFreeTaken = true" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Yes</button>
                 </div>
               </div>
-              <button @click="calculatePensionWithdrawal" class="w-full py-3 bg-horizon-500 text-white font-semibold rounded-xl hover:bg-horizon-600 transition-colors">Calculate Tax</button>
+              <button @click="calculatePensionWithdrawal" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Tax</button>
             </div>
             <div v-if="pensionWithdrawal.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-horizon-50 to-horizon-100 rounded-xl p-6 border border-horizon-200">
+              <div class="bg-light-pink-100 rounded-xl p-6">
                 <p class="text-xs text-horizon-400 font-semibold uppercase tracking-wider mb-1">Net Amount Received</p>
                 <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(pensionWithdrawal.result.netReceived) }}</p>
                 <p class="text-xs text-horizon-400 mt-1">from a {{ formatCurrency(pensionWithdrawal.withdrawal) }} withdrawal</p>
@@ -1413,14 +1435,14 @@
                   <p class="text-lg font-bold text-slate-900">{{ pensionWithdrawal.result.effectiveRate }}%</p>
                 </div>
               </div>
-              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <p class="text-sm text-violet-700">Taking large lump sums can push you into higher tax bands. Consider spreading withdrawals across tax years to reduce the overall tax burden.</p>
                 </div>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/enjoying-your-wealth" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/enjoying-your-wealth" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Plan your pension withdrawals in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1428,7 +1450,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <p class="text-slate-500">Enter your pension withdrawal details to see the tax impact</p>
@@ -1439,15 +1461,15 @@
       </div>
 
       <!-- Pension Tax Relief Calculator -->
-      <div v-if="activeCalculator === 'pension-relief'" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-slide" :key="'pension-relief'">
-        <div class="bg-gradient-to-r from-violet-600 to-violet-700 px-6 py-4">
+      <div v-if="activeCalculator === 'pension-relief'" class="animate-fade-in-slide" :key="'pension-relief'">
+        <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/20 text-xs font-medium text-white">Planning Your Future</span>
           </div>
-          <h2 class="text-xl font-bold text-white">Pension Tax Relief Calculator</h2>
-          <p class="text-violet-100 mt-1">See how much tax relief you get on your pension contributions</p>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Pension Tax Relief Calculator</h2>
+          <p class="text-white/60 mt-1">See how much tax relief you get on your pension contributions</p>
         </div>
-        <div class="p-6">
+        <div class="bg-white rounded-2xl border border-light-gray p-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
@@ -1476,13 +1498,13 @@
                   <span v-else>Net pay: contributions taken before tax from your gross salary. Tax relief is automatic — nothing to claim.</span>
                 </p>
               </div>
-              <button @click="calculatePensionRelief" class="w-full py-3 bg-violet-600 text-white font-semibold rounded-xl hover:bg-violet-700 transition-colors">Calculate Relief</button>
+              <button @click="calculatePensionRelief" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Relief</button>
             </div>
             <div v-if="pensionRelief.result" class="space-y-4">
-              <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl p-6 border border-violet-200">
-                <p class="text-xs text-violet-600 font-semibold uppercase tracking-wider mb-1">Total Pension Contribution (Gross)</p>
-                <p class="text-2xl font-bold text-violet-700">{{ formatCurrency(pensionRelief.result.gross) }}</p>
-                <p class="text-xs text-violet-600 mt-1">from {{ formatCurrency(pensionRelief.result.effectiveCost) }} effective cost to you</p>
+              <div class="bg-light-pink-100 rounded-xl p-6">
+                <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Total Pension Contribution (Gross)</p>
+                <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(pensionRelief.result.gross) }}</p>
+                <p class="text-xs text-neutral-500 mt-1">from {{ formatCurrency(pensionRelief.result.effectiveCost) }} effective cost to you</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -1499,8 +1521,8 @@
                   <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <div>
                     <p class="text-sm font-semibold text-spring-700">Additional relief: {{ formatCurrency(pensionRelief.result.additionalRelief) }}</p>
-                    <p class="text-xs text-spring-600 mt-1" v-if="pensionRelief.pensionType === 'relief-at-source'">As a {{ pensionRelief.taxBand === 'higher' ? 'higher' : 'additional' }} rate taxpayer with a relief at source pension, you need to claim this {{ formatCurrency(pensionRelief.result.additionalRelief) }} via your self-assessment tax return.</p>
-                    <p class="text-xs text-spring-600 mt-1" v-else>With net pay, your full relief is applied automatically through your payslip. No self-assessment claim needed.</p>
+                    <p class="text-xs text-neutral-500 mt-1" v-if="pensionRelief.pensionType === 'relief-at-source'">As a {{ pensionRelief.taxBand === 'higher' ? 'higher' : 'additional' }} rate taxpayer with a relief at source pension, you need to claim this {{ formatCurrency(pensionRelief.result.additionalRelief) }} via your self-assessment tax return.</p>
+                    <p class="text-xs text-neutral-500 mt-1" v-else>With net pay, your full relief is applied automatically through your payslip. No self-assessment claim needed.</p>
                   </div>
                 </div>
               </div>
@@ -1515,7 +1537,7 @@
                 </div>
               </div>
               <div class="mt-4">
-                <router-link to="/stage/planning-your-future" class="block bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:from-horizon-600 hover:to-raspberry-600 transition-all">
+                <router-link to="/stage/planning-your-future" class="block bg-light-blue-500 rounded-xl px-5 py-4 text-white text-sm font-semibold hover:bg-light-blue-600 transition-all">
                   <span class="flex items-center justify-between">
                     <span>Track your pension contributions in Fynla</span>
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -1523,7 +1545,7 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
                 <p class="text-slate-500">Enter your contribution details to see your tax relief</p>
@@ -1533,42 +1555,23 @@
         </div>
       </div>
 
-    </div>
+    </div><!-- close calculator-panel -->
+    </div><!-- close flex wrapper -->
 
     <!-- CTA Section -->
-    <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-16 overflow-hidden">
-      <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-horizon-600/50 to-slate-900/80"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-3xl"></div>
-      </div>
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="bg-white/5 backdrop-blur-md rounded-3xl p-10 border border-white/10">
-          <h2 class="text-3xl md:text-2xl font-bold text-white mb-4">
-            Ready for Comprehensive Financial Planning?
-          </h2>
-          <p class="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
-            Create a free account to access all planning tools and get a complete view of your finances.
-          </p>
-          <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <router-link
-              to="/register"
-              class="group px-8 py-4 bg-white text-slate-900 rounded-xl font-semibold text-lg hover:bg-violet-50 transition-all shadow-lg hover:shadow-xl"
-            >
-              <span class="flex items-center justify-center">
-                Get Started Free
-                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-            </router-link>
-            <router-link
-              to="/login"
-              class="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"
-            >
-              Sign In
-            </router-link>
-          </div>
-        </div>
+    <div class="bg-light-pink-100 py-16">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready for comprehensive financial planning?</h2>
+        <p class="text-neutral-500 mb-8">Create a free account to access all planning tools and get a complete view of your finances.</p>
+        <router-link
+          to="/register"
+          class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
+        >
+          Get started free
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </router-link>
       </div>
     </div>
   </PublicLayout>
@@ -1576,7 +1579,6 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import CalculatorCard from '@/components/Public/CalculatorCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
@@ -1585,15 +1587,15 @@ export default {
 
   components: {
     PublicLayout,
-    CalculatorCard,
   },
 
   data() {
     return {
       activeCalculator: 'income-tax',
+      expandedStages: { 'Starting Out': true, 'Building Foundations': true, 'Protecting and Growing': false, 'Planning Your Future': true, 'Enjoying Your Wealth': false },
       calculatorStages: [
         {
-          name: 'Starting Out', colour: '#1D9E75',
+          name: 'Starting Out', colour: '#1D9E75', icon: 'M13 10V3L4 14h7v7l9-11h-7z',
           items: [
             { id: 'student-loan', name: 'Student Loan Repayment', description: 'Estimate repayments, write-off date, and total cost by plan type', icon: '🎓', type: 'free' },
             { id: 'savings-goal', name: 'Savings Goal', description: 'See how long it takes to reach your savings target with compound interest', icon: '✨', type: 'free' },
@@ -1601,7 +1603,7 @@ export default {
           ],
         },
         {
-          name: 'Building Foundations', colour: '#5DCAA5',
+          name: 'Building Foundations', colour: '#5DCAA5', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
           items: [
             { id: 'mortgage', name: 'Mortgage Repayment', description: 'Monthly payments, total interest, and amortisation breakdown', icon: '🏠', type: 'free' },
             { id: 'mortgage-afford', name: 'Mortgage Affordability', description: 'How much could you borrow based on your income?', icon: '🔑', type: 'free' },
@@ -1611,14 +1613,14 @@ export default {
           ],
         },
         {
-          name: 'Protecting and Growing', colour: '#378ADD',
+          name: 'Protecting and Growing', colour: '#378ADD', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
           items: [
             { id: 'life-insurance', name: 'Life Insurance Needs', description: 'How much cover does my family actually need?', icon: '🛡️', type: 'gated-free' },
             { id: 'income-protection', name: 'Income Protection', description: 'What would I need if I couldn\'t work?', icon: '☂️', type: 'gated-free' },
           ],
         },
         {
-          name: 'Planning Your Future', colour: '#7F77DD',
+          name: 'Planning Your Future', colour: '#7F77DD', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
           items: [
             { id: 'income-tax', name: 'Income Tax', description: 'Calculate your UK income tax and National Insurance for 2025/26', icon: '🧮', type: 'free' },
             { id: 'pension', name: 'Pension Growth', description: 'Project your pension pot value at retirement', icon: '📊', type: 'free' },
@@ -1628,7 +1630,7 @@ export default {
           ],
         },
         {
-          name: 'Enjoying Your Wealth', colour: '#EF9F27',
+          name: 'Enjoying Your Wealth', colour: '#EF9F27', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7',
           items: [
             { id: 'pension-withdrawal', name: 'Pension Withdrawal Tax', description: 'See how much tax you\'ll pay when withdrawing from your pension', icon: '💰', type: 'free' },
             { id: 'iht-checker', name: 'Inheritance Tax Exposure Checker', description: 'Estimated inheritance tax liability with full breakdown', icon: '🏛️', type: 'gated-free' },
@@ -1824,6 +1826,10 @@ export default {
   },
 
   methods: {
+    toggleStage(name) {
+      this.expandedStages[name] = !this.expandedStages[name];
+    },
+
     selectCalculator(id) {
       this.activeCalculator = id;
       this.$nextTick(() => {
