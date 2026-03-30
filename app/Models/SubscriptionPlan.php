@@ -13,6 +13,8 @@ class SubscriptionPlan extends Model
         'name',
         'monthly_price',
         'yearly_price',
+        'launch_monthly_price',
+        'launch_yearly_price',
         'trial_days',
         'is_active',
         'features',
@@ -22,6 +24,8 @@ class SubscriptionPlan extends Model
     protected $casts = [
         'monthly_price' => 'integer',
         'yearly_price' => 'integer',
+        'launch_monthly_price' => 'integer',
+        'launch_yearly_price' => 'integer',
         'trial_days' => 'integer',
         'is_active' => 'boolean',
         'features' => 'array',
@@ -34,6 +38,14 @@ class SubscriptionPlan extends Model
     public function getPriceForCycle(string $billingCycle): int
     {
         return $billingCycle === 'monthly' ? $this->monthly_price : $this->yearly_price;
+    }
+
+    /**
+     * Get the launch (discounted) price in pence for a given billing cycle, or null if not set.
+     */
+    public function getLaunchPriceForCycle(string $billingCycle): ?int
+    {
+        return $billingCycle === 'monthly' ? $this->launch_monthly_price : $this->launch_yearly_price;
     }
 
     /**
