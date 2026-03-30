@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Coordination;
 
 use App\Models\User;
+use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 
 /**
@@ -83,7 +84,7 @@ class CrossModuleStrategyService
         // Check for GIA holdings
         $hasGIA = $this->userHasGIAHoldings($investment);
         $isaAllowances = $this->taxConfig->getISAAllowances();
-        $isaAllowance = $isaAllowances['annual_allowance'] ?? 20000;
+        $isaAllowance = $isaAllowances['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
 
         // Check unused ISA allowance from tax optimisation data
         $isaUsed = $this->getISAUsed($taxOptimisation, $moduleAnalysis);

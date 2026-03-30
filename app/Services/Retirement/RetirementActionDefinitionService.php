@@ -9,6 +9,7 @@ use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
@@ -521,10 +522,13 @@ class RetirementActionDefinitionService
         // Step 4: Tax position and relief rate
         $taxBands = $this->taxConfig->get('income_tax.bands') ?? [];
         $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? 12570);
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
-        if ($grossIncome > 125140) {
+        if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
-        } elseif ($grossIncome > 50270) {
+        } elseif ($grossIncome > $higherRateThreshold) {
             $taxBand = 'higher';
         }
         $reliefRate = match ($taxBand) {
@@ -657,10 +661,13 @@ class RetirementActionDefinitionService
 
         // Step 2: Tax band determination
         $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? 12570);
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
-        if ($grossIncome > 125140) {
+        if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
-        } elseif ($grossIncome > 50270) {
+        } elseif ($grossIncome > $higherRateThreshold) {
             $taxBand = 'higher';
         }
         $reliefRate = match ($taxBand) {
@@ -798,10 +805,13 @@ class RetirementActionDefinitionService
         ];
 
         // Step 2: Tax band (determines marginal rate for excess charge)
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
-        if ($grossIncome > 125140) {
+        if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
-        } elseif ($grossIncome > 50270) {
+        } elseif ($grossIncome > $higherRateThreshold) {
             $taxBand = 'higher';
         }
         $marginalRate = match ($taxBand) {
