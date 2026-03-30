@@ -1,14 +1,22 @@
 <template>
   <PublicLayout>
+    <!-- Hero Header -->
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Terms of
+          <span class="text-raspberry-300">Service</span>
+        </h1>
+        <p class="text-lg text-white/70">
+          The terms and conditions governing your use of the Fynla financial planning application.
+        </p>
+      </div>
+    </div>
+
     <div class="bg-white">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 
-        <!-- Title Block -->
-        <div class="mb-10 pb-8 border-b border-light-gray">
-          <h1 class="text-3xl sm:text-4xl font-bold text-horizon-500 mb-3">Terms of Service</h1>
-          <p class="text-base text-neutral-500 leading-relaxed mb-4">The terms and conditions governing your use of the Fynla financial planning application.</p>
-          <p class="text-sm text-horizon-400">Last updated: 20 February 2026 &middot; Version 1.0</p>
-        </div>
+        <p class="text-sm text-horizon-400 mb-10 pb-8 border-b border-light-gray">Last updated: 20 February 2026 &middot; Version 1.0</p>
 
         <!-- Introduction -->
         <div class="mb-10">

@@ -29,37 +29,38 @@
       </div>
     </div>
 
-    <!-- Is this the right stage of your journey? — eggshell bg -->
+    <!-- Is this the right stage of your journey? — with journey map -->
     <section class="py-12 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You've just started earning for the first time</p>
+        
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You've just started earning for the first time</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You have student loan debt and need graduate money management</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're not sure what a pension even does</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You want to build first-time savings habits but don't know where to start</p>
+              </div>
+            </div>
           </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You have student loan debt and need graduate money management</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're not sure what a pension even does</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You want to build first-time savings habits but don't know where to start</p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- What Fynla shows you — homepage "How Fyn can help you" style (horizon blue cards) -->
@@ -124,8 +125,41 @@
       </div>
     </section>
 
+    <!-- What do I need to start my journey? -->
+    <section class="py-12 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3 text-center">What do I need to start my journey?</h2>
+        <p class="text-sm text-neutral-500 text-center mb-8 max-w-2xl mx-auto">To get the most from Fynla, have these details ready. You don't need everything at once — you can always come back and add more later.</p>
+        <!-- Journey map -->
+        <div class="bg-light-blue-100 rounded-2xl px-4 mb-10 overflow-hidden" style="margin-top: 0;">
+          <div style="margin-top: -40px; margin-bottom: -95px;"><JourneyMap stage="university" mode="progress" /></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="card in needCards" :key="card.title" class="bg-light-blue-100 rounded-xl p-5">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center mb-3" :style="{ background: card.iconBg }">
+              <svg class="w-[18px] h-[18px]" :style="{ color: card.iconColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="card.icon" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-horizon-500 mb-1">{{ card.title }}</h3>
+            <p class="text-xs text-neutral-500 mb-2">{{ card.desc }}</p>
+            <ul class="space-y-1">
+              <li v-for="item in card.items" :key="item" class="flex items-center gap-1.5 text-xs text-neutral-500">
+                <span class="w-1 h-1 rounded-full bg-raspberry-500 flex-shrink-0"></span>
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="text-center mt-8">
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
+          <p class="text-xs text-neutral-400 mt-2">You can always skip steps and come back later</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Small steps that make a big difference — eggshell bg, horizon blue cards -->
-    <section class="py-12 bg-eggshell-500">
+    <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Small steps that make a big difference</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,7 +180,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8">
           <div class="flex-1">
-            <h2 class="text-6xl lg:text-8xl font-bold text-white leading-none mb-2">Janice</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-none mb-2">Janice</h2>
             <p class="text-sm text-white/60 max-w-xl leading-relaxed">
               Fresh out of university with a student loan and her first workplace pension.
               She's building an emergency fund and learning what her money is actually doing.
@@ -188,12 +222,25 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import JourneyMap from '@/components/Journey/JourneyMap.vue';
 import { nextTick } from 'vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'StartingOutPage',
-  components: { PublicLayout },
+  components: { PublicLayout, JourneyMap },
+  data() {
+    return {
+      needCards: [
+        { title: 'About You', desc: 'Basic personal details', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Date of birth', 'Employment status', 'Marital status', 'Number of dependants'] },
+        { title: 'Income & Tax', desc: 'Your earnings and tax details', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', iconBg: 'rgba(55,182,121,0.1)', iconColor: '#37B679', items: ['Annual salary or income', 'Tax code (from payslip)', 'Student loan plan type', 'Any additional income'] },
+        { title: 'Monthly Spending', desc: 'A rough idea of your outgoings', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z', iconBg: 'rgba(124,58,237,0.1)', iconColor: '#7C3AED', items: ['Rent or mortgage payment', 'Bills and utilities', 'Food and essentials', 'Subscriptions'] },
+        { title: 'Savings & Assets', desc: 'What you have right now', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3B82F6', items: ['Savings account balances', 'ISA balances', 'Workplace pension value', 'Any other savings'] },
+        { title: 'Debts & Liabilities', desc: 'What you currently owe', icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z', iconBg: 'rgba(217,119,6,0.1)', iconColor: '#D97706', items: ['Student loan balance', 'Credit card balances', 'Personal loans', 'Overdraft amounts'] },
+        { title: 'Your Goals', desc: 'What you want to achieve', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Emergency fund target', 'Savings goals', 'Short-term priorities', 'What matters most to you'] },
+      ],
+    };
+  },
   mounted() {
     document.title = 'Financial Planning for Beginners UK — Starting Out | Fynla';
     const meta = document.querySelector('meta[name="description"]');

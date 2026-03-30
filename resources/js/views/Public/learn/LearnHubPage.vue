@@ -1,14 +1,14 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Learn</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Learn</h1>
+        <p class="text-lg text-white/70 max-w-xl mx-auto">
           Understand your finances. Make better decisions.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Intro -->
     <section class="py-8 bg-white">
@@ -123,10 +123,10 @@
 
     <!-- CTA -->
     <section class="py-10 bg-white">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
           <h2 class="text-base font-bold text-white mb-2">Ready to put knowledge into action?</h2>
-          <p class="text-sm text-white/80 mb-4">Try Fynla free and see your full financial picture in minutes.</p>
+          <p class="text-lg text-white/70 mb-4">Try Fynla free and see your full financial picture in minutes.</p>
           <router-link to="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-500 text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors">
             Try the demo
           </router-link>

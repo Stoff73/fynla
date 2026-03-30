@@ -1,18 +1,24 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
           ISA Allowance 2025/26: Make the Most of Your &pound;20,000
         </h1>
-        <p class="text-sm text-white/70">Published April 2025 &middot; Updated for 2025/26 tax year</p>
       </div>
-    </section>
+    </div>
 
     <!-- Article -->
     <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Back link + categories -->
+        <div class="flex items-center gap-3 mb-2">
+          <router-link to="/insights" class="text-sm text-raspberry-500 hover:underline font-medium">&larr; Back to Insights</router-link>
+          <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-50 text-spring-700">Savings & ISA</span>
+        </div>
+        <p class="text-xs text-neutral-400 mb-8">Published April 2025 &middot; Updated for 2025/26 tax year</p>
+
         <article class="space-y-10">
 
           <!-- The Basics -->
@@ -102,23 +108,23 @@
           </div>
 
           <!-- Related Links -->
-          <div class="border-t border-light-gray pt-8">
+          <div class="bg-light-blue-100 rounded-2xl p-6">
             <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-            <ul class="space-y-1.5">
+            <ul class="space-y-2">
               <li>
-                <router-link to="/learn/what-is-an-isa" class="text-xs text-raspberry-500 hover:underline">What is an ISA?</router-link>
+                <router-link to="/learn/what-is-an-isa" class="text-sm text-raspberry-500 hover:underline">What is an ISA?</router-link>
               </li>
               <li>
-                <router-link to="/calculators" class="text-xs text-raspberry-500 hover:underline">Savings Goal Calculator</router-link>
+                <router-link to="/calculators" class="text-sm text-raspberry-500 hover:underline">Savings Goal Calculator</router-link>
               </li>
               <li>
-                <router-link to="/learn/glossary#isa" class="text-xs text-raspberry-500 hover:underline">Glossary: ISA</router-link>
+                <router-link to="/learn/glossary#isa" class="text-sm text-raspberry-500 hover:underline">Glossary: ISA</router-link>
               </li>
               <li>
-                <router-link to="/stage/starting-out" class="text-xs text-raspberry-500 hover:underline">Starting Out</router-link>
+                <router-link to="/stage/starting-out" class="text-sm text-raspberry-500 hover:underline">Starting Out</router-link>
               </li>
               <li>
-                <router-link to="/stage/building-foundations" class="text-xs text-raspberry-500 hover:underline">Building Foundations</router-link>
+                <router-link to="/stage/building-foundations" class="text-sm text-raspberry-500 hover:underline">Building Foundations</router-link>
               </li>
             </ul>
           </div>
@@ -127,7 +133,7 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-12 bg-white">
+    <section class="py-12 bg-light-pink-100">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-lg font-bold text-horizon-500 mb-2">Track your ISA allowance in Fynla</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">

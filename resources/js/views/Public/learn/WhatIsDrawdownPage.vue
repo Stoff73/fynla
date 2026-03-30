@@ -1,14 +1,14 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">What is Pension Drawdown?</h1>
-        <p class="text-base text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">What is Pension Drawdown?</h1>
+        <p class="text-lg text-white/70 max-w-xl mx-auto">
           Flexible retirement income, explained simply.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Content -->
     <section class="py-12 bg-eggshell-500">
@@ -106,7 +106,7 @@
 
     <!-- CTA -->
     <section class="py-12 bg-white">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h2 class="text-xl font-bold text-horizon-500 mb-2">Model your drawdown strategy in Fynla</h2>
         <p class="text-sm text-neutral-500 mb-6">See how different withdrawal rates affect your retirement income over time.</p>
         <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">

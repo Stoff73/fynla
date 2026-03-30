@@ -1,14 +1,14 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">What is Salary Sacrifice?</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">What is Salary Sacrifice?</h1>
+        <p class="text-lg text-white/70 max-w-xl mx-auto">
           Pension salary sacrifice explained &mdash; how it works, the savings, and whether it suits you.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Content -->
     <section class="py-10 bg-eggshell-500">
@@ -136,10 +136,10 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h2 class="text-xl font-bold text-white mb-2">Model salary sacrifice in your financial plan</h2>
-        <p class="text-sm text-white/80 mb-6">See how salary sacrifice could boost your pension &mdash; and what it means for your take-home pay.</p>
+        <p class="text-lg text-white/70 mb-6">See how salary sacrifice could boost your pension &mdash; and what it means for your take-home pay.</p>
         <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
           Try the demo
         </a>

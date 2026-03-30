@@ -12,43 +12,44 @@
           is essential at this stage. Fynla brings it all together so you can protect what you've built while making sure your money is still working for&nbsp;you.
         </p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
-          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start with your situation</router-link>
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
           <a href="#" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors" @click.prevent="launchDemo">View demo</a>
         </div>
       </div>
     </div>
 
-    <!-- Is this your stage? -->
+    <!-- Is this your stage? — with journey map -->
     <section class="py-12 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You have a mortgage and dependants</p>
+        
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You have a mortgage and dependants</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're not sure if your life insurance is enough — you need a life insurance gap analysis</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You've got pensions from multiple employers</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You want to grow your investments but aren't sure how much risk to take</p>
+              </div>
+            </div>
           </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're not sure if your life insurance is enough — you need a life insurance gap analysis</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You've got pensions from multiple employers</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You want to grow your investments but aren't sure how much risk to take</p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- What Fynla shows you -->
@@ -124,8 +125,41 @@
       </div>
     </section>
 
+    <!-- What do I need to start my journey? -->
+    <section class="py-12 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3 text-center">What do I need to start my journey?</h2>
+        <p class="text-sm text-neutral-500 text-center mb-8 max-w-2xl mx-auto">To get the most from Fynla, have these details ready. You don't need everything at once — you can always come back and add more later.</p>
+        <!-- Journey map -->
+        <div class="bg-light-blue-100 rounded-2xl px-4 mb-10">
+          <div><JourneyMap stage="mid_career" mode="progress" /></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="card in needCards" :key="card.title" class="bg-light-blue-100 rounded-xl p-5">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center mb-3" :style="{ background: card.iconBg }">
+              <svg class="w-[18px] h-[18px]" :style="{ color: card.iconColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="card.icon" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-horizon-500 mb-1">{{ card.title }}</h3>
+            <p class="text-xs text-neutral-500 mb-2">{{ card.desc }}</p>
+            <ul class="space-y-1">
+              <li v-for="item in card.items" :key="item" class="flex items-center gap-1.5 text-xs text-neutral-500">
+                <span class="w-1 h-1 rounded-full bg-raspberry-500 flex-shrink-0"></span>
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="text-center mt-8">
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
+          <p class="text-xs text-neutral-400 mt-2">You can always skip steps and come back later</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Moments -->
-    <section class="py-12 bg-eggshell-500">
+    <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Moments where Fynla makes a difference</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,7 +180,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8">
           <div class="flex-1">
-            <h2 class="text-6xl lg:text-8xl font-bold text-white leading-none mb-2">James &amp; Emily Carter</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-none mb-2">James &amp; Emily Carter</h2>
             <p class="text-sm text-white/60 max-w-xl leading-relaxed">
               Young family with a joint mortgage, workplace pensions, and two children to protect.
               They need to know if their life insurance is enough and whether their money is working hard enough for the future.
@@ -189,11 +223,24 @@
 <script>
 import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import JourneyMap from '@/components/Journey/JourneyMap.vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'ProtectingAndGrowingPage',
-  components: { PublicLayout },
+  components: { PublicLayout, JourneyMap },
+  data() {
+    return {
+      needCards: [
+        { title: 'About You & Family', desc: 'Personal and family details', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Date of birth (you and partner)', 'Number of dependants', 'Occupation details', 'Health and smoking status'] },
+        { title: 'Income & Tax', desc: 'Household earnings', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', iconBg: 'rgba(55,182,121,0.1)', iconColor: '#37B679', items: ['Both partners\' salaries', 'Tax codes', 'Bonus and overtime', 'Rental or investment income'] },
+        { title: 'Protection Policies', desc: 'Your existing cover', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', iconBg: 'rgba(124,58,237,0.1)', iconColor: '#7C3AED', items: ['Life insurance policy details', 'Critical illness cover', 'Income protection details', 'Employer death-in-service benefit'] },
+        { title: 'Property & Mortgage', desc: 'Your home details', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3B82F6', items: ['Property value estimate', 'Mortgage balance and rate', 'Fixed rate end date', 'Monthly mortgage payment'] },
+        { title: 'Pensions & Investments', desc: 'Your growth assets', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', iconBg: 'rgba(217,119,6,0.1)', iconColor: '#D97706', items: ['Workplace pension statements', 'Previous employer pensions', 'ISA and investment accounts', 'Risk attitude'] },
+        { title: 'Your Goals', desc: 'Family financial priorities', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Protection gap concerns', 'Investment growth targets', 'Children\'s education plans', 'Mortgage strategy'] },
+      ],
+    };
+  },
   mounted() {
     document.title = 'Family Financial Protection & Investment Planning UK | Fynla';
     const meta = document.querySelector('meta[name="description"]');

@@ -1,14 +1,16 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Get in Touch</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Get in <span class="text-raspberry-300">Touch</span>
+        </h1>
+        <p class="text-lg text-white/70">
           Questions, feedback, or just want to say hello? We would love to hear from you.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Contact Cards -->
     <section class="py-10 bg-eggshell-500">

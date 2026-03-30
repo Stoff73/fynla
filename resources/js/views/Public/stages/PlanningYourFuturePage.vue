@@ -12,43 +12,44 @@
           Fynla shows you exactly where you stand — including pension consolidation strategy and early retirement planning — and what you can do about&nbsp;it.
         </p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
-          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start with your situation</router-link>
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
           <a href="#" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors" @click.prevent="launchDemo">View demo</a>
         </div>
       </div>
     </div>
 
-    <!-- Is this the right stage of your journey? -->
+    <!-- Is this the right stage of your journey? — with journey map -->
     <section class="py-12 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">Retirement is on the horizon — five to twenty years away</p>
+        
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">Retirement is on the horizon — five to twenty years away</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You have multiple pension pots and aren't sure of the total picture</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're wondering if you can retire early</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You want to maximise your remaining earning years</p>
+              </div>
+            </div>
           </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You have multiple pension pots and aren't sure of the total picture</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're wondering if you can retire early</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You want to maximise your remaining earning years</p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- What Fynla shows you -->
@@ -120,8 +121,41 @@
       </div>
     </section>
 
+    <!-- What do I need to start my journey? -->
+    <section class="py-12 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3 text-center">What do I need to start my journey?</h2>
+        <p class="text-sm text-neutral-500 text-center mb-8 max-w-2xl mx-auto">To get the most from Fynla, have these details ready. You don't need everything at once — you can always come back and add more later.</p>
+        <!-- Journey map -->
+        <div class="bg-light-blue-100 rounded-2xl px-4 mb-10">
+          <div><JourneyMap stage="peak" mode="progress" /></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="card in needCards" :key="card.title" class="bg-light-blue-100 rounded-xl p-5">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center mb-3" :style="{ background: card.iconBg }">
+              <svg class="w-[18px] h-[18px]" :style="{ color: card.iconColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="card.icon" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-horizon-500 mb-1">{{ card.title }}</h3>
+            <p class="text-xs text-neutral-500 mb-2">{{ card.desc }}</p>
+            <ul class="space-y-1">
+              <li v-for="item in card.items" :key="item" class="flex items-center gap-1.5 text-xs text-neutral-500">
+                <span class="w-1 h-1 rounded-full bg-raspberry-500 flex-shrink-0"></span>
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="text-center mt-8">
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
+          <p class="text-xs text-neutral-400 mt-2">You can always skip steps and come back later</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Moments -->
-    <section class="py-12 bg-eggshell-500">
+    <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Moments where Fynla makes a difference</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -142,7 +176,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8">
           <div class="flex-1">
-            <h2 class="text-6xl lg:text-8xl font-bold text-white leading-none mb-2">David &amp; Sarah Mitchell</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-none mb-2">David &amp; Sarah Mitchell</h2>
             <p class="text-sm text-white/60 max-w-xl leading-relaxed">
               Multiple properties, Self-Invested Personal Pension and NHS Defined Benefit pension, approaching retirement with serious planning decisions ahead. Fynla shows them exactly when they can afford to stop working.
             </p>
@@ -184,11 +218,24 @@
 <script>
 import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import JourneyMap from '@/components/Journey/JourneyMap.vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'PlanningYourFuturePage',
-  components: { PublicLayout },
+  components: { PublicLayout, JourneyMap },
+  data() {
+    return {
+      needCards: [
+        { title: 'About You', desc: 'Personal and retirement details', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Date of birth', 'Target retirement age', 'Health status', 'State Pension forecast'] },
+        { title: 'All Pension Details', desc: 'Every pension you have', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', iconBg: 'rgba(55,182,121,0.1)', iconColor: '#37B679', items: ['Current workplace pension', 'Previous employer pensions', 'Any Self-Invested Personal Pensions', 'Defined Benefit pension details'] },
+        { title: 'Income & Tax', desc: 'Earnings at peak level', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', iconBg: 'rgba(124,58,237,0.1)', iconColor: '#7C3AED', items: ['Annual salary', 'Bonus and benefits', 'Rental income', 'Dividend income'] },
+        { title: 'Investments & Assets', desc: 'Your full portfolio', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3B82F6', items: ['ISA and investment values', 'Property portfolio', 'Other assets', 'Business interests'] },
+        { title: 'Estate & Inheritance Tax', desc: 'Legacy planning basics', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', iconBg: 'rgba(217,119,6,0.1)', iconColor: '#D97706', items: ['Will status', 'Lasting Power of Attorney', 'Gifting history', 'Trust arrangements'] },
+        { title: 'Retirement Vision', desc: 'What retirement looks like', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Desired retirement income', 'Planned retirement age', 'Drawdown vs annuity preference', 'Early retirement considerations'] },
+      ],
+    };
+  },
   mounted() {
     document.title = 'Retirement Planning UK — When Can I Retire? | Fynla';
     const meta = document.querySelector('meta[name="description"]');

@@ -13,43 +13,44 @@
           keeps more of your wealth where it belongs. Fynla helps you plan with&nbsp;clarity.
         </p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
-          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start with your situation</router-link>
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
           <a href="#" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors" @click.prevent="launchDemo">View demo</a>
         </div>
       </div>
     </div>
 
-    <!-- Is this your stage? -->
+    <!-- Is this your stage? — with journey map -->
     <section class="py-12 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl">
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're already retired or about to be</p>
+        
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8">Is this the right stage of your journey?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're already retired or about to be</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're concerned about Inheritance Tax on your estate</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">Family wealth protection is a priority — you want to make sure your loved ones are provided for</p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </span>
+                <p class="text-neutral-500">You're thinking about gifting or trust strategies</p>
+              </div>
+            </div>
           </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're concerned about Inheritance Tax on your estate</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">Family wealth protection is a priority — you want to make sure your loved ones are provided for</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-spring-100 flex items-center justify-center">
-              <svg class="w-4 h-4 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <p class="text-neutral-500">You're thinking about gifting or trust strategies</p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- What Fynla shows you -->
@@ -125,8 +126,41 @@
       </div>
     </section>
 
+    <!-- What do I need to start my journey? -->
+    <section class="py-12 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3 text-center">What do I need to start my journey?</h2>
+        <p class="text-sm text-neutral-500 text-center mb-8 max-w-2xl mx-auto">To get the most from Fynla, have these details ready. You don't need everything at once — you can always come back and add more later.</p>
+        <!-- Journey map -->
+        <div class="bg-light-blue-100 rounded-2xl px-4 mb-10">
+          <div><JourneyMap stage="retirement" mode="progress" /></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="card in needCards" :key="card.title" class="bg-light-blue-100 rounded-xl p-5">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center mb-3" :style="{ background: card.iconBg }">
+              <svg class="w-[18px] h-[18px]" :style="{ color: card.iconColor }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="card.icon" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-horizon-500 mb-1">{{ card.title }}</h3>
+            <p class="text-xs text-neutral-500 mb-2">{{ card.desc }}</p>
+            <ul class="space-y-1">
+              <li v-for="item in card.items" :key="item" class="flex items-center gap-1.5 text-xs text-neutral-500">
+                <span class="w-1 h-1 rounded-full bg-raspberry-500 flex-shrink-0"></span>
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="text-center mt-8">
+          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start your journey</router-link>
+          <p class="text-xs text-neutral-400 mt-2">You can always skip steps and come back later</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Moments -->
-    <section class="py-12 bg-eggshell-500">
+    <section class="py-12 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-8 text-center">Moments where Fynla makes a difference</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -147,7 +181,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8">
           <div class="flex-1">
-            <h2 class="text-6xl lg:text-8xl font-bold text-white leading-none mb-2">Robert &amp; Patricia Williams</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-none mb-2">Robert &amp; Patricia Williams</h2>
             <p class="text-sm text-white/60 max-w-xl leading-relaxed">
               Retired couple with property, pensions in drawdown, and an estate exposed to Inheritance Tax.
               They need clarity on gifting strategies, estate valuation, and how to protect their family's inheritance.
@@ -183,11 +217,24 @@
 <script>
 import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import JourneyMap from '@/components/Journey/JourneyMap.vue';
 
 import logger from '@/utils/logger';
 export default {
   name: 'EnjoyingYourWealthPage',
-  components: { PublicLayout },
+  components: { PublicLayout, JourneyMap },
+  data() {
+    return {
+      needCards: [
+        { title: 'About You & Family', desc: 'Personal and beneficiary details', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Date of birth', 'Beneficiary details', 'Family members', 'Health status'] },
+        { title: 'Pension & Income', desc: 'Retirement income sources', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', iconBg: 'rgba(55,182,121,0.1)', iconColor: '#37B679', items: ['Pension drawdown details', 'Annuity income', 'State Pension amount', 'Other retirement income'] },
+        { title: 'Full Estate Value', desc: 'Everything you own', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', iconBg: 'rgba(124,58,237,0.1)', iconColor: '#7C3AED', items: ['Property values', 'Investment portfolio', 'Savings and cash', 'Business interests and trusts'] },
+        { title: 'Gifting History', desc: 'Gifts you have made', icon: 'M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7', iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3B82F6', items: ['Gifts made in last 7 years', 'Regular gifts from income', 'Annual exemptions used', 'Potentially exempt transfers'] },
+        { title: 'Legal Documents', desc: 'Estate planning essentials', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', iconBg: 'rgba(217,119,6,0.1)', iconColor: '#D97706', items: ['Will status and date', 'Lasting Power of Attorney', 'Trust documents', 'Letter of wishes'] },
+        { title: 'Legacy Goals', desc: 'What you want to leave behind', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', iconBg: 'rgba(214,51,108,0.1)', iconColor: '#D6336C', items: ['Inheritance Tax reduction goals', 'Charitable giving plans', 'Family wealth distribution', 'Specific beneficiary wishes'] },
+      ],
+    };
+  },
   mounted() {
     document.title = 'Estate Planning & Inheritance Tax Planning UK | Fynla';
     const meta = document.querySelector('meta[name="description"]');

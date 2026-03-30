@@ -1,16 +1,16 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="py-16 sm:py-20 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-4">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
           You Don't Outgrow Fynla
         </h1>
         <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto">
           Most financial tools solve one problem. Fynla connects everything — pensions, property, savings, investments, protection, tax, and estate planning — in one platform.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- The Problem with Fragmented Tools -->
     <section class="py-14 bg-white">
@@ -63,7 +63,7 @@
 
     <!-- CTA -->
     <section class="py-14 bg-eggshell-500">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h2 class="text-2xl font-bold text-horizon-500 mb-3">Explore the platform</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-lg mx-auto">
           See how all seven modules work together with sample data. No sign-up required.

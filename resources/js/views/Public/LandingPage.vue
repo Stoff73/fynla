@@ -22,9 +22,9 @@
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
             <span class="text-white/40">|</span>
-            <a href="/?demo=true" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="trackGA('cta_click', 'see_demo'); enterPreviewMode()">See our demo</a>
-            <span class="text-white/40">|</span>
             <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Ask Fyn</a>
+            <span class="text-white/40">|</span>
+            <a href="/?demo=true" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="trackGA('cta_click', 'see_demo'); enterPreviewMode()">See our demo</a>
           </p>
         </div>
 

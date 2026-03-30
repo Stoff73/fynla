@@ -1,16 +1,16 @@
 <template>
   <PublicLayout>
     <!-- Hero Section -->
-    <section class="bg-gradient-to-br from-horizon-500 via-horizon-600 to-horizon-700 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">
-          Got Questions? We've Got Answers.
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Frequently Asked <span class="text-raspberry-300">Questions</span>
         </h1>
-        <p class="text-base text-horizon-200 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           Everything you need to know about Fynla — from what it does, to how it works, to whether it's right for you.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Category Navigation -->
     <section class="bg-white border-b border-light-gray sticky top-20 z-40">
