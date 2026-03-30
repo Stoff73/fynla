@@ -152,6 +152,8 @@ class PreviewController extends Controller
             'token' => $token,
             'user' => [
                 'id' => $previewUser->id,
+                'first_name' => $previewUser->first_name,
+                'surname' => $previewUser->surname,
                 'name' => $previewUser->name,
                 'email' => $previewUser->email,
                 'is_preview_user' => true,
@@ -207,6 +209,8 @@ class PreviewController extends Controller
             'token' => $token,
             'user' => [
                 'id' => $newPreviewUser->id,
+                'first_name' => $newPreviewUser->first_name,
+                'surname' => $newPreviewUser->surname,
                 'name' => $newPreviewUser->name,
                 'email' => $newPreviewUser->email,
                 'is_preview_user' => true,
