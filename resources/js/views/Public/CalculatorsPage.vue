@@ -16,8 +16,41 @@
     <!-- Two-column layout: sidebar + calculator -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start">
 
-      <!-- Left sidebar: collapsible filter menus -->
-      <div class="w-full lg:w-[280px] flex-shrink-0 lg:sticky lg:top-20">
+      <!-- Mobile: horizontal pill navigation (shown below lg) -->
+      <div class="w-full lg:hidden">
+        <!-- Category pills — horizontal scroll -->
+        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            v-for="stage in calculatorStages"
+            :key="'pill-'+stage.name"
+            type="button"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all"
+            :class="activeStage === stage.name ? 'bg-horizon-500 text-white' : 'bg-white border border-light-gray text-horizon-500'"
+            @click="activeStage = stage.name"
+          >
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="stage.icon" />
+            </svg>
+            {{ stage.name }}
+          </button>
+        </div>
+        <!-- Calculator items for selected category -->
+        <div class="flex gap-1.5 overflow-x-auto pb-3 pt-1.5 scrollbar-hide">
+          <button
+            v-for="item in activeStageItems"
+            :key="'mpill-'+item.id"
+            type="button"
+            class="px-3 py-1.5 rounded-full text-xs whitespace-nowrap flex-shrink-0 transition-all"
+            :class="activeCalculator === item.id ? 'bg-light-blue-100 text-horizon-500 font-semibold' : 'bg-eggshell-500 text-neutral-500'"
+            @click="item.type === 'free' ? selectCalculator(item.id) : null"
+          >
+            {{ item.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Desktop: collapsible sidebar (hidden below lg) -->
+      <div class="hidden lg:block w-[280px] flex-shrink-0 sticky top-20">
         <div v-for="stage in calculatorStages" :key="stage.name" class="mb-1">
           <!-- Stage header (collapsible) -->
           <button
@@ -1592,6 +1625,7 @@ export default {
   data() {
     return {
       activeCalculator: 'income-tax',
+      activeStage: 'Planning Your Future',
       expandedStages: { 'Starting Out': true, 'Building Foundations': true, 'Protecting and Growing': false, 'Planning Your Future': true, 'Enjoying Your Wealth': false },
       calculatorStages: [
         {
@@ -1744,6 +1778,11 @@ export default {
   },
 
   computed: {
+    activeStageItems() {
+      const stage = this.calculatorStages.find(s => s.name === this.activeStage);
+      return stage ? stage.items : [];
+    },
+
     mortgageDepositPercent() {
       if (!this.mortgage.propertyValue || !this.mortgage.deposit) return 0;
       return Math.round((this.mortgage.deposit / this.mortgage.propertyValue) * 100);
