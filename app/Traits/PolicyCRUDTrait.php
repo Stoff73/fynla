@@ -47,10 +47,8 @@ trait PolicyCRUDTrait
                 'data' => $responseData,
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => "Failed to create {$policyTypeName} policy: ".$e->getMessage(),
-            ], 500);
+            report($e);
+            return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }
 
@@ -93,10 +91,8 @@ trait PolicyCRUDTrait
                 'message' => 'Policy not found or you do not have permission to update it.',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => "Failed to update {$policyTypeName} policy: ".$e->getMessage(),
-            ], 500);
+            report($e);
+            return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }
 
@@ -133,10 +129,8 @@ trait PolicyCRUDTrait
                 'message' => 'Policy not found or you do not have permission to delete it.',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => "Failed to delete {$policyTypeName} policy: ".$e->getMessage(),
-            ], 500);
+            report($e);
+            return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }
 }

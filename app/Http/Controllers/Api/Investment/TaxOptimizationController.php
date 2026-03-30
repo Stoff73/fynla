@@ -24,10 +24,10 @@ class TaxOptimizationController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private TaxOptimizationAnalyzer $taxOptimizer,
-        private ISAAllowanceOptimizer $isaOptimizer,
-        private CGTHarvestingCalculator $cgtHarvester,
-        private BedAndISACalculator $bedAndISACalculator
+        private readonly TaxOptimizationAnalyzer $taxOptimizer,
+        private readonly ISAAllowanceOptimizer $isaOptimizer,
+        private readonly CGTHarvestingCalculator $cgtHarvester,
+        private readonly BedAndISACalculator $bedAndISACalculator
     ) {}
 
     /**

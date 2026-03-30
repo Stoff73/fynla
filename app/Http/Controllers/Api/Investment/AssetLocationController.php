@@ -24,9 +24,9 @@ class AssetLocationController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private AssetLocationOptimizer $optimizer,
-        private TaxDragCalculator $taxDragCalculator,
-        private AccountTypeRecommender $recommender,
+        private readonly AssetLocationOptimizer $optimizer,
+        private readonly TaxDragCalculator $taxDragCalculator,
+        private readonly AccountTypeRecommender $recommender,
         private readonly TaxConfigService $taxConfig
     ) {}
 
