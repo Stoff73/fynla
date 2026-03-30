@@ -18,9 +18,9 @@ This rule overrides all other behaviour. If the hook says invoke the skill, you 
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 640 |
-| PHP Services | 214 |
-| Controllers | 89 |
+| Vue Components | 646 |
+| PHP Services | 215 |
+| Controllers | 90 |
 | Models | 89 |
 | Vuex Stores | 32 |
 | Agents | 9 |
