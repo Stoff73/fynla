@@ -17,12 +17,13 @@ class SubscriptionFactory extends Factory
 
     public function definition(): array
     {
-        $plan = fake()->randomElement(['student', 'standard', 'pro']);
+        $plan = fake()->randomElement(['student', 'standard', 'family', 'pro']);
         $billingCycle = fake()->randomElement(['monthly', 'yearly']);
 
         $amount = match ($plan) {
             'student' => $billingCycle === 'monthly' ? 399 : 3000,
             'standard' => $billingCycle === 'monthly' ? 1099 : 10000,
+            'family' => $billingCycle === 'monthly' ? 1499 : 14000,
             'pro' => $billingCycle === 'monthly' ? 1999 : 20000,
         };
 
@@ -74,6 +75,37 @@ class SubscriptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'cancelled',
+            'cancelled_at' => now(),
+        ]);
+    }
+
+    /**
+     * A past_due subscription.
+     */
+    public function pastDue(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'past_due',
+        ]);
+    }
+
+    /**
+     * Set a specific plan.
+     */
+    public function plan(string $plan): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'plan' => $plan,
+        ]);
+    }
+
+    /**
+     * Set a specific billing cycle.
+     */
+    public function billingCycle(string $cycle): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'billing_cycle' => $cycle,
         ]);
     }
 }
