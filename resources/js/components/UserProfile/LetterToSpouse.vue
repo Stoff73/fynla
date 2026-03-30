@@ -766,6 +766,7 @@ import authService from '@/services/authService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import LetterEstateWarnings from '@/components/Estate/LetterEstateWarnings.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LetterToSpouse',
   components: { LetterEstateWarnings },
@@ -936,7 +937,7 @@ export default {
         this.letterData = response.data;
         this.populateForm(this.letterData);
       } catch (error) {
-        console.error('Error loading letter:', error);
+        logger.error('Error loading letter:', error);
       }
     },
 
@@ -987,7 +988,7 @@ export default {
         this.profileData.totalCoverage = this.profileData.policies.reduce((sum, p) => sum + (parseFloat(p.sum_assured) || parseFloat(p.benefit_amount) || 0), 0);
         this.profileData.totalLiabilities = this.profileData.liabilities.reduce((sum, l) => sum + (parseFloat(l.current_balance) || 0), 0);
       } catch (error) {
-        console.error('Error loading profile data:', error);
+        logger.error('Error loading profile data:', error);
       } finally {
         this.loading = false;
       }
@@ -1002,7 +1003,7 @@ export default {
         const expressionOfWishesStatuses = ['single', 'widowed', 'divorced'];
         this.isExpressionOfWishes = expressionOfWishesStatuses.includes(user.marital_status);
       } catch (error) {
-        console.error('Error checking marital status:', error);
+        logger.error('Error checking marital status:', error);
       }
     },
 
@@ -1040,7 +1041,7 @@ export default {
         this.isEditing = false;
         this.$emit('success', 'Letter saved successfully');
       } catch (error) {
-        console.error('Error saving letter:', error);
+        logger.error('Error saving letter:', error);
         this.$emit('error', 'Failed to save letter');
       } finally {
         this.saving = false;

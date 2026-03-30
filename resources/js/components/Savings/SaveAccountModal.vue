@@ -554,6 +554,7 @@ import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SaveAccountModal',
 
@@ -996,7 +997,7 @@ export default {
         const accountData = this.prepareAccountData();
         this.$emit('save', accountData);
       } catch (error) {
-        console.error('Form submission error:', error);
+        logger.error('Form submission error:', error);
       } finally {
         this.submitting = false;
       }

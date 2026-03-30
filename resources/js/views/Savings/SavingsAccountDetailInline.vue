@@ -235,6 +235,7 @@ import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SavingsAccountDetailInline',
   mixins: [currencyMixin],
@@ -393,7 +394,7 @@ export default {
       try {
         this.account = await this.fetchAccount(this.accountId);
       } catch (error) {
-        console.error('Failed to load account:', error);
+        logger.error('Failed to load account:', error);
         this.error = 'Failed to load account details. Please try again.';
       } finally {
         this.loading = false;
@@ -416,7 +417,7 @@ export default {
           await this.loadAccount();
         }
       } catch (error) {
-        console.error('Failed to update account:', error);
+        logger.error('Failed to update account:', error);
         this.error = 'Failed to update account. Please try again.';
       }
     },
@@ -431,7 +432,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete account:', error);
+        logger.error('Failed to delete account:', error);
         this.error = 'Failed to delete account. Please try again.';
       }
     },

@@ -83,6 +83,7 @@ import FamilyMembers from '@/components/UserProfile/FamilyMembers.vue';
 import SubscriptionManagement from '@/components/UserProfile/SubscriptionManagement.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'UserProfile',
 
@@ -116,7 +117,7 @@ export default {
       try {
         await store.dispatch('userProfile/fetchProfile');
       } catch (err) {
-        console.error('Failed to load profile:', err);
+        logger.error('Failed to load profile:', err);
       }
     };
 

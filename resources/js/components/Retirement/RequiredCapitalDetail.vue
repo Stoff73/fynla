@@ -275,6 +275,7 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RequiredCapitalDetail',
 
@@ -511,7 +512,7 @@ export default {
           .map(a => a.id);
         this.setIncludedInvestmentIds(includedIds);
       } catch (err) {
-        console.error('Error fetching required capital:', err);
+        logger.error('Error fetching required capital:', err);
         this.error = err.response?.data?.message || 'Failed to load required capital data';
       }
     },

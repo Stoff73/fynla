@@ -142,6 +142,7 @@ import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleGoalStrategies from '@/components/Shared/ModuleGoalStrategies.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SavingsDashboard',
 
@@ -202,7 +203,7 @@ export default {
       try {
         await this.fetchSavingsData();
       } catch (error) {
-        console.error('Failed to load savings data:', error);
+        logger.error('Failed to load savings data:', error);
       }
     },
 

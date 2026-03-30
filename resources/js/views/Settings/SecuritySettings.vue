@@ -281,6 +281,7 @@ import MFASetupModal from '@/components/Auth/MFASetupModal.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SecuritySettings',
   components: {
@@ -324,7 +325,7 @@ export default {
         const response = await api.get('/auth/mfa/status');
         this.mfaEnabled = response.data.data.mfa_enabled;
       } catch (error) {
-        console.error('Failed to load MFA status:', error);
+        logger.error('Failed to load MFA status:', error);
       }
     },
     async loadSessions() {
@@ -332,7 +333,7 @@ export default {
         const response = await api.get('/auth/sessions');
         this.sessions = response.data.data.sessions || [];
       } catch (error) {
-        console.error('Failed to load sessions:', error);
+        logger.error('Failed to load sessions:', error);
       }
     },
     setupMFA() {

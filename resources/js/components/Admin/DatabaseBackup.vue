@@ -248,6 +248,7 @@
 import adminService from '../../services/adminService';
 import ConfirmDialog from '../Common/ConfirmDialog.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'DatabaseBackup',
 
@@ -287,7 +288,7 @@ export default {
           this.error = response.data.message;
         }
       } catch (error) {
-        console.error('Failed to load backups:', error);
+        logger.error('Failed to load backups:', error);
         if (error.response?.status === 429) {
           this.error = 'Please wait a moment before refreshing the backup list.';
         } else {
@@ -312,7 +313,7 @@ export default {
           this.error = response.data.message;
         }
       } catch (error) {
-        console.error('Failed to create backup:', error);
+        logger.error('Failed to create backup:', error);
         if (error.response?.status === 429) {
           this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
         } else {
@@ -346,7 +347,7 @@ export default {
           this.error = response.data.message;
         }
       } catch (error) {
-        console.error('Failed to restore backup:', error);
+        logger.error('Failed to restore backup:', error);
         if (error.response?.status === 429) {
           this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
         } else {
@@ -380,7 +381,7 @@ export default {
           this.error = response.data.message;
         }
       } catch (error) {
-        console.error('Failed to delete backup:', error);
+        logger.error('Failed to delete backup:', error);
         if (error.response?.status === 429) {
           this.error = 'Backup operations are limited to 3 per minute for safety. Please wait a moment and try again.';
         } else {

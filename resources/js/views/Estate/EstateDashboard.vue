@@ -92,6 +92,7 @@ import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
 import estateService from '@/services/estateService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'EstateDashboard',
 
@@ -174,7 +175,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Failed to load estate data:', error);
+        logger.error('Failed to load estate data:', error);
       } finally {
         this.initialLoading = false;
       }

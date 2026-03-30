@@ -85,6 +85,7 @@ import UsefulResources from '../UsefulResources.vue';
 import { STEP_RESOURCES } from '@/constants/onboardingLinks';
 import ExpenditureForm from '../../UserProfile/ExpenditureForm.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ExpenditureStep',
 
@@ -122,7 +123,7 @@ export default {
         const response = await store.dispatch('auth/fetchUserById', user.value.spouse_id);
         spouseData.value = response || {};
       } catch (err) {
-        console.error('Failed to fetch spouse data:', err);
+        logger.error('Failed to fetch spouse data:', err);
         spouseData.value = {};
       }
     };

@@ -152,6 +152,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GoalForm',
 
@@ -234,7 +235,7 @@ export default {
         this.$emit('save', { ...this.formData });
         this.closeModal();
       } catch (error) {
-        console.error('Form submission error:', error);
+        logger.error('Form submission error:', error);
         if (error.response?.data?.errors) {
           this.errors = error.response.data.errors;
         }

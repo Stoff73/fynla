@@ -224,6 +224,7 @@ import rebalancingService from '@/services/rebalancingService';
 import AllocationComparison from './AllocationComparison.vue';
 import RebalancingActions from './RebalancingActions.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RebalancingCalculator',
 
@@ -299,7 +300,7 @@ export default {
           this.error = response.message || 'Failed to calculate rebalancing';
         }
       } catch (err) {
-        console.error('Rebalancing calculation error:', err);
+        logger.error('Rebalancing calculation error:', err);
         this.error = err.response?.data?.message || err.message || 'Failed to calculate rebalancing';
       } finally {
         this.loading = false;
@@ -322,7 +323,7 @@ export default {
           throw new Error(response.message || 'Failed to save actions');
         }
       } catch (err) {
-        console.error('Failed to save rebalancing actions:', err);
+        logger.error('Failed to save rebalancing actions:', err);
         this.error = err.response?.data?.message || err.message || 'Failed to save actions';
       }
     },

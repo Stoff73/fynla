@@ -131,6 +131,7 @@ import FamilyMemberFormModal from '@/components/UserProfile/FamilyMemberFormModa
 import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'FamilyInfoStep',
 
@@ -188,7 +189,7 @@ export default {
         const response = await familyMembersService.getFamilyMembers();
         familyMembers.value = response.data?.family_members || [];
       } catch (err) {
-        console.error('Failed to load family members:', err);
+        logger.error('Failed to load family members:', err);
       }
     };
 
@@ -258,7 +259,7 @@ export default {
           }, 5000);
         }
       } catch (err) {
-        console.error('Failed to save family member:', err);
+        logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
         error.value = `Failed to save family member: ${errorMsg}`;
         closeModal();
@@ -289,7 +290,7 @@ export default {
             successMessage.value = '';
           }, 3000);
         } catch (err) {
-          console.error('Failed to delete family member:', err);
+          logger.error('Failed to delete family member:', err);
           error.value = 'Failed to delete family member.';
         }
       }
@@ -317,7 +318,7 @@ export default {
       try {
         await store.dispatch('auth/fetchUser');
       } catch (err) {
-        console.error('Failed to fetch current user:', err);
+        logger.error('Failed to fetch current user:', err);
       }
 
       await loadFamilyMembers();

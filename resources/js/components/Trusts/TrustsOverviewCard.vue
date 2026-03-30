@@ -54,6 +54,7 @@
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TrustsOverviewCard',
   mixins: [currencyMixin],
@@ -149,7 +150,7 @@ export default {
       try {
         await this.fetchTrusts();
       } catch (error) {
-        console.error('Failed to load trusts:', error);
+        logger.error('Failed to load trusts:', error);
       } finally {
         this.loading = false;
       }

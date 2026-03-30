@@ -227,6 +227,7 @@
 <script>
 import { mapState } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AssetForm',
 
@@ -461,7 +462,7 @@ export default {
           this.resetForm();
         }
       } catch (error) {
-        console.error('Error submitting asset form:', error);
+        logger.error('Error submitting asset form:', error);
         alert('An error occurred while saving the asset. Please try again.');
       } finally {
         this.isSubmitting = false;

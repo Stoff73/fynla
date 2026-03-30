@@ -227,6 +227,8 @@
 </template>
 
 <script>
+import logger from '@/utils/logger';
+
 export default {
   name: 'UserFormModal',
   emits: ['save', 'close'],
@@ -382,7 +384,7 @@ export default {
 
         this.$emit('save', payload);
       } catch (error) {
-        console.error('Form submission error:', error);
+        logger.error('Form submission error:', error);
         this.error = 'An unexpected error occurred. Please try again.';
         this.submitting = false;
       }

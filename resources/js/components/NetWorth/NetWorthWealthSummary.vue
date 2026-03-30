@@ -65,6 +65,7 @@ import AssetBreakdownBar from './AssetBreakdownBar.vue';
 import WealthSummary from './WealthSummary.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'NetWorthWealthSummary',
 
@@ -173,7 +174,7 @@ export default {
     try {
       await this.loadAllData();
     } catch (error) {
-      console.error('Failed to load net worth data:', error);
+      logger.error('Failed to load net worth data:', error);
     }
   },
 };

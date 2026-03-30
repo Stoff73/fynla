@@ -69,6 +69,7 @@ import { MODULE_CONFIGS } from '../../constants/moduleConfigs';
 import DecisionTree from './DecisionTree.vue';
 import ActionDefinitionDrawer from './ActionDefinitionDrawer.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'DecisionMatrix',
 
@@ -143,7 +144,7 @@ export default {
         this.moduleCounts[this.activeModule] = this.matrixData?.stats?.total || 0;
       } catch (err) {
         this.error = 'Failed to load decision matrix data.';
-        console.error('Decision matrix load error:', err);
+        logger.error('Decision matrix load error:', err);
       } finally {
         this.loading = false;
       }
@@ -194,7 +195,7 @@ export default {
         this.closeDrawer();
         await this.loadMatrix();
       } catch (err) {
-        console.error('Save error:', err);
+        logger.error('Save error:', err);
         alert('Failed to save. Check the console for details.');
       } finally {
         this.saving = false;

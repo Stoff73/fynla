@@ -171,6 +171,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import SaveGoalModal from './SaveGoalModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SavingsGoals',
   mixins: [currencyMixin],
@@ -278,7 +279,7 @@ export default {
         // Close modal
         this.handleCloseModal();
       } catch (error) {
-        console.error('Failed to save goal:', error);
+        logger.error('Failed to save goal:', error);
         alert('Failed to save goal. Please try again.');
       }
     },
@@ -292,7 +293,7 @@ export default {
         await this.deleteGoal(goalId);
         await this.fetchSavingsData();
       } catch (error) {
-        console.error('Failed to delete goal:', error);
+        logger.error('Failed to delete goal:', error);
         alert('Failed to delete goal. Please try again.');
       }
     },
@@ -314,7 +315,7 @@ export default {
         });
         await this.fetchSavingsData();
       } catch (error) {
-        console.error('Failed to update goal progress:', error);
+        logger.error('Failed to update goal progress:', error);
         alert('Failed to update goal progress. Please try again.');
       }
     },

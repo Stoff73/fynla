@@ -379,6 +379,7 @@ import TrustInfoStep from './steps/TrustInfoStep.vue';
 import CompletionStep from './steps/CompletionStep.vue';
 import GoalSetupStep from './steps/GoalSetupStep.vue';
 
+import logger from '@/utils/logger';
 // =====================================================================
 // LIFE STAGE STEP → COMPONENT MAPPING
 // Maps each step ID from lifeStageConfig onboarding.steps to the
@@ -548,7 +549,7 @@ export default {
         const module = await STEP_COMPONENTS[stepId]();
         lifeStageCurrentComponent.value = markRaw(module.default || module);
       } catch (err) {
-        console.error(`Failed to load component for step "${stepId}":`, err);
+        logger.error(`Failed to load component for step "${stepId}":`, err);
         lifeStageCurrentComponent.value = null;
       }
     };
@@ -825,7 +826,7 @@ export default {
           await userProfileService.createFamilyMember(formData);
         }
       } catch (error) {
-        console.error('[Onboarding] Failed to save step data:', error?.message || error);
+        logger.error('[Onboarding] Failed to save step data:', error?.message || error);
         // Don't block progress — data can be re-entered from module pages
       }
 

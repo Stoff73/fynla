@@ -345,6 +345,7 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'WhatIfScenariosBuilder',
 
@@ -403,7 +404,7 @@ export default {
       try {
         await this.fetchScenarioTemplates();
       } catch (error) {
-        console.error('Failed to load templates:', error);
+        logger.error('Failed to load templates:', error);
       }
     },
 
@@ -411,7 +412,7 @@ export default {
       try {
         await this.fetchInvestmentScenarios(this.filters);
       } catch (error) {
-        console.error('Failed to load scenarios:', error);
+        logger.error('Failed to load scenarios:', error);
       }
     },
 
@@ -455,7 +456,7 @@ export default {
         this.closeCreateModal();
         await this.loadScenarios();
       } catch (error) {
-        console.error('Failed to create scenario:', error);
+        logger.error('Failed to create scenario:', error);
       }
     },
 
@@ -477,7 +478,7 @@ export default {
         this.activeMenuId = null;
         await this.loadScenarios();
       } catch (error) {
-        console.error('Failed to run scenario:', error);
+        logger.error('Failed to run scenario:', error);
       }
     },
 
@@ -521,7 +522,7 @@ export default {
       try {
         await this.saveInvestmentScenario(id);
       } catch (error) {
-        console.error('Failed to save scenario:', error);
+        logger.error('Failed to save scenario:', error);
       }
     },
 
@@ -529,7 +530,7 @@ export default {
       try {
         await this.unsaveInvestmentScenario(id);
       } catch (error) {
-        console.error('Failed to unsave scenario:', error);
+        logger.error('Failed to unsave scenario:', error);
       }
     },
 
@@ -542,7 +543,7 @@ export default {
         await this.deleteInvestmentScenario(id);
         this.activeMenuId = null;
       } catch (error) {
-        console.error('Failed to delete scenario:', error);
+        logger.error('Failed to delete scenario:', error);
       }
     },
 

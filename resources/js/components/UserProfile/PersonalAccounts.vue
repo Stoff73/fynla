@@ -136,6 +136,7 @@ import storage from '@/utils/storage';
 import CashflowView from './CashflowView.vue';
 import BalanceSheetView from './BalanceSheetView.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PersonalAccounts',
 
@@ -187,7 +188,7 @@ export default {
         // Save period to localStorage after successful calculation
         storage.set('personalAccounts_period', JSON.stringify(period.value));
       } catch (error) {
-        console.error('Failed to calculate personal accounts:', error);
+        logger.error('Failed to calculate personal accounts:', error);
       }
     };
 
@@ -198,7 +199,7 @@ export default {
         try {
           period.value = JSON.parse(savedPeriod);
         } catch (error) {
-          console.error('Failed to restore saved period:', error);
+          logger.error('Failed to restore saved period:', error);
         }
       }
       // Auto-calculate on mount

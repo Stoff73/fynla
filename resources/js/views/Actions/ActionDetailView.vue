@@ -91,6 +91,7 @@ import DecisionTreeDiagram from '@/components/Actions/DecisionTreeDiagram.vue';
 import DecisionTraceTimeline from '@/components/Actions/DecisionTraceTimeline.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ActionDetailView',
 
@@ -150,7 +151,7 @@ export default {
       try {
         await this.$store.dispatch('plans/fetchPlan', this.planType);
       } catch (e) {
-        console.error('[ActionDetail] Failed to fetch plan:', e);
+        logger.error('[ActionDetail] Failed to fetch plan:', e);
       }
     }
     this.loading = false;

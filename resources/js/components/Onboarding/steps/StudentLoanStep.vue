@@ -127,6 +127,7 @@ import UsefulResources from '@/components/Onboarding/UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'StudentLoanStep',
 
@@ -211,7 +212,7 @@ export default {
         emit('save', formData);
       } catch (err) {
         error.value = 'Failed to save student loan details. Please try again.';
-        console.error('StudentLoanStep save error:', err);
+        logger.error('StudentLoanStep save error:', err);
       } finally {
         loading.value = false;
       }

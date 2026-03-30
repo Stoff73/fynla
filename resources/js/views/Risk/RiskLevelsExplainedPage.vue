@@ -163,6 +163,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import riskService from '@/services/riskService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RiskLevelsExplainedPage',
 
@@ -205,7 +206,7 @@ export default {
           this.allRiskLevels = levelsResponse.data;
         }
       } catch (error) {
-        console.error('Error loading risk levels:', error);
+        logger.error('Error loading risk levels:', error);
       } finally {
         this.loading = false;
       }

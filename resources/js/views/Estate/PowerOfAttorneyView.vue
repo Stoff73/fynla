@@ -25,6 +25,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import PowerOfAttorneyTab from '@/components/Estate/PowerOfAttorneyTab.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PowerOfAttorneyView',
 
@@ -44,7 +45,7 @@ export default {
     try {
       await this.$store.dispatch('estate/fetchLpas');
     } catch (error) {
-      console.error('Failed to load LPA data:', error);
+      logger.error('Failed to load LPA data:', error);
     } finally {
       this.loading = false;
     }

@@ -1300,6 +1300,7 @@ import ExpenditureExpandableGridRow from './ExpenditureExpandableGridRow.vue';
 import ExpenditureCategoryCard from './ExpenditureCategoryCard.vue';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ExpenditureForm',
 
@@ -2191,12 +2192,12 @@ export default {
           } catch (err) {
             // 404 is expected if no spouse linked - only log other errors
             if (err.response?.status !== 404) {
-              console.error('Failed to fetch spouse commitments:', err);
+              logger.error('Failed to fetch spouse commitments:', err);
             }
           }
         }
       } catch (err) {
-        console.error('Failed to fetch commitments:', err);
+        logger.error('Failed to fetch commitments:', err);
       } finally {
         loadingCommitments.value = false;
       }
@@ -2296,7 +2297,7 @@ export default {
           annual_charitable_donations: monthlyCharitable * 12,
           is_gift_aid: isGiftAid.value,
         }).catch((err) => {
-          console.error('Failed to save charitable donations to user profile:', err);
+          logger.error('Failed to save charitable donations to user profile:', err);
         });
       }
 

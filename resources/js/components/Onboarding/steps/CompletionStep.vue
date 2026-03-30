@@ -251,6 +251,7 @@ import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CompletionStep',
 
@@ -348,7 +349,7 @@ export default {
         summary.value.familyMembers = profileResponse.data?.family_members?.length || 0;
 
       } catch (err) {
-        console.error('Failed to load summary', err);
+        logger.error('Failed to load summary', err);
       } finally {
         loading.value = false;
       }
@@ -381,7 +382,7 @@ export default {
           await store.dispatch('onboarding/goToStep', stepIndex);
         }
       } catch (err) {
-        console.error('Failed to navigate to step:', err);
+        logger.error('Failed to navigate to step:', err);
       }
     };
 

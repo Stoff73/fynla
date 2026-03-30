@@ -162,6 +162,7 @@
 import { mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AmortizationScheduleView',
 
@@ -230,7 +231,7 @@ export default {
         this.schedule = result.schedule || [];
       } catch (error) {
         this.error = 'Failed to load amortization schedule. Please try again.';
-        console.error('Failed to load amortization schedule:', error);
+        logger.error('Failed to load amortization schedule:', error);
       } finally {
         this.loading = false;
       }

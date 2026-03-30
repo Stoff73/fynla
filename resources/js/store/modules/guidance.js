@@ -7,6 +7,7 @@
 
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 // Define all guidance steps with their targets and routes
 const GUIDANCE_STEPS = [
     {
@@ -323,7 +324,7 @@ const actions = {
                 guidance_version: state.version,
             });
         } catch (error) {
-            console.error('Failed to save guidance status:', error);
+            logger.error('Failed to save guidance status:', error);
             // Don't throw - guidance is non-critical
         }
     },
@@ -344,7 +345,7 @@ const actions = {
             }
             commit('SET_INITIALIZED', true);
         } catch (error) {
-            console.error('Failed to fetch guidance status:', error);
+            logger.error('Failed to fetch guidance status:', error);
             commit('SET_INITIALIZED', true);
             // Don't throw - guidance is non-critical
         }

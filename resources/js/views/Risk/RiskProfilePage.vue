@@ -200,6 +200,7 @@ import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue
 import riskService from '@/services/riskService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RiskProfilePage', // Force HMR reload
 
@@ -294,7 +295,7 @@ export default {
         // Load products with custom risk
         await this.loadProductsWithCustomRisk();
       } catch (error) {
-        console.error('Error loading risk profile:', error);
+        logger.error('Error loading risk profile:', error);
       } finally {
         this.loading = false;
       }
@@ -329,7 +330,7 @@ export default {
             })),
         ];
       } catch (error) {
-        console.error('Error loading products:', error);
+        logger.error('Error loading products:', error);
       }
     },
 

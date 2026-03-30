@@ -1110,7 +1110,7 @@ export default {
           });
           await this.$store.dispatch('investment/fetchInvestmentData');
         } catch (error) {
-          console.error('Failed to update holding:', error);
+          logger.error('Failed to update holding:', error);
         }
       }
       this.showHoldingDetailModal = false;

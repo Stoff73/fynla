@@ -441,6 +441,7 @@ import PensionPotProjectionChart from '@/components/Retirement/PensionPotProject
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PensionDetailInline',
   mixins: [currencyMixin],
@@ -767,7 +768,7 @@ export default {
 
         this.$emit('back'); // Return to list to show updated data
       } catch (error) {
-        console.error('Failed to update pension:', error);
+        logger.error('Failed to update pension:', error);
       }
     },
 
@@ -782,7 +783,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete pension:', error);
+        logger.error('Failed to delete pension:', error);
       }
     },
 
@@ -796,7 +797,7 @@ export default {
           this.projectionData = response.data;
         }
       } catch (error) {
-        console.error('Failed to load projections:', error);
+        logger.error('Failed to load projections:', error);
       } finally {
         this.projectionLoading = false;
       }

@@ -194,6 +194,7 @@ import FactorBreakdownCard from '@/components/Risk/FactorBreakdownCard.vue';
 import InvestmentTypesAccordion from '@/components/Risk/InvestmentTypesAccordion.vue';
 import riskService from '@/services/riskService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RiskProfileSummary',
 
@@ -274,7 +275,7 @@ export default {
 
         await this.loadProductsWithCustomRisk();
       } catch (error) {
-        console.error('Error loading risk profile:', error);
+        logger.error('Error loading risk profile:', error);
       } finally {
         this.loading = false;
       }
@@ -309,7 +310,7 @@ export default {
             })),
         ];
       } catch (error) {
-        console.error('Error loading products:', error);
+        logger.error('Error loading products:', error);
       }
     },
 

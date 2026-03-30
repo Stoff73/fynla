@@ -116,6 +116,7 @@ import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 import estateService from '@/services/estateService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'WillBuilderReviewStep',
 
@@ -181,7 +182,7 @@ export default {
         const res = await estateService.validateWillDocument(this.documentId);
         this.warnings = res.data?.warnings || [];
       } catch (error) {
-        console.error('Failed to validate:', error);
+        logger.error('Failed to validate:', error);
       }
     },
 
@@ -197,7 +198,7 @@ export default {
         this.mirrorData = res.data?.mirror || null;
         this.activeTab = 'mirror';
       } catch (error) {
-        console.error('Failed to generate mirror will:', error);
+        logger.error('Failed to generate mirror will:', error);
       } finally {
         this.generatingMirror = false;
       }
@@ -210,7 +211,7 @@ export default {
         await estateService.completeWillDocument(this.documentId);
         this.$emit('next', {});
       } catch (error) {
-        console.error('Failed to complete will:', error);
+        logger.error('Failed to complete will:', error);
         if (error.response?.data?.message) {
           this.warnings.push({
             field: 'general',

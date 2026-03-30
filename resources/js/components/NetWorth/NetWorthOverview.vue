@@ -252,6 +252,7 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'NetWorthOverview',
   mixins: [currencyMixin],
@@ -351,7 +352,7 @@ export default {
     try {
       await this.fetchAssetsSummaryDetailed();
     } catch (error) {
-      console.error('Failed to load assets summary:', error);
+      logger.error('Failed to load assets summary:', error);
     }
   },
 };

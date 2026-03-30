@@ -305,6 +305,7 @@ import api from '@/services/api';
 import { mapState } from 'vuex';
 import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS, ASSET_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AccountPerformancePanel',
 
@@ -653,7 +654,7 @@ export default {
           this.error = response.message || 'Failed to load projections';
         }
       } catch (err) {
-        console.error('Error loading projections:', err);
+        logger.error('Error loading projections:', err);
         this.error = 'Failed to load projection data';
       } finally {
         this.loading = false;
@@ -720,7 +721,7 @@ export default {
           this.recommendations = response.data.recommendations;
         }
       } catch (err) {
-        console.error('Error loading diversification:', err);
+        logger.error('Error loading diversification:', err);
       } finally {
         this.loadingRecommendations = false;
       }
@@ -756,7 +757,7 @@ export default {
           this.rebalancingData = response.data;
         }
       } catch (err) {
-        console.error('Error loading rebalancing:', err);
+        logger.error('Error loading rebalancing:', err);
       } finally {
         this.loadingRebalancing = false;
       }
@@ -857,7 +858,7 @@ export default {
         const response = await api.get(`/tax-info/investment/${this.account.account_type}`);
         this.taxInfo = response.data.data;
       } catch (err) {
-        console.error('Error loading tax info:', err);
+        logger.error('Error loading tax info:', err);
       } finally {
         this.loadingTaxInfo = false;
       }

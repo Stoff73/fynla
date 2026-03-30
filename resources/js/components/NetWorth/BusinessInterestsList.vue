@@ -89,6 +89,7 @@ import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'BusinessInterestsList',
 
@@ -166,7 +167,7 @@ export default {
       try {
         await this.fetchBusinesses();
       } catch (error) {
-        console.error('Failed to fetch business interests:', error);
+        logger.error('Failed to fetch business interests:', error);
       }
     },
 
@@ -213,7 +214,7 @@ export default {
         }
         this.closeFormModal();
       } catch (error) {
-        console.error('Failed to save business:', error);
+        logger.error('Failed to save business:', error);
       }
     },
 
@@ -225,7 +226,7 @@ export default {
         this.showDeleteConfirm = false;
         this.deletingBusiness = null;
       } catch (error) {
-        console.error('Failed to delete business:', error);
+        logger.error('Failed to delete business:', error);
       }
     },
 

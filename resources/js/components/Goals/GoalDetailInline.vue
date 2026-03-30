@@ -455,6 +455,7 @@ import goalsService from '@/services/goalsService';
 import { getGoalIcon } from '@/constants/goalIcons';
 import { formatDateLong } from '@/utils/dateFormatter';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GoalDetailInline',
   mixins: [currencyMixin, previewModeMixin],
@@ -625,7 +626,7 @@ export default {
         }
       } catch (err) {
         this.error = 'Failed to load goal details. Please try again.';
-        console.error('Failed to load goal detail:', err);
+        logger.error('Failed to load goal detail:', err);
       } finally {
         this.loading = false;
       }
@@ -640,7 +641,7 @@ export default {
           this.dependedOnBy = response.data.depended_on_by || [];
         }
       } catch (err) {
-        console.error('Failed to load dependencies:', err);
+        logger.error('Failed to load dependencies:', err);
       } finally {
         this.dependenciesLoading = false;
       }

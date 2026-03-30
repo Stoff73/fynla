@@ -352,6 +352,7 @@ import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import chattelService from '@/services/chattelService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ChattelDetailInline',
 
@@ -434,7 +435,7 @@ export default {
         // Pre-fill CGT form with current value
         this.cgtForm.disposal_price = this.chattel.current_value;
       } catch (error) {
-        console.error('Failed to load chattel:', error);
+        logger.error('Failed to load chattel:', error);
       } finally {
         this.loading = false;
       }
@@ -490,7 +491,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete chattel:', error);
+        logger.error('Failed to delete chattel:', error);
       }
     },
 
@@ -507,7 +508,7 @@ export default {
         });
         this.cgtResult = response.data || response;
       } catch (error) {
-        console.error('Failed to calculate CGT:', error);
+        logger.error('Failed to calculate CGT:', error);
       } finally {
         this.calculatingCGT = false;
       }

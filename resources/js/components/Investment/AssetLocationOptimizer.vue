@@ -312,6 +312,7 @@
 import api from '@/services/api';
 import { SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AssetLocationOptimiser',
 
@@ -410,7 +411,7 @@ export default {
         const recResponse = await api.get('/investment/asset-location/recommendations');
         this.recommendations = recResponse.data.recommendations || [];
       } catch (err) {
-        console.error('Error loading asset location analysis:', err);
+        logger.error('Error loading asset location analysis:', err);
         this.error = err.response?.data?.message || 'Failed to load asset location analysis. Please try again.';
       } finally {
         this.loading = false;

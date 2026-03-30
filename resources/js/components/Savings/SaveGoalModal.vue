@@ -191,6 +191,7 @@
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SaveGoalModal',
 
@@ -288,7 +289,7 @@ export default {
         const goalData = this.prepareGoalData();
         this.$emit('save', goalData);
       } catch (error) {
-        console.error('Form submission error:', error);
+        logger.error('Form submission error:', error);
       } finally {
         this.submitting = false;
       }

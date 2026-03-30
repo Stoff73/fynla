@@ -154,6 +154,7 @@ import api from '@/services/api';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TrustDetailView',
   mixins: [currencyMixin],
@@ -246,7 +247,7 @@ export default {
           }
         }
       } catch (err) {
-        console.error('Failed to load trust:', err);
+        logger.error('Failed to load trust:', err);
         this.error = err.message || 'Failed to load trust details';
       } finally {
         this.loading = false;

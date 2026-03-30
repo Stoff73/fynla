@@ -110,6 +110,7 @@
 import { ref, reactive, onBeforeUnmount } from 'vue';
 import authService from '../../services/authService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ChangePasswordModal',
 
@@ -170,8 +171,8 @@ export default {
           error.value = response.message || 'Failed to change password';
         }
       } catch (err) {
-        console.error('Password change error:', err);
-        console.error('Validation errors:', err.response?.data?.errors);
+        logger.error('Password change error:', err);
+        logger.error('Validation errors:', err.response?.data?.errors);
 
         // Display validation errors if available
         if (err.response?.data?.errors) {

@@ -247,6 +247,7 @@
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LiabilityForm',
   mixins: [currencyMixin],
@@ -489,7 +490,7 @@ export default {
           this.resetForm();
         }
       } catch (error) {
-        console.error('Error submitting liability form:', error);
+        logger.error('Error submitting liability form:', error);
         alert('An error occurred while saving the liability. Please try again.');
       } finally {
         this.isSubmitting = false;

@@ -355,6 +355,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import privacyService from '@/services/privacyService';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PrivacySettings',
   components: {
@@ -420,7 +421,7 @@ export default {
           }
         });
       } catch (error) {
-        console.error('Failed to load consents:', error);
+        logger.error('Failed to load consents:', error);
       }
     },
     async updateConsent(type, granted) {
@@ -429,7 +430,7 @@ export default {
         this.$toast?.success?.(`${type} consent updated`);
       } catch (error) {
         this.$toast?.error?.('Failed to update consent') ||
-          console.error('Failed to update consent:', error);
+          logger.error('Failed to update consent:', error);
       }
     },
     async checkExportStatus() {
@@ -442,7 +443,7 @@ export default {
         this.pendingExport = pending;
         this.completedExport = completed;
       } catch (error) {
-        console.error('Failed to check export status:', error);
+        logger.error('Failed to check export status:', error);
       }
     },
     async requestExport() {

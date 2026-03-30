@@ -161,6 +161,7 @@ import SaveAccountModal from './SaveAccountModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CurrentSituation',
 
@@ -318,7 +319,7 @@ export default {
         // Close modal
         this.handleCloseModal();
       } catch (error) {
-        console.error('Failed to save account:', error);
+        logger.error('Failed to save account:', error);
         alert('Failed to save account. Please try again.');
       }
     },

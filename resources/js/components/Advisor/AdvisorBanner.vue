@@ -21,6 +21,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AdvisorBanner',
 
@@ -41,7 +42,7 @@ export default {
         await this.exitClient();
         this.$router.push({ name: 'AdvisorDashboard' });
       } catch (error) {
-        console.error('Failed to exit impersonation:', error);
+        logger.error('Failed to exit impersonation:', error);
       }
     },
   },

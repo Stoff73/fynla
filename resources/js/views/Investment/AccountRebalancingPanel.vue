@@ -263,6 +263,7 @@
 import rebalancingService from '@/services/rebalancingService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AccountRebalancingPanel',
 
@@ -393,7 +394,7 @@ export default {
           this.error = response.message || 'Failed to load rebalancing data';
         }
       } catch (err) {
-        console.error('Failed to load rebalancing data:', err);
+        logger.error('Failed to load rebalancing data:', err);
         this.error = err.response?.data?.message || 'Failed to load rebalancing data';
       } finally {
         this.loading = false;
@@ -418,7 +419,7 @@ export default {
           this.thresholdSaved = false;
         }, 2000);
       } catch (err) {
-        console.error('Failed to update threshold:', err);
+        logger.error('Failed to update threshold:', err);
         // Revert to previous value
         this.editableThreshold = this.rebalancingData?.threshold_percent || 10;
       } finally {

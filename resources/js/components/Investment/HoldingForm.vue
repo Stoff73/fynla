@@ -279,6 +279,7 @@
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'HoldingForm',
 
@@ -446,7 +447,7 @@ export default {
         this.$emit('save', holdingData);
         this.closeModal();
       } catch (error) {
-        console.error('Form submission error:', error);
+        logger.error('Form submission error:', error);
         if (error.response?.data?.errors) {
           this.errors = error.response.data.errors;
         }

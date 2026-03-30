@@ -422,6 +422,7 @@ import DecumulationStrategyCard from '@/components/Retirement/DecumulationStrate
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PensionList',
 
@@ -678,7 +679,7 @@ export default {
       try {
         await this.fetchProjections();
       } catch (error) {
-        console.error('Failed to load projections:', error);
+        logger.error('Failed to load projections:', error);
       }
     },
 
@@ -764,7 +765,7 @@ export default {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
-        console.error('Failed to save pension:', error);
+        logger.error('Failed to save pension:', error);
         this.errorMessage = 'Failed to save pension. Please try again.';
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
         this.errorTimeout = setTimeout(() => {
@@ -794,7 +795,7 @@ export default {
           this.fetchRetirementIncome(),
         ]);
       } catch (error) {
-        console.error('Failed to load projections:', error);
+        logger.error('Failed to load projections:', error);
       }
     },
 

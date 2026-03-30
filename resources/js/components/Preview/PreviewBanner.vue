@@ -150,6 +150,7 @@ import { mapGetters, mapActions } from 'vuex';
 import PersonaSelector from './PersonaSelector.vue';
 import PersonaIntroModal from './PersonaIntroModal.vue';
 
+import logger from '@/utils/logger';
 export default {
     name: 'PreviewBanner',
 
@@ -261,7 +262,7 @@ export default {
                 await this.switchPersona(this.selectedPersona.id);
                 // switchPersona will reload the page
             } catch (error) {
-                console.error('Failed to switch persona:', error);
+                logger.error('Failed to switch persona:', error);
                 this.switching = false;
             }
         },
@@ -278,7 +279,7 @@ export default {
                 await this.toggleSpouseView();
                 // toggleSpouseView will reload the page via switchPersona
             } catch (error) {
-                console.error('Failed to toggle spouse view:', error);
+                logger.error('Failed to toggle spouse view:', error);
                 this.switchingSpouse = false;
             }
         },

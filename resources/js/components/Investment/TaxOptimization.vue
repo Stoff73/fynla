@@ -141,6 +141,7 @@ import CGTHarvestingOpportunities from './CGTHarvestingOpportunities.vue';
 import BedAndISATransfers from './BedAndISATransfers.vue';
 import TaxOptimizationRecommendations from './TaxOptimizationRecommendations.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TaxOptimization',
 
@@ -200,7 +201,7 @@ export default {
           this.loadRecommendations(),
         ]);
       } catch (err) {
-        console.error('Error loading tax optimization data:', err);
+        logger.error('Error loading tax optimization data:', err);
         this.error = err.response?.data?.message || 'Failed to load tax optimization data';
       } finally {
         this.loading = false;
@@ -214,7 +215,7 @@ export default {
         });
         this.taxAnalysis = response.data;
       } catch (err) {
-        console.error('Error loading tax analysis:', err);
+        logger.error('Error loading tax analysis:', err);
         throw err;
       }
     },
@@ -224,7 +225,7 @@ export default {
         const response = await investmentService.getISAStrategy();
         this.isaStrategy = response.data;
       } catch (err) {
-        console.error('Error loading ISA strategy:', err);
+        logger.error('Error loading ISA strategy:', err);
         // Non-critical, don't throw
       }
     },
@@ -234,7 +235,7 @@ export default {
         const response = await investmentService.getCGTHarvestingOpportunities();
         this.cgtHarvesting = response.data;
       } catch (err) {
-        console.error('Error loading CGT harvesting:', err);
+        logger.error('Error loading CGT harvesting:', err);
         // Non-critical, don't throw
       }
     },
@@ -244,7 +245,7 @@ export default {
         const response = await investmentService.getBedAndISAOpportunities();
         this.bedAndISA = response.data;
       } catch (err) {
-        console.error('Error loading Bed and ISA:', err);
+        logger.error('Error loading Bed and ISA:', err);
         // Non-critical, don't throw
       }
     },
@@ -254,7 +255,7 @@ export default {
         const response = await investmentService.getTaxRecommendations();
         this.recommendations = response.data;
       } catch (err) {
-        console.error('Error loading recommendations:', err);
+        logger.error('Error loading recommendations:', err);
         // Non-critical, don't throw
       }
     },

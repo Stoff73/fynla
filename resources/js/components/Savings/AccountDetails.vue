@@ -153,6 +153,7 @@ import { mapState, mapActions } from 'vuex';
 import SaveAccountModal from './SaveAccountModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AccountDetails',
   mixins: [currencyMixin],
@@ -245,7 +246,7 @@ export default {
         // Close modal
         this.handleCloseModal();
       } catch (error) {
-        console.error('Failed to save account:', error);
+        logger.error('Failed to save account:', error);
         alert('Failed to save account. Please try again.');
       }
     },
@@ -259,7 +260,7 @@ export default {
         await this.deleteAccount(accountId);
         await this.fetchSavingsData();
       } catch (error) {
-        console.error('Failed to delete account:', error);
+        logger.error('Failed to delete account:', error);
         alert('Failed to delete account. Please try again.');
       }
     },

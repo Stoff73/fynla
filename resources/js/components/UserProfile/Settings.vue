@@ -119,6 +119,7 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import SpouseDataSharing from './SpouseDataSharing.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Settings',
 
@@ -167,7 +168,7 @@ export default {
           await store.dispatch('auth/logout');
           router.push({ name: 'Login' });
         } catch (error) {
-          console.error('Logout failed:', error);
+          logger.error('Logout failed:', error);
           // Still redirect to login even if API call fails
           router.push({ name: 'Login' });
         } finally {

@@ -163,6 +163,7 @@ import EventsTab from '@/components/Goals/EventsTab.vue';
 import GoalDetailInline from '@/components/Goals/GoalDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GoalsDashboard',
 
@@ -283,7 +284,7 @@ export default {
           this.fetchDashboardOverview(),
         ]);
       } catch (error) {
-        console.error('Failed to load goals data:', error);
+        logger.error('Failed to load goals data:', error);
       }
     },
 
@@ -319,7 +320,7 @@ export default {
         }
         await this.loadGoalsData();
       } catch (error) {
-        console.error('Failed to save goal:', error);
+        logger.error('Failed to save goal:', error);
       }
     },
 
@@ -342,7 +343,7 @@ export default {
         this.closeContributionModal();
         await this.loadGoalsData();
       } catch (error) {
-        console.error('Failed to record contribution:', error);
+        logger.error('Failed to record contribution:', error);
       }
     },
 
@@ -369,7 +370,7 @@ export default {
         }
         await this.loadGoalsData();
       } catch (error) {
-        console.error('Failed to delete goal:', error);
+        logger.error('Failed to delete goal:', error);
       } finally {
         this.deleteLoading = false;
       }

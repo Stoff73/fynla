@@ -90,6 +90,7 @@ import ChattelDetailInline from './ChattelDetailInline.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ChattelsList',
 
@@ -217,7 +218,7 @@ export default {
       try {
         await this.fetchChattels();
       } catch (error) {
-        console.error('Failed to fetch chattels:', error);
+        logger.error('Failed to fetch chattels:', error);
       }
     },
 
@@ -249,7 +250,7 @@ export default {
         }
         this.closeFormModal();
       } catch (error) {
-        console.error('Failed to save chattel:', error);
+        logger.error('Failed to save chattel:', error);
       }
     },
 
@@ -265,7 +266,7 @@ export default {
           this.showDeleteConfirm = false;
           this.deletingChattel = null;
         } catch (error) {
-          console.error('Failed to delete chattel:', error);
+          logger.error('Failed to delete chattel:', error);
         }
       }
     },

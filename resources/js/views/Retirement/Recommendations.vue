@@ -108,6 +108,7 @@
 <script>
 import { mapState } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Recommendations',
 
@@ -158,7 +159,7 @@ export default {
     try {
       await this.$store.dispatch('retirement/fetchRecommendations');
     } catch (error) {
-      console.error('Failed to fetch recommendations:', error);
+      logger.error('Failed to fetch recommendations:', error);
     }
   },
 };

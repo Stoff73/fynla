@@ -96,6 +96,7 @@
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'JointAccountHistory',
   mixins: [currencyMixin],
@@ -137,7 +138,7 @@ export default {
         const responseData = response.data;
         this.logs = responseData?.data?.logs || responseData?.logs || [];
       } catch (err) {
-        console.error('Failed to fetch joint account logs:', err);
+        logger.error('Failed to fetch joint account logs:', err);
         this.error = 'Failed to load edit history. Please try again.';
       } finally {
         this.loading = false;

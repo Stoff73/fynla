@@ -184,6 +184,7 @@
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CashFlow',
   mixins: [currencyMixin],
@@ -261,7 +262,7 @@ export default {
         await this.fetchCashFlow(this.selectedTaxYear);
         this.hasLoaded = true;
       } catch (error) {
-        console.error('Failed to load cash flow:', error);
+        logger.error('Failed to load cash flow:', error);
       } finally {
         this.isLoading = false;
       }

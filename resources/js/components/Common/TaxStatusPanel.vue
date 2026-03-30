@@ -94,6 +94,7 @@
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TaxStatusPanel',
   mixins: [currencyMixin],
@@ -160,7 +161,7 @@ export default {
         const response = await api.get(endpoint);
         this.taxInfo = response.data.data;
       } catch (err) {
-        console.error('Failed to load tax information:', err);
+        logger.error('Failed to load tax information:', err);
         this.error = 'Failed to load tax information. Please try again.';
       } finally {
         this.loading = false;

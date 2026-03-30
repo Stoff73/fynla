@@ -72,6 +72,7 @@
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LetterEstateWarnings',
   mixins: [currencyMixin],
@@ -127,7 +128,7 @@ export default {
         }
       } catch (err) {
         this.error = 'Unable to check letter consistency';
-        console.error('Letter validation error:', err);
+        logger.error('Letter validation error:', err);
       } finally {
         this.loading = false;
       }

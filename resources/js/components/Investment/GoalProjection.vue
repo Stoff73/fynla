@@ -313,6 +313,7 @@
 import api from '@/services/api';
 import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GoalProjection',
 
@@ -555,7 +556,7 @@ export default {
           await this.loadGoalProjection();
         }
       } catch (err) {
-        console.error('Error loading goals:', err);
+        logger.error('Error loading goals:', err);
       }
     },
 
@@ -584,7 +585,7 @@ export default {
         });
         this.glidePath = glidePathResponse.data.data;
       } catch (err) {
-        console.error('Error loading goal projection:', err);
+        logger.error('Error loading goal projection:', err);
         this.error = err.response?.data?.message || 'Failed to load goal projection. Please try again.';
       } finally {
         this.loading = false;

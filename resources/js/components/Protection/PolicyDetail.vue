@@ -311,6 +311,7 @@ import PolicyFormModal from './PolicyFormModal.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PolicyDetail',
   mixins: [currencyMixin],
@@ -529,7 +530,7 @@ export default {
           };
         }
       } catch (error) {
-        console.error('Failed to load policy:', error);
+        logger.error('Failed to load policy:', error);
         this.error = 'Failed to load policy details. Please try again.';
       } finally {
         this.loading = false;
@@ -549,7 +550,7 @@ export default {
         // Reload policy data
         await this.loadPolicy();
       } catch (error) {
-        console.error('Failed to update policy:', error);
+        logger.error('Failed to update policy:', error);
       }
     },
 
@@ -570,7 +571,7 @@ export default {
         // Navigate back to protection page
         this.$router.push('/protection');
       } catch (error) {
-        console.error('Failed to delete policy:', error);
+        logger.error('Failed to delete policy:', error);
       }
     },
 

@@ -73,6 +73,7 @@
 <script>
 import adminService from '../../services/adminService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'UserOnboardingProgress',
 
@@ -113,7 +114,7 @@ export default {
           this.onboarding = response.data.data.onboarding;
         }
       } catch (err) {
-        console.error('Failed to load onboarding progress:', err);
+        logger.error('Failed to load onboarding progress:', err);
       } finally {
         this.loading = false;
       }

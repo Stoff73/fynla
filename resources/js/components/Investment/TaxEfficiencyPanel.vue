@@ -367,6 +367,7 @@ import ISATransferModal from './ISATransferModal.vue';
 import HarvestLossModal from './HarvestLossModal.vue';
 import BedAndISAWizardModal from './BedAndISAWizardModal.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TaxEfficiencyPanel',
 
@@ -497,7 +498,7 @@ export default {
         const response = await investmentService.analyzeTaxPosition();
         this.taxData = response.data || response;
       } catch (err) {
-        console.error('Failed to fetch tax data:', err);
+        logger.error('Failed to fetch tax data:', err);
         this.error = err.response?.data?.message || err.message || 'Failed to load tax analysis';
       } finally {
         this.loading = false;

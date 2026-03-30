@@ -193,6 +193,7 @@ import { mapState, mapActions } from 'vuex';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LiabilityDetailInline',
 
@@ -302,7 +303,7 @@ export default {
         try {
           await this.fetchEstateData();
         } catch (error) {
-          console.error('Failed to load liability:', error);
+          logger.error('Failed to load liability:', error);
         } finally {
           this.loading = false;
         }
@@ -356,7 +357,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete liability:', error);
+        logger.error('Failed to delete liability:', error);
       }
     },
   },
