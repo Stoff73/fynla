@@ -10,7 +10,7 @@ use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
-use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\InvestmentActionDefinitionService;
@@ -28,7 +28,7 @@ class InvestmentAgent extends BaseAgent
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
-        private readonly AssetAllocationOptimizer $allocationOptimizer,
+        private readonly SimpleAssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly TaxEfficiencyCalculator $taxCalculator,
         private readonly TaxConfigService $taxConfig,

@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  * Optimizes pension contributions to help users meet retirement goals while
  * maximizing tax relief and employer matches.
  */
-class ContributionOptimizer
+class PensionContributionOptimizer
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig

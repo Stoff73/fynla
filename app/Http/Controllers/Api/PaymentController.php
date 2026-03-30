@@ -61,7 +61,7 @@ class PaymentController extends Controller
         $user = $request->user();
 
         if ($user->is_preview_user) {
-            return response()->json(['error' => 'Payment is not available in preview mode'], 403);
+            return response()->json(['success' => false, 'message' => 'Payment is not available in preview mode'], 403);
         }
 
         $request->validate([
@@ -71,7 +71,7 @@ class PaymentController extends Controller
 
         $plan = SubscriptionPlan::findBySlug($request->input('plan'));
         if (! $plan) {
-            return response()->json(['error' => 'Plan not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
         }
 
         $billingCycle = $request->input('billing_cycle');
@@ -154,7 +154,7 @@ class PaymentController extends Controller
         $user = $request->user();
 
         if ($user->is_preview_user) {
-            return response()->json(['error' => 'Payment is not available in preview mode'], 403);
+            return response()->json(['success' => false, 'message' => 'Payment is not available in preview mode'], 403);
         }
 
         $request->validate([
@@ -191,7 +191,8 @@ class PaymentController extends Controller
                 ]);
 
                 return response()->json([
-                    'error' => 'Payment has not been completed yet',
+                    'success' => false,
+                    'message' => 'Payment has not been completed yet',
                     'state' => $state,
                 ], 400);
             }
@@ -322,7 +323,7 @@ class PaymentController extends Controller
         $user = $request->user();
 
         if ($user->is_preview_user) {
-            return response()->json(['error' => 'Payment is not available in preview mode'], 403);
+            return response()->json(['success' => false, 'message' => 'Payment is not available in preview mode'], 403);
         }
 
         $request->validate([
@@ -332,7 +333,7 @@ class PaymentController extends Controller
         $subscription = $user->subscription;
 
         if (! $subscription) {
-            return response()->json(['error' => 'No subscription found'], 404);
+            return response()->json(['success' => false, 'message' => 'No subscription found'], 404);
         }
 
         try {
@@ -355,7 +356,7 @@ class PaymentController extends Controller
             });
 
             if ($accessUntil === null) {
-                return response()->json(['error' => 'Subscription is not active'], 409);
+                return response()->json(['success' => false, 'message' => 'Subscription is not active'], 409);
             }
 
             Log::info('Subscription cancelled by user', [
@@ -379,7 +380,7 @@ class PaymentController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json(['error' => 'Failed to cancel subscription. Please try again.'], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to cancel subscription. Please try again.'], 500);
         }
     }
 
@@ -425,7 +426,7 @@ class PaymentController extends Controller
         $user = $request->user();
 
         if ($user->is_preview_user) {
-            return response()->json(['error' => 'Data deletion is not available in preview mode'], 403);
+            return response()->json(['success' => false, 'message' => 'Data deletion is not available in preview mode'], 403);
         }
 
         $request->validate([
@@ -434,17 +435,17 @@ class PaymentController extends Controller
         ]);
 
         if (! Hash::check($request->input('current_password'), $user->password)) {
-            return response()->json(['error' => 'Incorrect password'], 422);
+            return response()->json(['success' => false, 'message' => 'Incorrect password'], 422);
         }
 
         if ($request->input('confirmation_text') !== 'DELETE') {
-            return response()->json(['error' => 'Please type DELETE to confirm data deletion'], 422);
+            return response()->json(['success' => false, 'message' => 'Please type DELETE to confirm data deletion'], 422);
         }
 
         $subscription = $user->subscription;
 
         if (! $subscription || ! $subscription->isInGracePeriod()) {
-            return response()->json(['error' => 'Data deletion is only available during the grace period'], 403);
+            return response()->json(['success' => false, 'message' => 'Data deletion is only available during the grace period'], 403);
         }
 
         $firstName = $user->first_name;
@@ -479,7 +480,7 @@ class PaymentController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json(['error' => 'Failed to delete data. Please try again or contact support.'], 500);
+            return response()->json(['success' => false, 'message' => 'Failed to delete data. Please try again or contact support.'], 500);
         }
     }
 

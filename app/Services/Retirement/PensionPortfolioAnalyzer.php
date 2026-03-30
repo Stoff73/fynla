@@ -6,7 +6,7 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
-use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\PortfolioAnalyzer;
 use Illuminate\Support\Collection;
@@ -25,7 +25,7 @@ class PensionPortfolioAnalyzer
     public function __construct(
         private PortfolioAnalyzer $portfolioAnalyzer,
         private DiversificationAnalyzer $diversificationAnalyzer,
-        private AssetAllocationOptimizer $allocationOptimizer
+        private SimpleAssetAllocationOptimizer $allocationOptimizer
     ) {}
 
     /**

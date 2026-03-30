@@ -9,14 +9,14 @@ use App\Models\DCPension;
 use App\Models\Goal;
 use App\Models\RetirementProfile;
 use App\Models\User;
-use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\FeeAnalyzer;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\TaxEfficiencyCalculator;
 use App\Services\Plans\PlanConfigService;
 use App\Services\Retirement\AnnualAllowanceChecker;
-use App\Services\Retirement\ContributionOptimizer;
+use App\Services\Retirement\PensionContributionOptimizer;
 use App\Services\Retirement\DecumulationPlanner;
 use App\Services\Retirement\PensionPortfolioAnalyzer;
 use App\Services\Retirement\PensionProjector;
@@ -41,7 +41,7 @@ class RetirementAgent extends BaseAgent
     public function __construct(
         private readonly PensionProjector $projector,
         private readonly AnnualAllowanceChecker $allowanceChecker,
-        private readonly ContributionOptimizer $optimizer,
+        private readonly PensionContributionOptimizer $optimizer,
         private readonly DecumulationPlanner $planner,
         private readonly PensionPortfolioAnalyzer $pensionPortfolioAnalyzer,
         private readonly TaxConfigService $taxConfig,
@@ -51,7 +51,7 @@ class RetirementAgent extends BaseAgent
         // Portfolio optimization services (shared with Investment module)
         private readonly PortfolioAnalyzer $portfolioAnalyzer,
         private readonly MonteCarloSimulator $monteCarloSimulator,
-        private readonly AssetAllocationOptimizer $allocationOptimizer,
+        private readonly SimpleAssetAllocationOptimizer $allocationOptimizer,
         private readonly FeeAnalyzer $feeAnalyzer,
         private readonly TaxEfficiencyCalculator $taxCalculator,
         private readonly ?PlanConfigService $planConfig = null

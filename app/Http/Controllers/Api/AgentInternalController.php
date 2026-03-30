@@ -52,17 +52,17 @@ class AgentInternalController extends Controller
         $userId = (int) $request->query('user_id', 0);
 
         if ($userId <= 0) {
-            return response()->json(['error' => 'user_id query parameter is required'], 400);
+            return response()->json(['success' => false, 'message' => 'user_id query parameter is required'], 400);
         }
 
         $user = User::find($userId);
         if (! $user) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
         $agent = $this->resolveAgent($module);
         if (! $agent) {
-            return response()->json(['error' => "Unknown module: {$module}"], 400);
+            return response()->json(['success' => false, 'message' => "Unknown module: {$module}"], 400);
         }
 
         try {
@@ -81,7 +81,7 @@ class AgentInternalController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Analysis failed',
+                'message' => 'Analysis failed',
             ], 500);
         }
     }
@@ -109,7 +109,7 @@ class AgentInternalController extends Controller
         };
 
         if ($data === null) {
-            return response()->json(['error' => "Unknown tax topic: {$topic}"], 400);
+            return response()->json(['success' => false, 'message' => "Unknown tax topic: {$topic}"], 400);
         }
 
         return response()->json([
@@ -131,12 +131,12 @@ class AgentInternalController extends Controller
         $userId = (int) $request->input('user_id', 0);
 
         if ($userId <= 0) {
-            return response()->json(['error' => 'user_id is required'], 400);
+            return response()->json(['success' => false, 'message' => 'user_id is required'], 400);
         }
 
         $agent = $this->resolveAgent($module);
         if (! $agent) {
-            return response()->json(['error' => "Unknown module: {$module}"], 400);
+            return response()->json(['success' => false, 'message' => "Unknown module: {$module}"], 400);
         }
 
         try {
@@ -155,7 +155,7 @@ class AgentInternalController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Scenario execution failed',
+                'message' => 'Scenario execution failed',
             ], 500);
         }
     }
@@ -204,7 +204,7 @@ class AgentInternalController extends Controller
     {
         $user = User::find($userId);
         if (! $user) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
         try {
@@ -222,7 +222,7 @@ class AgentInternalController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to build user context',
+                'message' => 'Failed to build user context',
             ], 500);
         }
     }
@@ -237,7 +237,7 @@ class AgentInternalController extends Controller
         $userId = (int) $request->query('user_id', 0);
 
         if ($userId <= 0) {
-            return response()->json(['error' => 'user_id query parameter is required'], 400);
+            return response()->json(['success' => false, 'message' => 'user_id query parameter is required'], 400);
         }
 
         try {
@@ -258,7 +258,7 @@ class AgentInternalController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to generate recommendations',
+                'message' => 'Failed to generate recommendations',
             ], 500);
         }
     }

@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\Investment\RiskProfile;
-use App\Services\Investment\AssetAllocationOptimizer;
+use App\Services\Investment\SimpleAssetAllocationOptimizer;
 
 beforeEach(function () {
-    $this->optimizer = new AssetAllocationOptimizer;
+    $this->optimizer = new SimpleAssetAllocationOptimizer;
 });
 
 describe('getTargetAllocation', function () {

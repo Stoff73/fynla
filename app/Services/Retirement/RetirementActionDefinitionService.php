@@ -22,7 +22,7 @@ class RetirementActionDefinitionService
     use FormatsCurrency;
 
     public function __construct(
-        private readonly ContributionOptimizer $optimizer,
+        private readonly PensionContributionOptimizer $optimizer,
         private readonly TaxConfigService $taxConfig,
         private readonly SalarySacrificeAnalyzer $salarySacrificeAnalyzer,
         private readonly DecumulationPlanner $decumulationPlanner

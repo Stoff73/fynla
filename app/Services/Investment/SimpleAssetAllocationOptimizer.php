@@ -7,7 +7,7 @@ namespace App\Services\Investment;
 use App\Constants\InvestmentDefaults;
 use App\Models\Investment\RiskProfile;
 
-class AssetAllocationOptimizer
+class SimpleAssetAllocationOptimizer
 {
     /**
      * Get target allocation based on risk profile

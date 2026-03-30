@@ -44,7 +44,7 @@ class WebhookController extends Controller
         if (! $this->revolutService->verifyWebhookSignature($rawPayload, $signatureHeader, $timestampHeader)) {
             Log::warning('Revolut webhook signature verification failed');
 
-            return response()->json(['error' => 'Invalid signature'], 401);
+            return response()->json(['success' => false, 'message' => 'Invalid signature'], 401);
         }
 
         $payload = json_decode($rawPayload, true);
@@ -62,7 +62,7 @@ class WebhookController extends Controller
             $this->handleOrderCompleted($orderId, $merchantRef);
         }
 
-        return response()->json(['status' => 'ok']);
+        return response()->json(['success' => true, 'message' => 'Webhook processed']);
     }
 
     private function handleOrderCompleted(string $orderId, ?string $merchantRef): void
