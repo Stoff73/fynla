@@ -162,8 +162,10 @@ class UserMetricsService
         $now = Carbon::now();
 
         // Build boundaries by stepping backwards from now
+        // We create $range start-of-period markers, then cap with now() so the
+        // final bucket covers up to the current moment.
         $boundaries = [];
-        for ($i = $range; $i >= 0; $i--) {
+        for ($i = $range - 1; $i >= 0; $i--) {
             $boundaries[] = match ($period) {
                 'day' => $now->copy()->subDays($i)->startOfDay(),
                 'week' => $now->copy()->subWeeks($i)->startOfWeek(),
@@ -173,6 +175,8 @@ class UserMetricsService
                 default => $now->copy()->subMonths($i)->startOfMonth(),
             };
         }
+        // Final boundary is now() so the last bucket includes everything up to this moment
+        $boundaries[] = $now->copy()->addSecond();
 
         $buckets = [];
 
