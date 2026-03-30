@@ -179,9 +179,11 @@
 <script>
 import { mapState, mapGetters, mapActions } from 'vuex';
 import GoalForm from './GoalForm.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'Goals',
+  mixins: [currencyMixin],
 
   emits: ['view-projection'],
 
@@ -216,11 +218,6 @@ export default {
 
   methods: {
     ...mapActions('investment', ['createGoal', 'updateGoal', 'deleteGoal']),
-
-    formatNumber(value) {
-      if (!value) return '0';
-      return new Intl.NumberFormat('en-GB').format(value);
-    },
 
     formatGoalType(type) {
       return type ? type.replace(/_/g, ' ') : 'General';

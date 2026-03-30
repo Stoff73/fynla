@@ -677,13 +677,6 @@ export default {
       this.$set(this.expandedAssetDetails, index, !this.expandedAssetDetails[index]);
     },
 
-    formatNumber(value) {
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatDate(date) {
       return new Date(date).toLocaleDateString('en-GB', {
         day: 'numeric',

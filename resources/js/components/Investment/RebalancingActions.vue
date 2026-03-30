@@ -328,10 +328,10 @@ export default {
 
   methods: {
     formatShares(value) {
-      return new Intl.NumberFormat('en-GB', {
+      return Number(value || 0).toLocaleString('en-GB', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 6,
-      }).format(value);
+      });
     },
 
     getPriorityClass(priority) {

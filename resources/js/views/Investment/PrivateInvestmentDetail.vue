@@ -571,10 +571,6 @@ export default {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     },
-    formatNumber(value) {
-      if (!value && value !== 0) return '--';
-      return new Intl.NumberFormat('en-GB').format(value);
-    },
     formatCurrencyPence(value) {
       if (!value && value !== 0) return '--';
       const num = parseFloat(value);

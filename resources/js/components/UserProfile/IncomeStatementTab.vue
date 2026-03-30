@@ -387,12 +387,7 @@ export default {
 
     const formatCurrencyNegative = (amount) => {
       if (amount === null || amount === undefined || amount === 0) return '£0';
-      return '-' + new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
+      return '-' + formatCurrency(amount);
     };
 
     const incomeItems = computed(() => {

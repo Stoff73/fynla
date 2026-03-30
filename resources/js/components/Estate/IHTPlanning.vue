@@ -1662,13 +1662,6 @@ export default {
       return 'Some information is required to complete the second death Inheritance Tax calculation.';
     },
 
-    formatNumber(value) {
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
-
     formatPercent(value) {
       return `${(value * 100).toFixed(0)}%`;
     },
