@@ -117,4 +117,25 @@ export default {
   deleteBackup(filename) {
     return api.delete('/admin/backup/delete', { data: { filename } });
   },
+
+  // User Metrics
+  getUserMetricsSnapshot() {
+    return api.get('/admin/user-metrics/snapshot');
+  },
+
+  getUserMetricsTrials() {
+    return api.get('/admin/user-metrics/trials');
+  },
+
+  getUserMetricsPlans() {
+    return api.get('/admin/user-metrics/plans');
+  },
+
+  getUserMetricsActivity(period = 'day', range = 7) {
+    return api.get('/admin/user-metrics/activity', { params: { period, range } });
+  },
+
+  getUserMetricsEngagement() {
+    return api.get('/admin/user-metrics/engagement');
+  },
 };
