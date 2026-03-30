@@ -58,6 +58,8 @@ class LifeInsurancePolicy extends Model
         'joint_life' => 'boolean',
     ];
 
+    protected $hidden = ['policy_number'];
+
     /**
      * Get the user that owns the policy.
      */

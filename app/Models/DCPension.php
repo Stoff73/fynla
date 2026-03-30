@@ -75,6 +75,8 @@ class DCPension extends Model
         'flexible_access_date' => 'date',
     ];
 
+    protected $hidden = ['member_number'];
+
     protected $attributes = [
         'has_custom_risk' => false,
     ];

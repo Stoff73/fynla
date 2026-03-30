@@ -30,10 +30,10 @@ class IHTProfile extends Model
     protected $casts = [
         'has_spouse' => 'boolean',
         'own_home' => 'boolean',
-        'home_value' => 'float',
-        'nrb_transferred_from_spouse' => 'float',
-        'rnrb_transferred_from_spouse' => 'float',
-        'charitable_giving_percent' => 'float',
+        'home_value' => 'decimal:2',
+        'nrb_transferred_from_spouse' => 'decimal:2',
+        'rnrb_transferred_from_spouse' => 'decimal:2',
+        'charitable_giving_percent' => 'decimal:4',
     ];
 
     /**

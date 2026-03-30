@@ -46,6 +46,8 @@ class IncomeProtectionPolicy extends Model
         'policy_start_date' => 'date',
     ];
 
+    protected $hidden = ['policy_number'];
+
     /**
      * Get the user that owns the policy.
      */

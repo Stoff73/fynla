@@ -45,6 +45,8 @@ class CriticalIllnessPolicy extends Model
         'conditions_covered' => 'array',
     ];
 
+    protected $hidden = ['policy_number'];
+
     /**
      * Get the user that owns the policy.
      */

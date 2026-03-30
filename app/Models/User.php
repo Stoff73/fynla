@@ -35,6 +35,10 @@ class User extends Authenticatable
         'remember_token',
         'created_at',
         'updated_at',
+        'role_id',
+        'spouse_id',
+        'household_id',
+        'plan',
     ];
 
     /**
@@ -50,6 +54,7 @@ class User extends Authenticatable
         'failed_login_count',
         'locked_until',
         'last_failed_login_at',
+        'national_insurance_number',
     ];
 
     /**

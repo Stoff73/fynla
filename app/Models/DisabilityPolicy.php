@@ -49,6 +49,8 @@ class DisabilityPolicy extends Model
         'policy_term_years' => 'integer',
     ];
 
+    protected $hidden = ['policy_number'];
+
     /**
      * Get the user that owns the policy.
      */

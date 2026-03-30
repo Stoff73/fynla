@@ -19,7 +19,6 @@ class Subscription extends Model
         'user_id',
         'plan',
         'billing_cycle',
-        'status',
         'amount',
         'trial_started_at',
         'trial_ends_at',
@@ -28,8 +27,6 @@ class Subscription extends Model
         'cancelled_at',
         'cancellation_reason',
         'data_retention_starts_at',
-        'revolut_order_id',
-        'revolut_subscription_id',
     ];
 
     protected $casts = [
@@ -39,7 +36,7 @@ class Subscription extends Model
         'current_period_end' => 'datetime',
         'cancelled_at' => 'datetime',
         'data_retention_starts_at' => 'datetime',
-        'amount' => 'integer',
+        'amount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo

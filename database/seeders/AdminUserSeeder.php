@@ -24,10 +24,10 @@ class AdminUserSeeder extends Seeder
             [
                 'first_name' => 'Admin',
                 'surname' => 'User',
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make(env('ADMIN_SEED_PASSWORD', 'Fynl@Adm1n2026!')),
                 'role_id' => $adminRole?->id,
                 'is_primary_account' => true,
-                'is_preview_user' => true,  // Skip email verification
+                'email_verified_at' => now(),
                 'date_of_birth' => '1975-01-01',
                 'gender' => 'male',
                 'marital_status' => 'single',

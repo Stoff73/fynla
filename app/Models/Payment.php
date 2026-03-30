@@ -7,10 +7,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'subscription_id',
@@ -18,7 +19,6 @@ class Payment extends Model
         'revolut_order_id',
         'amount',
         'currency',
-        'status',
         'revolut_payment_data',
         'description',
         'plan_slug',
@@ -26,7 +26,7 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'amount' => 'integer',
+        'amount' => 'decimal:2',
         'revolut_payment_data' => 'array',
     ];
 

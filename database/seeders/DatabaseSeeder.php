@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -74,9 +76,6 @@ class DatabaseSeeder extends Seeder
 
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
-
-            // Advisor-client relationships for preview personas
-            AdvisorClientSeeder::class,
         ]);
 
         // ============================================================
@@ -90,6 +89,9 @@ class DatabaseSeeder extends Seeder
 
                 // Additional test user accounts
                 TestUsersSeeder::class,
+
+                // Advisor-client relationships for preview personas
+                AdvisorClientSeeder::class,
             ]);
         }
     }
