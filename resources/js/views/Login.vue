@@ -33,7 +33,7 @@
     />
 
     <div class="max-w-2xl w-full">
-      <div class="bg-light-blue-100 rounded-2xl py-8 px-32 space-y-6">
+      <div class="bg-light-blue-100 rounded-2xl py-8 px-6 sm:px-12 lg:px-32 space-y-6">
         <div>
           <div class="text-center">
             <a href="https://fynla.org" class="inline-block">
@@ -227,6 +227,10 @@ export default {
 
     // Check for inactivity logout reason on mount
     onMounted(() => {
+      document.title = 'Sign In — Fynla';
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute('content', 'Sign in to your Fynla account to manage your financial plan, track investments, and monitor your net worth.');
+
       if (route.query.reason === 'inactivity') {
         inactivityMessage.value = 'Your session has expired due to inactivity. Please sign in again.';
         // Clean up the URL parameter

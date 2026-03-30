@@ -14,10 +14,10 @@
     </div>
 
     <!-- Two-column layout: sidebar + calculator -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8 items-start">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8 items-start">
 
       <!-- Left sidebar: collapsible filter menus -->
-      <div class="w-[280px] flex-shrink-0 sticky top-20">
+      <div class="w-full lg:w-[280px] flex-shrink-0 lg:sticky lg:top-20">
         <div v-for="stage in calculatorStages" :key="stage.name" class="mb-1">
           <!-- Stage header (collapsible) -->
           <button
@@ -1735,6 +1735,12 @@ export default {
         },
       },
     };
+  },
+
+  mounted() {
+    document.title = 'Free Financial Calculators — UK Tax, Mortgage, Pension | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Free UK financial calculators for income tax, mortgage repayments, pension growth, stamp duty, student loans, and more. No sign-up required.');
   },
 
   computed: {
