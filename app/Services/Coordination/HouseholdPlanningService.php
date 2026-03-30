@@ -17,6 +17,8 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Constants\EstateDefaults;
+use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 
@@ -248,8 +250,8 @@ class HouseholdPlanningService
         $survivor = $whichSpouse === 'primary' ? $spouse : $user;
 
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? 325000);
-        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
+        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
 
         // Gather deceased's assets
@@ -266,7 +268,10 @@ class HouseholdPlanningService
 
         // NRB/RNRB transfers to surviving spouse on first death
         $nrbTransferred = $nrb; // Full NRB transfers if not used
-        $rnrbTransferred = $rnrb; // RNRB transfers if main residence passes to direct descendants
+        $hasMainResidence = $deceased->properties()->where('property_type', 'main_residence')->exists();
+        $hasDirectDescendants = $deceased->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
+        $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
+        $rnrbTransferred = $qualifiesForRNRB ? $rnrb : 0.0; // RNRB transfers only if main residence passes to direct descendants
 
         // Survivor's position after first death
         $survivorAssets = $this->gatherAssetsForUser($survivor);
@@ -906,12 +911,21 @@ class HouseholdPlanningService
         $liabilities = $this->gatherLiabilitiesForUser($user);
 
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? 325000);
-        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
+        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
 
+        $hasMainResidence = $user->properties()->where('property_type', 'main_residence')->exists();
+        $hasDirectDescendants = $user->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
+        $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
+        $effectiveRNRB = $qualifiesForRNRB ? $rnrb : 0.0;
         $netEstate = $assets['total'] - $liabilities['total'];
-        $totalAllowances = $nrb + $rnrb;
+        $taperThreshold = (float) ($ihtConfig['rnrb_taper_threshold'] ?? EstateDefaults::RNRB_TAPER_THRESHOLD);
+        if ($qualifiesForRNRB && $netEstate > $taperThreshold) {
+            $taperReduction = ($netEstate - $taperThreshold) / 2;
+            $effectiveRNRB = max(0.0, $effectiveRNRB - $taperReduction);
+        }
+        $totalAllowances = $nrb + $effectiveRNRB;
         $taxable = max(0, $netEstate - $totalAllowances);
         $iht = $taxable * $ihtRate;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 
 /**
@@ -318,7 +319,7 @@ class ConflictResolver
         // Get ISA allowance from tax configuration
         $isaConfig = $this->taxConfig->getISAAllowances();
         // Fallback to 2025/26 UK ISA allowance if config unavailable
-        $isaAllowance = $isaConfig['annual_allowance'] ?? 20000;
+        $isaAllowance = $isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
         $cashISADemand = 0;
         $stocksSharesISADemand = 0;
 
