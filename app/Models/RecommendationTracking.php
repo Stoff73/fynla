@@ -29,8 +29,8 @@ class RecommendationTracking extends Model
     ];
 
     protected $casts = [
-        'priority_score' => 'decimal:2',
-        'recommended_amount' => 'decimal:2',
+        'priority_score' => 'float',
+        'recommended_amount' => 'float',
         'completed_at' => 'datetime',
     ];
 

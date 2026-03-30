@@ -150,7 +150,7 @@ describe('Admin Seeder', function () {
 
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin@fps.com',
-            'password' => 'admin123',
+            'password' => env('ADMIN_SEED_PASSWORD', 'Fynl@Adm1n2026!'),
         ]);
 
         $response->assertStatus(200);

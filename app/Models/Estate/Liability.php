@@ -35,9 +35,9 @@ class Liability extends Model
     ];
 
     protected $casts = [
-        'current_balance' => 'decimal:2',
-        'monthly_payment' => 'decimal:2',
-        'interest_rate' => 'decimal:4',
+        'current_balance' => 'float',
+        'monthly_payment' => 'float',
+        'interest_rate' => 'float',
         'maturity_date' => 'date',
         'is_priority_debt' => 'boolean',
         'fixed_until' => 'date',

@@ -29,7 +29,7 @@ class RiskProfile extends Model
     ];
 
     protected $casts = [
-        'capacity_for_loss_percent' => 'decimal:4',
+        'capacity_for_loss_percent' => 'float',
         'time_horizon_years' => 'integer',
         'esg_preference' => 'boolean',
         'risk_assessed_at' => 'datetime',

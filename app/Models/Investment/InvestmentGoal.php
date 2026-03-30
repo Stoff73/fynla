@@ -26,7 +26,7 @@ class InvestmentGoal extends Model
     ];
 
     protected $casts = [
-        'target_amount' => 'decimal:2',
+        'target_amount' => 'float',
         'target_date' => 'date',
         'is_essential' => 'boolean',
         'linked_account_ids' => 'array',

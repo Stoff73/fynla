@@ -94,7 +94,8 @@ class PermissionService
         $role = Role::findByName($roleName);
 
         if ($role) {
-            $user->update(['role_id' => $role->id]);
+            $user->role_id = $role->id;
+            $user->save();
         }
     }
 
@@ -103,7 +104,8 @@ class PermissionService
      */
     public function removeRole(User $user): void
     {
-        $user->update(['role_id' => null]);
+        $user->role_id = null;
+        $user->save();
     }
 
     /**

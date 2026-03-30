@@ -40,19 +40,19 @@ class RebalancingAction extends Model
     ];
 
     protected $casts = [
-        'shares_to_trade' => 'decimal:4',
-        'trade_value' => 'decimal:2',
-        'current_price' => 'decimal:2',
-        'current_holding' => 'decimal:2',
-        'target_value' => 'decimal:2',
-        'target_weight' => 'decimal:4',
+        'shares_to_trade' => 'float',
+        'trade_value' => 'float',
+        'current_price' => 'float',
+        'current_holding' => 'float',
+        'target_value' => 'float',
+        'target_weight' => 'float',
         'priority' => 'integer',
-        'cgt_cost_basis' => 'decimal:2',
-        'cgt_gain_or_loss' => 'decimal:2',
-        'cgt_liability' => 'decimal:2',
+        'cgt_cost_basis' => 'float',
+        'cgt_gain_or_loss' => 'float',
+        'cgt_liability' => 'float',
         'executed_at' => 'datetime',
-        'executed_price' => 'decimal:2',
-        'executed_shares' => 'decimal:4',
+        'executed_price' => 'float',
+        'executed_shares' => 'float',
     ];
 
     /**

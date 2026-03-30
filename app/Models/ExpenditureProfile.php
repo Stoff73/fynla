@@ -27,14 +27,14 @@ class ExpenditureProfile extends Model
     ];
 
     protected $casts = [
-        'monthly_housing' => 'decimal:2',
-        'monthly_utilities' => 'decimal:2',
-        'monthly_food' => 'decimal:2',
-        'monthly_transport' => 'decimal:2',
-        'monthly_insurance' => 'decimal:2',
-        'monthly_loans' => 'decimal:2',
-        'monthly_discretionary' => 'decimal:2',
-        'total_monthly_expenditure' => 'decimal:2',
+        'monthly_housing' => 'float',
+        'monthly_utilities' => 'float',
+        'monthly_food' => 'float',
+        'monthly_transport' => 'float',
+        'monthly_insurance' => 'float',
+        'monthly_loans' => 'float',
+        'monthly_discretionary' => 'float',
+        'total_monthly_expenditure' => 'float',
     ];
 
     /**

@@ -46,8 +46,32 @@ function createMarriedCouple(): array
         'annual_employment_income' => 32000,
     ]);
 
-    $user->update(['spouse_id' => $spouse->id]);
-    $spouse->update(['spouse_id' => $user->id]);
+    $user->spouse_id = $spouse->id;
+    $user->save();
+    $spouse->spouse_id = $user->id;
+    $spouse->save();
+
+    // Create main residence and child for RNRB qualification
+    \App\Models\Property::factory()->create([
+        'user_id' => $user->id,
+        'property_type' => 'main_residence',
+        'current_value' => 450000,
+    ]);
+    \App\Models\FamilyMember::factory()->create([
+        'user_id' => $user->id,
+        'relationship' => 'child',
+        'first_name' => 'Oliver',
+    ]);
+    \App\Models\Property::factory()->create([
+        'user_id' => $spouse->id,
+        'property_type' => 'main_residence',
+        'current_value' => 450000,
+    ]);
+    \App\Models\FamilyMember::factory()->create([
+        'user_id' => $spouse->id,
+        'relationship' => 'child',
+        'first_name' => 'Oliver',
+    ]);
 
     return [$user->fresh(), $spouse->fresh()];
 }
