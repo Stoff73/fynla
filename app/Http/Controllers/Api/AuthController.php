@@ -267,9 +267,11 @@ class AuthController extends Controller
             $token->delete();
         }
 
-        // Always invalidate the web session (handles both token and session-based auth)
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Invalidate the web session if available (handles session-based auth)
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'success' => true,

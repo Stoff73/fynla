@@ -9,21 +9,24 @@ use App\Models\Property;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
+    // Ensure TaxConfiguration exists for the PersonalAccountsService tax calculations
+    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+
     // Create a household
     $this->household = Household::factory()->create();
 
     // Create a test user with income data
     $this->user = User::factory()->create([
-        'household_id' => $this->household->id,
         'annual_employment_income' => 75000.00,
         'annual_self_employment_income' => 0.00,
         'annual_rental_income' => 12000.00,
         'annual_dividend_income' => 3000.00,
         'annual_other_income' => 0.00,
     ]);
+    // household_id is guarded on User, assign explicitly
+    $this->user->household_id = $this->household->id;
+    $this->user->save();
 
     // Create a property for testing
     $this->property = Property::factory()->create([

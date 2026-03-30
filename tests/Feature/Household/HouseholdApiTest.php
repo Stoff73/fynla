@@ -22,8 +22,10 @@ beforeEach(function () {
         'annual_employment_income' => 32000,
     ]);
 
-    $this->user->update(['spouse_id' => $this->spouse->id]);
-    $this->spouse->update(['spouse_id' => $this->user->id]);
+    $this->user->spouse_id = $this->spouse->id;
+    $this->user->save();
+    $this->spouse->spouse_id = $this->user->id;
+    $this->spouse->save();
 
     $this->singleUser = User::factory()->create([
         'first_name' => 'John',
