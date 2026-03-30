@@ -11,7 +11,7 @@
           You're earning your own money for the first time. It's exciting — but also overwhelming.
           Fynla gives you a clear starting point for financial planning, without the jargon.
         </p>
-        <div class="flex items-center gap-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
           <router-link
             to="/register"
             class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors"

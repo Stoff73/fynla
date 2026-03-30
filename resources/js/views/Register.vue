@@ -11,7 +11,7 @@
     />
 
     <div class="max-w-2xl w-full">
-      <div class="bg-light-blue-100 rounded-2xl py-8 px-32 space-y-6">
+      <div class="bg-light-blue-100 rounded-2xl py-8 px-6 sm:px-12 lg:px-32 space-y-6">
         <div>
           <div class="flex justify-center">
             <img :src="logoImage" alt="Fynla" class="h-[100px] w-auto">
@@ -205,7 +205,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
@@ -223,6 +223,12 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
+
+    onMounted(() => {
+      document.title = 'Create Account — Fynla';
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute('content', 'Create your free Fynla account to start planning your finances. Track savings, investments, pensions, and estate planning in one place.');
+    });
 
     const form = ref({
       first_name: '',

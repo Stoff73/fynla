@@ -382,6 +382,12 @@ export default {
     };
   },
 
+  mounted() {
+    document.title = 'Pricing — Simple, Transparent Plans | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'Start with a 7-day free trial on any Fynla plan. Student, Standard, and Pro plans for UK financial planning. No credit card required.');
+  },
+
   methods: {
     startTrial(plan) {
       if (this.isAuthenticated) {
