@@ -22,8 +22,8 @@ class EfficientFrontierController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private EfficientFrontierCalculator $frontierCalculator,
-        private PortfolioStatisticsCalculator $statsCalculator
+        private readonly EfficientFrontierCalculator $frontierCalculator,
+        private readonly PortfolioStatisticsCalculator $statsCalculator
     ) {}
 
     /**

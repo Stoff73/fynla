@@ -16,15 +16,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Http\Resources\UserResource;
 
 class MFAController extends Controller
 {
     use SanitizedErrorResponse;
 
     public function __construct(
-        private MFAService $mfaService,
-        private AuditService $auditService,
-        private LoginLockoutService $lockoutService
+        private readonly MFAService $mfaService,
+        private readonly AuditService $auditService,
+        private readonly LoginLockoutService $lockoutService
     ) {}
 
     /**
@@ -200,7 +201,7 @@ class MFAController extends Controller
         $user->tokens()->delete();
 
         // MFA verified - create token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token', ['mfa_verified'])->plainTextToken;
 
         // Create session for this token
         $accessToken = $user->tokens()->latest()->first();
@@ -213,12 +214,7 @@ class MFAController extends Controller
             'message' => 'MFA verification successful.',
             'data' => [
                 'access_token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'mfa_enabled' => $user->mfa_enabled,
-                ],
+                'user' => new UserResource($user),
             ],
         ]);
     }
@@ -260,7 +256,7 @@ class MFAController extends Controller
         }
 
         // Recovery code verified - create token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token', ['mfa_verified'])->plainTextToken;
 
         // Create session for this token
         $accessToken = $user->tokens()->latest()->first();
@@ -275,11 +271,7 @@ class MFAController extends Controller
             'message' => 'Recovery code accepted.',
             'data' => [
                 'access_token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
+                'user' => new UserResource($user),
                 'remaining_recovery_codes' => $remainingCodes,
                 'warning' => $remainingCodes <= 2 ? 'You have very few recovery codes left. Please regenerate them.' : null,
             ],

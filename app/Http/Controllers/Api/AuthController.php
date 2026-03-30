@@ -25,6 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Http\Resources\UserResource;
@@ -54,7 +55,7 @@ class AuthController extends Controller
         // Check if email is already registered as a verified user
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {
-            \Log::info('Registration attempted with existing email', ['email_masked' => $this->maskEmail($request->email)]);
+            Log::info('Registration attempted with existing email', ['email_masked' => $this->maskEmail($request->email)]);
 
             return response()->json([
                 'success' => false,
@@ -76,7 +77,7 @@ class AuthController extends Controller
             'billing_cycle' => $request->billing_cycle ?? null,
         ]);
 
-        \Log::info('Pending registration created', [
+        Log::info('Pending registration created', [
             'pending_id' => $pending->id,
             'email_masked' => $this->maskEmail($pending->email),
         ]);
@@ -88,9 +89,9 @@ class AuthController extends Controller
                 $pending->verification_code,
                 'registration'
             ));
-            \Log::info('Verification email sent', ['email_masked' => $this->maskEmail($pending->email)]);
+            Log::info('Verification email sent', ['email_masked' => $this->maskEmail($pending->email)]);
         } catch (\Exception $e) {
-            \Log::error('Failed to send verification email', [
+            Log::error('Failed to send verification email', [
                 'email_masked' => $this->maskEmail($pending->email),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -161,7 +162,7 @@ class AuthController extends Controller
                 ]);
             } catch (\Exception $e) {
                 // Don't let audit logging crash the login flow
-                \Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
+                Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
             }
 
             return response()->json([
@@ -182,7 +183,7 @@ class AuthController extends Controller
                 ]);
             } catch (\Exception $e) {
                 // Don't let audit logging crash the login flow
-                \Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
+                Log::warning('Failed to log auth event', ['error' => $e->getMessage()]);
             }
 
             return response()->json([
@@ -230,7 +231,7 @@ class AuthController extends Controller
         try {
             Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, 'login'));
         } catch (\Exception $e) {
-            \Log::error('Failed to send verification email', [
+            Log::error('Failed to send verification email', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -310,7 +311,7 @@ class AuthController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     // Don't let audit logging prevent logout
-                    \Log::warning('Failed to log beacon logout', ['error' => $e->getMessage()]);
+                    Log::warning('Failed to log beacon logout', ['error' => $e->getMessage()]);
                 }
             }
 
@@ -411,9 +412,8 @@ class AuthController extends Controller
         $request->validate([
             'code' => 'required|string|size:6',
             'type' => 'required|string|in:login,registration',
-            // For login: challenge_token preferred, user_id for backwards compatibility
+            // For login: challenge_token preferred
             'challenge_token' => 'nullable|string',
-            'user_id' => 'nullable|integer',
             'pending_id' => 'required_if:type,registration|integer',
         ]);
 
@@ -474,7 +474,7 @@ class AuthController extends Controller
             $user->is_admin = $isAdmin;
             $user->save();
 
-            \Log::info('User created from pending registration', [
+            Log::info('User created from pending registration', [
                 'user_id' => $user->id,
                 'pending_id' => $pending->id,
             ]);
@@ -555,7 +555,6 @@ class AuthController extends Controller
         $request->validate([
             'type' => 'required|string|in:login,registration',
             'challenge_token' => 'nullable|string',
-            'user_id' => 'nullable|integer',
             'pending_id' => 'required_if:type,registration|integer',
         ]);
 
@@ -587,9 +586,9 @@ class AuthController extends Controller
                     $newCode,
                     'registration'
                 ));
-                \Log::info('Resent verification email', ['email_masked' => $this->maskEmail($pending->email)]);
+                Log::info('Resent verification email', ['email_masked' => $this->maskEmail($pending->email)]);
             } catch (\Exception $e) {
-                \Log::error('Failed to resend verification email', [
+                Log::error('Failed to resend verification email', [
                     'email_masked' => $this->maskEmail($pending->email),
                     'error' => $e->getMessage(),
                 ]);
@@ -651,7 +650,7 @@ class AuthController extends Controller
         try {
             Mail::to($user->email)->send(new VerificationCode($user, $verificationCode->code, $request->type));
         } catch (\Exception $e) {
-            \Log::error('Failed to send verification email', [
+            Log::error('Failed to send verification email', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -701,7 +700,7 @@ class AuthController extends Controller
      */
     private function createAuthTokenWithSession(User $user): array
     {
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token', ['mfa_verified'])->plainTextToken;
 
         // Create session for this token
         $accessToken = $user->tokens()->latest()->first();

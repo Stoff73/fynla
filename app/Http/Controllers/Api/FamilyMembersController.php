@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class FamilyMembersController extends Controller
@@ -31,7 +32,7 @@ class FamilyMembersController extends Controller
     {
         $user = $request->user();
 
-        \Log::info('FamilyMembers::index called', [
+        Log::info('FamilyMembers::index called', [
             'user_id' => $user->id,
             'user_name' => $user->name,
             'spouse_id' => $user->spouse_id,
@@ -91,7 +92,7 @@ class FamilyMembersController extends Controller
         // Merge user's family members with spouse's shared records
         $allMembers = $familyMembers->concat($sharedFromSpouse);
 
-        \Log::info('FamilyMembers::index result', [
+        Log::info('FamilyMembers::index result', [
             'own_members_count' => $familyMembers->count(),
             'spouse_members_count' => $spouseFamilyMembers->count(),
             'shared_from_spouse_count' => $sharedFromSpouse->count(),
@@ -177,7 +178,7 @@ class FamilyMembersController extends Controller
     {
         $spouseEmail = $data['email'];
 
-        \Log::info('handleSpouseCreation called', [
+        Log::info('handleSpouseCreation called', [
             'current_user_id' => $currentUser->id,
             'current_user_email' => $currentUser->email,
             'current_user_spouse_id' => $currentUser->spouse_id,
@@ -187,7 +188,7 @@ class FamilyMembersController extends Controller
         // Check if spouse already has an account
         $spouseUser = \App\Models\User::where('email', $spouseEmail)->first();
 
-        \Log::info('Spouse user lookup result', [
+        Log::info('Spouse user lookup result', [
             'found' => $spouseUser ? 'yes' : 'no',
             'spouse_user_id' => $spouseUser?->id,
             'spouse_user_spouse_id' => $spouseUser?->spouse_id,
@@ -371,7 +372,7 @@ class FamilyMembersController extends Controller
             try {
                 Mail::to($spouseUser->email)->send(new SpouseAccountLinked($spouseUser, $currentUser));
             } catch (\Exception $e) {
-                \Log::error('Failed to send spouse account linked email: '.$e->getMessage());
+                Log::error('Failed to send spouse account linked email: '.$e->getMessage());
             }
 
             return response()->json([
@@ -496,7 +497,7 @@ class FamilyMembersController extends Controller
             Mail::to($spouseEmail)->send(new SpouseAccountCreated($spouseUser, $currentUser, $temporaryPassword));
             $emailSent = true;
         } catch (\Exception $e) {
-            \Log::error('Failed to send spouse account created email: '.$e->getMessage());
+            Log::error('Failed to send spouse account created email: '.$e->getMessage());
         }
 
         return response()->json([
