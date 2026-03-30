@@ -177,42 +177,6 @@ export default {
       return this.holdings ? this.holdings.length : 0;
     },
 
-    portfolioHealthScore() {
-      if (this.analysis && this.analysis.portfolio_health_score !== undefined) {
-        return this.analysis.portfolio_health_score;
-      }
-      if (this.holdingsCount < 3) return 45;
-      if (this.holdingsCount < 5) return 60;
-      if (this.holdingsCount < 10) return 75;
-      return 85;
-    },
-
-    portfolioHealthColour() {
-      const score = this.portfolioHealthScore;
-      if (score >= 80) return 'text-spring-600';
-      if (score >= 60) return 'text-violet-600';
-      return 'text-raspberry-600';
-    },
-
-    diversificationScore() {
-      if (this.analysis && this.analysis.diversification_score !== undefined) {
-        return Math.round(this.analysis.diversification_score);
-      }
-      const count = this.holdingsCount;
-      if (count >= 10) return 90;
-      if (count >= 7) return 75;
-      if (count >= 5) return 60;
-      if (count >= 3) return 45;
-      return 25;
-    },
-
-    diversificationColour() {
-      const score = this.diversificationScore;
-      if (score >= 70) return 'text-spring-600';
-      if (score >= 50) return 'text-violet-600';
-      return 'text-raspberry-600';
-    },
-
     portfolioProjection() {
       return this.portfolioProjections?.portfolio;
     },

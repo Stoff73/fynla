@@ -14,7 +14,7 @@
     <div v-else>
 
       <div v-if="loading" class="loading-state">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
         <p>Loading business interests...</p>
       </div>
 

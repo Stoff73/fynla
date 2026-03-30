@@ -1,5 +1,5 @@
 <template>
-  <aside class="bg-[#EEEEEE] h-full overflow-y-auto rounded-xl">
+  <aside class="bg-light-gray h-full overflow-y-auto rounded-xl">
     <div v-if="milestone" class="p-6 space-y-6">
 
       <!-- Did you know? — stage-coloured gradient card -->

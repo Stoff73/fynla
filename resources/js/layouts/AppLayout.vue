@@ -56,7 +56,7 @@
     <!-- Collapsed chat strip -->
     <aside
       v-if="showDockedChat && chatCollapsed"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-10 bg-[#EEEEEE] border-l border-light-gray z-30 items-center pt-3 gap-3 transition-all duration-300"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-10 bg-light-gray border-l border-light-gray z-30 items-center pt-3 gap-3 transition-all duration-300"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <button

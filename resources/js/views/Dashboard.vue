@@ -1165,10 +1165,10 @@ export default {
     // Net Worth donut chart data
     netWorthChartCategories() {
       const LIABILITY_COLORS = {
-        mortgages: '#B91C1C',
-        loans: '#991B1B',
-        credit_cards: '#DC2626',
-        other: '#7F1D1D',
+        mortgages: '#E83E6D',
+        loans: '#C62D57',
+        credit_cards: '#A82248',
+        other: '#8A1A39',
       };
 
       const categories = [];
@@ -1179,7 +1179,7 @@ export default {
           categories.push({
             label: this.formatAssetCategory(key),
             value,
-            color: ASSET_COLORS[key] || '#94A3B8',
+            color: ASSET_COLORS[key] || '#717171',
           });
         }
       });
@@ -1190,7 +1190,7 @@ export default {
           categories.push({
             label: this.formatLiabilityCategory(key),
             value,
-            color: LIABILITY_COLORS[key] || '#B91C1C',
+            color: LIABILITY_COLORS[key] || '#E83E6D',
           });
         }
       });
@@ -1295,7 +1295,7 @@ export default {
                   show: true,
                   fontSize: '22px',
                   fontWeight: 900,
-                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  color: netWorth >= 0 ? '#16A34A' : '#A82248',
                   offsetY: 24,
                   formatter: () => vm.formatCurrency(netWorth),
                 },
@@ -1305,7 +1305,7 @@ export default {
                   label: '',
                   fontSize: '22px',
                   fontWeight: 900,
-                  color: netWorth >= 0 ? '#16A34A' : '#DC2626',
+                  color: netWorth >= 0 ? '#16A34A' : '#A82248',
                   formatter: () => vm.formatCurrency(netWorth),
                 },
               },

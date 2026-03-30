@@ -1,6 +1,6 @@
 <template>
   <div
-    class="goal-card bg-white border border-light-gray rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 cursor-pointer"
+    class="goal-card bg-white border border-light-gray rounded-lg p-5 hover:shadow-md hover:-translate-y-0.5 hover:bg-light-gray transition-all duration-200 cursor-pointer"
     :class="{ 'border-l-4': true, [borderColorClass]: true }"
     @click="$emit('view', goal)"
   >

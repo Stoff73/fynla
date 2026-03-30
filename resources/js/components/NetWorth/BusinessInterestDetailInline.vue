@@ -10,7 +10,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-raspberry-500"></div>
       <p class="mt-4 text-neutral-500">Loading business details...</p>
     </div>
 
@@ -97,7 +97,7 @@
               class="px-6 py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap"
               :class="
                 activeTab === tab.id
-                  ? 'border-purple-600 text-purple-600'
+                  ? 'border-violet-500 text-violet-500'
                   : 'border-transparent text-neutral-500 hover:text-neutral-500 hover:border-horizon-300'
               "
             >
@@ -189,7 +189,7 @@
           <!-- Tax Deadlines Tab -->
           <div v-else-if="activeTab === 'deadlines'" class="space-y-6">
             <div v-if="loadingDeadlines" class="text-center py-8">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
             </div>
 
             <div v-else-if="taxDeadlines && taxDeadlines.length > 0">
@@ -225,7 +225,7 @@
           <!-- Exit Planning Tab -->
           <div v-else-if="activeTab === 'exit'" class="space-y-6">
             <div v-if="loadingExitCalc" class="text-center py-8">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
             </div>
 
             <div v-else-if="exitCalculation">
