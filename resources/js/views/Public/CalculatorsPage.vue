@@ -72,34 +72,34 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Gross Income</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Gross Income</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(incomeTax.income)"
                     @input="parseInputValue($event, incomeTax, 'income')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Pension Contributions</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Pension Contributions</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(incomeTax.pension)"
                     @input="parseInputValue($event, incomeTax, 'pension')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="0"
                   />
                 </div>
-                <p class="text-xs text-slate-500 mt-1">Pension contributions reduce your taxable income</p>
+                <p class="text-xs text-neutral-500 mt-1">Pension contributions reduce your taxable income</p>
               </div>
 
               <button
@@ -110,8 +110,8 @@
               </button>
             </div>
 
-            <div v-if="incomeTax.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <div v-if="incomeTax.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
+              <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
@@ -119,44 +119,44 @@
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Gross Income</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(incomeTax.result.gross) }}</span>
+                  <span class="text-neutral-500">Gross Income</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(incomeTax.result.gross) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Pension Contributions</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(incomeTax.result.pension) }}</span>
+                  <span class="text-neutral-500">Pension Contributions</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(incomeTax.result.pension) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Taxable Income</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(incomeTax.result.taxable) }}</span>
+                  <span class="text-neutral-500">Taxable Income</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(incomeTax.result.taxable) }}</span>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
+                <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Income Tax</span>
+                  <span class="text-neutral-500">Income Tax</span>
                   <span class="font-semibold text-raspberry-600">-{{ formatCurrency(incomeTax.result.tax) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">National Insurance</span>
+                  <span class="text-neutral-500">National Insurance</span>
                   <span class="font-semibold text-raspberry-600">-{{ formatCurrency(incomeTax.result.ni) }}</span>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
+                <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-spring-50 -mx-6 px-6 rounded-lg">
-                  <span class="font-bold text-slate-900">Net Income</span>
+                  <span class="font-bold text-horizon-500">Net Income</span>
                   <span class="font-bold text-2xl text-spring-600">{{ formatCurrency(incomeTax.result.net) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Effective Tax Rate</span>
-                  <span class="font-semibold text-slate-900">{{ incomeTax.result.effectiveRate }}%</span>
+                  <span class="text-neutral-500">Effective Tax Rate</span>
+                  <span class="font-semibold text-horizon-500">{{ incomeTax.result.effectiveRate }}%</span>
                 </div>
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                <p class="text-slate-500">Enter your income and click Calculate to see results</p>
+                <p class="text-neutral-500">Enter your income and click Calculate to see results</p>
               </div>
             </div>
           </div>
@@ -177,30 +177,30 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Property Price</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Property Price</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(mortgage.propertyValue)"
                     @input="parseInputValue($event, mortgage, 'propertyValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="300,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Deposit</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Deposit</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(mortgage.deposit)"
                     @input="parseInputValue($event, mortgage, 'deposit')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     placeholder="30,000"
                   />
                 </div>
@@ -211,7 +211,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">
                   Mortgage Term: {{ mortgage.term }} years
                 </label>
                 <input
@@ -222,31 +222,31 @@
                   step="1"
                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
-                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>5 yrs</span>
                   <span>40 yrs</span>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Interest Rate (%)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Interest Rate (%)</label>
                 <input
                   v-model.number="mortgage.interestRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                   placeholder="4.5"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Repayment Type</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Repayment Type</label>
                 <div class="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     @click="mortgage.repaymentType = 'repayment'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'repayment' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
+                    :class="mortgage.repaymentType === 'repayment' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Repayment
                   </button>
@@ -254,7 +254,7 @@
                     type="button"
                     @click="mortgage.repaymentType = 'interest_only'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
+                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Interest Only
                   </button>
@@ -278,26 +278,26 @@
               </div>
 
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Loan Amount</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(mortgage.result.loanAmount) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Loan Amount</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(mortgage.result.loanAmount) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Loan to Value</p>
-                  <p class="text-lg font-bold text-slate-900">{{ mortgage.result.ltv }}%</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Loan to Value</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ mortgage.result.ltv }}%</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Repaid</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(mortgage.result.totalRepayment) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(mortgage.result.totalRepayment) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Interest</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Interest</p>
                   <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(mortgage.result.totalInterest) }}</p>
                 </div>
               </div>
 
               <!-- LTV warning -->
-              <div v-if="mortgage.result.ltv > 90" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="mortgage.result.ltv > 90" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -309,7 +309,7 @@
               </div>
 
               <!-- Interest only warning -->
-              <div v-if="mortgage.repaymentType === 'interest_only'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="mortgage.repaymentType === 'interest_only'" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -321,8 +321,8 @@
               </div>
 
               <!-- Amortisation chart -->
-              <div v-if="mortgage.repaymentType === 'repayment'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p class="text-xs text-slate-500 font-semibold mb-3">Capital vs Interest Over Term</p>
+              <div v-if="mortgage.repaymentType === 'repayment'" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                <p class="text-xs text-neutral-500 font-semibold mb-3">Capital vs Interest Over Term</p>
                 <apexchart
                   type="bar"
                   height="220"
@@ -342,12 +342,12 @@
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                <p class="text-slate-500">Enter your mortgage details to see your repayment breakdown</p>
+                <p class="text-neutral-500">Enter your mortgage details to see your repayment breakdown</p>
               </div>
             </div>
           </div>
@@ -365,37 +365,37 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Amount</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Loan Amount</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(loan.amount)"
                     @input="parseInputValue($event, loan, 'amount')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="10,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Interest Rate (% APR)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Interest Rate (% APR)</label>
                 <input
                   v-model.number="loan.rate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="8.9"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Term (months)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Loan Term (months)</label>
                 <input
                   v-model.number="loan.term"
                   type="number"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="36"
                 />
               </div>
@@ -408,48 +408,48 @@
               </button>
             </div>
 
-            <div v-if="loan.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-if="loan.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
+              <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Results
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Loan Amount</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(loan.result.amount) }}</span>
+                  <span class="text-neutral-500">Loan Amount</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(loan.result.amount) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Interest Rate</span>
-                  <span class="font-semibold text-slate-900">{{ loan.result.rate }}% APR</span>
+                  <span class="text-neutral-500">Interest Rate</span>
+                  <span class="font-semibold text-horizon-500">{{ loan.result.rate }}% APR</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Term</span>
-                  <span class="font-semibold text-slate-900">{{ loan.result.term }} months</span>
+                  <span class="text-neutral-500">Term</span>
+                  <span class="font-semibold text-horizon-500">{{ loan.result.term }} months</span>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
+                <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-violet-50 -mx-6 px-6 rounded-lg">
-                  <span class="font-bold text-slate-900">Monthly Payment</span>
+                  <span class="font-bold text-horizon-500">Monthly Payment</span>
                   <span class="font-bold text-2xl text-violet-600">{{ formatCurrency(loan.result.monthlyPayment) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Total Interest</span>
+                  <span class="text-neutral-500">Total Interest</span>
                   <span class="font-semibold text-raspberry-600">{{ formatCurrency(loan.result.totalInterest) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Total Repayment</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(loan.result.totalRepayment) }}</span>
+                  <span class="text-neutral-500">Total Repayment</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(loan.result.totalRepayment) }}</span>
                 </div>
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p class="text-slate-500">Enter your loan details and click Calculate to see results</p>
+                <p class="text-neutral-500">Enter your loan details and click Calculate to see results</p>
               </div>
             </div>
           </div>
@@ -467,40 +467,40 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Expenses</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Monthly Expenses</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(emergencyFund.monthlyExpenses)"
                     @input="parseInputValue($event, emergencyFund, 'monthlyExpenses')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="2,500"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Savings</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Savings</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(emergencyFund.currentSavings)"
                     @input="parseInputValue($event, emergencyFund, 'currentSavings')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="5,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Target Months</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Target Months</label>
                 <select
                   v-model.number="emergencyFund.targetMonths"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                 >
                   <option :value="3">3 months (minimum recommended)</option>
                   <option :value="6">6 months (standard recommendation)</option>
@@ -517,8 +517,8 @@
               </button>
             </div>
 
-            <div v-if="emergencyFund.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <div v-if="emergencyFund.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
+              <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-spring-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
@@ -526,31 +526,31 @@
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Monthly Expenses</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(emergencyFund.result.monthlyExpenses) }}</span>
+                  <span class="text-neutral-500">Monthly Expenses</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(emergencyFund.result.monthlyExpenses) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Target Coverage</span>
-                  <span class="font-semibold text-slate-900">{{ emergencyFund.result.targetMonths }} months</span>
+                  <span class="text-neutral-500">Target Coverage</span>
+                  <span class="font-semibold text-horizon-500">{{ emergencyFund.result.targetMonths }} months</span>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
+                <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-spring-50 -mx-6 px-6 rounded-lg">
-                  <span class="font-bold text-slate-900">Target Fund</span>
+                  <span class="font-bold text-horizon-500">Target Fund</span>
                   <span class="font-bold text-2xl text-spring-600">{{ formatCurrency(emergencyFund.result.targetAmount) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Current Savings</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(emergencyFund.result.currentSavings) }}</span>
+                  <span class="text-neutral-500">Current Savings</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(emergencyFund.result.currentSavings) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Shortfall</span>
+                  <span class="text-neutral-500">Shortfall</span>
                   <span :class="emergencyFund.result.shortfall > 0 ? 'font-semibold text-raspberry-600' : 'font-semibold text-spring-600'">
                     {{ emergencyFund.result.shortfall > 0 ? formatCurrency(emergencyFund.result.shortfall) : 'Fully funded!' }}
                   </span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Current Runway</span>
-                  <span class="font-semibold text-slate-900">{{ emergencyFund.result.currentRunway.toFixed(1) }} months</span>
+                  <span class="text-neutral-500">Current Runway</span>
+                  <span class="font-semibold text-horizon-500">{{ emergencyFund.result.currentRunway.toFixed(1) }} months</span>
                 </div>
                 <div class="mt-4" :class="[
                   'rounded-xl p-4',
@@ -578,12 +578,12 @@
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <p class="text-slate-500">Enter your expenses and savings to see your emergency fund status</p>
+                <p class="text-neutral-500">Enter your expenses and savings to see your emergency fund status</p>
               </div>
             </div>
           </div>
@@ -601,68 +601,68 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Pension Value</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Pension Value</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(pension.currentValue)"
                     @input="parseInputValue($event, pension, 'currentValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Contribution</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Monthly Contribution</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">£</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">£</span>
                   <input
                     :value="formatInputDisplay(pension.monthlyContribution)"
                     @input="parseInputValue($event, pension, 'monthlyContribution')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="500"
                   />
                 </div>
-                <p class="text-xs text-slate-500 mt-1">Including employer contributions and tax relief</p>
+                <p class="text-xs text-neutral-500 mt-1">Including employer contributions and tax relief</p>
               </div>
 
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">Current Age</label>
+                  <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Age</label>
                   <input
                     v-model.number="pension.currentAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="35"
                   />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-slate-700 mb-2">Retirement Age</label>
+                  <label class="block text-sm font-semibold text-horizon-500 mb-2">Retirement Age</label>
                   <input
                     v-model.number="pension.retirementAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                     placeholder="65"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Expected Growth Rate (%)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Expected Growth Rate (%)</label>
                 <input
                   v-model.number="pension.growthRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                   placeholder="5.0"
                 />
-                <p class="text-xs text-slate-500 mt-1">Typical range: 4-7% for balanced portfolios</p>
+                <p class="text-xs text-neutral-500 mt-1">Typical range: 4-7% for balanced portfolios</p>
               </div>
 
               <button
@@ -673,8 +673,8 @@
               </button>
             </div>
 
-            <div v-if="pension.result" class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <div v-if="pension.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
+              <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
@@ -682,27 +682,27 @@
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Years to Retirement</span>
-                  <span class="font-semibold text-slate-900">{{ pension.result.yearsToRetirement }} years</span>
+                  <span class="text-neutral-500">Years to Retirement</span>
+                  <span class="font-semibold text-horizon-500">{{ pension.result.yearsToRetirement }} years</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Current Value</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(pension.result.currentValue) }}</span>
+                  <span class="text-neutral-500">Current Value</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(pension.result.currentValue) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Total Contributions</span>
-                  <span class="font-semibold text-slate-900">{{ formatCurrency(pension.result.totalContributions) }}</span>
+                  <span class="text-neutral-500">Total Contributions</span>
+                  <span class="font-semibold text-horizon-500">{{ formatCurrency(pension.result.totalContributions) }}</span>
                 </div>
-                <div class="border-t border-slate-300 my-2"></div>
+                <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-light-pink-100 -mx-6 px-6 rounded-lg">
-                  <span class="font-bold text-slate-900">Projected Pot at {{ pension.retirementAge }}</span>
+                  <span class="font-bold text-horizon-500">Projected Pot at {{ pension.retirementAge }}</span>
                   <span class="font-bold text-2xl text-purple-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-slate-600">Investment Growth</span>
+                  <span class="text-neutral-500">Investment Growth</span>
                   <span class="font-semibold text-spring-600">{{ formatCurrency(pension.result.investmentGrowth) }}</span>
                 </div>
-                <div class="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div class="mt-4 bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                   <p class="text-sm text-violet-900 font-semibold mb-2">At 4% withdrawal rate:</p>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -718,12 +718,12 @@
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
-                <p class="text-slate-500">Enter your pension details to see your retirement projection</p>
+                <p class="text-neutral-500">Enter your pension details to see your retirement projection</p>
               </div>
             </div>
           </div>
@@ -745,10 +745,10 @@
             <!-- Inputs -->
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Plan</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Loan Plan</label>
                 <select
                   v-model="studentLoan.plan"
-                  class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                 >
                   <option v-for="(plan, key) in studentLoan.plans" :key="key" :value="key">{{ plan.label }}</option>
                 </select>
@@ -760,37 +760,37 @@
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Loan Balance</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Loan Balance</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(studentLoan.balance)"
                     @input="parseInputValue($event, studentLoan, 'balance')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="45,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Annual Salary</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Annual Salary</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(studentLoan.salary)"
                     @input="parseInputValue($event, studentLoan, 'salary')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all"
                     placeholder="30,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">
                   Expected Salary Growth: {{ studentLoan.salaryGrowth }}% per year
                 </label>
                 <input
@@ -801,7 +801,7 @@
                   step="0.5"
                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500"
                 />
-                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>0%</span>
                   <span>10%</span>
                 </div>
@@ -824,26 +824,26 @@
               </div>
 
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Time to Repay</p>
-                  <p class="text-lg font-bold text-slate-900">{{ studentLoan.result.yearsToRepay }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Time to Repay</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ studentLoan.result.yearsToRepay }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Repaid</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(studentLoan.result.totalRepaid) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(studentLoan.result.totalRepaid) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Interest</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(studentLoan.result.totalInterest) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Interest</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(studentLoan.result.totalInterest) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Write-off Date</p>
-                  <p class="text-lg font-bold text-slate-900">{{ studentLoan.result.writeOffYear }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Write-off Date</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ studentLoan.result.writeOffYear }}</p>
                 </div>
               </div>
 
               <!-- Write-off warning -->
-              <div v-if="studentLoan.result.writtenOff" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="studentLoan.result.writtenOff" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -883,13 +883,13 @@
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                 </svg>
-                <p class="text-slate-500">Enter your loan details to see your repayment projection</p>
+                <p class="text-neutral-500">Enter your loan details to see your repayment projection</p>
               </div>
             </div>
           </div>
@@ -911,52 +911,52 @@
             <!-- Inputs -->
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Target Amount</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Target Amount</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(savingsGoal.target)"
                     @input="parseInputValue($event, savingsGoal, 'target')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
                     placeholder="10,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Current Savings</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Current Savings</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(savingsGoal.current)"
                     @input="parseInputValue($event, savingsGoal, 'current')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
                     placeholder="1,000"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Contribution</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Monthly Contribution</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
                   <input
                     :value="formatInputDisplay(savingsGoal.monthly)"
                     @input="parseInputValue($event, savingsGoal, 'monthly')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-raspberry-500 focus:border-raspberry-500 transition-all"
                     placeholder="200"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">
                   Interest Rate / Expected Return: {{ savingsGoal.rate }}% per year
                 </label>
                 <input
@@ -967,7 +967,7 @@
                   step="0.25"
                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-raspberry-500"
                 />
-                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>0%</span>
                   <span>8%</span>
                 </div>
@@ -990,19 +990,19 @@
               </div>
 
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Contributions</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(savingsGoal.result.totalContributions) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Contributions</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(savingsGoal.result.totalContributions) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Interest Earned</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Interest Earned</p>
                   <p class="text-lg font-bold text-spring-600">{{ formatCurrency(savingsGoal.result.totalInterest) }}</p>
                 </div>
               </div>
 
               <!-- Growth chart -->
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p class="text-xs text-slate-500 font-semibold mb-3">Savings Growth Over Time</p>
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                <p class="text-xs text-neutral-500 font-semibold mb-3">Savings Growth Over Time</p>
                 <apexchart
                   type="area"
                   height="200"
@@ -1022,12 +1022,12 @@
               </div>
             </div>
 
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
-                <p class="text-slate-500">Enter your savings details to see your projection</p>
+                <p class="text-neutral-500">Enter your savings details to see your projection</p>
               </div>
             </div>
           </div>
@@ -1046,32 +1046,32 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Salary (Applicant 1)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 1)</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="45,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="45,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Salary (Applicant 2, optional)</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 2, optional)</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="0" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="0" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Other Monthly Debt Commitments</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Other Monthly Debt Commitments</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="200" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="200" />
                 </div>
                 <p class="text-xs text-neutral-500 mt-1">Loans, car finance, credit card minimums, etc.</p>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Deposit Available</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Deposit Available</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
                 </div>
               </div>
               <button @click="calculateMortgageAfford" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Affordability</button>
@@ -1091,23 +1091,23 @@
                 </div>
               </div>
               <div>
-                <p class="text-xs text-slate-500 font-semibold mb-2">Maximum Property Price by Deposit</p>
+                <p class="text-xs text-neutral-500 font-semibold mb-2">Maximum Property Price by Deposit</p>
                 <div class="grid grid-cols-3 gap-3">
-                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
-                    <p class="text-xs text-slate-500">10% deposit</p>
-                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property10) }}</p>
+                  <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray text-center">
+                    <p class="text-xs text-neutral-500">10% deposit</p>
+                    <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(mortgageAfford.result.property10) }}</p>
                   </div>
-                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
-                    <p class="text-xs text-slate-500">15% deposit</p>
-                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property15) }}</p>
+                  <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray text-center">
+                    <p class="text-xs text-neutral-500">15% deposit</p>
+                    <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(mortgageAfford.result.property15) }}</p>
                   </div>
-                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center">
-                    <p class="text-xs text-slate-500">20% deposit</p>
-                    <p class="text-sm font-bold text-slate-900">{{ formatCurrency(mortgageAfford.result.property20) }}</p>
+                  <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray text-center">
+                    <p class="text-xs text-neutral-500">20% deposit</p>
+                    <p class="text-sm font-bold text-horizon-500">{{ formatCurrency(mortgageAfford.result.property20) }}</p>
                   </div>
                 </div>
               </div>
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <p class="text-sm text-violet-700">Lenders assess affordability differently — this is a guide only. Your actual borrowing will depend on credit history, outgoings, and lender criteria.</p>
               </div>
               <div class="mt-4">
@@ -1119,10 +1119,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-                <p class="text-slate-500">Enter your income details to see what you could borrow</p>
+                <p class="text-neutral-500">Enter your income details to see what you could borrow</p>
               </div>
             </div>
           </div>
@@ -1142,15 +1142,15 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Property Price</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Property Price</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(stampDuty.price)" @input="parseInputValue($event, stampDuty, 'price')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="300,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(stampDuty.price)" @input="parseInputValue($event, stampDuty, 'price')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="300,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Buyer Type</label>
-                <select v-model="stampDuty.buyerType" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Buyer Type</label>
+                <select v-model="stampDuty.buyerType" class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
                   <option value="first-time">First-time buyer</option>
                   <option value="home-mover">Home mover</option>
                   <option value="additional">Additional property</option>
@@ -1158,8 +1158,8 @@
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Country</label>
-                <select v-model="stampDuty.country" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Country</label>
+                <select v-model="stampDuty.country" class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all">
                   <option value="england">England &amp; Northern Ireland (SDLT)</option>
                   <option value="scotland">Scotland (LBTT)</option>
                   <option value="wales">Wales (LTT)</option>
@@ -1173,22 +1173,22 @@
                 <p class="text-2xl font-bold text-horizon-500">{{ formatCurrency(stampDuty.result.totalTax) }}</p>
                 <p class="text-xs text-horizon-400 mt-1">Effective rate: {{ stampDuty.result.effectiveRate }}%</p>
               </div>
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p class="text-xs text-slate-500 font-semibold mb-2">Breakdown by Band</p>
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                <p class="text-xs text-neutral-500 font-semibold mb-2">Breakdown by Band</p>
                 <div class="space-y-1.5">
                   <div v-for="(band, i) in stampDuty.result.bands" :key="i" class="flex justify-between text-xs">
-                    <span class="text-slate-600">{{ band.label }}</span>
-                    <span class="font-medium text-slate-900">{{ formatCurrency(band.tax) }}</span>
+                    <span class="text-neutral-500">{{ band.label }}</span>
+                    <span class="font-medium text-horizon-500">{{ formatCurrency(band.tax) }}</span>
                   </div>
                 </div>
               </div>
               <div v-if="stampDuty.result.saving > 0" class="bg-spring-50 border border-spring-200 rounded-xl p-4">
                 <p class="text-sm text-spring-700">First-time buyer relief saves you {{ formatCurrency(stampDuty.result.saving) }} compared to standard rates.</p>
               </div>
-              <div v-if="stampDuty.buyerType === 'additional'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="stampDuty.buyerType === 'additional'" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <p class="text-sm text-violet-700">Additional property surcharge of 5% has been applied to all bands.</p>
               </div>
-              <div v-if="stampDuty.buyerType === 'non-uk'" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="stampDuty.buyerType === 'non-uk'" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <p class="text-sm text-violet-700">Non-UK resident surcharge of 2% has been applied to all bands.</p>
               </div>
               <div class="mt-4">
@@ -1200,10 +1200,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
-                <p class="text-slate-500">Enter a property price to see the stamp duty breakdown</p>
+                <p class="text-neutral-500">Enter a property price to see the stamp duty breakdown</p>
               </div>
             </div>
           </div>
@@ -1223,34 +1223,34 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Initial Lump Sum</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Initial Lump Sum</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(compoundInterest.lumpSum)" @input="parseInputValue($event, compoundInterest, 'lumpSum')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="5,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(compoundInterest.lumpSum)" @input="parseInputValue($event, compoundInterest, 'lumpSum')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="5,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Contribution</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Monthly Contribution</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(compoundInterest.monthly)" @input="parseInputValue($event, compoundInterest, 'monthly')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="200" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(compoundInterest.monthly)" @input="parseInputValue($event, compoundInterest, 'monthly')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-spring-500 focus:border-spring-500 transition-all" placeholder="200" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Return: {{ compoundInterest.rate }}%</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Return: {{ compoundInterest.rate }}%</label>
                 <input v-model.number="compoundInterest.rate" type="range" min="0" max="12" step="0.5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500" />
-                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>0%</span><span>12%</span></div>
+                <div class="flex justify-between text-xs text-neutral-500 mt-1"><span>0%</span><span>12%</span></div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Investment Term: {{ compoundInterest.term }} years</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Investment Term: {{ compoundInterest.term }} years</label>
                 <input v-model.number="compoundInterest.term" type="range" min="1" max="40" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-spring-500" />
-                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 yr</span><span>40 yrs</span></div>
+                <div class="flex justify-between text-xs text-neutral-500 mt-1"><span>1 yr</span><span>40 yrs</span></div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Compound Frequency</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Compound Frequency</label>
                 <div class="grid grid-cols-2 gap-3">
-                  <button type="button" @click="compoundInterest.frequency = 'monthly'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'monthly' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Monthly</button>
-                  <button type="button" @click="compoundInterest.frequency = 'annually'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'annually' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Annually</button>
+                  <button type="button" @click="compoundInterest.frequency = 'monthly'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'monthly' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Monthly</button>
+                  <button type="button" @click="compoundInterest.frequency = 'annually'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="compoundInterest.frequency === 'annually' ? 'bg-spring-600 text-white border-spring-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Annually</button>
                 </div>
               </div>
               <button @click="calculateCompoundInterest" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Growth</button>
@@ -1262,17 +1262,17 @@
                 <p class="text-xs text-neutral-500 mt-1">after {{ compoundInterest.term }} years</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Contributions</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(compoundInterest.result.totalContributions) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Contributions</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(compoundInterest.result.totalContributions) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Growth Earned</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Growth Earned</p>
                   <p class="text-lg font-bold text-spring-600">{{ formatCurrency(compoundInterest.result.totalGrowth) }}</p>
                 </div>
               </div>
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p class="text-xs text-slate-500 font-semibold mb-3">Growth Over Time</p>
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                <p class="text-xs text-neutral-500 font-semibold mb-3">Growth Over Time</p>
                 <apexchart type="area" height="220" :options="compoundChartOptions" :series="compoundChartSeries" />
               </div>
               <div class="mt-4">
@@ -1284,10 +1284,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                <p class="text-slate-500">Enter your investment details to see projected growth</p>
+                <p class="text-neutral-500">Enter your investment details to see projected growth</p>
               </div>
             </div>
           </div>
@@ -1307,20 +1307,20 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Amount</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Loan Amount</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(personalLoan.amount)" @input="parseInputValue($event, personalLoan, 'amount')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="10,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(personalLoan.amount)" @input="parseInputValue($event, personalLoan, 'amount')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="10,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Interest Rate (%)</label>
-                <input v-model.number="personalLoan.rate" type="number" step="0.1" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="6.9" />
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Interest Rate (%)</label>
+                <input v-model.number="personalLoan.rate" type="number" step="0.1" class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="6.9" />
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Loan Term: {{ personalLoan.term }} years</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Loan Term: {{ personalLoan.term }} years</label>
                 <input v-model.number="personalLoan.term" type="range" min="1" max="10" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-500" />
-                <div class="flex justify-between text-xs text-slate-400 mt-1"><span>1 yr</span><span>10 yrs</span></div>
+                <div class="flex justify-between text-xs text-neutral-500 mt-1"><span>1 yr</span><span>10 yrs</span></div>
               </div>
               <button @click="calculatePersonalLoan" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Repayments</button>
             </div>
@@ -1331,16 +1331,16 @@
                 <p class="text-xs text-neutral-500 mt-1">over {{ personalLoan.term }} years</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Repaid</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(personalLoan.result.totalRepaid) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Repaid</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(personalLoan.result.totalRepaid) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Total Interest</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Total Interest</p>
                   <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(personalLoan.result.totalInterest) }}</p>
                 </div>
               </div>
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <p class="text-sm text-violet-700">The APR (Annual Percentage Rate) may differ from the interest rate as it includes any fees. Always check the APR when comparing loan offers.</p>
               </div>
               <div class="mt-4">
@@ -1352,10 +1352,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                <p class="text-slate-500">Enter your loan details to see your repayment breakdown</p>
+                <p class="text-neutral-500">Enter your loan details to see your repayment breakdown</p>
               </div>
             </div>
           </div>
@@ -1374,39 +1374,39 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Total Pension Pot</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Total Pension Pot</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(pensionWithdrawal.pot)" @input="parseInputValue($event, pensionWithdrawal, 'pot')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="250,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.pot)" @input="parseInputValue($event, pensionWithdrawal, 'pot')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="250,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Withdrawal Amount</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Withdrawal Amount</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(pensionWithdrawal.withdrawal)" @input="parseInputValue($event, pensionWithdrawal, 'withdrawal')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="50,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.withdrawal)" @input="parseInputValue($event, pensionWithdrawal, 'withdrawal')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="50,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Withdrawal Type</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Withdrawal Type</label>
                 <div class="grid grid-cols-2 gap-3">
-                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'lump'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'lump' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Lump Sum</button>
-                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'annual'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'annual' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Annual Income</button>
+                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'lump'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'lump' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Lump Sum</button>
+                  <button type="button" @click="pensionWithdrawal.withdrawalType = 'annual'" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.withdrawalType === 'annual' ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Annual Income</button>
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Other Annual Income</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Other Annual Income</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(pensionWithdrawal.otherIncome)" @input="parseInputValue($event, pensionWithdrawal, 'otherIncome')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="12,570" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionWithdrawal.otherIncome)" @input="parseInputValue($event, pensionWithdrawal, 'otherIncome')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-horizon-500 focus:border-horizon-500 transition-all" placeholder="12,570" />
                 </div>
                 <p class="text-xs text-neutral-500 mt-1">State pension, employment, rental income, etc.</p>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Tax-Free Cash Already Taken?</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Tax-Free Cash Already Taken?</label>
                 <div class="grid grid-cols-2 gap-3">
-                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = false" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="!pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">No</button>
-                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = true" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Yes</button>
+                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = false" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="!pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">No</button>
+                  <button type="button" @click="pensionWithdrawal.taxFreeTaken = true" class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors" :class="pensionWithdrawal.taxFreeTaken ? 'bg-horizon-500 text-white border-horizon-500' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Yes</button>
                 </div>
               </div>
               <button @click="calculatePensionWithdrawal" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Tax</button>
@@ -1418,24 +1418,24 @@
                 <p class="text-xs text-horizon-400 mt-1">from a {{ formatCurrency(pensionWithdrawal.withdrawal) }} withdrawal</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Tax-Free Portion</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Tax-Free Portion</p>
                   <p class="text-lg font-bold text-spring-600">{{ formatCurrency(pensionWithdrawal.result.taxFree) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Taxable Portion</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(pensionWithdrawal.result.taxable) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Taxable Portion</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(pensionWithdrawal.result.taxable) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Income Tax Due</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Income Tax Due</p>
                   <p class="text-lg font-bold text-raspberry-600">{{ formatCurrency(pensionWithdrawal.result.taxDue) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Effective Tax Rate</p>
-                  <p class="text-lg font-bold text-slate-900">{{ pensionWithdrawal.result.effectiveRate }}%</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Effective Tax Rate</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ pensionWithdrawal.result.effectiveRate }}%</p>
                 </div>
               </div>
-              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <p class="text-sm text-violet-700">Taking large lump sums can push you into higher tax bands. Consider spreading withdrawals across tax years to reduce the overall tax burden.</p>
@@ -1450,10 +1450,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <p class="text-slate-500">Enter your pension withdrawal details to see the tax impact</p>
+                <p class="text-neutral-500">Enter your pension withdrawal details to see the tax impact</p>
               </div>
             </div>
           </div>
@@ -1473,25 +1473,25 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Annual Pension Contribution</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Pension Contribution</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-3 text-slate-400 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(pensionRelief.contribution)" @input="parseInputValue($event, pensionRelief, 'contribution')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="5,000" />
+                  <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
+                  <input :value="formatInputDisplay(pensionRelief.contribution)" @input="parseInputValue($event, pensionRelief, 'contribution')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="5,000" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Tax Band</label>
-                <select v-model="pensionRelief.taxBand" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all">
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Tax Band</label>
+                <select v-model="pensionRelief.taxBand" class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all">
                   <option value="basic">Basic rate (20%)</option>
                   <option value="higher">Higher rate (40%)</option>
                   <option value="additional">Additional rate (45%)</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Pension Type</label>
+                <label class="block text-sm font-semibold text-horizon-500 mb-2">Pension Type</label>
                 <div class="grid grid-cols-2 gap-3">
-                  <button type="button" @click="pensionRelief.pensionType = 'relief-at-source'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'relief-at-source' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Relief at Source</button>
-                  <button type="button" @click="pensionRelief.pensionType = 'net-pay'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'net-pay' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'">Net Pay</button>
+                  <button type="button" @click="pensionRelief.pensionType = 'relief-at-source'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'relief-at-source' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Relief at Source</button>
+                  <button type="button" @click="pensionRelief.pensionType = 'net-pay'" class="py-2.5 px-3 text-sm font-medium rounded-xl border transition-colors" :class="pensionRelief.pensionType === 'net-pay' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'">Net Pay</button>
                 </div>
                 <p class="text-xs text-neutral-500 mt-2">
                   <span v-if="pensionRelief.pensionType === 'relief-at-source'">Relief at source: you pay from net pay, provider claims 20% from HMRC. Higher/additional rate taxpayers claim the rest via self-assessment.</span>
@@ -1507,12 +1507,12 @@
                 <p class="text-xs text-neutral-500 mt-1">from {{ formatCurrency(pensionRelief.result.effectiveCost) }} effective cost to you</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Your Contribution (Net)</p>
-                  <p class="text-lg font-bold text-slate-900">{{ formatCurrency(pensionRelief.result.netContribution) }}</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Your Contribution (Net)</p>
+                  <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(pensionRelief.result.netContribution) }}</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <p class="text-xs text-slate-500">Government Top-Up (20%)</p>
+                <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+                  <p class="text-xs text-neutral-500">Government Top-Up (20%)</p>
                   <p class="text-lg font-bold text-spring-600">{{ formatCurrency(pensionRelief.result.basicRelief) }}</p>
                 </div>
               </div>
@@ -1526,13 +1526,13 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-slate-600">Effective cost to you</span>
-                  <span class="font-bold text-slate-900">{{ formatCurrency(pensionRelief.result.effectiveCost) }}</span>
+                  <span class="text-neutral-500">Effective cost to you</span>
+                  <span class="font-bold text-horizon-500">{{ formatCurrency(pensionRelief.result.effectiveCost) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-slate-600">Total relief received</span>
+                  <span class="text-neutral-500">Total relief received</span>
                   <span class="font-bold text-spring-600">{{ formatCurrency(pensionRelief.result.totalRelief) }}</span>
                 </div>
               </div>
@@ -1545,10 +1545,10 @@
                 </router-link>
               </div>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-center">
+            <div v-else class="bg-eggshell-500 rounded-xl p-6 border border-light-gray flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
-                <p class="text-slate-500">Enter your contribution details to see your tax relief</p>
+                <p class="text-neutral-500">Enter your contribution details to see your tax relief</p>
               </div>
             </div>
           </div>

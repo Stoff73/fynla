@@ -240,13 +240,13 @@
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-10">Why Fynla?</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div class="flex flex-col items-center">
-            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-3">
-              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-12 h-12 bg-spring-100 rounded-xl flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-spring-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-horizon-500 mb-1">7-Day Free Trial</h3>
-            <p class="text-sm text-slate-600">Try any plan risk-free. No credit card required to start.</p>
+            <p class="text-sm text-neutral-500">Try any plan risk-free. No credit card required to start.</p>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-3">
@@ -255,7 +255,7 @@
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-horizon-500 mb-1">UK Data Security</h3>
-            <p class="text-sm text-slate-600">AES-256 encryption. Data stored in UK data centres. GDPR compliant.</p>
+            <p class="text-sm text-neutral-500">AES-256 encryption. Data stored in UK data centres. GDPR compliant.</p>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-light-blue-100 rounded-xl flex items-center justify-center mb-3 border border-light-gray">
@@ -264,11 +264,11 @@
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-horizon-500 mb-1">Cancel Anytime</h3>
-            <p class="text-sm text-slate-600">No lock-in contracts. Downgrade or cancel whenever you like.</p>
+            <p class="text-sm text-neutral-500">No lock-in contracts. Downgrade or cancel whenever you like.</p>
           </div>
         </div>
         <p class="text-center text-sm text-neutral-500 mt-8">
-          To find out more about how Fynla can help you, take a look at our
+          To find out more about how Fynla can help you, take a look at
           <router-link to="/features" class="text-raspberry-500 hover:text-raspberry-600 font-medium">our features</router-link>.
         </p>
       </div>
@@ -364,7 +364,7 @@ export default {
         },
         {
           question: 'What payment methods do you accept?',
-          answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor Stripe. All payments are processed securely and we never store your card details.',
+          answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor Revolut. All payments are processed securely and we never store your card details.',
         },
         {
           question: 'Is my financial data safe?',

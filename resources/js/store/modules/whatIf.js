@@ -1,4 +1,5 @@
 import whatIfService from '@/services/whatIfService';
+import logger from '@/utils/logger';
 
 const state = {
   scenarios: [],
@@ -64,10 +65,10 @@ const actions = {
       // API returns { success, data: { scenario, comparison } }
       // Service unwraps axios .data, so response = { success, data: { scenario, comparison } }
       const comparison = response?.data?.comparison || response?.comparison || response?.data || response;
-      console.log('[WhatIf] Comparison data:', JSON.stringify(comparison).substring(0, 200));
+      logger.debug('WhatIf', 'Comparison data:', JSON.stringify(comparison).substring(0, 200));
       commit('SET_COMPARISON_DATA', comparison);
     } catch (error) {
-      console.error('[WhatIf] fetchScenarioComparison error:', error);
+      logger.error('WhatIf', 'fetchScenarioComparison error:', error);
       commit('SET_ERROR', error.message);
     } finally {
       commit('SET_LOADING', false);

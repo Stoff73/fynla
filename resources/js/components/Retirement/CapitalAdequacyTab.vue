@@ -277,6 +277,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'CapitalAdequacyTab',
@@ -346,7 +347,7 @@ export default {
 
     // Annual Allowance calculations
     standardAllowance() {
-      return 60000; // UK Annual Allowance 2025/26
+      return ANNUAL_ALLOWANCE;
     },
 
     currentTaxYear() {

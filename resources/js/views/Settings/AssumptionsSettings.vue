@@ -35,7 +35,7 @@
             <span v-else class="status-badge default">Defaults</span>
           </div>
           <p class="section-description">
-            These assumptions are used to project the future value of your DC pensions.
+            These assumptions are used to project the future value of your Defined Contribution pensions.
           </p>
 
           <div class="assumptions-grid">

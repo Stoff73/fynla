@@ -103,6 +103,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'TaxOptimisationCard',
@@ -112,7 +113,7 @@ export default {
     return {
       // UK Tax Year 2025/26 allowances
       isaLimit: 20000,
-      pensionLimit: 60000,
+      pensionLimit: ANNUAL_ALLOWANCE,
       cgtLimit: 3000,
       dividendLimit: 500,
     };

@@ -97,7 +97,14 @@ export default {
       successMessage: '',
       errorMessage: '',
       switching: false,
+      _successTimer: null,
+      _errorTimer: null,
     };
+  },
+
+  beforeUnmount() {
+    if (this._successTimer) clearTimeout(this._successTimer);
+    if (this._errorTimer) clearTimeout(this._errorTimer);
   },
 
   async mounted() {
@@ -132,11 +139,11 @@ export default {
         if (response.data.success) {
           this.activeProvider = providerId;
           this.successMessage = response.data.message;
-          setTimeout(() => { this.successMessage = ''; }, 5000);
+          this._successTimer = setTimeout(() => { this.successMessage = ''; }, 5000);
         }
       } catch (error) {
         this.errorMessage = error.response?.data?.message || 'Failed to switch provider';
-        setTimeout(() => { this.errorMessage = ''; }, 5000);
+        this._errorTimer = setTimeout(() => { this.errorMessage = ''; }, 5000);
       } finally {
         this.switching = false;
       }

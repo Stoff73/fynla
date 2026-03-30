@@ -194,7 +194,12 @@ export default {
       showDeleteConfirm: false,
       deleteTarget: null,
       sourceFilter: 'all',
+      _successTimer: null,
     };
+  },
+
+  beforeUnmount() {
+    if (this._successTimer) clearTimeout(this._successTimer);
   },
 
   computed: {
@@ -306,7 +311,7 @@ export default {
     showSuccess(message) {
       this.successMessage = message;
       this.error = null;
-      setTimeout(() => { this.successMessage = null; }, 3000);
+      this._successTimer = setTimeout(() => { this.successMessage = null; }, 3000);
     },
 
     priorityClass(priority) {

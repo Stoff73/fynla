@@ -11,7 +11,7 @@
     />
 
     <div class="max-w-2xl w-full">
-      <div class="bg-light-blue-100 rounded-2xl py-8 px-32 space-y-6">
+      <div class="bg-light-blue-100 rounded-2xl py-8 px-6 sm:px-12 lg:px-32 space-y-6">
         <div>
           <div class="flex justify-center">
             <img :src="logoImage" alt="Fynla" class="h-[100px] w-auto">
