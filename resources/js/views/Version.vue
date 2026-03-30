@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.9.3</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.9.3.2</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,13 +28,50 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">19 March 2026</p>
+              <p class="text-body-base text-horizon-500">30 March 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
               <span class="inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-green-100 text-green-800">
                 Production Ready
               </span>
+            </div>
+          </div>
+
+          <!-- v0.9.3.2 Changes -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Website Redesign &amp; Content Refresh</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Complete redesign of all 5 personal journey pages with consistent gradient hero template. New features comparison page with competitor analysis. Calculators page redesign with two-column sidebar layout. Preview banner, login/register, and pricing page improvements. Mega menu with eggshell backgrounds and renamed navigation ("Your personal journey", "Free calculators").</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Security Hardening</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">National Insurance numbers masked in API responses. MFA token abilities enforced at middleware level. Exception messages sanitised across estate and protection controllers. User model mass assignment protection strengthened. Payment model soft deletes added for audit trail compliance. Admin seeder security improved.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Tax Compliance</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Hardcoded tax thresholds replaced with TaxConfigService lookups across retirement, coordination, and investment services. Residence Nil Rate Band qualification checks added with property ownership verification, direct descendant checks, and taper relief calculations. All ISA and inheritance tax fallback values now use centralised TaxDefaults constants.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Design System Compliance</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">54 code review issues fixed across 103+ files. Off-palette colours replaced with design system tokens. Banned amber colour removed. Score gauge replaced with descriptive text. Console logging moved to structured logger. Timer leaks fixed. Acronyms spelled out in user-facing text. All spinner and tab colours standardised.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Bug Fixes</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Protection dashboard card now correctly displays coverage amounts and includes disability policies. Payment and subscription amounts use decimal precision instead of integer truncation. Login and registration pages are mobile responsive. Pricing page FAQ correctly references Revolut payment processor.</p>
+          </div>
+
+          <!-- Version History Divider -->
+          <div class="border-t border-light-gray my-8"></div>
+
+          <!-- Previous Version: v0.9.3 -->
+          <div class="mb-6">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="text-xl font-bold text-horizon-400">v0.9.3</span>
+              <span class="text-body-sm text-neutral-500">19 March 2026</span>
             </div>
           </div>
 

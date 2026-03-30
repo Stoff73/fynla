@@ -25,7 +25,7 @@ This rule overrides all other behaviour. If the hook says invoke the skill, you 
 | Vuex Stores | 32 |
 | Agents | 9 |
 
-**Production**: https://fynla.org | **Version**: v0.9.3
+**Production**: https://fynla.org | **Version**: v0.9.3.2
 
 ## Commands
 
