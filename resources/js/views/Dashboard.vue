@@ -1779,10 +1779,12 @@ export default {
 
     protectionPolicyList() {
       const list = [];
-      (this.protectionLifePolicies || []).forEach(p => list.push({ name: p.policy_name || 'Life Insurance', cover: p.cover_amount || 0 }));
-      (this.protectionCriticalIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Critical Illness', cover: p.cover_amount || 0 }));
+      (this.protectionLifePolicies || []).forEach(p => list.push({ name: p.policy_name || 'Life Insurance', cover: p.sum_assured || 0 }));
+      (this.protectionCriticalIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Critical Illness', cover: p.sum_assured || 0 }));
       (this.protectionIncomeProtectionPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Income Protection', cover: p.monthly_benefit || 0 }));
-      return list.slice(0, 4);
+      (this.protectionDisabilityPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Disability', cover: p.benefit_amount || 0 }));
+      (this.protectionSicknessIllnessPolicies || []).forEach(p => list.push({ name: p.policy_name || 'Sickness & Illness', cover: p.benefit_amount || 0 }));
+      return list.slice(0, 5);
     },
 
     savingsSparklineData() {
