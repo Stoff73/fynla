@@ -931,6 +931,7 @@ import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/cons
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime } from '@/utils/dateFormatter';
+import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
@@ -1631,7 +1632,7 @@ export default {
     // Pension Annual Allowance computed
     pensionAllowanceData() {
       if (this.annualAllowance) {
-        const available = this.annualAllowance.available_allowance || 60000;
+        const available = this.annualAllowance.available_allowance || ANNUAL_ALLOWANCE;
         const contributions = this.annualAllowance.total_contributions || 0;
         const remaining = this.annualAllowance.remaining_allowance || (available - contributions);
         const percentUsed = available > 0 ? (contributions / available) * 100 : 0;
@@ -1659,7 +1660,7 @@ export default {
         }, 0);
 
         if (totalContributions > 0) {
-          const available = 60000;
+          const available = ANNUAL_ALLOWANCE;
           const remaining = available - totalContributions;
           const percentUsed = (totalContributions / available) * 100;
 
