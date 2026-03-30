@@ -130,8 +130,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'ScenarioBuilder',
+  mixins: [currencyMixin],
 
   emits: ['scenario-run'],
 
@@ -220,9 +223,6 @@ export default {
       this.benefitPeriod = 60;
     },
 
-    formatNumber(num) {
-      return new Intl.NumberFormat('en-GB').format(num);
-    },
   },
 };
 </script>

@@ -233,10 +233,6 @@ export default {
       return 'badge-default';
     },
 
-    formatNumber(value) {
-      return new Intl.NumberFormat('en-GB').format(value || 0);
-    },
-
     formatPercent(value) {
       return (value * 100).toFixed(1) + '%';
     },

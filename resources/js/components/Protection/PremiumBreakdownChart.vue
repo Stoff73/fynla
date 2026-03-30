@@ -16,6 +16,7 @@
 
 <script>
 import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { formatCurrencyWithPence } from '@/utils/currency';
 
 export default {
   name: 'PremiumBreakdownChart',
@@ -118,12 +119,7 @@ export default {
         tooltip: {
           y: {
             formatter: (value) => {
-              return new Intl.NumberFormat('en-GB', {
-                style: 'currency',
-                currency: 'GBP',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }).format(value) + ' per month';
+              return formatCurrencyWithPence(value) + ' per month';
             },
           },
         },

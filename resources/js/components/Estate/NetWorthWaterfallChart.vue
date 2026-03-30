@@ -17,6 +17,7 @@
 
 <script>
 import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'NetWorthWaterfallChart',
@@ -126,12 +127,7 @@ export default {
         dataLabels: {
           enabled: true,
           formatter: (val) => {
-            return new Intl.NumberFormat('en-GB', {
-              style: 'currency',
-              currency: 'GBP',
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(Math.abs(val));
+            return formatCurrency(Math.abs(val));
           },
           offsetY: -20,
           style: {
@@ -150,24 +146,14 @@ export default {
         yaxis: {
           labels: {
             formatter: (val) => {
-              return new Intl.NumberFormat('en-GB', {
-                style: 'currency',
-                currency: 'GBP',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }).format(val);
+              return formatCurrency(val);
             },
           },
         },
         tooltip: {
           y: {
             formatter: (val) => {
-              return new Intl.NumberFormat('en-GB', {
-                style: 'currency',
-                currency: 'GBP',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }).format(Math.abs(val));
+              return formatCurrency(Math.abs(val));
             },
           },
         },

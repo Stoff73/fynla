@@ -13,6 +13,7 @@
 
 <script>
 import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { formatCurrency } from '@/utils/currency';
 
 export default {
   name: 'CoverageGapChart',
@@ -118,12 +119,7 @@ export default {
           y: {
             formatter: (value) => {
               if (value === null || value === undefined) return 'No data';
-              return new Intl.NumberFormat('en-GB', {
-                style: 'currency',
-                currency: 'GBP',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }).format(value);
+              return formatCurrency(value);
             },
           },
         },

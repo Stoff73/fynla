@@ -69,8 +69,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'EstateOverviewCard',
+  mixins: [currencyMixin],
 
   props: {
     taxableEstate: {
@@ -114,21 +117,11 @@ export default {
     },
 
     formattedTaxableEstate() {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.taxableEstate);
+      return this.formatCurrency(this.taxableEstate);
     },
 
     formattedIHTLiability() {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.ihtLiability);
+      return this.formatCurrency(this.ihtLiability);
     },
 
     ihtLiabilityColour() {
@@ -153,12 +146,7 @@ export default {
 
     formattedFutureTaxableEstate() {
       if (this.futureTaxableEstate === null || this.futureTaxableEstate === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.futureTaxableEstate);
+      return this.formatCurrency(this.futureTaxableEstate);
     },
 
     formattedFutureIHTLiability() {
@@ -171,12 +159,7 @@ export default {
       }
 
       if (ihtValue === null || ihtValue === undefined) return '£0';
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(ihtValue);
+      return this.formatCurrency(ihtValue);
     },
 
     futureIHTLiabilityColour() {

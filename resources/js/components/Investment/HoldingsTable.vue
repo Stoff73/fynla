@@ -494,13 +494,6 @@ export default {
       }
     },
 
-    formatNumber(value) {
-      return new Intl.NumberFormat('en-GB', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 4,
-      }).format(value || 0);
-    },
-
     formatReturn(value) {
       const sign = value >= 0 ? '+' : '';
       return `${sign}${(value || 0).toFixed(2)}%`;

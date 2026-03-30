@@ -95,8 +95,11 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'InvestmentOverviewCard',
+  mixins: [currencyMixin],
 
   props: {
     portfolioValue: {
@@ -123,12 +126,7 @@ export default {
 
   computed: {
     formattedPortfolioValue() {
-      return new Intl.NumberFormat('en-GB', {
-        style: 'currency',
-        currency: 'GBP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(this.portfolioValue);
+      return this.formatCurrency(this.portfolioValue);
     },
 
     formattedYtdReturn() {
