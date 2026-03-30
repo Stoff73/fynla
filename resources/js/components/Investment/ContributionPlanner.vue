@@ -126,22 +126,13 @@
 
       <!-- Results Section (only shown after optimization) -->
       <div v-if="optimizationResult" class="space-y-6">
-        <!-- Tax Efficiency Score -->
+        <!-- Tax Efficiency -->
         <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Efficiency Score</h3>
-          <div class="flex items-center justify-center mb-4">
-            <div class="relative">
-              <apexchart
-                type="radialBar"
-                :options="taxEfficiencyChartOptions"
-                :series="[optimizationResult.tax_efficiency_score]"
-                height="200"
-              />
-            </div>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Tax Efficiency</h3>
+          <div class="text-center p-4">
+            <p class="text-lg font-bold text-horizon-500">{{ taxEfficiencyLabel }}</p>
+            <p class="text-sm text-neutral-500 mt-1">{{ taxEfficiencyDescription }}</p>
           </div>
-          <p class="text-center text-sm text-neutral-500">
-            {{ getEfficiencyDescription(optimizationResult.tax_efficiency_score) }}
-          </p>
         </div>
 
         <!-- Wrapper Allocation -->
@@ -402,7 +393,6 @@
 
 <script>
 import api from '@/services/api';
-import { PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'ContributionPlanner',
@@ -428,56 +418,19 @@ export default {
       return this.$store.getters['preview/isPreviewMode'];
     },
 
-    taxEfficiencyChartOptions() {
-      return {
-        chart: {
-          ...CHART_DEFAULTS.chart,
-          type: 'radialBar',
-          sparkline: {
-            enabled: true,
-          },
-        },
-        plotOptions: {
-          radialBar: {
-            startAngle: -90,
-            endAngle: 90,
-            hollow: {
-              size: '60%',
-            },
-            track: {
-              background: BORDER_COLORS.default,
-              strokeWidth: '100%',
-            },
-            dataLabels: {
-              name: {
-                show: false,
-              },
-              value: {
-                offsetY: -10,
-                fontSize: '28px',
-                fontWeight: 'bold',
-                formatter: function(val) {
-                  return Math.round(val);
-                },
-              },
-            },
-          },
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'dark',
-            type: 'horizontal',
-            shadeIntensity: 0.5,
-            gradientToColors: [SUCCESS_COLORS[500]],
-            inverseColors: false,
-            opacityFrom: 1,
-            opacityTo: 1,
-            stops: [0, 100],
-          },
-        },
-        colors: [PRIMARY_COLORS[500]],
-      };
+    taxEfficiencyLabel() {
+      const score = this.optimizationResult?.tax_efficiency_score || 0;
+      if (score >= 80) return 'Highly Efficient';
+      if (score >= 60) return 'Moderately Efficient';
+      if (score >= 40) return 'Could Be Improved';
+      return 'Needs Attention';
+    },
+    taxEfficiencyDescription() {
+      const score = this.optimizationResult?.tax_efficiency_score || 0;
+      if (score >= 80) return 'Your contributions are well-optimised for tax efficiency.';
+      if (score >= 60) return 'There may be opportunities to improve your tax position.';
+      if (score >= 40) return 'Consider reviewing your contribution strategy for better tax efficiency.';
+      return 'Your current strategy may not be taking full advantage of available tax reliefs.';
     },
   },
 
@@ -501,13 +454,6 @@ export default {
     formatNumber(value) {
       if (!value && value !== 0) return '0';
       return Math.round(value).toLocaleString('en-GB');
-    },
-
-    getEfficiencyDescription(score) {
-      if (score >= 80) return 'Excellent tax efficiency - well optimised wrapper allocation';
-      if (score >= 60) return 'Good tax efficiency - some optimisation opportunities';
-      if (score >= 40) return 'Moderate tax efficiency - significant optimisation potential';
-      return 'Low tax efficiency - review wrapper allocation';
     },
 
     getPriorityClass(priority) {

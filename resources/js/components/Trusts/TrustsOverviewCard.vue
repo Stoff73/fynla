@@ -5,7 +5,7 @@
   >
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-500"></div>
     </div>
 
     <!-- Content -->

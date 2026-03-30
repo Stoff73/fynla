@@ -234,9 +234,9 @@ export default {
   max-height: 600px;
   overflow-y: auto;
   padding: 20px;
-  border: 1px solid #eee;
+  @apply border border-light-gray;
   border-radius: 8px;
-  background: #fafafa;
+  @apply bg-eggshell-500;
 }
 
 .will-preview :deep(h1) {

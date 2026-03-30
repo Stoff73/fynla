@@ -1630,7 +1630,7 @@ export default {
           ],
         },
         {
-          name: 'Enjoying Your Wealth', colour: '#EF9F27', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7',
+          name: 'Enjoying Your Wealth', colour: '#B8956A', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7',
           items: [
             { id: 'pension-withdrawal', name: 'Pension Withdrawal Tax', description: 'See how much tax you\'ll pay when withdrawing from your pension', icon: '💰', type: 'free' },
             { id: 'iht-checker', name: 'Inheritance Tax Exposure Checker', description: 'Estimated inheritance tax liability with full breakdown', icon: '🏛️', type: 'gated-free' },

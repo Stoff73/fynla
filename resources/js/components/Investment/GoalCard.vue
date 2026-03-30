@@ -1,5 +1,5 @@
 <template>
-  <div class="goal-card bg-white border border-light-gray rounded-lg p-6 hover:shadow-md hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200">
+  <div class="goal-card bg-white border border-light-gray rounded-lg p-6 hover:shadow-md hover:-translate-y-0.5 hover:bg-light-gray transition-all duration-200">
     <!-- Goal Header -->
     <div class="flex justify-between items-start mb-4">
       <div class="flex-1">
