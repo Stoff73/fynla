@@ -49,7 +49,6 @@ class Goal extends Model
         'module_override',
         'priority',
         'is_essential',
-        'status',
         'monthly_contribution',
         'contribution_frequency',
         'contribution_streak',

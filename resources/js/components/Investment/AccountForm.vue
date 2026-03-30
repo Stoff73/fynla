@@ -828,7 +828,7 @@ export default {
           ['onshore_bond', 'offshore_bond'].includes(this.formData.account_type);
         const delay = isComplexType ? 500 : 250;
         logger.debug('AI Fill', 'Using delay:', delay, 'isComplexType:', isComplexType);
-        setTimeout(() => {
+        this._fillTimer = setTimeout(() => {
           // Wait for Vue to process all reactive updates before submitting
           this.$nextTick(() => {
             logger.debug('AI Fill', 'Calling submitForm now');
@@ -856,6 +856,10 @@ export default {
     if (this.context === 'onboarding') {
       await this.loadRiskProfile();
     }
+  },
+
+  beforeUnmount() {
+    if (this._fillTimer) clearTimeout(this._fillTimer);
   },
 
   methods: {

@@ -14,7 +14,7 @@ class AdvisorClient extends Model
     use HasFactory;
 
     protected $fillable = [
-        'advisor_id', 'client_id', 'status', 'assigned_date',
+        'advisor_id', 'client_id', 'assigned_date',
         'last_review_date', 'next_review_due', 'review_frequency_months', 'notes',
     ];
 

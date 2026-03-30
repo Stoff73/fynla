@@ -295,11 +295,15 @@ export default {
     },
     filling(isFilling) {
       if (isFilling === false && this.pendingFill?.entityType === 'db_pension') {
-        setTimeout(() => {
+        this._fillTimer = setTimeout(() => {
           this.handleSubmit();
         }, 250);
       }
     },
+  },
+
+  beforeUnmount() {
+    if (this._fillTimer) clearTimeout(this._fillTimer);
   },
 
   mounted() {

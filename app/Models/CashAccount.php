@@ -44,6 +44,11 @@ class CashAccount extends Model
         'notes',
     ];
 
+    protected $hidden = [
+        'account_number',
+        'sort_code',
+    ];
+
     protected $casts = [
         'rate_valid_until' => 'date',
         'current_balance' => 'decimal:2',

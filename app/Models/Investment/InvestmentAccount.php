@@ -188,6 +188,10 @@ class InvestmentAccount extends Model
         'leaver_notes',
     ];
 
+    protected $hidden = [
+        'account_number',
+    ];
+
     protected $casts = [
         'current_value' => 'decimal:2',
         'contributions_ytd' => 'decimal:2',

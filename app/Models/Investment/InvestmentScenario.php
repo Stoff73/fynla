@@ -24,7 +24,6 @@ class InvestmentScenario extends Model
         'parameters',
         'results',
         'comparison_data',
-        'status',
         'is_saved',
         'monte_carlo_job_id',
         'completed_at',

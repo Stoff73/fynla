@@ -47,6 +47,10 @@ class Mortgage extends Model
         'notes',
     ];
 
+    protected $hidden = [
+        'mortgage_account_number',
+    ];
+
     protected $casts = [
         'rate_fix_end_date' => 'date',
         'start_date' => 'date',

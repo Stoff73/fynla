@@ -54,6 +54,10 @@ class SavingsAccount extends Model
         'include_in_retirement',
     ];
 
+    protected $hidden = [
+        'account_number',
+    ];
+
     protected $casts = [
         'current_balance' => 'decimal:2',
         'interest_rate' => 'decimal:4',
