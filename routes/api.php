@@ -1038,6 +1038,13 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
         Route::delete('/backup/delete', [\App\Http\Controllers\Api\AdminController::class, 'deleteBackup']);
     });
+
+    // User Metrics
+    Route::get('/user-metrics/snapshot', [\App\Http\Controllers\Api\UserMetricsController::class, 'snapshot']);
+    Route::get('/user-metrics/trials', [\App\Http\Controllers\Api\UserMetricsController::class, 'trials']);
+    Route::get('/user-metrics/plans', [\App\Http\Controllers\Api\UserMetricsController::class, 'plans']);
+    Route::get('/user-metrics/activity', [\App\Http\Controllers\Api\UserMetricsController::class, 'activity']);
+    Route::get('/user-metrics/engagement', [\App\Http\Controllers\Api\UserMetricsController::class, 'engagement']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
