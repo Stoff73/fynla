@@ -1,5 +1,6 @@
 import goalsService from '@/services/goalsService';
 
+import logger from '@/utils/logger';
 const state = {
     goals: [],
     goalTypes: [],
@@ -296,7 +297,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch goals dashboard overview:', error);
+            logger.error('Failed to fetch goals dashboard overview:', error);
             throw error;
         }
     },
@@ -317,7 +318,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch goal types:', error);
+            logger.error('Failed to fetch goal types:', error);
             throw error;
         }
     },
@@ -338,7 +339,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch risk levels:', error);
+            logger.error('Failed to fetch risk levels:', error);
             throw error;
         }
     },
@@ -467,7 +468,7 @@ const actions = {
             const response = await goalsService.calculatePropertyCosts(propertyData);
             return response;
         } catch (error) {
-            console.error('Failed to calculate property costs:', error);
+            logger.error('Failed to calculate property costs:', error);
             throw error;
         }
     },
@@ -502,7 +503,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch life events:', error);
+            logger.error('Failed to fetch life events:', error);
             throw error;
         } finally {
             commit('SET_LIFE_EVENTS_LOADING', false);
@@ -527,7 +528,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch event types:', error);
+            logger.error('Failed to fetch event types:', error);
             throw error;
         }
     },
@@ -547,7 +548,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to create life event:', error);
+            logger.error('Failed to create life event:', error);
             throw error;
         } finally {
             commit('SET_LIFE_EVENTS_LOADING', false);
@@ -569,7 +570,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to update life event:', error);
+            logger.error('Failed to update life event:', error);
             throw error;
         } finally {
             commit('SET_LIFE_EVENTS_LOADING', false);
@@ -591,7 +592,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to delete life event:', error);
+            logger.error('Failed to delete life event:', error);
             throw error;
         } finally {
             commit('SET_LIFE_EVENTS_LOADING', false);
@@ -616,7 +617,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch projection:', error);
+            logger.error('Failed to fetch projection:', error);
             throw error;
         } finally {
             commit('SET_PROJECTION_LOADING', false);
@@ -656,7 +657,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch dependencies:', error);
+            logger.error('Failed to fetch dependencies:', error);
             throw error;
         }
     },
@@ -676,7 +677,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to add dependency:', error);
+            logger.error('Failed to add dependency:', error);
             throw error;
         }
     },
@@ -692,7 +693,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to remove dependency:', error);
+            logger.error('Failed to remove dependency:', error);
             throw error;
         }
     },
@@ -713,7 +714,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to fetch allocations:', error);
+            logger.error('Failed to fetch allocations:', error);
             throw error;
         } finally {
             commit('SET_ALLOCATIONS_LOADING', false);
@@ -731,7 +732,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to update allocation:', error);
+            logger.error('Failed to update allocation:', error);
             throw error;
         }
     },
@@ -748,7 +749,7 @@ const actions = {
             }
             return response;
         } catch (error) {
-            console.error('Failed to regenerate allocations:', error);
+            logger.error('Failed to regenerate allocations:', error);
             throw error;
         } finally {
             commit('SET_ALLOCATIONS_LOADING', false);

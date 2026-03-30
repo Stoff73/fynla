@@ -133,6 +133,7 @@ import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LiabilitiesList',
 
@@ -226,7 +227,7 @@ export default {
       try {
         await this.fetchEstateData();
       } catch (error) {
-        console.error('Failed to fetch liabilities:', error);
+        logger.error('Failed to fetch liabilities:', error);
       }
     },
 
@@ -267,7 +268,7 @@ export default {
         // Re-fetch to ensure clean data after save
         await this.fetchData();
       } catch (error) {
-        console.error('Failed to save liability:', error);
+        logger.error('Failed to save liability:', error);
       }
     },
 
@@ -283,7 +284,7 @@ export default {
           this.showDeleteConfirm = false;
           this.deletingLiability = null;
         } catch (error) {
-          console.error('Failed to delete liability:', error);
+          logger.error('Failed to delete liability:', error);
         }
       }
     },

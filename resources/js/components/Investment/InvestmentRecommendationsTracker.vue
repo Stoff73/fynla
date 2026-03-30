@@ -232,6 +232,7 @@
 import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'InvestmentRecommendationsTracker',
 
@@ -319,7 +320,7 @@ export default {
       try {
         await this.fetchInvestmentRecommendations(this.filters);
       } catch (error) {
-        console.error('Failed to load recommendations:', error);
+        logger.error('Failed to load recommendations:', error);
       }
     },
 
@@ -349,7 +350,7 @@ export default {
         await this.updateRecommendationStatus({ id, status });
         this.activeMenuId = null;
       } catch (error) {
-        console.error('Failed to update status:', error);
+        logger.error('Failed to update status:', error);
       }
     },
 
@@ -377,7 +378,7 @@ export default {
         });
         this.closeDismissModal();
       } catch (error) {
-        console.error('Failed to dismiss recommendation:', error);
+        logger.error('Failed to dismiss recommendation:', error);
       }
     },
 
@@ -390,7 +391,7 @@ export default {
         await this.deleteInvestmentRecommendation(id);
         this.activeMenuId = null;
       } catch (error) {
-        console.error('Failed to delete recommendation:', error);
+        logger.error('Failed to delete recommendation:', error);
       }
     },
 

@@ -327,6 +327,7 @@ import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.v
 import propertyService from '@/services/propertyService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'IncomeStep',
 
@@ -444,7 +445,7 @@ export default {
         try {
           await store.dispatch('auth/fetchUser');
         } catch (err) {
-          console.error('Failed to fetch current user:', err);
+          logger.error('Failed to fetch current user:', err);
         }
       }
 

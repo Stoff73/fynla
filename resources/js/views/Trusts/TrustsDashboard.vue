@@ -197,6 +197,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TrustsDashboard',
 
@@ -399,7 +400,7 @@ export default {
         this.closeTrustModal();
         await this.loadData();
       } catch (error) {
-        console.error('Error saving trust:', error);
+        logger.error('Error saving trust:', error);
         this.error = error.message || 'Failed to save trust';
       }
     },

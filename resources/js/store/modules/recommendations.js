@@ -1,5 +1,6 @@
 import api from '../../services/api';
 
+import logger from '@/utils/logger';
 const state = {
   recommendations: [],
   summary: {
@@ -73,7 +74,7 @@ const actions = {
       const response = await api.get('/recommendations/summary');
       commit('SET_SUMMARY', response.data.data);
     } catch (error) {
-      console.error('Failed to fetch summary:', error);
+      logger.error('Failed to fetch summary:', error);
     }
   },
 
@@ -84,7 +85,7 @@ const actions = {
       });
       commit('SET_TOP_RECOMMENDATIONS', response.data.data);
     } catch (error) {
-      console.error('Failed to fetch top recommendations:', error);
+      logger.error('Failed to fetch top recommendations:', error);
     }
   },
 
@@ -93,7 +94,7 @@ const actions = {
       const response = await api.get('/recommendations/completed');
       commit('SET_COMPLETED_RECOMMENDATIONS', response.data.data);
     } catch (error) {
-      console.error('Failed to fetch completed recommendations:', error);
+      logger.error('Failed to fetch completed recommendations:', error);
     }
   },
 

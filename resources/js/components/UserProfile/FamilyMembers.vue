@@ -213,6 +213,7 @@ import SpouseSuccessModal from '@/components/Shared/SpouseSuccessModal.vue';
 import familyMembersService from '@/services/familyMembersService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 // Preview mode messages
 const PREVIEW_ADD_MESSAGE = 'Family member added for this session only (preview mode).';
 const PREVIEW_UPDATE_MESSAGE = 'Family member updated for this session only (preview mode).';
@@ -270,7 +271,7 @@ export default {
         const response = await familyMembersService.getFamilyMembers();
         familyMembers.value = response.data?.family_members || [];
       } catch (err) {
-        console.error('Failed to load family members:', err);
+        logger.error('Failed to load family members:', err);
       }
     };
 
@@ -393,7 +394,7 @@ export default {
           }, 5000);
         }
       } catch (err) {
-        console.error('Failed to save family member:', err);
+        logger.error('Failed to save family member:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Failed to save family member';
         errorMessage.value = errorMsg;
         closeModal();
@@ -437,7 +438,7 @@ export default {
           successMessage.value = '';
         }, 3000);
       } catch (error) {
-        console.error('Failed to delete family member:', error);
+        logger.error('Failed to delete family member:', error);
         showDeleteConfirm.value = false;
       }
     };

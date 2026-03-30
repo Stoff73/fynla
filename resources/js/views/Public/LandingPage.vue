@@ -366,6 +366,7 @@ import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LandingPage',
 
@@ -474,7 +475,7 @@ export default {
         await nextTick();
         this.$router.push('/dashboard');
       } catch (error) {
-        console.error('Failed to enter preview mode:', error);
+        logger.error('Failed to enter preview mode:', error);
         this.previewError = 'Unable to load demo. Please try again or check your connection.';
         this.enteringPreview = false;
       }

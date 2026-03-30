@@ -375,6 +375,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PropertyFinancials',
 
@@ -586,7 +587,7 @@ export default {
         this.$emit('update-costs', this.costsForm);
         this.showEditCostsModal = false;
       } catch (error) {
-        console.error('Failed to save costs:', error);
+        logger.error('Failed to save costs:', error);
         this.error = error.message || 'Failed to save costs. Please try again.';
       } finally {
         this.submitting = false;

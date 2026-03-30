@@ -436,6 +436,7 @@ import api from '@/services/api';
 import IntestacyRules from './IntestacyRules.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'WillPlanning',
 
@@ -582,7 +583,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Failed to load will:', error);
+        logger.error('Failed to load will:', error);
         this.errorMessage = 'Failed to load will details';
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
         this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
@@ -597,7 +598,7 @@ export default {
         const response = await api.get('/estate/bequests');
         this.bequests = response.data.data;
       } catch (error) {
-        console.error('Failed to load bequests:', error);
+        logger.error('Failed to load bequests:', error);
       }
     },
 
@@ -615,7 +616,7 @@ export default {
           this.netEstateValue = 0;
         }
       } catch (error) {
-        console.error('Failed to load estate value:', error);
+        logger.error('Failed to load estate value:', error);
         this.netEstateValue = 0;
       }
     },
@@ -666,7 +667,7 @@ export default {
         await this.loadWill();
         this.$emit('will-updated');
       } catch (error) {
-        console.error('Failed to save will:', error);
+        logger.error('Failed to save will:', error);
         this.errorMessage = error.response?.data?.message || 'Failed to save will';
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
         this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);
@@ -697,7 +698,7 @@ export default {
         this.successTimeout = setTimeout(() => this.successMessage = '', 3000);
         await this.loadBequests();
       } catch (error) {
-        console.error('Failed to delete bequest:', error);
+        logger.error('Failed to delete bequest:', error);
         this.errorMessage = 'Failed to delete bequest';
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
         this.errorTimeout = setTimeout(() => this.errorMessage = '', 3000);

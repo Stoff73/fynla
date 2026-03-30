@@ -484,6 +484,7 @@ import retirementService from '@/services/retirementService';
 import userProfileService from '@/services/userProfileService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AssetsStep',
 
@@ -686,7 +687,7 @@ export default {
           state: retirementData.state_pension || null,
         };
       } catch (err) {
-        console.error('Failed to load pensions', err);
+        logger.error('Failed to load pensions', err);
       }
     }
 

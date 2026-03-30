@@ -137,6 +137,7 @@ import { mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { previewModeMixin } from '@/mixins/previewModeMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LifeEventAllocationTab',
   mixins: [currencyMixin, previewModeMixin],
@@ -220,7 +221,7 @@ export default {
           enabled: !allocation.enabled,
         });
       } catch (err) {
-        console.error('Failed to toggle allocation:', err);
+        logger.error('Failed to toggle allocation:', err);
       }
     },
 
@@ -253,7 +254,7 @@ export default {
         });
         this.editingId = null;
       } catch (err) {
-        console.error('Failed to update allocation amount:', err);
+        logger.error('Failed to update allocation amount:', err);
       }
     },
 
@@ -266,7 +267,7 @@ export default {
       try {
         await this.regenerateAllocations(this.event.id);
       } catch (err) {
-        console.error('Failed to regenerate allocations:', err);
+        logger.error('Failed to regenerate allocations:', err);
       } finally {
         this.regenerating = false;
       }

@@ -268,6 +268,7 @@
 import api from '@/services/api';
 import { CHART_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'BenchmarkComparison',
 
@@ -433,7 +434,7 @@ export default {
 
         this.comparisonData = response.data.data;
       } catch (err) {
-        console.error('Error loading comparison data:', err);
+        logger.error('Error loading comparison data:', err);
         this.error = err.response?.data?.message || 'Failed to load benchmark comparison. Please try again.';
       } finally {
         this.loading = false;

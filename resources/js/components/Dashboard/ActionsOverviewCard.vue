@@ -46,6 +46,7 @@ import protectionService from '@/services/protectionService';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ActionsOverviewCard',
   mixins: [currencyMixin],
@@ -202,7 +203,7 @@ export default {
           this.estateStrategies = strategies;
         }
       } catch (error) {
-        console.error('Failed to load actions:', error);
+        logger.error('Failed to load actions:', error);
       } finally {
         this.loading = false;
       }

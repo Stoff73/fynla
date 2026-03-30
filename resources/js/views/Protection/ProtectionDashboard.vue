@@ -87,6 +87,7 @@ import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import protectionService from '@/services/protectionService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ProtectionDashboard',
 
@@ -152,7 +153,7 @@ export default {
       try {
         await this.fetchProtectionData();
       } catch (error) {
-        console.error('Failed to load protection data:', error);
+        logger.error('Failed to load protection data:', error);
       }
     },
 
@@ -246,7 +247,7 @@ export default {
         await this.fetchProtectionData();
         this.closeForm();
       } catch (error) {
-        console.error('Failed to save policy:', error);
+        logger.error('Failed to save policy:', error);
         alert('Failed to save policy. Please try again.');
       }
     },

@@ -322,6 +322,7 @@ import PensionPotProjectionChart from '@/components/Retirement/PensionPotProject
 import { currencyMixin } from '@/mixins/currencyMixin';
 import retirementService from '@/services/retirementService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PensionDetail',
   mixins: [currencyMixin],
@@ -404,7 +405,7 @@ export default {
           this.error = 'Pension not found';
         }
       } catch (err) {
-        console.error('Failed to load pension:', err);
+        logger.error('Failed to load pension:', err);
         this.error = 'Failed to load pension details. Please try again.';
       } finally {
         this.loading = false;
@@ -436,7 +437,7 @@ export default {
           // Navigate back to retirement dashboard
           this.$router.push('/net-worth/retirement');
         } catch (error) {
-          console.error('Failed to delete pension:', error);
+          logger.error('Failed to delete pension:', error);
           alert('Failed to delete pension. Please try again.');
         }
       }
@@ -473,7 +474,7 @@ export default {
           this.projectionData = response.data;
         }
       } catch (error) {
-        console.error('Failed to load projections:', error);
+        logger.error('Failed to load projections:', error);
       } finally {
         this.projectionLoading = false;
       }

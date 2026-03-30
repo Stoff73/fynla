@@ -450,6 +450,7 @@ import { formatCurrency } from '@/utils/currency';
 import { CHART_COLORS } from '@/constants/designSystem';
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 export default {
   name: 'IncomeOccupation',
 
@@ -687,7 +688,7 @@ export default {
           successMessage.value = '';
         }, 3000);
       } catch (error) {
-        console.error('Update error:', error);
+        logger.error('Update error:', error);
         if (error.errors) {
           const errors = Object.values(error.errors).flat();
           errorMessage.value = errors.join('. ');
@@ -711,7 +712,7 @@ export default {
         incomeDefinitions.value = response.data.data;
       } catch (error) {
         // Silently fail - income definitions are supplementary
-        console.error('Failed to fetch income definitions:', error);
+        logger.error('Failed to fetch income definitions:', error);
       }
     });
 

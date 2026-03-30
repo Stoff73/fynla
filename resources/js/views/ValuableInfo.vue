@@ -37,6 +37,7 @@ import IncomeOccupation from '@/components/UserProfile/IncomeOccupation.vue';
 import ExpenditureOverview from '@/components/UserProfile/ExpenditureOverview.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ValuableInfo',
 
@@ -104,7 +105,7 @@ export default {
       try {
         await store.dispatch('userProfile/fetchProfile');
       } catch (err) {
-        console.error('Failed to load profile:', err);
+        logger.error('Failed to load profile:', err);
       } finally {
         loading.value = false;
       }

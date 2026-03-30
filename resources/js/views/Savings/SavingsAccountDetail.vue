@@ -203,6 +203,7 @@ import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SavingsAccountDetail',
   mixins: [currencyMixin],
@@ -295,7 +296,7 @@ export default {
       try {
         this.account = await this.fetchAccount(this.accountId);
       } catch (error) {
-        console.error('Failed to load account:', error);
+        logger.error('Failed to load account:', error);
         this.error = 'Failed to load account details. Please try again.';
       } finally {
         this.loading = false;
@@ -317,7 +318,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$router.push('/savings');
       } catch (error) {
-        console.error('Failed to delete account:', error);
+        logger.error('Failed to delete account:', error);
         this.error = 'Failed to delete account. Please try again.';
       }
     },

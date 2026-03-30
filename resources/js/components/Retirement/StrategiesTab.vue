@@ -249,6 +249,7 @@ import { mapState, mapActions } from 'vuex';
 import StrategyCard from './StrategyCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'StrategiesTab',
 
@@ -351,7 +352,7 @@ export default {
           priorProbability: priorProbability || null,
         });
       } catch (error) {
-        console.error('Failed to calculate strategy impact:', error);
+        logger.error('Failed to calculate strategy impact:', error);
       }
     },
 

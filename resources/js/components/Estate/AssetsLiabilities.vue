@@ -264,6 +264,7 @@ import AssetForm from './AssetForm.vue';
 import LiabilityForm from './LiabilityForm.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AssetsLiabilities',
   mixins: [currencyMixin],
@@ -369,7 +370,7 @@ export default {
         }, 3000);
       } catch (error) {
         this.errorMessage = error.message || 'Failed to save asset';
-        console.error('Failed to save asset:', error);
+        logger.error('Failed to save asset:', error);
 
         // Clear error message after 5 seconds
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
@@ -396,7 +397,7 @@ export default {
           }, 3000);
         } catch (error) {
           this.errorMessage = error.message || 'Failed to delete asset';
-          console.error('Failed to delete asset:', error);
+          logger.error('Failed to delete asset:', error);
 
           if (this.errorTimeout) clearTimeout(this.errorTimeout);
           this.errorTimeout = setTimeout(() => {
@@ -433,7 +434,7 @@ export default {
         }, 3000);
       } catch (error) {
         this.errorMessage = error.message || 'Failed to save liability';
-        console.error('Failed to save liability:', error);
+        logger.error('Failed to save liability:', error);
 
         // Clear error message after 5 seconds
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
@@ -460,7 +461,7 @@ export default {
           }, 3000);
         } catch (error) {
           this.errorMessage = error.message || 'Failed to delete liability';
-          console.error('Failed to delete liability:', error);
+          logger.error('Failed to delete liability:', error);
 
           if (this.errorTimeout) clearTimeout(this.errorTimeout);
           this.errorTimeout = setTimeout(() => {

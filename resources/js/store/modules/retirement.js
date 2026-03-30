@@ -3,6 +3,7 @@ import dcPensionHoldingsService from '../../services/dcPensionHoldingsService';
 import investmentService from '../../services/investmentService';
 import savingsService from '../../services/savingsService';
 
+import logger from '@/utils/logger';
 // Track ongoing requests to prevent duplicates
 const ongoingRequests = {
     fetchRecommendations: null,
@@ -369,7 +370,7 @@ const actions = {
                 await dispatch('investment/fetchAccounts', null, { root: true });
             }
         } catch (error) {
-            console.error('Failed to toggle retirement inclusion:', error);
+            logger.error('Failed to toggle retirement inclusion:', error);
             throw error;
         }
     },
@@ -385,7 +386,7 @@ const actions = {
                 await dispatch('savings/fetchSavingsData', null, { root: true });
             }
         } catch (error) {
-            console.error('Failed to toggle retirement inclusion:', error);
+            logger.error('Failed to toggle retirement inclusion:', error);
             throw error;
         }
     },

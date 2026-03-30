@@ -225,6 +225,7 @@ import TrustPlanningStrategy from './TrustPlanningStrategy.vue';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TrustPlanning',
 
@@ -270,7 +271,7 @@ export default {
       try {
         await this.fetchTrusts();
       } catch (error) {
-        console.error('Error loading trusts:', error);
+        logger.error('Error loading trusts:', error);
       } finally {
         this.loading = false;
       }
@@ -285,7 +286,7 @@ export default {
           this.ihtLiability = response.data.iht_liability;
         }
       } catch (error) {
-        console.error('Error loading recommendations:', error);
+        logger.error('Error loading recommendations:', error);
       }
     },
 
@@ -311,7 +312,7 @@ export default {
         this.closeTrustForm();
         await this.loadRecommendations(); // Refresh recommendations
       } catch (error) {
-        console.error('Error saving trust:', error);
+        logger.error('Error saving trust:', error);
       }
     },
 
@@ -325,7 +326,7 @@ export default {
         this.trustToDelete = null;
         await this.loadRecommendations(); // Refresh recommendations
       } catch (error) {
-        console.error('Error deleting trust:', error);
+        logger.error('Error deleting trust:', error);
       }
     },
 

@@ -1,6 +1,7 @@
 import authService from '@/services/authService';
 import { removeToken, isNativePlatform } from '@/services/tokenStorage';
 
+import logger from '@/utils/logger';
 const state = {
   token: authService.getToken(),
   user: null, // NEVER cache user in state - always fetch fresh from API
@@ -108,7 +109,7 @@ const actions = {
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       commit('clearAuth');
     } finally {
       commit('setLoading', false);
@@ -172,7 +173,7 @@ const actions = {
       const user = await authService.getUserById(userId);
       return user;
     } catch (error) {
-      console.error('Failed to fetch user by ID:', error);
+      logger.error('Failed to fetch user by ID:', error);
       throw error;
     }
   },

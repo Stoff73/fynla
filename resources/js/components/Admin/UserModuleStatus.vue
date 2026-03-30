@@ -70,6 +70,7 @@
 <script>
 import adminService from '../../services/adminService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'UserModuleStatus',
 
@@ -145,7 +146,7 @@ export default {
           this.statusData = response.data.data;
         }
       } catch (err) {
-        console.error('Failed to load module status:', err);
+        logger.error('Failed to load module status:', err);
       } finally {
         this.loading = false;
       }

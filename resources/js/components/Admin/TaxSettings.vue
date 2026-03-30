@@ -2562,6 +2562,7 @@
 import taxSettingsService from '../../services/taxSettingsService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'TaxSettings',
   mixins: [currencyMixin],
@@ -2654,7 +2655,7 @@ export default {
           this.allConfigs = allConfigsResponse.data.data;
         }
       } catch (error) {
-        console.error('Failed to load tax settings:', error);
+        logger.error('Failed to load tax settings:', error);
         this.error = error.response?.data?.message || error.message || 'Failed to load tax settings';
       } finally {
         this.loading = false;
@@ -2845,7 +2846,7 @@ export default {
           this.error = response.data.message || 'Failed to update configuration';
         }
       } catch (error) {
-        console.error('Failed to save changes:', error);
+        logger.error('Failed to save changes:', error);
         this.error = error.response?.data?.message || error.message || 'Failed to save changes';
       } finally {
         this.saving = false;
@@ -2867,7 +2868,7 @@ export default {
           this.error = response.data.message || 'Failed to activate configuration';
         }
       } catch (error) {
-        console.error('Failed to activate configuration:', error);
+        logger.error('Failed to activate configuration:', error);
         this.error = error.response?.data?.message || error.message || 'Failed to activate configuration';
       }
     },
@@ -2915,7 +2916,7 @@ export default {
           this.error = response.data.message || 'Failed to duplicate configuration';
         }
       } catch (error) {
-        console.error('Failed to duplicate configuration:', error);
+        logger.error('Failed to duplicate configuration:', error);
         this.error = error.response?.data?.message || error.message || 'Failed to duplicate configuration';
       } finally {
         this.creating = false;
@@ -2937,7 +2938,7 @@ export default {
           this.error = response.data.message || 'Failed to delete configuration';
         }
       } catch (error) {
-        console.error('Failed to delete configuration:', error);
+        logger.error('Failed to delete configuration:', error);
         this.error = error.response?.data?.message || error.message || 'Failed to delete configuration';
       }
     },

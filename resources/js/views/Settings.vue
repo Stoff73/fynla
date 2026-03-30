@@ -58,6 +58,7 @@ import { useRouter } from 'vue-router';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Settings',
 
@@ -77,7 +78,7 @@ export default {
         await store.dispatch('auth/logout');
         router.push({ name: 'Login' });
       } catch (error) {
-        console.error('Sign out error:', error);
+        logger.error('Sign out error:', error);
         // Force logout even if API call fails
         router.push({ name: 'Login' });
       }

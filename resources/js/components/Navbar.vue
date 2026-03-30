@@ -265,6 +265,7 @@ import api from '@/services/api';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Navbar',
 
@@ -381,7 +382,7 @@ export default {
         // Show success modal
         showLogoutModal.value = true;
       } catch (error) {
-        console.error('Logout error:', error);
+        logger.error('Logout error:', error);
         // Even on error, redirect to login
         router.push('/login');
       }

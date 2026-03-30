@@ -228,6 +228,7 @@ import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'InvestmentList',
 
@@ -471,7 +472,7 @@ export default {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
-        console.error('Failed to save account:', error);
+        logger.error('Failed to save account:', error);
         this.errorMessage = 'Failed to save account. Please try again.';
         if (this.errorTimeout) clearTimeout(this.errorTimeout);
         this.errorTimeout = setTimeout(() => {
@@ -495,7 +496,7 @@ export default {
         // Check for risk mismatch
         await this.loadRiskMismatch();
       } catch (error) {
-        console.error('Failed to load investment data:', error);
+        logger.error('Failed to load investment data:', error);
       }
     },
 

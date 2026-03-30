@@ -479,6 +479,7 @@
 <script>
 import { mapState } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PolicyFormModal',
 
@@ -702,7 +703,7 @@ export default {
         const response = await familyMembersService.getFamilyMembers();
         this.familyMembers = response.data?.family_members || [];
       } catch (error) {
-        console.error('Error loading family members:', error);
+        logger.error('Error loading family members:', error);
         this.familyMembers = [];
       }
     },
@@ -808,7 +809,7 @@ export default {
         const policyData = this.preparePolicyData();
         this.$emit('save', policyData);
       } catch (error) {
-        console.error('[PolicyFormModal] handleSubmit error:', error);
+        logger.error('[PolicyFormModal] handleSubmit error:', error);
       } finally {
         this.submitting = false;
       }

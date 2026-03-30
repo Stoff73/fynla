@@ -33,6 +33,7 @@ import estateService from '@/services/estateService';
 import api from '@/services/api';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'WillBuilderView',
 
@@ -98,7 +99,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Failed to load Will data:', error);
+        logger.error('Failed to load Will data:', error);
       } finally {
         this.loading = false;
       }

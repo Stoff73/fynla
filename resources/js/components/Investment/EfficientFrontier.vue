@@ -205,6 +205,7 @@ import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
 import { CHART_COLORS, BORDER_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'EfficientFrontier',
 
@@ -425,7 +426,7 @@ export default {
         }
 
         // Log unexpected errors
-        console.error('Error loading efficient frontier:', err);
+        logger.error('Error loading efficient frontier:', err);
         this.error = err.message || 'Unable to load efficient frontier data';
       } finally {
         this.loading = false;

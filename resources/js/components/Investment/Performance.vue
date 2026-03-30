@@ -131,6 +131,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjectionChart from './InvestmentProjectionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Performance',
 
@@ -210,7 +211,7 @@ export default {
           selectedPeriod: this.selectedProjectionYears,
         });
       } catch (error) {
-        console.error('Failed to load projections:', error);
+        logger.error('Failed to load projections:', error);
       }
     },
 

@@ -158,6 +158,7 @@
 import { defineComponent, ref, reactive, watch } from 'vue';
 import { submitBugReport } from '@/services/bugReportService';
 
+import logger from '@/utils/logger';
 export default defineComponent({
   name: 'BugReportModal',
 
@@ -204,7 +205,7 @@ export default defineComponent({
         });
         submitted.value = true;
       } catch (err) {
-        console.error('Failed to submit bug report:', err);
+        logger.error('Failed to submit bug report:', err);
         if (err.response?.status === 429) {
           error.value = 'You have submitted too many bug reports. Please try again later.';
         } else {

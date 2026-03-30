@@ -206,6 +206,7 @@
 import { computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SpouseDataSharing',
 
@@ -237,7 +238,7 @@ export default {
       try {
         await store.dispatch('spousePermission/requestPermission');
       } catch (error) {
-        console.error('Failed to request permission:', error);
+        logger.error('Failed to request permission:', error);
       }
     };
 
@@ -245,7 +246,7 @@ export default {
       try {
         await store.dispatch('spousePermission/acceptPermission');
       } catch (error) {
-        console.error('Failed to accept permission:', error);
+        logger.error('Failed to accept permission:', error);
       }
     };
 
@@ -253,7 +254,7 @@ export default {
       try {
         await store.dispatch('spousePermission/rejectPermission');
       } catch (error) {
-        console.error('Failed to reject permission:', error);
+        logger.error('Failed to reject permission:', error);
       }
     };
 
@@ -263,7 +264,7 @@ export default {
           await store.dispatch('spousePermission/revokePermission');
         }
       } catch (error) {
-        console.error('Failed to revoke permission:', error);
+        logger.error('Failed to revoke permission:', error);
       }
     };
 

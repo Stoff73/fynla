@@ -224,6 +224,7 @@ import { useStore } from 'vuex';
 import userProfileService from '@/services/userProfileService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'BalanceSheetTab',
 
@@ -388,7 +389,7 @@ export default {
           // Data loaded successfully
         }
       } catch (error) {
-        console.error('Failed to load balance sheet:', error);
+        logger.error('Failed to load balance sheet:', error);
       } finally {
         loading.value = false;
       }

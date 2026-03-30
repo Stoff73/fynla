@@ -279,6 +279,7 @@ import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CapitalAdequacyTab',
 
@@ -608,7 +609,7 @@ export default {
         ]);
         this.dataLoaded = true;
       } catch (error) {
-        console.error('Failed to load capital adequacy data:', error);
+        logger.error('Failed to load capital adequacy data:', error);
       }
     },
   },

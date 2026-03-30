@@ -361,6 +361,7 @@ import userProfileService from '@/services/userProfileService';
 import goalsService from '@/services/goalsService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'IncomeStatementTab',
 
@@ -517,7 +518,7 @@ export default {
           balanceSheetData.value = response.data.balance_sheet;
         }
       } catch (error) {
-        console.error('Failed to load income statement:', error);
+        logger.error('Failed to load income statement:', error);
       } finally {
         loading.value = false;
       }
@@ -538,7 +539,7 @@ export default {
           forecastData.value = response.data;
         }
       } catch (error) {
-        console.error('Failed to load forecast:', error);
+        logger.error('Failed to load forecast:', error);
       } finally {
         forecastLoading.value = false;
       }

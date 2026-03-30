@@ -1,5 +1,6 @@
 import savingsService from '@/services/savingsService';
 
+import logger from '@/utils/logger';
 const state = {
     accounts: [],
     expenditureProfile: null,
@@ -168,7 +169,7 @@ const actions = {
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch savings data';
             commit('setError', errorMessage);
-            console.error('Savings data fetch error:', error);
+            logger.error('Savings data fetch error:', error);
             throw error;
         } finally {
             commit('setLoading', false);

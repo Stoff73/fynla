@@ -158,6 +158,7 @@ import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import protectionService from '@/services/protectionService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ProtectionPoliciesStep',
 
@@ -255,7 +256,7 @@ export default {
           hasNoPolicies.value = data.profile.has_no_policies || false;
         }
       } catch (err) {
-        console.error('Failed to load policies', err);
+        logger.error('Failed to load policies', err);
         error.value = 'Failed to load policies';
       }
     }
@@ -271,7 +272,7 @@ export default {
         }
       } catch (err) {
         error.value = 'Failed to update protection preferences';
-        console.error('Failed to update has_no_policies:', err);
+        logger.error('Failed to update has_no_policies:', err);
         // Revert checkbox on error
         hasNoPolicies.value = !hasNoPolicies.value;
       } finally {

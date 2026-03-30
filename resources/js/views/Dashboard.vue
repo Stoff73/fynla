@@ -937,6 +937,7 @@ import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
 import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Dashboard',
 
@@ -1953,7 +1954,7 @@ export default {
         this.knowledgeNudgeDismissed = true;
         storage.set('knowledgeNudgeDismissed', 'true');
       } catch (error) {
-        console.error('Failed to save investment knowledge level:', error);
+        logger.error('Failed to save investment knowledge level:', error);
       } finally {
         this.savingKnowledgeLevel = false;
       }
@@ -1970,7 +1971,7 @@ export default {
       try {
         await this.$store.dispatch('estate/saveWill', { has_will: hasWill });
       } catch (error) {
-        console.error('Failed to save will information:', error);
+        logger.error('Failed to save will information:', error);
       }
     },
 
@@ -1981,7 +1982,7 @@ export default {
           this.financialCommitmentsData = response.data;
         }
       } catch (error) {
-        console.error('Failed to load financial commitments:', error);
+        logger.error('Failed to load financial commitments:', error);
         this.financialCommitmentsData = null;
       }
     },
@@ -2072,7 +2073,7 @@ export default {
             this.loading[module] = false;
           }
         } else {
-          console.error('Failed to load module:', result.reason);
+          logger.error('Failed to load module:', result.reason);
         }
       });
 

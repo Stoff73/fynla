@@ -72,6 +72,7 @@ import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailI
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PropertyList',
 
@@ -265,7 +266,7 @@ export default {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
-        console.error('Error saving property:', error);
+        logger.error('Error saving property:', error);
         this.errorMessage = error.response?.data?.message || 'Failed to save property. Please try again.';
 
         // Auto-hide error message after 5 seconds
@@ -290,7 +291,7 @@ export default {
         const response = await api.get('/properties');
         this.properties = response.data.data?.properties || response.data.properties || [];
       } catch (error) {
-        console.error('Error fetching properties:', error);
+        logger.error('Error fetching properties:', error);
         this.error = error.response?.data?.message || 'Failed to load properties';
       } finally {
         this.loading = false;

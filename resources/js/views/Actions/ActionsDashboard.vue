@@ -82,6 +82,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import ActionSummaryCard from '@/components/Actions/ActionSummaryCard.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ActionsDashboard',
 
@@ -155,7 +156,7 @@ export default {
         this.planTypes.map(type => this.$store.dispatch('plans/fetchPlan', type))
       );
     } catch (e) {
-      console.error('[Actions] Failed to fetch plans:', e);
+      logger.error('[Actions] Failed to fetch plans:', e);
     } finally {
       this.loading = false;
     }

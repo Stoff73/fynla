@@ -224,6 +224,7 @@ import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
 import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, PRIMARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CorrelationMatrix',
 
@@ -417,7 +418,7 @@ export default {
           this.error = response.message || 'Failed to load correlation data';
         }
       } catch (err) {
-        console.error('Correlation matrix error:', err);
+        logger.error('Correlation matrix error:', err);
         this.error = err.message || 'Failed to load correlation matrix';
       } finally {
         this.loading = false;

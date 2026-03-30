@@ -280,6 +280,7 @@ import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '../UsefulResources.vue';
 import { LINKS, STEP_RESOURCES } from '@/constants/onboardingLinks';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PersonalInfoStep',
 
@@ -386,7 +387,7 @@ export default {
         try {
           await store.dispatch('auth/fetchUser');
         } catch (err) {
-          console.error('Failed to fetch current user:', err);
+          logger.error('Failed to fetch current user:', err);
         }
       }
 

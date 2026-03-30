@@ -352,6 +352,7 @@ import IncomeSourceSlider from './IncomeSourceSlider.vue';
 import FundDepletionChart from './FundDepletionChart.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RetirementIncomeTab',
 
@@ -780,7 +781,7 @@ export default {
           .map(a => a.id);
         this.setIncludedCashIds(includedCashIds);
       } catch (error) {
-        console.error('Failed to load retirement income data:', error);
+        logger.error('Failed to load retirement income data:', error);
       }
     },
 

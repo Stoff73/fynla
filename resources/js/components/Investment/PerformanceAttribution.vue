@@ -313,6 +313,7 @@
 import api from '@/services/api';
 import { PRIMARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PerformanceAttribution',
 
@@ -412,7 +413,7 @@ export default {
         });
         this.riskMetrics = riskResponse.data.data;
       } catch (err) {
-        console.error('Error loading performance data:', err);
+        logger.error('Error loading performance data:', err);
         this.error = err.response?.data?.message || 'Failed to load performance data. Please try again.';
       } finally {
         this.loading = false;

@@ -461,6 +461,7 @@ import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GiftingStrategy',
 
@@ -595,7 +596,7 @@ export default {
           console.info('[GiftingStrategy] Profile incomplete:', this.strategyError);
         } else {
           // Unexpected error - log as error
-          console.error('[GiftingStrategy] Failed to load planned strategy:', error);
+          logger.error('[GiftingStrategy] Failed to load planned strategy:', error);
           this.strategyError = 'Unable to calculate gifting strategy. Please ensure your profile is complete.';
         }
       } finally {
@@ -631,7 +632,7 @@ export default {
           console.info('[GiftingStrategy] Assets required:', this.personalizedStrategyError);
         } else {
           // Unexpected error - log as error
-          console.error('[GiftingStrategy] Failed to load personalized strategy:', error);
+          logger.error('[GiftingStrategy] Failed to load personalized strategy:', error);
           this.personalizedStrategyError = 'Unable to calculate personalized strategy. Please ensure you have assets added.';
         }
       } finally {
@@ -861,7 +862,7 @@ export default {
           this.successMessage = '';
         }, 3000);
       } catch (error) {
-        console.error('Failed to save gift:', error);
+        logger.error('Failed to save gift:', error);
         this.errorMessage = error.response?.data?.message || error.message || 'Failed to save gift';
       }
     },
@@ -879,7 +880,7 @@ export default {
             this.successMessage = '';
           }, 3000);
         } catch (error) {
-          console.error('Failed to delete gift:', error);
+          logger.error('Failed to delete gift:', error);
           this.errorMessage = error.response?.data?.message || error.message || 'Failed to delete gift';
         }
       }

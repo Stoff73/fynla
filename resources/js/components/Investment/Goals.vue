@@ -181,6 +181,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import GoalForm from './GoalForm.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Goals',
   mixins: [currencyMixin],
@@ -281,7 +282,7 @@ export default {
         }
         this.closeGoalModal();
       } catch (error) {
-        console.error('Failed to save goal:', error);
+        logger.error('Failed to save goal:', error);
       }
     },
 
@@ -305,7 +306,7 @@ export default {
         try {
           await this.$store.dispatch('investment/deleteGoal', goal.id);
         } catch (error) {
-          console.error('Failed to delete goal:', error);
+          logger.error('Failed to delete goal:', error);
         }
       }
     },

@@ -167,6 +167,7 @@
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'IntestacyRules',
 
@@ -218,7 +219,7 @@ export default {
         });
         this.distribution = response.data.data;
       } catch (error) {
-        console.error('Failed to calculate intestacy:', error);
+        logger.error('Failed to calculate intestacy:', error);
         this.error = error.response?.data?.message || 'Failed to calculate intestacy distribution';
       } finally {
         this.loading = false;

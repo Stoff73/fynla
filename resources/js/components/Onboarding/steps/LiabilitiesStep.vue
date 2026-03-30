@@ -96,6 +96,7 @@ import LiabilityForm from '@/components/Estate/LiabilityForm.vue';
 import estateService from '@/services/estateService';
 import { formatCurrency } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LiabilitiesStep',
 
@@ -123,7 +124,7 @@ export default {
         const response = await estateService.getEstateData();
         liabilities.value = response.data?.liabilities || [];
       } catch (err) {
-        console.error('Failed to load liabilities', err);
+        logger.error('Failed to load liabilities', err);
       }
     }
 
@@ -146,7 +147,7 @@ export default {
         await loadLiabilities();
       } catch (err) {
         error.value = 'Failed to save liability';
-        console.error('Failed to save liability:', err);
+        logger.error('Failed to save liability:', err);
       }
     };
 

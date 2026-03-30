@@ -377,6 +377,7 @@ import { mapState, mapActions } from 'vuex';
 import ConfirmDialog from '@/components/Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'BusinessInterestDetailInline',
 
@@ -444,7 +445,7 @@ export default {
       try {
         await this.fetchBusinessById(this.businessId);
       } catch (error) {
-        console.error('Failed to load business:', error);
+        logger.error('Failed to load business:', error);
       }
     },
 
@@ -453,7 +454,7 @@ export default {
       try {
         await this.fetchTaxDeadlines(this.businessId);
       } catch (error) {
-        console.error('Failed to load tax deadlines:', error);
+        logger.error('Failed to load tax deadlines:', error);
       } finally {
         this.loadingDeadlines = false;
       }
@@ -464,7 +465,7 @@ export default {
       try {
         await this.fetchExitCalculation(this.businessId);
       } catch (error) {
-        console.error('Failed to load exit calculation:', error);
+        logger.error('Failed to load exit calculation:', error);
       } finally {
         this.loadingExitCalc = false;
       }
@@ -481,7 +482,7 @@ export default {
         this.$emit('deleted');
         this.$emit('back');
       } catch (error) {
-        console.error('Failed to delete business:', error);
+        logger.error('Failed to delete business:', error);
       }
     },
 

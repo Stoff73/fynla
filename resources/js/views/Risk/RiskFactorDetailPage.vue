@@ -325,6 +325,7 @@ import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'RiskFactorDetailPage',
 
@@ -462,7 +463,7 @@ export default {
           this.factorData = this.allFactors.find(f => f.factor === this.factorKey);
         }
       } catch (error) {
-        console.error('Error loading factor data:', error);
+        logger.error('Error loading factor data:', error);
       } finally {
         this.loading = false;
       }

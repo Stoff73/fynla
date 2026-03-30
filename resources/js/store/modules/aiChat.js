@@ -7,6 +7,7 @@
 
 import aiChatService from '@/services/aiChatService';
 
+import logger from '@/utils/logger';
 const state = {
     isOpen: false,
     conversations: [],
@@ -187,7 +188,7 @@ const actions = {
             const response = await aiChatService.getConversations();
             commit('SET_CONVERSATIONS', response.data || []);
         } catch (error) {
-            console.error('Failed to fetch conversations:', error);
+            logger.error('Failed to fetch conversations:', error);
         } finally {
             commit('SET_LOADING_CONVERSATIONS', false);
         }
@@ -207,7 +208,7 @@ const actions = {
             const response = await aiChatService.createConversation(currentRoute);
             commit('SET_CURRENT_CONVERSATION', response.data);
         } catch (error) {
-            console.error('Failed to create conversation:', error);
+            logger.error('Failed to create conversation:', error);
             commit('SET_ERROR', 'Failed to start a new conversation. Please try again.');
         } finally {
             commit('SET_LOADING', false);
@@ -227,7 +228,7 @@ const actions = {
             commit('SET_CURRENT_CONVERSATION', response.data.conversation);
             commit('SET_MESSAGES', response.data.messages || []);
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            logger.error('Failed to load conversation:', error);
             commit('SET_ERROR', 'Failed to load conversation.');
         } finally {
             commit('SET_LOADING', false);
@@ -242,7 +243,7 @@ const actions = {
             await aiChatService.deleteConversation(conversationId);
             commit('REMOVE_CONVERSATION', conversationId);
         } catch (error) {
-            console.error('Failed to delete conversation:', error);
+            logger.error('Failed to delete conversation:', error);
         }
     },
 
@@ -380,7 +381,7 @@ const actions = {
             if (error.name === 'AbortError') {
                 return;
             }
-            console.error('Chat streaming error:', error);
+            logger.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             commit('SET_STREAMING', false);

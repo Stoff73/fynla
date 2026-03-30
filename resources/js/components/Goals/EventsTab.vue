@@ -162,6 +162,7 @@ import LifeEventCard from './LifeEventCard.vue';
 import LifeEventForm from './LifeEventForm.vue';
 import LifeEventDetailInline from './LifeEventDetailInline.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'EventsTab',
   mixins: [currencyMixin],
@@ -334,7 +335,7 @@ export default {
           this.selectedEvent = null;
         }
       } catch (error) {
-        console.error('Failed to save life event:', error);
+        logger.error('Failed to save life event:', error);
       }
     },
 
@@ -360,7 +361,7 @@ export default {
           this.selectedEvent = null;
         }
       } catch (error) {
-        console.error('Failed to delete life event:', error);
+        logger.error('Failed to delete life event:', error);
       } finally {
         this.deleteLoading = false;
       }

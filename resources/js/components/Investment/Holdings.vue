@@ -113,6 +113,7 @@ import { mapGetters, mapActions, mapState } from 'vuex';
 import HoldingsTable from './HoldingsTable.vue';
 import HoldingForm from './HoldingForm.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'Holdings',
 
@@ -243,7 +244,7 @@ export default {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
-        console.error('Error saving holding:', error);
+        logger.error('Error saving holding:', error);
         this.error = error.response?.data?.message || 'Failed to save holding. Please try again.';
       }
     },
@@ -275,7 +276,7 @@ export default {
           this.successMessage = null;
         }, 5000);
       } catch (error) {
-        console.error('Error deleting holding:', error);
+        logger.error('Error deleting holding:', error);
         this.error = error.response?.data?.message || 'Failed to delete holding. Please try again.';
         this.showDeleteModal = false;
       } finally {

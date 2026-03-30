@@ -135,6 +135,7 @@ import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { SUCCESS_COLORS, TEXT_COLORS, BORDER_COLORS, SECONDARY_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'StrategyCard',
 
@@ -344,7 +345,7 @@ export default {
           priorProbability: this.strategy.prior_probability || null,
         });
       } catch (error) {
-        console.error('Failed to calculate strategy impact:', error);
+        logger.error('Failed to calculate strategy impact:', error);
       } finally {
         this.isCalculating = false;
       }

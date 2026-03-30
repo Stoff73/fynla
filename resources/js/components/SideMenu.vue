@@ -155,6 +155,7 @@ import BugReportModal from './BugReportModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
+import logger from '@/utils/logger';
 export default {
   name: 'SideMenu',
 
@@ -437,7 +438,7 @@ export default {
         await store.dispatch('auth/logout');
         router.push('/login');
       } catch (error) {
-        console.error('Logout error:', error);
+        logger.error('Logout error:', error);
         router.push('/login');
       }
     };

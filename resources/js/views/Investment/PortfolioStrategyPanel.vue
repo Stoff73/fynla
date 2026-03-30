@@ -278,6 +278,7 @@ import HarvestLossModal from '@/components/Investment/HarvestLossModal.vue';
 import BondWrapperInfoModal from '@/components/Investment/BondWrapperInfoModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PortfolioStrategyPanel',
 
@@ -361,7 +362,7 @@ export default {
       try {
         this.strategyData = await investmentService.getPortfolioStrategy();
       } catch (err) {
-        console.error('Failed to fetch portfolio strategy:', err);
+        logger.error('Failed to fetch portfolio strategy:', err);
         this.error = err.response?.data?.message || 'Failed to load strategies';
       } finally {
         this.loading = false;

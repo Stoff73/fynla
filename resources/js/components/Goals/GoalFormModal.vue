@@ -354,6 +354,7 @@
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { mapState, mapGetters, mapActions } from 'vuex';
 
+import logger from '@/utils/logger';
 export default {
   name: 'GoalFormModal',
   mixins: [currencyMixin],
@@ -575,7 +576,7 @@ export default {
           this.propertyCosts = response.data;
         }
       } catch (error) {
-        console.error('Failed to calculate property costs:', error);
+        logger.error('Failed to calculate property costs:', error);
       }
     },
 
@@ -646,7 +647,7 @@ export default {
         });
         await this.loadDependencies();
       } catch (error) {
-        console.error('Failed to remove dependency:', error);
+        logger.error('Failed to remove dependency:', error);
       }
     },
 

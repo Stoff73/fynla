@@ -150,6 +150,7 @@ import EfficientFrontier from '@/components/Investment/EfficientFrontier.vue';
 import PortfolioOptimizer from '@/components/Investment/PortfolioOptimizer.vue';
 import CorrelationMatrix from '@/components/Investment/CorrelationMatrix.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PortfolioOptimization',
 
@@ -212,7 +213,7 @@ export default {
 
         this.pendingAllocation = null;
       } catch (error) {
-        console.error('Failed to apply allocation:', error);
+        logger.error('Failed to apply allocation:', error);
         alert('Failed to create rebalancing plan. Please try again.');
       }
     },

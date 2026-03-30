@@ -491,6 +491,7 @@ import PropertyFinancials from './PropertyFinancials.vue';
 import ConfirmDialog from '../../Common/ConfirmDialog.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PropertyDetailInline',
 
@@ -650,7 +651,7 @@ export default {
         await this.fetchProperty(this.propertyId);
         await this.fetchPropertyMortgages(this.propertyId);
       } catch (error) {
-        console.error('Failed to load property:', error);
+        logger.error('Failed to load property:', error);
       }
     },
 
@@ -691,14 +692,14 @@ export default {
               });
             }
           } catch (mortgageError) {
-            console.error('Failed to save mortgage:', mortgageError);
+            logger.error('Failed to save mortgage:', mortgageError);
           }
         }
 
         this.showEditModal = false;
         await this.loadProperty();
       } catch (error) {
-        console.error('Failed to update property:', error);
+        logger.error('Failed to update property:', error);
       }
     },
 
@@ -707,7 +708,7 @@ export default {
         await this.updateProperty({ id: this.propertyId, data: costsData });
         await this.loadProperty();
       } catch (error) {
-        console.error('Failed to update costs:', error);
+        logger.error('Failed to update costs:', error);
         throw error;
       }
     },
@@ -722,7 +723,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete property:', error);
+        logger.error('Failed to delete property:', error);
       }
     },
 
@@ -741,7 +742,7 @@ export default {
         this.mortgageToDelete = null;
         await this.loadProperty();
       } catch (error) {
-        console.error('Failed to delete mortgage:', error);
+        logger.error('Failed to delete mortgage:', error);
       }
     },
 

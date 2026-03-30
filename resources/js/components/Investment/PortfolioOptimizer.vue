@@ -303,6 +303,7 @@ import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
 import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PortfolioOptimiser',
 
@@ -422,7 +423,7 @@ export default {
           this.error = response.message || 'Optimization failed';
         }
       } catch (err) {
-        console.error('Optimization error:', err);
+        logger.error('Optimization error:', err);
         this.error = err.message || 'Failed to run optimization';
       } finally {
         this.loading = false;

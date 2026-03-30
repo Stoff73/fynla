@@ -394,6 +394,7 @@
 <script>
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ContributionPlanner',
 
@@ -444,7 +445,7 @@ export default {
         const response = await api.post('/investment/contribution/optimize', this.formData);
         this.optimizationResult = response.data;
       } catch (err) {
-        console.error('Error optimising contributions:', err);
+        logger.error('Error optimising contributions:', err);
         this.error = err.response?.data?.message || 'Failed to optimise contributions. Please try again.';
       } finally {
         this.optimising = false;

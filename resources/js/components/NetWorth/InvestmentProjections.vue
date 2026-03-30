@@ -488,6 +488,7 @@ import TaxStatusPanel from '@/components/Common/TaxStatusPanel.vue';
 import EmployeeShareSchemeDetail from '@/views/Investment/EmployeeShareSchemeDetail.vue';
 import PrivateInvestmentDetail from '@/views/Investment/PrivateInvestmentDetail.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'InvestmentProjections',
 
@@ -899,7 +900,7 @@ export default {
           this.projectionError = response.message || 'Failed to load projections';
         }
       } catch (err) {
-        console.error('Error loading projections:', err);
+        logger.error('Error loading projections:', err);
         this.projectionError = 'Failed to load projection data';
       } finally {
         this.$nextTick(() => {
@@ -944,7 +945,7 @@ export default {
           this.recommendations = response.data.recommendations;
         }
       } catch (err) {
-        console.error('Error loading diversification:', err);
+        logger.error('Error loading diversification:', err);
       }
     },
 
@@ -955,7 +956,7 @@ export default {
           this.rebalancingData = response.data;
         }
       } catch (err) {
-        console.error('Error loading rebalancing:', err);
+        logger.error('Error loading rebalancing:', err);
       }
     },
 
@@ -964,7 +965,7 @@ export default {
         const response = await api.get(`/tax-info/investment/${this.account.account_type}`);
         this.taxInfo = response.data.data;
       } catch (err) {
-        console.error('Error loading tax info:', err);
+        logger.error('Error loading tax info:', err);
       }
     },
 
@@ -1122,7 +1123,7 @@ export default {
         }
         this.$emit('updated');
       } catch (error) {
-        console.error('Failed to update account:', error);
+        logger.error('Failed to update account:', error);
       }
     },
 
@@ -1132,7 +1133,7 @@ export default {
         this.showDeleteConfirm = false;
         this.$emit('deleted');
       } catch (error) {
-        console.error('Failed to delete account:', error);
+        logger.error('Failed to delete account:', error);
       }
     },
 
@@ -1160,7 +1161,7 @@ export default {
         await this.fetchInvestmentData();
         this.$emit('updated');
       } catch (error) {
-        console.error('Error saving holding:', error);
+        logger.error('Error saving holding:', error);
       }
     },
   },

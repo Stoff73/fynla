@@ -144,6 +144,7 @@ import { mapGetters } from 'vuex';
 import estateService from '../../services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+import logger from '@/utils/logger';
 export default {
   name: 'LifePolicyStrategy',
 
@@ -197,7 +198,7 @@ export default {
           this.error = response.message || 'Failed to load life policy strategy';
         }
       } catch (err) {
-        console.error('Failed to load life policy strategy:', err);
+        logger.error('Failed to load life policy strategy:', err);
         this.error = err.response?.data?.message || 'An error occurred while loading the strategy';
       } finally {
         this.loading = false;

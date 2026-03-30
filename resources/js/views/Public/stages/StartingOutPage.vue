@@ -190,6 +190,7 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { nextTick } from 'vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'StartingOutPage',
   components: { PublicLayout },
@@ -205,7 +206,7 @@ export default {
         await nextTick();
         this.$router.push('/dashboard');
       } catch (error) {
-        console.error('Failed to launch demo:', error);
+        logger.error('Failed to launch demo:', error);
       }
     },
   },

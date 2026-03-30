@@ -101,6 +101,7 @@ import WillBuilderDigitalStep from './steps/WillBuilderDigitalStep.vue';
 import WillBuilderReviewStep from './steps/WillBuilderReviewStep.vue';
 import WillBuilderSigningStep from './steps/WillBuilderSigningStep.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'WillBuilderWizard',
 
@@ -355,7 +356,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Failed to save step:', error);
+        logger.error('Failed to save step:', error);
       } finally {
         this.saving = false;
       }

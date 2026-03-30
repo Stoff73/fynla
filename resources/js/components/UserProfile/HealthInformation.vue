@@ -151,6 +151,7 @@ import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import userProfileService from '@/services/userProfileService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'HealthInformation',
 
@@ -245,7 +246,7 @@ export default {
 
         isEditing.value = false;
       } catch (err) {
-        console.error('Failed to save health information:', err);
+        logger.error('Failed to save health information:', err);
         error.value = err.response?.data?.message || 'Failed to save health information. Please try again.';
       } finally {
         saving.value = false;

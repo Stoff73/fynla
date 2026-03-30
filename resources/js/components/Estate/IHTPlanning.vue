@@ -683,6 +683,7 @@ import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { IHT_NIL_RATE_BAND, IHT_STANDARD_RATE, IHT_REDUCED_RATE } from '@/constants/taxConfig';
 
+import logger from '@/utils/logger';
 export default {
   name: 'IHTPlanning',
 
@@ -1564,7 +1565,7 @@ export default {
         // Reload IHT calculation to reflect charitable bequest changes
         await this.loadIHTCalculation();
       } catch (error) {
-        console.error('Failed to update charitable bequest:', error);
+        logger.error('Failed to update charitable bequest:', error);
         // Revert to previous value on error
         this.charitableBequest = !value;
       } finally {
@@ -1645,7 +1646,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('❌ Failed to load IHT calculation:', error);
+        logger.error('❌ Failed to load IHT calculation:', error);
         this.error = error.message || 'Failed to calculate Inheritance Tax liability';
       } finally {
         this.loading = false;

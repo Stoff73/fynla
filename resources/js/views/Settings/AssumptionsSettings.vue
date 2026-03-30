@@ -475,6 +475,7 @@ import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import SettingsTabBar from '@/components/Settings/SettingsTabBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AssumptionsSettings',
 
@@ -563,7 +564,7 @@ export default {
         this.assumptions = response.data.data;
         this.initializeForm();
       } catch (err) {
-        console.error('Failed to load assumptions:', err);
+        logger.error('Failed to load assumptions:', err);
         this.error = err.message || 'Failed to load assumptions. Please try again.';
       } finally {
         this.loading = false;
@@ -647,7 +648,7 @@ export default {
 
         this.$toast?.success?.(`${this.formatTypeName(type)} assumptions saved successfully.`);
       } catch (err) {
-        console.error(`Failed to save ${type} assumptions:`, err);
+        logger.error(`Failed to save ${type} assumptions:`, err);
         this.$toast?.error?.(err.message || `Failed to save ${type} assumptions.`);
       } finally {
         this.saving[type] = false;
@@ -680,7 +681,7 @@ export default {
 
         this.$toast?.success?.(`${this.formatTypeName(type)} assumptions reset to defaults.`);
       } catch (err) {
-        console.error(`Failed to reset ${type} assumptions:`, err);
+        logger.error(`Failed to reset ${type} assumptions:`, err);
         this.$toast?.error?.(err.message || `Failed to reset ${type} assumptions.`);
       } finally {
         this.saving[type] = false;
@@ -694,7 +695,7 @@ export default {
         this.lifeExpectancyForm.life_expectancy_override = profile?.personal_info?.life_expectancy_override || null;
         this.originalLifeExpectancy = this.lifeExpectancyForm.life_expectancy_override;
       } catch (err) {
-        console.error('Failed to load life expectancy:', err);
+        logger.error('Failed to load life expectancy:', err);
       }
     },
 
@@ -707,7 +708,7 @@ export default {
         this.originalLifeExpectancy = this.lifeExpectancyForm.life_expectancy_override;
         this.$toast?.success?.('Life expectancy assumption saved successfully.');
       } catch (err) {
-        console.error('Failed to save life expectancy:', err);
+        logger.error('Failed to save life expectancy:', err);
         this.$toast?.error?.(err.message || 'Failed to save life expectancy.');
       } finally {
         this.savingLifeExpectancy = false;

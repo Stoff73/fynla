@@ -41,6 +41,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useStore } from 'vuex';
 import ExpenditureForm from './ExpenditureForm.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'ExpenditureOverview',
 
@@ -77,7 +78,7 @@ export default {
         const response = await store.dispatch('auth/fetchUserById', user.value.spouse_id);
         spouse.value = response || {};
       } catch (err) {
-        console.error('Failed to fetch spouse data:', err);
+        logger.error('Failed to fetch spouse data:', err);
         spouse.value = {};
       }
     };

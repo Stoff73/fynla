@@ -130,6 +130,7 @@
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 export default {
   name: 'DomicileInformation',
 
@@ -338,7 +339,7 @@ export default {
           }, 5000);
         }
       } catch (error) {
-        console.error('Error updating domicile info:', error);
+        logger.error('Error updating domicile info:', error);
 
         if (error.response?.data?.errors) {
           const errors = error.response.data.errors;

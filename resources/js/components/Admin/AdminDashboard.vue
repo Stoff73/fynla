@@ -229,6 +229,7 @@
 <script>
 import adminService from '../../services/adminService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AdminDashboard',
 
@@ -259,7 +260,7 @@ export default {
           this.error = response.data.message;
         }
       } catch (error) {
-        console.error('Failed to load dashboard:', error);
+        logger.error('Failed to load dashboard:', error);
         this.error = error.response?.data?.message || 'Failed to load dashboard data';
       } finally {
         this.loading = false;

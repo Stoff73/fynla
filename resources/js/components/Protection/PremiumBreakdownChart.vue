@@ -18,6 +18,7 @@
 import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import { formatCurrencyWithPence } from '@/utils/currency';
 
+import logger from '@/utils/logger';
 export default {
   name: 'PremiumBreakdownChart',
 
@@ -97,7 +98,7 @@ export default {
               }
               return `£${value.toFixed(2)}`;
             } catch (error) {
-              console.error('Error formatting data label:', error);
+              logger.error('Error formatting data label:', error);
               return '£0.00';
             }
           },

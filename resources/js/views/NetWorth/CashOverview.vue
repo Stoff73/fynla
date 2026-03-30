@@ -321,6 +321,7 @@ import SaveAccountModal from '@/components/Savings/SaveAccountModal.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
+import logger from '@/utils/logger';
 export default {
   name: 'CashOverview',
 
@@ -521,7 +522,7 @@ export default {
           this.loadProfileData(),
         ]);
       } catch (error) {
-        console.error('Failed to load cash overview data:', error);
+        logger.error('Failed to load cash overview data:', error);
       }
     },
 
@@ -532,7 +533,7 @@ export default {
         const liabilities = estateData.liabilities || [];
         this.creditCards = liabilities.filter(l => l.liability_type === 'credit_card');
       } catch (error) {
-        console.error('Failed to load estate data:', error);
+        logger.error('Failed to load estate data:', error);
         this.creditCards = [];
       } finally {
         this.creditCardsLoading = false;
@@ -546,7 +547,7 @@ export default {
           this.financialCommitmentsData = response.data;
         }
       } catch (error) {
-        console.error('Failed to load financial commitments:', error);
+        logger.error('Failed to load financial commitments:', error);
         this.financialCommitmentsData = null;
       }
     },
@@ -588,7 +589,7 @@ export default {
         this.closeAccountModal();
         await this.fetchSavingsData();
       } catch (error) {
-        console.error('Failed to save account:', error);
+        logger.error('Failed to save account:', error);
       }
     },
 

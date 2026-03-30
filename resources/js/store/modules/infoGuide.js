@@ -7,6 +7,7 @@
 
 import api from '@/services/api';
 
+import logger from '@/utils/logger';
 const state = {
     isOpen: false,
     isEnabled: true,
@@ -137,7 +138,7 @@ const actions = {
                 commit('SET_REQUIREMENTS', response.data.data);
             }
         } catch (error) {
-            console.error('Failed to fetch info guide requirements:', error);
+            logger.error('Failed to fetch info guide requirements:', error);
             commit('SET_ERROR', 'Failed to load requirements');
         } finally {
             commit('SET_LOADING', false);
@@ -158,7 +159,7 @@ const actions = {
 
             commit('SET_REQUIREMENTS', response.data.data);
         } catch (error) {
-            console.error('Failed to refresh info guide requirements:', error);
+            logger.error('Failed to refresh info guide requirements:', error);
             commit('SET_ERROR', 'Failed to refresh requirements');
         } finally {
             commit('SET_LOADING', false);
@@ -178,7 +179,7 @@ const actions = {
             commit('SET_ENABLED', response.data.data.enabled);
             commit('SET_INITIALIZED', true);
         } catch (error) {
-            console.error('Failed to fetch info guide preference:', error);
+            logger.error('Failed to fetch info guide preference:', error);
             // Default to enabled on error
             commit('SET_ENABLED', true);
             commit('SET_INITIALIZED', true);
@@ -194,7 +195,7 @@ const actions = {
         try {
             await api.put('/info-guide/preference', { enabled });
         } catch (error) {
-            console.error('Failed to update info guide preference:', error);
+            logger.error('Failed to update info guide preference:', error);
             // Revert on error
             commit('SET_ENABLED', !enabled);
         }

@@ -157,6 +157,7 @@ import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AnnualAllowanceTracker',
   mixins: [currencyMixin],
@@ -295,7 +296,7 @@ export default {
     try {
       await this.$store.dispatch('retirement/fetchAnnualAllowance', '2025/26');
     } catch (error) {
-      console.error('Failed to fetch annual allowance:', error);
+      logger.error('Failed to fetch annual allowance:', error);
     }
   },
 };

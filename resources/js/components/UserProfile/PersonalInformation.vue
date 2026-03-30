@@ -603,6 +603,7 @@ import { useStore } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import OccupationAutocomplete from '@/components/Shared/OccupationAutocomplete.vue';
 
+import logger from '@/utils/logger';
 // Preview mode message
 const PREVIEW_SUCCESS_MESSAGE = 'Changes saved for this session only (preview mode).';
 
@@ -986,7 +987,7 @@ export default {
           successMessage.value = '';
         }, statusChange.hasSignificantChange ? 8000 : (isPreviewMode ? 5000 : 3000));
       } catch (error) {
-        console.error('Update error:', error);
+        logger.error('Update error:', error);
         if (error.errors) {
           const errors = Object.values(error.errors).flat();
           errorMessage.value = errors.join('. ');

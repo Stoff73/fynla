@@ -68,6 +68,7 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import userProfileService from '@/services/userProfileService';
 
+import logger from '@/utils/logger';
 export default {
   name: 'AffordabilityOverviewCard',
   mixins: [currencyMixin],
@@ -160,7 +161,7 @@ export default {
           this.financialCommitmentsData = response.data;
         }
       } catch (error) {
-        console.error('Failed to load financial commitments:', error);
+        logger.error('Failed to load financial commitments:', error);
         this.financialCommitmentsData = null;
       }
     },
