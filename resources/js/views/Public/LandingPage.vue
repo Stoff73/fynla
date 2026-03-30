@@ -39,7 +39,7 @@
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
             <div class="flex justify-center mt-3">
               <img
-                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                src="/images/Fyn/202603-FynlaBrain.png"
                 alt="Fynla Brain"
                 class="w-24 h-auto rounded-lg"
               />
@@ -57,7 +57,7 @@
           style="width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;"
         >
           <img
-            src="/images/Website/Homepage-Header-Desktopv3.png"
+            src="/images/Website/Homepage-Header-Desktop.png"
             alt="Fynla Brain — your financial planning intelligence"
             width="1315"
             height="489"
@@ -77,7 +77,7 @@
             </div>
             <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
               <img
-                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                src="/images/Fyn/202603-FynlaBrain.png"
                 alt="Fynla Brain"
                 class="w-auto max-w-full max-h-full object-contain object-bottom"
               />
