@@ -11,12 +11,9 @@ use Illuminate\Http\Request;
 
 class PortfolioStrategyController extends Controller
 {
-    private PortfolioStrategyService $strategyService;
-
-    public function __construct(PortfolioStrategyService $strategyService)
-    {
-        $this->strategyService = $strategyService;
-    }
+    public function __construct(
+        private readonly PortfolioStrategyService $strategyService
+    ) {}
 
     /**
      * Get portfolio-level strategy recommendations

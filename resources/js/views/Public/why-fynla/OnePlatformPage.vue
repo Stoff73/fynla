@@ -147,7 +147,7 @@ export default {
         { slug: 'building-foundations', name: 'Building Foundations', colour: '#5DCAA5' },
         { slug: 'protecting-and-growing', name: 'Protecting and Growing', colour: '#378ADD' },
         { slug: 'planning-your-future', name: 'Planning Your Future', colour: '#7F77DD' },
-        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', colour: '#EF9F27' },
+        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', colour: '#B8956A' },
       ],
     };
   },

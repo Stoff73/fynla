@@ -26,10 +26,10 @@ class RebalancingCalculationController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private RebalancingCalculator $rebalancingCalculator,
-        private TaxAwareRebalancer $taxAwareRebalancer,
-        private DriftAnalyzer $driftAnalyzer,
-        private TaxConfigService $taxConfig
+        private readonly RebalancingCalculator $rebalancingCalculator,
+        private readonly TaxAwareRebalancer $taxAwareRebalancer,
+        private readonly DriftAnalyzer $driftAnalyzer,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

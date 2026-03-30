@@ -308,7 +308,7 @@
                 Pension Income
               </label>
               <p class="text-body-base text-horizon-500 py-2">{{ formatCurrency(form.annual_pension_income) }}</p>
-              <p class="text-body-xs text-neutral-500">Calculated from DB pensions and state pension in payment</p>
+              <p class="text-body-xs text-neutral-500">Calculated from Defined Benefit pensions and state pension in payment</p>
             </div>
 
             <!-- Annual Trust Income -->

@@ -29,11 +29,11 @@ class GDPRController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private DataExportService $exportService,
-        private DataErasureService $erasureService,
-        private ConsentService $consentService,
-        private MFAService $mfaService,
-        private AuditService $auditService
+        private readonly DataExportService $exportService,
+        private readonly DataErasureService $erasureService,
+        private readonly ConsentService $consentService,
+        private readonly MFAService $mfaService,
+        private readonly AuditService $auditService
     ) {}
 
     /**

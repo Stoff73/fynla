@@ -435,7 +435,7 @@ export default {
         { slug: 'building-foundations', name: 'Building Foundations', sub: 'Saving, buying, growing', colour: '#5DCAA5', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
         { slug: 'protecting-and-growing', name: 'Protecting and Growing', sub: 'Family, home, investments', colour: '#378ADD', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
         { slug: 'planning-your-future', name: 'Planning Your Future', sub: 'Peak earning, retirement prep', colour: '#7F77DD', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', sub: 'Later life, legacy, estate', colour: '#EF9F27', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7' },
+        { slug: 'enjoying-your-wealth', name: 'Enjoying Your Wealth', sub: 'Later life, legacy, estate', colour: '#B8956A', icon: 'M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7' },
       ],
     };
   },

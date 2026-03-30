@@ -16,9 +16,9 @@ class StoreAssetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'asset_type' => 'sometimes|in:property,pension,investment,savings,business,life_insurance,personal,other',
-            'asset_name' => 'sometimes|string|max:255',
-            'current_value' => 'sometimes|numeric|min:0',
+            'asset_type' => 'required|in:property,pension,investment,savings,business,life_insurance,personal,other',
+            'asset_name' => 'required|string|max:255',
+            'current_value' => 'required|numeric|min:0',
             'ownership_type' => 'sometimes|in:individual,joint,trust',
             'beneficiary_designation' => 'nullable|string|max:255',
             'is_iht_exempt' => 'boolean',

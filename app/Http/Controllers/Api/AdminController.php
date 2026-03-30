@@ -378,7 +378,7 @@ class AdminController extends Controller
                 'message' => 'Database backup created successfully',
                 'data' => [
                     'filename' => $filename,
-                    'path' => $fullPath,
+                    'path' => basename($fullPath),
                     'size' => $this->databaseMetrics->formatBytes($fileSize),
                     'created_at' => date('Y-m-d H:i:s'),
                 ],
@@ -413,7 +413,7 @@ class AdminController extends Controller
                         'filename' => $file,
                         'size' => filesize($fullPath),
                         'created_at' => date('Y-m-d H:i:s', filemtime($fullPath)),
-                        'path' => $fullPath,
+                        'path' => basename($fullPath),
                     ];
                 }
             }

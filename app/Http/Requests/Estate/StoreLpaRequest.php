@@ -16,10 +16,10 @@ class StoreLpaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lpa_type' => 'sometimes|in:property_financial,health_welfare',
+            'lpa_type' => 'required|in:property_financial,health_welfare',
             'status' => 'sometimes|in:draft,completed,registered',
-            'donor_full_name' => 'sometimes|string|max:255',
-            'donor_date_of_birth' => 'sometimes|date|before:today',
+            'donor_full_name' => 'required|string|max:255',
+            'donor_date_of_birth' => 'required|date|before:today',
             'donor_address_line_1' => 'nullable|string|max:255',
             'donor_address_line_2' => 'nullable|string|max:255',
             'donor_address_city' => 'nullable|string|max:255',

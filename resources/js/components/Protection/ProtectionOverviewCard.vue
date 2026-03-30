@@ -1,6 +1,6 @@
 <template>
   <div
-    class="protection-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 border border-light-gray"
+    class="protection-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:bg-light-gray transition-all duration-200 border border-light-gray"
     @click="navigateToProtection"
   >
     <!-- Policy Sections - only show sections with policies -->
@@ -561,7 +561,7 @@ export default {
 }
 
 .policy-count-badge-purple {
-  @apply bg-white text-purple-800 border-2 border-purple-600;
+  @apply bg-white text-purple-800 border-2 border-violet-500;
 }
 
 .policy-count-badge-teal {

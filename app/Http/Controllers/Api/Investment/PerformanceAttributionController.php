@@ -23,9 +23,9 @@ class PerformanceAttributionController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private PerformanceAttributionAnalyzer $attributionAnalyzer,
-        private BenchmarkComparator $benchmarkComparator,
-        private AlphaBetaCalculator $alphaBetaCalculator
+        private readonly PerformanceAttributionAnalyzer $attributionAnalyzer,
+        private readonly BenchmarkComparator $benchmarkComparator,
+        private readonly AlphaBetaCalculator $alphaBetaCalculator
     ) {}
 
     /**

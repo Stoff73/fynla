@@ -24,8 +24,8 @@ class UpdateDomicileInfoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'domicile_status' => 'sometimes|in:uk_domiciled,non_uk_domiciled',
-            'country_of_birth' => 'sometimes|string|max:255',
+            'domicile_status' => 'required|in:uk_domiciled,non_uk_domiciled',
+            'country_of_birth' => 'required|string|max:255',
             'uk_arrival_date' => [
                 'required_if:domicile_status,non_uk_domiciled',
                 'nullable',

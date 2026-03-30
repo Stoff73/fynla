@@ -155,6 +155,7 @@
 <script>
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'AnnualAllowanceTracker',
@@ -176,10 +177,10 @@ export default {
       }
       // Check if tapered
       if (this.isTapered) {
-        return this.annualAllowance?.tapered_allowance || 60000;
+        return this.annualAllowance?.tapered_allowance || ANNUAL_ALLOWANCE;
       }
       // Standard allowance
-      return 60000;
+      return ANNUAL_ALLOWANCE;
     },
 
     calculatedContributions() {
@@ -278,14 +279,14 @@ export default {
     getHistoricalUnused(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
       if (used === null) return null;
-      const standardAllowance = 60000;
+      const standardAllowance = ANNUAL_ALLOWANCE;
       return Math.max(0, standardAllowance - used);
     },
 
     getHistoricalPercent(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
       if (used === null) return 0;
-      return Math.min(100, Math.round((used / 60000) * 100));
+      return Math.min(100, Math.round((used / ANNUAL_ALLOWANCE) * 100));
     },
   },
 

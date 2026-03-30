@@ -37,6 +37,14 @@ class SanitizeInput
         'password',
         'password_confirmation',
         'current_password',
+        'code',
+        'challenge_token',
+        'mfa_secret',
+        'mfa_recovery_codes',
+        'recovery_code',
+        'token',
+        'access_token',
+        'mfa_token',
     ];
 
     /**

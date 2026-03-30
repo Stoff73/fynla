@@ -105,9 +105,9 @@
         <div class="flex-1">
           <p class="text-sm font-semibold text-violet-900 mb-2">Projection Assumptions</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-violet-800">
-            <div>• DC pension growth: 5% p.a. (before retirement)</div>
+            <div>• Defined Contribution pension growth: 5% p.a. (before retirement)</div>
             <div>• Drawdown rate: 4% p.a. (after retirement)</div>
-            <div>• DB pensions: Fixed income (indexed with inflation)</div>
+            <div>• Defined Benefit pensions: Fixed income (indexed with inflation)</div>
             <div>• State Pension: Based on your forecast</div>
             <div>• Inflation: 2.5% p.a.</div>
             <div>• Life expectancy: Age {{ lifeExpectancy }}</div>

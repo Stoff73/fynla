@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -272,7 +273,7 @@ class RecommendationPersonaliser
 
         // ISA / tax wrapper recommendations
         if ($this->isISARecommendation($category, $action, $description)) {
-            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
+            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
             $context[] = sprintf(
                 'The current ISA allowance is %s per tax year. Contributions are tax-free and sheltered from Capital Gains Tax.',
                 $this->formatCurrency($isaAllowance)

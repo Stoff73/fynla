@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Investment;
 
+use App\Constants\TaxDefaults;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Investment\AssetLocation\AccountTypeRecommender;
@@ -24,9 +25,9 @@ class AssetLocationController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private AssetLocationOptimizer $optimizer,
-        private TaxDragCalculator $taxDragCalculator,
-        private AccountTypeRecommender $recommender,
+        private readonly AssetLocationOptimizer $optimizer,
+        private readonly TaxDragCalculator $taxDragCalculator,
+        private readonly AccountTypeRecommender $recommender,
         private readonly TaxConfigService $taxConfig
     ) {}
 
@@ -40,7 +41,7 @@ class AssetLocationController extends Controller
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'isa_allowance_used' => 'nullable|numeric|min:0|max:20000',
+            'isa_allowance_used' => 'nullable|numeric|min:0|max:' . (string) TaxDefaults::ISA_ALLOWANCE,
             'cgt_allowance_used' => 'nullable|numeric|min:0',
             'dividend_allowance_used' => 'nullable|numeric|min:0',
             'expected_return' => 'nullable|numeric|min:0|max:0.5',

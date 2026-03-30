@@ -33,6 +33,7 @@ import { initSessionLifecycle } from './services/sessionLifecycleService';
 
 import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
 import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
+import logger from './utils/logger';
 
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
@@ -57,44 +58,44 @@ app.config.errorHandler = (err, instance, info) => {
   console.error('[Vue Error]', err?.message || err, '| info:', info);
 };
 
-console.log('[App] Module init complete, calling initAndMount');
+logger.debug('App', 'Module init complete, calling initAndMount');
 
 async function initAndMount() {
-  console.log('[App Init] Step 1: isNative =', isNativePlatform());
+  logger.debug('App Init', 'Step 1: isNative =', isNativePlatform());
 
   // On native (Capacitor), try to restore token but don't block app mount.
   // Preferences.get() hangs on some iOS builds, so we use a short timeout.
   if (isNativePlatform()) {
     try {
-      console.log('[App Init] Step 2: Calling getToken...');
+      logger.debug('App Init', 'Step 2: Calling getToken...');
       const tokenPromise = getToken();
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Token restore timeout (3s)')), 3000)
       );
       const token = await Promise.race([tokenPromise, timeoutPromise]);
-      console.log('[App Init] Step 3: Token result:', token ? 'yes (' + token.length + ' chars)' : 'none');
+      logger.debug('App Init', 'Step 3: Token result:', token ? 'yes (' + token.length + ' chars)' : 'none');
       if (token) {
         store.commit('auth/setToken', token);
       }
     } catch (e) {
-      console.log('[App Init] Step 3-ERR: Token failed:', e?.message || 'unknown');
+      logger.debug('App Init', 'Step 3-ERR: Token failed:', e?.message || 'unknown');
     }
   }
 
-  console.log('[App Init] Step 4: Dispatching preview/initFromStorage');
+  logger.debug('App Init', 'Step 4: Dispatching preview/initFromStorage');
   store.dispatch('preview/initFromStorage').catch(() => {});
 
-  console.log('[App Init] Step 5: initSessionLifecycle');
+  logger.debug('App Init', 'Step 5: initSessionLifecycle');
   initSessionLifecycle(store, router);
 
-  console.log('[App Init] Step 6: Mounting app');
+  logger.debug('App Init', 'Step 6: Mounting app');
   app.mount('#app');
-  console.log('[App Init] Step 7: App mounted');
+  logger.debug('App Init', 'Step 7: App mounted');
 
   // Wait for router initial navigation to complete
   try {
     await router.isReady();
-    console.log('[App Init] Step 8: Router ready, current route:', router.currentRoute.value.path);
+    logger.debug('App Init', 'Step 8: Router ready, current route:', router.currentRoute.value.path);
   } catch (e) {
     console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
   }
@@ -102,7 +103,7 @@ async function initAndMount() {
   // On native, initialise app lifecycle (background/foreground handling)
   // and attempt biometric login if no token was restored from storage
   if (isNativePlatform()) {
-    console.log('[App Init] Step 9: Initialising native app lifecycle');
+    logger.debug('App Init', 'Step 9: Initialising native app lifecycle');
     initAppLifecycle(store, router);
 
     // Auto-login with Face ID if user has previously set it up

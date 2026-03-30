@@ -32,6 +32,8 @@
 </template>
 
 <script>
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
+
 export default {
     name: 'AiMessageContent',
 
@@ -70,7 +72,7 @@ export default {
             text = text.replace(/\n\n/g, '</p><p class="mt-2">');
             text = text.replace(/\n/g, '<br>');
 
-            return `<p>${text}</p>`;
+            return sanitizeHtml(`<p>${text}</p>`);
         },
 
         entityLabel() {

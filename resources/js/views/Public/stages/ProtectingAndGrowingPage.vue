@@ -131,7 +131,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-horizon-500 rounded-lg border border-light-gray p-5">
             <p class="text-base font-semibold text-white mb-1">The Document Your Family Needs</p>
-            <p class="text-xs text-white/70 leading-relaxed">If something happened to you tonight, would your partner know where the pensions are? The mortgage account number? The life insurance provider? Fynla's ICE letter puts everything in one document — auto-populated from your plan.</p>
+            <p class="text-xs text-white/70 leading-relaxed">If something happened to you tonight, would your partner know where the pensions are? The mortgage account number? The life insurance provider? Fynla's In Case of Emergency letter puts everything in one document — auto-populated from your plan.</p>
           </div>
           <div class="bg-horizon-500 rounded-lg border border-light-gray p-5">
             <p class="text-base font-semibold text-white mb-1">The Cover You Didn't Know You Were Missing</p>

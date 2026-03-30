@@ -56,10 +56,10 @@ class ProtectionProfile extends Model
         'retirement_age' => 'integer',
         'smoker_status' => 'boolean',
         'has_no_policies' => 'boolean',
-        'death_in_service_multiple' => 'decimal:2',
-        'group_ip_benefit_percent' => 'decimal:2',
+        'death_in_service_multiple' => 'float',
+        'group_ip_benefit_percent' => 'float',
         'group_ip_benefit_months' => 'integer',
-        'group_ci_amount' => 'decimal:2',
+        'group_ci_amount' => 'float',
         'has_employer_pmi' => 'boolean',
     ];
 

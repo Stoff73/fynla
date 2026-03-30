@@ -73,13 +73,13 @@
       <!-- Annual Allowance -->
       <MobileAccordionSection title="Annual allowance" class="mb-3">
         <div v-if="annualAllowance" class="divide-y divide-light-gray">
-          <MobileDataRow label="Standard allowance" :value="annualAllowance.standard_allowance || 60000" type="currency" />
+          <MobileDataRow label="Standard allowance" :value="annualAllowance.standard_allowance || ANNUAL_ALLOWANCE" type="currency" />
           <MobileDataRow label="Used this year" :value="annualAllowance.used || 0" type="currency" />
           <MobileDataRow
             label="Remaining"
-            :value="(annualAllowance.standard_allowance || 60000) - (annualAllowance.used || 0)"
+            :value="(annualAllowance.standard_allowance || ANNUAL_ALLOWANCE) - (annualAllowance.used || 0)"
             type="currency"
-            :status="(annualAllowance.standard_allowance || 60000) - (annualAllowance.used || 0) > 0 ? 'good' : 'warning'"
+            :status="(annualAllowance.standard_allowance || ANNUAL_ALLOWANCE) - (annualAllowance.used || 0) > 0 ? 'good' : 'warning'"
           />
           <MobileDataRow v-if="annualAllowance.carry_forward" label="Carry forward available" :value="annualAllowance.carry_forward" type="currency" />
         </div>
@@ -94,6 +94,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import MobileAccordionSection from '@/mobile/components/MobileAccordionSection.vue';
 import MobileDataRow from '@/mobile/components/MobileDataRow.vue';
 import MobilePensionCard from '@/mobile/components/MobilePensionCard.vue';
@@ -110,7 +111,7 @@ export default {
   mixins: [currencyMixin],
 
   data() {
-    return { loading: false };
+    return { loading: false, ANNUAL_ALLOWANCE };
   },
 
   computed: {

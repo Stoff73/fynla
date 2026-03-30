@@ -136,7 +136,7 @@
           </div>
           <div class="bg-horizon-500 rounded-lg border border-light-gray p-5">
             <p class="text-base font-semibold text-white mb-1">54% of UK Adults Don't Have a Will</p>
-            <p class="text-xs text-white/70 leading-relaxed">Without a will, the law decides who gets what — and unmarried partners get nothing. Fynla guides you through getting your estate in order: wills, Lasting Powers of Attorney, Inheritance Tax planning, and ICE letters for your family.</p>
+            <p class="text-xs text-white/70 leading-relaxed">Without a will, the law decides who gets what — and unmarried partners get nothing. Fynla guides you through getting your estate in order: wills, Lasting Powers of Attorney, Inheritance Tax planning, and In Case of Emergency letters for your family.</p>
           </div>
         </div>
       </div>
@@ -190,7 +190,7 @@ export default {
   mounted() {
     document.title = 'Estate Planning & Inheritance Tax Planning UK | Fynla';
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Know your Inheritance Tax exposure and plan to reduce it. Fynla models gifting strategies, tracks pension drawdown, and generates ICE letters for your family.');
+    if (meta) meta.setAttribute('content', 'Know your Inheritance Tax exposure and plan to reduce it. Fynla models gifting strategies, tracks pension drawdown, and generates In Case of Emergency letters for your family.');
   },
   methods: {
     async launchDemo() {

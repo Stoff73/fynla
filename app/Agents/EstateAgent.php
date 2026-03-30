@@ -1543,7 +1543,7 @@ class EstateAgent extends BaseAgent
     private function buildTrustScenario(User $user, array $parameters): array
     {
         $current = $this->buildCurrentScenario($user);
-        $trustValue = $parameters['trust_value'] ?? ($this->taxConfig->getInheritanceTax()['nil_rate_band'] ?? 325000);
+        $trustValue = $parameters['trust_value'] ?? ($this->taxConfig->getInheritanceTax()['nil_rate_band'] ?? TaxDefaults::NRB);
 
         // Discretionary trust within NRB
         $ihtRate = (float) ($this->taxConfig->getInheritanceTax()['standard_rate'] ?? TaxDefaults::IHT_RATE);

@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between">
         <h3 class="text-xl font-semibold text-horizon-500">
@@ -353,21 +353,4 @@ export default {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Scrollbar styling */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-savannah-100;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  @apply bg-neutral-400;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-neutral-600;
-}
 </style>

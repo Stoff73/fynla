@@ -131,9 +131,10 @@ describe('spousal_transfer_beneficial trigger', function () {
 
         $this->user->update([
             'marital_status' => 'married',
-            'spouse_id' => $spouse->id,
             'annual_employment_income' => 80000, // Higher rate
         ]);
+        $this->user->spouse_id = $spouse->id;
+        $this->user->save();
 
         // Add GIA holdings to make the saving meaningful
         InvestmentAccount::factory()->create([
@@ -159,9 +160,10 @@ describe('spousal_transfer_beneficial trigger', function () {
 
         $this->user->update([
             'marital_status' => 'married',
-            'spouse_id' => $spouse->id,
             'annual_employment_income' => 80000, // Also higher rate
         ]);
+        $this->user->spouse_id = $spouse->id;
+        $this->user->save();
 
         $result = $this->service->evaluateActions($this->user);
 

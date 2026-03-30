@@ -32,6 +32,7 @@ export const JUNIOR_ISA_ALLOWANCE = 9000;   // Separate from adult ISA allowance
  * Pension Allowances
  */
 export const PENSION_ANNUAL_ALLOWANCE = 60000;
+export const ANNUAL_ALLOWANCE = 60000;
 export const MONEY_PURCHASE_ANNUAL_ALLOWANCE = 10000; // After accessing benefits
 export const PENSION_LIFETIME_ALLOWANCE = null; // Abolished from 2024/25
 

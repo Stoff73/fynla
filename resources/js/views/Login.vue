@@ -77,7 +77,7 @@
 
         <!-- Error Message -->
         <div v-if="errorMessage" class="rounded-lg bg-raspberry-50 border border-raspberry-200 p-4 text-center">
-          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+          <p class="text-sm text-raspberry-700">{{ errorMessage }}</p>
           <div v-if="showLoginHints" class="mt-3 flex flex-col gap-2 text-sm">
             <button
               type="button"
@@ -86,7 +86,7 @@
             >
               Forgot your password?
             </button>
-            <p class="text-red-800">
+            <p class="text-raspberry-700">
               Don't have an account?
               <router-link to="/register" class="font-medium text-raspberry-500 hover:text-raspberry-700 underline">
                 Register here

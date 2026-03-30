@@ -51,6 +51,9 @@ class SecurityHeaders
         $response->headers->set('Content-Security-Policy', $csp);
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://sandbox-merchant.revolut.com" "https://merchant.revolut.com"), usb=(), bluetooth=()');
 
+        $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+
         return $response;
     }
 }

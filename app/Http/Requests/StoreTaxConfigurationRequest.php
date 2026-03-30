@@ -24,13 +24,13 @@ class StoreTaxConfigurationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tax_year' => 'sometimes|string|regex:/^\d{4}\/\d{2}$/|unique:tax_configurations,tax_year,'.$this->route('id'),
+            'tax_year' => 'required|string|regex:/^\d{4}\/\d{2}$/|unique:tax_configurations,tax_year,'.$this->route('id'),
             'effective_from' => 'sometimes|date',
             'effective_to' => 'sometimes|date|after:effective_from',
             'is_active' => 'sometimes|boolean',
 
             // Income Tax validation
-            'config_data' => 'sometimes|array',
+            'config_data' => 'required|array|min:1',
             'config_data.income_tax' => 'sometimes|array',
             'config_data.income_tax.personal_allowance' => 'sometimes|numeric|min:0',
             'config_data.income_tax.bands' => 'sometimes|array|min:3',

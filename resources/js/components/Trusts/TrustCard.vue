@@ -123,7 +123,7 @@ export default {
 .trust-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  @apply border-purple-600;
+  @apply border-violet-500;
 }
 
 .card-header {
