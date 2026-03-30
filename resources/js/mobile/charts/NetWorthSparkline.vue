@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'NetWorthSparkline',
@@ -24,6 +24,7 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
           sparkline: { enabled: true },
           animations: { enabled: false },

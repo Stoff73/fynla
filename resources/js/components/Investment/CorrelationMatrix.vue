@@ -222,7 +222,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import portfolioOptimizationService from '@/services/portfolioOptimizationService';
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, PRIMARY_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, PRIMARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'CorrelationMatrix',
@@ -270,6 +270,7 @@ export default {
     heatmapOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'heatmap',
           toolbar: {
             show: true,

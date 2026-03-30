@@ -43,7 +43,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, BG_COLORS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, BORDER_COLORS, BG_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'IHTLiabilityGauge',
@@ -144,10 +144,9 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'radialBar',
-          sparkline: {
-            enabled: false,
-          },
+          sparkline: { enabled: false },
         },
         plotOptions: {
           radialBar: {

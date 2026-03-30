@@ -37,6 +37,13 @@
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+            <div class="flex justify-center mt-3">
+              <img
+                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                alt="Fynla Brain"
+                class="w-24 h-auto rounded-lg"
+              />
+            </div>
           </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
@@ -50,7 +57,7 @@
           style="width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;"
         >
           <img
-            src="/images/Website/Homepage-Header-Desktop.png"
+            src="/images/Website/Homepage-Header-Desktopv3.png"
             alt="Fynla Brain — your financial planning intelligence"
             width="1315"
             height="489"
@@ -63,9 +70,18 @@
           </div>
 
           <!-- Caption card: centre -->
-          <div class="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-3 max-w-[28%] xl:max-w-xs text-center">
-            <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
-            <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+          <div class="absolute top-14 bottom-0 left-1/2 -translate-x-1/2 py-3 max-w-[28%] xl:max-w-xs text-center flex flex-col overflow-hidden">
+            <div class="px-4">
+              <p class="lg:text-lg xl:text-2xl font-bold text-horizon-500 mb-1">One financial brain.</p>
+              <p class="text-xs xl:text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
+            </div>
+            <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
+              <img
+                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                alt="Fynla Brain"
+                class="w-auto max-w-full max-h-full object-contain object-bottom"
+              />
+            </div>
           </div>
 
           <!-- Caption card: right -->
@@ -230,7 +246,11 @@
           </div>
         </div>
 
-        <div class="text-center mt-10">
+        <div class="text-center mt-10 flex items-center justify-center gap-3">
+          <router-link to="/features" class="text-white font-medium hover:text-white/70 transition-colors">
+            View detailed list of features &gt;
+          </router-link>
+          <span class="text-white/30">|</span>
           <a href="/?demo=true" class="text-white font-medium hover:text-white/70 transition-colors" @click.prevent="enterPreviewMode">
             View demos &gt;
           </a>
@@ -264,38 +284,38 @@
     <!-- Scenarios -->
     <div id="solutions" class="bg-light-pink-100 pt-10 lg:pt-12 pb-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Scenarios</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your personal journey</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
           <!-- Starting out -->
-          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <router-link to="/stage/starting-out" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
             <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Starting</span><br/>out</p>
             <p class="text-xs text-white/70 leading-snug">Build strong financial habits for your future.</p>
-          </div>
+          </router-link>
 
           <!-- Building foundations -->
-          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <router-link to="/stage/building-foundations" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
             <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Building</span><br/>foundations</p>
             <p class="text-xs text-white/70 leading-snug">Save, invest, and grow your wealth with confidence.</p>
-          </div>
+          </router-link>
 
-          <!-- Protecting what matters -->
-          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
-            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Protecting</span><br/>what matters</p>
+          <!-- Protecting and growing -->
+          <router-link to="/stage/protecting-and-growing" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
+            <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Protecting</span><br/>and growing</p>
             <p class="text-xs text-white/70 leading-snug">Ensure your family and assets are fully covered.</p>
-          </div>
+          </router-link>
 
           <!-- Planning your future -->
-          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <router-link to="/stage/planning-your-future" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
             <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Planning</span><br/>your future</p>
             <p class="text-xs text-white/70 leading-snug">Retirement projections, pension tracking, and estate planning.</p>
-          </div>
+          </router-link>
 
           <!-- Enjoying your wealth -->
-          <div class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200" @click="enterPreviewMode">
+          <router-link to="/stage/enjoying-your-wealth" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
             <p class="text-2xl font-bold text-white mb-1 leading-tight"><span class="text-raspberry-400">Enjoying</span><br/>your wealth</p>
             <p class="text-xs text-white/70 leading-snug">Make the most of your financial success.</p>
-          </div>
+          </router-link>
         </div>
 
         <div class="text-center">

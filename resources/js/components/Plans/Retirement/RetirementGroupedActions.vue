@@ -125,7 +125,7 @@ import PensionGrowthProjectionChart from './PensionGrowthProjectionChart.vue';
 import CascadingActionChart from './CascadingActionChart.vue';
 import RetirementWhatIfControls from './RetirementWhatIfControls.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'RetirementGroupedActions',
@@ -341,10 +341,8 @@ export default {
       const self = this;
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'line',
-          toolbar: { show: false },
-          zoom: { enabled: false },
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
         },
         colors: [CHART_COLORS[1], CHART_COLORS[2]],
         stroke: {
@@ -354,7 +352,7 @@ export default {
         xaxis: {
           categories: Array.from({ length: this.portfolioYears + 1 }, (_, i) => `Year ${i}`),
           labels: {
-            style: { fontSize: '11px', colors: '#64748B' },
+            style: { fontSize: '11px', colors: TEXT_COLORS.muted },
           },
           axisBorder: { show: false },
           axisTicks: { show: false },
@@ -362,11 +360,11 @@ export default {
         yaxis: {
           labels: {
             formatter: (val) => self.formatCurrencyCompact(val),
-            style: { fontSize: '11px', colors: '#64748B' },
+            style: { fontSize: '11px', colors: TEXT_COLORS.muted },
           },
         },
         grid: {
-          borderColor: '#E2E8F0',
+          borderColor: BORDER_COLORS.default,
           strokeDashArray: 3,
         },
         tooltip: {

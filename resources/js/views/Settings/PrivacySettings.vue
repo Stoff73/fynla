@@ -1,9 +1,9 @@
 <template>
   <AppLayout>
-    <div class="privacy-settings">
-      <div class="page-header">
-        <h1 class="page-title">Privacy & Data Settings</h1>
-        <p class="page-description">
+    <div class="privacy-settings module-gradient py-8">
+      <div class="mb-8">
+        <h1 class="text-h2 font-display text-horizon-500">Settings</h1>
+        <p class="mt-2 text-body-base text-neutral-500">
           Manage your data privacy preferences and access your personal data
         </p>
       </div>
@@ -679,27 +679,6 @@ export default {
 </script>
 
 <style scoped>
-.privacy-settings {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  @apply text-horizon-700;
-  margin-bottom: 0.5rem;
-}
-
-.page-description {
-  @apply text-neutral-500;
-}
-
 .settings-section {
   background: white;
   border-radius: 0.5rem;

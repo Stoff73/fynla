@@ -17,7 +17,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { generateMockBalanceTrend } from './mockData';
-import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'BalanceTrendChart',
@@ -56,10 +56,8 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          toolbar: { show: false },
-          zoom: { enabled: false },
           sparkline: { enabled: false },
         },
         colors: [CHART_COLORS[5]], // Purple

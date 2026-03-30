@@ -12,7 +12,7 @@
 
 <script>
 import { mapState } from 'vuex';
-import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { PRIMARY_COLORS, SECONDARY_COLORS, BORDER_COLORS, CHART_DEFAULTS, TEXT_COLORS } from '@/constants/designSystem';
 
 export default {
   name: 'AccumulationChart',
@@ -121,6 +121,7 @@ export default {
     chartOptions() {
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'line',
           height: 350,
           toolbar: {
@@ -154,12 +155,11 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
             style: {
-              fontFamily: 'Segoe UI, Inter, sans-serif',
+              colors: TEXT_COLORS.muted,
             },
           },
         },
@@ -169,7 +169,6 @@ export default {
             style: {
               fontSize: '14px',
               fontWeight: 600,
-              fontFamily: 'Segoe UI, Inter, sans-serif',
             },
           },
           labels: {
@@ -177,7 +176,7 @@ export default {
               return '£' + Math.round(value).toLocaleString();
             },
             style: {
-              fontFamily: 'Segoe UI, Inter, sans-serif',
+              colors: TEXT_COLORS.muted,
             },
           },
         },
@@ -193,7 +192,6 @@ export default {
         legend: {
           position: 'top',
           horizontalAlign: 'centre',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
           fontSize: '14px',
           markers: {
             width: 12,

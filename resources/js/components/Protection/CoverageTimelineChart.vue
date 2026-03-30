@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { CHART_COLORS, SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, SUCCESS_COLORS, WARNING_COLORS, ERROR_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'CoverageTimelineChart',
@@ -94,13 +94,7 @@ export default {
 
     chartOptions() {
       return {
-        chart: {
-          type: 'rangeBar',
-          fontFamily: 'Segoe UI, Inter, sans-serif',
-          toolbar: {
-            show: false,
-          },
-        },
+        chart: { ...CHART_DEFAULTS.chart, type: 'rangeBar' },
         plotOptions: {
           bar: {
             horizontal: true,

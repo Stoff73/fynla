@@ -40,7 +40,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'GeographicAllocationMap',
@@ -115,11 +115,8 @@ export default {
 
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'bar',
-          fontFamily: 'Segoe UI, Inter, system-ui, sans-serif',
-          toolbar: {
-            show: false,
-          },
         },
         plotOptions: {
           bar: {

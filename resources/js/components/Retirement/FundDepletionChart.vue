@@ -102,7 +102,7 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
+import { CHART_COLORS, TEXT_COLORS, BORDER_COLORS, SUCCESS_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 
 export default {
   name: 'FundDepletionChart',
@@ -249,10 +249,9 @@ export default {
 
       return {
         chart: {
+          ...CHART_DEFAULTS.chart,
           type: 'area',
           stacked: true,
-          toolbar: { show: false },
-          zoom: { enabled: false },
           animations: { enabled: true, speed: 500 },
         },
         colors: CHART_COLORS.slice(0, 5),

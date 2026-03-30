@@ -15,6 +15,7 @@ const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
 const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
 const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
+const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
@@ -192,6 +193,12 @@ const routes = [
     path: '/how-it-works',
     name: 'HowItWorks',
     component: HowItWorksPage,
+    meta: { public: true },
+  },
+  {
+    path: '/features',
+    name: 'Features',
+    component: FeaturesPage,
     meta: { public: true },
   },
   {

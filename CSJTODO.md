@@ -83,3 +83,29 @@ Key files: Deploy notes at `March/March25Updates/deploy.md`.
 - `resources/js/components/Settings/SettingsTabBar.vue` — new component (untested)
 - `resources/js/views/Settings.vue` — restructured (Your Info removed, tabs added)
 - `resources/js/views/Dashboard.vue` — extensive changes (sparklines, progress bars, allowances)
+
+---
+
+## Session 28 March 2026 — Personal journey pages redesign
+
+### Completed This Session
+- [x] Full redesign of all 5 personal journey pages (Starting Out, Building Foundations, Protecting and Growing, Planning Your Future, Enjoying Your Wealth)
+- [x] Consistent template: horizon-to-raspberry gradient hero, journey name as h1, old title as bold subtitle
+- [x] Green spring CTA buttons with "View demo" link (direct persona launch, no modal)
+- [x] Dark horizon gradient "What Fynla shows you" section with coloured icon cards
+- [x] Light pink features section with 3px hover borders
+- [x] Horizon blue moments/small steps cards on eggshell background
+- [x] "See it in action" section: large persona name left, CTA right-aligned
+- [x] Merged related links + stage navigation into single row
+- [x] Consistent spring-coloured ticks, related link colours, title sizes, orphan word prevention
+- [x] Renamed "Your life stage" to "Your personal journey" in nav mega menu and landing page
+- [x] Renamed "Calculators" to "Free calculators" in resources mega menu
+
+### New Outstanding Items
+- [ ] Browser test all 5 journey pages across breakpoints (mobile, tablet, desktop)
+- [ ] Browser test "View demo" link loads correct persona on each page
+- [ ] Browser test "Try [journey] demo" button loads correct persona
+- [ ] Verify mockup HTML file `public/mockup-starting-out.html` is removed before deploy
+
+### Context
+Content branch has journey page redesign committed and pushed (2 commits: `e5ecd2bb`, `ae92ab8c`). All changes are frontend-only. Deploy notes at `March/March28Updates/deploy.md`. The mockup file `public/mockup-starting-out.html` should be deleted before production deploy.

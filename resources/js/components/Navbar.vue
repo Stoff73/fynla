@@ -92,7 +92,7 @@
           </router-link>
 
           <!-- Support Dropdown -->
-          <div class="relative">
+          <div class="relative" data-dropdown="support">
             <button
               @click="supportDropdownOpen = !supportDropdownOpen"
               class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
@@ -155,7 +155,7 @@
           </div>
 
           <!-- User Dropdown Menu -->
-          <div class="relative">
+          <div class="relative" data-dropdown="user">
             <button
               type="button"
               @click="userDropdownOpen = !userDropdownOpen"
@@ -184,6 +184,16 @@
                 class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
               >
                 <div class="py-1">
+                  <router-link
+                    to="/dashboard"
+                    class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
+                    @click="userDropdownOpen = false"
+                  >
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Dashboard
+                  </router-link>
                   <router-link
                     to="/profile"
                     class="flex items-center px-4 py-2 text-body-sm text-horizon-500 hover:bg-savannah-100"
@@ -387,11 +397,19 @@ export default {
       showBugReportModal.value = true;
     };
 
-    // Close dropdowns when clicking outside
+    // Close dropdowns when clicking outside or when clicking the other dropdown
     const handleClickOutside = (event) => {
-      const dropdown = event.target.closest('.relative');
-      if (!dropdown) {
+      // Check if click is inside the user dropdown wrapper
+      const userDropdownEl = event.target.closest('[data-dropdown="user"]');
+      // Check if click is inside the support dropdown wrapper
+      const supportDropdownEl = event.target.closest('[data-dropdown="support"]');
+
+      // Close user dropdown if click is outside it
+      if (!userDropdownEl) {
         userDropdownOpen.value = false;
+      }
+      // Close support dropdown if click is outside it
+      if (!supportDropdownEl) {
         supportDropdownOpen.value = false;
       }
     };

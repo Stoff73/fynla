@@ -12,7 +12,7 @@
  */
 
 import api from '../../services/api';
-import { removeToken, setToken as storageSetToken, isNativePlatform } from '../../services/tokenStorage';
+import { getToken, removeToken, setToken as storageSetToken, setItem, getItem, removeItem, isNativePlatform } from '../../services/tokenStorage';
 import logger from '../../utils/logger';
 
 // Import full persona data from JSON files
@@ -65,6 +65,7 @@ function getPersonaMetadata(personaId) {
 const state = {
     loading: false,
     error: null,
+    previewReferrer: null,
 };
 
 const getters = {
@@ -199,6 +200,10 @@ const mutations = {
     SET_ERROR(state, error) {
         state.error = error;
     },
+
+    SET_PREVIEW_REFERRER(state, path) {
+        state.previewReferrer = path;
+    },
 };
 
 const actions = {
@@ -228,9 +233,17 @@ const actions = {
     async enterPreviewMode({ commit, dispatch }, personaId) {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
+        commit('SET_PREVIEW_REFERRER', window.location.pathname + window.location.search);
         logger.info('[Preview] Entering preview mode for:', personaId);
 
         try {
+            // Save real user's token if they're signed in
+            const existingToken = await getToken();
+            if (existingToken) {
+                await setItem('fynla_real_user_token', existingToken);
+                logger.info('[Preview] Saved real user token for restoration on exit');
+            }
+
             logger.info('[Preview] Removing token...');
             await removeToken();
             logger.info('[Preview] Token removed, clearing auth...');
@@ -374,26 +387,37 @@ const actions = {
     /**
      * Exit preview mode
      */
-    async exitPreview({ commit }) {
-        try {
-            // Call the preview exit endpoint
-            await api.post('/preview/exit');
-        } catch (error) {
-            // Ignore errors - we're logging out anyway
-            logger.error('[Preview] Exit error', error.message);
-        }
+    async exitPreview({ commit, state }) {
+        const referrer = state.previewReferrer || '/';
 
-        // Clear auth state
+        // Clear preview auth state FIRST to prevent 401 interceptor redirects
         await removeToken();
         commit('auth/setUser', null, { root: true });
         commit('auth/setToken', null, { root: true });
+        commit('SET_PREVIEW_REFERRER', null);
 
-        // On native, use SPA navigation; on web, full redirect
+        // Call the preview exit endpoint (after clearing local state)
+        try {
+            await api.post('/preview/exit');
+        } catch (error) {
+            // Ignore errors - token already cleared locally
+            logger.error('[Preview] Exit error', error.message);
+        }
+
+        // Restore real user's token if they were signed in before demo
+        const realToken = await getItem('fynla_real_user_token');
+        if (realToken) {
+            await storageSetToken(realToken);
+            await removeItem('fynla_real_user_token');
+            logger.info('[Preview] Restored real user token');
+        }
+
+        // On native, use SPA navigation; on web, redirect to referrer
         const router = window.__appRouter;
         if (router && isNativePlatform()) {
             router.push('/m/login');
         } else {
-            window.location.href = '/';
+            window.location.href = referrer;
         }
     },
 };

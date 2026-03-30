@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
         <div class="flex items-center gap-4">
-          <img :src="logoUrl" alt="Fynla" class="h-8 w-auto" />
+          <router-link to="/"><img :src="logoUrl" alt="Fynla" class="h-8 w-auto" /></router-link>
         </div>
         <div class="text-body-sm text-neutral-500 text-center lg:text-left">
           <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Financial Freedom Mapping.</span>
