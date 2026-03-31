@@ -59,13 +59,13 @@
                   <span class="text-base font-bold text-raspberry-500 uppercase tracking-wider">Fynla</span>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <router-link to="/compare/fynla-vs-moneyhub" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial centralisation<br/>platform</router-link>
+                  <router-link to="/compare/fynla-vs-financial-centralisation-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial centralisation<br/>platform</router-link>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <router-link to="/compare/fynla-vs-projectionlab" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial planning<br/>platform</router-link>
+                  <router-link to="/compare/fynla-vs-financial-planning-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial planning<br/>platform</router-link>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <router-link to="/compare/fynla-vs-voyant" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial investment<br/>platform</router-link>
+                  <router-link to="/compare/fynla-vs-financial-investment-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial investment<br/>platform</router-link>
                 </th>
               </tr>
             </thead>
@@ -126,11 +126,13 @@
           Feature comparisons have been taken from current platforms that are on the market. You can also see a full overview of each:
         </p>
         <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2">
-          <router-link to="/compare/fynla-vs-moneyhub" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial centralisation platform</router-link>
+          <router-link to="/compare/fynla-vs-financial-centralisation-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial centralisation platform</router-link>
           <span class="text-neutral-500">|</span>
-          <router-link to="/compare/fynla-vs-projectionlab" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial planning platform</router-link>
+          <router-link to="/compare/fynla-vs-financial-planning-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial planning platform</router-link>
           <span class="text-neutral-500">|</span>
-          <router-link to="/compare/fynla-vs-voyant" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial investment platform</router-link>
+          <router-link to="/compare/fynla-vs-financial-investment-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial investment platform</router-link>
+          <span class="text-neutral-500">|</span>
+          <router-link to="/compare/fynla-vs-spreadsheets" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Spreadsheets</router-link>
         </div>
       </div>
     </div>

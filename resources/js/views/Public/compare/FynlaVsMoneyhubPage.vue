@@ -1,32 +1,35 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Fynla vs Moneyhub</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Fynla vs<br/>
+          <span class="text-raspberry-300">Financial Centralisation Platform</span>
+        </h1>
+        <p class="text-lg text-white/70">
           Different tools for different needs &mdash; spending tracking vs financial planning.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Content -->
     <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
 
         <!-- Overview -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Different Questions, Different Tools</h2>
+        <div class="bg-light-blue-100 rounded-xl p-8">
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Different Questions, Different Tools</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
-            Moneyhub answers &ldquo;where did my money go?&rdquo; Fynla answers &ldquo;where is my money going?&rdquo;
-            Moneyhub connects to your bank accounts and tracks spending. Fynla goes deeper into planning &mdash; pensions,
+            A financial centralisation platform answers &ldquo;where did my money go?&rdquo; Fynla answers &ldquo;where is my money going?&rdquo;
+            A centralisation platform connects to your bank accounts and tracks spending. Fynla goes deeper into planning &mdash; pensions,
             retirement, Inheritance Tax, and protection. They can work well together.
           </p>
         </div>
 
         <!-- Moneyhub Strengths -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Where Moneyhub Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where a Centralisation Platform Excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -49,7 +52,7 @@
 
         <!-- Fynla Strengths -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Where Fynla Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Fynla Excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -76,20 +79,20 @@
 
         <!-- Use Cases -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">When to Use Each</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">When to Use Each</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
-              <p class="text-xs font-semibold text-horizon-500 mb-2">Moneyhub is better for</p>
-              <ul class="space-y-1 text-xs text-neutral-500">
+            <div class="bg-light-pink-100 rounded-xl p-6">
+              <p class="text-base font-bold text-horizon-500 mb-3">A centralisation platform is better for</p>
+              <ul class="space-y-1.5 text-sm text-neutral-500">
                 <li>Day-to-day spending tracking</li>
                 <li>Seeing all account balances in one place</li>
                 <li>Budgeting and cashflow management</li>
                 <li>Automatic bank feed categorisation</li>
               </ul>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
-              <p class="text-xs font-semibold text-horizon-500 mb-2">Fynla is better for</p>
-              <ul class="space-y-1 text-xs text-neutral-500">
+            <div class="bg-light-pink-100 rounded-xl p-6">
+              <p class="text-base font-bold text-horizon-500 mb-3">Fynla is better for</p>
+              <ul class="space-y-1.5 text-sm text-neutral-500">
                 <li>Long-term financial planning</li>
                 <li>Retirement readiness projections</li>
                 <li>Inheritance Tax and estate planning</li>
@@ -100,25 +103,27 @@
         </div>
 
         <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Best Financial Planning Tools UK</router-link>
-            <router-link to="/compare/fynla-vs-spreadsheets" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla vs Spreadsheets</router-link>
-            <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla Pricing</router-link>
-          </div>
+        <div class="border-t border-light-gray pt-6 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span class="text-sm font-bold text-horizon-500">Related</span>
+          <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Best Financial Planning Tools UK</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/compare/fynla-vs-spreadsheets" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla vs Spreadsheets</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla Pricing</router-link>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Try Fynla free</h2>
-        <p class="text-sm text-white/80 mb-6">Go beyond spending tracking &mdash; plan your retirement, estate, and protection in one place.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
+    <section class="py-10 bg-light-pink-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Go beyond spending tracking</h2>
+          <p class="text-lg text-white/70 mb-4">Plan your retirement, estate, and protection in one place.</p>
+          <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+            Try the demo
+          </a>
+        </div>
       </div>
     </section>
   </PublicLayout>
@@ -132,10 +137,10 @@ export default {
   components: { PublicLayout },
 
   mounted() {
-    document.title = 'Fynla vs Moneyhub \u2014 Which is Right For You? | Fynla';
+    document.title = 'Fynla vs Financial Centralisation Platform \u2014 Which is Right For You? | Fynla';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'Moneyhub connects to your accounts for spending tracking. Fynla goes deeper into planning \u2014 pensions, retirement, IHT, and protection. Different tools for different needs.');
+      meta.setAttribute('content', 'A financial centralisation platform connects to your accounts for spending tracking. Fynla goes deeper into planning \u2014 pensions, retirement, IHT, and protection. Different tools for different needs.');
     }
   },
 };

@@ -317,9 +317,9 @@ const routes = [
   { path: '/learn/tax/tax-year-checklist', name: 'LearnTaxChecklist', component: TaxYearChecklistPage, meta: { public: true } },
   { path: '/learn/tax/isa-allowance', name: 'LearnTaxISA', component: IsaAllowanceTaxPage, meta: { public: true } },
   // Compare
-  { path: '/compare/fynla-vs-projectionlab', name: 'CompareProjectionLab', component: FynlaVsProjectionLabPage, meta: { public: true } },
-  { path: '/compare/fynla-vs-voyant', name: 'CompareVoyant', component: FynlaVsVoyantPage, meta: { public: true } },
-  { path: '/compare/fynla-vs-moneyhub', name: 'CompareMoneyhub', component: FynlaVsMoneyhubPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-financial-planning-platform', name: 'CompareProjectionLab', component: FynlaVsProjectionLabPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-financial-investment-platform', name: 'CompareVoyant', component: FynlaVsVoyantPage, meta: { public: true } },
+  { path: '/compare/fynla-vs-financial-centralisation-platform', name: 'CompareMoneyhub', component: FynlaVsMoneyhubPage, meta: { public: true } },
   { path: '/compare/fynla-vs-spreadsheets', name: 'CompareSpreadsheets', component: FynlaVsSpreadsheetsPage, meta: { public: true } },
   { path: '/compare/best-financial-planning-tools-uk', name: 'CompareBest', component: BestFinancialPlanningToolsPage, meta: { public: true } },
   { path: '/compare/fynla-vs-moneyhelper', name: 'CompareMoneyHelper', component: FynlaVsMoneyHelperPage, meta: { public: true } },
