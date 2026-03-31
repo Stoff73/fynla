@@ -1248,6 +1248,17 @@ export default {
     };
 
     onMounted(async () => {
+      // Auto-select stage if user came from a stage page (e.g. /register?stage=early_career)
+      const stageFromQuery = route.query?.stage;
+      if (stageFromQuery && LIFE_STAGES[stageFromQuery] && !currentLifeStage.value) {
+        await store.dispatch('lifeStage/setStage', stageFromQuery);
+        lifeStageStarted.value = true;
+        lifeStageCurrentIndex.value = 0;
+        // Re-fetch to ensure steps are loaded for the newly set stage
+        await store.dispatch('lifeStage/fetchStage').catch(() => {});
+        return;
+      }
+
       if (isLifeStageMode.value) {
         // Pre-fetch user profile and life stage progress (including field completeness)
         await Promise.all([

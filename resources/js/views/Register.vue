@@ -335,8 +335,13 @@ export default {
       storage.remove('preview_persona_id');
       storage.remove('preview_mode');
 
-      // Go to onboarding
-      router.push({ name: 'Onboarding' });
+      // Go to onboarding — preserve stage from query if user came from a stage page
+      const stageParam = route.query.stage;
+      if (stageParam) {
+        router.push({ name: 'Onboarding', query: { stage: stageParam } });
+      } else {
+        router.push({ name: 'Onboarding' });
+      }
     };
 
     const handleVerificationClose = () => {

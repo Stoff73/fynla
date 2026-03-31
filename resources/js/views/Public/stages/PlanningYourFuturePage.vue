@@ -12,7 +12,7 @@
           Fynla shows you exactly where you stand — including pension consolidation strategy and early retirement planning — and what you can do about&nbsp;it.
         </p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
-          <router-link to="/register" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start with your situation</router-link>
+          <router-link to="/register?stage=peak_earning" class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors">Start with your situation</router-link>
           <a href="#" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors" @click.prevent="launchDemo">View demo</a>
         </div>
       </div>
