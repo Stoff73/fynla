@@ -287,7 +287,6 @@ import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import BugReportModal from './BugReportModal.vue';
-import api from '@/services/api';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
@@ -297,13 +296,20 @@ export default {
 
   emits: ['open-chat'],
 
+  props: {
+    subscriptionData: {
+      type: Object,
+      default: null,
+    },
+  },
+
   components: {
     LogoutSuccessModal,
     PlanSelectionModal,
     BugReportModal,
   },
 
-  setup() {
+  setup(props) {
     const store = useStore();
     const route = useRoute();
     const router = useRouter();
@@ -311,22 +317,13 @@ export default {
     const userDropdownOpen = ref(false);
     const supportDropdownOpen = ref(false);
     const showBugReportModal = ref(false);
-    const trialData = ref(null);
+    const trialData = computed(() => props.subscriptionData);
     const showPlanModal = ref(false);
 
     const trialPlanName = computed(() => {
       if (!trialData.value) return '';
       return trialData.value.plan;
     });
-
-    const fetchTrialStatus = async () => {
-      try {
-        const response = await api.get('/payment/trial-status');
-        trialData.value = response.data;
-      } catch {
-        // Silently fail
-      }
-    };
 
     const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
@@ -469,7 +466,6 @@ export default {
       document.addEventListener('click', handleClickOutside);
       updateCountdown();
       countdownInterval = setInterval(updateCountdown, 1000);
-      fetchTrialStatus();
     });
 
     onBeforeUnmount(() => {

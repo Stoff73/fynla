@@ -7,6 +7,7 @@
     <SideMenu
       :collapsed="sideMenuCollapsed"
       :mobile-open="sideMenuMobileOpen"
+      :subscription-data="subscriptionData"
       @toggle="toggleSideMenu"
       @update:mobile-open="sideMenuMobileOpen = $event"
     />
@@ -20,7 +21,7 @@
       :class="contentMarginClass"
     >
       <div ref="appHeader">
-        <Navbar @open-chat="openChat" />
+        <Navbar :subscription-data="subscriptionData" @open-chat="openChat" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
@@ -137,7 +138,7 @@ export default {
       headerOffset: 64,
       footerOffset: 0,
       showTrialExpiredModal: false,
-      subscriptionPlan: null,
+      subscriptionData: null,
     };
   },
 
@@ -248,11 +249,9 @@ export default {
       if (this.isPreviewMode) return;
       try {
         const response = await api.get('/payment/trial-status');
-        const data = response.data;
-        if (!data.has_subscription) return;
-        this.subscriptionPlan = data.plan;
-        // Show modal if trial expired and no active subscription
-        const status = data.status;
+        this.subscriptionData = response.data;
+        if (!response.data.has_subscription) return;
+        const status = response.data.status;
         if (status !== 'trialing' && status !== 'active') {
           this.showTrialExpiredModal = true;
         }

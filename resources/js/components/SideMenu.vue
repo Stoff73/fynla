@@ -173,7 +173,6 @@ import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
 import BugReportModal from './BugReportModal.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
-import api from '@/services/api';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
@@ -197,6 +196,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    subscriptionData: {
+      type: Object,
+      default: null,
+    },
   },
 
   emits: ['toggle', 'update:mobileOpen'],
@@ -210,7 +213,6 @@ export default {
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
     const showPlanModal = ref(false);
-    const subscriptionData = ref(null);
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isAdvisor = computed(() => store.getters['auth/isAdvisor']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
@@ -475,23 +477,14 @@ export default {
       }
     };
 
-    // Subscription data for upgrade button visibility
-    const currentPlanSlug = computed(() => subscriptionData.value?.plan || null);
+    // Subscription data for upgrade button visibility (from AppLayout prop)
+    const currentPlanSlug = computed(() => props.subscriptionData?.plan || null);
     const showUpgradeLink = computed(() => {
       if (isPreviewMode.value) return true; // Shows "Sign Up Now"
-      if (!subscriptionData.value) return false;
-      if (subscriptionData.value.plan === 'pro') return false;
+      if (!props.subscriptionData) return false;
+      if (props.subscriptionData.plan === 'pro') return false;
       return true;
     });
-
-    const fetchSubscriptionData = async () => {
-      try {
-        const response = await api.get('/payment/trial-status');
-        subscriptionData.value = response.data;
-      } catch {
-        // Silently fail
-      }
-    };
 
     const handlePlanSelect = ({ plan, billingCycle }) => {
       showPlanModal.value = false;
@@ -499,7 +492,6 @@ export default {
     };
 
     onMounted(() => {
-      fetchSubscriptionData();
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
 
