@@ -14,7 +14,7 @@
     </div>
 
     <div class="bg-white">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 
         <p class="text-sm text-horizon-400 mb-10 pb-8 border-b border-light-gray">Last updated: 20 February 2026 &middot; Version 1.0</p>
 
