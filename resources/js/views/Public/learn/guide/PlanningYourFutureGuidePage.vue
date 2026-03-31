@@ -196,7 +196,7 @@
           Try the demo
         </a>
       </div>
-    </section>
+    </div>
   </PublicLayout>
 </template>
 

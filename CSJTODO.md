@@ -30,6 +30,40 @@
 - [ ] Deploy to production (see March/March31Updates/deployAdminUser.md)
 - [ ] Feature access gating per tier (CheckSubscription middleware only checks active status, not plan-specific features)
 
+### Context
+Content branch has journey page redesign committed and pushed (2 commits: `e5ecd2bb`, `ae92ab8c`). All changes are frontend-only. Deploy notes at `March/March28Updates/deploy.md`. The mockup file `public/mockup-starting-out.html` should be deleted before production deploy.
+
+---
+
+## Session 30 March 2026 — Resource pages, journey maps, persona modal, footer
+
+### Completed This Session
+- [x] All resource page headers updated to match pricing/calculator style (48 pages)
+- [x] JourneyMap component with curvy SVG path on all 5 journey pages
+- [x] "What do I need to start my journey?" section with 6 need cards per stage
+- [x] Journey map labels fixed (Assets, Liabilities capitalised)
+- [x] Persona selection modal redesigned (category grouping, SVG icons, two-row layout)
+- [x] Footer social media icons (YouTube, Facebook, Instagram, TikTok) with HelloFynla
+- [x] Insights page redesign (article cards, category filters, light pink stay updated)
+- [x] Article pages updated (back link, badges, light blue related, pink CTA)
+- [x] Learn page headers standardised across 28 pages
+- [x] Feature detail pages header updated via FeaturePageLayout component
+- [x] Homepage header links reordered (View video | Ask Fyn | See our demo)
+- [x] Journey page CTA text changed to "Start your journey"
+- [x] Small steps section background changed to light pink
+- [x] Mobile layout fixes for homepage and calculators
+
+### New Outstanding Items
+- [ ] Delete mockup HTML files from public/ before deploy (insights, learn, journey, persona, mobile)
+- [ ] Browser test persona selection modal on desktop and mobile
+- [ ] Browser test journey maps render correctly on all 5 pages (especially Protecting/Planning with 8-9 steps)
+- [ ] Browser test footer social media icons link correctly
+- [ ] Create PR from resources-pages branch to main
+- [ ] Run production build after PR merge
+
+### Context
+Resources-pages branch has 2 commits (`03466d0c`, `42469e6b`). 50 files changed across resource pages, journey pages, insights, learn, persona modal, and footer. All frontend-only. Deploy notes at `March/March30Updates/deploy.md`. Mockup files in public/ need deleting before deploy.
+
 ---
 
 ## Outstanding — Tech Debt Deferred (from techDebtDeferred.md)

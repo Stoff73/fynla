@@ -157,7 +157,7 @@
           Try the demo
         </router-link>
       </div>
-    </section>
+    </div>
   </PublicLayout>
 </template>
 
