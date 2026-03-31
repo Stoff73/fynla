@@ -128,7 +128,7 @@
           class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
           :title="effectiveCollapsed ? (subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now') : ''"
-          @click="showPlanModal = true; closeMobile()"
+          @click="$emit('open-plan-modal'); closeMobile()"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -136,13 +136,6 @@
           <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now' }}</span>
         </button>
       </div>
-
-      <PlanSelectionModal
-        v-if="showPlanModal"
-        :current-plan="currentPlanSlug"
-        @select="handlePlanSelect"
-        @close="showPlanModal = false"
-      />
 
       <!-- Logout button -->
       <div class="border-t border-light-gray p-2 flex-shrink-0">
@@ -172,7 +165,6 @@ import { useRoute, useRouter } from 'vue-router';
 import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
 import BugReportModal from './BugReportModal.vue';
-import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
@@ -184,7 +176,6 @@ export default {
     SideMenuItem,
     SideMenuSection,
     BugReportModal,
-    PlanSelectionModal,
   },
 
   props: {
@@ -202,7 +193,7 @@ export default {
     },
   },
 
-  emits: ['toggle', 'update:mobileOpen'],
+  emits: ['toggle', 'update:mobileOpen', 'open-plan-modal'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -212,7 +203,6 @@ export default {
     const logoUrl = '/images/logos/LogoHiResFynlaDark.png';
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
-    const showPlanModal = ref(false);
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isAdvisor = computed(() => store.getters['auth/isAdvisor']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
@@ -490,11 +480,6 @@ export default {
       return true;
     });
 
-    const handlePlanSelect = ({ plan, billingCycle }) => {
-      showPlanModal.value = false;
-      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
-    };
-
     onMounted(() => {
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
@@ -560,10 +545,8 @@ export default {
       openBugReport,
       handleLogout,
       isPreviewMode,
-      showPlanModal,
       showUpgradeLink,
       currentPlanSlug,
-      handlePlanSelect,
     };
   },
 };

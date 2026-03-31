@@ -10,6 +10,7 @@
       :subscription-data="subscriptionData"
       @toggle="toggleSideMenu"
       @update:mobile-open="sideMenuMobileOpen = $event"
+      @open-plan-modal="showPlanModal = true"
     />
 
     <!-- Mobile hamburger toggle -->
@@ -21,7 +22,7 @@
       :class="contentMarginClass"
     >
       <div ref="appHeader">
-        <Navbar :subscription-data="subscriptionData" @open-chat="openChat" />
+        <Navbar :subscription-data="subscriptionData" @open-chat="openChat" @open-plan-modal="showPlanModal = true" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
@@ -84,7 +85,15 @@
     <PlanSelectionModal
       v-if="showTrialExpiredModal"
       :dismissable="false"
-      @select="handleExpiredPlanSelect"
+      @select="handlePlanSelect"
+    />
+
+    <!-- Plan selection modal (from navbar/sidebar "Choose a Plan" / "Upgrade Now") -->
+    <PlanSelectionModal
+      v-if="showPlanModal && !showTrialExpiredModal"
+      :current-plan="activePlanSlug"
+      @select="handlePlanSelect"
+      @close="showPlanModal = false"
     />
   </div>
 </template>
@@ -138,6 +147,7 @@ export default {
       headerOffset: 64,
       footerOffset: 0,
       showTrialExpiredModal: false,
+      showPlanModal: false,
       subscriptionData: null,
     };
   },
@@ -161,6 +171,12 @@ export default {
         && !this.isPreviewMode
         && this.currentUser
         && !this.currentUser.is_preview_user;
+    },
+
+    // Only set for active paid subscribers — trial users see all plans
+    activePlanSlug() {
+      if (!this.subscriptionData || this.subscriptionData.status !== 'active') return null;
+      return this.subscriptionData.plan;
     },
   },
 
@@ -267,8 +283,9 @@ export default {
       }
     },
 
-    handleExpiredPlanSelect({ plan, billingCycle }) {
+    handlePlanSelect({ plan, billingCycle }) {
       this.showTrialExpiredModal = false;
+      this.showPlanModal = false;
       this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
     },
   },

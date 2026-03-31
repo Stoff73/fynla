@@ -41,7 +41,7 @@
               </div>
             </div>
             <button
-              @click="showPlanModal = true"
+              @click="$emit('open-plan-modal')"
               class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             >
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@
           <!-- Upgrade (non-trial, non-pro subscribers only) -->
           <button
             v-else-if="showUpgradeButton"
-            @click="showPlanModal = true"
+            @click="$emit('open-plan-modal')"
             class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
           >
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,12 +270,6 @@
     </div>
   </div>
 
-  <PlanSelectionModal
-    v-if="showPlanModal"
-    :current-plan="currentPlanSlug"
-    @select="handlePlanSelect"
-    @close="showPlanModal = false"
-  />
   <BugReportModal :show="showBugReportModal" @close="showBugReportModal = false" />
 </template>
 
@@ -284,7 +278,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
-import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import BugReportModal from './BugReportModal.vue';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
@@ -293,7 +286,7 @@ import logger from '@/utils/logger';
 export default {
   name: 'Navbar',
 
-  emits: ['open-chat'],
+  emits: ['open-chat', 'open-plan-modal'],
 
   props: {
     subscriptionData: {
@@ -304,7 +297,6 @@ export default {
 
   components: {
     LogoutSuccessModal,
-    PlanSelectionModal,
     BugReportModal,
   },
 
@@ -317,17 +309,11 @@ export default {
     const supportDropdownOpen = ref(false);
     const showBugReportModal = ref(false);
     const trialData = computed(() => props.subscriptionData);
-    const showPlanModal = ref(false);
 
     const trialPlanName = computed(() => {
       if (!trialData.value) return '';
       return trialData.value.plan;
     });
-
-    const handlePlanSelect = ({ plan, billingCycle }) => {
-      showPlanModal.value = false;
-      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
-    };
 
     // Countdown timer to 9 April 2026 12:00
     const countdown = ref(null);
@@ -388,13 +374,6 @@ export default {
 
     const isPreviewMode = computed(() => {
       return store.getters['preview/isPreviewMode'];
-    });
-
-    // Only set currentPlan for active paid subscribers (filters upgrade options)
-    // Trial users see all plans — they haven't paid yet
-    const currentPlanSlug = computed(() => {
-      if (!trialData.value || trialData.value.status !== 'active') return null;
-      return trialData.value.plan;
     });
 
     // Show upgrade for non-pro subscribers (trialing or active on student/standard/family)
@@ -487,12 +466,9 @@ export default {
       isAdmin,
       isAdvisor,
       isPreviewMode,
-      currentPlanSlug,
       showUpgradeButton,
       trialData,
       trialPlanName,
-      showPlanModal,
-      handlePlanSelect,
       showMFAReminder,
       supportDropdownOpen,
       showBugReportModal,
