@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Learn Page Redesign</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F5F0EB; color: #1F2A44; }
+  :root {
+    --horizon-500: #1F2A44;
+    --raspberry-500: #D6336C;
+    --raspberry-300: #F06595;
+    --spring-500: #37B679;
+    --eggshell-500: #F5F0EB;
+    --light-pink-100: #FCE4EC;
+    --light-blue-100: #DBEAFE;
+    --light-gray: #E5E7EB;
+    --neutral-400: #9CA3AF;
+    --neutral-500: #6B7280;
+    --neutral-600: #4B5563;
+    --violet-500: #7C3AED;
+    --savannah-500: #D97706;
+  }
+
+  /* Hero */
+  .hero { background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500)); overflow: hidden; }
+  .hero-inner { max-width: 1280px; margin: 0 auto; padding: 40px 24px; text-align: left; }
+  .hero h1 { font-size: 2.8rem; font-weight: 900; color: #fff; margin-bottom: 12px; }
+  .hero h1 span { color: var(--raspberry-300); }
+  .hero p { font-size: 1.05rem; color: rgba(255,255,255,0.7); text-align: left; }
+
+  /* Intro */
+  .intro-section { padding: 28px 0; background: #fff; }
+  .intro-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .intro-inner p { font-size: 0.9rem; color: var(--neutral-600); line-height: 1.6; }
+
+  /* Content grid — full width */
+  .content-section { padding: 32px 0; background: var(--eggshell-500); }
+  .content-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* Category box */
+  .cat-box { background: #fff; border-radius: 12px; border: 1px solid var(--light-gray); padding: 20px; }
+  .cat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cat-title { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); }
+  .cat-list { list-style: none; }
+  .cat-list li { margin-bottom: 6px; }
+  .cat-item {
+    display: flex; align-items: center; font-size: 0.875rem; color: var(--neutral-600);
+    cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: all 0.15s;
+  }
+  .cat-item:hover { background: var(--light-pink-100); color: var(--raspberry-500); }
+  .cat-item.active { background: var(--light-blue-100); color: var(--horizon-500); font-weight: 600; }
+  .cat-item-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
+  .cat-item svg { width: 12px; height: 12px; margin-left: auto; color: var(--neutral-400); flex-shrink: 0; }
+
+  /* Expanded content below grid */
+  .expanded-content {
+    margin-top: 16px; background: #fff; border-radius: 16px; border: 1px solid var(--light-gray);
+    padding: 28px; animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .expanded-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .expanded-title { font-size: 1.25rem; font-weight: 700; color: var(--horizon-500); }
+  .expanded-close { width: 28px; height: 28px; border-radius: 50%; background: var(--eggshell-500); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .expanded-close svg { width: 14px; height: 14px; color: var(--neutral-500); }
+  .expanded-body p { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.6; margin-bottom: 12px; }
+  .expanded-readmore { font-size: 0.9rem; font-weight: 600; color: var(--raspberry-500); text-decoration: none; }
+
+  /* Related links — light pink */
+  .related-section { padding: 32px 0; background: var(--eggshell-500); border-top: 1px solid var(--light-gray); }
+  .related-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .related-card {
+    background: var(--light-pink-100); border-radius: 12px; padding: 20px;
+    text-decoration: none; color: inherit; transition: all 0.15s; cursor: pointer;
+  }
+  .related-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .related-card h3 { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .related-card p { font-size: 0.8rem; color: var(--neutral-500); }
+
+  /* CTA */
+  .cta-section { padding: 40px 0; background: #fff; }
+  .cta-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .cta-box {
+    background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+    border-radius: 16px; padding: 28px; color: #fff;
+  }
+  .cta-box h2 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+  .cta-box p { font-size: 1.05rem; color: rgba(255,255,255,0.7); margin-bottom: 16px; }
+  .cta-btn { display: inline-block; padding: 10px 24px; background: #fff; color: var(--horizon-500); font-weight: 600; border-radius: 8px; text-decoration: none; font-size: 0.875rem; }
+
+  /* Placeholders */
+  .nav-placeholder { background: #fff; padding: 14px 24px; display: flex; align-items: center; border-bottom: 1px solid var(--light-gray); }
+  .nav-placeholder span:first-child { font-weight: 700; font-size: 1.1rem; color: var(--horizon-500); }
+  .nav-placeholder span:last-child { color: var(--neutral-400); font-size: 0.85rem; margin-left: auto; }
+  .footer-placeholder { background: var(--horizon-500); padding: 24px; text-align: center; }
+  .footer-placeholder span { color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+
+  .annotation { background: #FEF3C7; border: 2px dashed #F59E0B; border-radius: 6px; padding: 8px 14px; margin: 12px 0; font-size: 0.75rem; color: #92400E; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="nav-placeholder"><span>Fynla</span><span>nav placeholder</span></div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Learn</h1>
+    <p>Understand your finances. Make better decisions.</p>
+  </div>
+</div>
+
+<!-- Intro — full width, left aligned -->
+<div class="intro-section">
+  <div class="intro-inner">
+    <p>Whether you're trying to understand what a pension drawdown is, deciding if you should overpay your mortgage, or checking this year's tax allowances — we've written a guide for it. Everything here is free, jargon-free, and written for real people, not finance professionals.</p>
+  </div>
+</div>
+
+<!-- Content grid — full width -->
+<div class="content-section">
+  <div class="content-inner">
+    <div class="grid-4">
+
+      <!-- Concept Explainers -->
+      <div class="cat-box">
+        <div class="cat-header">
+          <span class="cat-dot" style="background: #D6336C;"></span>
+          <h2 class="cat-title">Concept Explainers</h2>
+        </div>
+        <ul class="cat-list">
+          <li><div class="cat-item active"><span class="cat-item-dot" style="background: #D6336C;"></span>What is an ISA?<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is Drawdown?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is Salary Sacrifice?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is an LPA?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is a SIPP?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is Inheritance Tax?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D6336C;"></span>What is Financial Planning?</div></li>
+        </ul>
+      </div>
+
+      <!-- Decision Guides -->
+      <div class="cat-box">
+        <div class="cat-header">
+          <span class="cat-dot" style="background: #37B679;"></span>
+          <h2 class="cat-title">Decision Guides</h2>
+        </div>
+        <ul class="cat-list">
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #37B679;"></span>Should I overpay my mortgage?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #37B679;"></span>Should I consolidate pensions?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #37B679;"></span>When should I make a will?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #37B679;"></span>Lifetime ISA or ISA?</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #37B679;"></span>When can I afford to retire?</div></li>
+        </ul>
+      </div>
+
+      <!-- Life Stage Guides -->
+      <div class="cat-box">
+        <div class="cat-header">
+          <span class="cat-dot" style="background: #7C3AED;"></span>
+          <h2 class="cat-title">Life Stage Guides</h2>
+        </div>
+        <ul class="cat-list">
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #7C3AED;"></span>Starting Out: money basics</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #7C3AED;"></span>Building Foundations: first home</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #7C3AED;"></span>Protecting and Growing</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #7C3AED;"></span>Planning Your Future</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #7C3AED;"></span>Enjoying Your Wealth</div></li>
+        </ul>
+      </div>
+
+      <!-- Tax & Allowances -->
+      <div class="cat-box">
+        <div class="cat-header">
+          <span class="cat-dot" style="background: #D97706;"></span>
+          <h2 class="cat-title">Tax & Allowances</h2>
+        </div>
+        <ul class="cat-list">
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D97706;"></span>ISA allowance guide</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D97706;"></span>Pension annual allowance</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D97706;"></span>IHT thresholds</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D97706;"></span>Capital gains tax rates</div></li>
+          <li><div class="cat-item"><span class="cat-item-dot" style="background: #D97706;"></span>Tax year checklist</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Expanded content panel (appears when item clicked) -->
+    <div class="expanded-content">
+      <div class="expanded-header">
+        <h3 class="expanded-title">What is an ISA?</h3>
+        <button class="expanded-close"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <p>An Individual Savings Account (ISA) is a tax-efficient savings or investment wrapper available to UK residents. You can save or invest up to £20,000 per tax year across different ISA types without paying income tax or capital gains tax on the returns.</p>
+      <p>There are four main types: Cash ISA, Stocks and Shares ISA, Lifetime ISA, and Innovative Finance ISA. Each has its own rules, but they all share the same annual allowance.</p>
+      <a href="#" class="expanded-readmore">Read full guide &rarr;</a>
+    </div>
+
+    <div class="annotation">CHANGED: When a question is clicked, a content preview panel appears below the grid with a summary and "Read full guide" link. This keeps users on the page while providing a preview. The full article page remains for SEO (each guide keeps its own URL and full content).</div>
+  </div>
+</div>
+
+<!-- Related links — light pink background -->
+<div class="related-section">
+  <div class="related-inner">
+    <div class="related-grid">
+      <a href="#" class="related-card">
+        <h3>Glossary A–Z</h3>
+        <p>37 financial terms explained in plain English</p>
+      </a>
+      <a href="#" class="related-card">
+        <h3>Latest Insights</h3>
+        <p>Timely commentary on tax changes and financial news</p>
+      </a>
+      <a href="#" class="related-card">
+        <h3>FAQ</h3>
+        <p>Common questions about Fynla answered</p>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-box">
+      <h2>Ready to put knowledge into action?</h2>
+      <p>Try Fynla free and see your full financial picture in minutes.</p>
+      <a href="#" class="cta-btn">Try the demo</a>
+    </div>
+  </div>
+</div>
+
+<div class="footer-placeholder"><span>footer placeholder</span></div>
+
+</body>
+</html>

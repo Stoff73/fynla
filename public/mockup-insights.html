@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Insights Page Redesign v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F5F0EB; color: #1F2A44; }
+  :root {
+    --horizon-500: #1F2A44;
+    --raspberry-500: #D6336C;
+    --raspberry-300: #F06595;
+    --spring-500: #37B679;
+    --eggshell-500: #F5F0EB;
+    --light-pink-100: #FCE4EC;
+    --light-blue-100: #DBEAFE;
+    --light-gray: #E5E7EB;
+    --neutral-400: #9CA3AF;
+    --neutral-500: #6B7280;
+  }
+
+  /* Hero */
+  .hero { background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500)); overflow: hidden; }
+  .hero-inner { max-width: 1280px; margin: 0 auto; padding: 40px 24px; text-align: left; }
+  .hero h1 { font-size: 2.8rem; font-weight: 900; color: #fff; margin-bottom: 12px; }
+  .hero h1 span { color: var(--raspberry-300); }
+  .hero p { font-size: 1.05rem; color: rgba(255,255,255,0.7); }
+
+  /* Articles section */
+  .articles-section { padding: 48px 0; background: var(--eggshell-500); }
+  .articles-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .articles-intro { font-size: 0.9rem; color: var(--neutral-500); margin-bottom: 24px; line-height: 1.6; }
+
+  /* Filter pills */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .filter-pill {
+    padding: 7px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; border: 1px solid var(--light-gray);
+    background: #fff; color: var(--neutral-500);
+  }
+  .filter-pill:hover { border-color: var(--raspberry-300); color: var(--horizon-500); }
+  .filter-pill.active { background: var(--horizon-500); color: #fff; border-color: var(--horizon-500); }
+
+  /* Article card */
+  .article-card {
+    display: flex; gap: 0; background: #fff; border-radius: 16px;
+    border: 1px solid var(--light-gray); overflow: hidden;
+    margin-bottom: 16px; transition: all 0.2s; cursor: pointer;
+    text-decoration: none; color: inherit;
+  }
+  .article-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: var(--raspberry-300); }
+
+  .article-image {
+    width: 280px; flex-shrink: 0; background: linear-gradient(135deg, var(--horizon-500), var(--raspberry-500));
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .article-image-placeholder {
+    width: 100%; aspect-ratio: 16/10; border-radius: 8px; background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .article-image-placeholder svg { width: 48px; height: 48px; color: rgba(255,255,255,0.4); }
+
+  .article-content { flex: 1; padding: 24px 28px; display: flex; flex-direction: column; justify-content: center; }
+  .article-date { font-size: 0.8rem; color: var(--neutral-400); margin-bottom: 4px; }
+  .article-category {
+    display: inline-block; font-size: 0.6rem; font-weight: 600; padding: 1px 6px;
+    border-radius: 8px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .article-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cat-tax { background: #FEF3C7; color: #92400E; }
+  .cat-savings { background: #D1FAE5; color: #065F46; }
+  .cat-pension { background: #EDE9FE; color: #5B21B6; }
+  .cat-platform { background: var(--light-blue-100); color: #1E40AF; }
+
+  .article-title { font-size: 1.25rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 8px; line-height: 1.3; }
+  @media (min-width: 1024px) { .article-title { font-size: 1.5rem; } }
+  .article-card:hover .article-title { color: var(--raspberry-500); }
+  .article-summary { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.5; margin-bottom: 12px; }
+  .article-read { font-size: 1rem; font-weight: 600; color: var(--raspberry-500); }
+
+  /* Stay Updated */
+  .stay-updated { padding: 56px 0; background: var(--light-pink-100); text-align: center; }
+  .stay-updated-inner { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+  .stay-updated h2 { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 10px; }
+  @media (min-width: 640px) { .stay-updated h2 { font-size: 1.5rem; } }
+  @media (min-width: 768px) { .stay-updated h2 { font-size: 1.875rem; } }
+  @media (min-width: 1024px) { .stay-updated h2 { font-size: 2.25rem; } }
+  .stay-updated p { font-size: 0.9rem; color: var(--neutral-500); margin-bottom: 24px; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+  .btn-spring { display: inline-block; padding: 12px 28px; background: var(--spring-500); color: #fff; font-weight: 600; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
+
+  /* Placeholders */
+  .nav-placeholder { background: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--light-gray); }
+  .nav-placeholder span:first-child { font-weight: 700; font-size: 1.1rem; color: var(--horizon-500); }
+  .nav-placeholder span:last-child { color: var(--neutral-400); font-size: 0.85rem; margin-left: auto; }
+  .footer-placeholder { background: var(--horizon-500); padding: 24px; text-align: center; }
+  .footer-placeholder span { color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="nav-placeholder"><span>Fynla</span><span>nav placeholder</span></div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Fynla <span>Insights</span></h1>
+    <p>Timely commentary on what's changing — and what it means for you.</p>
+  </div>
+</div>
+
+<!-- Articles -->
+<div class="articles-section">
+  <div class="articles-inner">
+    <p class="articles-intro">
+      Focused, practical pieces about tax changes, pension rules, budget updates, and their impact on your financial plan. Our insights draw on information from key financial institutions and regulatory bodies, advice from certified advisors, and updates on the Fynla platform including upcoming releases.
+    </p>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <div class="filter-pill active">All</div>
+      <div class="filter-pill">Tax changes</div>
+      <div class="filter-pill">Pensions</div>
+      <div class="filter-pill">Savings & ISA</div>
+      <div class="filter-pill">Estate planning</div>
+      <div class="filter-pill">Platform updates</div>
+    </div>
+
+    <!-- Article 1: Pension/IHT — estate planning icon -->
+    <a href="#" class="article-card">
+      <div class="article-image">
+        <div class="article-image-placeholder">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        </div>
+      </div>
+      <div class="article-content">
+        <p class="article-date">March 2026</p>
+        <h2 class="article-title">Pension Inheritance Tax Changes: April 2027</h2>
+        <p class="article-summary">From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here's what's changing and what you can do.</p>
+        <div class="article-tags">
+          <span class="article-category cat-pension">Pensions</span>
+          <span class="article-category cat-tax">Estate planning</span>
+        </div>
+        <span class="article-read">Read &rarr;</span>
+      </div>
+    </a>
+
+    <!-- Article 2: ISA/Savings — savings/money icon -->
+    <a href="#" class="article-card">
+      <div class="article-image">
+        <div class="article-image-placeholder">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+      <div class="article-content">
+        <p class="article-date">March 2026</p>
+        <h2 class="article-title">ISA Allowance 2025/26: Make the Most of Your £20,000</h2>
+        <p class="article-summary">The ISA allowance remains at £20,000. Types, deadlines, and strategies for maximising your tax-free savings.</p>
+        <div class="article-tags">
+          <span class="article-category cat-savings">Savings & ISA</span>
+        </div>
+        <span class="article-read">Read &rarr;</span>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Stay Updated -->
+<div class="stay-updated">
+  <div class="stay-updated-inner">
+    <h2>Want to stay updated?</h2>
+    <p>More insights are on the way. Register for a free Fynla account and we'll let you know when new articles are published.</p>
+    <a href="#" class="btn-spring">Register for free</a>
+  </div>
+</div>
+
+<div class="footer-placeholder"><span>footer placeholder</span></div>
+
+</body>
+</html>

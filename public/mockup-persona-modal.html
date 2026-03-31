@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Persona Selection Modal v4</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+  .modal {
+    background: #fff; border-radius: 16px; max-width: 1060px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden;
+  }
+  .modal-header {
+    background: linear-gradient(to right, #1F2A44, #D6336C);
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { font-size: 1.15rem; font-weight: 900; color: #fff; }
+  .modal-header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
+  .modal-close { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; padding: 4px; border-radius: 8px; }
+  .modal-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+  .modal-body { padding: 20px 24px; }
+
+  /* Row with inline category labels */
+  .demo-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: stretch; }
+  .demo-row:last-child { margin-bottom: 0; }
+
+  /* Category group within a row */
+  .category-group { display: flex; flex-direction: column; flex: 1; }
+  .category-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .category-icon { width: 16px; height: 16px; flex-shrink: 0; color: #1F2A44; }
+  .category-label { font-size: 0.7rem; font-weight: 700; color: #1F2A44; text-transform: uppercase; letter-spacing: 0.5px; }
+  .category-divider { flex: 1; height: 1px; background: #E5E7EB; margin-left: 4px; }
+
+  .category-cards { display: flex; gap: 10px; flex: 1; }
+  .category-cards > * { flex: 1; }
+
+  /* Persona card */
+  .persona-card {
+    border-radius: 12px; padding: 14px 16px; cursor: pointer;
+    transition: all 0.15s; text-align: left; display: flex; flex-direction: column;
+  }
+  .persona-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+
+  /* One colour per category */
+  .card-starting { background: #D1FAE5; color: #065F46; }
+  .card-protecting { background: #DBEAFE; color: #1E3A5F; }
+  .card-planning { background: #EDE9FE; color: #4C1D95; }
+  .card-enjoying { background: #FEF3C7; color: #78350F; }
+
+  .card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .card-icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .card-name { font-size: 0.85rem; font-weight: 700; line-height: 1.2; }
+  .card-desc { font-size: 0.7rem; opacity: 0.7; line-height: 1.4; margin-bottom: 8px; flex: 1; }
+  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tag { font-size: 0.6rem; font-weight: 600; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,0.08); }
+  .card-link { font-size: 0.75rem; font-weight: 600; opacity: 0.7; }
+  .persona-card:hover .card-link { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="modal">
+  <div class="modal-header">
+    <div>
+      <h2>Choose your journey to see it in action</h2>
+      <p>Explore realistic scenarios with sample data — no sign-up required</p>
+    </div>
+    <button class="modal-close">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="modal-body">
+
+    <!-- Row 1: Starting Out (2) + Protecting and Growing (2) -->
+    <div class="demo-row">
+      <!-- Starting Out -->
+      <div class="category-group">
+        <div class="category-header">
+          <svg class="category-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span class="category-label">Starting Out</span>
+          <div class="category-divider"></div>
+        </div>
+        <div class="category-cards">
+          <div class="persona-card card-starting">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg><span class="card-name">Janice Taylor</span></div>
+            <div class="card-desc">Graduate with student loan, building an emergency fund.</div>
+            <div class="card-tags"><span class="tag">£5k - £15k</span><span class="tag">Emergency fund</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+          <div class="persona-card card-starting">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span class="card-name">John Morgan</span></div>
+            <div class="card-desc">Late twenties, saving for a deposit and first home.</div>
+            <div class="card-tags"><span class="tag">£20k - £50k</span><span class="tag">First home</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protecting and Growing -->
+      <div class="category-group">
+        <div class="category-header">
+          <svg class="category-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span class="category-label">Protecting and Growing</span>
+          <div class="category-divider"></div>
+        </div>
+        <div class="category-cards">
+          <div class="persona-card card-protecting">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="card-name">James &amp; Emily Carter</span></div>
+            <div class="card-desc">Young family with mortgage and children to protect.</div>
+            <div class="card-tags"><span class="tag">£150k - £300k</span><span class="tag">Protection</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+          <div class="persona-card card-protecting">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span class="card-name">Alex Chen</span></div>
+            <div class="card-desc">Entrepreneur with SIPP and business interests.</div>
+            <div class="card-tags"><span class="tag">£200k - £500k</span><span class="tag">Business</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Planning Your Future (1) + Enjoying Your Wealth (2) -->
+    <div class="demo-row">
+      <!-- Planning Your Future -->
+      <div class="category-group">
+        <div class="category-header">
+          <svg class="category-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="category-label">Planning Your Future</span>
+          <div class="category-divider"></div>
+        </div>
+        <div class="category-cards">
+          <div class="persona-card card-planning">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="card-name">David &amp; Sarah Mitchell</span></div>
+            <div class="card-desc">Peak earners with multiple pensions approaching retirement.</div>
+            <div class="card-tags"><span class="tag">£500k - £1M</span><span class="tag">Retirement</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enjoying Your Wealth -->
+      <div class="category-group">
+        <div class="category-header">
+          <svg class="category-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7"/></svg>
+          <span class="category-label">Enjoying Your Wealth</span>
+          <div class="category-divider"></div>
+        </div>
+        <div class="category-cards">
+          <div class="persona-card card-enjoying">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span class="card-name">Margaret Thompson</span></div>
+            <div class="card-desc">Widowed, managing estate and Inheritance Tax.</div>
+            <div class="card-tags"><span class="tag">£300k - £600k</span><span class="tag">Estate</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+          <div class="persona-card card-enjoying">
+            <div class="card-top"><svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span class="card-name">Robert &amp; Patricia Williams</span></div>
+            <div class="card-desc">Retired couple with pensions in drawdown.</div>
+            <div class="card-tags"><span class="tag">£800k - £1.5M</span><span class="tag">Decumulation</span></div>
+            <span class="card-link">View demo &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
